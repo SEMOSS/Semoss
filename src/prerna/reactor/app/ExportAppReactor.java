@@ -1,6 +1,7 @@
 package prerna.reactor.app;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,6 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.utils.ExportProjectAppReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -74,11 +74,16 @@ public class ExportAppReactor extends AbstractReactor {
 
 		// zip project
 		ZipOutputStream zos = null;
+		FileOutputStream fos = null;
 		try {
-			// zip project folder
-			logger.info("Zipping project app files...");
-			zos = ZipUtils.zipFolder(projectAssetFolder, zipFilePath, null, null);
-			logger.info("Done zipping project app files...");
+			fos = new FileOutputStream(zipFilePath);
+			zos = new ZipOutputStream(fos);
+			// extract all content inside of assets and add to zip
+			{
+				logger.info("Flatten the assets file...");
+				ZipUtils.flattenDir(projectAssetFolder, zos);
+				logger.info("Done extracting assets...");
+			}
 			
 			// zip up the project metadata
 			{
@@ -102,13 +107,6 @@ public class ExportAppReactor extends AbstractReactor {
 			ZipUtils.addToZipFile(smss, zos);
 			logger.info("Done zipping project smss files...");
 			logger.info("Zipping Complete");
-			
-			{
-				logger.info("Flatten the assets file...");
-				ZipUtils.flattenDir(projectAssetFolder, zos);
-				logger.info("Done restructuring");
-			}
-			
 			
 		} catch (Exception e) {
 			logger.info("Error occurred zipping up project");

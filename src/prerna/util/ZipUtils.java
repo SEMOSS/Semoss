@@ -343,6 +343,7 @@ public final class ZipUtils {
 		return paths;
 	}
 	
+	//Extract all subfolders  and files within given folder path
 	public static boolean flattenDir(String folderPath, ZipOutputStream zos) {
 		boolean complete = false;
 		Path flattenFolder = Paths.get(folderPath);
@@ -359,9 +360,10 @@ public final class ZipUtils {
 		return complete;
 	}
 
+	//Populate zip with extracted folder content
 	public static void addFolderContentsToZip(Path folder, ZipOutputStream zos, String zipPathPrefix) throws IOException {
 		Files.walkFileTree(folder, new SimpleFileVisitor<Path>( ) {
-			
+			@Override
 			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 				String zipEntryName = zipPathPrefix + file.getFileName().toString();
 				ZipEntry zipEntry = new ZipEntry(zipEntryName);
