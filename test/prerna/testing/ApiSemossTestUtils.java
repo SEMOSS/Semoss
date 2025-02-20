@@ -1,7 +1,10 @@
 package prerna.testing;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Map;
 
@@ -92,6 +95,48 @@ public class ApiSemossTestUtils {
 		
 		NounMetadata ret = pr.getResults().get(0);
 		return ret;
+	}
+	
+	public static void processPixelWithError(String pixel, String error) {
+		PixelRunner pr = new PixelRunner();
+
+		boolean errorChecked = false;
+		try {
+			classLogger.info(pixel);
+			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
+
+			NounMetadata ret = pr.getResults().get(0);
+			assertEquals(PixelDataType.ERROR, ret.getNounType(),
+					"Was not ERROR, return was: " + convertMapToPixelInput(ret.getValue()));
+			PixelDataType nounType = ret.getNounType();
+			assertTrue(nounType == PixelDataType.ERROR || nounType == PixelDataType.INVALID_SYNTAX);
+			if (error != null) {
+				assertEquals(error, ret.getValue().toString());
+				errorChecked = true;
+			} else {
+				assertNull(ret.getValue());
+			}
+		} catch (SemossPixelException spe) {
+			assertEquals(error, spe.getMessage());
+			errorChecked = true;
+		}
+		
+		if (!errorChecked) {
+			fail("Expected Error: " + error + " did not occur");
+		}
+
+	}
+
+	public static void processPixelWithException(String pixel, String error) {
+		PixelRunner pr = new PixelRunner();
+
+		classLogger.info(pixel);
+		try {
+			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
+			fail();
+		} catch (SemossPixelException e) {
+			assertEquals(e.getMessage(), error);
+		}
 	}
 	
 	public static String buildPixelChain(PixelChain... chains) {
