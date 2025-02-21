@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -14,12 +16,15 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.reactors.admin.AdminGetProjectAvailableReactorsReactor;
 import prerna.om.Insight;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class AdminGetProjectAvailableReactorsReactorUnitTests {
 	
 	private AdminGetProjectAvailableReactorsReactor reactor;
 	private Insight insight;
 	private User user;
+	
+	private Map<String, String> keyValues;
 	
 	@BeforeEach
 	void setup() {
@@ -28,6 +33,8 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
 		user = mock(User.class);
 		reactor.setInsight(insight);
 		when(insight.getUser()).thenReturn(user);
+		
+		keyValues = reactor.keyValue;
 	}
 	
 	@Test
@@ -43,6 +50,18 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
 	
 	@Test
 	void testProjectIdNull() {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+			SecurityAdminUtils s = new SecurityAdminUtils();
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("Must input an project id", e.getMessage());
+		}
+	}
+	
+	@Test
+	void testProjectIdEmpty() {
+		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), "");
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = new SecurityAdminUtils();
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
