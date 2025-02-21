@@ -6,6 +6,7 @@ import prerna.engine.impl.vector.OpenSearchRestVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 import prerna.engine.impl.vector.PineConeVectorDatabaseEngine;
 import prerna.engine.impl.vector.WeaviateVectorDatabaseEngine;
+import prerna.engine.impl.vector.ElasticSearchRestVectorDatabaseEngine;
 
 public enum VectorDatabaseTypeEnum {
 
@@ -13,6 +14,7 @@ public enum VectorDatabaseTypeEnum {
 	FAISS("FAISS", FaissDatabaseEngine.class.getName()),
 	PGVECTOR("PGVECTOR", PGVectorDatabaseEngine.class.getName()),
 	OPEN_SEARCH("OPEN_SEARCH", OpenSearchRestVectorDatabaseEngine.class.getName()),
+	ELASTIC_SEARCH("ELASTIC_SEARCH", ElasticSearchRestVectorDatabaseEngine.class.getName()),
 	WEAVIATE("WEAVIATE", WeaviateVectorDatabaseEngine.class.getName()),
 	PINECONE("PINECONE", PineConeVectorDatabaseEngine.class.getName());
 		
