@@ -281,3 +281,61 @@ class StorageEngine(ServerProxy):
             return output["output"]
 
         return pixelReturn
+
+    def to_langchain_storage(self):
+        """Transform the storage engine into a langchain BaseStore object so that it can be used with langchain code"""
+        from langchain_core.stores import BaseStore
+
+        class SemossLangchainStorage(BaseStore):
+            engine_id: str
+            storage_engine: StorageEngine
+            insight_id: Optional[str]
+
+            def __init__(self, storage_engine):
+                """Initialize with the provided storage engine."""
+                self.engine_id = storage_engine.engine_id
+                self.storage_engine = storage_engine
+
+            def list(self, storagePath: str) -> any:
+                """Retrieve the file list from storage."""
+                return self.storage_engine.list(storagePath=storagePath)
+
+            def listDetails(self, storagePath: str) -> any:
+                """Retrieve the files details list from storage."""
+                return self.storage_engine.listDetails(storagePath=storagePath)
+
+            def syncLocalToStorage(self, localPath: str, storagePath: str) -> any:
+                """Sync the files from local to storage."""
+                return self.storage_engine.syncLocalToStorage(
+                    localPath=localPath, storagePath=storagePath
+                )
+
+            def syncStorageToLocal(self, localPath: str, storagePath: str) -> any:
+                """Sync the files from storage to local."""
+                return self.storage_engine.syncStorageToLocal(
+                    localPath=localPath, storagePath=storagePath
+                )
+
+            def copyToLocal(self, storageFilePath: str, localFolderPath: str) -> any:
+                """Copy a specific file from the storage to the local system."""
+                return self.storage_engine.copyToLocal(
+                    storageFilePath=storageFilePath, localFolderPath=localFolderPath
+                )
+
+            def deleteFromStorage(self, storagePath: str) -> any:
+                """Delete a file from storage."""
+                return self.storage_engine.deleteFromStorage(storagePath=storagePath)
+
+            def mdelete(self):
+                pass
+
+            def mget(self):
+                pass
+
+            def mset(self):
+                pass
+
+            def yield_keys(self):
+                pass
+
+        return SemossLangchainStorage(storage_engine=self)
