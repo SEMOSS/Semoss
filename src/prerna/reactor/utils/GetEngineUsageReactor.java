@@ -359,7 +359,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						"vector = VectorEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 						"langhchain_vector = vector.to_langchain_vector_store()\r\n" +
 						"langhchain_vector.listDocs()\r\n"+
-						"langhchain_vector.addDcos(file_paths = ['file1.pdf','file2.pdf',...])\r\n"+
+						"langhchain_vector.addDocs(file_paths = ['file1.pdf','file2.pdf',...])\r\n"+
 						"langhchain_vector.removeDocs(file_names = ['file1.pdf','file2.pdf',...])\r\n"+
 						"langhchain_vector.similaritySearch(query = 'Sample Search Statement', k=5)"
 					);
