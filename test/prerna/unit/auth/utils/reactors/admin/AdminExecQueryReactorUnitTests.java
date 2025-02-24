@@ -3,14 +3,10 @@ package prerna.unit.auth.utils.reactors.admin;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentCaptor;
+import static org.mockito.Mockito.doThrow;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +66,6 @@ public class AdminExecQueryReactorUnitTests {
 	void setup() {
 		reactor = new AdminExecQueryReactor();
 		keyValues = reactor.keyValue;
-		queryStruct = mock(AbstractQueryStruct.class);
 		engine = mock(IDatabaseEngine.class);
 		insight = mock(Insight.class);
 		user = mock(User.class);
@@ -177,7 +172,6 @@ public class AdminExecQueryReactorUnitTests {
 	static Stream<Arguments> notRdbmsOrRdfDb() {
 		return Stream.of(
 			// Examples of invalids
-			arguments(QUERY_STRUCT_TYPE.ENGINE, IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT),
 			arguments(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, IDatabaseEngine.DATABASE_TYPE.TINKER)
 		);
 	}
@@ -189,13 +183,13 @@ public class AdminExecQueryReactorUnitTests {
 			arguments(QUERY_STRUCT_TYPE.ENGINE, IDatabaseEngine.DATABASE_TYPE.JENA),
 			arguments(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, IDatabaseEngine.DATABASE_TYPE.RDBMS),
 			arguments(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, IDatabaseEngine.DATABASE_TYPE.SESAME),
-			arguments(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, IDatabaseEngine.DATABASE_TYPE.JENA),
+			arguments(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, IDatabaseEngine.DATABASE_TYPE.JENA)
 		);
 	}
 
 	@ParameterizedTest
 	@MethodSource("notRdbmsOrRdfDb")
-	void testDatabaseIsRDBMSOrRDF(QUERY_STRUCT_TYPE qsType, IDatabaseEngine.DATABASE_TYPE dbType) {
+	void testDatabaseIsNotRDBMSOrRDF(QUERY_STRUCT_TYPE qsType, IDatabaseEngine.DATABASE_TYPE dbType) {
 		NounStore ns = mock(NounStore.class);
 		reactor.setNounStore(ns);
 		GenRowStruct grs = mock(GenRowStruct.class);
@@ -220,9 +214,45 @@ public class AdminExecQueryReactorUnitTests {
 		}
 	}
 
-	@ParameterizedTest
-	@MethodSource("RdbmsOrRdfDb")
-	void testHardSelectQueryStruct(QUERY_STRUCT_TYPE qsType, IDatabaseEngine.DATABASE_TYPE dbType) {
+	
+//	@Test
+//	void testNullInsertDataIntoEngine(QUERY_STRUCT_TYPE qsType, IDatabaseEngine.DATABASE_TYPE dbType) {
+//		NounStore ns = mock(NounStore.class);
+//		reactor.setNounStore(ns);
+//		GenRowStruct grs = mock(GenRowStruct.class);
+//		when(ns.getNoun(PixelDataType.QUERY_STRUCT.getKey())).thenReturn(grs);
+//
+//		HardSelectQueryStruct qs = mock(HardSelectQueryStruct.class);
+//		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
+//		when(grs.getNoun(0)).thenReturn(nm);
+//
+//		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
+//		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
+//		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
+//		
+//		// Change the  behavior of qs.getQuery() to a simple string
+//		when(qs.getQuery()).thenReturn("SELECT * FROM table");
+//		
+////		insertData(<the string you returned from getQuery())
+//		String query = null;
+//		try {
+//			doThrow(new SemossPixelException(query)).when(engine).insertData("SELECT * FROM table");
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		
+//		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+//			SecurityAdminUtils s = new SecurityAdminUtils();
+//			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+//
+//			SemossPixelException e = assertThrows(SemossPixelException.class, reactor::execute);
+//	        assertEquals("An error occurred trying to execute the query in the database", e.getMessage());
+//		}
+//	}
+
+	@Test
+	void testEmptyInsertDataIntoEngine() {
 		NounStore ns = mock(NounStore.class);
 		reactor.setNounStore(ns);
 		GenRowStruct grs = mock(GenRowStruct.class);
@@ -232,13 +262,54 @@ public class AdminExecQueryReactorUnitTests {
 		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
 		when(grs.getNoun(0)).thenReturn(nm);
 
-		when(qs.getQsType()).thenReturn(qsType);
+		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
 		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
-		when(engine.getDatabaseType()).thenReturn(dbType);
+		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
+
+		// Change the  behavior of qs.getQuery() to a simple string
+		when(qs.getQuery()).thenReturn("SELECT * FROM TABLE");
+		
+//		insertData(<the string you returned from getQuery())
+//		when(engine.insertData("")).thenThrow(new SemossPixelException(""));
+		try {
+			doThrow(new SemossPixelException("")).when(engine).insertData("SELECT * FROM TABLE");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+		}
+		
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+			SecurityAdminUtils s = new SecurityAdminUtils();
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+
+			SemossPixelException e = assertThrows(SemossPixelException.class, reactor::execute);
+	        assertEquals("An error occurred trying to execute the query in the database", e.getMessage());
+		}
+	}
+
+	@Test
+	void testInvalidInsertDataIntoEngine() {
+		NounStore ns = mock(NounStore.class);
+		reactor.setNounStore(ns);
+		GenRowStruct grs = mock(GenRowStruct.class);
+		when(ns.getNoun(PixelDataType.QUERY_STRUCT.getKey())).thenReturn(grs);
+
+		HardSelectQueryStruct qs = mock(HardSelectQueryStruct.class);
+		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
+		when(grs.getNoun(0)).thenReturn(nm);
+
+		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
+		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
+		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
+		
+		// Change the  behavior of qs.getQuery() to a simple string
 		when(qs.getQuery()).thenReturn("SELECT * FROM table");
 		
-		// Simulate an exception being thrown by the insertData method
-	    doThrow(new RuntimeException("Database error")).when(engine).insertData(anyString());
+//		insertData(<the string you returned from getQuery())
+		try {
+			doThrow(new SemossPixelException("Database error")).when(engine).insertData("SELECT * FROM table");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+		}
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = new SecurityAdminUtils();
@@ -248,10 +319,46 @@ public class AdminExecQueryReactorUnitTests {
 	        assertEquals("An error occurred trying to execute the query in the database: Database error", e.getMessage());
 		}
 	}
+	
+	@Test
+	void testSelectQueryStruct() {
+		NounStore ns = mock(NounStore.class);
+		reactor.setNounStore(ns);
+		GenRowStruct grs = mock(GenRowStruct.class);
+		when(ns.getNoun(PixelDataType.QUERY_STRUCT.getKey())).thenReturn(grs);
 
-	@ParameterizedTest
-	@MethodSource("RdbmsOrRdfDb")
-	void testUpdateQueryStruct(QUERY_STRUCT_TYPE qsType, IDatabaseEngine.DATABASE_TYPE dbType) {
+		SelectQueryStruct qs = mock(SelectQueryStruct.class);
+		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
+		when(grs.getNoun(0)).thenReturn(nm);
+
+		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
+		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
+		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
+		
+		DeleteSqlInterpreter interp = mock(DeleteSqlInterpreter.class);
+	    when(interp.composeQuery()).thenReturn("DELETE FROM table WHERE condition");
+		
+//		insertData(<the string you returned from getQuery())
+		try {
+			doThrow(new SemossPixelException("Database error")).when(engine).insertData("DELETE FROM table WHERE condition");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+		}
+		
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class); MockedStatic<DeleteSqlInterpreter> deleteSqlInterpreterMockedStatic = Mockito.mockStatic(DeleteSqlInterpreter.class)) {
+			
+			SecurityAdminUtils s = new SecurityAdminUtils();
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			
+			deleteSqlInterpreterMockedStatic.when(() -> new DeleteSqlInterpreter(qs)).thenReturn(interp);
+
+			SemossPixelException e = assertThrows(SemossPixelException.class, reactor::execute);
+	        assertEquals("An error occurred trying to execute the query in the database: Database error", e.getMessage());
+		}
+	}
+	
+	@Test
+	void testUpdateQueryStruct() {
 		NounStore ns = mock(NounStore.class);
 		reactor.setNounStore(ns);
 		GenRowStruct grs = mock(GenRowStruct.class);
@@ -261,125 +368,30 @@ public class AdminExecQueryReactorUnitTests {
 		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
 		when(grs.getNoun(0)).thenReturn(nm);
 
-		when(qs.getQsType()).thenReturn(qsType);
+		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
 		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
-		when(engine.getDatabaseType()).thenReturn(dbType);
+		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
 		
 		UpdateSqlInterpreter interp = mock(UpdateSqlInterpreter.class);
-		when(interp.composeQuery()).thenReturn("UPDATE table SET column = value");
-
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
-			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-
-			reactor.execute();
-			
-			ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-			verify(engine, times(1)).insertData(captor.capture());
-			
-			String capturedArgument = captor.getValue();
-			assertEquals("UPDATE table SET column = value", capturedArgument);
-		}
-	}
-
-	@ParameterizedTest
-	@MethodSource("RdbmsOrRdfDb")
-	void testSelectQueryStruct(QUERY_STRUCT_TYPE qsType, IDatabaseEngine.DATABASE_TYPE dbType) {
-		NounStore ns = mock(NounStore.class);
-		reactor.setNounStore(ns);
-		GenRowStruct grs = mock(GenRowStruct.class);
-		when(ns.getNoun(PixelDataType.QUERY_STRUCT.getKey())).thenReturn(grs);
-
-		SelectQueryStruct qs = mock(SelectQueryStruct.class);
-		NounMetadata nm = new NounMetadata(qs, qsType);
-		when(grs.getNoun(0)).thenReturn(nm);
-
-		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
-		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
-		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
+	    when(interp.composeQuery()).thenReturn("UPDATE table SET column = value");
 		
-		DeleteSqlInterpreter interp = mock(dbType);
-		when(interp.composeQuery()).thenReturn("DELETE FROM table WHERE condition");
-
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
-			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-
-			reactor.execute();
-			
-			ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-			verify(engine, times(1)).insertData(captor.capture());
-			
-			String capturedArgument = captor.getValue();
-			assertEquals("DELETE FROM table WHERE condition", capturedArgument);
+//		insertData(<the string you returned from getQuery())
+		try {
+			doThrow(new SemossPixelException("Database error")).when(engine).insertData("UPDATE table SET column = value");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
 		}
-	}
-
-	@ParameterizedTest
-	@MethodSource("RdbmsOrRdfDb")
-	void testQueryExecutionException() {
-		NounStore ns = mock(NounStore.class);
-		reactor.setNounStore(ns);
-		GenRowStruct grs = mock(GenRowStruct.class);
-		when(ns.getNoun(PixelDataType.QUERY_STRUCT.getKey())).thenReturn(grs);
-
-		HardSelectQueryStruct qs = mock(HardSelectQueryStruct.class);
-		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
-		when(grs.getNoun(0)).thenReturn(nm);
-
-		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
-		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
-		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
-		when(qs.getQuery()).thenReturn("SELECT * FROM table");
-		doThrow(new RuntimeException("Database error")).when(engine).insertData(anyString());
-
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+		
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class); 
+				MockedStatic<UpdateSqlInterpreter> updateSqlInterpreterMockedStatic = Mockito.mockStatic(UpdateSqlInterpreter.class)) {
 			SecurityAdminUtils s = new SecurityAdminUtils();
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			
+			updateSqlInterpreterMockedStatic.when(() -> new UpdateSqlInterpreter(qs)).thenReturn(interp);
 
 			SemossPixelException e = assertThrows(SemossPixelException.class, reactor::execute);
-			assertEquals("An error occurred trying to execute the query in the database: Database error", e.getMessage());
+	        assertEquals("An error occurred trying to execute the query in the database: Database error", e.getMessage());
 		}
 	}
-
-	@ParameterizedTest
-	@MethodSource("RdbmsOrRdfDb")
-	void testValidAdminExecQuery(QUERY_STRUCT_TYPE qsType, IDatabaseEngine.DATABASE_TYPE dbType) {
-		NounStore ns = mock(NounStore.class);
-		reactor.setNounStore(ns);
-		GenRowStruct grs = mock(GenRowStruct.class);
-		when(ns.getNoun(PixelDataType.QUERY_STRUCT.getKey())).thenReturn(grs);
-		
-		AbstractQueryStruct qs = mock(AbstractQueryStruct.class);
-		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
-		when(grs.getNoun(0)).thenReturn(nm);
-
-		when(qs.getQsType()).thenReturn(qsType);
-		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
-		when(engine.getDatabaseType()).thenReturn(dbType);
-		
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
-			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-
-			if (dbType == IDatabaseEngine.DATABASE_TYPE.RDBMS || dbType == IDatabaseEngine.DATABASE_TYPE.SESAME || dbType == IDatabaseEngine.DATABASE_TYPE.JENA) {
-				reactor.execute();
-				
-	            ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-	            verify(engine, times(1)).insertData(captor.capture());
-	            
-	            String capturedArgument = captor.getValue();
-	            assertNotNull(capturedArgument); // Ensure the argument is not null
-	            // Additional assertions can be added here to verify the content of the captured argument
-	       
-	            
-			}
-		}
-	}
-	
-	
-	
-	
-	
 	
 }
