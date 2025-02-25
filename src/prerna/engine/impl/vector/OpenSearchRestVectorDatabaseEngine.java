@@ -32,6 +32,8 @@ import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.VectorDbGenericFilter;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -311,12 +313,27 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				// add to parent
 				query.add("knn", knn);
 			}
+			
+	        if (parameters.containsKey("filters")) {
+	            JsonObject boolQuery = new JsonObject();
+	            JsonArray filterArray = new JsonArray();
+	            List<IQueryFilter> filters = (List<IQueryFilter>) parameters.get("filters");
+	            VectorDatabaseTypeEnum vectorDbType  = getVectorDatabaseType();
+	            VectorDbGenericFilter dbfilter = new VectorDbGenericFilter();
+	            for (IQueryFilter filter : filters) {
+	                JsonObject filterObject = (JsonObject) dbfilter.processFilter((IQueryFilter) filter , vectorDbType);
+	                if (filterObject != null) {
+	                    filterArray.add(filterObject);
+	                }
+	            }
+	            
+	            boolQuery.add("filter", filterArray);
+	            JsonObject boolWrapper = new JsonObject();
+	            boolWrapper.add("bool", boolQuery);
+	            query.add("bool", boolWrapper);
+	        }
 			// add to parent
 			search.add("query", query);
-		}
-		
-		if (parameters.containsKey("filters")) {
-			
 		}
 		
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
