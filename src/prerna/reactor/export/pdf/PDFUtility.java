@@ -986,7 +986,7 @@ public final class PDFUtility {
 		}
 	}
 
-	public static boolean validatePDImages(String filePath) throws IOException {
+	public static boolean pdfContainsImages(String filePath) throws IOException {
 		boolean status = false;
 		PDDocument pdDoc = null;
 		try {

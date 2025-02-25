@@ -28,7 +28,7 @@ class Chat:
         if "stop_sequences" in kwargs.keys():
             kwargs["stop"] = kwargs.pop("stop_sequences")
 
-        if template_name == None:
+        if template_name is None:
             template_name = self.client.template_name
 
         # first we determine the type of completion, since this determines how we structure the payload
@@ -89,22 +89,22 @@ class Chat:
 
         # if the user provided context, use that. Otherwise, try to get it from the template
         mapping = {"question": question} | fill_variables
-        if context is not None and template_name == None:
+        if context is not None and template_name is None:
             if isinstance(context, str):
                 context = self.client.fill_context(context, **mapping)[0]
                 message_payload.append({"role": "system", "content": context})
-        elif context != None and template_name != None:
+        elif context is not None and template_name is not None:
             mapping.update({"context": context})
             context = self.client.fill_template(template_name=template_name, **mapping)[
                 0
             ]
             message_payload.append({"role": "system", "content": context})
         else:
-            if template_name != None:
+            if template_name is not None:
                 possibleContent = self.client.fill_template(
                     template_name=template_name, **mapping
                 )[0]
-                if possibleContent != None:
+                if possibleContent is not None:
                     message_payload.append(
                         {"role": "system", "content": possibleContent}
                     )
@@ -116,7 +116,7 @@ class Chat:
         # check if images are in the fill args
         if IMAGE_ENCODED in fill_variables:
             # add the new question to the payload
-            if question != None and len(question) > 0:
+            if question is not None and len(question) > 0:
                 image_payload = []
                 image_payload.append({"type": "text", "text": question})
                 image_url = {}
@@ -126,7 +126,7 @@ class Chat:
                 image_payload.append({"type": "image_url", "image_url": image_url})
                 message_payload.append({"role": "user", "content": image_payload})
         if IMAGE_URL in fill_variables:
-            if question != None and len(question) > 0:
+            if question is not None and len(question) > 0:
                 image_payload = []
                 image_payload.append({"type": "text", "text": question})
                 image_url = {}
@@ -135,7 +135,7 @@ class Chat:
                 message_payload.append({"role": "user", "content": image_payload})
         else:
             # add the new question to the payload
-            if question != None and len(question) > 0:
+            if question is not None and len(question) > 0:
                 message_payload.append({"role": "user", "content": question})
 
         return message_payload
@@ -143,13 +143,13 @@ class Chat:
     def _process_full_prompt(self, full_prompt: List) -> List[Dict]:
         if isinstance(full_prompt, list):
             listOfDicts = set([isinstance(x, dict) for x in full_prompt]) == {True}
-            if listOfDicts == False:
+            if not listOfDicts:
                 raise ValueError("The provided payload is not valid")
 
             # now we have to check the key value pairs are valid
             all_keys_set = {key for d in full_prompt for key in d.keys()}
             validOpenAiDictKey = sorted(all_keys_set) == ["content", "role"]
-            if validOpenAiDictKey == False:
+            if not validOpenAiDictKey:
                 raise ValueError("There are invalid OpenAI dictionary keys")
             # add it the message payload
             return full_prompt

@@ -225,7 +225,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 							.append(indexClass)
 							.append("']");
 		
-		addDocumentPyCommand.append(".addDocumet(documentFileLocation = ['")
+		addDocumentPyCommand.append(".addDocument(documentFileLocation = ['")
 							.append(String.join("','", vectorCsvFiles))
 							.append("'], insight_id = '")
 							.append(insight.getInsightId())
