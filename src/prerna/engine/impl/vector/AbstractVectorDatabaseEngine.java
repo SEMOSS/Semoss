@@ -30,6 +30,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
@@ -319,7 +320,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 						FileUtils.copyFileToDirectory(document, indexFilesDir);
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
-						int rowsCreated;
+						boolean processed = false;
+						int rowsCreated = -1;
 						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
 							StringBuilder extractTextFromDocScript = new StringBuilder();
 							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
@@ -331,19 +333,25 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 								.append("')");
 							setVectorFolderPermissions();
 							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
-
 							rowsCreated = rows.intValue();
+							processed = true;
 						} else if(this.customDocumentProcessor) {
 							if(this.customDocumentProcessorFunctionID == null || this.customDocumentProcessorFunctionID.isEmpty()) {
 								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
 							}
 							IFunctionEngine functionEngine = Utility.getFunctionEngine(this.customDocumentProcessorFunctionID);
-							Map<String, Object> functionInputs = new HashMap<>();
-							functionInputs.put(CSVPATH, extractedFile.getAbsolutePath());
-							functionInputs.put(DOCUMENT, document);
-							functionInputs.put(PARAMETERS, parameters);
-							rowsCreated = (int) functionEngine.execute(functionInputs);
-						} else {
+							if(!(functionEngine instanceof ICustomEmbeddingsFunctionEngine)) {
+								throw new IllegalArgumentException("Vector Database owner has incorrectly setup a custom embeddings function that is not an ICustomEmbeddingsFunctionEngine");
+							}
+							ICustomEmbeddingsFunctionEngine customEmbeddings = (ICustomEmbeddingsFunctionEngine) functionEngine;
+							if(customEmbeddings.canProcessDocument(document)) {
+								rowsCreated = customEmbeddings.processDocument(extractedFile.getAbsolutePath(), document, parameters);
+								processed = true;
+							}
+						} 
+						
+						// default processing if haven't processed with above logic
+						if(!processed) {
 							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 						}
 
@@ -949,7 +957,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
 		if (pythonUser != null && !pythonUser.trim().isEmpty()) {
 			try {
-				Utility.setOwnerAndGroupPermissionsRecursively(schemaFolder);
+				Utility.setOwnerAndGroupPermissionsRecursively(this.schemaFolder);
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			} catch (InterruptedException e) {

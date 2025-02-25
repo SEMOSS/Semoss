@@ -37,6 +37,7 @@ import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
@@ -813,6 +814,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				}
 			}
 			
+			//if we have a python specific user, make sure that user can access the schema folder
+			setVectorFolderPermissions();
+			
 			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {
@@ -992,19 +996,28 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
 						// determine which text extraction method to use
-						int rowsCreated;
+						boolean processed = false;
+						int rowsCreated = -1;
 						if(this.customDocumentProcessor) {
 							if(this.customDocumentProcessorFunctionID == null || this.customDocumentProcessorFunctionID.isEmpty()) {
 								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
 							}
+							if(this.customDocumentProcessorFunctionID == null || this.customDocumentProcessorFunctionID.isEmpty()) {
+								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
+							}
 							IFunctionEngine functionEngine = Utility.getFunctionEngine(this.customDocumentProcessorFunctionID);
-							Map<String, Object> functionInputs = new HashMap<>();
-							functionInputs.put("csvPath", extractedFile.getAbsolutePath());
-							functionInputs.put("document", document);
-							functionInputs.put("parameters", parameters);
-							rowsCreated = (int) functionEngine.execute(functionInputs);
-						} else {
-							rowsCreated= VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+							if(!(functionEngine instanceof ICustomEmbeddingsFunctionEngine)) {
+								throw new IllegalArgumentException("Vector Database owner has incorrectly setup a custom embeddings function that is not an ICustomEmbeddingsFunctionEngine");
+							}
+							ICustomEmbeddingsFunctionEngine customEmbeddings = (ICustomEmbeddingsFunctionEngine) functionEngine;
+							if(customEmbeddings.canProcessDocument(document)) {
+								rowsCreated = customEmbeddings.processDocument(extractedFile.getAbsolutePath(), document, parameters);
+								processed = true;
+							}
+						} 
+						
+						if(!processed) {
+							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 						}
 						
 						// check to see if the file data was extracted
@@ -1157,6 +1170,23 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			return InsightStore.getInstance().get((String) insightObj);
 		} else {
 			return (Insight) insightObj;
+		}
+	}
+	
+	/**
+	 * 
+	 */
+	private void setVectorFolderPermissions() {
+		//if we have a python specific user, make sure that user can access the schema folder
+		String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
+		if (pythonUser != null && !pythonUser.trim().isEmpty()) {
+			try {
+				Utility.setOwnerAndGroupPermissionsRecursively(this.schemaFolder);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} catch (InterruptedException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 	}
 
