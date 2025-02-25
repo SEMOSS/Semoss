@@ -43,7 +43,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	public static final String MESSAGE_CONTENT = "content";
 	public static final String ROLE = "role";
-	
+	public static final String TOOL_CALLS = "tool_calls";
+    public static final String TYPE = "type";
+    public static final String ID = "id";
+    public static final String FUNCTION = "function";
+    public static final String ARGUMENTS = "arguments";
+    public static final String NAME = "name";
 	// param keys
 	public static final String FULL_PROMPT = "full_prompt";
 	

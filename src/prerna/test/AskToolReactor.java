@@ -7,6 +7,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
@@ -54,29 +55,52 @@ public class AskToolReactor extends AbstractReactor {
 
         AskModelEngineResponse modelResponse = modelEngine.ask(question, context, this.insight, paramMap);
 		
+    	if(modelResponse.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
+    		// the response is for a tool call
+    		// we need to call the actual tool now. 
+    		AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) modelResponse;
+    		
+    		// tool result will be a custom element in the paramMap
+    		HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
+    		toolExecutionMap.put(AbstractModelEngine.ROLE, "tool");
+    		toolExecutionMap.put("tool_call_id",toolResponse.getToolCallId());
+    		toolExecutionMap.put("name",toolResponse.getToolCallName());
+    		
+    		String s  = toolResponse.getToolCallArgumentsAsString();
+    		// {"lat":123,"long":123}
+    		
+    		// for now im mocking the result up to pass as if i executed it. 
+    		toolExecutionMap.put("content","{\"temperature\": \"28\"}");
+    		
+
+    		paramMap.put("toolExecution", toolExecutionMap);
+            AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", "", this.insight, paramMap);
+
+    		
+    	}
         Map<String, Object> output = modelResponse.toMap();
         
         Object response = output.get(AbstractModelEngineResponse.RESPONSE);
-        //add logic here for checking if output is a map or if its a string
-        
-        // Logic to check if the response is a String or a Map
-        if (response instanceof String) {
-            // If it's a string, simply return it
-            output.put("processedResponse", response);
-        } else if (response instanceof Map) {
-            // If it's a map, convert it to a string representation
-            output.put("processedResponse", ((AskToolModelEngineResponse)modelResponse).getStringResponse());
-            
-            //execute tool
-            
-            // get tool response 
-            
-            //feed tool response, back to the model.
-            
-        } else {
-            // Handle other types if necessary
-            output.put("processedResponse", "Unsupported response type");
-        }
+//        //add logic here for checking if output is a map or if its a string
+//        
+//        // Logic to check if the response is a String or a Map
+//        if (response instanceof String) {
+//            // If it's a string, simply return it
+//            output.put("processedResponse", response);
+//        } else if (response instanceof Map) {
+//            // If it's a map, convert it to a string representation
+//            output.put("processedResponse", ((AskToolModelEngineResponse)modelResponse).getStringResponse());
+//            
+//            //execute tool
+//            
+//            // get tool response 
+//            
+//            //feed tool response, back to the model.
+//            
+//        } else {
+//            // Handle other types if necessary
+//            output.put("processedResponse", "Unsupported response type");
+//        }
 
 //	     // Parse markdown code blocks
 //	     List<CodeBlock> codeBlocks = parseMarkdownCodeBlocks(response);

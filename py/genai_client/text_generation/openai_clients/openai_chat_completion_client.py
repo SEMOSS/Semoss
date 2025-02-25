@@ -128,9 +128,8 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         kwargs["stream"] = kwargs.get("stream", True)
 
-        # If tool_choice is True in kwargs, set stream to False
-        kwargs["tool_choice"]= kwargs.get("tool_choice", None)
-        if kwargs["tool_choice"]:
+        # If "tool_choice" is in kwargs, set stream to False
+        if "tool_choice" in kwargs:
             kwargs["stream"] = False
 
         if self.model_name == "o1-preview" or self.model_name == "o1-mini":
@@ -140,17 +139,19 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         openai_response = self.client.chat.completions.create(
             model=self.model_name, **kwargs
         )
-        if kwargs["tool_choice"]:
-            tools_call=openai_response.choices[0].message.tool_calls
-            toolResult=[]
-            if tools_call:  # Check if tools_call is not empty               
+        if "tool_choice" in kwargs:
+            tools_call = openai_response.choices[0].message.tool_calls
+            toolResult = []
+            if tools_call:  # Check if tools_call is not empty
                 for tool_call in tools_call:
-                    toolResult.append({
-                        "id": tool_call.id,
-                        "function_name": tool_call.function.name,
-                        "function_arguments": tool_call.function.arguments
-                    })
-                final_query=toolResult
+                    toolResult.append(
+                        {
+                            "id": tool_call.id,
+                            "name": tool_call.function.name,
+                            "arguments": tool_call.function.arguments,
+                        }
+                    )
+                final_query = toolResult
                 messageType = "TOOL"
             # final_query = openai_response.choices[0].message.function_call.arguments
             else:

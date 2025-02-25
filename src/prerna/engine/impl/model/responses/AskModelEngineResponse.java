@@ -36,6 +36,10 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public String getRoomId() {
         return this.roomId;
     }
+    
+    public String getMessageType() {
+    	return this.messageType;
+    }
 
     @Override
     public Map<String, Object> toMap() {

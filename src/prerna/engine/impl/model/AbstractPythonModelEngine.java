@@ -3,6 +3,7 @@ package prerna.engine.impl.model;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -19,6 +20,7 @@ import prerna.ds.py.PyUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
@@ -39,6 +41,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
 
+	
 	// python server
 	protected String prefix = null;
 	protected String workingDirectory;
@@ -257,17 +260,41 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		AskModelEngineResponse response = AskModelEngineResponse.fromObject(output);
 		
 		if (keepConvoHisotry) {
-			Map<String, Object> inputMap = new HashMap<String, Object>();
-			Map<String, Object> outputMap = new HashMap<String, Object>();
-			inputMap.put(ROLE, "user");
-			inputMap.put(MESSAGE_CONTENT, question);
-			outputMap.put(ROLE, "assistant");
-			outputMap.put(MESSAGE_CONTENT, response.getStringResponse());
+			//IF ITS A tool call - then append adjust history
+	        Map<String, Object> inputMap = new HashMap<>();
+	        Map<String, Object> outputMap = new HashMap<>();
 	        
-			if (chatHistory.containsKey(insight.getInsightId())) {
-		        chatHistory.get(insight.getInsightId()).add(inputMap);
-		        chatHistory.get(insight.getInsightId()).add(outputMap);
+	        inputMap.put(ROLE, "user");
+	        inputMap.put(MESSAGE_CONTENT, question);
+
+	        outputMap.put(ROLE, "assistant");
+	        
+			if(response.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
+				AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) response;
+	            // Create the tool call structure
+	            Map<String, Object> toolCall = new HashMap<>();
+	            toolCall.put(TYPE, "function");
+	            toolCall.put(ID, toolResponse.getToolCallId());
+
+	            Map<String, String> functionMap = new HashMap<>();
+	            functionMap.put(ARGUMENTS, toolResponse.getToolCallArgumentsAsString());
+	            functionMap.put(NAME, toolResponse.getToolCallName());
+
+	            toolCall.put(FUNCTION, functionMap);
+
+	            // Add tool call to output map
+	            outputMap.put(TOOL_CALLS, Arrays.asList(toolCall));
+	            outputMap.put(MESSAGE_CONTENT, ""); // Empty content for tool 
 			}
+			else {
+	            // Regular response
+	            outputMap.put(MESSAGE_CONTENT, response.getStringResponse());
+	        }
+	        // Update chat history
+	        if (chatHistory.containsKey(insight.getInsightId())) {
+	            chatHistory.get(insight.getInsightId()).add(inputMap);
+	            chatHistory.get(insight.getInsightId()).add(outputMap);
+	        }
 		}
 
 		return response;
