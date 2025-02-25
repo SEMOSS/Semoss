@@ -119,10 +119,14 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		// if we were able to extract files, begin embeddings process
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-
 		// send all the strings to embed in one shot
-		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
-
+		try {
+			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred creating the embeddings for the generated chunks. Detailed error message = " + e.getMessage());
+		}
+		
 		Map<String, Object> vectors = new HashMap<>();
 		List<String> ids = new ArrayList<>();
 		List<Float[]> embeddings = new ArrayList<>();

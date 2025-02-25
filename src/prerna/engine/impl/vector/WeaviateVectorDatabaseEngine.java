@@ -149,11 +149,14 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		
-		// if we were able to extract files, begin embeddings process
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-		
 		// send all the strings to embed in one shot
-		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		try {
+			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred creating the embeddings for the generated chunks. Detailed error message = " + e.getMessage());
+		}
 
 		ObjectsBatcher batcher = client.batch().objectsBatcher();
 		for(int rowIndex = 0; rowIndex < vectorCsvTable.rows.size(); rowIndex++) {
