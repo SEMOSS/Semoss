@@ -331,6 +331,14 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		
 		// if we were able to extract files, begin embeddings process
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
+		// send all the strings to embed in one shot
+		try {
+			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred creating the embeddings for the generated chunks. Detailed error message = " + e.getMessage());
+		}
+		
 		String psString = "INSERT INTO " 
 				+ this.vectorTableName 
 				+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT) "
@@ -348,8 +356,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 //			}
 
 			final int batchSize = 1000;
-			
-			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 			int count = 0;
 			for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
 				int index = 1;
