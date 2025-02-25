@@ -2373,16 +2373,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		// TODO: Sorting by: Name, Date Created, Views, Trending, Upvotes.
 		if (sortFields == null || sortFields.isEmpty()) {
 			// Default Sorting
 			qs1.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));	
 		} else {
 			Set<String> sortKeys = sortFields.keySet();
-			// FE: Pass in one of these five
 			Set<String> validSorts = new HashSet<>(Arrays.asList("ENGINENAME", "DATECREATED"));
 			if (!validSorts.containsAll(sortKeys)) {
-				throw new SemossPixelException("Invalid Sort Parameters Passed");
+				throw new SemossPixelException("Invalid Sort Parameters passed: Only \"ENGINENAME\" and \"DATECREATED\" are supported");
 			}
 			for (String s: sortKeys) {
 				qs1.addOrderBy("ENGINE__" + s, sortFields.getOrDefault(s, "ASC"));
