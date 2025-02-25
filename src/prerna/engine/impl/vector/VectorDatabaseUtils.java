@@ -1,26 +1,16 @@
 package prerna.engine.impl.vector;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tika.config.TikaConfig;
-import org.apache.tika.detect.Detector;
-import org.apache.tika.io.TikaInputStream;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.metadata.TikaCoreProperties;
 
-import prerna.reactor.frame.gaas.processors.DocProcessor;
-import prerna.reactor.frame.gaas.processors.PDFProcessor;
-import prerna.reactor.frame.gaas.processors.PPTProcessor;
-import prerna.reactor.frame.gaas.processors.TextFileProcessor;
+import prerna.reactor.frame.gaas.processors.AbstractFileProcessor;
+import prerna.reactor.frame.gaas.processors.IFileProcessor;
 import prerna.util.Constants;
 
 public class VectorDatabaseUtils {
@@ -34,71 +24,19 @@ public class VectorDatabaseUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static int convertFilesToCSV(String csvFileName, File file) throws IOException {
+	public static int convertFilesToCSV(String csvFileName, File file) throws Exception {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
 		try {
-			classLogger.info("Starting file conversions ");
-			List<String> processedList = new ArrayList<String>();
-
-			// pick up the files and convert them to CSV
 			classLogger.info("Processing file : " + file.getName());
-
-			// process this file
-			String filetype = FilenameUtils.getExtension(file.getAbsolutePath());
-			String mimeType = null;
-
-			// using tika for mime type check since it is more consistent across env + rhel
-			// OS and macOS
-			TikaConfig config = TikaConfig.getDefaultConfig();
-			Detector detector = config.getDetector();
-			Metadata metadata = new Metadata();
-			metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, file.getName());
-			try (TikaInputStream stream = TikaInputStream.get(new FileInputStream(file))) {
-				mimeType = detector.detect(stream, metadata).toString();
-			} catch (IOException e) {
-				classLogger.error(Constants.ERROR_MESSAGE, e);
-	        }
-			
-			if (mimeType != null) {
-				classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
-				if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-						|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
-								|| mimeType.equalsIgnoreCase("application/msword")
-								|| mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
-								&& (filetype.equals("doc") || filetype.equals("docx")))) {
-					// document
-					DocProcessor dp = new DocProcessor(file.getAbsolutePath(), writer);
-					dp.process(filetype);
-					processedList.add(file.getAbsolutePath());
-				} else if (mimeType
-						.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
-						|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
-								|| (mimeType.equalsIgnoreCase("application/vnd.ms-powerpoint")))
-								&& (filetype.equals("ppt") || filetype.equals("pptx")))) {
-					// powerpoint
-					PPTProcessor pp = new PPTProcessor(file.getAbsolutePath(), writer);
-					pp.process(filetype);
-					processedList.add(file.getAbsolutePath());
-				} else if (mimeType.equalsIgnoreCase("application/pdf")) {
-					PDFProcessor pdf = new PDFProcessor(file.getAbsolutePath(), writer);
-					pdf.process();
-					processedList.add(file.getAbsolutePath());
-				} else if (mimeType.equalsIgnoreCase("text/plain")) {
-					TextFileProcessor text = new TextFileProcessor(file.getAbsolutePath(), writer);
-					text.process();
-					processedList.add(file.getAbsolutePath());
-				} else {
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-				}
+			IFileProcessor processor = AbstractFileProcessor.getFileProcessor(file, writer);
+			if(processor != null) {
+				processor.process();
 				classLogger.info("Completed Processing file : " + file.getAbsolutePath());
-
+			} else {
+				classLogger.info("No file processor for file : " + file.getAbsolutePath());
 			}
+		} catch(NullPointerException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			writer.close();
 		}
@@ -172,76 +110,76 @@ public class VectorDatabaseUtils {
 		return fileTypes;
 	}
 
-//	/**
-//	 * @param pyTranslator
-//	 * @param document
-//	 * @param extractioFilesPath
-//	 * @param outputFileName
-//	 * @param extractionMethod
-//	 * @return
-//	 */
-//	public static int extractTextUsingPython(TCPPyTranslator pyTranslator, File document, String extractioFilesPath, String outputFileName) {
-//		boolean imported = Boolean.parseBoolean(pyTranslator.runScript("'vector_database' in globals().keys()") + "");
-//		if (!imported) {
-//			throw new IllegalArgumentException("This vector database does not the vector_database python package.");
-//		}
-//
-//		StringBuilder extractTextFromDocScript = new StringBuilder();
-//		extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
-//				.append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
-//				.append("', target_folder = '")
-//				.append(extractioFilesPath)
-//				.append("', output_file_name = '")
-//				.append(outputFileName)
-//				.append("')");
-//
-//		Number rows = (Number) pyTranslator.runScript(extractTextFromDocScript.toString());
-//		return rows.intValue();
-//	}
-//
-//	/**
-//	 * @param pyTranslator
-//	 * @param csvFileName
-//	 * @param chunkUnitOfMeasurement
-//	 * @param chunkMaxLength
-//	 * @param chunkOverlap
-//	 * @param chunkingStrategy
-//	 */
-//	public static void createChunksFromTextInPages(TCPPyTranslator pyTranslator, String csvFileName, String chunkUnitOfMeasurement, int chunkMaxLength, int chunkOverlap, String chunkingStrategy) {
-//
-//		StringBuilder splitTextCommand = new StringBuilder();
-//		splitTextCommand.append("vector_database.split_text(csv_file_location = '")
-//				.append(csvFileName)
-//				.append("', chunk_unit = '")
-//				.append(chunkUnitOfMeasurement)
-//				.append("', chunk_size = ")
-//				.append(chunkMaxLength)
-//				.append(", chunk_overlap = ")
-//				.append(chunkOverlap)
-//				.append(", chunking_strategy = ")
-//				.append(chunkingStrategy)
-//				.append(", cfg_tokenizer = cfg_tokenizer)");
-//		pyTranslator.runScript(splitTextCommand.toString());
-//	}
-//
-//	/**
-//	 * 
-//	 * @param modelEngine
-//	 * @param insight
-//	 * @param chunks
-//	 * @param maxKeywords
-//	 * @param percentile
-//	 * @return
-//	 */
-//	public static List<String> generateKeywordsFromChunks(IModelEngine modelEngine, Insight insight, List<String> chunks, Integer maxKeywords, Integer percentile) {
-//		Map<String, Object> keywordArgs = new HashMap<>();
-//		if (maxKeywords != null) {
-//			keywordArgs.put("max_keywords", maxKeywords);
-//		}
-//		if (percentile != null) {
-//			keywordArgs.put("percentile", maxKeywords);
-//		}
-//		Object generatedKeywordsObject = modelEngine.model(chunks, insight, keywordArgs);
-//		return (List<String>) generatedKeywordsObject;
-//	}
+	//	/**
+	//	 * @param pyTranslator
+	//	 * @param document
+	//	 * @param extractioFilesPath
+	//	 * @param outputFileName
+	//	 * @param extractionMethod
+	//	 * @return
+	//	 */
+	//	public static int extractTextUsingPython(TCPPyTranslator pyTranslator, File document, String extractioFilesPath, String outputFileName) {
+	//		boolean imported = Boolean.parseBoolean(pyTranslator.runScript("'vector_database' in globals().keys()") + "");
+	//		if (!imported) {
+	//			throw new IllegalArgumentException("This vector database does not the vector_database python package.");
+	//		}
+	//
+	//		StringBuilder extractTextFromDocScript = new StringBuilder();
+	//		extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
+	//				.append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+	//				.append("', target_folder = '")
+	//				.append(extractioFilesPath)
+	//				.append("', output_file_name = '")
+	//				.append(outputFileName)
+	//				.append("')");
+	//
+	//		Number rows = (Number) pyTranslator.runScript(extractTextFromDocScript.toString());
+	//		return rows.intValue();
+	//	}
+	//
+	//	/**
+	//	 * @param pyTranslator
+	//	 * @param csvFileName
+	//	 * @param chunkUnitOfMeasurement
+	//	 * @param chunkMaxLength
+	//	 * @param chunkOverlap
+	//	 * @param chunkingStrategy
+	//	 */
+	//	public static void createChunksFromTextInPages(TCPPyTranslator pyTranslator, String csvFileName, String chunkUnitOfMeasurement, int chunkMaxLength, int chunkOverlap, String chunkingStrategy) {
+	//
+	//		StringBuilder splitTextCommand = new StringBuilder();
+	//		splitTextCommand.append("vector_database.split_text(csv_file_location = '")
+	//				.append(csvFileName)
+	//				.append("', chunk_unit = '")
+	//				.append(chunkUnitOfMeasurement)
+	//				.append("', chunk_size = ")
+	//				.append(chunkMaxLength)
+	//				.append(", chunk_overlap = ")
+	//				.append(chunkOverlap)
+	//				.append(", chunking_strategy = ")
+	//				.append(chunkingStrategy)
+	//				.append(", cfg_tokenizer = cfg_tokenizer)");
+	//		pyTranslator.runScript(splitTextCommand.toString());
+	//	}
+	//
+	//	/**
+	//	 * 
+	//	 * @param modelEngine
+	//	 * @param insight
+	//	 * @param chunks
+	//	 * @param maxKeywords
+	//	 * @param percentile
+	//	 * @return
+	//	 */
+	//	public static List<String> generateKeywordsFromChunks(IModelEngine modelEngine, Insight insight, List<String> chunks, Integer maxKeywords, Integer percentile) {
+	//		Map<String, Object> keywordArgs = new HashMap<>();
+	//		if (maxKeywords != null) {
+	//			keywordArgs.put("max_keywords", maxKeywords);
+	//		}
+	//		if (percentile != null) {
+	//			keywordArgs.put("percentile", maxKeywords);
+	//		}
+	//		Object generatedKeywordsObject = modelEngine.model(chunks, insight, keywordArgs);
+	//		return (List<String>) generatedKeywordsObject;
+	//	}
 }

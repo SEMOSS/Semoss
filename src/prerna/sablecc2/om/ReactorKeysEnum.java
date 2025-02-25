@@ -38,7 +38,7 @@ public enum ReactorKeysEnum {
 	CONTENT("content", 										    "The actual content to be persisted on the file. Tab and Newline Separated"),
 	CONTENT_LENGTH("contentLength", 							"Length of the content to chunk information into. Assumes a default of 512 characters"),
 	CONTENT_OVERLAP("contentOverlap", 							"Length of the overlap for a specific content chunk to be included in the next chunk - in chars"),
-	CONTEXT("context", 									    	"THe workspace to be set command line. This is the base directory."),
+	CONTEXT("context", 									    	"The workspace to be set command line. This is the base directory."),
 	CUSTOM_SUCCESS_MESSAGE("customSuccessMessage",				"Defines for certain reactors a custom success message after running"),
 	ADDITIONAL_CONNECTION_PARAMS_KEY("connParams",	 			"Additional JDBC connection params to perform connection"),
 	CREATE_INDEX("createIndex", 								"Boolean if indicies should be generated."),
