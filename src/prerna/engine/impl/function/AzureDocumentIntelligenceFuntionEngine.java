@@ -87,6 +87,7 @@ public class AzureDocumentIntelligenceFuntionEngine extends AbstractFunctionEngi
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
 		try {
 			String source = fileToProcess.getName();
+			classLogger.info("Starting to process : " + source);
 			SyncPoller<OperationResult, AnalyzeResult> analyzeResultPoller = this.documentAnalysisClient
 					.beginAnalyzeDocument(PREBUILT_READ,
 							BinaryData.fromFile(fileToProcess.toPath(), 8092));
