@@ -40,7 +40,7 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine imple
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		// preset these - don't need user to define
-		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "Image Description Function");
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "Image Description Function - For Use With Vector Database Engines");
 		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Extract images from the documents and run them through an LLM to summarize the images in addition to the text extraction");
 		
 		super.open(smssProp);

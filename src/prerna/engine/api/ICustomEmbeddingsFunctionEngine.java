@@ -5,10 +5,6 @@ import java.util.Map;
 
 public interface ICustomEmbeddingsFunctionEngine extends IFunctionEngine {
 
-	String OUTPUT_CSV_FILEPATH = "outputCsvFilePath";
-	String FILE_TO_PROCESS = "fileToProcess";
-	String PARAMETERS = "parameters";
-	
 	/**
 	 * 
 	 * @param fileToProcess

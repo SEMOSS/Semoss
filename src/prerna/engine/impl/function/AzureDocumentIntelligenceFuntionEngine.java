@@ -43,7 +43,7 @@ public class AzureDocumentIntelligenceFuntionEngine extends AbstractFunctionEngi
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		// preset these - don't need user to define
-		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "Azure Document Intelligence");
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "Azure Document Intelligence - For Use With Vector Database Engines");
 		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute Azure Document Intelligence");
 
 		super.open(smssProp);
