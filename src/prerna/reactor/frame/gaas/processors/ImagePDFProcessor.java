@@ -117,26 +117,5 @@ public class ImagePDFProcessor extends AbstractFileImageProcessor {
 	private boolean isImageSizeAcceptable(PDImageXObject image) {
 		return image.getWidth() >= MIN_IMAGE_WIDTH && image.getHeight() >= MIN_IMAGE_HEIGHT;
 	}
-
 	
-	
-	public void readTextfromPdf(String csvFileName, File file, List<String> result) throws IOException {
-		PDFTextStripper pdfStripper = new PDFTextStripper();
-		String source = null;
-		File file2 = new File(file.getAbsolutePath());
-		if(file.exists()) {
-			source = file2.getName();
-		}
-
-		if(result.size()>0) {
-			for (int pageIndex = 0; pageIndex < result.size(); pageIndex++) {
-				pdfStripper.setStartPage(pageIndex);
-				pdfStripper.setEndPage(pageIndex);
-				System.out.println(result.get(pageIndex) + ":" + pageIndex);
-				writer.writeRow(source, pageIndex + "", result.get(pageIndex));
-
-			}
-		}
-	}
-
 }
