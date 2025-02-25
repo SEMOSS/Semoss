@@ -14,13 +14,39 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.security.TypeReference;
 import prerna.usertracking.UserCatalogVoteUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import java.io.IOException;
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
+import org.apache.commons.text.StringEscapeUtils;
 
 public class MyEnginesReactor extends AbstractReactor {
 	
@@ -33,14 +59,14 @@ public class MyEnginesReactor extends AbstractReactor {
 				ReactorKeysEnum.ENGINE_TYPE.getKey(), ReactorKeysEnum.ENGINE.getKey(),
 				ReactorKeysEnum.PERMISSION_FILTERS.getKey(),
 				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
-				ReactorKeysEnum.NO_META.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()
+				ReactorKeysEnum.NO_META.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(), ReactorKeysEnum.SORT.getKey()
 			};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		// add creator, upvotes, total views
-		// sort by name, date created, views, upvotes, trending
+		// TODO: sort by name, date created, views, upvotes, trending
 		
 		organizeKeys();
 		
@@ -50,12 +76,13 @@ public class MyEnginesReactor extends AbstractReactor {
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
 		List<String> engineTypes = getEngineTypeFilters();
 		List<String> engineIdFilters = getEngineIdFilters();
+		Map<String, String> sortFields = getSortFields();
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
 		List<Integer> permissionFilters = getPermissionFilters();
 		Boolean includeUserT = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()));
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		
-		List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter, permissionFilters, searchTerm, limit, offset);
+		List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter, permissionFilters, searchTerm, limit, offset, sortFields);
 
 		if(!engineInfo.isEmpty() && (!noMeta || includeUserT)) {
 			Map<String, Integer> index = new HashMap<>(engineInfo.size());
@@ -150,12 +177,36 @@ public class MyEnginesReactor extends AbstractReactor {
 		return new NounMetadata(engineInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 	
+	private Map<String, String> getSortFields() {
+		// key: sortField, value: direction
+		return getGenericMap(ReactorKeysEnum.SORT.getKey(), new TypeReference<Map<String, String>>() {});
+	}
+
+	private <K, V> Map<K, V> getGenericMap(String param, TypeReference<Map<K, V>> typeRef) {
+		GenRowStruct mapGrs = this.store.getNoun(param);
+		if(mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if(mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<K, V>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if(mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<K, V>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
+
 	/**
 	 * 
 	 * @return
 	 */
 	private List<String> getEngineIdFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE.getKey());
+		return getListStringValues(ReactorKeysEnum.ENGINE.getKey());
+	}
+
+	private List<String> getListStringValues(String param) {
+		GenRowStruct grs = this.store.getNoun(param);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -168,12 +219,7 @@ public class MyEnginesReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getEngineTypeFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE_TYPE.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			return grs.getAllStrValues();
-		}
-		
-		return null;
+		return getListStringValues(ReactorKeysEnum.ENGINE_TYPE.getKey());
 	}
 	
 	/**
@@ -181,12 +227,7 @@ public class MyEnginesReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getMetaKeys() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			return grs.getAllStrValues();
-		}
-		
-		return null;
+		return getListStringValues(ReactorKeysEnum.META_KEYS.getKey());
 	}
 	
 	/**
@@ -207,18 +248,7 @@ public class MyEnginesReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getMetaMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
-		if(mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if(mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
-			}
-		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
-		}
-		return null;
+		return getGenericMap(ReactorKeysEnum.META_FILTERS.getKey(), new TypeReference<Map<String, Object>>() {});
 	}
 
 	
@@ -231,4 +261,9 @@ public class MyEnginesReactor extends AbstractReactor {
 		}
 		return super.getDescriptionForKey(key);
 	}
+	
 }
+
+
+
+

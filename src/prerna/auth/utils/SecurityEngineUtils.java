@@ -46,6 +46,7 @@ import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -2170,7 +2171,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			List<Integer> permissionFilters, 
 			String searchTerm, 
 			String limit, 
-			String offset) {
+			String offset,
+			Map<String, String> sortFields) {
 
 		String enginePrefix = "ENGINE__";
 		String groupEnginePermission = "GROUPENGINEPERMISSION__";
@@ -2371,9 +2373,22 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		// add the sort
-		qs1.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
-
+		// TODO: Sorting by: Name, Date Created, Views, Trending, Upvotes.
+		if (sortFields == null || sortFields.isEmpty()) {
+			// Default Sorting
+			qs1.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));	
+		} else {
+			Set<String> sortKeys = sortFields.keySet();
+			// FE: Pass in one of these five
+			Set<String> validSorts = new HashSet<>(Arrays.asList("ENGINENAME", "DATECREATED"));
+			if (!validSorts.containsAll(sortKeys)) {
+				throw new SemossPixelException("Invalid Sort Parameters Passed");
+			}
+			for (String s: sortKeys) {
+				qs1.addOrderBy("ENGINE__" + s, sortFields.getOrDefault(s, "ASC"));
+			}
+		}
+		
 		Long long_limit = -1L;
 		Long long_offset = -1L;
 		if(limit != null && !limit.trim().isEmpty()) {
