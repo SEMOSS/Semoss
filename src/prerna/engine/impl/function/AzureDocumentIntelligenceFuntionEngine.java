@@ -31,10 +31,13 @@ public class AzureDocumentIntelligenceFuntionEngine extends AbstractFunctionEngi
 	private static final Logger classLogger = LogManager.getLogger(AzureDocumentIntelligenceFuntionEngine.class);
 
 	private static final String URL = "URL";
+	private static final String MODEL = "MODEL";
+	
 	private static final String PREBUILT_READ = "prebuilt-read";
-
+	
 	private String connectionUrl;
 	private String apiKey;
+	private String model;
 	private DocumentAnalysisClient documentAnalysisClient = null;
 
 	@Override
@@ -52,6 +55,12 @@ public class AzureDocumentIntelligenceFuntionEngine extends AbstractFunctionEngi
 		}
 		if (this.apiKey == null || (this.apiKey=this.apiKey.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the api key");
+		}
+		String model = smssProp.getProperty(MODEL);
+		if(model != null && !(model=model.trim()).isEmpty()) {
+			this.model = model;
+		} else {
+			this.model = PREBUILT_READ;
 		}
 
 		try {
@@ -88,11 +97,12 @@ public class AzureDocumentIntelligenceFuntionEngine extends AbstractFunctionEngi
 		try {
 			String source = fileToProcess.getName();
 			classLogger.info("Starting to process : " + source);
+			
 			SyncPoller<OperationResult, AnalyzeResult> analyzeResultPoller = this.documentAnalysisClient
-					.beginAnalyzeDocument(PREBUILT_READ,
-							BinaryData.fromFile(fileToProcess.toPath(), 8092));
+					.beginAnalyzeDocument(this.model, BinaryData.fromFile(fileToProcess.toPath(), 8092));
 			AnalyzeResult analyzeResult = analyzeResultPoller.getFinalResult();
 			List<DocumentPage> pages = analyzeResult.getPages();
+			
 			int numPages = pages.size();
 			for(int i = 0; i < numPages; i++) {
 				DocumentPage documentPage = pages.get(i);
