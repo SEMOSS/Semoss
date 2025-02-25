@@ -92,16 +92,20 @@ public class AzureDocumentIntelligenceFuntionEngine extends AbstractFunctionEngi
 							BinaryData.fromFile(fileToProcess.toPath(), 8092));
 			AnalyzeResult analyzeResult = analyzeResultPoller.getFinalResult();
 			List<DocumentPage> pages = analyzeResult.getPages();
-			for(int i = 0; i < pages.size(); i++) {
+			int numPages = pages.size();
+			for(int i = 0; i < numPages; i++) {
 				DocumentPage documentPage = pages.get(i);
 				String pageNum = documentPage.getPageNumber()+"";
-	
+				classLogger.info("Processing page " + pageNum + " of " + numPages + " for " + source);
+
 				// aggregate and write the row
 				StringBuffer extractedTextForeachLine = new StringBuffer();
-				for (DocumentLine documentLine : documentPage.getLines()) {
-					extractedTextForeachLine.append(documentLine.getContent()).append(" ");
+				if(documentPage.getLines() != null) {
+					for (DocumentLine documentLine : documentPage.getLines()) {
+						extractedTextForeachLine.append(documentLine.getContent()).append(" ");
+					}
+					writer.writeRow(source, pageNum, extractedTextForeachLine.toString());
 				}
-				writer.writeRow(source, pageNum, extractedTextForeachLine.toString());
 			}
 		} finally {
 			writer.close();
