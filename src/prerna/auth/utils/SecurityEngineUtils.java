@@ -2392,6 +2392,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} else {
 			Set<String> sortKeys = sortFields.keySet();
 			Set<String> validSorts = new HashSet<>(Arrays.asList("ENGINENAME", "DATECREATED"));
+			if (sortFields.containsKey(null) || sortFields.containsValue(null)) {
+				throw new SemossPixelException("Sort parameters cannot contain null keys or values");
+			}
 			if (!validSorts.containsAll(sortKeys)) {
 				throw new SemossPixelException("Invalid Sort Parameters passed: Only \"ENGINENAME\" and \"DATECREATED\" are supported");
 			}
