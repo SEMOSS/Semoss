@@ -467,7 +467,7 @@ class FAISSSearcher:
         """
         return concatenate_datasets(datasets)
 
-    def addDocumet(
+    def addDocument(
         self,
         documentFileLocation: List[str],
         columns_to_index: Optional[List[str]],
