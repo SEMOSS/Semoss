@@ -64,8 +64,19 @@ public class ApiSemossTestUtils {
 		  System.out.println( gson.toJson(data));
 	}
 	
+	public static NounMetadata processPixel(String pixel, PixelRunner pr) {
+		NounMetadata ret = processRawPixel(pixel, pr);
+		return processReturn(ret);
+		
+	}
+
 	public static NounMetadata processPixel(String pixel) {
 		NounMetadata ret = processRawPixel(pixel);
+		return processReturn(ret);
+		
+	}
+	
+	private static NounMetadata processReturn(NounMetadata ret) {
 		PixelDataType nounType = ret.getNounType();
 		if (nounType == PixelDataType.ERROR || nounType == PixelDataType.INVALID_SYNTAX) {
 			if (ret.getValue() != null) {
@@ -77,12 +88,14 @@ public class ApiSemossTestUtils {
 		}
 		assertNotEquals(PixelDataType.ERROR, ret.getNounType());
 		return ret;
-		
 	}
 	
 	public static NounMetadata processRawPixel(String pixel) {
 		PixelRunner pr = new PixelRunner();
-		
+		return processRawPixel(pixel, pr);
+	}
+	
+	private static NounMetadata processRawPixel(String pixel, PixelRunner pr) {
 		try {
 			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
 		} catch(SemossPixelException e) {
