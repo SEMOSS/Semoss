@@ -23,7 +23,7 @@ public class SetContextReactor extends AbstractReactor {
 	// later, they would like to use a different mapping
 
 	public SetContextReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.CONTEXT.getKey(), "loadPath" };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "loadPath" };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
@@ -32,7 +32,7 @@ public class SetContextReactor extends AbstractReactor {
 		organizeKeys();
 		String context = keyValue.get(keysToGet[0]);
 		if (context == null || (context=context.trim()).isEmpty()) {
-			return getError("Must pass in a valid id for the context value");
+			return getError("Must pass in a valid project id for the context value");
 		}
 		boolean load = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]) + "");
 		

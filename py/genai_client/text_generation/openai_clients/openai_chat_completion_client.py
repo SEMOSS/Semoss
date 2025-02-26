@@ -126,9 +126,17 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         kwargs["stream"] = kwargs.get("stream", True)
 
-        if self.model_name == "o1-preview" or self.model_name == "o1-mini":
+        if (
+            self.model_name.startswith("o1-preview")
+            or self.model_name.startswith("o1-mini")
+            or self.model_name.startswith("o3-mini")
+            or self.model_name == "o1"
+        ):
             max_tokens = kwargs.pop("max_tokens")
             kwargs["max_completion_tokens"] = max_tokens
+            # Check and remove "temperature" if it exists as its not supported
+            if "temperature" in kwargs:
+                del kwargs["temperature"]
 
         openai_response = self.client.chat.completions.create(
             model=self.model_name, **kwargs

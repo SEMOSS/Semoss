@@ -1,11 +1,10 @@
 package prerna.reactor.frame.gaas.processors;
 
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.hwpf.HWPFDocument;
@@ -26,26 +25,26 @@ import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 
-public class DocProcessor {
+public class DocProcessor extends AbstractFileProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(DocProcessor.class);
 
-	// constructor with file name
-	// For every slide get the text shapes
-	// index it into a csv
-	private String filePath = null;
-	private VectorDatabaseCSVWriter writer = null;
-
+	/**
+	 * 
+	 * @param filePath
+	 * @param writer
+	 */
 	public DocProcessor(String filePath, VectorDatabaseCSVWriter writer) {
-		this.filePath = filePath;
-		this.writer = writer;
+		super(filePath, writer);
 	}
 
-	public void process(String filetype) {
+	@Override
+	public void process() throws IOException {
 		FileInputStream is = null;
 		Object document = null; // Use Object to handle both types
 		try {
-			is = new FileInputStream(filePath);
+			is = new FileInputStream(this.filePath);
+			String filetype = FilenameUtils.getExtension(this.filePath);
 
 			// Check the file extension to determine which document type to process
 			if (filetype.equals("doc")) {
@@ -58,10 +57,9 @@ public class DocProcessor {
 				processTables((XWPFDocument) document);
 				processEmbeds((XWPFDocument) document);
 			}
-		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
 			closeDocument(document);
 			closeInputStream(is);
@@ -208,20 +206,6 @@ public class DocProcessor {
 		}
 	}
 
-	/**
-	 * 
-	 * @param filePath
-	 * @return
-	 */
-	private String getSource(String filePath) {
-		String source = null;
-		File file = new File(filePath);
-		if(file.exists()) {
-			source = file.getName();
-		}
-		return source;
-	}
-	
 	private void processParagraphs(HWPFDocument document) throws IOException {
 		int count = 1;
 		int pageNo = 1;
