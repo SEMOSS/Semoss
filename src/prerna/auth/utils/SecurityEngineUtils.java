@@ -2148,6 +2148,18 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToSetString(securityDb, qs, false);
 	}
 	
+	public static List<Map<String, Object>> getUserEngineList(User user, 
+			List<String> engineTypes,
+			List<String> engineIdFilters,
+			Boolean favoritesOnly, 
+			Map<String, Object> engineMetadataFilter, 
+			List<Integer> permissionFilters, 
+			String searchTerm, 
+			String limit, 
+			String offset) {
+		return getUserEngineList(user, engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter, permissionFilters, searchTerm, limit, offset, null);
+	}
+	
 
 	/**
 	 * Get the list of the database information that the user has access to
@@ -2161,6 +2173,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
+	 * @param sortFields
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserEngineList(User user, 
