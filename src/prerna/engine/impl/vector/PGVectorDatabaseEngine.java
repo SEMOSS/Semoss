@@ -867,7 +867,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-								+ " ptyhon process with commands >>> " + String.join("\n", commands));
+								+ " python process with commands >>> " + String.join("\n", commands));
 		} catch(Exception e) {
 			// set the model props to false
 			// incase those values were incorrect

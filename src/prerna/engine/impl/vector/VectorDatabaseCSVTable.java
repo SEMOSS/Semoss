@@ -10,6 +10,7 @@ import java.util.Map;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.EmbeddedModelEngine;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -24,7 +25,7 @@ public class VectorDatabaseCSVTable {
 	public static final String CONTENT = "Content";
 	
     public List<VectorDatabaseCSVRow> rows;
-    private IModelEngine keywordEngine = null;
+    private EmbeddedModelEngine keywordEngine = null;
 	private int maxKeywords = 12;
 	private int percentile = 0;
 	
@@ -57,13 +58,21 @@ public class VectorDatabaseCSVTable {
     }
     
     public void setKeywordEngine(IModelEngine keywordEngine) {
-        this.keywordEngine = keywordEngine;
+    	if(!(keywordEngine instanceof EmbeddedModelEngine)) {
+    		throw new IllegalArgumentException("Keyword Engine must be of type EmbeddedModelEngine");
+    	}
+        this.keywordEngine = (EmbeddedModelEngine) keywordEngine;
     }
     
-    public IModelEngine getKeywordEngine() {
+    public EmbeddedModelEngine getKeywordEngine() {
         return this.keywordEngine;
     }
-    
+
+    /**
+     * 
+     * @param modelEngine
+     * @param insight
+     */
     public void generateAndAssignEmbeddings(IModelEngine modelEngine, Insight insight) {
     	List<String> stringsToEmbed = this.getAllContent();
     	
@@ -72,9 +81,7 @@ public class VectorDatabaseCSVTable {
     		keywordEngineParams.put("max_keywords", maxKeywords);
     		keywordEngineParams.put("percentile", percentile);
     		
-    		@SuppressWarnings({"unchecked" })
-			List<String> keywordsFromChunks = (List<String>) this.keywordEngine.model(stringsToEmbed, insight, keywordEngineParams); 		
-    		
+			List<String> keywordsFromChunks = (List<String>) this.keywordEngine.keywordExtraction(stringsToEmbed, insight, keywordEngineParams); 		
     		for (int i = 0; i < this.rows.size(); i++) {
     			String keywordChunk = keywordsFromChunks.get(i);
     			

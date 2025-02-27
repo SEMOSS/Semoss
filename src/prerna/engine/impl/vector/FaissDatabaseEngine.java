@@ -246,7 +246,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 										 )
 								 ));
 		}
-		
+
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
 			// add the columns based in the vector db query
 			addDocumentPyCommand.append(", ")

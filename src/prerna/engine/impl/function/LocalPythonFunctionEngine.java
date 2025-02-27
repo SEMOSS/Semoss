@@ -146,7 +146,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 			this.pyt.runScript(execCommand);
 
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-								+ " ptyhon process with commands >>> " + String.join("\n", execCommand));
+								+ " python process with commands >>> " + String.join("\n", execCommand));
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			if(this.cpw != null) {

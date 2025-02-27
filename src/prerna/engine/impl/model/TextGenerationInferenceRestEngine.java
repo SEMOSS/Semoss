@@ -494,11 +494,6 @@ public class TextGenerationInferenceRestEngine extends AbstractRESTModelEngine {
 	}
 
 	@Override
-	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
-		return "This model does have an model method defined.";
-	}
-	
-	@Override
 	protected void resetAfterTimeout() {
 		// TODO Auto-generated method stub
 		

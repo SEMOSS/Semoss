@@ -1,6 +1,14 @@
 package prerna.engine.impl.model;
 
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import prerna.ds.py.PyUtils;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
+import prerna.om.Insight;
 
 public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 	
@@ -9,22 +17,46 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 		return ModelTypeEnum.EMBEDDED;
 	}
 	
-//	public static void main(String [] args) throws Exception
-//	{
-//		String smssFilePath = "c:/users/pkapaleeswaran/workspacej3/SemossDev/db/PolicyBot.smss";
-//		DIHelper.getInstance().loadCoreProp("c:/users/pkapaleeswaran/workspacej3/SemossDev/RDF_MAP.prop");
-//		IModelEngine eng = new EmbeddedModelEngine();
-//		eng.open(smssFilePath);
-//		eng.startServer();
-//		
-//		Map <String, Object> params = new HashMap<String, Object>();
-//		params.put("max_new_tokens", 2000);
-//		params.put("temperature", 0.01);
-//		
-//		Map<String, Object> output = eng.ask("What is the capital of India ?", null, null, params);
-//		//PyTranslator pyt = eng.getClient();
-//		//System.err.println(output);
-//		//Object output = pyt.runScript("i.ask(question='What is the capital of India ?')");
-//		//System.err.println(output);
-//	}
+	protected List<String> keywordExtractionCall(Object input, Insight insight, Map<String, Object> parameters) {
+		checkSocketStatus();
+				
+		StringBuilder callMaker = new StringBuilder(varName);
+		String inputAsString = PyUtils.determineStringType(input);
+		callMaker.append(".keyword_extraction(input = ").append(inputAsString);
+		if (parameters != null && !parameters.isEmpty()) {
+			callMaker.append(", **").append(PyUtils.determineStringType(parameters));
+		}
+		callMaker.append(")");
+		
+		List<String> output = (List<String>) pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		return output;
+	}
+	
+	public List<String> keywordExtraction(Object input, Insight insight, Map <String, Object> parameters) {		
+		ZonedDateTime inputTime = ZonedDateTime.now();
+		List<String> keywordExtractionResponse = keywordExtractionCall(input, insight, parameters);
+		ZonedDateTime outputTime = ZonedDateTime.now();
+	
+		if (inferenceLogsEnbaled) {
+			String messageId = UUID.randomUUID().toString();
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/messageId,
+					/*messageMethod*/"textKeywords", 
+					/*engine*/this,
+					/*insight*/insight,
+					/*context*/null,
+					/*prompt*/input + "",
+					/*fullPrompt*/null,
+					/*promptTokens*/null,
+					/*inputTime*/inputTime, 
+					/*response*/PyUtils.determineStringType(keywordExtractionResponse),
+					/*responseTokens*/null,
+					/*outputTime*/outputTime
+			));
+			inferenceRecorder.start();
+		}
+ 				
+		return keywordExtractionResponse;
+	}
+	
 }

@@ -34,7 +34,7 @@ class FAISSDatabase:
         if keyword_engine_id != None and keyword_engine_id != "":
             self.keyword_engine = model_engine_class(engine_id=keyword_engine_id)
         else:
-            self.keyword_engine = keyword_engine
+            self.keyword_engine = None
 
         # what type of similarity search are we performing
         self.metric_type_is_cosine_similarity = False
