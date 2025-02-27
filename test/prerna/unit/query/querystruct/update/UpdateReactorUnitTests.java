@@ -39,8 +39,9 @@ public class UpdateReactorUnitTests {
 
     @BeforeEach
     void setup() {
-    	reactor = new UpdateReactor();
-        MockitoAnnotations.openMocks(this);
+    	MockitoAnnotations.openMocks(this);
+		reactor = new UpdateReactor();
+        reactor.setNounStore(mockStore);
         when(mockStore.getNoun(ReactorKeysEnum.COLUMNS.getKey())).thenReturn(mockColGrs);
         when(mockStore.getNoun(ReactorKeysEnum.VALUES.getKey())).thenReturn(mockValGrs);
     }
@@ -111,16 +112,21 @@ public class UpdateReactorUnitTests {
         String expectedNounMetadata = "Can only specify one value to update to";
         assertEquals(expectedNounMetadata, exception.getMessage());
     }
-
+    
     @Test
-    void testExecuteWithExistingQs() {
+    void testExecuteWithNounMetadataInList() {
         when(mockColGrs.size()).thenReturn(1);
         when(mockColGrs.get(0)).thenReturn("column1");
-        when(mockValGrs.get(0)).thenReturn("value1");
+        NounMetadata nounMetadata = new NounMetadata("value1", PixelDataType.CONST_STRING);
+        when(mockValGrs.get(0)).thenReturn(Arrays.asList(nounMetadata));
 
         NounMetadata result = reactor.execute();
 
-//        verify(mockQs, times(1)).merge(any(UpdateQueryStruct.class));
-//        verify(mockQs, times(1)).setQsType(any());
+        UpdateQueryStruct qs = (UpdateQueryStruct) result.getValue();
+        List<IQuerySelector> expectedSelectors = Arrays.asList(new QueryColumnSelector("column1"));
+        List<Object> expectedValues = Arrays.asList("value1");
+
+        assertEquals(expectedSelectors, qs.getSelectors());
+        assertEquals(expectedValues, qs.getValues());
     }
 }
