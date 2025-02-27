@@ -1,14 +1,17 @@
 package prerna.engine.impl.vector;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -243,7 +246,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 										 )
 								 ));
 		}
-		
+
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
 			// add the columns based in the vector db query
 			addDocumentPyCommand.append(", ")
@@ -331,56 +334,73 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		checkSocketStatus();
-		
+
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		String indexedFilesPath = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "indexed_files";
 		Path indexDirectory = Paths.get(indexedFilesPath);
-		for (String document : filePaths) {
-			String documentName = document.split("\\.")[0];
-	        String[] fileNamesToDelete = {documentName + "_dataset.pkl", documentName + "_vectors.pkl", documentName + ".csv"};
-
-	        // Create a filter for the file names
-	        DirectoryStream.Filter<Path> fileNameFilters = entry -> {
-	            String fileName = entry.getFileName().toString();
-	            for (String fileNameToDelete : fileNamesToDelete) {
-	                if (fileName.equals(fileNameToDelete)) {
-	                    return true;
-	                }
-	            }
-	            return false;
-	        };
-	        
-	        DirectoryStream<Path> stream;
-			try {
-				stream = Files.newDirectoryStream(indexDirectory, fileNameFilters);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable determine files in " + indexDirectory.getFileName());
-			}
-	        for (Path entry : stream) {
-                // Delete each file that matches the specified file name
-                try {
-					Files.delete(entry);
-					filesToRemoveFromCloud.add(entry.toString());
+        DirectoryStream<Path> stream = null;
+        try {
+			for (String document : filePaths) {
+				String documentName = FilenameUtils.getName(document);
+		        String[] fileNamesToDelete = {documentName + "_dataset.pkl", documentName + "_vectors.pkl", documentName + ".csv"};
+	
+		        // Create a filter for the file names
+		        DirectoryStream.Filter<Path> fileNameFilters = entry -> {
+		            String fileName = entry.getFileName().toString();
+		            for (String fileNameToDelete : fileNamesToDelete) {
+		                if (fileName.equals(fileNameToDelete)) {
+		                    return true;
+		                }
+		            }
+		            return false;
+		        };
+		        
+				try {
+					stream = Files.newDirectoryStream(indexDirectory, fileNameFilters);
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Unable to remove file: " + entry.getFileName());
+					throw new IllegalArgumentException("Unable determine files in " + indexDirectory.getFileName());
 				}
-                classLogger.info("Deleted: " + entry.toString());
-            }
-	        try {
-	        	File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", document);
-				FileUtils.forceDelete(documentFile);
-				filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to delete " + document + "from documents directory");
+		        for (Path entry : stream) {
+	                // Delete each file that matches the specified file name
+	                try {
+						Files.delete(entry);
+						filesToRemoveFromCloud.add(entry.toString());
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Unable to remove file: " + entry.getFileName());
+					}
+	                classLogger.info("Deleted: " + entry.toString());
+	            }
+		        try {
+		        	File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", document);
+					if(documentFile.exists() && documentFile.isFile()) {
+			        	FileUtils.forceDelete(documentFile);
+						filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
+					}
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to delete " + document + "from documents directory");
+				}
+			}
+		} finally {
+			if(stream != null) {
+				try {
+					stream.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
 		// this would mean the indexClass is now empty, we should delete it
 		File indexedFolder = new File(indexedFilesPath);
-		if (indexedFolder.list().length == 0) {
+		if (indexedFolder.list(new FilenameFilter() {
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.endsWith(".pkl");
+			}
+		}).length == 0) {
 			try {
 				File indexClassDirectory = new File(indexedFolder.getParent());
 				
@@ -436,8 +456,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		
-		checkSocketStatus();
 		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey(INDEX_CLASS)) {
+			indexClass = (String) parameters.get(INDEX_CLASS);
+		}
+		
 		insight.getVarStore().put(LATEST_VECTOR_SEARCH_STATEMENT, new NounMetadata(question, PixelDataType.CONST_STRING));
 		
 		StringBuilder callMaker = new StringBuilder();
@@ -549,6 +572,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return (List<Map<String, Object>>) output;
 	}
 	
+	/**
+	 * 
+	 * @param indexClass
+	 * @return
+	 */
 	public Map<String, String> removeCorruptedFiles(String indexClass){
 		if (indexClass == null || indexClass.isEmpty()) {
 			indexClass = this.defaultIndexClass;
@@ -591,7 +619,65 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		return corruptedFilesToReason;
 	}
+	
+	@Override
+	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey(INDEX_CLASS)) {
+			indexClass = (String) parameters.get(INDEX_CLASS);
+		}
+		
+		checkSocketStatus();
+		
+		StringBuilder listDocumentsCommand = new StringBuilder();
+		listDocumentsCommand.append(this.vectorDatabaseSearcher)
+				.append(".searchers['")
+				.append(indexClass)
+				.append("']")
+				.append(".list_documents()  if ")
+				.append(this.vectorDatabaseSearcher)
+				.append(".searcher_exists('")
+				.append(indexClass)
+				.append("') else []");
+		
+		List<String> sources = (List<String>) pyt.runSmssWrapperEval(listDocumentsCommand.toString(), null);
+		
+		List<Map<String, Object>> fileList = new ArrayList<>();
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		if(documentsDir.exists() && documentsDir.isDirectory()) {
+			for(String fileName : sources) {
+				Map<String, Object> fileInfo = new HashMap<>();
+				fileInfo.put("fileName", fileName);
+				File thisF = new File(documentsDir, fileName);
+				if(thisF.exists() && thisF.isFile()) {
+					long fileSizeInBytes = thisF.length();
+					double fileSizeInMB = (double) fileSizeInBytes / (1024);
+					SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+					String lastModified = dateFormat.format(new Date(thisF.lastModified()));
 
+					// add file size and last modified into the map
+					fileInfo.put("fileSize", fileSizeInMB);
+					fileInfo.put("lastModified", lastModified);
+				}
+				fileList.add(fileInfo);
+			}
+		}
+		
+		return fileList;
+	}
+
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		checkSocketStatus();
+		
+		StringBuilder getAllRecordsCommand = new StringBuilder();
+		getAllRecordsCommand.append(this.vectorDatabaseSearcher)
+				.append(".list_all_records()");
+		
+		List<Map<String, Object>> allRecords = (List<Map<String, Object>>) pyt.runSmssWrapperEval(getAllRecordsCommand.toString(), null);
+		return allRecords;
+	}
+	
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.FAISS;

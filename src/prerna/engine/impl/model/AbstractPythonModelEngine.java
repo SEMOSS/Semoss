@@ -159,7 +159,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			pyt.runEmptyPy(commands);
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-								+ " ptyhon process with commands >>> " + String.join("\n", commands));	
+								+ " python process with commands >>> " + String.join("\n", commands));	
 			
 			// run a prefix command
 			setPrefix();
@@ -386,22 +386,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		Object responseObject = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		EmbeddingsModelEngineResponse embeddingsResponse = EmbeddingsModelEngineResponse.fromObject(responseObject);
 		return embeddingsResponse;
-	}
-
-	@Override
-	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
-		checkSocketStatus();
-				
-		StringBuilder callMaker = new StringBuilder(varName);
-		String inputAsString = PyUtils.determineStringType(input);
-		callMaker.append(".model(input = ").append(inputAsString);
-		if (parameters != null && !parameters.isEmpty()) {
-			callMaker.append(", **").append(PyUtils.determineStringType(parameters));
-		}
-		callMaker.append(")");
-		
-		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		return output;
 	}
 
 	@Override

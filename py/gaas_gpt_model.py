@@ -26,8 +26,8 @@ class AbstractModelEngine(ABC):
         pass
 
     @abstractmethod
-    def model(self, *args: Any, **kwargs: Any) -> List[Any]:
-        """This method is responsible for utilizing a specific model function that is unique to that model function"""
+    def keyword_extraction(self, *args: Any, **kwargs: Any) -> List[Any]:
+        """This method is responsible for interacting with models that can perform keyword extraction (like keyBERT)"""
         pass
 
     @abstractmethod
@@ -321,9 +321,9 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return pixelReturn
 
-    def model(
+    def keyword_extraction(
         self,
-        input: Any,
+        input: List[str],
         param_dict: Optional[Dict] = None,
         insight_id: Optional[str] = None,
     ):
@@ -332,7 +332,18 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        pixel = f'Model("{input}");'
+        encoded_input = []
+        for ele in input:
+            encoded_input.append(f"<encode>{ele}</encode>")
+        percentile = ""
+        max_keywords = ""
+
+        if param_dict["percentile"] is not None:
+            percentile = f', percentile={param_dict["percentile"]}'
+        if param_dict["max_keywords"] is not None:
+            max_keywords = f', limit={param_dict["max_keywords"]}'
+
+        pixel = f'EmbedderKeywordExtraction(model="{self.engine_id}", input={encoded_input}{percentile}{max_keywords});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -415,7 +426,7 @@ class HuggingFacePipelineModelEngine(AbstractModelEngine):
     ) -> List[Dict]:
         return self.pipe.model.encode(strings_to_embed)
 
-    def model(
+    def keyword_extraction(
         self,
         input: Any,
         param_dict: Optional[Dict] = None,
@@ -483,8 +494,8 @@ class LocalModelEngine(AbstractModelEngine):
     def embeddings(self, **kwargs) -> Dict:
         return [self.local_model_engine.embeddings(**kwargs)]
 
-    def model(self, **kwargs):
-        return [self.local_model_engine.model(**kwargs)]
+    def keyword_extraction(self, **kwargs):
+        return [self.local_model_engine.keyword_extraction(**kwargs)]
 
     def do_call(self, method_name: str, input: Any, **kwargs) -> Any:
         call_maker = getattr(self, method_name, None)
@@ -614,14 +625,14 @@ class ModelEngine(AbstractModelEngine):
     ) -> Dict:
         return self.model_engine.image_embeddings(**kwargs)
 
-    def model(
+    def keyword_extraction(
         self,
         insight_id: Optional[
             str
         ] = None,  # TODO remove once users stop using it. No longer needs to be set.
         **kwargs,
     ):
-        return self.model_engine.model(**kwargs)
+        return self.model_engine.keyword_extraction(**kwargs)
 
     def ner(
         self,

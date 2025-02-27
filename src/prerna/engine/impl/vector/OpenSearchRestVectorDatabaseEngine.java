@@ -418,6 +418,11 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return filesInOpenSearch;
 	}
 	
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		throw new IllegalArgumentException("This method has not been implemented yet");
+	}
+	
 	/**
 	 * https://opensearch.org/docs/latest/search-plugins/knn/knn-index/
 	 * 
@@ -615,4 +620,5 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.OPEN_SEARCH;
 	}
+
 }

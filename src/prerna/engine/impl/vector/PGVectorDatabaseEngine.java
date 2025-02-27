@@ -53,8 +53,6 @@ import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVWriter;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
-import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -685,14 +683,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
-		StringBuilder searchQueryBuilder = new StringBuilder("SELECT DISTINCT SOURCE AS \"fileName\" FROM ").append(this.vectorTableName);
-		
-		HardSelectQueryStruct qs = new HardSelectQueryStruct();
-		qs.setEngine(this);
-		qs.setEngineId(this.engineId);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);		
-		qs.setQuery(searchQueryBuilder.toString());
-		
+		final String tablePrefix = this.vectorTableName+"__";
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.SOURCE, "fileName"));
 		List<Map<String, Object>> sourcesInPostgresDb = QueryExecutionUtility.flushRsToMap(this, qs);
 		
 		String indexClass = this.defaultIndexClass;
@@ -720,6 +713,23 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 
 		return sourcesInPostgresDb;
+	}
+	
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		final String tablePrefix = this.vectorTableName+"__";
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.SOURCE, VectorDatabaseCSVTable.SOURCE));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.MODALITY, VectorDatabaseCSVTable.MODALITY));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.DIVIDER, VectorDatabaseCSVTable.DIVIDER));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.PART, VectorDatabaseCSVTable.PART));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.TOKENS, VectorDatabaseCSVTable.TOKENS));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.CONTENT, VectorDatabaseCSVTable.CONTENT));
+		// order by
+		qs.addOrderBy(tablePrefix+VectorDatabaseCSVTable.SOURCE);
+		qs.addOrderBy(tablePrefix+VectorDatabaseCSVTable.DIVIDER);
+		qs.addOrderBy(tablePrefix+VectorDatabaseCSVTable.PART);
+		return QueryExecutionUtility.flushRsToMap(this, qs);
 	}
 	
 	@Override
@@ -857,7 +867,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-								+ " ptyhon process with commands >>> " + String.join("\n", commands));
+								+ " python process with commands >>> " + String.join("\n", commands));
 		} catch(Exception e) {
 			// set the model props to false
 			// incase those values were incorrect
@@ -937,11 +947,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			File documentDir = new File(indexDirectory, AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 			if(!documentDir.exists()) {
 				documentDir.mkdirs();
-			}
-
-			boolean filesAppoved = VectorDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
-			if (!filesAppoved) {
-				throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
 			}
 
 			if (!indexFilesFolder.exists()) {
