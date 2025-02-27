@@ -309,14 +309,27 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 					
 					if(docLower.endsWith(".csv")) {
 						classLogger.info("You are attempting to load in a structured table for " + documentName + ". Hopefully the structure is the right format we expect...");
-						// copy csv over
+						// validate the file is a proper csv
+						boolean validCsv = true;
+						try {
+							validCsv = VectorDatabaseCSVTable.validateCSVTable(document);
+						} catch(Exception e) {
+							classLogger.error(Constants.STACKTRACE, e);
+							validCsv = false;
+						}
 						
-						//TODO: add validation this is the right CSV
-						//TODO: add validation this is the right CSV
-						//TODO: add validation this is the right CSV
-						//TODO: add validation this is the right CSV
-						//TODO: add validation this is the right CSV
-
+						if(!validCsv) {
+							StringBuilder headerBuilder = new StringBuilder();
+							headerBuilder.append("'").append(VectorDatabaseCSVTable.SOURCE).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.SOURCE).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.MODALITY).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.DIVIDER).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.PART).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.TOKENS).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.CONTENT).append("'")
+								;
+							throw new IllegalArgumentException("The CSV must be the proper format with the following headers: " + headerBuilder.toString());
+						}
 						FileUtils.copyFileToDirectory(document, indexFilesDir);
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
