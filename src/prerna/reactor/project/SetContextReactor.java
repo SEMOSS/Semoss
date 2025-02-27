@@ -55,8 +55,11 @@ public class SetContextReactor extends AbstractReactor {
 		// set the path
 		if (PyUtils.pyEnabled()) {
 			String assetsDir = AssetUtility.getProjectAssetFolder(context).replace("\\", "/");
-			String script = "import sys\n" + "import os\n" + "sys.path.append('" + assetsDir + "')\n" + "os.chdir('"
-					+ assetsDir + "')";
+			String assetsPyDir = assetsDir + "/py";
+			String script = "import sys\n" + "import os\n" 
+					+ "sys.path.append('" + assetsDir + "')\n" 
+					+ "sys.path.append('" + assetsPyDir + "')\n" 
+					+ "os.chdir('"+ assetsDir + "')";
 
 			PyTranslator pyT = null;
 			User user = insight.getUser();
