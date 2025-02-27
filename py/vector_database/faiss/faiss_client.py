@@ -581,11 +581,13 @@ class FAISSSearcher:
                         keyword_search_params != None
                         and keyword_search_params.pop("keywordSearch", None) is True
                     ):
-                        keywords_for_target_col = self.keyword_engine.model(
-                            input=source_dataset[target_column],
-                            insight_id=insight_id,
-                            param_dict=keyword_search_params,
-                        )[0]
+                        keywords_for_target_col = (
+                            self.keyword_engine.keyword_extraction(
+                                input=source_dataset[target_column],
+                                insight_id=insight_id,
+                                param_dict=keyword_search_params,
+                            )
+                        )
                         # source_dataset = source_dataset.add_column(target_column, keywords_for_target_col)
                         source_dataset = source_dataset.remove_columns(
                             column_names=target_column

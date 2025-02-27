@@ -635,7 +635,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			}
 		}
 		
-		if(this.keywordGeneratorEngineId != null) {
+		if(this.keywordGeneratorEngineId != null && !this.keywordGeneratorEngineId.isEmpty()) {
 			if(!SecurityEngineUtils.userCanViewEngine(user, this.keywordGeneratorEngineId)) {
 				throw new IllegalArgumentException("Keyword model " + this.keywordGeneratorEngineId + " does not exist or user does not have access to this model");
 			}
@@ -758,7 +758,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-								+ " ptyhon process with commands >>> " + String.join("\n", commands));
+								+ " python process with commands >>> " + String.join("\n", commands));
 		} catch(Exception e) {
 			// set the model props to false
 			// incase those values were incorrect
