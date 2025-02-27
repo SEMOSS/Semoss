@@ -2,11 +2,9 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -258,11 +256,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				documentDir.mkdirs();
 			}
 
-			boolean filesAppoved = VectorDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
-			if (!filesAppoved) {
-				throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
-			}
-
 			if (!indexFilesDir.exists()) {
 				indexFilesDir.mkdirs();
 			}
@@ -316,7 +309,27 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 					
 					if(docLower.endsWith(".csv")) {
 						classLogger.info("You are attempting to load in a structured table for " + documentName + ". Hopefully the structure is the right format we expect...");
-						// copy csv over
+						// validate the file is a proper csv
+						boolean validCsv = true;
+						try {
+							validCsv = VectorDatabaseCSVTable.validateCSVTable(document);
+						} catch(Exception e) {
+							classLogger.error(Constants.STACKTRACE, e);
+							validCsv = false;
+						}
+						
+						if(!validCsv) {
+							StringBuilder headerBuilder = new StringBuilder();
+							headerBuilder.append("'").append(VectorDatabaseCSVTable.SOURCE).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.SOURCE).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.MODALITY).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.DIVIDER).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.PART).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.TOKENS).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.CONTENT).append("'")
+								;
+							throw new IllegalArgumentException("The CSV must be the proper format with the following headers: " + headerBuilder.toString());
+						}
 						FileUtils.copyFileToDirectory(document, indexFilesDir);
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
@@ -548,37 +561,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 
 		return vectorSearchResponse;
-	}
-	
-	@Override
-	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
-		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey("indexClass")) {
-			indexClass = (String) parameters.get("indexClass");
-		}
-
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
-
-		List<Map<String, Object>> fileList = new ArrayList<>();
-
-		File[] files = documentsDir.listFiles();
-		if (files != null) {
-			for (File file : files) {
-				String fileName = file.getName();
-				long fileSizeInBytes = file.length();
-				double fileSizeInMB = (double) fileSizeInBytes / (1024);
-				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				String lastModified = dateFormat.format(new Date(file.lastModified()));
-
-				Map<String, Object> fileInfo = new HashMap<>();
-				fileInfo.put("fileName", fileName);
-				fileInfo.put("fileSize", fileSizeInMB);
-				fileInfo.put("lastModified", lastModified);
-				fileList.add(fileInfo);
-			}
-		} 
-
-		return fileList;
 	}
 	
 	/**

@@ -93,7 +93,24 @@ public class VectorDatabaseCSVTable {
 		}
     }
     
+    /**
+     * 
+     * @param file
+     * @return
+     * @throws IOException
+     */
     public static VectorDatabaseCSVTable initCSVTable(File file) throws IOException {
+    	return initCSVTable(file, -1);
+    }
+    
+    /**
+     * 
+     * @param file
+     * @param limit
+     * @return
+     * @throws IOException
+     */
+    public static VectorDatabaseCSVTable initCSVTable(File file, long limit) throws IOException {
     	VectorDatabaseCSVTable csvTable = new VectorDatabaseCSVTable();
     	csvTable.file = file;
     	
@@ -105,7 +122,9 @@ public class VectorDatabaseCSVTable {
     	qs.setFilePath(file.getAbsolutePath());
     	qs.setSelectorsAndTypes(new String[] {SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT}, 
     			new String[] {STR_DT, STR_DT, STR_DT, STR_DT, INT_DT, STR_DT});
-    	
+    	if(limit > 0) {
+    		qs.setLimit(limit);
+    	}
     	CsvFileIterator csvIt = null;
     	try {
     		csvIt = new CsvFileIterator(qs);
@@ -127,5 +146,48 @@ public class VectorDatabaseCSVTable {
     	}
 
 		return csvTable;
+    }
+    
+    /**
+     * 
+     * @param file
+     * @return
+     * @throws IOException
+     */
+    public static boolean validateCSVTable(File file) throws IOException {
+    	VectorDatabaseCSVTable csvTable = new VectorDatabaseCSVTable();
+    	csvTable.file = file;
+    	
+    	final String STR_DT = SemossDataType.STRING.toString();
+    	final String INT_DT = SemossDataType.INT.toString();
+    	
+    	CsvQueryStruct qs = new CsvQueryStruct();
+    	qs.setDelimiter(',');
+    	qs.setFilePath(file.getAbsolutePath());
+    	qs.setSelectorsAndTypes(new String[] {SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT}, 
+    			new String[] {STR_DT, STR_DT, STR_DT, STR_DT, INT_DT, STR_DT});
+    	qs.setLimit(10);
+    	CsvFileIterator csvIt = null;
+    	try {
+    		csvIt = new CsvFileIterator(qs);
+    		while(csvIt.hasNext()) {
+    			Object[] row = csvIt.next().getValues();
+    			// none of these should be null/empty
+    			if(row[0] == null || ((String) row[0]).isEmpty()
+    					&& row[1] == null || ((String) row[1]).isEmpty()
+    					&& row[2] == null || ((String) row[2]).isEmpty()
+    					&& row[3] == null || ((String) row[3]).isEmpty()
+    					&& row[4] == null || ((Number) row[4]).intValue() <= 0
+    					&& row[3] == null || ((String) row[3]).isEmpty()
+    					)
+    						return false;
+    		}
+    	} finally {
+    		if(csvIt != null) {
+    			csvIt.close();
+    		}
+    	}
+
+		return true;
     }
 }
