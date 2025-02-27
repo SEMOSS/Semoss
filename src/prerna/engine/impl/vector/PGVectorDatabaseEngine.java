@@ -37,6 +37,7 @@ import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
@@ -52,8 +53,6 @@ import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVWriter;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
-import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -330,6 +329,14 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		
 		// if we were able to extract files, begin embeddings process
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
+		// send all the strings to embed in one shot
+		try {
+			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred creating the embeddings for the generated chunks. Detailed error message = " + e.getMessage());
+		}
+		
 		String psString = "INSERT INTO " 
 				+ this.vectorTableName 
 				+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT) "
@@ -347,8 +354,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 //			}
 
 			final int batchSize = 1000;
-			
-			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 			int count = 0;
 			for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
 				int index = 1;
@@ -678,14 +683,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
-		StringBuilder searchQueryBuilder = new StringBuilder("SELECT DISTINCT SOURCE AS \"fileName\" FROM ").append(this.vectorTableName);
-		
-		HardSelectQueryStruct qs = new HardSelectQueryStruct();
-		qs.setEngine(this);
-		qs.setEngineId(this.engineId);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);		
-		qs.setQuery(searchQueryBuilder.toString());
-		
+		final String tablePrefix = this.vectorTableName+"__";
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.SOURCE, "fileName"));
 		List<Map<String, Object>> sourcesInPostgresDb = QueryExecutionUtility.flushRsToMap(this, qs);
 		
 		String indexClass = this.defaultIndexClass;
@@ -713,6 +713,23 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 
 		return sourcesInPostgresDb;
+	}
+	
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		final String tablePrefix = this.vectorTableName+"__";
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.SOURCE, VectorDatabaseCSVTable.SOURCE));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.MODALITY, VectorDatabaseCSVTable.MODALITY));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.DIVIDER, VectorDatabaseCSVTable.DIVIDER));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.PART, VectorDatabaseCSVTable.PART));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.TOKENS, VectorDatabaseCSVTable.TOKENS));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.CONTENT, VectorDatabaseCSVTable.CONTENT));
+		// order by
+		qs.addOrderBy(tablePrefix+VectorDatabaseCSVTable.SOURCE);
+		qs.addOrderBy(tablePrefix+VectorDatabaseCSVTable.DIVIDER);
+		qs.addOrderBy(tablePrefix+VectorDatabaseCSVTable.PART);
+		return QueryExecutionUtility.flushRsToMap(this, qs);
 	}
 	
 	@Override
@@ -812,6 +829,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					}
 				}
 			}
+			
+			//if we have a python specific user, make sure that user can access the schema folder
+			setVectorFolderPermissions();
 			
 			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
@@ -929,11 +949,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				documentDir.mkdirs();
 			}
 
-			boolean filesAppoved = VectorDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
-			if (!filesAppoved) {
-				throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
-			}
-
 			if (!indexFilesFolder.exists()) {
 				indexFilesFolder.mkdirs();
 			}
@@ -992,19 +1007,28 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
 						// determine which text extraction method to use
-						int rowsCreated;
+						boolean processed = false;
+						int rowsCreated = -1;
 						if(this.customDocumentProcessor) {
 							if(this.customDocumentProcessorFunctionID == null || this.customDocumentProcessorFunctionID.isEmpty()) {
 								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
 							}
+							if(this.customDocumentProcessorFunctionID == null || this.customDocumentProcessorFunctionID.isEmpty()) {
+								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
+							}
 							IFunctionEngine functionEngine = Utility.getFunctionEngine(this.customDocumentProcessorFunctionID);
-							Map<String, Object> functionInputs = new HashMap<>();
-							functionInputs.put("csvPath", extractedFile.getAbsolutePath());
-							functionInputs.put("document", document);
-							functionInputs.put("parameters", parameters);
-							rowsCreated = (int) functionEngine.execute(functionInputs);
-						} else {
-							rowsCreated= VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+							if(!(functionEngine instanceof ICustomEmbeddingsFunctionEngine)) {
+								throw new IllegalArgumentException("Vector Database owner has incorrectly setup a custom embeddings function that is not an ICustomEmbeddingsFunctionEngine");
+							}
+							ICustomEmbeddingsFunctionEngine customEmbeddings = (ICustomEmbeddingsFunctionEngine) functionEngine;
+							if(customEmbeddings.canProcessDocument(document)) {
+								rowsCreated = customEmbeddings.processDocument(extractedFile.getAbsolutePath(), document, parameters);
+								processed = true;
+							}
+						} 
+						
+						if(!processed) {
+							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 						}
 						
 						// check to see if the file data was extracted
@@ -1157,6 +1181,23 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			return InsightStore.getInstance().get((String) insightObj);
 		} else {
 			return (Insight) insightObj;
+		}
+	}
+	
+	/**
+	 * 
+	 */
+	private void setVectorFolderPermissions() {
+		//if we have a python specific user, make sure that user can access the schema folder
+		String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
+		if (pythonUser != null && !pythonUser.trim().isEmpty()) {
+			try {
+				Utility.setOwnerAndGroupPermissionsRecursively(this.schemaFolder);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} catch (InterruptedException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 	}
 

@@ -2,11 +2,9 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +28,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
@@ -257,11 +256,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				documentDir.mkdirs();
 			}
 
-			boolean filesAppoved = VectorDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
-			if (!filesAppoved) {
-				throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
-			}
-
 			if (!indexFilesDir.exists()) {
 				indexFilesDir.mkdirs();
 			}
@@ -315,11 +309,32 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 					
 					if(docLower.endsWith(".csv")) {
 						classLogger.info("You are attempting to load in a structured table for " + documentName + ". Hopefully the structure is the right format we expect...");
-						// copy csv over
+						// validate the file is a proper csv
+						boolean validCsv = true;
+						try {
+							validCsv = VectorDatabaseCSVTable.validateCSVTable(document);
+						} catch(Exception e) {
+							classLogger.error(Constants.STACKTRACE, e);
+							validCsv = false;
+						}
+						
+						if(!validCsv) {
+							StringBuilder headerBuilder = new StringBuilder();
+							headerBuilder.append("'").append(VectorDatabaseCSVTable.SOURCE).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.SOURCE).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.MODALITY).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.DIVIDER).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.PART).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.TOKENS).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.CONTENT).append("'")
+								;
+							throw new IllegalArgumentException("The CSV must be the proper format with the following headers: " + headerBuilder.toString());
+						}
 						FileUtils.copyFileToDirectory(document, indexFilesDir);
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
-						int rowsCreated;
+						boolean processed = false;
+						int rowsCreated = -1;
 						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
 							StringBuilder extractTextFromDocScript = new StringBuilder();
 							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
@@ -331,19 +346,25 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 								.append("')");
 							setVectorFolderPermissions();
 							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
-
 							rowsCreated = rows.intValue();
+							processed = true;
 						} else if(this.customDocumentProcessor) {
 							if(this.customDocumentProcessorFunctionID == null || this.customDocumentProcessorFunctionID.isEmpty()) {
 								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
 							}
 							IFunctionEngine functionEngine = Utility.getFunctionEngine(this.customDocumentProcessorFunctionID);
-							Map<String, Object> functionInputs = new HashMap<>();
-							functionInputs.put(CSVPATH, extractedFile.getAbsolutePath());
-							functionInputs.put(DOCUMENT, document);
-							functionInputs.put(PARAMETERS, parameters);
-							rowsCreated = (int) functionEngine.execute(functionInputs);
-						} else {
+							if(!(functionEngine instanceof ICustomEmbeddingsFunctionEngine)) {
+								throw new IllegalArgumentException("Vector Database owner has incorrectly setup a custom embeddings function that is not an ICustomEmbeddingsFunctionEngine");
+							}
+							ICustomEmbeddingsFunctionEngine customEmbeddings = (ICustomEmbeddingsFunctionEngine) functionEngine;
+							if(customEmbeddings.canProcessDocument(document)) {
+								rowsCreated = customEmbeddings.processDocument(extractedFile.getAbsolutePath(), document, parameters);
+								processed = true;
+							}
+						} 
+						
+						// default processing if haven't processed with above logic
+						if(!processed) {
 							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 						}
 
@@ -540,37 +561,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 
 		return vectorSearchResponse;
-	}
-	
-	@Override
-	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
-		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey("indexClass")) {
-			indexClass = (String) parameters.get("indexClass");
-		}
-
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
-
-		List<Map<String, Object>> fileList = new ArrayList<>();
-
-		File[] files = documentsDir.listFiles();
-		if (files != null) {
-			for (File file : files) {
-				String fileName = file.getName();
-				long fileSizeInBytes = file.length();
-				double fileSizeInMB = (double) fileSizeInBytes / (1024);
-				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				String lastModified = dateFormat.format(new Date(file.lastModified()));
-
-				Map<String, Object> fileInfo = new HashMap<>();
-				fileInfo.put("fileName", fileName);
-				fileInfo.put("fileSize", fileSizeInMB);
-				fileInfo.put("lastModified", lastModified);
-				fileList.add(fileInfo);
-			}
-		} 
-
-		return fileList;
 	}
 	
 	/**
@@ -949,7 +939,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
 		if (pythonUser != null && !pythonUser.trim().isEmpty()) {
 			try {
-				Utility.setOwnerAndGroupPermissionsRecursively(schemaFolder);
+				Utility.setOwnerAndGroupPermissionsRecursively(this.schemaFolder);
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			} catch (InterruptedException e) {

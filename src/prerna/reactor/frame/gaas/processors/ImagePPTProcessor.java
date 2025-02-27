@@ -4,17 +4,9 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
-import javax.imageio.ImageIO;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,17 +18,12 @@ import org.apache.poi.xslf.usermodel.XSLFTextShape;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 
-public class ImagePPTProcessor {
+public class ImagePPTProcessor extends AbstractFileImageProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(PPTProcessor.class);
-	private String filePath = null;
-	private VectorDatabaseCSVWriter writer = null;
-	private Map<String, String> imageMap;
 	
-	public ImagePPTProcessor(String filePath, VectorDatabaseCSVWriter writer, boolean embedImages) {
-		this.filePath = filePath;
-		this.writer = writer;
-		this.imageMap = new HashMap<>();
+	public ImagePPTProcessor(String filePath, VectorDatabaseCSVWriter writer) {
+		super(filePath, writer);
 	}
 	
 	public void process() {
@@ -125,34 +112,5 @@ public class ImagePPTProcessor {
 		}
 		graphics.drawString("Slide content may be incomplete due to rendering limitations", 50, pgsize.height - 50);
 	}
-	
-	private String getSource(String filePath) {
-		String source = null;
-		File file = new File(filePath);
-		if (file.exists()) {
-			source = file.getName();
-		}
-		return source;
-	}
-	
-    private String generateUniqueImageId() {
-        return "[[IMG:" + UUID.randomUUID().toString() + "]]";
-    }
-    
-    private String convertToBase64(BufferedImage image) {
-    	try {
-    		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    		ImageIO.write(image,  "png", baos);
-    		byte[] imageBytes = baos.toByteArray();
-    		return Base64.getEncoder().encodeToString(imageBytes);
-    	} catch (IOException e) {
-    		classLogger.error("Error converting image to Base64", e);
-    		return "";
-    	}
-    }
-    
-    public Map<String, String> getImageMap() {
-    	return imageMap;
-    }
 	
 }

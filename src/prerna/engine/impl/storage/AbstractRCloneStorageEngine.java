@@ -646,10 +646,10 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 * @return
 	 */
 	protected String getConfigPath(String rcloneConfig) {
-		if (rcloneConfigFolder == null) {
+		if (rcloneConfigFolder == null || (rcloneConfigFolder=rcloneConfigFolder.trim()).isEmpty()) {
 			rcloneConfigFolder = Utility.getBaseFolder() + FILE_SEPARATOR + Constants.STORAGE_FOLDER + FILE_SEPARATOR
 					+ SmssUtilities.getUniqueName(this.engineName, this.engineId);
-			new File(Utility.normalizePath(rcloneConfig)).mkdirs();
+			new File(Utility.normalizePath(rcloneConfigFolder)).mkdirs();
 		}
 
 		return rcloneConfigFolder + FILE_SEPARATOR + rcloneConfig + ".conf";
