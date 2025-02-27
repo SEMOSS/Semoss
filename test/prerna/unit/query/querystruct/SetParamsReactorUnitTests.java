@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +15,7 @@ import prerna.om.Insight;
 import prerna.query.querystruct.SetParamsReactor;
 import prerna.reactor.insights.recipemanagement.ImportParamOptionsReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SetParamsReactorUnitTests {
@@ -31,16 +33,31 @@ public class SetParamsReactorUnitTests {
 
 	@Test
 	void executeNoParams() {
-		when(insight.getVar(ImportParamOptionsReactor.PARAM_OPTIONS)).thenReturn("");
+		when(insight.getVar(ImportParamOptionsReactor.PARAM_OPTIONS)).thenReturn(null);
 
-		keyValues.put("PIXEL_ID", "");
-		keyValues.put("VALUE", "testVal");
-		keyValues.put("COLUMN", "testCol");
+		keyValues.put(ReactorKeysEnum.PIXEL_ID.getKey(), "");
+		keyValues.put(ReactorKeysEnum.VALUE.getKey(), "testVal");
+		keyValues.put(ReactorKeysEnum.COLUMN.getKey(), "testCol");
 
-		NounMetadata nm = reactor.execute();
-		assertNotNull(nm);
+		NounMetadata error = reactor.execute();
+		assertNotNull(error);
 		// assertEquals(PixelDataType.ERROR, nm.getNounType());
-		assertEquals("No such pixel ", nm.getValue().toString());
+		assertEquals("There is no params available to modify ", error.getValue().toString());
+	}
+	
+	@Test
+	void executeNoPixelId() {
+		Map<String, Object> map = new HashMap<>();
+		when(insight.getVar(ImportParamOptionsReactor.PARAM_OPTIONS)).thenReturn(map);
+
+		keyValues.put(ReactorKeysEnum.PIXEL_ID.getKey(), "testPixelId");
+		keyValues.put(ReactorKeysEnum.VALUE.getKey(), "testVal");
+		keyValues.put(ReactorKeysEnum.COLUMN.getKey(), "testCol");
+
+		NounMetadata error = reactor.execute();
+		assertNotNull(error);
+		// assertEquals(PixelDataType.ERROR, nm.getNounType());
+		assertEquals("No such pixel ", error.getValue().toString());
 	}
 
 	@Test
