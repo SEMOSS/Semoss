@@ -3,7 +3,9 @@ package prerna.engine.impl.vector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -298,6 +300,49 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			retOut.add(outputMap);
 		}
 		return retOut;
+	}
+	
+	@Override
+	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey("indexClass")) {
+			indexClass = (String) parameters.get("indexClass");
+		}
+
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+
+		List<Map<String, Object>> fileList = new ArrayList<>();
+
+		File[] files = documentsDir.listFiles();
+		if (files != null) {
+			for (File file : files) {
+				String fileName = file.getName();
+				long fileSizeInBytes = file.length();
+				double fileSizeInMB = (double) fileSizeInBytes / (1024);
+				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				String lastModified = dateFormat.format(new Date(file.lastModified()));
+
+				Map<String, Object> fileInfo = new HashMap<>();
+				fileInfo.put("fileName", fileName);
+				fileInfo.put("fileSize", fileSizeInMB);
+				fileInfo.put("lastModified", lastModified);
+				fileList.add(fileInfo);
+			}
+		} 
+
+		return fileList;
+	}
+	
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		throw new IllegalArgumentException("This method has not been implemented yet");
 	}
 	
 	@Override

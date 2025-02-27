@@ -52,6 +52,32 @@ class FAISSDatabase:
             for searcher in searchers
         }
 
+    def searcher_exists(self, searcher_name: str) -> bool:
+        """
+        Check if the searcher passed in exists
+
+        Args:
+            searcher_name(`str`):
+              The name of the searcher to check.
+
+        Returns:
+            bool: True if exists, False otherwise
+        """
+        if searcher_name in self.searchers:
+            return True
+
+        return False
+
+    def list_all_records(self) -> List[dict]:
+        """
+        Get the list of all the records across the searchers
+        """
+        all_values = []
+        for searcher_name in self.searchers:
+            all_values.extend(self.searchers[searcher_name].list_all_records())
+
+        return all_values
+
     def create_searcher(self, searcher_name: str, **kwargs: Any) -> None:
         """
         Create a new searchers/indexClasses to which a set of documents will be added.
