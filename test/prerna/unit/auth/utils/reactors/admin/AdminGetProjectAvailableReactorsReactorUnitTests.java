@@ -7,6 +7,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.TreeSet;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,6 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
 	private AdminGetProjectAvailableReactorsReactor reactor;
 	private Insight insight;
 	private User user;
-	private IProject project;
 	
 	private Map<String, String> keyValues;
 	
@@ -79,7 +79,7 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
 	}
 	
 	@Test
-	void testExecute() {
+	void testExecuteNoReactorsReturned() {
 		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), "test");
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class);
@@ -91,13 +91,20 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
 				spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "test")).thenReturn("testy");
 			
 				String projectId = "test";
+				IProject project = mock(IProject.class);
 				util.when(() -> Utility.getProject(projectId)).thenReturn(project);
-			
+
+				TreeSet<String> emptyTreeSet = new TreeSet<>();
+				
+				//this test is not fully working
+				when(project.getAvailableReactors()).thenReturn(emptyTreeSet);
 				NounMetadata nm = reactor.execute();
-				String results = nm.getValue().toString();
+				assertEquals(emptyTreeSet, nm.getValue().toString());
 				assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
 
+				
 				spu.verify(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "test"), times(1));
+				util.verify(() -> Utility.getProject(projectId), times (1));
 		}
 	}
 }
