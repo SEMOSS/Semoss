@@ -158,9 +158,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 		// if we were able to extract files, begin embeddings process
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-
 		// send all the strings to embed in one shot
-		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		try {
+			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred creating the embeddings for the generated chunks. Detailed error message = " + e.getMessage());
+		}
 		
 		List<JsonObject> bulkInsert = new ArrayList<>();
 		
@@ -414,6 +418,11 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return filesInOpenSearch;
 	}
 	
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		throw new IllegalArgumentException("This method has not been implemented yet");
+	}
+	
 	/**
 	 * https://opensearch.org/docs/latest/search-plugins/knn/knn-index/
 	 * 
@@ -611,4 +620,5 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.OPEN_SEARCH;
 	}
+
 }
