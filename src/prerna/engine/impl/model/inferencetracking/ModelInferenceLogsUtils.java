@@ -50,17 +50,17 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ModelInferenceLogsUtils {
-	
+
 	private static Logger classLogger = LogManager.getLogger(ModelInferenceLogsUtils.class);
-	
+
 	// Constants for Table 
 	private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
 	private static final String AGENT_TABLE_NAME = "AGENT__";
 	private static final String ROOM_TABLE_NAME = "ROOM__";
-	
+
 	static IRDBMSEngine modelInferenceLogsDb;
 	static boolean initialized = false;
-	
+
 	/**
 	 * 
 	 * @throws Exception
@@ -73,7 +73,7 @@ public class ModelInferenceLogsUtils {
 			// reset the local master metadata for model engine if we remade the OWL
 			Utility.synchronizeEngineMetadata(Constants.MODEL_INFERENCE_LOGS_DB);
 		}
-		
+
 		Connection conn = null;
 		try {
 			conn = modelInferenceLogsDb.makeConnection();
@@ -82,7 +82,7 @@ public class ModelInferenceLogsUtils {
 			if (primaryKeysAdded) {
 				addAllForeignKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBForeignKeys());
 			}
-			
+
 			if(!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -90,7 +90,7 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, conn, null, null);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param engine
@@ -123,7 +123,7 @@ public class ModelInferenceLogsUtils {
 					executeSql(conn, sql);
 				}
 			}
-			
+
 			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
 			for (int i = 0; i < colNames.length; i++) {
 				String col = colNames[i];
@@ -133,23 +133,23 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		}
-		
+
 		if(allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
 			executeSql(conn, sql);
-			
+
 			sql = queryUtil.createIndexIfNotExists("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
 			executeSql(conn, sql);
-			
+
 			sql = queryUtil.createIndexIfNotExists("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
 			executeSql(conn, sql);
-			
+
 			sql = queryUtil.createIndexIfNotExists("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
 			executeSql(conn, sql);
-			
+
 			sql = queryUtil.createIndexIfNotExists("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
 			executeSql(conn, sql);
-			
+
 			sql = queryUtil.createIndexIfNotExists("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
 			executeSql(conn, sql);
 		} else {
@@ -157,34 +157,34 @@ public class ModelInferenceLogsUtils {
 				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
 				executeSql(conn, sql);
 			}
-			
+
 			if(!queryUtil.indexExists(engine, "MESSAGE_USER_ID_INDEX", "MESSAGE", database, schema)) {
 				String sql = queryUtil.createIndex("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
 				executeSql(conn, sql);
 			}
-			
+
 			if(!queryUtil.indexExists(engine, "MESSAGE_DATE_CREATED_INDEX", "MESSAGE", database, schema)) {
 				String sql = queryUtil.createIndex("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
 				executeSql(conn, sql);
 			}
-			
+
 			if(!queryUtil.indexExists(engine, "ROOM_INSIGHT_ID_INDEX", "ROOM", database, schema)) {
 				String sql = queryUtil.createIndex("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
 				executeSql(conn, sql);
 			}
-			
+
 			if(!queryUtil.indexExists(engine, "ROOM_USER_ID_INDEX", "ROOM", database, schema)) {
 				String sql = queryUtil.createIndex("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
 				executeSql(conn, sql);
 			}
-			
+
 			if(!queryUtil.indexExists(engine, "ROOM_IS_ACTIVE_INDEX", "ROOM", database, schema)) {
 				String sql = queryUtil.createIndex("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
 				executeSql(conn, sql);
 			}
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param engine
@@ -199,7 +199,7 @@ public class ModelInferenceLogsUtils {
 			Pair<List<String>, List<String>> primaryKeyInfo = tablePrimaryKeys.getValue1();
 			List<String> primaryKeyNames = primaryKeyInfo.getValue0();
 			List<String> primaryKeyTypes = primaryKeyInfo.getValue1();
-			
+
 			// first try make sure its not null
 			for (int i = 0; i < primaryKeyNames.size(); i++) {
 				String name = primaryKeyNames.get(i);
@@ -234,7 +234,7 @@ public class ModelInferenceLogsUtils {
 		}
 		return true;
 	}
-	
+
 	/**
 	 * 
 	 * @param engine
@@ -250,18 +250,18 @@ public class ModelInferenceLogsUtils {
 			Pair<List<String>, List<String>> referenceDetails = foreignKeyInfo.getValue1();
 			List<String> referenceTables = referenceDetails.getValue0();
 			List<String> referenceColumns = referenceDetails.getValue1();
-			
+
 			for (int i = 0; i < tableColumns.size(); i++) {
 				String tableColumn = tableColumns.get(i);
 				String refTable = referenceTables.get(i);
 				String refColumn = referenceColumns.get(i);
-				
+
 				String constraintName = tableName + "_" + tableColumn + "_" + refTable + "_" + refColumn + "_KEY";
 				constraintName = constraintName.replace(",", "");
 				if(engine.getQueryUtil().allowIfExistsAddConstraint()) {
 					String sqlStatement = String.format(
-			                "ALTER TABLE %s ADD CONSTRAINT IF NOT EXISTS %s FOREIGN KEY (%s) REFERENCES %s (%s);",
-			                tableName, constraintName, tableColumn, refTable, refColumn);
+							"ALTER TABLE %s ADD CONSTRAINT IF NOT EXISTS %s FOREIGN KEY (%s) REFERENCES %s (%s);",
+							tableName, constraintName, tableColumn, refTable, refColumn);
 					try {
 						executeSql(conn, sqlStatement);
 					} catch (SQLException se) {
@@ -270,8 +270,8 @@ public class ModelInferenceLogsUtils {
 					}
 				} else {
 					String sqlStatement = String.format(
-			                "ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s);",
-			                tableName, constraintName, tableColumn, refTable, refColumn);
+							"ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s);",
+							tableName, constraintName, tableColumn, refTable, refColumn);
 					try {
 						if(!engine.getQueryUtil().tableConstraintExists(conn, constraintName, tableName, engine.getDatabase(), engine.getSchema())) {
 							executeSql(conn, sqlStatement);
@@ -284,7 +284,7 @@ public class ModelInferenceLogsUtils {
 			}
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param conn
@@ -297,7 +297,7 @@ public class ModelInferenceLogsUtils {
 			stmt.execute(sql);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param userId
@@ -340,7 +340,7 @@ public class ModelInferenceLogsUtils {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * @param messageId
 	 * @param feedbackText
@@ -353,7 +353,7 @@ public class ModelInferenceLogsUtils {
 			insertFeedback(messageId, feedbackText, rating);
 		}
 	}
-	
+
 	/**
 	 * @param messageId
 	 * @return
@@ -394,7 +394,7 @@ public class ModelInferenceLogsUtils {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * @param messageId
 	 * @param feedbackText
@@ -422,7 +422,7 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
-	
+
 	/**
 	 * @param messageId
 	 * @param feedbackText
@@ -455,12 +455,12 @@ public class ModelInferenceLogsUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
+
 	/**
 	 * USAGE HELPER FUNCTIONS  
 	 * 
 	 */
-	
+
 	/**
 	 * Function returns the number of unique calls (Inputs) per a model 
 	 * 
@@ -484,13 +484,13 @@ public class ModelInferenceLogsUtils {
 		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__AGENT_ID", "==", engineId));
 		addStartDateEndDateFitler(qs, startDate, endDate);
-		
+
 		addLimitAndOffSet(qs, limit, offset);
 		// order descending
 		qs.addOrderBy(MESSAGE_TABLE_NAME + "DATE_CREATED", "DESC");
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
-	
+
 	/**
 	 * Returns a list of total tokens used per project for engineId passed in 
 	 * @param engineId
@@ -502,19 +502,19 @@ public class ModelInferenceLogsUtils {
 	public static List<Map<String, Object>> getTokenUsagePerProjectForEngine(String engineId, String limit, String offset, String startDate, String endDate) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
-		
+
 		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
 		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
 		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
 		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(sumTokenSelector);
-		
+
 		QueryFunctionSelector countNumberRequestSelector = new QueryFunctionSelector();
 		countNumberRequestSelector.setAlias("TOTAL_NUMBER_OF_REQUEST");
 		countNumberRequestSelector.setFunction(QueryFunctionHelper.COUNT);
 		countNumberRequestSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(countNumberRequestSelector);
-		
+
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
 		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
@@ -542,7 +542,7 @@ public class ModelInferenceLogsUtils {
 		qs.setLimit(long_limit);
 		qs.setOffSet(long_offset);
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -556,22 +556,22 @@ public class ModelInferenceLogsUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
-		
+
 		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
 		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
 		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
 		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(sumTokenSelector);
-		
+
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
 		addStartDateEndDateFitler(qs, startDate, endDate);
-		
+
 		addLimitAndOffSet(qs, limit, offset);
 		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
-		
+
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
-	
+
 	/**
 	 * 
 	 * @param qs
@@ -607,7 +607,7 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_TYPE", "==", "INPUT"));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs).get(0);
 	}
-	
+
 	/**
 	 * 
 	 * @param projectId
@@ -620,8 +620,8 @@ public class ModelInferenceLogsUtils {
 		List<String> insightIdList = QueryExecutionUtility.flushToListString(modelInferenceLogsDb, qs);
 		return insightIdList;
 	}
-	
-	
+
+
 	/**
 	 * @param user
 	 */
@@ -644,7 +644,7 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}	
 	}
-	
+
 	/**
 	 * @param roomName
 	 * @param roomContext
@@ -658,13 +658,13 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static String doCreateNewConversation(String roomName, String roomContext,
-												 String userId, String userName, String agentType, 
-												 Boolean isActive, String projectId, String projectName, String agentId) {
+			String userId, String userName, String agentType, 
+			Boolean isActive, String projectId, String projectName, String agentId) {
 		String convoId = UUID.randomUUID().toString();
 		doCreateNewConversation(convoId, roomName, roomContext, userId, userName, agentType, isActive, projectId, projectName, agentId);
 		return convoId;
 	}
-	
+
 	/**
 	 * @param insightId
 	 * @param roomName
@@ -678,8 +678,8 @@ public class ModelInferenceLogsUtils {
 	 * @param agentId
 	 */
 	public static void doCreateNewConversation(String insightId, String roomName, String roomContext, 
-											   String userId, String userName, String agentType, 
-											   Boolean isActive, String projectId, String projectName, String agentId) {
+			String userId, String userName, String agentType, 
+			Boolean isActive, String projectId, String projectName, String agentId) {
 		String query = "INSERT INTO ROOM (INSIGHT_ID, ROOM_NAME, "
 				+ "ROOM_CONTEXT, USER_ID, USER_NAME, AGENT_TYPE, IS_ACTIVE, "
 				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, AGENT_ID) "
@@ -718,18 +718,18 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
-	
+
 	/**
 	 * @param insightId
 	 * @param userId
 	 * @param context
 	 */
 	public static void setRoomContext(String insightId, String userId, String context) {
-        try {
+		try {
 			UpdateQueryStruct qs = new UpdateQueryStruct();
 			qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 			qs.setEngine(modelInferenceLogsDb);
-			
+
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", insightId));
 			List<IQuerySelector> selectors = new ArrayList<>();
@@ -738,16 +738,16 @@ public class ModelInferenceLogsUtils {
 			values.add(context);
 			qs.setSelectors(selectors);
 			qs.setValues(values);
-			
+
 			UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
 			String updateQ = updateInterp.composeQuery();
 
-            modelInferenceLogsDb.insertData(updateQ);
-        } catch (Exception e) {
-            classLogger.error(Constants.STACKTRACE, e);
-        } 
+			modelInferenceLogsDb.insertData(updateQ);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} 
 	}
-	
+
 	/**
 	 * @param roomId
 	 * @return
@@ -774,7 +774,7 @@ public class ModelInferenceLogsUtils {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * @param agentId
 	 * @return
@@ -801,7 +801,7 @@ public class ModelInferenceLogsUtils {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * @param agentName
 	 * @param agentDescription
@@ -814,7 +814,7 @@ public class ModelInferenceLogsUtils {
 		doCreateNewAgent(agentId, agentName, agentDescription, agentType, author);
 		return agentId;
 	}
-	
+
 	/**
 	 * @param agentId
 	 * @param agentName
@@ -845,7 +845,7 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param messageId
@@ -861,20 +861,20 @@ public class ModelInferenceLogsUtils {
 	 * @param userName
 	 */
 	public static void doRecordMessage(String messageId,
-									   String messageType,
-									   String messageData,
-									   String messageMethod,
-									   Integer tokenSize,
-									   Double reponseTime,
-									   String agentId,
-									   String insightId,
-									   String sessionId,
-									   String userId,
-									   String userName) {
+			String messageType,
+			String messageData,
+			String messageMethod,
+			Integer tokenSize,
+			Double reponseTime,
+			String agentId,
+			String insightId,
+			String sessionId,
+			String userId,
+			String userName) {
 		ZonedDateTime dateCreated = ZonedDateTime.now();
 		doRecordMessage(messageId, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated, agentId, insightId, sessionId, userId, userName);
 	}
-	
+
 	/**
 	 * 
 	 * @param messageId
@@ -891,25 +891,25 @@ public class ModelInferenceLogsUtils {
 	 * @param userName
 	 */
 	public static void doRecordMessage(String messageId,
-									   String messageType,
-									   String messageData,
-									   String messageMethod,
-									   Integer tokenSize,
-									   Double reponseTime,
-									   ZonedDateTime dateCreated,
-									   String agentId,
-									   String insightId,
-									   String sessionId,
-									   String userId,
-									   String userName) {
-		
+			String messageType,
+			String messageData,
+			String messageMethod,
+			Integer tokenSize,
+			Double reponseTime,
+			ZonedDateTime dateCreated,
+			String agentId,
+			String insightId,
+			String sessionId,
+			String userId,
+			String userName) {
+
 		// convert the time to UTC 
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
-		
+
 		// boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
-			+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, SESSIONID, USER_ID, USER_NAME) " + 
-			"	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, SESSIONID, USER_ID, USER_NAME) " + 
+				"	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -944,14 +944,14 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
-	
+
 	/**
 	 * @param userId
 	 * @param roomId
 	 * @return
 	 */
 	public static boolean doSetRoomToInactive(String userId, String roomId) {
-        try {
+		try {
 			UpdateQueryStruct qs = new UpdateQueryStruct();
 			qs.setEngine(modelInferenceLogsDb);
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
@@ -966,14 +966,14 @@ public class ModelInferenceLogsUtils {
 			UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
 			String updateQ = updateInterp.composeQuery();
 
-            modelInferenceLogsDb.insertData(updateQ);
-        } catch (Exception e) {
-            classLogger.error(Constants.STACKTRACE, e);
-            return false;
-        }
-        return true;
-    }
-	
+			modelInferenceLogsDb.insertData(updateQ);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return false;
+		}
+		return true;
+	}
+
 	/**
 	 * 
 	 * @param userId
@@ -982,29 +982,29 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static boolean doSetNameForRoom(String userId, String roomId, String roomName) {
-        try {
-        	UpdateQueryStruct qs = new UpdateQueryStruct();
-            qs.setEngine(modelInferenceLogsDb);
-            qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-            qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
-            List<IQuerySelector> selectors = new ArrayList<>();
-            List<Object> values = new ArrayList<>();
-            selectors.add(new QueryColumnSelector("ROOM__ROOM_NAME"));
-            values.add(roomName);
-            qs.setSelectors(selectors);
-            qs.setValues(values);
-            qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-            UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-            String updateQ = updateInterp.composeQuery();
-            
-            modelInferenceLogsDb.insertData(updateQ);
-        } catch (Exception e) {
-            classLogger.error(Constants.STACKTRACE, e);
-            return false;
-        }
-        return true;
+		try {
+			UpdateQueryStruct qs = new UpdateQueryStruct();
+			qs.setEngine(modelInferenceLogsDb);
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
+			List<IQuerySelector> selectors = new ArrayList<>();
+			List<Object> values = new ArrayList<>();
+			selectors.add(new QueryColumnSelector("ROOM__ROOM_NAME"));
+			values.add(roomName);
+			qs.setSelectors(selectors);
+			qs.setValues(values);
+			qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+			UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+			String updateQ = updateInterp.composeQuery();
+
+			modelInferenceLogsDb.insertData(updateQ);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return false;
+		}
+		return true;
 	}
-	
+
 	/**
 	 * 
 	 * @param userId
@@ -1016,7 +1016,7 @@ public class ModelInferenceLogsUtils {
 		SelectQueryStruct qs = retrieveMessageQS(userId, insightId, dateSort);
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
-	
+
 	/**
 	 * 
 	 * @param userId
@@ -1036,7 +1036,7 @@ public class ModelInferenceLogsUtils {
 		}
 		return response;
 	}
-	
+
 	/**
 	 * 
 	 * @param userId
@@ -1055,14 +1055,14 @@ public class ModelInferenceLogsUtils {
 
 		qs.addRelation("MESSAGE__MESSAGE_ID", "FEEDBACK__MESSAGE_ID", "left.join");
 		qs.addRelation("MESSAGE__MESSAGE_TYPE", "FEEDBACK__MESSAGE_TYPE", "left.join");
-		
+
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__INSIGHT_ID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_METHOD", "==", "ask"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED", dateSort));
 		return qs;
 	}
-	
+
 	/**
 	 * 
 	 * @param userId
@@ -1081,14 +1081,14 @@ public class ModelInferenceLogsUtils {
 
 		qs.addRelation("MESSAGE__MESSAGE_ID", "FEEDBACK__MESSAGE_ID", "left.join");
 		qs.addRelation("MESSAGE__MESSAGE_TYPE", "FEEDBACK__MESSAGE_TYPE", "left.join");
-		
+
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__INSIGHT_ID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_METHOD", "==", "nearestNeighbor"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED", dateSort));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
-	
+
 	/**
 	 * 
 	 * @param userId
@@ -1099,13 +1099,13 @@ public class ModelInferenceLogsUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__PROJECT_ID"));
-		
+
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 		qs.setDistinct(true);
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
-	
+
 	/**
 	 * 
 	 * @param userId
@@ -1119,7 +1119,7 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
 		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID","MODEL_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
-		
+
 		SelectQueryStruct subQs = new SelectQueryStruct();
 		subQs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID"));
 		subQs.addRelation("ROOM__INSIGHT_ID", "MESSAGE__INSIGHT_ID", "inner.join");
@@ -1130,11 +1130,11 @@ public class ModelInferenceLogsUtils {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__INSIGHT_ID" , "IN", subQs));
-		
+
 		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", "DESC"));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
-	
+
 	/**
 	 * 
 	 * @param messageId
@@ -1185,7 +1185,7 @@ public class ModelInferenceLogsUtils {
 		if(restrictionMode == null) {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
 		}
-		
+
 		// Initialize the date range map (start and end dates)
 		Map<String, ZonedDateTime> dates = new HashMap<>();
 		// Determine the start and end date based on the given frequency
@@ -1210,7 +1210,7 @@ public class ModelInferenceLogsUtils {
 		} else if(restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
 		}
-		
+
 		//SQL query to fetch the total tokens or response time
 		String query = "SELECT " + sumColumn + " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND AGENT_ID=? AND DATE_CREATED BETWEEN ? AND ?";
 		PreparedStatement ps = null;
@@ -1222,10 +1222,10 @@ public class ModelInferenceLogsUtils {
 			ps.setString(psIndex++, engineId);			
 			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
 			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
-		
+
 			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
 					ps.getConnection(), ps, query, false);
-			
+
 			if(wrapper.hasNext()) {
 				Number retNum = (Number) wrapper.next().getValues()[0];
 				// if this is null
@@ -1243,7 +1243,7 @@ public class ModelInferenceLogsUtils {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @param restrictionMode
@@ -1257,7 +1257,7 @@ public class ModelInferenceLogsUtils {
 		if (restrictionMode == null) {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
 		}
-		
+
 		// Step 1: Get the list of Engine IDs with MAXRESPONSETIME or MAXTOKENS for the specific user
 		List<String> engineIdExcludeList = SecurityEngineUtils.getModelEngineIdsWithRestrictions(user, engineId);
 		String excludePSString = "";
@@ -1272,7 +1272,7 @@ public class ModelInferenceLogsUtils {
 			excludeSB.append(")");
 			excludePSString = excludeSB.toString();
 		}
-		
+
 		// Step 2: Get the date range based on the frequency
 		// Initialize the date range map (start and end dates)
 		Map<String, ZonedDateTime> dates = new HashMap<>();
@@ -1305,7 +1305,7 @@ public class ModelInferenceLogsUtils {
 				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND DATE_CREATED BETWEEN ? AND ? " + excludePSString;
 		PreparedStatement ps = null;
 		ResultSet rs = null;
-        
+
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
 			int psIndex = 1;
@@ -1339,45 +1339,57 @@ public class ModelInferenceLogsUtils {
 
 		return null;
 	}
-	
+
+	/**
+	 * 
+	 * @param days
+	 * @throws Exception
+	 */
 	public static void cleanUpRoomAndMessages(Integer days) throws Exception {
 		Connection conn = modelInferenceLogsDb.getConnection();
-		Boolean autoCommit = conn.getAutoCommit();
 		try {
-			if (autoCommit)
-				conn.setAutoCommit(false);
-			List<String> roomIds = getRoomsForCleanup(days, conn);
+			List<String> roomIds = getRoomsForCleanup(conn, days);
 			List<String> allMessagesId = new ArrayList<>();
 			if (roomIds != null && roomIds.size() > 0) {
 				for (String roomId : roomIds) {
-					List<String> messageIds = getMessageIds(roomId, conn);
+					List<String> messageIds = getMessageIds(conn, roomId);
 					allMessagesId.addAll(messageIds);
-
 				}
 			}
-		
+
 			if(allMessagesId.size() > 0) {
-				cleanUpFeedbacks(allMessagesId, conn);
-				cleanUpMessages(allMessagesId, conn);
+				cleanUpFeedbacks(conn, allMessagesId);
+				cleanUpMessages(conn, allMessagesId);
 			}
-			cleanUpRoom(roomIds, conn);
-			conn.commit();
-		}
-		catch (Exception e) {
-			if (!conn.getAutoCommit())
-				conn.rollback();
+			cleanUpRoom(conn, roomIds);
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			if (!conn.getAutoCommit()) {
+				classLogger.info("Attemping to rollback the connection");
+				try {
+					conn.rollback();
+					classLogger.info("Rollback successfully completed");
+				} catch(SQLException sqlE) {
+					classLogger.info("Rollback was unsuccessful with error = " + e.getMessage());
+				}
+			}
 			throw e;
-		}
-		finally {
-			conn.setAutoCommit(autoCommit);
+		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, conn, null, null);
 		}
-		
 	}
 
-	public static List<String> getRoomsForCleanup(Integer days, Connection conn) throws Exception {
-
+	/**
+	 * 
+	 * @param conn
+	 * @param days
+	 * @return
+	 * @throws Exception
+	 */
+	public static List<String> getRoomsForCleanup(Connection conn, Integer days) throws Exception {
 		String query = "SELECT INSIGHT_ID FROM ROOM WHERE DATE_CREATED < ?";
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -1393,19 +1405,24 @@ public class ModelInferenceLogsUtils {
 					String value = rs.getString(1);
 					roomIds.add(value);
 				}
-
 			}
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
-		}
-		finally {
+		} finally {
 			ConnectionUtils.closeAllConnections(null, ps, rs);
 		}
 		return roomIds;
-
 	}
 
-	public static List<String> getMessageIds(String roomId, Connection conn) throws Exception {
+	/**
+	 * 
+	 * @param conn
+	 * @param roomId
+	 * @return
+	 * @throws Exception
+	 */
+	public static List<String> getMessageIds(Connection conn, String roomId) throws Exception {
 		String query = "SELECT DISTINCT MESSAGE_ID FROM MESSAGE WHERE INSIGHT_ID = ?";
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -1420,18 +1437,23 @@ public class ModelInferenceLogsUtils {
 					String value = rs.getString(1);
 					messageIds.add(value);
 				}
-
 			}
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
-		}
-		finally {
+		} finally {
 			ConnectionUtils.closeAllConnections(null, ps, rs);
 		}
 		return messageIds;
 	}
 
-	public static void cleanUpFeedbacks(List<String> messageIds, Connection conn) throws Exception {
+	/**
+	 * 
+	 * @param conn
+	 * @param messageIds
+	 * @throws Exception
+	 */
+	public static void cleanUpFeedbacks(Connection conn, List<String> messageIds) throws Exception {
 		PreparedStatement ps = null;
 		try {
 			StringBuilder deleteQuery = new StringBuilder("DELETE FROM feedback WHERE MESSAGE_ID IN (");
@@ -1449,15 +1471,21 @@ public class ModelInferenceLogsUtils {
 			}
 			ps.executeUpdate();
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
-		}
-		finally {
+		} finally {
 			ConnectionUtils.closeAllConnections(null, ps, null);
 		}
 
 	}
 
-	public static void cleanUpMessages(List<String> messageIds, Connection conn) throws Exception {
+	/**
+	 * 
+	 * @param conn
+	 * @param messageIds
+	 * @throws Exception
+	 */
+	public static void cleanUpMessages(Connection conn, List<String> messageIds) throws Exception {
 		PreparedStatement ps = null;
 		try {
 			StringBuilder deleteQuery = new StringBuilder("DELETE FROM MESSAGE WHERE MESSAGE_ID IN (");
@@ -1475,15 +1503,20 @@ public class ModelInferenceLogsUtils {
 			}
 			ps.executeUpdate();
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
-		}
-		finally {
+		} finally {
 			ConnectionUtils.closeAllConnections(null, ps, null);
 		}
 	}
 
-	public static void cleanUpRoom(List<String> roomIds, Connection conn) throws Exception {
-		
+	/**
+	 * 
+	 * @param conn
+	 * @param roomIds
+	 * @throws Exception
+	 */
+	public static void cleanUpRoom(Connection conn, List<String> roomIds) throws Exception {
 		PreparedStatement ps = null;
 		try {
 			StringBuilder deleteQuery = new StringBuilder("DELETE FROM ROOM WHERE INSIGHT_ID IN (");
@@ -1501,14 +1534,11 @@ public class ModelInferenceLogsUtils {
 			}
 			ps.executeUpdate();
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
-		}
-		finally {
+		} finally {
 			ConnectionUtils.closeAllConnections(null, ps, null);
 		}
-
 	}
-	
-	
 
 }
