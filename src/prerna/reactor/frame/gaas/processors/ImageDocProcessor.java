@@ -2,14 +2,10 @@ package prerna.reactor.frame.gaas.processors;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 import javax.imageio.ImageIO;
 
@@ -30,33 +26,23 @@ import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 
-public class ImageDocProcessor {
+public class ImageDocProcessor extends AbstractFileImageProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(ImageDocProcessor.class);
-	private String filePath;
-	private VectorDatabaseCSVWriter writer;
-	private boolean embedImages;
-	private Map<String, String> imageMap;
-	
-	// Define the min image dimensions
-	private static final int MIN_IMAGE_WIDTH = 300;
-	private static final int MIN_IMAGE_HEIGHT  = 300;
-	
-	public ImageDocProcessor(String filePath, VectorDatabaseCSVWriter writer, boolean embedImages) {
-		this.filePath = filePath;
-		this.writer = writer;
-		this.embedImages = embedImages;
-		this.imageMap = new HashMap<>();
+
+	public ImageDocProcessor(String filePath, VectorDatabaseCSVWriter writer) {
+		super(filePath, writer);
 	}
-	
+
+	@Override
 	public void process() {
 		FileInputStream is = null;
 		XWPFDocument document = null;
-		
+
 		try {
-			is = new FileInputStream(filePath);
+			is = new FileInputStream(this.filePath);
 			document = new XWPFDocument(is);
-			
+
 			processParagraphs(document);
 			processTables(document);
 		} catch (IOException e) {
@@ -78,60 +64,58 @@ public class ImageDocProcessor {
 			}
 		}
 	}
-	
+
 	private void processParagraphs(XWPFDocument document) {
 		int count = 1;
 		int pageNo = 1;
 		String source = getSource(filePath);
-		
+
 		for (XWPFParagraph paragraph : document.getParagraphs()) {
 			StringBuilder paragraphText = new StringBuilder();
-			
+
 			// check if paragraph or its runs are null
 			if (paragraph == null || paragraph.getRuns() == null) {
 				continue; // Skip this paragraph as well
 			}
-			
+
 			for (XWPFRun run : paragraph.getRuns()) {
 				paragraphText.append(run.getText(0));
-				
-				if (embedImages) {
-					// Safely handle embedded images
-					List<XWPFPicture> pictures = run.getEmbeddedPictures();
-					if (pictures != null) {
-						for (XWPFPicture picture : pictures) {
-							if (picture != null && isImageSizeAcceptable(picture)) {
-								String imageId = processImage(picture);
-								if (imageId != null) {
-									paragraphText.append(" ").append(imageId).append(" ");
-								}
+
+				// Safely handle embedded images
+				List<XWPFPicture> pictures = run.getEmbeddedPictures();
+				if (pictures != null) {
+					for (XWPFPicture picture : pictures) {
+						if (picture != null && isImageSizeAcceptable(picture)) {
+							String imageId = processImage(picture);
+							if (imageId != null) {
+								paragraphText.append(" ").append(imageId).append(" ");
 							}
 						}
 					}
 				}
 			}
-			
+
 			String text = paragraphText.toString().trim();
 			if (!text.isEmpty()) {
-				writer.writeRow(source, String.valueOf(count), text, String.valueOf(pageNo));
+				writer.writeRow(source, String.valueOf(pageNo), text);
 			}
-			
+
 			if (paragraph.isPageBreak()) {
 				pageNo++;
 			}
 			count++;
 		}
 	}
-	
+
 	private void processTables(XWPFDocument document) {
 		int count = 1;
 		int pageNo = 1;
 		String source = getSource(filePath);
-		
+
 		String[] headers = null;
 		String[] values = null;
 		boolean headerProcessed = false;
-		
+
 		for (XWPFTable table : document.getTables()) {
 			List<XWPFTableRow> rows = table.getRows();
 			for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
@@ -150,32 +134,30 @@ public class ImageDocProcessor {
 				} else {
 					values = processor;
 					StringBuilder rowOut = getRow(headers, values);
-					writer.writeRow(source, count + "", rowOut + "", pageNo + "'");
+					writer.writeRow(source, String.valueOf(pageNo), rowOut.toString());
 				}
 			}
 			headerProcessed = false;
 			count++;
 		}
 	}
-	
+
 	private String processTableCell(XWPFTableCell cell) {
 		StringBuilder cellContent = new StringBuilder(cell.getText());
-		if (embedImages) {
-			for (XWPFParagraph paragraph : cell.getParagraphs()) {
-				for (XWPFRun run : paragraph.getRuns()) {
-					List<XWPFPicture> pictures = run.getEmbeddedPictures();
-					for (XWPFPicture picture : pictures) {
-						if (isImageSizeAcceptable(picture)) {
-							String imageId = processImage(picture);
-							cellContent.append(" ").append(imageId).append(" ");
-						}
+		for (XWPFParagraph paragraph : cell.getParagraphs()) {
+			for (XWPFRun run : paragraph.getRuns()) {
+				List<XWPFPicture> pictures = run.getEmbeddedPictures();
+				for (XWPFPicture picture : pictures) {
+					if (isImageSizeAcceptable(picture)) {
+						String imageId = processImage(picture);
+						cellContent.append(" ").append(imageId).append(" ");
 					}
 				}
 			}
 		}
 		return cellContent.toString();
 	}
-	
+
 	private StringBuilder getRow(String[] headers, String[] values) {
 		StringBuilder builder = new StringBuilder();
 		for (int valIndex = 0; valIndex < values.length; valIndex++) {
@@ -189,19 +171,19 @@ public class ImageDocProcessor {
 		}
 		return builder;
 	}
-	
+
 	private boolean isImageSizeAcceptable(XWPFPicture picture) {
 		try {
 			byte[] imageData = picture.getPictureData().getData();
-			
+
 			// Check if image data is null or empty
 			if (imageData == null || imageData.length == 0) {
 				classLogger.error("Image data is null or empty.");
 				return false;
 			}
-			
+
 			String format = picture.getPictureData().suggestFileExtension();
-			
+
 			BufferedImage image;
 			if (isSupportedFormat(format)) {
 				image = ImageIO.read(new ByteArrayInputStream(imageData));
@@ -209,25 +191,25 @@ public class ImageDocProcessor {
 				// If not supported, attempt to convert to PNG
 				image = convertToSupportedFormat(imageData, format);
 			}
-			
+
 			if (image == null) {
 				classLogger.error("Failed to convert or read the image. Unsupported format or corrupted data.");
 				return false;
 			}
-			
+
 			// Validate image size
 			return image.getWidth() >= MIN_IMAGE_WIDTH && image.getHeight() >= MIN_IMAGE_HEIGHT;
-			
+
 		} catch (IOException e) {
 			classLogger.error("Error reading or converting image dimensions", e);
 			return false;
-			
+
 		} catch (Exception e) {
 			classLogger.error("Unexpected error while processing image", e);
 			return false;
 		}
 	}
-	
+
 	// Helper method to check if the image format is supported by ImageIO
 	private boolean isSupportedFormat(String format) {
 		String[] supportedFormats = ImageIO.getReaderFormatNames();
@@ -238,7 +220,7 @@ public class ImageDocProcessor {
 		}
 		return false;
 	}
-	
+
 	// Method to convert unsupported image formats to a supported one
 	private BufferedImage convertToSupportedFormat(byte[] imageData, String format) {
 		try {
@@ -255,30 +237,12 @@ public class ImageDocProcessor {
 		}
 		return null;
 	}
-	
+
 	private String processImage(XWPFPicture picture) {
 		String imageId = generateUniqueImageId();
 		String base64Image = Base64.getEncoder().encodeToString(picture.getPictureData().getData());
 		imageMap.put(imageId, base64Image);
 		return imageId;
 	}
-	
-    private String generateUniqueImageId() {
-        return "[[IMG:" + UUID.randomUUID().toString() + "]]";
-    }
-    
-    private String getSource(String filePath) {
-        String source = null;
-        File file = new File(filePath);
-        if (file.exists()) {
-            source = file.getName();
-        }
-        return source;
-    }
-    
-    public Map<String, String> getImageMap() {
-    	return imageMap;
-    }
-	
-	
+
 }

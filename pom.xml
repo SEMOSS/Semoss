@@ -114,6 +114,24 @@
 							<test>prerna.testing.AllTests</test>
 						</configuration>
 					</plugin>
+					
+					<plugin>
+						<groupId>com.rudikershaw.gitbuildhook</groupId>
+						<artifactId>git-build-hook-maven-plugin</artifactId>
+						<version>3.5.0</version>
+						<configuration>
+							<gitConfig>
+								<core.hooksPath>hooks/</core.hooksPath>
+							</gitConfig>
+						</configuration>
+						<executions>
+							<execution>
+								<goals>
+									<goal>configure</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
@@ -1946,6 +1964,11 @@
 			</exclusions>
 		</dependency>
 		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-ai-formrecognizer</artifactId>
+			<version>4.1.9</version>
+		</dependency>
+		<dependency>
 			<groupId>org.wikidata.wdtk</groupId>
 			<artifactId>wdtk-wikibaseapi</artifactId>
 			<version>0.9.0</version>
@@ -1993,7 +2016,7 @@
 		<dependency>
 			<groupId>net.snowflake</groupId>
 			<artifactId>snowflake-jdbc</artifactId>
-			<version>3.15.0</version>
+			<version>3.22.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.clickhouse/clickhouse-jdbc -->
 		<dependency>

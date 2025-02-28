@@ -140,7 +140,7 @@ class LocalEmbedder(AbstractEmbedder):
     ) -> EmbeddingsModelEngineResponse:
         raise NotImplementedError("This model does not support image embeddings.")
 
-    def model(
+    def keyword_extraction(
         self, input: List[str], percentile: int = 0, max_keywords: int = 12
     ) -> List[str]:
         if not isinstance(percentile, int):

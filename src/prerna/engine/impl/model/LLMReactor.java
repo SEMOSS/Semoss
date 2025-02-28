@@ -45,11 +45,6 @@ public class LLMReactor extends AbstractReactor {
 			paramMap = new HashMap<String, Object>();
 		}
 
-		// reverting this for now
-//		if (paramMap.containsKey("full_prompt")) {
-//			paramMap.put("full_prompt", Utility.decodeURIComponent((String) paramMap.get("full_prompt")));
-//		}
-
 		Map<String, Object> output = modelEngine.ask(question, context, this.insight, paramMap).toMap();
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
@@ -72,5 +67,20 @@ public class LLMReactor extends AbstractReactor {
         }
         return null;
     }
+	
+	@Override
+	public String getReactorDescription() {
+		return "This method is used to run an LLM text-generation call";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+			return "This is the prompt to execute against the LLM";
+		} else if(key.equals(ReactorKeysEnum.CONTEXT.getKey())) {
+			return "The system prompt to use for the LLM call";
+		}
+		return super.getDescriptionForKey(key);
+	}
 	
 }
