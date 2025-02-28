@@ -12,3 +12,6 @@ SEMOSS started as a visualization and analytics tool for RDF data (semantic web)
 ### Developers
 
 For Detailed Commit messages please look [here](hooks/README.md)
+
+
+SAMPLE CHANGE
