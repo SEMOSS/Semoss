@@ -105,6 +105,12 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	
 	protected void addIndexClass(String indexClass) {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
+		checkSocketStatus();
+		
 		this.indexClasses.add(indexClass);
 		//TODO: do we really need base path for this?
 		String basePath = this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR;
@@ -323,7 +329,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	
 	@Override
-	public void removeDocument(List<String> filePaths, Map <String, Object> parameters) {
+	public void removeDocument(List<String> filePaths, Map <String, Object> parameters) throws IOException {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey(INDEX_CLASS)) {
 			indexClass = (String) parameters.get(INDEX_CLASS);
@@ -340,7 +346,18 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		Path indexDirectory = Paths.get(indexedFilesPath);
         DirectoryStream<Path> stream = null;
         try {
-			for (String document : filePaths) {
+        	List<String> sourceNames = new ArrayList<>();
+        	for(String document : filePaths) {
+				String documentName = FilenameUtils.getName(document);
+				File f = new File(document);
+				if(f.exists() && f.getName().endsWith(".csv")) {
+					sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
+				} else {
+					sourceNames.add(documentName);
+				}
+        	}
+        	
+			for (String document : sourceNames) {
 				String documentName = FilenameUtils.getName(document);
 		        String[] fileNamesToDelete = {documentName + "_dataset.pkl", documentName + "_vectors.pkl", documentName + ".csv"};
 	

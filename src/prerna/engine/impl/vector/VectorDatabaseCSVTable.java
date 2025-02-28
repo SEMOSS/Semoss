@@ -4,8 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.flatfile.CsvFileIterator;
@@ -196,5 +198,40 @@ public class VectorDatabaseCSVTable {
     	}
 
 		return true;
+    }
+    
+    /**
+     * 
+     * @param file
+     * @param limit
+     * @return
+     * @throws IOException
+     */
+    public static Set<String> pullSourceColumn(File file) throws IOException {
+    	Set<String> uniqueSources = new HashSet<>();
+    	
+    	final String STR_DT = SemossDataType.STRING.toString();
+    	final String INT_DT = SemossDataType.INT.toString();
+    	
+    	CsvQueryStruct qs = new CsvQueryStruct();
+    	qs.setDelimiter(',');
+    	qs.setFilePath(file.getAbsolutePath());
+    	qs.setSelectorsAndTypes(new String[] {SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT}, 
+    			new String[] {STR_DT, STR_DT, STR_DT, STR_DT, INT_DT, STR_DT});
+
+    	CsvFileIterator csvIt = null;
+    	try {
+    		csvIt = new CsvFileIterator(qs);
+        	while(csvIt.hasNext()) {
+        		Object[] row = csvIt.next().getValues();
+        		uniqueSources.add((String) row[0]);
+        	}
+    	} finally {
+    		if(csvIt != null) {
+    			csvIt.close();
+    		}
+    	}
+
+		return uniqueSources;
     }
 }
