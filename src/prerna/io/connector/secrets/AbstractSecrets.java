@@ -1,7 +1,7 @@
 package prerna.io.connector.secrets;
 
 import prerna.engine.api.IEngine;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public abstract class AbstractSecrets implements ISecrets {
 
@@ -13,7 +13,7 @@ public abstract class AbstractSecrets implements ISecrets {
 	protected String getInput(String key) {
 		String value = System.getenv(key);
 		if(value == null || value.isEmpty()) {
-			value = DIHelper.getInstance().getProperty(key);
+			value = Utility.getDIHelperProperty(key);
 		}
 
 		return value;

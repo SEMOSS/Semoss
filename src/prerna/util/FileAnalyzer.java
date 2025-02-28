@@ -60,6 +60,9 @@ public class FileAnalyzer {
 			if(mimeType.equals("application/zip")) {
 				// zip
 				return false;
+			} else if(mimeType.startsWith("image/")) {
+				// image
+				return false;
 			} else if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 					|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
 							|| mimeType.equalsIgnoreCase("application/msword")
@@ -74,7 +77,19 @@ public class FileAnalyzer {
 							&& (filetype.equals("ppt") || filetype.equals("pptx")))) {
 				// powerpoint
 				return false;
-			} else if (mimeType.equalsIgnoreCase("application/pdf")) {
+			} else if(mimeType.equalsIgnoreCase("application/vnd.ms-excel.sheet.macroenabled.12")
+					|| mimeType.equalsIgnoreCase("application/vnd.ms-excel.sheet.binary.macroenabled.12")
+					|| mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+					|| mimeType.equalsIgnoreCase("application/vnd.ms-excel")
+					|| ( mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+							&& 
+							(filetype.equals("xls") || filetype.equals("xlsx") || filetype.equals("xlsm"))
+						)
+					) {
+				// excel
+				return false;
+			}
+			else if (mimeType.equalsIgnoreCase("application/pdf")) {
 				// pdf
 				return false;
 			}
