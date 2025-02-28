@@ -59,14 +59,18 @@ public class ExternalAuthorizationHelper {
 				String engineName = (String) newE.get("engineName");
 				IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) newE.get("engineType");
 				String engineSubType = (String) newE.get("engineSubType");
-				
+				Map<String, Object> properties = null;
+
 				// TODO: need to expand on logic for the class to initialize
 				String engineClass = null;
 				if(engineType == IEngine.CATALOG_TYPE.DATABASE) {
 					engineClass = RDBMSNativeEngine.class.getName();
+				
+					properties = new HashMap<>();
+					properties.put(Constants.RDBMS_TYPE, engineSubType);
 				}
 				
-				File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, null);
+				File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties);
 				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 				File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 				FileUtils.copyFile(tempSmss, smssFile);
