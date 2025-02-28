@@ -200,6 +200,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			verifyModelProps();
 		}
 		
+		checkSocketStatus();
+		
 		try {
 			this.removeDocument(filePaths, parameters);
 		} catch(Exception ignore) {
@@ -248,7 +250,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		try {
 			// first we need to extract the text from the document
 			// TODO change this to json so we never have an encoding issue
-			checkSocketStatus();
 
 			File indexDirectory = new File(this.schemaFolder, indexClass);
 			File documentDir = new File(indexDirectory, DOCUMENTS_FOLDER_NAME);
