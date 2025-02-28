@@ -1,65 +1,65 @@
 package prerna.testing.auth.utils.reactors.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import prerna.auth.utils.reactors.admin.AdminEngineInfoReactor;
-import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.auth.utils.reactors.admin.AdminExecQueryReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.testing.ApiSemossTestEngineUtils;
 import prerna.testing.ApiSemossTestUtils;
-import prerna.testing.utility.TestEngineUtilities;
+
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class AdminExecQueryReactorApiTests extends AbstractBaseSemossApiTests {
-
 	@Test
-	public void executeWithoutMetakeys() {
+	public void executeSelectQueryStructInput() {
 		String engine = ApiSemossTestEngineUtils.createBasicEngine();
-		
-		String pixel = ApiSemossTestUtils.buildPixelCall(AdminEngineInfoReactor.class, ReactorKeysEnum.ENGINE.getKey(), 
-				engine);
-		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
+        
+		String pixel = ApiSemossTestUtils.buildPixelCall(AdminExecQueryReactor.class, qs, engine);
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+        List<PixelOperationType> opTypes = new ArrayList<>();
+        opTypes.add(PixelOperationType.ALTER_DATABASE);
 		
-		Map<String, Object> retValue = (Map<String, Object>) nm.getValue();
-		assertFalse(Boolean.valueOf(retValue.get("app_global").toString()));
+		assertNotNull(nm);
+        assertEquals(PixelDataType.BOOLEAN, nm.getNounType());
+		assertEquals(true, nm.getValue());
+		assertEquals(PixelOperationType.ALTER_DATABASE, nm.getOpType());
 	}
 
-	
 	@Test
-	public void executeWithMetakeysExcludesMarkdown() {
-		String engine = ApiSemossTestEngineUtils.createBasicEngine();
-		
-		Map<String, Object> map = new HashMap<>();
-		map.put("description", "test description");
-		map.put("markdown", "### test markdown");
-		TestEngineUtilities.setEngineMetadata(engine, map);
-		
-		List<String> metaValues = new ArrayList<>();
-		metaValues.add("description");
-		metaValues.add("markdown");
-		String pixel = ApiSemossTestUtils.buildPixelCall(AdminEngineInfoReactor.class, ReactorKeysEnum.ENGINE.getKey(), 
-				engine, ReactorKeysEnum.META_KEYS.getKey(), metaValues);
-		
-		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-		
-		Map<String, Object> retValue = (Map<String, Object>) nm.getValue();
+    public void executeHardSelectQueryStructInput() {
+        String engine = ApiSemossTestEngineUtils.createBasicEngine();
+        HardSelectQueryStruct qs = new HardSelectQueryStruct();
 
-	}
-	
-	@Test
-	public void executeWithMultipleMetakeys() {
-		String engine = ApiSemossTestEngineUtils.createBasicEngine();
-
-	}
-	
+        String query = "SELECT * FROM INSIGHT";
+        qs.setQuery(query);
+//        qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+//        qs.setEngine(Utility.getDatabase(Constants.LOCAL_MASTER_DB));
+        
+        String pixel = ApiSemossTestUtils.buildPixelCall(AdminExecQueryReactor.class, qs, engine);
+        NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+        List<PixelOperationType> opTypes = new ArrayList<>();
+        opTypes.add(PixelOperationType.ALTER_DATABASE);
+        
+        assertNotNull(nm);
+        assertEquals(PixelDataType.BOOLEAN, nm.getNounType());
+        assertEquals(true, nm.getValue());
+		assertEquals(PixelOperationType.ALTER_DATABASE, nm.getOpType());
+    }
 }
