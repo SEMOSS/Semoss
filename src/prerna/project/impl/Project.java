@@ -52,7 +52,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
-import prerna.ds.py.TCPPyTranslator;
+import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -66,12 +66,15 @@ import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookBuilder;
-import prerna.project.impl.notebook.NotebookFactory;
+import prerna.project.impl.notebook.INotebookHelper;
+import prerna.project.impl.notebook.NotebookHelperFactory;
+import prerna.project.impl.notebook.NotebookWriterFactory;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.IReactor;
 import prerna.reactor.ProjectCustomReactorCompilator;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
+import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
@@ -1132,10 +1135,7 @@ public class Project implements IProject {
 	
 	@Override
 	public synchronized List<File> writeNotebooks() {
-		// if not blocks json
-		// then ignore for now
-		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
-		File blocksF = new File(blocksFilePath);
+		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
 			return null;
 		}
@@ -1146,7 +1146,7 @@ public class Project implements IProject {
 		}
 		
 		try {
-			INotebookBuilder builder = NotebookFactory.getNotebookBuilder(blocksF);
+			INotebookBuilder builder = NotebookWriterFactory.getNotebookBuilder(blocksF);
 			return builder.createNotebooks(projectNotebookF);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1155,6 +1155,49 @@ public class Project implements IProject {
 		}
 		
 		return null;
+	}
+	
+	@Override
+	public NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements) {
+		// if not blocks json
+		// then ignore for now
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			INotebookHelper helper = NotebookHelperFactory.getNotebookHelper(blocksF);
+			return helper.executeNotebook(insight, inputReplacements);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+
+	@Override
+	public Map<String, String> getEngineDependencies() {
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			INotebookHelper helper = NotebookHelperFactory.getNotebookHelper(blocksF);
+			Map<String, String> engineMap = helper.getBlocksEngineDependencies();
+			return engineMap;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+	
+	private File getBlocksF() {
+		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
+		File blocksF = new File(blocksFilePath);
+		return blocksF;
 	}
 	
 	private void rewritePortalIndexHtml(String indexHtmlPath) {
@@ -1650,7 +1693,7 @@ public class Project implements IProject {
 	 * 
 	 * @return
 	 */
-	public TCPPyTranslator getProjectPyTranslator() {
+	public PyTranslator getProjectPyTranslator(Insight insight) {
 		if(this.cpw.getSocketClient() == null) {
 			createProjectTcpServer(-1);
 		} else if( !this.cpw.getSocketClient().isConnected()) {
@@ -1662,8 +1705,9 @@ public class Project implements IProject {
 				throw new IllegalArgumentException("Failed to start TCP Server for Project = " + SmssUtilities.getUniqueName(this.projectName, this.projectId));
 			}
 		}
-		TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
+		PyTranslator pyJavaTranslator = new PyTranslator();
 		pyJavaTranslator.setSocketClient(this.cpw.getSocketClient());
+		pyJavaTranslator.setInsight(insight);
 		return pyJavaTranslator;
 	}
 	

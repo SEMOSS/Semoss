@@ -5,6 +5,7 @@ import java.util.Map;
 
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
 
 public interface IModelEngine extends IEngine {
@@ -44,6 +45,20 @@ public interface IModelEngine extends IEngine {
 	 */
 	AskModelEngineResponse ask(String question, String context, Insight insight, Map <String, Object> parameters);
 	
+	/**
+	 * Passes the string task along with other parameters such as context and temperature to the python client 
+	 * 
+	 * @param task 		The task that the LLM is being asked to generate steps for
+	 * @param context		(Optional) The context passed in by the user 
+	 * @param insight		The insight from where the call is being made. The insight holds user credentials, project information and conversation history tied to the insightId
+	 * @param parameters	Additional parameters such as temperature, top_k, max_new_tokens etc
+	 * @return 	creates a map response with the following keys
+	 * 				- response : The response from the LLM in the form of an array of strings where each index represents an individual step
+	 *  			- messageId : The unique identifier of a message (the user's input and the model response)
+	 *  			- roomId: The insightId that the runPixel endpoint is being called from
+	 */
+	InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map <String, Object> parameters);
+	
 
 	/**
 	 * Passes a list of strings to the model client to be embedded. Each string in the {@code stringsToEmbed} will be returned as its own vector.
@@ -55,14 +70,14 @@ public interface IModelEngine extends IEngine {
 	 */
 	EmbeddingsModelEngineResponse embeddings(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters);
 	
-
 	/**
 	 * Passes a list of strings to the model client to be embedded. Each string in the {@code stringsToEmbed} will be returned as its own vector.
 	 * 
-	 * @param input				An input object to be sent to the ModelEngine. The input object should be serializable.
+	 * @param stringsToEmbed	The string that needs to be encoded
 	 * @param insight			The insight from where the call is being made. The insight holds user credentials, project information and conversation history tied to the insightId
-	 * @param parameters		Additional parameters
-	 * @return					The output from the Model Engines model method
+	 * @param parameters		Additional parameters such as temperature, top_k, max_new_tokens etc
+	 * @return					A list of embeddings
 	 */
-	Object model(Object input, Insight insight, Map <String, Object> parameters);
+	EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight, Map <String, Object> parameters);
+
 }

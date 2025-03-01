@@ -10,7 +10,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class SetContextReactor extends AbstractReactor {
 
@@ -23,7 +23,7 @@ public class SetContextReactor extends AbstractReactor {
 	// later, they would like to use a different mapping
 
 	public SetContextReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.CONTEXT.getKey(), "loadPath" };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "loadPath" };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
@@ -31,33 +31,35 @@ public class SetContextReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String context = keyValue.get(keysToGet[0]);
-		boolean load = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]) + "");
-		// all of this can be moved into the context reactor
-		if (context == null) {
-			return getError("No context is set - please use Context(<mount point>) to set context");
+		if (context == null || (context=context.trim()).isEmpty()) {
+			return getError("Must pass in a valid project id for the context value");
 		}
+		boolean load = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]) + "");
+		
 
 		// need to replace the app with the
 		boolean success = this.insight.setContext(context);
 		// attempt once to directly map it with same name
 		if (!success) {
-			return getError(
-					"No mount point " + context + " - please use Mount(<mount point>, App Name) to set a mount point");
+			return getError("User does not have access to set the context to " + context);
 		}
 
 		// if we have a chroot, mount the project for that user.
-		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			// get the app_root folder for the project
 			String projectAppRootFolder = AssetUtility.getProjectBaseFolder(context);
-			this.insight.getUser().getUserMountHelper().mountFolder(projectAppRootFolder, projectAppRootFolder, false);
+			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
 		}
 
 		// if python enabled
 		// set the path
 		if (PyUtils.pyEnabled()) {
 			String assetsDir = AssetUtility.getProjectAssetFolder(context).replace("\\", "/");
-			String script = "import sys\n" + "import os\n" + "sys.path.append('" + assetsDir + "')\n" + "os.chdir('"
-					+ assetsDir + "')";
+			String assetsPyDir = assetsDir + "/py";
+			String script = "import sys\n" + "import os\n" 
+					+ "sys.path.append('" + assetsDir + "')\n" 
+					+ "sys.path.append('" + assetsPyDir + "')\n" 
+					+ "os.chdir('"+ assetsDir + "')";
 
 			PyTranslator pyT = null;
 			User user = insight.getUser();

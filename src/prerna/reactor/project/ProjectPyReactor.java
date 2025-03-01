@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.ds.py.TCPPyTranslator;
+import prerna.ds.py.PyTranslator;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -43,8 +43,8 @@ public class ProjectPyReactor extends AbstractReactor {
 		}
 
 		IProject project = Utility.getProject(projectId);
-		TCPPyTranslator projectPyTranslator = project.getProjectPyTranslator();
-		String output = projectPyTranslator.runSingle(this.insight.getUser().getVarMap(), code, null);
+		PyTranslator projectPyTranslator = project.getProjectPyTranslator(this.insight);
+		String output = projectPyTranslator.runSingle(code, this.insight);
 		
 		List<NounMetadata> outputs = new ArrayList<>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));

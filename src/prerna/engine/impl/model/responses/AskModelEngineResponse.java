@@ -38,10 +38,8 @@ public class AskModelEngineResponse extends AbstractModelEngineResponse<String> 
 	@Override
 	public Map<String, Object> toMap(){
     	Map<String, Object> responseMap = super.toMap();
-
     	responseMap.put(MESSAGE_ID, this.messageId);
     	responseMap.put(ROOM_ID, this.roomId);
-  
     	return responseMap;
     }
 	
@@ -49,13 +47,11 @@ public class AskModelEngineResponse extends AbstractModelEngineResponse<String> 
         String responseObject = modelResponse.get(RESPONSE) + "";
         Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
-        
         return new AskModelEngineResponse(responseObject, tokensInPrompt, tokensInResponse);
     }
 	
 	@SuppressWarnings("unchecked")
 	public static AskModelEngineResponse fromObject(Object responseObject) {
-		
 		Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
 		return fromMap(modelResponse);
     }

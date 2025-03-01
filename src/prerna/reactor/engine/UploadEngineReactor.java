@@ -80,10 +80,6 @@ public class UploadEngineReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 		
-		if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-			throwFunctionalityOnlyExposedForAdminsError();
-		}
-
 		// creating a temp folder to unzip the engine folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
 		String randomTempUnzipFolderPath = this.insight.getInsightFolder() + DIR_SEPARATOR + randomIdAsDir;
@@ -144,6 +140,18 @@ public class UploadEngineReactor extends AbstractReactor {
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 		Object[] typeAndSubtypeAndCost = SecurityEngineUtils.getEngineTypeAndSubTypeAndCost(prop);
 		IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndSubtypeAndCost[0];
+		
+		// check if admin only
+		if (AbstractSecurityUtils.adminOnlyEngineAdd(engineType) && !SecurityAdminUtils.userIsAdmin(user)) {
+			throwFunctionalityOnlyExposedForAdminsError();
+		}
+		
+		if (global && 
+				(AbstractSecurityUtils.adminOnlyEngineSetPublic(engineType) && !SecurityAdminUtils.userIsAdmin(user))) {
+			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("User can upload an engine but cannot make the engine global"));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		
 		// do we have any other checks we want to make based on the SMSS
 		// let us do it now

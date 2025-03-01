@@ -25,7 +25,8 @@ public class Settings {
 	public static final String PYTHONHOME = "PYTHONHOME";
 	public static final String PYTHONHOME_SITE_PACKAGES = "PYTHONHOME_SITE_PACKAGES";
 	public static final String NATIVE_PY_SERVER = "NATIVE_PY_SERVER";
-	
+	public static final String PY_SERVER_USER = "PY_SERVER_USER";
+
 	public static final String PROMPT_STOPPER = "PROMPT_STOPPER";
 	public static final String VAR_NAME = "VAR_NAME";
 	public static final String TIMEOUT = "TIMEOUT";
@@ -33,8 +34,14 @@ public class Settings {
 	public static final String INPUT = "INPUT";
 	
 	public static final String COUNT = "COUNT";
-	public static final String REQUIREMENTS = "REQUIREMENTS"; // this is a JSON of all the requirements for a SMSS engine like GPU requirement etc. etc. 
-
+	public static final String REQUIREMENTS = "REQUIREMENTS"; // this is a JSON of all the requirements for a SMSS engine like GPU requirement etc. etc.
+	
+	// FOR REMOTE CLIENTS
+	public static final String MODEL = "MODEL"; // The short name for a model.. Can't use the HuggingFace model repo id here due to naming restrictions on kubernetes resources
+	public static final String MODEL_REPO_ID = "MODEL_REPO_ID"; // The HuggingFace model repo id
+	public static final String MODEL_TYPE = "MODEL_TYPE"; // The type of model
+	
+	
 	// debugging
 	public static final String FORCE_PORT = "FORCE_PORT"; // the port to force the connection on
 	public static final String LOGGER_LEVEL = "LOGGER_LEVEL"; // the python logger level — DEBUG, INFO, WARNING, or CRITICAL

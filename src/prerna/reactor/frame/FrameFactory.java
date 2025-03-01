@@ -71,7 +71,6 @@ public class FrameFactory {
 			
 			case "PYTHON": {
 				PandasFrame frame = new PandasFrame(alias);
-				frame.setJep(insight.getPy());
 				PyTranslator pyt = insight.getPyTranslator();
 				pyt.setLogger(logger);
 				frame.setTranslator(pyt);
@@ -79,7 +78,6 @@ public class FrameFactory {
 			}
 			case "PY": {
 				PandasFrame frame = new PandasFrame(alias);
-				frame.setJep(insight.getPy());
 				PyTranslator pyt = insight.getPyTranslator();
 				pyt.setLogger(logger);
 				frame.setTranslator(pyt);
@@ -87,7 +85,6 @@ public class FrameFactory {
 			}
 			case "PYFRAME": {
 				PandasFrame frame = new PandasFrame(alias);
-				frame.setJep(insight.getPy());
 				PyTranslator pyt = insight.getPyTranslator();
 				pyt.setLogger(logger);
 				frame.setTranslator(pyt);
@@ -96,7 +93,6 @@ public class FrameFactory {
 			}
 			case "PANDAS": {
 				PandasFrame frame = new PandasFrame(alias);
-				frame.setJep(insight.getPy());
 				PyTranslator pyt = insight.getPyTranslator();
 				pyt.setLogger(logger);
 				frame.setTranslator(pyt);

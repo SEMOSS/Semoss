@@ -357,7 +357,6 @@ public class PixelStreamUtility {
 			ps.print("\"output\":");
 			ps.print(gson.toJson(storageData));
 			ps.print(",\"operationType\":");
-			List<PixelOperationType> opTypes = noun.getOpType();
 			ps.print(gson.toJson(noun.getOpType()));
 			
 		} else if(nounT == PixelDataType.CODE || nounT == PixelDataType.TASK_LIST) {
@@ -702,7 +701,8 @@ public class PixelStreamUtility {
 			PixelRunner runner = (PixelRunner) runnerWraper.get("runner");
 			Object params = runnerWraper.get("params");
 			List<String> additionalPixels = (List<String>) runnerWraper.get("additionalPixels");
-
+			Map<String, Object> variableOutput = (Map<String, Object>) runnerWraper.get("variableOutput");
+			
 			Insight innerInsight = runner.getInsight();
 			ps.print("\"output\":{");
 			ps.print("\"name\":" + gson.toJson(innerInsight.getInsightName()));
@@ -711,6 +711,9 @@ public class PixelStreamUtility {
 			ps.print(",\"recipe\":" + gson.toJson(innerInsight.getPixelList().getPixelRecipe()));
 			ps.print(",\"params\":" + gson.toJson(params));
 			ps.print(",\"additionalPixels\":" + gson.toJson(additionalPixels));
+			if(variableOutput != null) {
+				ps.print(",\"variableOutput\":" + gson.toJson(variableOutput));
+			}
 			ps.flush();
 			ps.print(",\"insightData\":");
 			// process the inner recipe
@@ -781,6 +784,15 @@ public class PixelStreamUtility {
 			ps.print(panelGson.toJson(noun.getValue()));
 			ps.print(",\"operationType\":");
 			ps.print(panelGson.toJson(noun.getOpType()));
+			ps.flush();
+		}
+		
+		// json object
+		else if(nounT == PixelDataType.JSON_OBJECT) {
+			ps.print("\"output\":");
+			ps.print(noun.getValue().toString());
+			ps.print(",\"operationType\":");
+			ps.print(gson.toJson(noun.getOpType()));
 			ps.flush();
 		}
 		

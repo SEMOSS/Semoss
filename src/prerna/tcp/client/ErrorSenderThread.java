@@ -2,8 +2,6 @@ package prerna.tcp.client;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.logging.log4j.LogManager;
@@ -13,44 +11,35 @@ import prerna.om.Insight;
 import prerna.sablecc2.comm.JobManager;
 import prerna.util.Constants;
 
-public class ErrorSenderThread extends Thread
-{
+public class ErrorSenderThread extends Thread {
 	
 	private static final Logger classLogger = LogManager.getLogger(ErrorSenderThread.class);
 
-	FileInputStream pis = null;
-	String file = null;
-	boolean errored = false;
-	Object monitor = new Object();
-	boolean processComplete = false;
-	Insight in = null;
-	String core = "server";
-	
-				
-	public void setFile(String file)
-	{
+	private FileInputStream pis = null;
+	private String file = null;
+	private Object monitor = new Object();
+	private Insight in = null;
+	private String core = "server";
+
+	private boolean processComplete = false;
+
+	public void setFile(String file) {
 		this.file = file;
 		this.file = file.replace("\"", "");
 		this.file = this.file.trim();
-
 		processComplete = false;
-		//WatchService watchService = FileSystems.getDefault().newWatchService();
 		System.err.println("Starting session........ ");
 	}
 	
-	public void stopSession()
-	{
+	public void stopSession() {
 		this.processComplete = true;
 		this.file = null;
 		JobManager.getManager().addStdOut(in.getInsightId(), "Execution complete...");		
-		//JobManager.getManager().flushJob(in.getInsightId());
 	}
 	
-	public void setInsight(Insight in)
-	{
+	public void setInsight(Insight in) {
 		this.in = in;
 	}
-	
 	
 	@Override
 	public void run()
@@ -112,16 +101,7 @@ public class ErrorSenderThread extends Thread
 					}
 				}
 				JobManager.getManager().addStdOut(in.getInsightId(), "Execution complete  ");				
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				classLogger.error(Constants.STACKTRACE, e);
-				processComplete = true;
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				classLogger.error(Constants.STACKTRACE, e);
-				processComplete = true;
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				classLogger.error(Constants.STACKTRACE, e);
 				processComplete = true;
 			}

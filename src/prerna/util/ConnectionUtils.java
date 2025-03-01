@@ -41,7 +41,7 @@ public class ConnectionUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(ConnectionUtils.class);
 
-	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Connection con, Statement ps, ResultSet rs){
+	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Connection con, Statement ps, ResultSet rs) {
 		if(rs!=null){
 			try{
 				rs.close();
@@ -51,18 +51,21 @@ public class ConnectionUtils {
 		}
 		if(ps!=null){
 			try{
+				if(engine!=null && engine.isConnectionPooling() && con == null) {
+					con = ps.getConnection();
+				}
 				ps.close();
 			} catch (Exception e){
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		if(engine!=null && engine.isConnectionPooling()) {
-			if(con!=null){
-				try{
+			try{
+				if(con != null) {
 					con.close();
-				} catch (Exception e){
-					classLogger.error(Constants.STACKTRACE, e);
 				}
+			} catch (Exception e){
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -133,6 +136,10 @@ public class ConnectionUtils {
 		closeAllConnections(con, null, null);
 	}
 
+	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Connection con){
+		closeAllConnectionsIfPooling(engine, con, null, null);
+	}
+
 	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Statement ps){
 		closeAllConnectionsIfPooling(engine, ps, null);
 	}
@@ -153,4 +160,29 @@ public class ConnectionUtils {
 		}
 	}
 
+	/**
+	 * 
+	 * @param engine
+	 * @param statements
+	 */
+	public static void closeAllDbConnectionsIfPooling(IRDBMSEngine engine, Statement... statements) {
+		if(statements != null) {
+			for(Statement stmt : statements) {
+				if(stmt != null) {
+					try {
+						stmt.close();
+					} catch (Exception e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+					if (engine != null && engine.isConnectionPooling()) {
+						try {
+							stmt.getConnection().close();
+						} catch (Exception e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
+					}
+				}
+			}
+		}
+	}
 }

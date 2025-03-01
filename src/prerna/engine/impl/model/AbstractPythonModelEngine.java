@@ -14,12 +14,13 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
@@ -43,7 +44,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	protected String workingDirectory;
 	protected String workingDirectoryBasePath = null;
 	
-	protected TCPPyTranslator pyt = null;
+	protected PyTranslator pyt = null;
 	protected File cacheFolder;
 	private ClientProcessWrapper cpw = null;
 	
@@ -143,25 +144,36 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		
 		// create the py translator
-		pyt = new TCPPyTranslator();
+		pyt = new PyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
-		
-		// execute all the basic commands
-		String initCommands = this.smssProp.getProperty(Constants.INIT_MODEL_ENGINE);
-		// break the commands seperated by ;
-		String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
-		// replace the Vars
-		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-			commands[commandIndex] = fillVars(commands[commandIndex]);
+		try {
+			// execute all the basic commands
+			String initCommands = this.smssProp.getProperty(Constants.INIT_MODEL_ENGINE);
+			// break the commands seperated by ;
+			String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
+			// replace the Vars
+			for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+				commands[commandIndex] = fillVars(commands[commandIndex]);
+			}
+			pyt.runEmptyPy(commands);
+			// for debugging...
+			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+								+ " python process with commands >>> " + String.join("\n", commands));	
+			
+			// run a prefix command
+			setPrefix();
+			
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			if(this.cpw != null) {
+				classLogger.warn("Able to start the python process for the python model engine " 
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+						+ " but the start script failed.");
+				this.cpw.shutdown(false);
+			}
+			throw e;
 		}
-		pyt.runEmptyPy(commands);
-		// for debugging...
-		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-							+ " ptyhon process with commands >>> " + String.join("\n", commands));	
-		
-		// run a prefix command
-		setPrefix();
 	}
 	
 	/**
@@ -229,14 +241,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 						 .append(PyUtils.determineStringType(value));
 			}
 		} 
-		// check for these values from smss
-		if(parameters == null || !parameters.containsKey("max_new_tokens")) {
-			if(this.vars.containsKey("MAX_NEW_TOKENS")) {
-				callMaker.append(", max_new_tokens=").append(this.vars.get("MAX_NEW_TOKENS"));
-			} else if (this.vars.containsKey("MAX_TOKENS")) {
-				callMaker.append(", max_new_tokens=").append(this.vars.get("MAX_TOKENS"));
-			}
-		}
 
 		if(this.prefix != null) {
 			callMaker.append(", prefix='")
@@ -248,7 +252,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
-		Object output = pyt.runScript(callMaker.toString(), insight);
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		
 		AskModelEngineResponse response = AskModelEngineResponse.fromObject(output);
 		
@@ -269,6 +273,51 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		return response;
 	}
 	
+	@Override
+	public InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
+		checkSocketStatus();
+		
+		StringBuilder callMaker = new StringBuilder(varName + ".instruct(");
+		
+		callMaker.append("task=\"\"\"").append(task.replace("\"", "\\\"")).append("\"\"\"");
+		if(context != null) {
+			callMaker.append(",")
+					 .append("context=\"\"\"")
+					 .append(context.replace("\"", "\\\""))
+					 .append("\"\"\"");	
+		}
+		
+		callMaker.append(",").append("projectData=").append(PyUtils.determineStringType(projectData));
+		
+		if(parameters != null) {
+			Iterator <String> paramKeys = parameters.keySet().iterator();
+			while(paramKeys.hasNext()) {
+				String key = paramKeys.next();
+				Object value = parameters.get(key);
+				callMaker.append(",")
+				         .append(key)
+				         .append("=")
+						 .append(PyUtils.determineStringType(value));
+			}
+		}
+		
+		if(this.prefix != null) {
+			callMaker.append(", prefix='")
+			 		 .append(prefix)
+			 		 .append("'");
+		}
+		
+		callMaker.append(")");
+		
+		classLogger.debug("Running >>>" + callMaker.toString());
+		
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		
+		InstructModelEngineResponse response = InstructModelEngineResponse.fromObject(output);
+		
+		return response;
+	}
+	
 
 	@Override
 	protected EmbeddingsModelEngineResponse embeddingsCall(List<String> stringsToEmbed, Insight insight, Map<String, Object> parameters) {
@@ -284,27 +333,59 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		if(this.prefix != null) {
 			callMaker.append(", prefix='").append(this.prefix).append("'");
 		}
+		
+		if(parameters != null && !parameters.isEmpty()) {
+			Iterator <String> paramKeys = parameters.keySet().iterator();
+			while(paramKeys.hasNext()) {
+				String key = paramKeys.next();
+				Object value = parameters.get(key);
+				callMaker.append(",")
+				         .append(key)
+				         .append("=")
+						 .append(PyUtils.determineStringType(value));
+			}
+		}
+			
 		callMaker.append(")");
 		
-		Object responseObject = pyt.runScript(callMaker.toString(), insight);
+		Object responseObject = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		EmbeddingsModelEngineResponse embeddingsResponse = EmbeddingsModelEngineResponse.fromObject(responseObject);
 		return embeddingsResponse;
 	}
-
+	
+	
 	@Override
-	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
+	protected EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters) {
 		checkSocketStatus();
-				
-		StringBuilder callMaker = new StringBuilder(varName);
-		String inputAsString = PyUtils.determineStringType(input);
-		callMaker.append(".model(input = ").append(inputAsString);
-		if (parameters != null && !parameters.isEmpty()) {
-			callMaker.append(", **").append(PyUtils.determineStringType(parameters));
+			 	
+		String pythonListAsString = PyUtils.determineStringType(imagesToEmbed);
+		
+		StringBuilder callMaker = new StringBuilder();
+		callMaker.append(varName)
+				 .append(".image_embeddings(images_to_embed = ")
+				 .append(pythonListAsString);
+				 
+		if(this.prefix != null) {
+			callMaker.append(", prefix='").append(this.prefix).append("'");
 		}
+		
+		if(parameters != null && !parameters.isEmpty()) {
+			Iterator <String> paramKeys = parameters.keySet().iterator();
+			while(paramKeys.hasNext()) {
+				String key = paramKeys.next();
+				Object value = parameters.get(key);
+				callMaker.append(",")
+				         .append(key)
+				         .append("=")
+						 .append(PyUtils.determineStringType(value));
+			}
+		}
+			
 		callMaker.append(")");
 		
-		Object output = pyt.runScript(callMaker.toString(), insight);
-		return output;
+		Object responseObject = pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		EmbeddingsModelEngineResponse embeddingsResponse = EmbeddingsModelEngineResponse.fromObject(responseObject);
+		return embeddingsResponse;
 	}
 
 	@Override

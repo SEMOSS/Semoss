@@ -1,5 +1,4 @@
 import boto3
-import json
 import logging
 
 from .abstract_text_generation_client import AbstractTextGenerationClient
@@ -11,21 +10,16 @@ from ..constants import (
     AskModelEngineResponse,
 )
 
-# from langchain_community.llms import Bedrock
-from langchain_aws.llms import BedrockLLM
-from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from langchain.chains.llm import LLMChain
-from langchain.docstore.document import Document
-from langchain_core.prompts import PromptTemplate
-from langchain_community.document_loaders.csv_loader import CSVLoader
-from langchain.chains import MapReduceDocumentsChain, ReduceDocumentsChain
-from langchain_text_splitters import CharacterTextSplitter
+# from langchain_core.prompts import PromptTemplate
+# from langchain_community.document_loaders.csv_loader import CSVLoader
+# from langchain_text_splitters import CharacterTextSplitter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class BedrockClient(AbstractTextGenerationClient):
+
     def __init__(
         self,
         template=None,
@@ -73,29 +67,6 @@ class BedrockClient(AbstractTextGenerationClient):
                 region_name=self.region,
             )
 
-    def create_json_body(self, prompt, max_new_tokens, temperature, top_p):
-        # Create a dictionary with the desired parameters
-        body_dict = {
-            "prompt": prompt,
-            "max_tokens_to_sample": max_new_tokens,
-            "temperature": temperature,
-            "top_p": top_p,
-        }
-
-        # Filter out parameters with null or empty values
-        filtered_body_dict = {
-            key: value
-            for key, value in body_dict.items()
-            if value is not None and value != ""
-        }
-
-        # Convert the filtered dictionary to JSON
-        body_json = json.dumps(
-            filtered_body_dict
-        )  # Optional: indent for pretty printing
-
-        return body_json
-
     def create_inference_config(self, max_new_tokens, temperature, top_p):
         if top_p is None:
             top_p = 0.9
@@ -112,139 +83,118 @@ class BedrockClient(AbstractTextGenerationClient):
 
         return inference_config
 
-    def create_json_body(self, prompt, max_new_tokens, temperature, top_p):
-        # Create a dictionary with the desired parameters
-        body_dict = {
-            "prompt": prompt,
-            "max_tokens_to_sample": max_new_tokens,
-            "temperature": temperature,
-            "top_p": top_p,
-        }
-
-        # Filter out parameters with null or empty values
-        filtered_body_dict = {
-            key: value
-            for key, value in body_dict.items()
-            if value is not None and value != ""
-        }
-
-        # Convert the filtered dictionary to JSON
-        body_json = json.dumps(
-            filtered_body_dict
-        )  # Optional: indent for pretty printing
-
-        return body_json
-
-    def create_json_body_titan(
-        self, prompt, max_new_tokens, temperature, top_p, stop_sequences
+    def _prepare_message_payload(
+        self, question, context, template_name, history, **kwargs
     ):
-        # Create a dictionary with the desired parameters
-        if stop_sequences is None:
-            stop_sequences = []
+        """Prepare the message payload for the Bedrock API request."""
+        if FULL_PROMPT in kwargs:
+            return [
+                self._format_message_content(
+                    {"role": "user", "content": kwargs[FULL_PROMPT]}
+                )
+            ]
 
-        if top_p is None:
-            top_p = 0.9
+        message_payload = []
+        mapping = {"question": question} | kwargs
 
-        if max_new_tokens is None:
-            max_new_tokens = 200
+#TODO context here should not be user but system...anthropic doesnt like system prompts tho.
+        # if context:
+        #     content = self._handle_context(context, template_name, **mapping)
+        #     message_payload.append(
+        #         self._format_message_content({"role": "system", "content": content})
+        #     )
+        # elif template_name:
+        #     content = self.fill_template(template_name=template_name, **mapping)[0]
+        #     if content:
+        #         message_payload.append(
+        #             self._format_message_content({"role": "system", "content": content})
+        #         )
 
-        if temperature is None:
-            temperature = 0.9
+        if history is not None:
+            message_payload.extend(
+                [self._format_message_content(msg) for msg in history]
+            )
 
-        body_dict = {
-            "inputText": prompt,
-            "textGenerationConfig": {
-                "maxTokenCount": max_new_tokens,
-                "stopSequences": stop_sequences,
-                "temperature": temperature,
-                "topP": top_p,
-            },
+        if question:
+            message_payload.append(
+                self._format_message_content({"role": "user", "content": question})
+            )
+
+        return message_payload
+
+    def _handle_context(self, context, template_name, **mapping):
+        """Handle context processing based on template."""
+        if template_name:
+            mapping.update({"context": context})
+            return self.fill_template(template_name=template_name, **mapping)[0]
+        elif isinstance(context, str):
+            return self.fill_context(context, **mapping)[0]
+        return context
+
+    def _create_request_params(self, messages, inference_config, guardrail_config=None, system_prompt=None):
+        """Create the request parameters for the Bedrock API."""
+        params = {
+            "modelId": self.modelId,
+            "messages": messages,
+            "inferenceConfig": inference_config,
         }
 
-        # Filter out parameters with null or empty values
-        filtered_body_dict = {
-            key: value
-            for key, value in body_dict.items()
-            if value is not None and value != ""
-        }
+        if guardrail_config:
+            params["guardrailConfig"] = guardrail_config
+        if system_prompt:
+            params["system"]=system_prompt
+        return params
 
-        # Convert the filtered dictionary to JSON
-        body_json = json.dumps(
-            filtered_body_dict
-        )  # Optional: indent for pretty printing
+    def _handle_stream_response(self, prefix: str, stream_response):
+        """Process streaming response from Bedrock."""
+        final_response = ""
+        for event in stream_response:
+            if "contentBlockDelta" in event:
+                text = event["contentBlockDelta"]["delta"]["text"]
+                if text != None:
+                    final_response += text
+                    print(prefix + text, end="")                
+        return final_response
 
-        return body_json
+    def _get_guardrail_config(self):
+        """Create guardrail configuration if enabled."""
+        if self.guardrail_identifier and self.guardrail_version:
+            return {
+                "guardrailIdentifier": self.guardrail_identifier,
+                "guardrailVersion": self.guardrail_version,
+                "trace": "enabled",
+            }
+        return None
 
-    def summarize(self, **kwargs):
-        client = self._get_client()
-        model_engine_response = AskModelEngineResponse()
-        llm = BedrockLLM(model_id=self.modelId, region_name="us-east-1", client=client)
+    def _get_raw_content(self, message_payload):
+        """Extract raw content from messages before formatting."""
+        return " ".join(msg["content"] for msg in message_payload)
 
-        csv_path = kwargs["file_path"]
-        loader = CSVLoader(
-            file_path=csv_path,
-            csv_args={
-                "delimiter": ",",
-                "quotechar": '"',
-            },
-        )
-        docs = loader.load()
-        map_template = """The following is a set of documents
-            {docs}
-            Based on this list of docs, please identify the main themes 
-            Helpful Answer:"""
-        map_prompt = PromptTemplate.from_template(map_template)
-        map_chain = LLMChain(llm=llm, prompt=map_prompt)
+    def _format_message_content(self, message):
+        """Format a single message to match Bedrocks expected structure."""
+        return {"role": message["role"], "content": message["content"]}
 
-        reduce_template = """The following is set of summaries:
-            {docs}
-            Take these and distill it into a final, consolidated summary of the main themes. 
-            Helpful Answer:"""
-        reduce_prompt = PromptTemplate.from_template(reduce_template)
+    def _format_messages_for_model(self, message_payload, full_prompt=None):
+        """Format messages according to model and API requirements."""
+        if self.modelId == "anthropic.claude-instant-v1":
+            if full_prompt:
+                formatted_text = f"\n\nHuman:{full_prompt}\n\nAssistant:"
+            else:
+                formatted_parts = []
+                for msg in message_payload:
+                    role = "Human" if msg["role"] in ["user", "system"] else "Assistant"
+                    formatted_parts.append(f"\n\n{role}: {msg['content']}")
+                formatted_text = "".join(formatted_parts) + "\n\nAssistant:"
 
-        reduce_chain = LLMChain(llm=llm, prompt=reduce_prompt)
-
-        # Combine documents into a string
-        combine_documents_chain = StuffDocumentsChain(
-            llm_chain=reduce_chain, document_variable_name="docs"
-        )
-
-        # Combines and iteratively reduces the mapped documents
-        reduce_documents_chain = ReduceDocumentsChain(
-            # Final chain called
-            combine_documents_chain=combine_documents_chain,
-            # If documents exceed context limit
-            collapse_documents_chain=combine_documents_chain,
-            # For Titan this could possibly be set to 8k
-            token_max=4000,
-        )
-
-        # Combining documents by mapping a chain over them, then combining results
-        map_reduce_chain = MapReduceDocumentsChain(
-            llm_chain=map_chain,
-            reduce_documents_chain=reduce_documents_chain,
-            document_variable_name="docs",
-            return_intermediate_steps=False,
-        )
-
-        text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=1000, chunk_overlap=0
-        )
-        split_docs = text_splitter.split_documents(docs)
-
-        summary_results = map_reduce_chain.invoke(split_docs)
-
-        # results_map = {}
-        # results_map["response"] = summary_results["output_text"]
-        # results_map["file_path"] = csv_path
-        final_response = summary_results["output_text"]
-        model_engine_response.response_tokens = self.tokenizer.count_tokens(
-            final_response
-        )
-        # model_engine_response.prompt_tokens = self.tokenizer.count_tokens(summary_results["input_documents"][0])
-        model_engine_response.response = final_response
-
-        return model_engine_response
+            return [{"role": "user", "content": [{"text": formatted_text}]}]
+        else:
+            if full_prompt:
+                return [{"role": "user", "content": [{"text": full_prompt}]}]
+            else:
+                return [
+                    {"role": msg["role"], "content": [{"text": msg["content"]}]}
+                    for msg in message_payload
+                ]
 
     def ask_call(
         self,
@@ -257,146 +207,69 @@ class BedrockClient(AbstractTextGenerationClient):
         top_p=None,
         stop_sequences=None,
         prefix="",
-        stream = None,
+        stream=True,
         **kwargs,
     ) -> AskModelEngineResponse:
-        client = self._get_client()
-        final_response = ""
-        model_engine_response = AskModelEngineResponse()
-
-        # TODO remove once
-        # check whether to include logprobs in the response
-        include_logprobs = kwargs.pop("include_logprobs", False)
         try:
-            message_payload = []
-            # Common variable assignment for both chat-completion and completion
-            mapping = {"question": question} | kwargs
-            prompt_content = ""
+            client = self._get_client()
+            model_engine_response = AskModelEngineResponse()
 
-            if FULL_PROMPT not in kwargs.keys():
-                if context and not template_name:
-                    if isinstance(context, str):
-                        context = self.fill_context(context, **mapping)[0]
-                        message_payload.append({"role": "system", "content": context})
-                elif context and template_name:
-                    mapping.update({"context": context})
-                    context = self.fill_template(
-                        template_name=template_name, **mapping
-                    )[0]
-                    message_payload.append({"role": "system", "content": context})
-                else:
-                    if template_name:
-                        possibleContent = self.fill_template(
-                            template_name=template_name, **mapping
-                        )[0]
-                        if possibleContent:
-                            message_payload.append(
-                                {"role": "system", "content": possibleContent}
-                            )
+            message_payload = self._prepare_message_payload(
+                question, context, template_name, history, **kwargs
+            )
+            system_prompt = None
+            if context is not None and isinstance(context, str):
+                system_prompt = [{'text':context}]
 
-                if history is not None:
-                    message_payload.extend(history)
-
-                if question and len(question) > 0:
-                    message_payload.append({"role": "user", "content": question})
-
-                kwargs["messages"] = message_payload
-
-                msg_content = "\n\nHuman:".join(
-                    [msg["content"] for msg in message_payload]
-                )
-                prompt_content = "\n\nHuman:" + msg_content + "\n\nAssistant:"
+            if kwargs.get(FULL_PROMPT):
+                raw_content = kwargs[FULL_PROMPT]
             else:
-                if self.modelId == "anthropic.claude-instant-v1":
-                    prompt_content = (
-                        "\n\nHuman:" + kwargs[FULL_PROMPT] + "\n\nAssistant:"
-                    )
-                elif self.modelId == "amazon.titan-text-express-v1":
-                    prompt_content = kwargs[FULL_PROMPT]
+                raw_content = self._get_raw_content(message_payload)
 
             model_engine_response.prompt_tokens = self.tokenizer.count_tokens(
-                prompt_content
+                raw_content
             )
-            messages = [{"role": "user", "content": [{"text": prompt_content}]}]
+
+            messages = self._format_messages_for_model(
+                message_payload, kwargs.get(FULL_PROMPT)
+            )
 
             inference_config = self.create_inference_config(
                 max_new_tokens, temperature, top_p
             )
-            
-            if stream is None:
-                stream = self.response_stream
 
-            if stream == "true" or stream == True:
-                if (
-                    self.guardrail_identifier is not None
-                    and self.guardrail_version is not None
-                ):
-                    guardrail_config = {
-                        "guardrailIdentifier": self.guardrail_identifier,
-                        "guardrailVersion": self.guardrail_version,
-                        "trace": "enabled",
-                    }
+            guardrail_config = self._get_guardrail_config()
 
-                    response = client.converse_stream(
-                        modelId=self.modelId,
-                        messages=messages,
-                        guardrailConfig=guardrail_config,
-                        inferenceConfig=inference_config,
+            should_stream = stream if stream is not None else self.response_stream
+            should_stream = should_stream in (True, "true")
+
+            if should_stream:
+                response = client.converse_stream(
+                    **self._create_request_params(
+                        messages, inference_config, guardrail_config, system_prompt
                     )
-                else:
-                    response = client.converse_stream(
-                        modelId=self.modelId,
-                        messages=messages,
-                        # system=system_prompts,
-                        inferenceConfig=inference_config,
-                        # additionalModelRequestFields=additional_model_fields
-                    )
-
-                stream_response = response.get("stream")
-                if stream_response:
-                    for event in stream_response:
-                        if "contentBlockDelta" in event:
-                            final_response += event["contentBlockDelta"]["delta"]["text"]
-
-                    model_engine_response.response_tokens = self.tokenizer.count_tokens(
-                        final_response
-                    )
-
+                )
+                final_response = self._handle_stream_response(prefix,
+                    response.get("stream", [])
+                )
+                model_engine_response.response_tokens = self.tokenizer.count_tokens(
+                    final_response
+                )
             else:
-                if (
-                    self.guardrail_identifier is not None
-                    and self.guardrail_version is not None
-                ):
-                    guardrail_config = {
-                        "guardrailIdentifier": self.guardrail_identifier,
-                        "guardrailVersion": self.guardrail_version,
-                        "trace": "enabled",
-                    }
-
-                    response = client.converse(
-                        modelId=self.modelId,
-                        messages=messages,
-                        guardrailConfig=guardrail_config,
-                        inferenceConfig=inference_config,
+                response = client.converse(
+                    **self._create_request_params(
+                        messages, inference_config, guardrail_config, system_prompt
                     )
-                else:
-                    response = client.converse(
-                        modelId=self.modelId,
-                        messages=messages,
-                        inferenceConfig=inference_config,
-                    )
-
+                )
                 output_message = response["output"]["message"]["content"]
-
-                if len(output_message) > 0:
-                    final_response = output_message[0]["text"]
-
+                final_response = output_message[0]["text"] if output_message else ""
                 model_engine_response.response_tokens = response["usage"][
                     "outputTokens"
                 ]
+
             model_engine_response.response = final_response
             return model_engine_response
 
         except Exception as e:
             logger.error(f"Error while making request to Bedrock: {e}")
-            raise Exception(f"Error while making request to Bedrock: {e}")
+            raise

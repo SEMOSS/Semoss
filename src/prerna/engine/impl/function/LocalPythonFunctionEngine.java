@@ -10,8 +10,9 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.impl.SmssUtilities;
 import prerna.om.ClientProcessWrapper;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -27,11 +28,11 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 	
 	private String pythonFileName;
 	private String engineDirectoryPath = null;
-	
-	private TCPPyTranslator pyt = null;
 	private File cacheFolder;
-	private ClientProcessWrapper cpw = null;
 	
+	private ClientProcessWrapper cpw = null;
+	private PyTranslator pyt = null;
+
 	// string substitute vars
 	private Map<String, String> vars = new HashMap<>();
 	
@@ -121,27 +122,43 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		}
 		
 		// create the py translator
-		pyt = new TCPPyTranslator();
+		pyt = new PyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
-		String execCommand = "import sys\n" 
-				+ "import os\n" 
-				+ "sys.path.append('" + this.engineDirectoryPath + "')\n" 
-				+ "os.chdir('" + this.engineDirectoryPath + "')\n"
-				+ "exec(open('" + this.engineDirectoryPath + "/" + this.pythonFileName + "').read())";
+		try {
+			String execCommand = "import sys\n" 
+					+ "import os\n" 
+					+ "sys.path.append('" + this.engineDirectoryPath + "')\n" 
+					+ "sys.path.append('" + this.engineDirectoryPath + "/py')\n" 
+					+ "os.chdir('" + this.engineDirectoryPath + "')\n"
+					+ "exec(open('" + this.engineDirectoryPath + "/" + this.pythonFileName + "').read())";
 
-		// execute all the basic commands
-		String initCommands = this.smssProp.getProperty(INIT_FUNCTION_ENGINE);
-		if(initCommands != null && !(initCommands=initCommands.trim()).isEmpty()) {
-			// break the commands separated by ;
-			String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
-			// replace the Vars
-			for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-				execCommand += "\n" + fillVars(commands[commandIndex]);
+			// execute all the basic commands
+			String initCommands = this.smssProp.getProperty(INIT_FUNCTION_ENGINE);
+			if(initCommands != null && !(initCommands=initCommands.trim()).isEmpty()) {
+				// break the commands separated by ;
+				String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
+				// replace the Vars
+				for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+					execCommand += "\n" + fillVars(commands[commandIndex]);
+				}
 			}
+			
+			this.pyt.runScript(execCommand);
+
+			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+								+ " python process with commands >>> " + String.join("\n", execCommand));
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			if(this.cpw != null) {
+				classLogger.warn("Able to start the python process for local python function engine " 
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+						+ " but the start script failed.");
+				this.cpw.shutdown(false);
+			}
+			throw e;
 		}
 		
-		this.pyt.runScript(execCommand);
 	}
 	
 	/**
@@ -178,5 +195,10 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		if(this.cpw != null) {
 			this.cpw.shutdown(true);
 		}
+	}
+	
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return "PYTHON_SCRIPT";
 	}
 }

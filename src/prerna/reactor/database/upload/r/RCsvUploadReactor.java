@@ -13,7 +13,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.poi.main.helper.CSVFileHelper;
-import prerna.reactor.database.upload.AbstractUploadFileReactor;
+import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -21,7 +21,7 @@ import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public class RCsvUploadReactor extends AbstractUploadFileReactor {
+public class RCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 	
 	private CSVFileHelper helper;
 

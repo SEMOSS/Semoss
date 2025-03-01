@@ -1310,7 +1310,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.setTimestamp(parameterIndex++, startDate);
-			ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			if (verifiedEndDate != null) {
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			} else {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			}
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -1741,7 +1745,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param dependentEngineIds
 	 */
-	public static void updateProjectDependencies(User user, String projectId, List<String> dependentEngineIds) {
+	public static void updateProjectDependencies(User user, String projectId, Collection<String> dependentEngineIds) {
 		// first do a delete
 		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?";
 		PreparedStatement deletePs = null;
@@ -2480,6 +2484,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		engineMap.addAll(allGlobalEnginesMap);
 		return engineMap;
 	}
+	
+	
 	
 	/**
 	 * Get the list of the project information that the user has access to

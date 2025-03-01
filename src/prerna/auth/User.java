@@ -21,27 +21,23 @@ import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IStorageMount;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
-import prerna.project.api.IProject;
 import prerna.reactor.mgmt.MgmtUtil;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
-import prerna.util.MountHelper;
 import prerna.util.SemossClassloader;
 import prerna.util.Settings;
+import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 
 public class User implements Serializable {
@@ -64,11 +60,16 @@ public class User implements Serializable {
 	private transient RRemoteRserve rconRemote;
 
 	// python related stuff
-	private transient ClientProcessWrapper cpw = new ClientProcessWrapper();
+	private transient ClientProcessWrapper pythonCPW = new ClientProcessWrapper();
 	private transient PyTranslator pyt = null;
-	
-	private transient MountHelper mountHelper = null;
-	private String mountTuple = null;
+	private transient Process pyProcess = null;
+
+	// r
+	private transient ClientProcessWrapper rCPW = new ClientProcessWrapper();
+	private transient Process rProcess = null;
+
+	private transient SymlinkHelper symlinkHelper = null;
+	private String chrootPath = null;
 
 	// keeping this for a later time when personal experimental stuff
 	private transient ClassLoader customLoader = null;
@@ -85,10 +86,6 @@ public class User implements Serializable {
 	// shared sessions
 	private List<String> sharedSessions = new Vector<>();
 	
-	// we use this in set context and need to review if best to store this
-	private Map<String, String> projectIdMap = new HashMap<>();
-	private Map<String, String> engineIdMap = new HashMap<>();
-	private Map<String, StringBuffer> varMap = new HashMap<>();
 	private transient Map<String, IStorageMount> externalMounts = new HashMap<>();
 	
 	private boolean anonymous;
@@ -96,9 +93,6 @@ public class User implements Serializable {
 	
 	public transient CopyObject cp = null;
 	private transient CmdExecUtil cmdUtil = null;
-	
-	private transient Process rProcess = null;
-	private transient Process pyProcess = null;
 	
 	private int rPort = -1;
 	private int pyPort = -1;
@@ -113,6 +107,9 @@ public class User implements Serializable {
 	// this is what will distinguish between output vs. stdout
 	public String prefix = "";
 	
+	// this is a unique identifier for this user instance
+	private String userEpoch = null;
+	
 	public User() {
 		// transient objects should be defined in the constructor
 		// since if this is serialized we dont want these values to be null
@@ -122,6 +119,7 @@ public class User implements Serializable {
 		this.workspaceSyncObject = new Object();
 		// set it in the mgmt utils
 		addUserMemory();
+		this.userEpoch = UUID.randomUUID().toString();
 	}
 	
 	/**
@@ -315,6 +313,10 @@ public class User implements Serializable {
 		return this.assetProjectMap;
 	}
 	
+	public String getUserEpoch() {
+		return userEpoch;
+	}
+
 	////////////////////////////////////////////////////////////////////////
 
 	public IRUserConnection getRcon() {
@@ -613,7 +615,7 @@ public class User implements Serializable {
 	 * @return
 	 */
 	public ClientProcessWrapper getClientProcessWrapper() {
-		return this.cpw;
+		return this.pythonCPW;
 	}
 	
 	/**
@@ -643,233 +645,30 @@ public class User implements Serializable {
 	 */
 	public SocketClient getSocketClient(boolean create, int port, String venvEngineId) {
 		if(!create) {
-			if(this.cpw == null) {
+			if(this.pythonCPW == null) {
 				return null;
 			}
-			return this.cpw.getSocketClient();
+			return this.pythonCPW.getSocketClient();
 		}
-		if(this.cpw == null || this.cpw.getSocketClient() == null) {
+		if(this.pythonCPW == null || this.pythonCPW.getSocketClient() == null) {
 			startSocketServerAndClient(-1, venvEngineId);
-			this.cpw.getSocketClient().setUser(this);
-		} else if(!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
+			this.pythonCPW.getSocketClient().setUser(this);
+		} else if(!this.pythonCPW.getSocketClient().isConnected()) {
+			this.pythonCPW.shutdown(false);
 			try {
-				this.cpw.reconnect();
+				this.pythonCPW.reconnect();
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to user server");
+				throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
 			}
 		}
 		
 		// invalidate the serialization map
 		this.insightSerializedMap.clear();
 
-		return this.cpw.getSocketClient();
+		return this.pythonCPW.getSocketClient();
 	}
 
-	/**
-	 * Storing the engine id to engine name
-	 * @param allEngines
-	 */
-	public void setEngines(List<Map<String, Object>> allEngines) {
-		// I still need to check multiple engines with the same name. why not
-		if(this.engineIdMap.size() == 0 || 
-				(this.engineIdMap.size() != 0 && Integer.parseInt(this.engineIdMap.get("COUNT")) != allEngines.size()))
-		{
-			this.engineIdMap = new HashMap<>();
-			// need to redo
-			for(int engineIndex = 0;engineIndex < allEngines.size();engineIndex++) {
-				Map <String, Object> engineValues = allEngines.get(engineIndex);
-				String engineName = (String)engineValues.get("database_name");
-				String engineId = (String)engineValues.get("database_id");
-			
-				this.engineIdMap.put(engineId, engineName);
-			}
-			this.engineIdMap.put("COUNT", allEngines.size() + "");
-		}
-	}
-
-	/**
-	 * Storing the project id to project name
-	 * @param allProjects
-	 */
-	public void setProjects(List<Map<String, Object>> allProjects) {
-		// I still need to check multiple engines with the same name. why not
-		if(this.projectIdMap.size() == 0 || 
-				(this.projectIdMap.size() != 0 && Integer.parseInt(this.projectIdMap.get("COUNT")) != allProjects.size()))
-		{
-			this.projectIdMap = new HashMap<>();
-			// need to redo
-			for(int projectIndex = 0;projectIndex < allProjects.size();projectIndex++) {
-				Map <String, Object> projectValues = allProjects.get(projectIndex);
-				String projectName = (String) projectValues.get("project_name");
-				String projectId = (String) projectValues.get("project_id");
-			
-				this.projectIdMap.put(projectId, projectName);
-			}
-			this.projectIdMap.put("COUNT", allProjects.size() + "");
-		}
-	}
-	
-	/**
-	 * Append project id and project name to this.projectIdMap
-	 * @param projectId
-	 * @param projectName
-	 */
-	public void setProject(String projectId, String projectName) {
-		// only add it if the ID is not already in the map
-		if(!this.projectIdMap.containsKey(projectId)) {
-			this.projectIdMap.put(projectId, projectName);
-			int updatedCount = Integer.parseInt(this.projectIdMap.getOrDefault("COUNT", "0")) + 1;
-			this.projectIdMap.put("COUNT",  Integer.toString(updatedCount));
-		}
-	}
-	
-	/**
-	 * Add a var using the project id - var name will be cleaned project name
-	 * @param projectId
-	 * @return	String - the clean project name used as the var name
-	 */
-	public String addVarMap(String projectId) {
-		// initialize in case MyProjects has never been called
-		if(this.projectIdMap == null || this.projectIdMap.isEmpty()) {
-			setProjects(SecurityProjectUtils.getUserProjectList(this, null, false, false, null, null, null, null, null));
-		}
-		String projectName = this.projectIdMap.get(projectId);
-		if(projectName == null) {
-			return null;
-		}
-		projectName = Utility.makeAlphaNumeric(projectName);
-		if(addVarMap(projectName, projectId, false)) {
-			return projectName;
-		}
-		
-		return null;
-	}
-	
-	public boolean addVarMap(String varName, String projectId) {
-		return addVarMap(varName, projectId, false);
-	}
-
-	/**
-	 * 
-	 * @param varName
-	 * @param projectId
-	 * @param override
-	 * @return
-	 */
-	private boolean addVarMap(String varName, String projectId, boolean override) {
-		//TODO: what was override supposed to do from an input standpoint???
-		//TODO: what was override supposed to do from an input standpoint???
-		//TODO: what was override supposed to do from an input standpoint???
-		//TODO: what was override supposed to do from an input standpoint???
-		
-		/*
-		 * Previous code would just break when override was set to true...
-		 */
-
-		String [] pathTokens = projectId.split("/");
-		String subFolder = "";
-		if(pathTokens.length > 1) {
-			subFolder = projectId.replace(pathTokens[0],"");
-			projectId = pathTokens[0];
-		}
-		
-		String projectName = this.projectIdMap.get(projectId);
-		if(projectName == null) {
-			return false;
-		}
-		
-		// giving it the main folder instead of the version
-		String varValue = AssetUtility.getProjectBaseFolder(projectName, projectId) + subFolder;
-		varValue = varValue.replace("\\", "/");
-
-		// only pull the project
-		IProject project = Utility.getProject(projectId);
-		// do not pull the latest from cloud - just leads to issues 
-		// on portals when trying to git pull and sync  across pods
-//		ClusterUtil.reactorPullProjectFolder(project, varValue);
-		
-		StringBuffer oldValue = varMap.get(varName);
-		if(oldValue != null) {
-			removeVarString(varName, oldValue);
-		}
-		
-		this.varMap.put(varName, new StringBuffer(varValue));
-		addVarString(varName);
-
-		return true;
-	}
-	
-	public void removeVarString(String varName, StringBuffer oldValue) {
-		StringBuffer retRString = this.varMap.get("R_VAR_STRING");
-		StringBuffer retPyString = this.varMap.get("PY_VAR_STRING");
-
-		StringBuffer varValue = oldValue;
-		if(oldValue == null) {
-			varValue = this.varMap.get(varName);
-		}
-		
-		if(retRString != null) {
-			StringBuffer remRString = new StringBuffer("").append(varName).append(" <- '").append(varValue).append("';\n");
-			String finalRString = retRString.toString();
-			finalRString = finalRString.replace(remRString.toString(), "");
-			retRString = new StringBuffer(finalRString);
-			if(retRString.length() == 0) {
-				varMap.remove("R_VAR_STRING");
-			} else {
-				varMap.put("R_VAR_STRING", retRString);			
-			}
-		}
-		
-		if(retPyString != null) {
-			StringBuffer remPyString = new StringBuffer("").append(varName).append(" = '").append(varValue).append("'\n");
-			String finalPyString = retPyString.toString();
-			finalPyString = finalPyString.replace(remPyString.toString(), "");
-			retPyString = new StringBuffer(finalPyString);
-			if(retPyString.length() == 0) {
-				varMap.remove("PY_VAR_STRING");
-			} else {
-				varMap.put("PY_VAR_STRING", retPyString);
-			}
-		}
-	}
-	
-	private void addVarString(String varName) {
-		StringBuffer retRString = varMap.get("R_VAR_STRING");
-		StringBuffer retPyString = varMap.get("PY_VAR_STRING");
-		
-		if(retRString == null || retRString.length() == 0) {
-			// first time
-			retRString = new StringBuffer("");
-		}
-		if(retPyString == null || retPyString.length() == 0) {
-			// first time
-			retPyString = new StringBuffer("");
-		}
-		
-		retRString.append(varName).append(" <- '").append(varMap.get(varName)).append("';\n");
-		varMap.put("R_VAR_STRING", retRString);			
-		retPyString.append(varName).append(" = '").append(varMap.get(varName)).append("'\n");
-		varMap.put("PY_VAR_STRING", retPyString);			
-	}
-	
-	private String getVarString(boolean r) {
-		if(r) {
-			return varMap.get("R_VAR_STRING").toString();
-		} else {
-			return varMap.get("PY_VAR_STRING").toString();
-		}
-	}
-	
-	/**
-	 * Returns the paths for the asset folders
-	 * @return
-	 */
-	public Map<String, StringBuffer> getVarMap() {
-		return this.varMap;
-	}
-	
 	public void addExternalMount(String name, IStorageMount mountHelper)
 	{
 		// name is what is recorded
@@ -891,8 +690,6 @@ public class User implements Serializable {
 		if(!mountFile.exists())
 			mountFile.mkdir();
 
-		addVarMap(name, appName + "__" + appId + "/" + name, true);
-		
 		// at some point I need to also set a watcher to ferret things back and forth
 	}
 	
@@ -912,52 +709,21 @@ public class User implements Serializable {
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is set to false for this instance");
 		}
-		boolean useNettyPy = Utility.getDIHelperProperty(Constants.NETTY_PYTHON) != null
-				&& Utility.getDIHelperProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 		if(this.pyt == null && create) {
 			// all of the logic should go here now ?
 			synchronized(this) {
-				if (!useNettyPy) {
-					PyExecutorThread jepThread = null;
-					if (jepThread == null) {
-						jepThread = PyUtils.getInstance().getJep();
-						this.pyt = new PyTranslator();
-						this.pyt.setPy(jepThread);
-						long logSleeper = 1;
-						while(!jepThread.isReady())
-						{
-							try 
-							{
-								// wait for it to start
-								//using this.wait because its recommended vs sleep
-								this.wait(logSleeper*1000);
-								//Thread.sleep(logSleeper*1000);
-								logSleeper++;
-							} catch (InterruptedException e) 
-							{
-								classLogger.error(Constants.STACKTRACE, e);
-							}
-						}
-						classLogger.info("Jep Start is Complete");
-					}
-				}
-				// check to see if the py translator needs to be set ?
-				// check to see if the py translator needs to be set ?
-				else {
-					SocketClient sc = getSocketClient(create, -1, venvEngineId);
-					if(sc != null) {
-						TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
-						pyJavaTranslator.setSocketClient(sc);
-						this.pyt = pyJavaTranslator;
-					}
+				SocketClient sc = getSocketClient(create, -1, venvEngineId);
+				if(sc != null) {
+					PyTranslator pyJavaTranslator = new PyTranslator();
+					pyJavaTranslator.setSocketClient(sc);
+					this.pyt = pyJavaTranslator;
 				}
 			}
 		}
-		else if(useNettyPy) 
-		{
+		else {
 			SocketClient sc = getSocketClient(create, -1, venvEngineId);
 			if(sc != null) {
-				TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
+				PyTranslator pyJavaTranslator = new PyTranslator();
 				pyJavaTranslator.setSocketClient(sc);
 				this.pyt = pyJavaTranslator;
 			}
@@ -968,21 +734,10 @@ public class User implements Serializable {
 	}
 	
 	/**
-	 * Check if the user has access to a database
-	 * @param databaseName
-	 * @param databaseId
-	 * @return
-	 */
-	public boolean checkDatabaseAccess(String databaseName, String databaseId) {
-		return this.engineIdMap.containsKey(databaseId) && 
-				this.engineIdMap.get(databaseId).equalsIgnoreCase(databaseName);	
-	}
-
-	/**
 	 * Set the context for the user based on the path defined in the varMap
 	 * @param context
 	 */
-	public void setContext(String context) {
+	public void setContext(String projectId, String projectName) {
 		boolean useNettyPy = Utility.getDIHelperProperty(Constants.NETTY_PYTHON) != null
 				&& Utility.getDIHelperProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 		if(!useNettyPy) {
@@ -990,46 +745,44 @@ public class User implements Serializable {
 			return;
 		}
 		// sets the context space for the user
-		String mountDir = this.varMap.get(context) + "";
-		// remove the last assets
-		mountDir = mountDir.replace("/assets", "");
-
+		String projectBaseFolder = AssetUtility.getProjectBaseFolder(projectName, projectId);
+		projectBaseFolder = projectBaseFolder.replace("\\", "/");
 		// also set the cmd context right here
-		this.cmdUtil = new CmdExecUtil(context, mountDir, null);
+		this.cmdUtil = new CmdExecUtil(projectId, projectBaseFolder, null);
 	}
 	
 	public CmdExecUtil getCmdUtil() {
-	    if (this.cpw.getSocketClient() == null) {
+	    if (this.pythonCPW.getSocketClient() == null) {
 	        this.getPyTranslator();
 	    }
 	    if (cmdUtil != null) {
-	        if (this.cpw.getSocketClient() != null && !this.cpw.getSocketClient().isConnected()) {
-	            cmdUtil.setTcpClient(this.cpw.getSocketClient());
+	        if (this.pythonCPW.getSocketClient() != null && !this.pythonCPW.getSocketClient().isConnected()) {
+	            cmdUtil.setTcpClient(this.pythonCPW.getSocketClient());
 	        }
 	    }
 	    return this.cmdUtil;
 	}
 	
-	public MountHelper getUserMountHelper() {
+	public SymlinkHelper getUserSymlinkHelper() {
 		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if(mountHelper == null) {		
+			if(symlinkHelper == null) {		
 				String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
-				String baseMountPath = Utility.getDIHelperProperty("CHROOT_DIR");
-				mountTuple = baseMountPath + DIR_SEPARATOR + uniqueUserName;
+				String chrootDir = Utility.getDIHelperProperty("CHROOT_DIR");
+				chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
 				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
-				mountHelper = new MountHelper(mountTuple);
+				symlinkHelper = new SymlinkHelper(chrootPath);
 			}
-			return mountHelper;
+			return symlinkHelper;
 		} else {
 			throw new IllegalArgumentException("Mounting + Chroot is set to false for this instance");
 		}
 	}
 	
 	public void startSocketServerAndClient(int port, String venvEngineId) {
-		if(this.cpw == null) {
-			this.cpw = new ClientProcessWrapper();
+		if(this.pythonCPW == null) {
+			this.pythonCPW = new ClientProcessWrapper();
 		}
-		if(this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+		if(this.pythonCPW.getSocketClient() == null || !this.pythonCPW.getSocketClient().isConnected()) {
 			boolean nativePyServer = false;
 			// defined in rdf map
 			String nativePyServerStr = Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER);
@@ -1067,12 +820,12 @@ public class User implements Serializable {
 
 			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
-				this.mountHelper = getUserMountHelper();
+				this.symlinkHelper = getUserSymlinkHelper();
 				
 				// we do not define the Server Directory here - because it will dynamically generate in the chroot location
 				try {
 					// TODO update once venv with chroot is enabled
-					this.cpw.createProcessAndClient(nativePyServer, this.mountHelper, port, null, null, customClassPath, debug, "-1", loggerLevel);
+					this.pythonCPW.createProcessAndClient(nativePyServer, this.symlinkHelper, port, null, null, customClassPath, debug, "-1", loggerLevel);
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to connect to user server");
@@ -1095,7 +848,7 @@ public class User implements Serializable {
 				classLogger.info("Starting Non-chroot TCP Server for User = " + User.getSingleLogginName(this));
 				try {
 					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-					this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel);				
+					this.pythonCPW.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel);				
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to connect to user server");

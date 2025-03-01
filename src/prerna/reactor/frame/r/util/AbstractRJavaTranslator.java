@@ -566,11 +566,6 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 	@Override
 	public String runRAndReturnOutput(String script) {
-		return runRAndReturnOutput(script, null);
-	}
-
-	@Override
-	public String runRAndReturnOutput(String script, Map appMap) {
 		// Clean the script
 		script = script.trim();
 		
@@ -632,15 +627,10 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		// Wrap the script with our capture logic
 		String randomVariable = "con" + Utility.getRandomString(7);
 		
-		// get the custom var String
-		String varFolderAssignment = "";
-		if(appMap != null && appMap.containsKey("R_VAR_STRING"))
-			varFolderAssignment = appMap.get("R_VAR_STRING").toString();
-
 		// attempt to put it into environment
 		script = randomVariable + "<- file(\"" + outputPath + "\"); " + 
 				"sink(" + randomVariable + ", append=TRUE, type=c('output','message') ); " +
-				encapsulateForEnv(insightRootAssignment + appRootAssignment + userRootAssignment + varFolderAssignment +  script) +
+				encapsulateForEnv(insightRootAssignment + appRootAssignment + userRootAssignment +  script) +
 				"sink();";
 
 		// Try writing the script to a file
@@ -675,11 +665,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				if(insightRootPath != null && output.contains(insightRootPath)) {
 					output = output.replace(insightRootPath, "$IF");
 				}
-				if(varFolderAssignment != null &&  varFolderAssignment.length() > 0)
-				{
-					output = cleanCustomVar(output, appMap);
-				}
-				
+
 				// Error cases
 				if (output.startsWith("Error in")) {
 					throw new IllegalArgumentException(cleanErrorOutput(output));

@@ -1,30 +1,34 @@
 package prerna.project.impl.notebook.v1_0_0_alpha;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.stream.JsonWriter;
 
-import prerna.project.impl.notebook.INotebookBuilder;
+import prerna.om.Insight;
+import prerna.project.impl.notebook.INotebookHelper;
+import prerna.sablecc2.NotebookExecution;
+import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.Utility;
+import prerna.util.gson.GsonUtility;
 
+public class NotebookHelper implements INotebookHelper {
 
-public class NotebookHelper implements INotebookBuilder {
-
-	private static final Logger classLogger = LogManager.getLogger(NotebookHelper.class);
+	private static final Logger classLogger = LogManager.getLogger(NotebookWriter.class);
 
 	private JsonObject blocksFileJson = null;
 	
@@ -44,71 +48,167 @@ public class NotebookHelper implements INotebookBuilder {
 	}
 	
 	@Override
-	public List<File> createNotebooks(File writeDir) {
-		List<File> notebookList = new ArrayList<>();
-		Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-
-		try {
-			FileUtils.cleanDirectory(writeDir); 
-
-			JsonObject blocksQueryMap = blocksFileJson.getAsJsonObject("queries");
-			for(String notebookName : blocksQueryMap.keySet()) {
-				// these are from the blocks json
-				JsonObject blocksNotebook = blocksQueryMap.getAsJsonObject(notebookName);
-				List<JsonElement> blocksCells = blocksNotebook.getAsJsonArray("cells").asList();
-				
-				// we now need to move the information from the blocks json
-				// into the notebook we are writing
-				File writeNotebook = new File(Utility.normalizePath(writeDir.getAbsolutePath() + "/" + notebookName + ".ipynb"));
-	
-				JsonArray cellsArray = new JsonArray();
-				for(JsonElement blocksCell : blocksCells) {
-					JsonObject blocksParam = blocksCell.getAsJsonObject().getAsJsonObject("parameters");
-					
-					String blockType = blocksParam.get("type").getAsString();
-					String blockValue = blocksParam.get("code").getAsString();
-					
-					String cell_type = null;
-					String id = Utility.getRandomString(8);
-					String source = blockValue;
-					
-					if(blockType.equalsIgnoreCase("py") || blockType.equalsIgnoreCase("r")) {
-						cell_type = "code";
-					} else if(blockType.equalsIgnoreCase("markdown")) {
-						cell_type = "raw";
-					} else {
-						cell_type = "markdown";
-					}
-					
-					JsonObject cellObject = new JsonObject();
-					cellObject.addProperty("cell_type", cell_type);
-					cellObject.addProperty("id", id);
-					// will add empty metadata for now
-					cellObject.add("metadata", new JsonObject());
-					JsonArray sourceEle = new JsonArray();
-					sourceEle.add(source);
-					cellObject.add("source", sourceEle);
-					
-					// now add this to the cells array
-					cellsArray.add(cellObject);
+	public NotebookExecution executeNotebook(Insight insight, Map<String, String> inputReplacements) {
+		Gson gson = GsonUtility.getDefaultGson();
+		
+		PixelRunner runner = new PixelRunner();
+		
+		Set<String> outputVariables = new HashSet<>();
+		Map<String, Object> outputVariableMap = new HashMap<>();
+		
+		// grab all the values for replacement
+		Map<String, String> idToVariable = new HashMap<>();
+		Map<String, String> replacements = new HashMap<>();
+		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
+		for(String varName : variables.keySet()) {
+			JsonObject varMap = variables.get(varName).getAsJsonObject();
+			if(varMap.has("value")) {
+				replacements.put(varName, varMap.get("value").getAsString());
+			} else {
+				String cellType = varMap.get("type").getAsString();
+				if(cellType.equalsIgnoreCase("cell")) {
+					String cellId = varMap.get("cellId").getAsString();
+					idToVariable.put(cellId, varName);
+				} else {
+					String pointer = varMap.get("to").getAsString();
+					idToVariable.put(pointer, varName);
 				}
-				
-				JsonObject writeJson = new JsonObject();
-				writeJson.add("cells", cellsArray);
-				
-				// write to the notebook file
-				try(JsonWriter writer = gson.newJsonWriter(new FileWriter(writeNotebook))){
-					gson.toJson(writeJson, writer);
-				}
-				// add to list of notebooks
-				notebookList.add(writeNotebook);
 			}
-		} catch(IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred trying to create the notebook for this app");
+			
+			boolean isOutput = false;
+			if(varMap.has("isOutput")) {
+				isOutput = varMap.get("isOutput").getAsBoolean();
+			}
+			if(isOutput) {
+				outputVariables.add(varName);
+			}
 		}
+		// add user defined replacements
+		if(inputReplacements != null) {
+			replacements.putAll(inputReplacements);
+		}
+		
+		// determine the order of execution
+		// we will use the executionOrder
+		// otherwise, lets hope the order is correct from the notebook 
+		// keyset list
+		Collection<String> notebookNames = null;
+		JsonObject blocksQueryMap = blocksFileJson.getAsJsonObject("queries");
+		JsonArray executionOrder = blocksFileJson.getAsJsonArray("executionOrder");
+		if(executionOrder == null || executionOrder.isEmpty()) {
+			notebookNames = blocksQueryMap.keySet();
+		} else {
+			notebookNames = new ArrayList<>();
+			for(JsonElement ele : executionOrder) {
+				notebookNames.add(ele.getAsString());
+			}
+		}
+		
+		for(String notebookName : notebookNames) {
+			// these are from the blocks json
+			JsonObject blocksNotebook = blocksQueryMap.getAsJsonObject(notebookName);
+			String notebookId = blocksNotebook.get("id").getAsString();
+			
+			// store the final output for the notebook
+			Object lastResultValue = null;
+			String lastResultReplacement = null;
+			
+			// loop through all the cells in the notebook
+			List<JsonElement> blocksCells = blocksNotebook.getAsJsonArray("cells").asList();
+			for(JsonElement blocksCellEle : blocksCells) {
+				JsonObject blocksCellObj = blocksCellEle.getAsJsonObject();
+				String cellId = blocksCellObj.get("id").getAsString();
+				
+				JsonObject blocksParam = blocksCellObj.getAsJsonObject("parameters");
+				
+				String blockType = blocksParam.get("type").getAsString();
+				String blockValue = blocksParam.get("code").getAsString();
+				
+				String pixel = null;
+				if(blockType.equalsIgnoreCase("py")) {
+					pixel = "Py(\"<encode>"+blockValue+"</encode>\");";
+				} else if(blockType.equals("r")) {
+					pixel = "R(\"<encode>"+blockValue+"</encode>\");";
+				} else {
+					// you are pixel 
+					pixel = blockValue;
+				}
+				
+				String finalPixel = performReplacements(pixel, replacements);
+				insight.runPixel(runner, finalPixel);
+				
+				List<NounMetadata> allResults = runner.getResults();
+				NounMetadata lastResult = allResults.get(allResults.size()-1);
+				lastResultValue = lastResult.getValue();
 
-		return notebookList;
+				// we want to keep this logic to match the FE replacement logic
+				List<PixelOperationType> opTypes = lastResult.getOpType();
+				if(opTypes.contains(PixelOperationType.CODE_EXECUTION)
+						|| opTypes.contains(PixelOperationType.VECTOR)) {
+					lastResultValue = ((List) lastResult.getValue()).get(0);
+					if(lastResultValue instanceof NounMetadata) {
+						lastResultValue = ((NounMetadata) lastResultValue).getValue();
+					}
+				}
+				
+				lastResultReplacement = gson.toJson(lastResultValue);
+				
+				// store cellId to value
+				if(idToVariable.containsKey(cellId)) {
+					String pointer = idToVariable.get(cellId);
+					replacements.put(pointer, lastResultReplacement);
+					replacements.put(pointer+".value", lastResultReplacement);
+					if(outputVariables.contains(pointer)) {
+						outputVariableMap.put(pointer, lastResultValue);
+					}
+				}
+			}
+			// store notebookId to last cell value
+			if(idToVariable.containsKey(notebookId)) {
+				String pointer = idToVariable.get(notebookId);
+				replacements.put(pointer, lastResultReplacement);
+				replacements.put(pointer+".value", lastResultReplacement);
+				if(outputVariables.contains(pointer)) {
+					outputVariableMap.put(pointer, lastResultValue);
+				}
+			}
+		}
+		
+		NotebookExecution execution = new NotebookExecution();
+		execution.setRunner(runner);
+		execution.setVariableOutput(outputVariableMap);
+		return execution;
+	}
+	
+	private String performReplacements(String pixel, Map<String, String> replacements) {
+		for(String replaceKey : replacements.keySet()) {
+			pixel = pixel.replace("{{"+replaceKey+"}}", replacements.get(replaceKey));
+		}
+		return pixel;
+	}
+
+	@Override
+	public Map<String, String> getBlocksEngineDependencies() {
+		Map<String, String> engineMap = new HashMap<>();
+		
+		Set<String> validTypes = new HashSet<>(Arrays.asList("model", "database", "vector", "storage", "function"));
+
+		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
+		for(String varName : variables.keySet()) {
+			JsonObject varMap = variables.get(varName).getAsJsonObject();
+			if(varMap.has("type")) {
+				String type = varMap.get("type").getAsString();
+				if(validTypes.contains(type)) {
+					String value = INotebookHelper.UNDEFINED_VALUE;
+					if(varMap.has("value")) {
+						value = varMap.get("value").getAsString();
+					}
+					engineMap.put(varName, value);
+				}
+			}
+		}
+		
+		return engineMap;
 	}
 	
 }

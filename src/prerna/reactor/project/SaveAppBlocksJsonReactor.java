@@ -2,20 +2,22 @@ package prerna.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
+import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -94,6 +96,12 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 			SecurityProjectUtils.setPortalPublish(user, projectId);
 		}
 		
+		// auto save the engine dependencies as well
+		Map<String, String> engineDependenciesMap = project.getEngineDependencies();
+		Set<String> engineDependencyIds = new HashSet<>(engineDependenciesMap.values());
+		engineDependencyIds.remove(INotebookHelper.UNDEFINED_VALUE);
+		SecurityProjectUtils.updateProjectDependencies(user, projectId, engineDependencyIds);
+		
 		return new NounMetadata(true, PixelDataType.MAP);
 	}
 	
@@ -109,7 +117,7 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 			if(encodedStrGrs != null && !encodedStrGrs.isEmpty()) {
 				String encodedStr = (String) encodedStrGrs.get(0).getValue();
 				String mapStr = Utility.decodeURIComponent(encodedStr);
-				return new Gson().fromJson(mapStr, Map.class);
+				return new GsonBuilder().disableHtmlEscaping().create().fromJson(mapStr, Map.class);
 			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);

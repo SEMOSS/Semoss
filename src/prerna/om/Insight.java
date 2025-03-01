@@ -57,9 +57,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.project.api.IProject;
 import prerna.query.parsers.GenExpressionWrapper;
@@ -155,7 +153,6 @@ public class Insight implements Serializable {
 	protected String tupleSpace = null;
 	private transient AbstractRJavaTranslator rJavaTranslator; // need a way keep the environment name so it is communicated
 	private transient PyTranslator pyt;
-	private transient PyExecutorThread jepThread = null;
 
 	private transient SaveInsightIntoWorkspace workspaceCacheThread = null;
 	private transient boolean cacheInWorkspace = false;
@@ -273,7 +270,7 @@ public class Insight implements Serializable {
 		// put the pragmap
 		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)+"")) {
 			if(this.user != null) {
-				this.user.getUserMountHelper().mountFolder(getInsightFolder(), getInsightFolder(), false);
+				this.user.getUserSymlinkHelper().symlinkFolder(getInsightFolder());
 			}
 		}
 	}
@@ -452,9 +449,11 @@ public class Insight implements Serializable {
 			// account for unsaved insights vs. saved insights
 			if(!isSavedInsight()) {
 				String sessionId = ThreadStore.getSessionId();
-				if(sessionId == null) {
-					sessionId = (String) this.varStore.get(JobReactor.SESSION_KEY).getValue();
-				}
+				if(sessionId == null && 
+					(this.varStore != null && this.varStore.get(JobReactor.SESSION_KEY) != null) )
+						{
+							sessionId = (String) this.varStore.get(JobReactor.SESSION_KEY).getValue();
+						}
 				sessionId = InsightUtility.getFolderDirSessionId(sessionId);
 				this.insightFolder = Utility.getInsightCacheDir() + DIR_SEPARATOR + sessionId 
 						+ DIR_SEPARATOR + this.insightId;
@@ -1461,32 +1460,18 @@ public class Insight implements Serializable {
 		// sets the context space for the user
 		// also set the cmd context right here
 		if(this.contextProjectId != null && this.contextProjectId.equals(projectId)) {
-//			throw new IllegalArgumentException("Already in the context");
 			return true;
 		}
 		if(this.user != null) {
-			String context = null;
-			Map <String, StringBuffer> varMap = this.user.getVarMap();
-			if(!varMap.containsKey(projectId)) {
-				// assume the context is currently the project id
-				// and we will add it and get back the varname that was used
-				// which will then be the actual context that is set
-				context = this.user.addVarMap(projectId); 
+			if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+				return false;
 			}
-			if(varMap.containsKey(context)) {
-				this.user.setContext(context);
-				this.contextProjectId = projectId;
-				this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+			this.contextProjectId = projectId;
+			this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+			this.user.setContext(contextProjectId, contextProjectName);
 				
-				contextReinitialized = true;
-				// we need to find a way to serialize the insight here
-				//InsightSerializer is = new InsightSerializer(this);
-				//is.serializeInsight(true); // force it. the context may have changed
-
-				
-				return true;
-			}
-			return false;
+			this.contextReinitialized = true;
+			return true;
 		}
 		// should we allow this if no one is logged in?
 		else {
@@ -1497,7 +1482,6 @@ public class Insight implements Serializable {
 			this.contextProjectId = projectId;
 			return true;
 		}
-		
 	}
 	
 	public CmdExecUtil getCmdUtil() {
@@ -1584,32 +1568,13 @@ public class Insight implements Serializable {
 			throw new NullPointerException("Could not create python translator");
 		}
 		// need to recreate the translator
-		if(this.pyt instanceof TCPPyTranslator) {
-			SocketClient nc1 = ((TCPPyTranslator)pyt).getSocketClient();
-			this.pyt = new TCPPyTranslator();
-			((TCPPyTranslator) this.pyt).setSocketClient(nc1);
-		} else if(this.pyt instanceof PyTranslator) {
-			this.jepThread = pyt.getPy();
-			this.pyt = new PyTranslator();
-			this.pyt.setPy(this.jepThread);
-			this.jepThread = pyt.getPy();
-		}
+		SocketClient nc1 = pyt.getSocketClient();
+		this.pyt = new PyTranslator();
+		this.pyt.setSocketClient(nc1);
 		this.pyt.setInsight(this);
 		return this.pyt;
 	}
 	
-	public PyExecutorThread getPy() {
-		return this.jepThread;
-	}
-	
-	public void setNettyClient(SocketClient nc) {
-		if(nc != null) {
-			this.nc = nc;
-			this.pyt = new prerna.ds.py.TCPPyTranslator();
-			this.pyt.setInsight(this);
-		}
-	}
-
 	public void dropPythonTupleSpace() {
 		if(this.tupleSpace != null && nc == null) {
 			try {

@@ -1,5 +1,6 @@
 package prerna.om;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,8 +19,8 @@ import org.codehaus.plexus.util.FileUtils;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
-import prerna.util.MountHelper;
 import prerna.util.PortAllocator;
+import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 
 public class ClientProcessWrapper {
@@ -37,7 +38,7 @@ public class ClientProcessWrapper {
 	private String serverDirectory;
 	
 	private boolean nativePyServer;
-	private MountHelper chrootMountHelper;
+	private SymlinkHelper chrootSymlinkHelper;
 	private String classPath;
 	private boolean debug;
 	private String timeout;
@@ -55,7 +56,7 @@ public class ClientProcessWrapper {
 	 * @throws Exception
 	 */
 	public void createProcessAndClient(boolean nativePyServer,
-			MountHelper chrootMountHelper,
+			SymlinkHelper chrootSymlinkHelper,
 			int port,
 			String venvPath,
 			String serverDirectory, 
@@ -66,7 +67,7 @@ public class ClientProcessWrapper {
 	{
 		synchronized(lockCreate) {
 			this.nativePyServer = nativePyServer;
-			this.chrootMountHelper = chrootMountHelper;
+			this.chrootSymlinkHelper = chrootSymlinkHelper;
 			this.classPath = classPath;
 			this.port = calculatePort(port);
 			this.venvPath = venvPath;
@@ -80,9 +81,9 @@ public class ClientProcessWrapper {
 			boolean serverRunning = debug && port > 0;
 			if(!serverRunning) {
 				if(nativePyServer) {
-					if(this.chrootMountHelper != null) {
+					if(this.chrootSymlinkHelper != null) {
 						// for a user process - this will be something like /opt/user_id_randomid/
-						Path chrootPath = Paths.get(this.chrootMountHelper.getTargetDirName());
+						Path chrootPath = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder());
 						// we will be creating a fake semoss home in the chrooted directory
 						// so grabbing the current base folder to mock the same pattern
 						String baseFolderPath = Utility.getBaseFolder();
@@ -100,7 +101,7 @@ public class ClientProcessWrapper {
 						}
 						Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
 						
-						Object[] ret = Utility.startTCPServerNativePyChroot(this.chrootMountHelper.getTargetDirName(), relative, this.port+"", this.timeout, this.loggerLevel);
+						Object[] ret = Utility.startTCPServerNativePyChroot(this.chrootSymlinkHelper.getUserChrootFolder(), relative, this.port+"", this.timeout, this.loggerLevel);
 						this.process = (Process) ret[0];
 						this.prefix = (String) ret[1];
 					} else {
@@ -112,9 +113,9 @@ public class ClientProcessWrapper {
 						this.prefix = (String) ret[1];
 					}
 				} else {
-					if(chrootMountHelper != null) {
+					if(chrootSymlinkHelper != null) {
 						// for a user process - this will be something like /opt/user_id_randomid/
-						Path chrootPath = Paths.get(chrootMountHelper.getTargetDirName());
+						Path chrootPath = Paths.get(chrootSymlinkHelper.getUserChrootFolder());
 						// we will be creating a fake semoss home in the chrooted directory
 						// so grabbing the current base folder to mock the same pattern
 						String baseFolderPath = Utility.getBaseFolder();
@@ -132,7 +133,7 @@ public class ClientProcessWrapper {
 						}
 						Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
 						
-						this.process = Utility.startTCPServerChroot(classPath, this.chrootMountHelper.getTargetDirName(), relative, this.port+"");
+						this.process = Utility.startTCPServerChroot(classPath, this.chrootSymlinkHelper.getUserChrootFolder(), relative, this.port+"");
 					} else {
 						// write the log4j file in the server directory
 						Utility.writeLogConfigurationFile(this.serverDirectory);
@@ -150,21 +151,30 @@ public class ClientProcessWrapper {
 				this.socketClient.connect("127.0.0.1", this.port, false);
 				Thread t = new Thread(socketClient);
 				t.start();
-				while(!socketClient.isReady())
-				{
-					synchronized(socketClient)
-					{
-						try 
-						{
+				while(!socketClient.isReady()) {
+					// since this is in a while loop
+					// the socket client might have notified us
+					// however, the isReady is false
+					// because the socket couldn't connect
+					// so we also set the killAll
+					// and break out of this loop
+					// since the loop is also in a sync block
+					// it causes an infinite wait and the reconnect server logic doesn't work
+					if(socketClient.isKillAll()) {
+						throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
+					}
+					synchronized(socketClient) {
+						try {
 							socketClient.wait();
-							classLogger.info("Setting the socket client ");
 						} catch (InterruptedException e) {
 							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
+				classLogger.info("Setting the socket client ");
 			} catch(Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
+				throw e;
 			}
 		}
 	}
@@ -180,14 +190,19 @@ public class ClientProcessWrapper {
 		        Callable<Boolean> callableTask = () -> {
 		        	boolean result = false;
 		        	if(cleanUpFolder) {
-		        		this.socketClient.stopPyServe();
+		        		this.socketClient.stopServer();
 		        		classLogger.info("Sucessfully stopped the process");
-		        		int attempt = 1;
-		        		while(!result) {
+		        		int attempt = 0;
+		        		File serverDir = new File(this.serverDirectory);
+		        		while(!result && attempt < 10) {
 		        			try {
-		        				FileUtils.deleteDirectory(this.serverDirectory);
-				        		classLogger.info("Sucessfully cleaned up the directory");
-		        				result = true;
+		        				if(serverDir.exists()) {
+			        				FileUtils.deleteDirectory(this.serverDirectory);
+					        		classLogger.info("Sucessfully cleaned up the directory");
+			        				result = true;
+		        				} else {
+		        					classLogger.info("Server directory does not exist");
+		        				}
 		        			} catch (Exception ignored) {
 		        				classLogger.info("Failed attempt # " + attempt + " to delete the folder " + this.serverDirectory);
 		        				attempt++;
@@ -199,7 +214,7 @@ public class ClientProcessWrapper {
 		        			}
 		        		}
 		        	} else {
-		        		this.socketClient.stopPyServe();
+		        		this.socketClient.stopServer();
 		        		classLogger.info("Sucessfully stopped the process");
 		        		result = true;
 		        	}
@@ -209,7 +224,7 @@ public class ClientProcessWrapper {
 		        Future<Boolean> future = executor.submit(callableTask);
 		        try {
 		        	// dont have the user wait forever...
-		            Boolean result = future.get(70, TimeUnit.SECONDS);
+		            Boolean result = future.get(50, TimeUnit.SECONDS);
 		            if(result) {
 		            	classLogger.info("Successfully shutdown the process");
 		            } else {
@@ -257,17 +272,19 @@ public class ClientProcessWrapper {
 	    		}
 			}
 		}
-		if(this.port > 0) {
-			if(!PortAllocator.isPortAvailable(this.port)) {
-            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-            	classLogger.warn("Assigning new port...");
-				this.port = -1;
-			}
-		}
+		// always assign a new port
+		this.port = -1;
+//		if(this.port > 0) {
+//			if(!PortAllocator.isPortAvailable(this.port)) {
+//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+//            	classLogger.warn("Assigning new port...");
+//				this.port = -1;
+//			}
+//		}
 	}
 	
 	/**
@@ -275,7 +292,7 @@ public class ClientProcessWrapper {
 	 * @throws Exception
 	 */
 	public void reconnect() throws Exception {
-		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug, timeout, loggerLevel);
+		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug, timeout, loggerLevel);
 	}
 	
 	/**
@@ -285,7 +302,7 @@ public class ClientProcessWrapper {
 	 */
 	public void reconnect(String venvEngineId) throws Exception {
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug, timeout, loggerLevel);
+		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug, timeout, loggerLevel);
 	}
 	
 	/**

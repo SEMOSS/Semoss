@@ -209,6 +209,10 @@ public class SchedulerDatabaseUtility {
 			createSemossTables(conn, database, schema);
 			addAllPrimaryKeys(conn, database, schema);
 			addAllForeignKeys(conn, database, schema);
+			
+			if(!conn.getAutoCommit()) {
+				conn.commit();
+			}
 		} finally {
 			if(schedulerDb.isConnectionPooling()) {
 				conn.close();

@@ -12,11 +12,9 @@ import prerna.om.Variable.LANGUAGE;
 import prerna.reactor.frame.py.AbstractPyFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution {
@@ -29,15 +27,12 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 	@Override
 	public NounMetadata execute() {
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
-		boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
-				&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
-
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			if(Boolean.parseBoolean(disable_terminal)) {
 				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 			}
 		}
-		
+
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is not enabled to use the following command");
 		}
@@ -45,9 +40,9 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		//check if py terminal is disabled
 		String disable_py_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_PY_TERMINAL);
 		if(disable_py_terminal != null && !disable_py_terminal.isEmpty() ) {
-			 if(Boolean.parseBoolean(disable_py_terminal)) {
-					throw new IllegalArgumentException("Python terminal has been disabled.");
-			 }
+			if(Boolean.parseBoolean(disable_py_terminal)) {
+				throw new IllegalArgumentException("Python terminal has been disabled.");
+			}
 		}
 		Logger logger = getLogger(CLASS_NAME);
 
@@ -83,7 +78,7 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 //					output = pyTranslator.runScript(code, this.insight) + "";
 //				}
 //				else
-					output = pyTranslator.runSingle(insight.getUser().getVarMap(), code, this.insight) + "";
+					output = pyTranslator.runSingle(code, this.insight) + "";
 					execNoun = new NounMetadata(output, PixelDataType.CONST_STRING);
 			} 
 			/*else {

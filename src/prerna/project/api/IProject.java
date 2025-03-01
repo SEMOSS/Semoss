@@ -30,12 +30,13 @@ package prerna.project.api;
 import java.io.Closeable;
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 import java.util.Vector;
 
 import prerna.auth.AuthProvider;
 import prerna.date.SemossDate;
-import prerna.ds.py.TCPPyTranslator;
+import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.ClientProcessWrapper;
@@ -43,6 +44,7 @@ import prerna.om.Insight;
 import prerna.project.impl.ProjectProperties;
 import prerna.reactor.IReactor;
 import prerna.reactor.frame.r.util.TCPRTranslator;
+import prerna.sablecc2.NotebookExecution;
 import prerna.tcp.client.SocketClient;
 import prerna.util.SemossClassloader;
 
@@ -199,6 +201,20 @@ public interface IProject extends IEngine, Closeable {
 	List<File> writeNotebooks();
 	
 	/**
+	 * 
+	 * @param insight
+	 * @param inputReplacements
+	 * @return
+	 */
+	NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements);
+	
+	/**
+	 * Gets only engine deps listed in the project
+	 * @return	Map of the variable name to the engine id
+	 */
+	Map<String, String> getEngineDependencies();
+	
+	/**
 	 * Return if an asset
 	 * @return
 	 */
@@ -276,7 +292,8 @@ public interface IProject extends IEngine, Closeable {
 	 * 
 	 * @return
 	 */
-	TCPPyTranslator getProjectPyTranslator();
+	
+	PyTranslator getProjectPyTranslator(Insight insight);
 	
 	/**
 	 * 
