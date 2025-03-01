@@ -398,37 +398,4 @@ public class ClientProcessWrapper {
 		this.serverDirectory = serverDirectory;
 	}
 	
-	
-//	  //chroot dir is created by MountHelper and initialized at /opt/user_id__sessionid
-//    // when initalized, it has the semosshome folder present - ex. /opt/user_id__sessionid/opt/semosshome
-//    
-//    //assume /Users/kunalppatel9/Documents/Semoss_Docs/Daily_Notes/chroot is /opt/user_id__sessionid
-//    String chrootDir = "/Users/kunalppatel9/Documents/Semoss_Docs/Daily_Notes/chroot";
-//    String dir = "/opt/semosshome";
-//    
-//    Path chrootPath = Paths.get(Utility.normalizePath(chrootDir)); 
-//    System.out.println("chrootDir: "+chrootDir.toString());
-//
-//    Path mainCachePath = Paths.get(chrootDir+dir); 
-//    System.out.println("mainCachePath: "+mainCachePath.toString()); // /opt/user_id__sessionid/opt/semosshome
-//    
-//
-//    //create the user py folder a123456 at /opt/user_id__sessionid/opt/semosshome/a123456
-//    Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
-//    System.out.println("tempDirForUser: "+tempDirForUser.toString());// /opt/user_id__sessionid/opt/semosshome/a123456
-//    
-//    //i now don't know what the relative folder was inside the chroot from above, so i relativize it here
-//    //chrootPath =  /opt/user_id__sessionid
-//    //tempDirforUser =  /opt/user_id__sessionid/opt/semosshome/a123456
-//    // relative = opt/semosshome/a123456
-//    String relative = chrootPath.relativize(tempDirForUser).toString();
-//    
-//    if(!relative.startsWith("/")) {
-//        relative ="/"+relative;
-//    }
-//    
-//    System.out.println("relative: "+relative); // /opt/semosshome/a123456
-
-	
-	
 }
