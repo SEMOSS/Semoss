@@ -212,7 +212,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			callMaker.append(FULL_PROMPT)
 					 .append("=")
 					 .append(PyUtils.determineStringType(fullPrompt));
-		} else {
+		} 
+
+		else {
 			callMaker.append("question=\"\"\"")
 					 .append(question.replace("\"", "\\\""))
 					 .append("\"\"\"");
@@ -223,6 +225,17 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 						 .append(context.replace("\"", "\\\""))
 						 .append("\"\"\"");	
 			}
+			if (parameters.containsKey("toolExecution")) {
+	            Map<String, Object> toolExecutionMap = (Map<String, Object>) parameters.get("toolExecution");
+	            // Add tool execution details to the callMaker
+//	            callMaker.append(", tool_execution=")
+//	                     .append(PyUtils.determineStringType(toolExecutionMap));
+		        // Update chat history
+		        if (chatHistory.containsKey(insight.getInsightId())) {
+		            chatHistory.get(insight.getInsightId()).add(toolExecutionMap);
+		        }
+		        parameters.remove("toolExecution");
+	        }
 			
 			String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
 			if(history != null) {

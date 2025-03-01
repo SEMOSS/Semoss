@@ -55,6 +55,8 @@ public class AskToolReactor extends AbstractReactor {
 
         AskModelEngineResponse modelResponse = modelEngine.ask(question, context, this.insight, paramMap);
 		
+        Map<String, Object> output = modelResponse.toMap();
+
     	if(modelResponse.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
     		// the response is for a tool call
     		// we need to call the actual tool now. 
@@ -74,11 +76,10 @@ public class AskToolReactor extends AbstractReactor {
     		
 
     		paramMap.put("toolExecution", toolExecutionMap);
-            AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", "", this.insight, paramMap);
-
-    		
+            AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", null, this.insight, paramMap);
+            output=toolExecutionResponse.toMap();
+  
     	}
-        Map<String, Object> output = modelResponse.toMap();
         
         Object response = output.get(AbstractModelEngineResponse.RESPONSE);
 //        //add logic here for checking if output is a map or if its a string
