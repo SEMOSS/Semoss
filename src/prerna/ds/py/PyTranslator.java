@@ -11,13 +11,12 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
-import prerna.tcp.client.ErrorSenderThread;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
@@ -393,10 +392,7 @@ public class PyTranslator {
 		String script = convertArrayToString(inscript);
 		script = script.trim();
 
-		// find if the script is simple
-
-		// Get temp folder and file locations
-		// also define a ROOT variable
+		// define variables
 		String removePathVariables = "";
 		String insightRootAssignment = "";
 		String appRootAssignment = "";
@@ -462,21 +458,9 @@ public class PyTranslator {
 		String preScriptPath = pyTemp + prePyName + ".py";
 		File scriptFile = new File(scriptPath);
 		File preScriptFile = new File(preScriptPath);
-		String outputPath = pyTemp + pyFileName + ".txt";
-		File outputFile = new File(outputPath);
 
 		// attempt to put it into environment
 		String preScript = insightRootAssignment + "\n" + appRootAssignment + "\n" + userRootAssignment;
-		
-		// execute all the commands for setting variables etc.
-		// Try writing the script to a file
-		ErrorSenderThread est = new ErrorSenderThread();
-		if (in != null) {
-			est.setInsight(in);
-			est.setFile(outputPath);
-			est.start();
-		}
-
 		String output = null;
 		try {
 			FileUtils.writeStringToFile(preScriptFile, preScript, Charset.forName("UTF-8"));
@@ -495,7 +479,7 @@ public class PyTranslator {
 					output = (String) pythonReturnObject;
 				} else {
 					try {
-						output = new Gson().toJson(pythonReturnObject);
+						output = new GsonBuilder().disableHtmlEscaping().create().toJson(pythonReturnObject);
 					} catch (Exception e) {
 						output = pythonReturnObject + "";
 					}
@@ -532,16 +516,12 @@ public class PyTranslator {
 				throw new IllegalArgumentException("Failed to run Py script.");
 			} finally {
 				// Cleanup
-				if (outputFile.exists()) {
-					try {
-						outputFile.delete();
-						if (!removePathVariables.isEmpty()) {
-							this.runScript(removePathVariables);
-						}
-						// this.executeEmptyR("gc();"); // Garbage collection
-					} catch (Exception e) {
-						logger.warn("Unable to cleanup Py.", e);
+				try {
+					if (!removePathVariables.isEmpty()) {
+						this.runScript(removePathVariables);
 					}
+				} catch (Exception e) {
+					logger.warn("Unable to remove path variables", e);
 				}
 			}
 		} catch (IOException e) {
