@@ -29,6 +29,7 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.auth.User;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.reactor.job.JobReactor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
@@ -330,7 +331,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						        ByteArrayOutputStream output = new ByteArrayOutputStream();
 						        try {
 						            String insightId = finalPs.insightId;
-						            Insight insight = insightMap.get(insightId);
+						            Insight insight = InsightStore.getInstance().get(insightId);
+						            if(insight == null) {
+						            	throw new IllegalArgumentException("Unable to find the current insight id");
+						            }
 						            String pixelOp = (String) finalPs.payload[0];
 						            if(!(pixelOp=pixelOp.trim()).endsWith(";")) {
 						                pixelOp+=";";
@@ -343,6 +347,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						            finalPs.response = true;
 						            executeCommand(finalPs);
 						        } catch(Exception e) {
+					                classLogger.error(Constants.STACKTRACE, e);
 						        	finalPs.response = true;
 						        	finalPs.ex = "An error occurred running the pixel";
 						            executeCommand(finalPs);
@@ -414,19 +419,16 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			executeCommand(ps);
 			return;
 		}
-		Insight insight = insightMap.get(insightId);
+		Insight insight = InsightStore.getInstance().get(insightId);
 
 		user = insight.getUser();
-		if(user == null)
-		{
+		if(user == null) {
 			ps.response = true;
 			ps.ex = "There is no user associated with this insight id";
 			// return the error
 			executeCommand(ps);
 			return;
-		}
-		else
-		{
+		} else {
 			NativePyEngineWorker worker = new NativePyEngineWorker(this.getUser(), ps, insight);
 			worker.run();
 			executeCommand(worker.getOutput());
@@ -446,7 +448,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					if(input.payloadClasses[classIndex] == Insight.class)
 					{
 						String insightId = input.insightId;
-						Insight insight = insightMap.get(insightId);
+						Insight insight = InsightStore.getInstance().get(insightId);
 						input.payload[classIndex] = insight;
 					}
 				} catch (ClassNotFoundException e) {
@@ -461,7 +463,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	// when output happens
 	private void exposeLog(String data, String insightId) {
 		if(insightId != null && data != null) {
-			Insight insight = insightMap.get(insightId);
+			Insight insight = InsightStore.getInstance().get(insightId);
 			String jobId =  insight.getVarStore().get(JobReactor.JOB_KEY).getValue().toString();
 			JobManager.getManager().addStdOut(jobId, data);
 		}

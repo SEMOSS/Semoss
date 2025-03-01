@@ -129,6 +129,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 			String execCommand = "import sys\n" 
 					+ "import os\n" 
 					+ "sys.path.append('" + this.engineDirectoryPath + "')\n" 
+					+ "sys.path.append('" + this.engineDirectoryPath + "/py')\n" 
 					+ "os.chdir('" + this.engineDirectoryPath + "')\n"
 					+ "exec(open('" + this.engineDirectoryPath + "/" + this.pythonFileName + "').read())";
 

@@ -480,7 +480,7 @@ public class PyTranslator {
 		String output = null;
 		try {
 			FileUtils.writeStringToFile(preScriptFile, preScript, Charset.forName("UTF-8"));
-			executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())", null);
+			executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())", in);
 			FileUtils.writeStringToFile(scriptFile, script, Charset.forName("UTF-8"));
 
 			// Try running the script, which saves the output to a file
@@ -717,12 +717,8 @@ public class PyTranslator {
 		// get error messages
 		if(insight != null) {
 			ps.insightId = insight.getInsightId();
-			if(insight.getUser() != null) {
-				sc.addInsight2Insight(ps.insightId, insight);
-			}
 		}
-		
-		
+
 		if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(ps != null && ps.ex != null) {
