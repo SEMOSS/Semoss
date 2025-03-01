@@ -797,9 +797,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if(!this.pyDirectoryBasePath.exists()) {
 			this.pyDirectoryBasePath.mkdirs();
 		}
+
 		// check if we have already created a process wrapper
-		if(this.cpw == null) {
-			this.cpw = new ClientProcessWrapper();
+		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+		if(this.cpw != null) {
+			this.cpw.shutdown(false);
 		}
 		
 		String timeout = "30";
@@ -807,53 +809,43 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
 		}
 		
-		if(this.cpw.getSocketClient() == null) {
-			boolean debug = false;
-			
-			// pull the relevant values from the smss
-			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-			
-			if(port < 0) {
-				// port has not been forced
-				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch(NumberFormatException e) {
-						// ignore
-						classLogger.warn("Vector Database " + this.engineName + " has an invalid FORCE_PORT value");
-					}
+		boolean debug = false;
+		
+		// pull the relevant values from the smss
+		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+		String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+		
+		if(port < 0) {
+			// port has not been forced
+			if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
+				try {
+					port = Integer.parseInt(forcePort);
+					debug = true;
+				} catch(NumberFormatException e) {
+					// ignore
+					classLogger.warn("Vector Database " + this.engineName + " has an invalid FORCE_PORT value");
 				}
 			}
-			
-			//if we have a python specific user, make sure that user can access the schema folder
-			setVectorFolderPermissions();
-			
-			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
-			try {
-				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
-			}
-		} else if (!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
-			try {
-				this.cpw.reconnect();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " + this.engineName);
-			}
+		}
+		
+		//if we have a python specific user, make sure that user can access the schema folder
+		setVectorFolderPermissions();
+		
+		String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
+		boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
+		try {
+			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
 		}
 
 		// create the py translator
 		pyt = new PyTranslator();
-		pyt.setSocketClient(this.cpw.getSocketClient());
+		pyt.setSocketClient(cpwToInit.getSocketClient());
 		
 		try {
 			String[] commands = getServerStartCommands();
@@ -868,16 +860,19 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", commands));
+			
+			// finally set the cpw in the class
+			this.cpw = cpwToInit;
 		} catch(Exception e) {
 			// set the model props to false
 			// incase those values were incorrect
 			modelPropsLoaded = false;
 			classLogger.error(Constants.STACKTRACE, e);
-			if(this.cpw != null) {
+			if(cpwToInit != null) {
 				classLogger.warn("Able to start the python process for the vector database " 
 						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 						+ " but the start script failed.");
-				this.cpw.shutdown(false);
+				cpwToInit.shutdown(false);
 			}
 			throw e;
 		}
