@@ -93,16 +93,18 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		if(this.workingDirectoryBasePath == null) {
 			this.createCacheFolder();
 		}
+
 		// check if we have already created a process wrapper
-		if(this.cpw == null) {
-			this.cpw = new ClientProcessWrapper();
+		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+		if(this.cpw != null) {
+			this.cpw.shutdown(false);
 		}
 		
 		String timeout = "30";
 		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
 			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
 		}
-		if(this.cpw.getSocketClient() == null) {
+		if(cpwToInit.getSocketClient() == null) {
 			boolean debug = false;
 			
 			// pull the relevant values from the smss
@@ -128,15 +130,15 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			String serverDirectory = this.cacheFolder.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {
-				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
+				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
 			}
-		} else if (!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
+		} else if (!cpwToInit.getSocketClient().isConnected()) {
+			cpwToInit.shutdown(false);
 			try {
-				this.cpw.reconnect();
+				cpwToInit.reconnect();
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " +this.getEngineName());
@@ -145,7 +147,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		
 		// create the py translator
 		pyt = new PyTranslator();
-		pyt.setSocketClient(this.cpw.getSocketClient());
+		pyt.setSocketClient(cpwToInit.getSocketClient());
 		
 		try {
 			// execute all the basic commands
@@ -162,15 +164,17 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 								+ " python process with commands >>> " + String.join("\n", commands));	
 			
 			// run a prefix command
-			setPrefix();
+			setPrefix(cpwToInit);
 			
+			// finally set the cpw in the class
+			this.cpw = cpwToInit;
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			if(this.cpw != null) {
+			if(cpwToInit != null) {
 				classLogger.warn("Able to start the python process for the python model engine " 
 						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 						+ " but the start script failed.");
-				this.cpw.shutdown(false);
+				cpwToInit.shutdown(false);
 			}
 			throw e;
 		}
@@ -188,12 +192,12 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	/**
 	 * 
 	 */
-	private void setPrefix() {
-		this.prefix = this.cpw.getPrefix();
+	private void setPrefix(ClientProcessWrapper cpwToInit) {
+		this.prefix = cpwToInit.getPrefix();
 		PayloadStruct prefixPayload = new PayloadStruct();
 		prefixPayload.payload = new String[] {"prefix", this.prefix};
 		prefixPayload.operation = PayloadStruct.OPERATION.CMD;
-		this.cpw.getSocketClient().executeCommand(prefixPayload);
+		cpwToInit.getSocketClient().executeCommand(prefixPayload);
 	}
 	
 
