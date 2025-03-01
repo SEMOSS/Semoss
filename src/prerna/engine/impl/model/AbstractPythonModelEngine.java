@@ -200,27 +200,43 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	@Override
 	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> parameters) {
 		checkSocketStatus();
-		
+
 		boolean keepConvoHisotry = this.keepsConversationHistory();
-		
+		final String TRIPLE_QUOTE = "\"\"\"";
+
 		StringBuilder callMaker = new StringBuilder(varName + ".ask(");		
-		
 		if (fullPrompt != null) {
 			callMaker.append(FULL_PROMPT)
-					 .append("=")
-					 .append(PyUtils.determineStringType(fullPrompt));
+					.append("=")
+					.append(PyUtils.determineStringType(fullPrompt));
 		} else {
-			callMaker.append("question=\"\"\"")
-					 .append(question.replace("\"", "\\\""))
-					 .append("\"\"\"");
-	
-			if(context != null) {
-				callMaker.append(",")
-						 .append("context=\"\"\"")
-						 .append(context.replace("\"", "\\\""))
-						 .append("\"\"\"");	
+			if(question.startsWith("\"")) {
+				question = " " + question;
 			}
-			
+			if(question.endsWith("\"")) {
+				question = question + " ";
+			}
+			question = question.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+			callMaker.append("question=")
+				.append(TRIPLE_QUOTE)
+				.append(question)
+				.append(TRIPLE_QUOTE);
+
+			if(context != null) {
+				if(context.startsWith("\"")) {
+					context = " " + context;
+				}
+				if(context.endsWith("\"")) {
+					context = context + " ";
+				}
+				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+				callMaker.append(",")
+					.append("context=")
+					.append(TRIPLE_QUOTE)
+					.append(context)
+					.append(TRIPLE_QUOTE);	
+			}
+
 			String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
 			if(history != null) {
 				//could still be null if its the first question in the convo
@@ -277,14 +293,31 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	public InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
 		checkSocketStatus();
 		
+		final String TRIPLE_QUOTE = "\"\"\"";
 		StringBuilder callMaker = new StringBuilder(varName + ".instruct(");
 		
-		callMaker.append("task=\"\"\"").append(task.replace("\"", "\\\"")).append("\"\"\"");
+		if(task.startsWith("\"")) {
+			task = " " + task;
+		}
+		if(task.endsWith("\"")) {
+			task = task + " ";
+		}
+		task = task.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+		
+		callMaker.append("task=").append(TRIPLE_QUOTE).append(task).append(TRIPLE_QUOTE);
 		if(context != null) {
+			if(context.startsWith("\"")) {
+				context = " " + context;
+			}
+			if(context.endsWith("\"")) {
+				context = context + " ";
+			}
+			context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
 			callMaker.append(",")
-					 .append("context=\"\"\"")
-					 .append(context.replace("\"", "\\\""))
-					 .append("\"\"\"");	
+				.append("context=")
+				.append(TRIPLE_QUOTE)
+				.append(context)
+				.append(TRIPLE_QUOTE);	
 		}
 		
 		callMaker.append(",").append("projectData=").append(PyUtils.determineStringType(projectData));
