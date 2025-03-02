@@ -28,13 +28,18 @@ public class ProjectInfoReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 		
+		List<Map<String, Object>> baseInfo = null;
 		// make sure valid id for user
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+		if(SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			// user has access!
+			baseInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectId);
+		} else if(SecurityProjectUtils.projectIsDiscoverable(projectId)) {
+			baseInfo = SecurityProjectUtils.getDiscoverableProjectList(projectId, null);
+		} else {
 			// you dont have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
-		List<Map<String, Object>> baseInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectId);
 		
 		if(baseInfo == null || baseInfo.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any project data");
