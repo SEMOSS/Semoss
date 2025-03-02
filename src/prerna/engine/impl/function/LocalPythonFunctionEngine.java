@@ -23,18 +23,18 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(LocalPythonFunctionEngine.class);
 	
-	private static final String INIT_FUNCTION_ENGINE = "INIT_FUNCTION_ENGINE";
-	private static final String PYTHON_FILE_NAME = "PYTHON_FILE_NAME";
+	protected static final String INIT_FUNCTION_ENGINE = "INIT_FUNCTION_ENGINE";
+	protected static final String PYTHON_FILE_NAME = "PYTHON_FILE_NAME";
 	
-	private String pythonFileName;
-	private String engineDirectoryPath = null;
-	private File cacheFolder;
+	protected String pythonFileName;
+	protected String engineDirectoryPath = null;
+	protected File cacheFolder;
 	
-	private ClientProcessWrapper cpw = null;
-	private PyTranslator pyt = null;
+	protected ClientProcessWrapper cpw = null;
+	protected PyTranslator pyt = null;
 
 	// string substitute vars
-	private Map<String, String> vars = new HashMap<>();
+	protected Map<String, String> vars = new HashMap<>();
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -56,7 +56,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		}
 	}
 
-	private synchronized void startServer(int port) {
+	protected synchronized void startServer(int port) {
 		// already created by another thread
 		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
 			return;
@@ -160,13 +160,13 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 	 * @param input
 	 * @return
 	 */
-	private String fillVars(String input) {
+	protected String fillVars(String input) {
 		StringSubstitutor sub = new StringSubstitutor(vars);
 		String resolvedString = sub.replace(input);
 		return resolvedString;
 	}
 	
-	private void checkSocketStatus() {
+	protected void checkSocketStatus() {
 		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			this.startServer(-1);
 		}
