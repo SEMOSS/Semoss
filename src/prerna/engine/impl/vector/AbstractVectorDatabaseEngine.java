@@ -370,7 +370,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 						}
 
 						// check to see if the file data was extracted
-						if (rowsCreated <= 1) {
+						if (rowsCreated < 1) {
 							// no text was extracted so delete the file
 							FileUtils.forceDelete(extractedFile); // delete the csv
 							FileUtils.forceDelete(document); // delete the input file e.g pdf
