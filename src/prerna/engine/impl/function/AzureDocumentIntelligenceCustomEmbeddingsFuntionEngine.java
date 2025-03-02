@@ -26,9 +26,9 @@ import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.reactor.export.pdf.PDFUtility;
 import prerna.util.Constants;
 
-public class AzureDocumentIntelligenceFuntionEngine extends AbstractFunctionEngine implements ICustomEmbeddingsFunctionEngine {
+public class AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine extends AbstractFunctionEngine implements ICustomEmbeddingsFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AzureDocumentIntelligenceFuntionEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine.class);
 
 	private static final String URL = "URL";
 	private static final String MODEL = "MODEL";
@@ -127,7 +127,7 @@ public class AzureDocumentIntelligenceFuntionEngine extends AbstractFunctionEngi
 
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		return FunctionTypeEnum.AZURE_DOCUMENT_INTELLIGENCE.name();
+		return FunctionTypeEnum.AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS.name();
 	}
 
 	@Override

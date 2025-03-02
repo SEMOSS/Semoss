@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.ClientProcessWrapper;
 import prerna.util.Constants;
@@ -193,6 +194,6 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 	
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		return "PYTHON_SCRIPT";
+		return FunctionTypeEnum.LOCAL_PYTHON.name();
 	}
 }

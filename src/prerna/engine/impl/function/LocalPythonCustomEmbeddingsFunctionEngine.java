@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 
 public class LocalPythonCustomEmbeddingsFunctionEngine extends LocalPythonFunctionEngine implements ICustomEmbeddingsFunctionEngine {
@@ -55,5 +56,10 @@ public class LocalPythonCustomEmbeddingsFunctionEngine extends LocalPythonFuncti
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
 		throw new IllegalArgumentException("This function engine is only intended to be executed for custom vector db embeddings");
+	}
+	
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return FunctionTypeEnum.LOCAL_PYTHON_CUSTOM_EMBEDDINGS.name();
 	}
 }
