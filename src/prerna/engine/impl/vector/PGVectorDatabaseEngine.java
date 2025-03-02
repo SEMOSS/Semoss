@@ -454,11 +454,23 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 
 	@Override
-	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) {
+	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws IOException {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
+		
+		List<String> sourceNames = new ArrayList<>();
+    	for(String document : fileNames) {
+			String documentName = FilenameUtils.getName(document);
+			File f = new File(document);
+			if(f.exists() && f.getName().endsWith(".csv")) {
+				sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
+			} else {
+				sourceNames.add(documentName);
+			}
+    	}
+		
 		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		
@@ -472,7 +484,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			conn = this.getConnection();
 			ps = conn.prepareStatement(deleteQuery);
 			metaPs = conn.prepareStatement(deleteMetaQuery);
-			for (String document : fileNames) {
+			for (String document : sourceNames) {
 				String documentName = Paths.get(document).getFileName().toString();
 				// remove the physical documents
 				File documentFile = new File(DOCUMENT_FOLDER, documentName);

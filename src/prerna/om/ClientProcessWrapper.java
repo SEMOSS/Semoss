@@ -194,7 +194,7 @@ public class ClientProcessWrapper {
 		        		classLogger.info("Sucessfully stopped the process");
 		        		int attempt = 0;
 		        		File serverDir = new File(this.serverDirectory);
-		        		while(!result && attempt < 10) {
+		        		while(!result && attempt < 3) {
 		        			try {
 		        				if(serverDir.exists()) {
 			        				FileUtils.deleteDirectory(this.serverDirectory);

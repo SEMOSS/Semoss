@@ -51,33 +51,33 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 	
-	public static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
-	private static final String FAISS_INIT_SCRIPT = "${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}')";
-	
 	private HashMap<String, Boolean> indexClassHasDatasetLoaded = new HashMap<String, Boolean>();
 	private String vectorDatabaseSearcher = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		
 		this.vectorDatabaseSearcher = Utility.getRandomString(6);
-		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
 	}
 	
 	@Override
 	protected String[] getServerStartCommands() {
-		String [] commands = (TOKENIZER_INIT_SCRIPT+FAISS_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
+		String faissInitScript = this.vectorDatabaseSearcher+"=vector_database.FAISSDatabase("
+				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', "
+				+ "tokenizer = cfg_tokenizer, "
+				+ "keyword_engine_id = '${KEYWORD_ENGINE_ID}', "
+				+ "distance_method = '${DISTANCE_METHOD}')";
+		String [] commands = (TOKENIZER_INIT_SCRIPT+faissInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
 		
 		// need to iterate through and potential spin up tables themselves
 		if (this.indexClasses.size() > 0) {
 	        ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
 			for (String indexClass : this.indexClasses) {
 				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass, "dataset.pkl");
-				modifiedCommands.add("${"+VECTOR_SEARCHER_NAME+"}.create_searcher(searcher_name = '"+indexClass+"', base_path = '"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
+				modifiedCommands.add(this.vectorDatabaseSearcher+".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
 				if (fileToCheck.exists()) {
-			        modifiedCommands.add("${"+VECTOR_SEARCHER_NAME+"}.searchers['"+indexClass+"'].load_dataset('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'dataset.pkl')");
-			        modifiedCommands.add("${"+VECTOR_SEARCHER_NAME+"}.searchers['"+indexClass+"'].load_encoded_vectors('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'vectors.pkl')");
+			        modifiedCommands.add(this.vectorDatabaseSearcher+".searchers['"+indexClass+"'].load_dataset('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'dataset.pkl')");
+			        modifiedCommands.add(this.vectorDatabaseSearcher+".searchers['"+indexClass+"'].load_encoded_vectors('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'vectors.pkl')");
 		        }
 			}
             commands = modifiedCommands.stream().toArray(String[]::new);
@@ -86,23 +86,23 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return commands;
 	}
 
-	@Override
-	protected synchronized void startServer(int port) {
-		super.startServer(port);
-		
-		if (this.indexClasses.size() > 0) {
-			for (String indexClass : this.indexClasses) {
-				StringBuilder checkForEmptyDatabase = new StringBuilder(this.vectorDatabaseSearcher)
-					.append(".searchers['")
-					.append(indexClass)
-					.append("']")
-					.append(".datasetsLoaded()");
-				
-				boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
-				this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
-			}
-		}
-	}
+//	@Override
+//	protected synchronized void startServer(int port) {
+//		super.startServer(port);
+//		
+//		if (this.indexClasses.size() > 0) {
+//			for (String indexClass : this.indexClasses) {
+//				StringBuilder checkForEmptyDatabase = new StringBuilder(this.vectorDatabaseSearcher)
+//					.append(".searchers['")
+//					.append(indexClass)
+//					.append("']")
+//					.append(".datasetsLoaded()");
+//				
+//				boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
+//				this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
+//			}
+//		}
+//	}
 	
 	protected void addIndexClass(String indexClass) {
 		if (!modelPropsLoaded) {
@@ -329,7 +329,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	
 	@Override
-	public void removeDocument(List<String> filePaths, Map <String, Object> parameters) throws IOException {
+	public void removeDocument(List<String> fileNames, Map <String, Object> parameters) throws IOException {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey(INDEX_CLASS)) {
 			indexClass = (String) parameters.get(INDEX_CLASS);
@@ -347,7 +347,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
         DirectoryStream<Path> stream = null;
         try {
         	List<String> sourceNames = new ArrayList<>();
-        	for(String document : filePaths) {
+        	for(String document : fileNames) {
 				String documentName = FilenameUtils.getName(document);
 				File f = new File(document);
 				if(f.exists() && f.getName().endsWith(".csv")) {
