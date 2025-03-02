@@ -128,7 +128,7 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
 		if(this.cpw != null) {
 			this.cpw.shutdown(false);
-		} 
+		}
 		
 		String timeout = "30";
 		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
