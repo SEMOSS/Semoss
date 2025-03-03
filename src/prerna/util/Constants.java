@@ -499,6 +499,7 @@ public class Constants {
 	public static final String IDLE_TIMEOUT = "IDLE_TIMEOUT";
 	public static final String CONNECTION_QUERY_TIMEOUT = "CONNECTION_QUERY_TIMEOUT";
 	public static final String AUTO_COMMIT = "AUTO_COMMIT";
+	public static final String CONNECTION_TEST_QUERY = "CONNECTION_TEST_QUERY";
 	// transaction types
 	public static final String TRANSACTION_TYPE = "TRANSACTION_TYPE";
 	/**

@@ -1,18 +1,24 @@
 package prerna.engine.api;
 
 import prerna.engine.impl.function.AWSTextractFunctionEngine;
-import prerna.engine.impl.function.AzureDocumentIntelligenceFuntionEngine;
+import prerna.engine.impl.function.AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine;
 import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
+import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
 
 public enum FunctionTypeEnum {
 
-	AZURE_DOCUMENT_INTELLIGENCE("AZURE_DOCUMENT_INTELLIGENCE", AzureDocumentIntelligenceFuntionEngine.class.getName()),
+	// normal function engines
 	AWS_TEXTRACT("AWS_TEXTRACT", AWSTextractFunctionEngine.class.getName()),
 	IMAGE_DESCRIPTION("IMAGE_DESCRIPTION", ImageDescriptionFunctionEngine.class.getName()),
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonFunctionEngine.class.getName()),
 	REST("REST", RESTFunctionEngine.class.getName()),
+	
+	// special function engines for custom embeddings w/ vector databases
+	AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS("AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS", AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine.class.getName()),
+	LOCAL_PYTHON_CUSTOM_EMBEDDINGS("LOCAL_PYTHON_CUSTOM_EMBEDDINGS", LocalPythonCustomEmbeddingsFunctionEngine.class.getName()),
+
 	;
 	
 	private String functionName;
