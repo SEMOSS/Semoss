@@ -1,12 +1,14 @@
 package prerna.unit.auth.utils.reactors.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.TreeSet;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,15 +23,14 @@ import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.util.Utility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class AdminGetProjectAvailableReactorsReactorUnitTests {
 	
 	private AdminGetProjectAvailableReactorsReactor reactor;
 	private Insight insight;
 	private User user;
-	private IProject project;
 	
 	private Map<String, String> keyValues;
 	
@@ -79,8 +80,10 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
 	}
 	
 	@Test
-	void testExecute() {
-		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), "test");
+	void testExecuteNoReactorsReturned() {
+		String projectAlias = "test";
+		String projectId = "testy";
+		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectAlias);
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class);
 				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
@@ -88,16 +91,58 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
 				SecurityAdminUtils s = new SecurityAdminUtils();
 				sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 			
-				spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "test")).thenReturn("testy");
+				spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias))
+				.thenReturn(projectId);
 			
-				String projectId = "test";
+				IProject project = mock(IProject.class);
 				util.when(() -> Utility.getProject(projectId)).thenReturn(project);
+
+				TreeSet<String> emptyTreeSet = new TreeSet<>();
 			
+				when(project.getAvailableReactors()).thenReturn(emptyTreeSet);
 				NounMetadata nm = reactor.execute();
-				String results = nm.getValue().toString();
+				assertNotNull(nm.getValue());
+				TreeSet<String> retValue = (TreeSet<String>) nm.getValue();
+				assertEquals(emptyTreeSet.size(), retValue.size());
 				assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
 
-				spu.verify(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "test"), times(1));
+				
+				spu.verify(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias), times(1));
+				util.verify(() -> Utility.getProject(projectId), times (1));
+		}
+	}
+	
+	@Test
+	void testExecuteOneReactorReturned() {
+		String projectAlias = "test";
+		String projectId = "testy";
+		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectAlias);
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class);
+				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+
+				SecurityAdminUtils s = new SecurityAdminUtils();
+				sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			
+				spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias))
+				.thenReturn(projectId);
+			
+				IProject project = mock(IProject.class);
+				util.when(() -> Utility.getProject(projectId)).thenReturn(project);
+
+				TreeSet<String> emptyTreeSet = new TreeSet<>();
+				emptyTreeSet.add("reactor 1");
+				
+				when(project.getAvailableReactors()).thenReturn(emptyTreeSet);
+				NounMetadata nm = reactor.execute();
+				assertNotNull(nm.getValue());
+				TreeSet<String> retValue = (TreeSet<String>) nm.getValue();
+				assertEquals(emptyTreeSet.size(), retValue.size());
+				assertEquals("reactor 1", retValue.first());
+				assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
+	
+				spu.verify(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias), times(1));
+				util.verify(() -> Utility.getProject(projectId), times (1));
 		}
 	}
 }

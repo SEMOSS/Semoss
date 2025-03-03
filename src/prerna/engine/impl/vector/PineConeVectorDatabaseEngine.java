@@ -3,11 +3,16 @@ package prerna.engine.impl.vector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHeaders;
@@ -19,6 +24,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
@@ -40,11 +46,12 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private final String API_QUERY = "/query";
 	private final String API_KY= "Api-Key";
 	private final String LIST_QUERY = "/vectors/list?namespace=";
+	private final String FETCH_QUERY = "/vectors/fetch?namespace=";
 	private final String HASH = "#";
-	
+
 	private final String PREFIX = "&prefix=";
 	private final String PAGINATION_TOKEN = "&paginationToken=";
-	
+
 	private String hostname = null;
 	private String apiKey = null;
 	private String defaultNamespace = null;
@@ -72,15 +79,15 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 
-		// if we were able to extract files, begin embeddings process
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
+		// send all the strings to embed in one shot
 		try {
 			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error occurred creating the embeddings for the generated chunks. Detailed error message = " + e.getMessage());
 		}
-		
+
 		// Sample URL:
 		// https://docs-quickstart-index3-fiarr5p.svc.aped-4627-b74a.pinecone.io/vectors/upsert;
 		String url = this.hostname + API_UPSERT;
@@ -94,7 +101,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String previousFileName = null;
 		for (int rowIndex = 0; rowIndex < vectorCsvTable.rows.size(); rowIndex++) {
 			VectorDatabaseCSVRow row = vectorCsvTable.getRows().get(rowIndex);
-			
+
 			JsonObject metadataJson = new JsonObject();
 			metadataJson.addProperty("Source", row.getSource());
 			metadataJson.addProperty("Modality", row.getModality());
@@ -118,7 +125,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			thisChunkJson.add("metadata", metadataJson);
 			vectors.add(thisChunkJson);
 		}
-		
+
 		JsonObject vectorsMap = new JsonObject();		
 		vectorsMap.addProperty("namespace", this.defaultNamespace);
 		vectorsMap.add("vectors", vectors);
@@ -128,17 +135,17 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	@Override
 	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
+		Gson gson = new GsonBuilder().create();
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(API_KY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-		
+
 		// need to get the source names and then delete it based on the names
 		for (int fileIndex = 0; fileIndex < fileNames.size(); fileIndex++) {
 			String fileName = fileNames.get(fileIndex);
@@ -152,10 +159,10 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				} else {
 					listVectorsUrl+=PREFIX + fileName.replaceAll(" ", "_") + HASH;
 				}
-				
+
 				String idListResponse = HttpHelperUtility.getRequest(listVectorsUrl, headersMap, null, null, null);
 				Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {}.getType());
-				
+
 				List<Map<String, String>> vectors = (List<Map<String, String>>) responseMap.get("vectors");
 				executeDelete(this.hostname + API_DELETE, headersMap, vectors);
 
@@ -167,10 +174,10 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				} else {
 					paginationToken = null;
 				}
-				
+
 				firstExecution=false;
 			}
-			
+
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
 			File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", documentName);
@@ -189,7 +196,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			deleteFilesFromCloudThread.start();
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param url
@@ -204,7 +211,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		for (Map<String, String> v : listReturnVector) {
 			idsJsonArray.add(v.get("id"));
 		}
-		
+
 		JsonObject deleteJson = new JsonObject();
 		deleteJson.add("ids", idsJsonArray);
 		deleteJson.addProperty("namespace", this.defaultNamespace);
@@ -241,11 +248,11 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		headersMap.put(API_KY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, headersMap, queryJson.toString(), ContentType.APPLICATION_JSON, null, null, null);
-		
+
 		Gson gson = new Gson();
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
 		List<Map<String, Object>> matches = (List<Map<String, Object>>) responseMap.get("matches");
-		
+
 		List<Map<String, Object>> retOut = new ArrayList<>();
 
 		for (int i = 0; i < matches.size(); i++) {
@@ -265,6 +272,222 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		return retOut;
+	}
+
+	@Override
+	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
+		/**
+		 * Pinecone's API is not useful
+		 * https://docs.pinecone.io/reference/api/2025-01/data-plane/list
+		 * 
+		 * dont have a way to fetch results w/o first listing the index's
+		 * and after listing the index's the fetch cant limit the return so 
+		 * will also get back the vectors
+		 * 
+		 */
+
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey(INDEX_CLASS)) {
+			indexClass = (String) parameters.get(INDEX_CLASS);
+		}
+		
+		Gson gson = new GsonBuilder().create();
+
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(API_KY, this.apiKey);
+		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+
+		Set<String> sources = new TreeSet<>();
+		
+		boolean firstExecution = true;
+		String paginationToken = null;
+		WHILE_LOOP : while(firstExecution || paginationToken!=null) {
+			String listVectorsUrl = this.hostname + LIST_QUERY + this.defaultNamespace;
+			if(paginationToken!=null) {
+				listVectorsUrl+=PAGINATION_TOKEN+paginationToken;
+			}
+
+			String idListResponse = HttpHelperUtility.getRequest(listVectorsUrl, headersMap, null, null, null);
+			Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {}.getType());
+
+			List<Map<String, String>> vectors = (List<Map<String, String>>) responseMap.get("vectors");
+			if(vectors.isEmpty()) {
+				break WHILE_LOOP;
+			}
+			StringBuilder ids = new StringBuilder();
+			for(int i = 0 ; i < vectors.size(); i++) {
+				Map<String, String> idMap = vectors.get(i);
+				ids.append("&ids=").append(idMap.get("id"));
+
+				if( (i+1) % 20 == 0) {
+					sources.addAll(fetchUniqueSourceValues(ids));
+					ids = new StringBuilder();
+				}
+			}
+
+			if(ids.length() != 0) {
+				sources.addAll(fetchUniqueSourceValues(ids));
+				ids = new StringBuilder();
+			}
+
+			// we can only pull 100 at a time
+			// we need to check if there is pagination to keep going
+			Map<String, String> paginationMap = (Map<String, String>) responseMap.get("pagination");
+			if(paginationMap != null && !paginationMap.isEmpty()) {
+				paginationToken = paginationMap.get("next");
+			} else {
+				paginationToken = null;
+			}
+
+			firstExecution=false;
+		}
+		
+		List<Map<String, Object>> fileList = new ArrayList<>();
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		if(documentsDir.exists() && documentsDir.isDirectory()) {
+			for(String fileName : sources) {
+				Map<String, Object> fileInfo = new HashMap<>();
+				fileInfo.put("fileName", fileName);
+				File thisF = new File(documentsDir, fileName);
+				if(thisF.exists() && thisF.isFile()) {
+					long fileSizeInBytes = thisF.length();
+					double fileSizeInMB = (double) fileSizeInBytes / (1024);
+					SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+					String lastModified = dateFormat.format(new Date(thisF.lastModified()));
+
+					// add file size and last modified into the map
+					fileInfo.put("fileSize", fileSizeInMB);
+					fileInfo.put("lastModified", lastModified);
+				}
+				fileList.add(fileInfo);
+			}
+		}
+		
+		return fileList;
+	}
+
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		/**
+		 * Pinecone's API is not useful
+		 * https://docs.pinecone.io/reference/api/2025-01/data-plane/list
+		 * 
+		 * don't have a way to fetch results w/o first listing the index's
+		 * and after listing the index's the fetch can't limit the return so 
+		 * will also get back the vectors
+		 */
+		
+		Gson gson = new GsonBuilder().create();
+
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(API_KY, this.apiKey);
+		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+
+		List<Map<String, Object>> allRecords = new ArrayList<>();
+
+		boolean firstExecution = true;
+		String paginationToken = null;
+		WHILE_LOOP : while(firstExecution || paginationToken!=null) {
+			String listVectorsUrl = this.hostname + LIST_QUERY + this.defaultNamespace;
+			if(paginationToken!=null) {
+				listVectorsUrl+=PAGINATION_TOKEN+paginationToken;
+			}
+
+			String idListResponse = HttpHelperUtility.getRequest(listVectorsUrl, headersMap, null, null, null);
+			Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {}.getType());
+
+			List<Map<String, String>> vectors = (List<Map<String, String>>) responseMap.get("vectors");
+			if(vectors.isEmpty()) {
+				break WHILE_LOOP;
+			}
+			StringBuilder ids = new StringBuilder();
+			for(int i = 0 ; i < vectors.size(); i++) {
+				Map<String, String> idMap = vectors.get(i);
+				ids.append("&ids=").append(idMap.get("id"));
+
+				if( (i+1) % 20 == 0) {
+					allRecords.addAll(fetchAllValues(ids));
+					ids = new StringBuilder();
+				}
+			}
+
+			if(ids.length() != 0) {
+				allRecords.addAll(fetchAllValues(ids));
+				ids = new StringBuilder();
+			}
+
+			// we can only pull 100 at a time
+			// we need to check if there is pagination to keep going
+			Map<String, String> paginationMap = (Map<String, String>) responseMap.get("pagination");
+			if(paginationMap != null && !paginationMap.isEmpty()) {
+				paginationToken = paginationMap.get("next");
+			} else {
+				paginationToken = null;
+			}
+
+			firstExecution=false;
+		}
+
+		return allRecords;
+	}
+
+	/**
+	 * 
+	 * @param ids
+	 * @return
+	 */
+	private List<Map<String, Object>> fetchAllValues(StringBuilder ids) {
+		List<Map<String, Object>> records = new ArrayList<>();
+
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(API_KY, this.apiKey);
+		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+
+		String fetchUrl = this.hostname + FETCH_QUERY + this.defaultNamespace + ids.toString();
+		String fetchResponse = HttpHelperUtility.getRequest(fetchUrl, headersMap, null, null, null);
+		JsonObject pineconeHorribleJson = JsonParser.parseString(fetchResponse).getAsJsonObject();
+		JsonObject vectorsJson = pineconeHorribleJson.get("vectors").getAsJsonObject();
+		for(String uid : vectorsJson.keySet()) {
+			JsonObject record = vectorsJson.get(uid).getAsJsonObject();
+			JsonObject metadata = record.get("metadata").getAsJsonObject();
+
+			Map<String, Object> recordMap = new HashMap<>();
+			recordMap.put(VectorDatabaseCSVTable.SOURCE, metadata.get(VectorDatabaseCSVTable.SOURCE).getAsString());
+			recordMap.put(VectorDatabaseCSVTable.MODALITY, metadata.get(VectorDatabaseCSVTable.MODALITY).getAsString());
+			recordMap.put(VectorDatabaseCSVTable.DIVIDER, metadata.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
+			recordMap.put(VectorDatabaseCSVTable.PART, metadata.get(VectorDatabaseCSVTable.PART).getAsString());
+			recordMap.put(VectorDatabaseCSVTable.TOKENS, metadata.get(VectorDatabaseCSVTable.TOKENS).getAsInt());
+			recordMap.put(VectorDatabaseCSVTable.CONTENT, metadata.get(VectorDatabaseCSVTable.CONTENT).getAsString());
+			records.add(recordMap);
+		}
+
+		return records;
+	}
+	
+	/**
+	 * 
+	 * @param ids
+	 * @return
+	 */
+	private Set<String> fetchUniqueSourceValues(StringBuilder ids) {
+		Set<String> uniqueSources = new HashSet<>();
+
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(API_KY, this.apiKey);
+		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+
+		String fetchUrl = this.hostname + FETCH_QUERY + this.defaultNamespace + ids.toString();
+		String fetchResponse = HttpHelperUtility.getRequest(fetchUrl, headersMap, null, null, null);
+		JsonObject pineconeHorribleJson = JsonParser.parseString(fetchResponse).getAsJsonObject();
+		JsonObject vectorsJson = pineconeHorribleJson.get("vectors").getAsJsonObject();
+		for(String uid : vectorsJson.keySet()) {
+			JsonObject record = vectorsJson.get(uid).getAsJsonObject();
+			JsonObject metadata = record.get("metadata").getAsJsonObject();
+
+			uniqueSources.add(metadata.get(VectorDatabaseCSVTable.SOURCE).getAsString());
+		}
+
+		return uniqueSources;
 	}
 
 	@Override
