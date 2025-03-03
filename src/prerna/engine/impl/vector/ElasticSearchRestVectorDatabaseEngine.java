@@ -26,6 +26,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
+import oshi.software.os.OperatingSystem.ProcessFiltering;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
@@ -355,27 +356,40 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 						}
 						bool.add("must", must);
 						
+						//filteration logic starts here
+						//filter contains simple or AND conditions
 						JsonArray filter = new JsonArray();
-						{
-							//add filteration
-							JsonArray searchFilters = new JsonArray();
-							List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
-							searchFilters = ElasticSearchRestVectorQueryFilterTranslationHelper.addFilters(filters);
-							for(JsonElement filterIterator : searchFilters) {
-								filter.add(filterIterator);
-							}
+						
+						//should contains OR condition filters
+						JsonArray should = new JsonArray();
+						
+						//must not contains not equals to filters
+						JsonArray must_not = new JsonArray();
+						
+						List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
+						for(IQueryFilter queryFilter : filters) {
+							ElasticSearchRestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
 						}
+						
+						//call to process filter
+						
 						bool.add("filter", filter);
+						bool.add("should", should);
+						bool.add("must_not", must_not);
+						
+						if (should.size() > 0) {
+							bool.addProperty("minimum_should_match", 1);
+						}
 					}
 					query.add("bool", bool);
 				}
-				
 			}
 			// add to parent
 			search.add("query", query);
+			
 		}
 		
-		System.out.println("ELASTIC FINAL SEARCH QUERY : " + search.toString());
+		// System.out.println("ELASTIC FINAL SEARCH QUERY : " + search.toString());
 		
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();
@@ -662,6 +676,12 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.ELASTIC_SEARCH;
+	}
+
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 	 
