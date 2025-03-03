@@ -414,18 +414,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	}
 
 	@Override
-	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
-		try {
-			checkModelUp();
-		} catch(Exception e) {
-			classLogger.error("Error deploying model", e);
-		}
-		// we are up
-		// use the base impl to make the call
-		return implementingEngineClass.modelCall(input, insight, parameters);
-	}
-
-	@Override
 	protected InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> hyperParameters) {
 		try {
 			checkModelUp();
