@@ -6,11 +6,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1349,11 +1352,18 @@ public class ModelInferenceLogsUtils {
 		Connection conn = modelInferenceLogsDb.getConnection();
 		try {
 			List<String> roomIds = getRoomsForCleanup(conn, days);
+			List<String> roomsToBeDeleted = new ArrayList<>();
 			List<String> allMessagesId = new ArrayList<>();
 			if (roomIds != null && roomIds.size() > 0) {
 				for (String roomId : roomIds) {
-					List<String> messageIds = getMessageIds(conn, roomId);
-					allMessagesId.addAll(messageIds);
+			        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+			        LocalDate lastMessageDate = LocalDate.parse(getLastMessageDateForRoom(conn, roomId), formatter);
+			        LocalDate cutOffDate = LocalDate.now().minusDays(days);
+					if (lastMessageDate.isBefore(cutOffDate)) {
+						List<String> messageIds = getMessageIds(conn, roomId);
+						allMessagesId.addAll(messageIds);
+						roomsToBeDeleted.add(roomId);
+					}
 				}
 			}
 
@@ -1361,7 +1371,8 @@ public class ModelInferenceLogsUtils {
 				cleanUpFeedbacks(conn, allMessagesId);
 				cleanUpMessages(conn, allMessagesId);
 			}
-			cleanUpRoom(conn, roomIds);
+			if(roomsToBeDeleted.size() > 0)
+				cleanUpRoom(conn, roomsToBeDeleted);
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -1382,6 +1393,7 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 
+
 	/**
 	 * 
 	 * @param conn
@@ -1397,7 +1409,7 @@ public class ModelInferenceLogsUtils {
 		try {
 			int index = 1;
 			ps = conn.prepareStatement(query);
-			String cutOffDate = LocalDate.now().minusDays(days).toString();
+			String cutOffDate = LocalDate.now().minusDays(days).plusDays(1).toString();
 			ps.setString(index, cutOffDate);
 			if (ps.execute()) {
 				rs = ps.getResultSet();
@@ -1445,6 +1457,38 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnections(null, ps, rs);
 		}
 		return messageIds;
+	}
+	
+	
+	/**
+	 * 
+	 * @param conn
+	 * @param roomId
+	 * @return
+	 * @throws Exception
+	 */
+	public static String getLastMessageDateForRoom(Connection conn, String roomId) throws Exception {
+		String query = "SELECT date_created FROM message where INSIGHT_ID = ? ORDER BY date_created DESC LIMIT 1";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		String date = null;
+		try {
+			int index = 1;
+			ps = conn.prepareStatement(query);
+			ps.setString(index, roomId);
+			if (ps.execute()) {
+				rs = ps.getResultSet();
+				while (rs.next()) {
+					date = rs.getString(1);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			ConnectionUtils.closeAllConnections(null, ps, rs);
+		}
+		return date;
 	}
 
 	/**
