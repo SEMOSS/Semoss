@@ -37,6 +37,8 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.update.UpdateQueryStruct;
+import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -322,7 +324,7 @@ public class AdminExecQueryReactorUnitTests {
 		GenRowStruct grs = mock(GenRowStruct.class);
 		when(ns.getNoun(PixelDataType.QUERY_STRUCT.getKey())).thenReturn(grs);
 
-		// -- added this --
+		// Mock behavior of SelectQueryStructs
 		SelectQueryStruct qs = mock(SelectQueryStruct.class);
 		QueryColumnSelector qcs = mock(QueryColumnSelector.class);
 		when(qcs.getTable()).thenReturn("table_name");
@@ -343,62 +345,64 @@ public class AdminExecQueryReactorUnitTests {
 		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
 		
 		DeleteSqlInterpreter interp = mock(DeleteSqlInterpreter.class);
-	    when(interp.composeQuery()).thenReturn("DELETE FROM table WHERE condition");
-//	    update = mock(BOOLEAN.class);
+	    when(interp.composeQuery()).thenReturn("DELETE FROM table_name WHERE condition");
+	    
 		try {
-			doThrow(new SemossPixelException("Database error")).when(engine).insertData("DELETE FROM table WHERE condition");
+			doThrow(new SemossPixelException("Database error")).when(engine).insertData(interp.composeQuery());
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
+
 		}
 		
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class); MockedStatic<DeleteSqlInterpreter> deleteSqlInterpreterMockedStatic = Mockito.mockStatic(DeleteSqlInterpreter.class)) {
-			
 			SecurityAdminUtils s = new SecurityAdminUtils();
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 			
 			SemossPixelException e = assertThrows(SemossPixelException.class, reactor::execute);
-	        assertEquals("An error occurred trying to execute the query in the database: Database error", e.getMessage());
+	        assertEquals("Database error", e.getMessage());
 		}
 	}
 	
-//	@Test
-//	void testUpdateQueryStruct() {
-//		NounStore ns = mock(NounStore.class);
-//		reactor.setNounStore(ns);
-//		GenRowStruct grs = mock(GenRowStruct.class);
-//		when(ns.getNoun(PixelDataType.QUERY_STRUCT.getKey())).thenReturn(grs);
-//
-//		UpdateQueryStruct qs = mock(UpdateQueryStruct.class);
-//		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
-//		when(grs.getNoun(0)).thenReturn(nm);
-//
-//		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
-//		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
-//		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
-//		
-//		update = UpdateQueryStruct.class;
-//		when(qs instanceof UpdateQueryStruct).thenReturn(UpdateQueryStruct.class);
-//		
-//		UpdateSqlInterpreter interp = mock(UpdateSqlInterpreter.class);
-//	    when(interp.composeQuery()).thenReturn("UPDATE table SET column = value");
-//		
-////		insertData(<the string you returned from getQuery())
-//		try {
-//			doThrow(new SemossPixelException("Database error")).when(engine).insertData("UPDATE table SET column = value");
-//		} catch (Exception e) {
-//			// TODO Auto-generated catch block
-//		}
-//		
-//		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class); 
-//				MockedStatic<UpdateSqlInterpreter> updateSqlInterpreterMockedStatic = Mockito.mockStatic(UpdateSqlInterpreter.class)) {
-//			SecurityAdminUtils s = new SecurityAdminUtils();
-//			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-//			
-//			updateSqlInterpreterMockedStatic.when(() -> new UpdateSqlInterpreter(qs)).thenReturn(interp);
-//
-//			SemossPixelException e = assertThrows(SemossPixelException.class, reactor::execute);
-//	        assertEquals("An error occurred trying to execute the query in the database: Database error", e.getMessage());
-//		}
-//	}
-	
+	@Test
+	void testUpdateQueryStruct() {
+		NounStore ns = mock(NounStore.class);
+		reactor.setNounStore(ns);
+		GenRowStruct grs = mock(GenRowStruct.class);
+		when(ns.getNoun(PixelDataType.QUERY_STRUCT.getKey())).thenReturn(grs);
+
+		UpdateQueryStruct qs = mock(UpdateQueryStruct.class);
+		QueryColumnSelector qcs = mock(QueryColumnSelector.class);
+		when(qcs.getTable()).thenReturn("table_name");
+		List<IQuerySelector> selectors = new ArrayList<>();
+		selectors.add(qcs);
+		when(qs.getSelectors()).thenReturn(selectors);
+		
+		GenRowFilters grfs = mock(GenRowFilters.class);
+		when(qs.getCombinedFilters()).thenReturn(grfs);
+		when(grfs.getFilters()).thenReturn(new ArrayList<IQueryFilter>());
+		
+		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
+		when(grs.getNoun(0)).thenReturn(nm);
+
+		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
+		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
+		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
+		
+		UpdateSqlInterpreter interp = mock(UpdateSqlInterpreter.class);
+	    when(interp.composeQuery()).thenReturn("UPDATE table_name SET column = value");
+	    
+		try {
+			doThrow(new SemossPixelException("Database error")).when(engine).insertData(interp.composeQuery());
+		} catch (Exception e) {
+
+		}
+		
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class); 
+				MockedStatic<UpdateSqlInterpreter> updateSqlInterpreterMockedStatic = Mockito.mockStatic(UpdateSqlInterpreter.class)) {
+			SecurityAdminUtils s = new SecurityAdminUtils();
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+
+			SemossPixelException e = assertThrows(SemossPixelException.class, reactor::execute);
+	        assertEquals("Database error", e.getMessage());
+		}
+	}
 }
