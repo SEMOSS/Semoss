@@ -43,7 +43,6 @@ public class AdminEngineInfoReactorUnitTests {
 	private NounStore ns;
 	private GenRowStruct grs;
 
-	// test
 	@BeforeEach
 	void setup() {
 		reactor = new AdminEngineInfoReactor();
