@@ -185,7 +185,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 				if (userExists) {
 					classLogger.info("User " + newUser.getId() + " already exists");
-					validateUserLogin(newUser);
 					return false;
 				}
 
