@@ -185,7 +185,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 				if (userExists) {
 					classLogger.info("User " + newUser.getId() + " already exists");
-					return validateUserLogin(newUser);
+					validateUserLogin(newUser);
+					return false;
 				}
 
 				// need to synchronize the adding of new users
@@ -311,7 +312,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static boolean validateUserLogin(AccessToken newUser) throws Exception {
+	public static void validateUserLogin(AccessToken newUser) throws Exception {
 		// make sure user is not locked out
 		Object[] lastLoginDetails = SecurityQueryUtils.getUserLockAndLastLoginAndLastPassReset(newUser.getId(), newUser.getProvider());
 		if(lastLoginDetails != null) {
@@ -347,7 +348,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			
 			if(isLocked) {
 				classLogger.info("User " + newUser.getId() + " is locked");
-				return false;
+				return;
 			} 
 			
 			if(daysToLock > 0 && lastLogin != null) {
@@ -358,7 +359,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					// we should lock the account
 					SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
 					newUser.setLocked(true);
-					return false;
+					return;
 				}
 			}
 			
@@ -381,7 +382,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(!newUser.isLocked()) {
 			SecurityUpdateUtils.updateUserLastLogin(newUser.getId(), newUser.getProvider());
 		}
-		return false;
 	}
 	
 	/**
