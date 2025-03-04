@@ -273,7 +273,9 @@ public class ImportAppReactor extends AbstractReactor {
 				// delete from security
 				SecurityProjectUtils.deleteProject(projectId);
 			} else {
-				File[] assetsFilesToDelete = finalProjectAssetF.listFiles((dir, name) -> name.endsWith(IEngine.METADATA_FILE_SUFFIX) || name.endsWith(IProject.DEPENDENCIES_FILE_SUFFIX));			
+				File[] assetsFilesToDelete = finalProjectAssetF.listFiles((dir, name) -> name.endsWith(IEngine.METADATA_FILE_SUFFIX) 
+																					|| name.endsWith(IProject.DEPENDENCIES_FILE_SUFFIX) 
+																					|| name.endsWith(Constants.SEMOSS_EXTENSION));			
 				cleanUpFolders(assetsFilesToDelete);
 			}
 		}
