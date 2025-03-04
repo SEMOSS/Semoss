@@ -503,13 +503,13 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
 		
 		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
+		sumTokenSelector.setAlias("Total Tokens");
 		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
 		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(sumTokenSelector);
 		
 		QueryFunctionSelector countNumberRequestSelector = new QueryFunctionSelector();
-		countNumberRequestSelector.setAlias("TOTAL_NUMBER_OF_REQUEST");
+		countNumberRequestSelector.setAlias("Total Requests");
 		countNumberRequestSelector.setFunction(QueryFunctionHelper.COUNT);
 		countNumberRequestSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(countNumberRequestSelector);
@@ -521,6 +521,7 @@ public class ModelInferenceLogsUtils {
 
 		addLimitAndOffSet(qs, limit, offset);
 		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
@@ -557,16 +558,32 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
 		
 		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
+		sumTokenSelector.setAlias("Total Tokens");
 		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
 		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(sumTokenSelector);
 		
+		QueryFunctionSelector totalMessages = new QueryFunctionSelector();
+		totalMessages.setAlias("Total Messages");
+		totalMessages.setFunction(QueryFunctionHelper.COUNT);
+		totalMessages.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(totalMessages);
+		
+		QueryFunctionSelector countNumberOfRooms = new QueryFunctionSelector();
+		countNumberOfRooms.setAlias("Number of Rooms");
+		countNumberOfRooms.setFunction(QueryFunctionHelper.COUNT);
+		countNumberOfRooms.addInnerSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "INSIGHT_ID"));
+		qs.addSelector(countNumberOfRooms);
+		
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
 		addStartDateEndDateFitler(qs, startDate, endDate);
 		
+		qs.addRelation(MESSAGE_TABLE_NAME + "INSIGHT_ID", ROOM_TABLE_NAME + "INSIGHT_ID", "left.join");
+		
+		
 		addLimitAndOffSet(qs, limit, offset);
 		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
 		
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
