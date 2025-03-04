@@ -119,31 +119,38 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         """
         updated_kwargs = kwargs.copy()
 
-        if (
-            self.model_name.startswith("o1-preview")
-            or self.model_name.startswith("o1-mini")
-            or self.model_name == "o1"
-        ):
-            if "temperature" in updated_kwargs:
+        # Handle o1-mini (doesn't support system/developer roles)
+        if self.model_name.startswith("o1-mini"):
+            # Remove temperature - only 1.0 is supported
+            if "temperature" in updated_kwargs and updated_kwargs["temperature"] != 1.0:
                 del updated_kwargs["temperature"]
 
             updated_kwargs["stream"] = False
 
-            # These models do NOT support system messages
+            # Convert system/developer messages to user messages
             if "messages" in updated_kwargs:
-                # Convert system messages to user messages
                 messages = updated_kwargs["messages"]
                 for i, msg in enumerate(messages):
-                    if msg.get("role") == "system":
+                    if msg.get("role") in ["system", "developer"]:
+                        original_role = msg.get("role").upper()
                         messages[i]["role"] = "user"
-                        # Adding formatting to make it clear it was a system message
-                        messages[i]["content"] = (
-                            "SYSTEM INSTRUCTION: " + messages[i]["content"]
-                        )
+                        messages[i][
+                            "content"
+                        ] = f"{original_role}: {messages[i]['content']}"
                 updated_kwargs["messages"] = messages
 
+        # Handle regular o1 models
+        elif self.model_name == "o1" or self.model_name.startswith("o1-preview"):
+            # Temperature - only 1.0 is supported
+            if "temperature" in updated_kwargs and updated_kwargs["temperature"] != 1.0:
+                del updated_kwargs["temperature"]
+
+            updated_kwargs["stream"] = False
+
+        # Handle o3-mini
         elif self.model_name.startswith("o3-mini"):
-            if "temperature" in updated_kwargs:
+            # Remove temperature - only 1.0 is supported
+            if "temperature" in updated_kwargs and updated_kwargs["temperature"] != 1.0:
                 del updated_kwargs["temperature"]
 
             updated_kwargs["stream"] = False
