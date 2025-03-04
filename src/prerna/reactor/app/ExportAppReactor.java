@@ -37,6 +37,18 @@ public class ExportAppReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = ExportAppReactor.class.getName();
 	
+	@Override
+	public String getReactorDescription() {
+	    return "This reactor is intended to export apps from the platform as a single .smss-app file";
+	}
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+	        return "This is a required value containing the Id of the app that is being exported";
+	    }
+	    return super.getDescriptionForKey(key);
+	}
+	
 	public ExportAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
 	}
@@ -44,19 +56,19 @@ public class ExportAppReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
-		//logger.info("Checking app information and user permissions.");
+		logger.info("Checking app information and user permissions.");
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		
-//		User user = this.insight.getUser();
-//		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-//		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-//		if (!isAdmin) {
-//			boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
-//			if (!isOwner) {
-//				throw new IllegalArgumentException("Project " + projectId + "does not exist or user does not have access to export.");
-//			}
-//		}
+		User user = this.insight.getUser();
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+		if (!isAdmin) {
+			boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
+			if (!isOwner) {
+				throw new IllegalArgumentException("Project " + projectId + "does not exist or user does not have access to export.");
+			}
+		}
 
 		logger.info("Exporting app now...");
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");

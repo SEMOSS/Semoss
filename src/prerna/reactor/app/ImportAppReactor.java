@@ -45,6 +45,22 @@ public class ImportAppReactor extends AbstractReactor {
 	
 	private static final String CLASS_NAME = ImportAppReactor.class.getName();
 
+	@Override
+	public String getReactorDescription() {
+	    return "This reactor is intended to import apps to the platform given a single .smss-app file";
+	}
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+	        return "This is a required value containing the absolute file path of the single .smss-app file to be imported";
+	    } else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
+	        return "This is an optional field to determine the space to work with assets (user project space, current insight space, project id space).";
+	    } else if(key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
+	    	return "This is a required value to determine if the app is public or private";
+	    }
+	    return super.getDescriptionForKey(key);
+	}
+	
 	public ImportAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
 	}
