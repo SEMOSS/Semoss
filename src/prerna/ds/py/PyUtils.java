@@ -20,6 +20,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
+import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -147,8 +148,12 @@ public class PyUtils {
         	}
 			theSet.append("}");
 			return theSet.toString();
+    	} else if(obj instanceof File) {
+    		return "r'''"+((File) obj).getAbsolutePath().replace("\\", "/").replace("'", "\\'")+"'''";
+    	} else if(obj instanceof Insight) {
+    		return "'"+((Insight) obj).getInsightId()+"'";
     	} else {
-    		return "r'''"+String.valueOf(obj).replace("'", "\\'").replace("\n", "\\n") + "'''";
+    		return "r'''"+String.valueOf(obj).replace("'", "\\'").replace("\n", "\\n")+"'''";
     	}
     }
     

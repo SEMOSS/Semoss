@@ -23,7 +23,6 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import prerna.auth.User;
-import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
@@ -52,7 +51,6 @@ public class SocketClient implements Runnable, Closeable {
 	InputStream is = null;
 	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
-	Map <String, Insight> insightMap = new HashMap<String, Insight>();
 
 	/**
 	 * 
@@ -396,11 +394,4 @@ public class SocketClient implements Runnable, Closeable {
 	public boolean isReady() {
 		return this.ready;
 	}
-    
-
-    public void addInsight2Insight(String insightId, Insight insight)
-    {
-    	insightMap.put(insightId, insight);
-    }
-    
 }

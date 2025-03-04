@@ -1,19 +1,10 @@
 package prerna.reactor.frame.gaas.processors;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
-import javax.imageio.ImageIO;
-
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.cos.COSName;
@@ -28,29 +19,19 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 
-public class ImagePDFProcessor {
+public class ImagePDFProcessor extends AbstractFileImageProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(PDFProcessor.class);
 
-	private String filePath;
-	private String fileName;
-	private VectorDatabaseCSVWriter writer;
-	private Map<String, String> imageMap;
-
-	private static final int MIN_IMAGE_WIDTH = 300;
-	private static final int MIN_IMAGE_HEIGHT = 300;
-
 	public ImagePDFProcessor(String filePath, VectorDatabaseCSVWriter writer) {
-		this.filePath = filePath;
-		this.fileName = FilenameUtils.getName(filePath);
-		this.writer = writer;
-		this.imageMap = new HashMap<>();
+		super(filePath, writer);
 	}
 
+	@Override
 	public void process() {
-		try (PDDocument document = PDDocument.load(new File(filePath))) {
+		try (PDDocument document = PDDocument.load(new File(this.filePath))) {
 			PDFTextStripper stripper = new PDFTextStripper();
-			String source = getSource(filePath);
+			String source = getSource(this.filePath);
 
 			for (int pageIndex = 0; pageIndex < document.getNumberOfPages(); pageIndex++) {
 				stripper.setStartPage(pageIndex + 1);
@@ -60,17 +41,23 @@ public class ImagePDFProcessor {
 				// Extract images
 				PDPage page = document.getPage(pageIndex);
 				List<String> imageIds = extractImages(page);
-			    classLogger.debug("Found {} images in {} on page {}", imageIds.size(), this.fileName, pageIndex);
+				classLogger.debug("Found {} images in {} on page {}", imageIds.size(), source, pageIndex);
 				// Combine text and image placeholders
 				String combinedContent = combineTextAndImages(text, imageIds);
 
-				writer.writeRow(source, String.valueOf(pageIndex + 1), combinedContent, "");
+				writer.writeRow(source, String.valueOf(pageIndex + 1), combinedContent);
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
+	/**
+	 * 
+	 * @param page
+	 * @return
+	 * @throws IOException
+	 */
 	private List<String> extractImages(PDPage page) throws IOException {
 		List<String> imageIds = new ArrayList<>();
 		PDResources resources = page.getResources();
@@ -83,7 +70,7 @@ public class ImagePDFProcessor {
 					if (isImageSizeAcceptable(image)) {
 						String imageId = generateUniqueImageId();
 						String base64Image = convertToBase64(image.getImage());
-						imageMap.put(imageId,  base64Image);
+						this.imageMap.put(imageId,  base64Image);
 						imageIds.add(imageId);
 					}
 				}
@@ -97,6 +84,12 @@ public class ImagePDFProcessor {
 		return imageIds;
 	}
 
+	/**
+	 * 
+	 * @param text
+	 * @param imageIds
+	 * @return
+	 */
 	private String combineTextAndImages(String text, List<String> imageIds) {
 		StringBuilder combined = new StringBuilder();
 		String[] paragraphs = text.split("\n\n");
@@ -116,38 +109,13 @@ public class ImagePDFProcessor {
 		return combined.toString().trim();
 	}
 
-
-	private String generateUniqueImageId() {
-		return "[[IMG:" + UUID.randomUUID().toString() + "]]";
-	}
-
-	private String convertToBase64(BufferedImage image) throws IOException {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ImageIO.write(image, "png", baos);
-		byte[] imageBytes = baos.toByteArray();
-		return Base64.getEncoder().encodeToString(imageBytes);
-	}
-
-	private String getSource(String filePath) {
-		String source = null;
-		File file = new File(filePath);
-		if (file.exists()) {
-			source = file.getName();
-		}
-		return source;
-	}
-
+	/**
+	 * 
+	 * @param image
+	 * @return
+	 */
 	private boolean isImageSizeAcceptable(PDImageXObject image) {
 		return image.getWidth() >= MIN_IMAGE_WIDTH && image.getHeight() >= MIN_IMAGE_HEIGHT;
 	}
-
-	public Map<String, String> getImageMap() {
-		return imageMap;
-	}
-
-
-
+	
 }
-
-
-
