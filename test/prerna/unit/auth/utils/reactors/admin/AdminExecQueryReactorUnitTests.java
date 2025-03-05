@@ -301,7 +301,6 @@ public class AdminExecQueryReactorUnitTests {
 		// Change the  behavior of qs.getQuery() to a simple string
 		when(qs.getQuery()).thenReturn("SELECT * FROM table");
 		
-//		insertData(<the string you returned from getQuery())
 		try {
 			doThrow(new SemossPixelException("Database error")).when(engine).insertData("SELECT * FROM table");
 		} catch (Exception e) {
