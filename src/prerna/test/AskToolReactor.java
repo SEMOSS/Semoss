@@ -6,6 +6,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
@@ -21,6 +22,10 @@ import prerna.util.Utility;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.ArrayList;
 
 public class AskToolReactor extends AbstractReactor {
@@ -54,30 +59,50 @@ public class AskToolReactor extends AbstractReactor {
         }
 
         AskModelEngineResponse modelResponse = modelEngine.ask(question, context, this.insight, paramMap);
-		
+
         Map<String, Object> output = modelResponse.toMap();
 
 //    	if(modelResponse.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
 //    		// the response is for a tool call
-//    		// we need to call the actual tool now. 
-//    		AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) modelResponse;
-//    		
-//    		// tool result will be a custom element in the paramMap
-//    		HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
-//    		toolExecutionMap.put(AbstractModelEngine.ROLE, "tool");
-//    		toolExecutionMap.put("tool_call_id",toolResponse.getToolCallId());
-//    		toolExecutionMap.put("name",toolResponse.getToolCallName());
-//    		
-//    		String s  = toolResponse.getToolCallArgumentsAsString();
-//    		// {"lat":123,"long":123}
-//    		
-//    		// for now im mocking the result up to pass as if i executed it. 
-//    		toolExecutionMap.put("content","{\"temperature\": \"28\"}");
-//    		
-//
-//    		paramMap.put("toolExecution", toolExecutionMap);
-//            AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", null, this.insight, paramMap);
-//            output=toolExecutionResponse.toMap();
+    		// we need to call the actual tool now. 
+    		// AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) modelResponse;
+    		
+    		// // tool result will be a custom element in the paramMap
+    		// HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
+    		// toolExecutionMap.put(AbstractModelEngine.ROLE, "tool");
+    		// toolExecutionMap.put("tool_call_id",toolResponse.getToolCallId());
+    		// toolExecutionMap.put("name",toolResponse.getToolCallName());
+
+            // // {"function_id":"123-3345-567","map":{"lat":"123","lon":"321"}}
+    		// String toolArguments = toolResponse.getToolCallArgumentsAsString();
+
+            // ObjectMapper mapper = new ObjectMapper();
+            // Map<String, Object> functionParams = new HashMap<String, Object>();
+            // try {
+            //     functionParams = mapper.readValue(toolArguments, Map.class);
+            // } catch (Exception e) {
+            //     // Handle parsing error
+            //     functionParams = null;
+            // }
+
+            // IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("function_id"));
+
+            // Object functionReturn = function.execute(functionParams);
+            // String functionReturnString = null;
+
+            //  try {
+            //     functionReturnString = mapper.writeValueAsString(functionReturn);
+            // } catch (JsonProcessingException e) {
+            //     // Handle the exception, maybe log it or return a default value
+            //     e.printStackTrace();
+            //     functionReturnString = "{}";
+            // }
+
+    		// toolExecutionMap.put("content", functionReturnString);
+    		
+
+    		// paramMap.put("toolExecution", toolExecutionMap);
+            // AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", "", this.insight, paramMap);
 //  
 //    	}
         
