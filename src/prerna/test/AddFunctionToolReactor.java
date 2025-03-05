@@ -23,16 +23,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.ArrayList;
 
-public class AddVectorDatabaseTool extends AbstractReactor {
+public class AddFunctionToolReactor extends AbstractReactor {
 
-    public AddVectorDatabaseTool() {
+    public AddFunctionToolReactor() {
         this.keysToGet = new String[] { 
                 "description", 
                 "id",
-                "command", 
-                "limit"
+                "parameters"
         };
-        this.keyRequired = new int[] { 1, 1, 1, 1 };
+        this.keyRequired = new int[] { 1, 1, 1 };
     }
 
     private Map<String, Object> createParameter(String type, String description) {
@@ -105,11 +104,12 @@ public class AddVectorDatabaseTool extends AbstractReactor {
         // Function => Parameters => Properties => MAP => Properties => Parameter
         Map<String, Object> param1 = createParameter("<PARAM 1 TYPE>", "<PARAM 1 DESCRIPTION>");
         Map<String, Object> param2 = createParameter("<PARAM 2 TYPE>", "<PARAM 2 DESCRIPTION>");
-        
+
         Map<String, Object> parametersProperties = new HashMap<>(); // DYNAMIC
         parametersProperties.put("<PARAM 1 NAME>", param1);
         parametersProperties.put("<PARAM 2 NAME>", param2);
-        
+        // Add more parameters from the askToolResponse
+
         // Level 5: Parameters=>Properties=>function_id
         Map<String, Object> functionIdMap = new HashMap<>();
         functionIdMap.put("type", "string");
@@ -177,7 +177,7 @@ public class AddVectorDatabaseTool extends AbstractReactor {
     private String executeTool(Map<String, Object> toolResponseContent) {
         // I
 
-        return "{\"temperature\": \"28\"}";
+        return "";
     }
    
 }
