@@ -76,6 +76,9 @@ public class WrapperManager {
 		ignoreDatabases.add(Constants.THEMING_DB);
 		ignoreDatabases.add(Constants.THEMING_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
 		
+		ignoreDatabases.add(Constants.PROMPT_DB);
+		ignoreDatabases.add(Constants.PROMPT_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
+		
 		ignoreDatabases.add(Constants.USER_TRACKING_DB);
 		ignoreDatabases.add(Constants.USER_TRACKING_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
 		
@@ -113,8 +116,10 @@ public class WrapperManager {
 		
 		User user = ThreadStore.getUser();
 		UserQueryTrackingThread queryT = null;
+		UserQueryTrackingThread queryTBeforeExec = null;
 		if(!ignoreQueryLogging) {
 			queryT = new UserQueryTrackingThread(user, engineId);
+			queryTBeforeExec = new UserQueryTrackingThread(user, engineId);
 		}
 		try {
 			IRawSelectWrapper returnWrapper = null;
@@ -262,8 +267,15 @@ public class WrapperManager {
 						}
 					} else {
 						// set the query for tracking
+						queryTBeforeExec.setQuery(query+ "::Before Execution of query");
+						queryTBeforeExec.setStartTimeNow();
+						queryT.setStartTimeNow();
 						queryT.setQuery(query);
 						if(!delayExecIfPossible) {
+							if(queryTBeforeExec != null && !ignoreQueryLogging) {
+								new Thread(queryTBeforeExec).start();
+							}
+							
 							classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId());
 							// set the start time
 							queryT.setStartTimeNow();
@@ -400,7 +412,7 @@ public class WrapperManager {
 				long start = System.currentTimeMillis();
 				if(ignoreQueryLogging) {
 					returnWrapper.execute();
-				} else {
+				} else {	
 					// set the query for tracking
 					queryT.setQuery(query);
 					// set the start time
