@@ -227,10 +227,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			}
 			if (parameters.containsKey("toolExecution")) {
 	            Map<String, Object> toolExecutionMap = (Map<String, Object>) parameters.get("toolExecution");
-	            // Add tool execution details to the callMaker
-//	            callMaker.append(", tool_execution=")
-//	                     .append(PyUtils.determineStringType(toolExecutionMap));
-		        // Update chat history
 		        if (chatHistory.containsKey(insight.getInsightId())) {
 		            chatHistory.get(insight.getInsightId()).add(toolExecutionMap);
 		        }

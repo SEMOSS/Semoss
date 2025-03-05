@@ -57,29 +57,29 @@ public class AskToolReactor extends AbstractReactor {
 		
         Map<String, Object> output = modelResponse.toMap();
 
-    	if(modelResponse.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
-    		// the response is for a tool call
-    		// we need to call the actual tool now. 
-    		AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) modelResponse;
-    		
-    		// tool result will be a custom element in the paramMap
-    		HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
-    		toolExecutionMap.put(AbstractModelEngine.ROLE, "tool");
-    		toolExecutionMap.put("tool_call_id",toolResponse.getToolCallId());
-    		toolExecutionMap.put("name",toolResponse.getToolCallName());
-    		
-    		String s  = toolResponse.getToolCallArgumentsAsString();
-    		// {"lat":123,"long":123}
-    		
-    		// for now im mocking the result up to pass as if i executed it. 
-    		toolExecutionMap.put("content","{\"temperature\": \"28\"}");
-    		
-
-    		paramMap.put("toolExecution", toolExecutionMap);
-            AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", null, this.insight, paramMap);
-            output=toolExecutionResponse.toMap();
-  
-    	}
+//    	if(modelResponse.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
+//    		// the response is for a tool call
+//    		// we need to call the actual tool now. 
+//    		AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) modelResponse;
+//    		
+//    		// tool result will be a custom element in the paramMap
+//    		HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
+//    		toolExecutionMap.put(AbstractModelEngine.ROLE, "tool");
+//    		toolExecutionMap.put("tool_call_id",toolResponse.getToolCallId());
+//    		toolExecutionMap.put("name",toolResponse.getToolCallName());
+//    		
+//    		String s  = toolResponse.getToolCallArgumentsAsString();
+//    		// {"lat":123,"long":123}
+//    		
+//    		// for now im mocking the result up to pass as if i executed it. 
+//    		toolExecutionMap.put("content","{\"temperature\": \"28\"}");
+//    		
+//
+//    		paramMap.put("toolExecution", toolExecutionMap);
+//            AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", null, this.insight, paramMap);
+//            output=toolExecutionResponse.toMap();
+//  
+//    	}
         
         Object response = output.get(AbstractModelEngineResponse.RESPONSE);
 //        //add logic here for checking if output is a map or if its a string
