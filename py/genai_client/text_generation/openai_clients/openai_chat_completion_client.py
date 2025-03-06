@@ -8,6 +8,7 @@ from ...constants import (
     AskModelEngineResponse,
     InstructModelEngineResponse,
 )
+from ..utils import is_openai_native_model
 
 
 class OpenAiChatCompletion(AbstractOpenAiClient):
@@ -111,14 +112,13 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         params = {structured_param_name: param_value, **kwargs}
         return self._get_structured_output_response(params)
 
-    def _update_model_specific_kwargs(self, **kwargs) -> dict:
+    def _update_openai_model_specific_kwargs(self, **kwargs) -> dict:
         """
-        Update the kwargs based on the model name to ensure compatibility with the model's capabilities.
+        Update the kwargs for OpenAI native models based on the model name to ensure compatibility with the model's capabilities.
         Returns:
             dict: Updated kwargs
         """
         updated_kwargs = kwargs.copy()
-
         # Handle o1-mini (doesn't support system/developer roles)
         if self.model_name.startswith("o1-mini"):
             # Remove temperature - only 1.0 is supported
@@ -152,8 +152,28 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             # Remove temperature - only 1.0 is supported
             if "temperature" in updated_kwargs and updated_kwargs["temperature"] != 1.0:
                 del updated_kwargs["temperature"]
-
             updated_kwargs["stream"] = False
+
+        return updated_kwargs
+
+    def _update_model_specific_kwargs(self, **kwargs) -> dict:
+        """
+        Update the kwargs based on the model name to ensure compatibility with the model's capabilities.
+        Returns:
+            dict: Updated kwargs
+        """
+
+        is_openai_model = is_openai_native_model(self.model_name)
+
+        if is_openai_model:
+            return self._update_openai_model_specific_kwargs(**kwargs)
+        else:
+            updated_kwargs = kwargs.copy()
+
+            if "max_completion_tokens" in updated_kwargs:
+                updated_kwargs["max_tokens"] = updated_kwargs.pop(
+                    "max_completion_tokens"
+                )
 
         return updated_kwargs
 
