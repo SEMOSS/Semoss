@@ -10,6 +10,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class GetEngineUsagePerUserReactor extends AbstractReactor {
 	
@@ -20,6 +21,12 @@ public class GetEngineUsagePerUserReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
+		
+		if (!Utility.isModelInferenceLogsEnabled()) {
+			throw new IllegalArgumentException("Model Inference Logs Database Must be functioning for this report to be generated");
+		}
+
+		
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if(engineId == null || engineId.isEmpty()) {

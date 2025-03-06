@@ -11,6 +11,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class AdminGetEngineUsagePerProjectReactor extends AbstractReactor {
 
@@ -25,6 +26,11 @@ public class AdminGetEngineUsagePerProjectReactor extends AbstractReactor {
 		if(adminUtils == null) {
 			throw new IllegalArgumentException("User must be an admin to perform this function");
 		}
+		
+		if (!Utility.isModelInferenceLogsEnabled()) {
+			throw new IllegalArgumentException("Model Inference Logs Database Must be functioning for this report to be generated");
+		}
+		
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if(engineId == null || engineId.isEmpty()) {
