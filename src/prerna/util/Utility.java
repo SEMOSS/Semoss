@@ -264,33 +264,77 @@ public final class Utility {
 		return ESAPI.encoder().encodeForSQL(mySQLCodec, (stringToNormalize));
 	}
 	
+	
+	////////////////////////////// Call Tools ////////////////////////////////////////////
+	
+	
+    private Map<String, Object> createParameter(String type, String description) {
+        Map<String, Object> param = new HashMap<>();
+        param.put("type", type);
+        param.put("description", description);
+        return param;
+    }
+    
 	/**
-	 * Matches the given query against a specified pattern. While the next substring
-	 * of the query matches a part of the pattern, set substring as the key with
-	 * EMPTY constants (@@) as the value
+
 	 * 
 	 * @param Query.
 	 * 
-	 * @return Hashtable of queries to be replaced
+	 * @return JSON format of vector 
+	 * 
 	 */
-	public static Hashtable getParamTypeHash(String query) {
-		Hashtable paramHash = new Hashtable();
-		Pattern pattern = Pattern.compile(SPECIFIED_PATTERN);
+	public static Map<String, Object> addVectorDatabaseTool(String engineId, String command, int limit) {
+        Map<String, Object> functionEngine = new HashMap<>();
+		
+		// Get the engine id and look for its type
+		SecurityEngineUtils securityEngineUtils = new SecurityEngineUtils();
+		IEngine.CATALOG_TYPE type = (IEngine.CATALOG_TYPE)SecurityEngineUtils.getEngineTypeAndSubtype(engineId)[0];
+		
+		if (IEngine.CATALOG_TYPE.VECTOR == type) {
+			// If it's a vector:
+	        // Function => Parameters => Properties => MAP => Properties => Parameter
+	        Map<String, Object> parametersProperties = new HashMap<>();
+	        parametersProperties.put("engineId", engineId);
+	        parametersProperties.put("command", command);
+	        parametersProperties.put("limit", limit);
+	        
+	        // Level 5: Parameters=>Properties=>function_id
+	        Map<String, Object> functionIdMap = new HashMap<>();
+	        functionIdMap.put("type", "object");
+	        functionIdMap.put("description", "The unique identifier for the function_engine provided in the description.");
+	       
+	        // Level 4: Parameters=>Properties=>MAP
+	        Map<String, Object> propertiesMap = new HashMap<>();
+	        propertiesMap.put("type", "object"); // value is DYNAMIC
+	        propertiesMap.put("properties", parametersProperties); 
+	        propertiesMap.put("required", new String[]{"engineId", "command", "limit"}); // Add more required parameters as needed
+	        propertiesMap.put("description", "<PARAM OBJECT DESCRIPTION>");
+	     
+	        // Level 3: Parameters=>Type, Parameters=>Properties, Parameters=>Required
+	        Map<String, Object> functionParameters = new HashMap<>();
+	        functionParameters.put("type", "object");
+	        functionParameters.put("properties", propertiesMap);
+	        // Dynamically inputs a list of the other level 3 elements that are required
+	        functionParameters.put("required", new String[]{"engineId", "command", "limit"});
 
-		Matcher matcher = pattern.matcher(query);
-		while (matcher.find()) {
-			String data = matcher.group();
-			data = data.substring(1, data.length() - 1);
-			String paramName = data.substring(0, data.indexOf("-"));
-			String paramValue = data.substring(data.indexOf("-") + 1);
+	        // Level 2: name, description, and parameters
+	        Map<String, Object> function = new HashMap<>();
+	        function.put("name", "add_vector_database");
+	        function.put("description", "Adds a new vector database");
+	        function.put("parameters", functionParameters);
 
-			classLogger.debug(data);
-			// put something to strip the @
-			paramHash.put(paramName, paramValue);
+	        // Level 1: function 
+	        functionEngine.put("function", function);
+		} else if () {
+			
 		}
-
-		return paramHash;
-	}
+		
+        return functionEngine;
+    }
+	
+	
+	///////////////////////////////////////////////////////////////////////////////////////
+	
 	
 	/**
 	 * Get the Base Folder
