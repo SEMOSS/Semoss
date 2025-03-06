@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -19,8 +20,15 @@ import com.google.gson.Gson;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -544,6 +552,46 @@ public class UserTrackingUtils {
 			classLogger.info("Running sql " + sql);
 			stmt.execute(sql);
 		}
+	}
+
+	public static List<Map<String, Object>> getDatabaseUsage(String databaseId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__USERID"));
+		
+		QueryFunctionSelector queryExecuted = new QueryFunctionSelector();
+		queryExecuted.setFunction(QueryFunctionHelper.COUNT);
+		queryExecuted.addInnerSelector(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED"));
+		qs.addSelector(queryExecuted);
+		
+		QueryFunctionSelector averageExecutionTimeSelector = new QueryFunctionSelector();
+		averageExecutionTimeSelector.setFunction(QueryFunctionHelper.AVERAGE_2);
+		averageExecutionTimeSelector.addInnerSelector(new QueryColumnSelector("QUERY_TRACKING__TOTAL_EXECUTION_TIME"));
+		qs.addSelector(averageExecutionTimeSelector);
+	
+		QueryFunctionSelector lastTimeSelector = new QueryFunctionSelector();
+		lastTimeSelector.setFunction(QueryFunctionHelper.MAX);
+		lastTimeSelector.addInnerSelector(new QueryColumnSelector("QUERY_TRACKING__START_TIME"));
+		lastTimeSelector.setAlias("last time ran");
+		qs.addSelector(lastTimeSelector);
+		
+		qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED"));
+		
+		QueryFunctionSelector lastLogonSelector = new QueryFunctionSelector();
+		lastLogonSelector.setFunction(QueryFunctionHelper.MAX);
+		lastLogonSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING__CREATED_ON"));
+		lastLogonSelector.setAlias("last logon");
+		qs.addSelector(lastLogonSelector);
+		
+		qs.addRelation("QUERY_TRACKING__USERID", "USER_TRACKING__USERID", "left.join");
+		
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUERY_TRACKING__DATABASEID", "==", databaseId));
+		
+		qs.addGroupBy(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED"));
+		qs.addGroupBy(new QueryColumnSelector("QUERY_TRACKING__TOTAL_EXECUTION_TIME"));
+
+		qs.addOrderBy(new QueryColumnOrderBySelector("QUERY_TRACKING__START_TIME", "DESC"));
+		
+		return QueryExecutionUtility.flushRsToMap(userTrackingDb, qs); 
 	}
 
 }
