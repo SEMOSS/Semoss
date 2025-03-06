@@ -20,6 +20,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.LLMReactor;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -32,8 +33,9 @@ import prerna.util.Utility;
 public class LLMReactorUnitTests {
     private User user;
     private NounStore ns;
-	private Insight insight;
+    private Insight insight;
     private GenRowStruct grs;
+
     private LLMReactor reactor;
 	private Map<String, String> keyValues;
 
@@ -43,9 +45,11 @@ public class LLMReactorUnitTests {
 		keyValues = reactor.keyValue;
 		insight = mock(Insight.class);
         user = mock(User.class);
-		reactor.setInsight(insight);
         ns = mock(NounStore.class);
 		grs = mock(GenRowStruct.class);
+		
+        reactor.setInsight(insight);
+        reactor.setNounStore(ns);
 
         when(insight.getUser()).thenReturn(user);
     }
@@ -67,7 +71,7 @@ public class LLMReactorUnitTests {
     }
 
     @Test
-    void executeNoContext () {
+    void executeRequired () {
         String engineId = "engine";
         String command = "command";
 
@@ -79,16 +83,24 @@ public class LLMReactorUnitTests {
                 seu.when(() -> SecurityEngineUtils.userCanViewEngine(user, engineId)).thenReturn(true);
                 utility.when(() -> Utility.decodeURIComponent(command)).thenReturn(command);
                 
-                GenRowStruct grs = new GenRowStruct();
-                Map<Object, Object> map = new HashMap<>();
-                map.put("test", "test");
-                grs.addMap(map, PixelOperationType.OPERATION);
+                List<NounMetadata> list = new ArrayList<>();
+                NounMetadata meta = new NounMetadata(new HashMap<>(), PixelDataType.MAP);
+                list.add(meta);
+                
                 when(ns.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())).thenReturn(grs);
+                when(grs.getNounsOfType(PixelDataType.MAP)).thenReturn(list);
                 
                 IModelEngine modelEngine = mock(IModelEngine.class);
+                AskModelEngineResponse ask = mock(AskModelEngineResponse.class);
                 utility.when(() -> Utility.getModel(engineId)).thenReturn(modelEngine);
+                when(modelEngine.ask(command, null, insight, new HashMap())).thenReturn(ask);
                 
                 NounMetadata nm = reactor.execute();
+
+                assertNotNull(nm);
+                assertEquals(PixelDataType.MAP, nm.getNounType());
+                assertEquals(PixelOperationType.OPERATION, nm.getOpType().get(0));
+                assertEquals(ask.toMap(), nm.getValue());
         }
     }
 
@@ -96,26 +108,36 @@ public class LLMReactorUnitTests {
     void executeWithContext () {
         String engineId = "engine";
         String command = "command";
+        String context = "context";
 
         keyValues.put(ReactorKeysEnum.ENGINE.getKey(), engineId);
         keyValues.put(ReactorKeysEnum.COMMAND.getKey(), command);
-        keyValues.put(ReactorKeysEnum.CONTEXT.getKey(), "context");
+        keyValues.put(ReactorKeysEnum.CONTEXT.getKey(), context);
 
         try (MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class); 
             MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class)) {
                 seu.when(() -> SecurityEngineUtils.userCanViewEngine(user, engineId)).thenReturn(true);
                 utility.when(() -> Utility.decodeURIComponent(command)).thenReturn(command);
+                utility.when(() -> Utility.decodeURIComponent(context)).thenReturn(context);
                 
-                GenRowStruct grs = new GenRowStruct();
-                Map<Object, Object> map = new HashMap<>();
-                map.put("test", "test");
-                grs.addMap(map, PixelOperationType.OPERATION);
+                List<NounMetadata> list = new ArrayList<>();
+                NounMetadata meta = new NounMetadata(new HashMap<>(), PixelDataType.MAP);
+                list.add(meta);
+                
                 when(ns.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())).thenReturn(grs);
-                
+                when(grs.getNounsOfType(PixelDataType.MAP)).thenReturn(list);
+
                 IModelEngine modelEngine = mock(IModelEngine.class);
+                AskModelEngineResponse ask = mock(AskModelEngineResponse.class);
                 utility.when(() -> Utility.getModel(engineId)).thenReturn(modelEngine);
+                when(modelEngine.ask(command, context, insight, new HashMap())).thenReturn(ask);
                 
                 NounMetadata nm = reactor.execute();
+
+                assertNotNull(nm);
+                assertEquals(PixelDataType.MAP, nm.getNounType());
+                assertEquals(PixelOperationType.OPERATION, nm.getOpType().get(0));
+                assertEquals(ask.toMap(), nm.getValue());
         }
     }
 
@@ -123,65 +145,73 @@ public class LLMReactorUnitTests {
     void executeNoParamMap () {
         String engineId = "engine";
         String command = "command";
+        String context = "context";
 
         keyValues.put(ReactorKeysEnum.ENGINE.getKey(), engineId);
         keyValues.put(ReactorKeysEnum.COMMAND.getKey(), command);
-        keyValues.put(ReactorKeysEnum.CONTEXT.getKey(), "context");
+        keyValues.put(ReactorKeysEnum.CONTEXT.getKey(), context);
 
         try (MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class); 
             MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class)) {
                 seu.when(() -> SecurityEngineUtils.userCanViewEngine(user, engineId)).thenReturn(true);
                 utility.when(() -> Utility.decodeURIComponent(command)).thenReturn(command);
+                utility.when(() -> Utility.decodeURIComponent(context)).thenReturn(context);
                 
-                GenRowStruct grs = new GenRowStruct();
-                Map<Object, Object> map = new HashMap<>();
-                map.put("test", "test");
-                grs.addMap(map, PixelOperationType.OPERATION);
-                when(ns.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())).thenReturn(grs);
-                
+                when(ns.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())).thenReturn(null);
+                when(grs.getNounsOfType(PixelDataType.MAP)).thenReturn(null);
+
                 IModelEngine modelEngine = mock(IModelEngine.class);
+                AskModelEngineResponse ask = mock(AskModelEngineResponse.class);
                 utility.when(() -> Utility.getModel(engineId)).thenReturn(modelEngine);
+                when(modelEngine.ask(command, context, insight, new HashMap())).thenReturn(ask);
                 
                 NounMetadata nm = reactor.execute();
+
+                assertNotNull(nm);
+                assertEquals(PixelDataType.MAP, nm.getNounType());
+                assertEquals(PixelOperationType.OPERATION, nm.getOpType().get(0));
+                assertEquals(ask.toMap(), nm.getValue());
         }
     }
 
     @Test
-    void executeWithParamMap () {
+    void execute () {
         String engineId = "engine";
         String command = "command";
+        String context = "context";
 
         HashMap<Object, Object> paramVals = new HashMap<>();
         paramVals.put("test", "test");
 
         keyValues.put(ReactorKeysEnum.ENGINE.getKey(), engineId);
         keyValues.put(ReactorKeysEnum.COMMAND.getKey(), command);
-        keyValues.put(ReactorKeysEnum.CONTEXT.getKey(), "context");
+        keyValues.put(ReactorKeysEnum.CONTEXT.getKey(), context);
         keyValues.put(ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), paramVals.toString());
 
         try (MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class); 
             MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class)) {
                 seu.when(() -> SecurityEngineUtils.userCanViewEngine(user, engineId)).thenReturn(true);
                 utility.when(() -> Utility.decodeURIComponent(command)).thenReturn(command);
+                utility.when(() -> Utility.decodeURIComponent(context)).thenReturn(context);
                 
-                // GenRowStruct grs = new GenRowStruct();
-                // Map<Object, Object> map = new HashMap<>();
-                // map.put("test", "test");
-                // grs.addMap(map, PixelOperationType.OPERATION);
                 List<NounMetadata> list = new ArrayList<>();
-                NounMetadata meta = new NounMetadata("test", PixelDataType.CONST_STRING);
+                NounMetadata meta = new NounMetadata(new HashMap<>(), PixelDataType.MAP);
                 list.add(meta);
 
-                grs = mock(GenRowStruct.class);
                 when(ns.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())).thenReturn(grs);
                 when(grs.getNounsOfType(PixelDataType.MAP)).thenReturn(list);
                 
                 IModelEngine modelEngine = mock(IModelEngine.class);
+                AskModelEngineResponse ask = mock(AskModelEngineResponse.class);
                 utility.when(() -> Utility.getModel(engineId)).thenReturn(modelEngine);
+                when(modelEngine.ask(command, context, insight, new HashMap())).thenReturn(ask);
                 
                 NounMetadata nm = reactor.execute();
 
                 assertNotNull(nm);
+                assertEquals(PixelDataType.MAP, nm.getNounType());
+                assertEquals(PixelOperationType.OPERATION, nm.getOpType().get(0));
+                assertEquals(ask.toMap(), nm.getValue());
         }
     }
 
