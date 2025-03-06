@@ -142,7 +142,7 @@ public class LLMReactorUnitTests {
     }
 
     @Test
-    void executeNoParamMap () {
+    void executeNullParamMap () {
         String engineId = "engine";
         String command = "command";
         String context = "context";
@@ -157,8 +157,12 @@ public class LLMReactorUnitTests {
                 utility.when(() -> Utility.decodeURIComponent(command)).thenReturn(command);
                 utility.when(() -> Utility.decodeURIComponent(context)).thenReturn(context);
                 
+                String noun = "[]";
+                when(ns.makeNoun(noun)).thenReturn(grs);
                 when(ns.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())).thenReturn(null);
                 when(grs.getNounsOfType(PixelDataType.MAP)).thenReturn(null);
+
+                reactor.curNoun(new GenRowStruct().toString());
 
                 IModelEngine modelEngine = mock(IModelEngine.class);
                 AskModelEngineResponse ask = mock(AskModelEngineResponse.class);
@@ -175,7 +179,7 @@ public class LLMReactorUnitTests {
     }
 
     @Test
-    void execute () {
+    void executeMapInputs () {
         String engineId = "engine";
         String command = "command";
         String context = "context";
@@ -198,8 +202,12 @@ public class LLMReactorUnitTests {
                 NounMetadata meta = new NounMetadata(new HashMap<>(), PixelDataType.MAP);
                 list.add(meta);
 
-                when(ns.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())).thenReturn(grs);
+                String noun = "[]";
+                when(ns.makeNoun(noun)).thenReturn(grs);
+                when(ns.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())).thenReturn(null);
                 when(grs.getNounsOfType(PixelDataType.MAP)).thenReturn(list);
+
+                reactor.curNoun(new GenRowStruct().toString());
                 
                 IModelEngine modelEngine = mock(IModelEngine.class);
                 AskModelEngineResponse ask = mock(AskModelEngineResponse.class);
