@@ -264,6 +264,38 @@ public final class Utility {
 		return ESAPI.encoder().encodeForSQL(mySQLCodec, (stringToNormalize));
 	}
 	
+	/**
+	 * Matches the given query against a specified pattern. While the next substring
+	 * of the query matches a part of the pattern, set substring as the key with
+	 * EMPTY constants (@@) as the value
+	 * 
+	 * @param Query.
+	 * 
+	 * @return Hashtable of queries to be replaced
+	 * @return JSON format of vector 
+	 * 
+	 */
+	public static Hashtable getParamTypeHash(String query) {
+		Hashtable paramHash = new Hashtable();
+		Pattern pattern = Pattern.compile(SPECIFIED_PATTERN);
+
+		Matcher matcher = pattern.matcher(query);
+		while (matcher.find()) {
+			String data = matcher.group();
+			data = data.substring(1, data.length() - 1);
+			String paramName = data.substring(0, data.indexOf("-"));
+			String paramValue = data.substring(data.indexOf("-") + 1);
+
+			classLogger.debug(data);
+			// put something to strip the @
+			paramHash.put(paramName, paramValue);
+		}
+		
+		return paramHash;
+	}
+		
+		
+	     
 	
 	////////////////////////////// Call Tools ////////////////////////////////////////////
 	
