@@ -1,10 +1,9 @@
-package prerna.auth.utils.reactors.admin;
+package prerna.usertracking.reactors;
 
 import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -12,20 +11,16 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Utility;
 
-public class AdminGetDatabaseUsageReactor extends AbstractReactor {
+public class GetDatabaseUsageReactor extends AbstractReactor {
 
-	public AdminGetDatabaseUsageReactor() {
+	public GetDatabaseUsageReactor() {
 		this.keysToGet = new String[]{ ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.START_DATE.getKey(), ReactorKeysEnum.END_DATE.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
-		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-		if(adminUtils == null) {
-			throw new IllegalArgumentException("User must be an admin to perform this function");
-		}
-		
+
 		if (!Utility.isUserTrackingEnabled()) {
 			throw new IllegalArgumentException("User Tracking Must be Enabled For this Report");
 		}

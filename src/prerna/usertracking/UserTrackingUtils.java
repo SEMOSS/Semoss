@@ -21,8 +21,9 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.joins.SubqueryRelationship;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -554,20 +555,17 @@ public class UserTrackingUtils {
 		}
 	}
 
-	public static List<Map<String, Object>> getDatabaseUsage(String databaseId) {
+	public static List<Map<String, Object>> getDatabaseUsage(String databaseId, String limit, String offset, String startDate, String endDate) {
+		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__USERID"));
 		
+		// Count(QueryExecuted)
 		QueryFunctionSelector queryExecuted = new QueryFunctionSelector();
 		queryExecuted.setFunction(QueryFunctionHelper.COUNT);
 		queryExecuted.addInnerSelector(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED"));
 		qs.addSelector(queryExecuted);
 		
-		QueryFunctionSelector averageExecutionTimeSelector = new QueryFunctionSelector();
-		averageExecutionTimeSelector.setFunction(QueryFunctionHelper.AVERAGE_2);
-		averageExecutionTimeSelector.addInnerSelector(new QueryColumnSelector("QUERY_TRACKING__TOTAL_EXECUTION_TIME"));
-		qs.addSelector(averageExecutionTimeSelector);
-	
 		QueryFunctionSelector lastTimeSelector = new QueryFunctionSelector();
 		lastTimeSelector.setFunction(QueryFunctionHelper.MAX);
 		lastTimeSelector.addInnerSelector(new QueryColumnSelector("QUERY_TRACKING__START_TIME"));
@@ -575,23 +573,64 @@ public class UserTrackingUtils {
 		qs.addSelector(lastTimeSelector);
 		
 		qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED"));
+		qs.addSelector(new QueryColumnSelector("UT__LAST_LOGON"));
+		qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__FAILED_EXECUTION"));
+
 		
-		QueryFunctionSelector lastLogonSelector = new QueryFunctionSelector();
-		lastLogonSelector.setFunction(QueryFunctionHelper.MAX);
-		lastLogonSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING__CREATED_ON"));
-		lastLogonSelector.setAlias("last logon");
-		qs.addSelector(lastLogonSelector);
-		
-		qs.addRelation("QUERY_TRACKING__USERID", "USER_TRACKING__USERID", "left.join");
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			QueryFunctionSelector maxCreatedOnSelector = new QueryFunctionSelector();
+			maxCreatedOnSelector.setFunction(QueryFunctionHelper.MAX);
+			maxCreatedOnSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING__CREATED_ON"));
+			maxCreatedOnSelector.setAlias("LAST_LOGON");
+			subQs.addSelector(maxCreatedOnSelector);
+			subQs.addSelector(new QueryColumnSelector("USER_TRACKING__USERID"));
+			qs.addRelation(new SubqueryRelationship(subQs, "UT", "left.outer.join", 
+					new String[] {"QUERY_TRACKING__USERID", "UT__USERID", "="}));
+		}
 		
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUERY_TRACKING__DATABASEID", "==", databaseId));
+	
+		addStartDateEndDateFitler(qs, startDate, endDate);
+		addLimitAndOffSet(qs, limit, offset);
 		
 		qs.addGroupBy(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED"));
-		qs.addGroupBy(new QueryColumnSelector("QUERY_TRACKING__TOTAL_EXECUTION_TIME"));
-
-		qs.addOrderBy(new QueryColumnOrderBySelector("QUERY_TRACKING__START_TIME", "DESC"));
 		
 		return QueryExecutionUtility.flushRsToMap(userTrackingDb, qs); 
 	}
+	
+	/**
+	 * 
+	 * @param qs
+	 * @param startDate
+	 * @param endDate
+	 */
+	private static void addStartDateEndDateFitler(SelectQueryStruct qs, String startDate, String endDate) {
+		if((startDate != null && !startDate.trim().isEmpty()) && (endDate != null && !endDate.trim().isEmpty())) {
+			AndQueryFilter andFilters = new AndQueryFilter();	
+			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter("QUERY_TRACKING__START_TIME", ">=", startDate));
+			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter("QUERY_TRACKING__START_TIME", "<=", endDate));
+			qs.addExplicitFilter(andFilters);
+		}
+	}
 
+	
+	/**
+	 * @param qs
+	 * @param limit
+	 * @param offset
+	 */
+	private static void addLimitAndOffSet(SelectQueryStruct qs, String limit, String offset) {
+		Long long_limit = -1L;
+		Long long_offset = -1L;
+		if(limit != null && !limit.trim().isEmpty()) {
+			long_limit = ((Number) Double.parseDouble(limit)).longValue();
+		}
+		if(offset != null && !offset.trim().isEmpty()) {
+			long_offset = ((Number) Double.parseDouble(offset)).longValue();
+		}
+		qs.setLimit(long_limit);
+		qs.setOffSet(long_offset);
+	}
+	
 }
