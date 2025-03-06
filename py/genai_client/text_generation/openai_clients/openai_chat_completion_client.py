@@ -119,6 +119,14 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             dict: Updated kwargs
         """
         updated_kwargs = kwargs.copy()
+        # Token checks apply to ALL OpenAI models
+        # Check if 'max_tokens' exists in kwargs and remove it, saving its value
+        max_tokens = kwargs.pop("max_tokens", None)
+
+        # If 'max_tokens' was found and 'max_completion_tokens' is not already in kwargs, set it
+        if max_tokens is not None and "max_completion_tokens" not in kwargs:
+            kwargs["max_completion_tokens"] = max_tokens
+
         # Handle o1-mini (doesn't support system/developer roles)
         if self.model_name.startswith("o1-mini"):
             # Remove temperature - only 1.0 is supported
@@ -192,14 +200,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         kwargs["stream"] = kwargs.get("stream", True)
 
-        # Check if 'max_tokens' exists in kwargs and remove it, saving its value
-        max_tokens = kwargs.pop("max_tokens", None)
-
-        # If 'max_tokens' was found and 'max_completion_tokens' is not already in kwargs, set it
-        if max_tokens is not None and "max_completion_tokens" not in kwargs:
-            kwargs["max_completion_tokens"] = max_tokens
-
-        # Update model specific kwargs
+        # Updating model specific kwargs
         kwargs = self._update_model_specific_kwargs(**kwargs)
 
         openai_response = self.client.chat.completions.create(
