@@ -293,7 +293,59 @@ public final class Utility {
 		
 		return paramHash;
 	}
-	    
+	
+	/**
+	 * 
+	 * @param engineId, command, limit.
+	 * 
+	 * @return JSON format of vector 
+	 * 
+	 */
+	public static Map<String, Object> addVectorDatabaseTool(String engineId, String command, int limit) {
+        Map<String, Object> functionEngine = new HashMap<>();
+		
+		// Get the engine id and look for its type
+		IEngine.CATALOG_TYPE type = (IEngine.CATALOG_TYPE)SecurityEngineUtils.getEngineTypeAndSubtype(engineId)[0];
+		
+		if (IEngine.CATALOG_TYPE.VECTOR == type) {
+			// If it's a vector:
+	        // Function => Parameters => Properties => MAP => Properties => Parameter
+	        Map<String, Object> parametersProperties = new HashMap<>();
+	        parametersProperties.put("engineId", engineId);
+	        parametersProperties.put("command", command);
+	        parametersProperties.put("limit", limit);
+	        
+	        // Level 5: Parameters=>Properties=>function_id
+	        Map<String, Object> functionIdMap = new HashMap<>();
+	        functionIdMap.put("type", "object");
+	        functionIdMap.put("description", "The unique identifier for the function_engine provided in the description.");
+	       
+	        // Level 4: Parameters=>Properties=>MAP
+	        Map<String, Object> propertiesMap = new HashMap<>();
+	        propertiesMap.put("type", "object"); // value is DYNAMIC
+	        propertiesMap.put("properties", parametersProperties); 
+	        propertiesMap.put("required", new String[]{"engineId", "command", "limit"}); // Add more required parameters as needed
+	        propertiesMap.put("description", "<PARAM OBJECT DESCRIPTION>");
+	     
+	        // Level 3: Parameters=>Type, Parameters=>Properties, Parameters=>Required
+	        Map<String, Object> functionParameters = new HashMap<>();
+	        functionParameters.put("type", "object");
+	        functionParameters.put("properties", propertiesMap);
+	        // Dynamically inputs a list of the other level 3 elements that are required
+	        functionParameters.put("required", new String[]{"engineId", "command", "limit"});
+
+	        // Level 2: name, description, and parameters
+	        Map<String, Object> function = new HashMap<>();
+	        function.put("name", "add_vector_database");
+	        function.put("description", "Adds a new vector database");
+	        function.put("parameters", functionParameters);
+
+	        // Level 1: function 
+	        functionEngine.put("function", function);
+		} 
+		
+        return functionEngine;
+    }   
 	
 	/**
 	 * Get the Base Folder
