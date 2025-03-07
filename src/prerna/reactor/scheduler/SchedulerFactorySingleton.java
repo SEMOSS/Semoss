@@ -15,7 +15,6 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.rdbms.H2EmbeddedServerEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -23,20 +22,25 @@ import prerna.util.sql.RdbmsTypeEnum;
 public class SchedulerFactorySingleton {
 
 	private static final Logger logger = LogManager.getLogger(SchedulerFactorySingleton.class);
-
 	private static final String QUARTZ_CONFIGURATION_FILE = "quartz.properties";
-
-	private static StdSchedulerFactory factory;
 
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	static SchedulerFactorySingleton singleton = null;
-	static Scheduler scheduler = null;
-	int count = 0;
+	private static StdSchedulerFactory factory;
+	private static SchedulerFactorySingleton singleton = null;
+	private static Scheduler scheduler = null;
 
+	/**
+	 * 
+	 */
 	private SchedulerFactorySingleton() {
+	
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public static SchedulerFactorySingleton getInstance() {
 		if (singleton == null) {
 			singleton = new SchedulerFactorySingleton();
@@ -45,10 +49,17 @@ public class SchedulerFactorySingleton {
 		return singleton;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public static boolean isInit() {
 		return singleton != null;
 	}
 
+	/**
+	 * 
+	 */
 	private void init() {
 		Properties quartzProperties = null;
 		RDBMSNativeEngine schedulerDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SCHEDULER_DB);
@@ -73,17 +84,24 @@ public class SchedulerFactorySingleton {
 		}
 	}
 
+	/**
+	 * 
+	 * @param serverUrl
+	 * @param username
+	 * @param password
+	 * @param rdbmsType
+	 * @return
+	 */
 	public static Properties setUpQuartzProperties(String serverUrl, String username, String password, RdbmsTypeEnum rdbmsType) {
 		Properties quartzProperties = new Properties();
-		try (InputStream input = new FileInputStream(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + QUARTZ_CONFIGURATION_FILE)) {
+		try (InputStream input = new FileInputStream(Utility.getBaseFolder() + DIR_SEPARATOR + QUARTZ_CONFIGURATION_FILE)) {
 			quartzProperties.load(input);
 			quartzProperties.setProperty("org.quartz.dataSource.myDS.URL", serverUrl);
 			quartzProperties.setProperty("org.quartz.dataSource.myDS.driver", rdbmsType.getDriver());
 			quartzProperties.setProperty("org.quartz.dataSource.myDS.user", username);
 			quartzProperties.setProperty("org.quartz.dataSource.myDS.password", password);
 			quartzProperties.setProperty("org.quartz.jobStore.driverDelegateClass", SchedulerDatabaseUtility.getQuartzDelegateForRdbms(rdbmsType));
-			if(ClusterUtil.IS_CLUSTERED_SCHEDULER) {
+			if(ClusterUtil.IS_CLUSTER) {
 				quartzProperties.setProperty("org.quartz.scheduler.instanceId", "AUTO");
 				quartzProperties.setProperty("org.quartz.jobStore.isClustered", "true");
 			}
@@ -94,6 +112,10 @@ public class SchedulerFactorySingleton {
 		return quartzProperties;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public Scheduler getScheduler() {
 		if(scheduler != null) {
 			return scheduler;
@@ -112,15 +134,19 @@ public class SchedulerFactorySingleton {
 		return scheduler;
 	}
 
+	/**
+	 * 
+	 * @param waitForJobsToComplete
+	 */
 	public void shutdownScheduler(boolean waitForJobsToComplete) {
-		if(!ClusterUtil.IS_CLUSTERED_SCHEDULER) {
-		try {
-			if (scheduler != null && scheduler.isStarted()) {
-				scheduler.shutdown(waitForJobsToComplete); 
+		if(!ClusterUtil.IS_CLUSTER) {
+			try {
+				if (scheduler != null && scheduler.isStarted()) {
+					scheduler.shutdown(waitForJobsToComplete); 
+				}
+			} catch (SchedulerException se) {
+				logger.error(Constants.STACKTRACE, se);
 			}
-		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
 		}
-	}
 	}
 }

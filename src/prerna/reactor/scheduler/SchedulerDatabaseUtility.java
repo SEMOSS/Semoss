@@ -927,7 +927,7 @@ public class SchedulerDatabaseUtility {
 	 * 
 	 */
 	public static void executeAllTriggerOnLoads() {
-		if(ClusterUtil.IS_CLUSTERED_SCHEDULER) {
+		if(ClusterUtil.IS_CLUSTER){
 			return;
 		}
 		
