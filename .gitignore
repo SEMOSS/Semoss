@@ -94,3 +94,4 @@ py/log.txt
 # Python .env
 py/.env
 
+/testfolder/py
