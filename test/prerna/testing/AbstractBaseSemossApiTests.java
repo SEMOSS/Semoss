@@ -38,6 +38,9 @@ public abstract class AbstractBaseSemossApiTests {
 
 			ApiSemossTestEngineUtils.createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL,
 					"Native", true);
+			
+			ApiRTestUtils.check();
+			ApiPyTestUtils.check();
 		}
 		classLogger.info("Semoss Before All Time: " + (System.nanoTime() - start) / 1000000000);
 	}
