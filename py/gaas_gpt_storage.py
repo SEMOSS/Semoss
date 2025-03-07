@@ -28,6 +28,7 @@ class StorageEngine(ServerProxy):
         assert insight_id is not None
 
         epoc = super().get_next_epoc()
+
         pixel = (
             f'Storage("{self.engine_id}")|ListStoragePath(storagePath="{storagePath}");'
         )
@@ -61,6 +62,7 @@ class StorageEngine(ServerProxy):
         assert insight_id is not None
 
         epoc = super().get_next_epoc()
+
         pixel = f'Storage("{self.engine_id}")|ListStoragePathDetails(storagePath="{storagePath}");'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -105,6 +107,7 @@ class StorageEngine(ServerProxy):
         metadataStr = f",metadata=[{metadata}]" if metadata is not None else ""
 
         epoc = super().get_next_epoc()
+
         pixel = f'Storage("{self.engine_id}")|SyncLocalToStorage(storagePath="{storagePath}",filePath="{localPath}"{spaceStr}{metadataStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -146,6 +149,7 @@ class StorageEngine(ServerProxy):
         spaceStr = f',space="{space}"' if space is not None else ""
 
         epoc = super().get_next_epoc()
+
         pixel = f'Storage("{self.engine_id}")|SyncStorageToLocal(storagePath="{storagePath}",filePath="{localPath}"{spaceStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -187,6 +191,7 @@ class StorageEngine(ServerProxy):
         spaceStr = f',space="{space}"' if space is not None else ""
 
         epoc = super().get_next_epoc()
+
         pixel = f'Storage("{self.engine_id}")|PullFromStorage(storagePath="{storagePath}",filePath="{localPath}"{spaceStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -231,6 +236,7 @@ class StorageEngine(ServerProxy):
         metadataStr = f",metadata=[{metadata}]" if metadata is not None else ""
 
         epoc = super().get_next_epoc()
+
         pixel = f'Storage("{self.engine_id}")|PushToStorage(storagePath="{storagePath}",filePath="{localPath}"{spaceStr}{metadataStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -269,6 +275,7 @@ class StorageEngine(ServerProxy):
         leaveFolderStructureStr = "true" if leaveFolderStructure else "false"
 
         epoc = super().get_next_epoc()
+
         pixel = f'Storage("{self.engine_id}")|DeleteFromStorage(storagePath="{storagePath}",leaveFolderStructure={leaveFolderStructureStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
