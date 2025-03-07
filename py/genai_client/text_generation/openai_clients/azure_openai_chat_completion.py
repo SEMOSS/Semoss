@@ -3,7 +3,6 @@ import tiktoken
 
 
 class AzureOpenAiChatCompletion(OpenAiChatCompletion):
-
     def __init__(
         self,
         endpoint: str,
@@ -12,7 +11,8 @@ class AzureOpenAiChatCompletion(OpenAiChatCompletion):
         api_version="2023-07-01-preview",
         **kwargs
     ):
-        assert endpoint != None
+        if not endpoint:
+            raise ValueError("Azure endpoint cannot be None or empty.")
 
         super().__init__(
             api_key=api_key,
@@ -25,12 +25,11 @@ class AzureOpenAiChatCompletion(OpenAiChatCompletion):
     def _get_tokenizer(self, init_args):
         try:
             tiktoken.encoding_for_model(self.model_name)
-            return super()._get_tokenizer(init_args)
-        except:
+        except Exception:
             init_args["tokenizer_name"] = init_args.pop(
                 "openai_model_name", "gpt-3.5-turbo"
             )
-            return super()._get_tokenizer(init_args)
+        return super()._get_tokenizer(init_args)
 
     def _get_client(self, api_key, **kwargs):
         from openai import AzureOpenAI

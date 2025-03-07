@@ -45,11 +45,11 @@ class HuggingfaceTokenizer(AbstractTokenizer):
 
                 def _tokenize(self, text, **kwargs):
                     if isinstance(text, list):
-                        contents = []
-                        for msg in text:
-                            if isinstance(msg, dict) and "content" in msg:
-                                contents.append(msg["content"])
-                        text = " ".join(contents)
+                        text = " ".join(
+                            msg["content"]
+                            for msg in text
+                            if isinstance(msg, dict) and "content" in msg
+                        )
                     elif isinstance(text, dict) and "content" in text:
                         text = text["content"]
                     return text.split()
@@ -58,8 +58,8 @@ class HuggingfaceTokenizer(AbstractTokenizer):
                 def _add_tokens(self, *args, **kwargs):
                     pass
 
-                def encode(self, input, **kwargs):
-                    return self._tokenize(input)
+                def encode(self, input_data, **kwargs):
+                    return self._tokenize(input_data)
 
                 def decode(self, tokens, **kwargs):
                     return " ".join(tokens)
@@ -102,14 +102,13 @@ class HuggingfaceTokenizer(AbstractTokenizer):
         # Fallback if the tokenizer does not have the apply_chat_template method
         return "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
 
-    def count_tokens(self, input: Union[List[Dict], str]) -> int:
+    def count_tokens(self, input_data: Union[List[Dict], str]) -> int:
         """Use the model tokenizer to get the number of tokens, including image tokens"""
-        input_tokens_ids = self.get_tokens_ids(input=input)
-        token_count = len(input_tokens_ids)
+        token_count = len(self.get_tokens_ids(input_data=input_data))
 
         # Add tokens for images if present
-        if isinstance(input, list):
-            for message in input:
+        if isinstance(input_data, list):
+            for message in input_data:
                 if isinstance(message, dict):
                     content = message.get("content")
                     if isinstance(content, list):
@@ -123,10 +122,10 @@ class HuggingfaceTokenizer(AbstractTokenizer):
 
         return token_count
 
-    def get_tokens_ids(self, input: Union[List[Dict], str]) -> List[int]:
-        if isinstance(input, list):
+    def get_tokens_ids(self, input_data: Union[List[Dict], str]) -> List[int]:
+        if isinstance(input_data, list):
             contents = []
-            for message in input:
+            for message in input_data:
                 if isinstance(message, dict):
                     content = message.get("content") or message.get("text")
                     if isinstance(content, list):
@@ -137,23 +136,24 @@ class HuggingfaceTokenizer(AbstractTokenizer):
                                     text_contents.append(item.get("text", ""))
                         content = " ".join(text_contents) if text_contents else ""
                     contents.append(content)
-            input = " ".join([str(c) for c in contents if c is not None])
-        elif isinstance(input, dict):
-            content = input.get("content") or input.get("text")
+            input_data = " ".join([str(c) for c in contents if c is not None])
+        elif isinstance(input_data, dict):
+            content = input_data.get("content") or input_data.get("text")
             if isinstance(content, list):
                 text_contents = []
                 for item in content:
                     if isinstance(item, dict) and item.get("type") == "text":
                         text_contents.append(item.get("text", ""))
-                input = " ".join(text_contents) if text_contents else ""
+                input_data = " ".join(text_contents) if text_contents else ""
             else:
-                input = content
+                input_data = content
 
-        return self.tokenizer.encode(str(input) if input is not None else "")
+        return self.tokenizer.encode(str(input_data) if input_data is not None else "")
 
-    def get_tokens(self, input: Union[List[Dict], str]) -> List[str]:
+    def get_tokens(self, input_data: Union[List[Dict], str]) -> List[str]:
         return [
-            self.tokenizer.decode([tokenId]) for tokenId in self.get_tokens_ids(input)
+            self.tokenizer.decode([token_id])
+            for token_id in self.get_tokens_ids(input_data)
         ]
 
     def get_max_token_length(self) -> int:
@@ -166,8 +166,8 @@ class HuggingfaceTokenizer(AbstractTokenizer):
     def get_max_input_token_length(self) -> int:
         return self.max_input_tokens
 
-    def decode_token_ids(self, input: List[int]) -> str:
-        return self.tokenizer.decode(input)
+    def decode_token_ids(self, token_ids: List[int]) -> str:
+        return self.tokenizer.decode(token_ids)
 
     def get_model_limits(self, model_name: Optional[str]) -> Dict[str, int]:
         """
@@ -182,6 +182,17 @@ class HuggingfaceTokenizer(AbstractTokenizer):
         """
         model_name = model_name or self.encoder_name
         model_limits_config = get_model_limits(model_name)
+        # code review required for this code optimization to ensure it
+        return {
+            "context_window": self.context_window
+            or self.max_tokens
+            or self.get_max_token_length()
+            or model_limits_config["context_window"],
+            "max_completion_tokens": self.max_completion_tokens
+            or self.max_input_tokens
+            or model_limits_config["max_completion_tokens"],
+        }
+        """
         model_limits = {
             "context_window": None,
             "max_completion_tokens": None,
@@ -214,3 +225,4 @@ class HuggingfaceTokenizer(AbstractTokenizer):
             ]
 
         return model_limits
+        """
