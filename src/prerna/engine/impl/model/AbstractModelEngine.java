@@ -16,7 +16,6 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -287,44 +286,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, embeddingsResponse, inputTime, outputTime);
  		
 		return embeddingsResponse;
-	}
-	
-	/**
-	 * This is an abstract method for the implementation class such that tracking occurs
-	 * 
-	 * @param input
-	 * @param insight
-	 * @param parameters
-	 * @return
-	 */
-	protected abstract Object modelCall(Object input, Insight insight, Map <String, Object> parameters);
-	
-	@Override
-	public Object model(Object input, Insight insight, Map <String, Object> parameters) {		
-		ZonedDateTime inputTime = ZonedDateTime.now();
-		Object modelCallResponse = modelCall(input, insight, parameters);
-		ZonedDateTime outputTime = ZonedDateTime.now();
-	
-		if (inferenceLogsEnbaled) {
-			String messageId = UUID.randomUUID().toString();
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/messageId,
-					/*messageMethod*/"model", 
-					/*engine*/this,
-					/*insight*/insight,
-					/*context*/null,
-					/*prompt*/input + "",
-					/*fullPrompt*/null,
-					/*promptTokens*/null,
-					/*inputTime*/inputTime, 
-					/*response*/PyUtils.determineStringType(modelCallResponse),
-					/*responseTokens*/null,
-					/*outputTime*/outputTime
-			));
-			inferenceRecorder.start();
-		}
- 				
-		return modelCallResponse;
 	}
 	
 	/**

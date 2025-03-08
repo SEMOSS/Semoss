@@ -125,8 +125,9 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 		}
 		
 		// check if we have already created a process wrapper
-		if(this.cpw == null) {
-			this.cpw = new ClientProcessWrapper();
+		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+		if(this.cpw != null) {
+			this.cpw.shutdown(false);
 		}
 		
 		String timeout = "30";
@@ -134,49 +135,39 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
 		}
 		
-		if(this.cpw.getSocketClient() == null) {
-			boolean debug = false;
-			
-			// pull the relevant values from the smss
-			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-			
-			if(port < 0) {
-				// port has not been forced
-				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch(NumberFormatException e) {
-						classLogger.warn("Function Engine " + this.getEngineName() + " has an invalid FORCE_PORT value");
-					}
+		boolean debug = false;
+		
+		// pull the relevant values from the smss
+		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+		String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+		
+		if(port < 0) {
+			// port has not been forced
+			if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
+				try {
+					port = Integer.parseInt(forcePort);
+					debug = true;
+				} catch(NumberFormatException e) {
+					classLogger.warn("Function Engine " + this.getEngineName() + " has an invalid FORCE_PORT value");
 				}
 			}
-			
-			String serverDirectory = this.cacheFolder.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
-			try {
-				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to server for local python function engine.");
-			}
-		} else if (!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
-			try {
-				this.cpw.reconnect();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Function Engine = " + this.getEngineName());
-			}
+		}
+		
+		String serverDirectory = this.cacheFolder.getAbsolutePath();
+		boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
+		try {
+			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Unable to connect to server for local python function engine.");
 		}
 		
 		// create the py translator
 		pyt = new PyTranslator();
-		pyt.setSocketClient(this.cpw.getSocketClient());
+		pyt.setSocketClient(cpwToInit.getSocketClient());
 		
 		try {
 			String execCommand = "from detoxify import Detoxify\n" 
@@ -187,14 +178,17 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 			
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-								+ " ptyhon process with commands >>> " + execCommand);
+								+ " python process with commands >>> " + execCommand);
+			
+			// finally set the cpw in the class
+			this.cpw = cpwToInit;
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			if(this.cpw != null) {
+			if(cpwToInit != null) {
 				classLogger.warn("Able to start the python process for detoxify guardrail engine " 
 						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 						+ " but the start script failed.");
-				this.cpw.shutdown(false);
+				cpwToInit.shutdown(false);
 			}
 			throw e;
 		}
