@@ -1,4 +1,4 @@
-package prerna.auth.utils;
+package prerna.auth.external;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -24,6 +25,7 @@ import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -68,6 +70,7 @@ public class ExternalAuthorizationHelper {
 				
 					properties = new HashMap<>();
 					properties.put(Constants.RDBMS_TYPE, engineSubType);
+					properties.put(Constants.OWL, Constants.DATABASE_FOLDER+"/@ENGINE@/"+engineName+"_OWL.OWL");
 				}
 				
 				File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties);
@@ -76,6 +79,11 @@ public class ExternalAuthorizationHelper {
 				FileUtils.copyFile(tempSmss, smssFile);
 				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 				tempSmss.delete();
+				
+				// also make the folder to persist... even if empty
+				String engineFolder = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
+				File eFolder = new File(engineFolder);
+				eFolder.mkdir();
 				
 				ClusterUtil.pushEngine(engineId);
 			}
