@@ -180,6 +180,7 @@ if __name__ == "__main__":
             os.chroot(args.userChrootFolder)
             os.chdir("/")  # Change to root directory within chroot
             logging.info(f"Chrooted to {args.userChrootFolder} and changed directory to /")
+            os.environ.clear()
         except PermissionError:
             logging.error("Permission denied: You need to run this script as root.")
             sys.exit(1)
@@ -199,3 +200,6 @@ if __name__ == "__main__":
         timeout=args.timeout,
         start=args.start,
     )
+
+if __name__ == "__main__":
+    Server(port=9999, start=True)

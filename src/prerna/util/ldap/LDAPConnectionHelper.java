@@ -128,7 +128,7 @@ public class LDAPConnectionHelper {
 		}
 		
 		AccessToken token = new AccessToken();
-		token.setProvider(AuthProvider.ACTIVE_DIRECTORY);
+		token.setProvider(AuthProvider.LDAP);
 		token.setSAN("DN", userDN);
 		token.setId(userId + "");
 		if(name != null) {

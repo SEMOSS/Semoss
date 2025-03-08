@@ -95,11 +95,21 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		}
 		{
 			Map<String, Object> usageMap = fillMap(
-					JAVA, 
-					"How to use in Java",
-					"import prerna.util.Utility;\r\n" + 
-							"import prerna.engine.api.IModelEngine;\r\n" + 
-							"IModelEngine modelEngine = Utility.getModel(\""+engineId+"\");"
+					"LANGCHAIN", 
+					"How to use with Langchain API",
+					"from gaas_gpt_model import ModelEngine\r\n" + 
+						"model = ModelEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
+						
+						"\n# Generation\r\n" +
+						"langhchain_llm = model.to_langchain_chat_model()\r\n" +
+						"question = 'Sample Question'\r\n" +
+						"output = langhchain_llm.invoke(input = question)\r\n" +
+						
+						"\n# Embeddings\r\n" + 
+						"langhchain_llm = model.to_langchain_embedder()\r\n" +
+						"text_arr = ['Sample String 1', 'Sample String 2']\r\n" +
+						"langhchain_llm.embed_query(text = text_arr[0])\r\n"+
+						"langhchain_llm.embed_documents(texts = text_arr)"
 					);
 			usage.add(usageMap);
 		}
@@ -162,6 +172,16 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					);
 			usage.add(usageMap);
 		}
+		{
+			Map<String, Object> usageMap = fillMap(
+					JAVA, 
+					"How to use in Java",
+					"import prerna.util.Utility;\r\n" + 
+							"import prerna.engine.api.IModelEngine;\r\n" + 
+							"IModelEngine modelEngine = Utility.getModel(\""+engineId+"\");"
+					);
+			usage.add(usageMap);
+		}
 		return usage;
 	}
 	
@@ -199,6 +219,24 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		}
 		{
 			Map<String, Object> usageMap = fillMap(
+					"LANGCHAIN", 
+					"How to use with Langchain API",
+					"from gaas_gpt_storage import StorageEngine\r\n" + 
+						"storage = StorageEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
+						"langhchain_storage = storage.to_langchain_storage()\r\n" +
+						"langhchain_storage.list(storagePath = '/your/path/')\r\n" + 
+						"langhchain_storage.listDetails(storagePath = '/your/path/')\r\n" + 
+						"langhchain_storage.syncLocalToStorage(localPath= 'your/local/path', storagePath = 'your/storage/path')\r\n" +
+						"langhchain_storage.syncStorageToLocal(localPath= 'your/local/path', storagePath = 'your/storage/path')\r\n" + 
+						"langhchain_storage.copyToLocal(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')\r\n" + 
+						"langhchain_storage.copyToStorage(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')\r\n" + 
+						"langhchain_storage.deleteFromStorage(storagePath = 'your/storage/file/path')"
+
+					);
+			usage.add(usageMap);
+		}
+		{
+			Map<String, Object> usageMap = fillMap(
 					JAVA, 
 					"How to use in Java",
 					"import prerna.util.Utility;\r\n" + 
@@ -231,6 +269,20 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							"databaseEngine.insertData(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')\r\n" + 
 							"databaseEngine.updateData(query = 'UPDATE table_name set column1=value1 WHERE condition')\r\n" + 
 							"databaseEngine.removeData(query = 'DELETE FROM table_name WHERE condition')"
+					);
+			usage.add(usageMap);
+		}
+		{
+			Map<String, Object> usageMap = fillMap(
+					"LANGCHAIN", 
+					"How to use with Langchain API",
+					"from gaas_gpt_database import DatabaseEngine\r\n" + 
+						"database = DatabaseEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
+						"langhchain_db = database.to_langchain_database()\r\n" +
+						"langhchain_llm.executeQuery(query = 'SELECT * FROM table_name')\r\n"+
+						"langhchain_llm.insertQuery(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')\r\n"+
+						"langhchain_llm.updateQuery(query = 'UPDATE table_name set column1=value1 WHERE condition')\r\n"+
+						"langhchain_llm.removeQuery(query = 'DELETE FROM table_name WHERE condition')"
 					);
 			usage.add(usageMap);
 		}
@@ -276,8 +328,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					PYTHON, 
 					"How to use in Python",
-					"# import vector engine class and initialize\r\nfrom gaas_gpt_vector import VectorEngine\r\n" + 
-							"vectorEngine = VectorEngine(engine_id = \""+engineId+"\", insight_id = '${i}', insight_folder = '${if}')\r\n" +
+					"# import vector engine class and initialize\r\n" + 
+							"from gaas_gpt_vector import VectorEngine\r\n" + 
+							"vectorEngine = VectorEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 							
 							"\n# List all the documents the vector database currently comprises of\r\n" +
 							"vectorEngine.listDocuments()\r\n" + 
@@ -299,6 +352,20 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							
 							"\n# Remove document(s) from the vector database\r\n" +
 							"vectorEngine.removeDocument(file_names = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])"
+					);
+			usage.add(usageMap);
+		}
+		{
+			Map<String, Object> usageMap = fillMap(
+					"LANGCHAIN", 
+					"How to use with Langchain API",
+					"from gaas_gpt_vector import VectorEngine\r\n" + 
+						"vector = VectorEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
+						"langhchain_vector = vector.to_langchain_vector_store()\r\n" +
+						"langhchain_vector.listDocs()\r\n"+
+						"langhchain_vector.addDocs(file_paths = ['file1.pdf','file2.pdf',...])\r\n"+
+						"langhchain_vector.removeDocs(file_names = ['file1.pdf','file2.pdf',...])\r\n"+
+						"langhchain_vector.similaritySearch(query = 'Sample Search Statement', k=5)"
 					);
 			usage.add(usageMap);
 		}

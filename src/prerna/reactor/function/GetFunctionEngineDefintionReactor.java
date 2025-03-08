@@ -19,10 +19,15 @@ public class GetFunctionEngineDefintionReactor extends AbstractReactor {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Fucntion Engine " + engineId + " does not exist or user does not have access to this function");
+			throw new IllegalArgumentException(getUnableToAccessError(engineId));
 		}
 		
 		IFunctionEngine engine = Utility.getFunctionEngine(engineId);
-		return new NounMetadata(engine.getFunctionDefintionJson(), PixelDataType.CUSTOM_DATA_STRUCTURE);
+		return new NounMetadata(engine.getFunctionDefintionJson(), PixelDataType.JSON_OBJECT);
 	}
+	
+	String getUnableToAccessError(String engineId) {
+		return "Function Engine " + engineId + " does not exist or user does not have access to this function";
+	}
+	
 }

@@ -14,8 +14,8 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -44,7 +44,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	protected String workingDirectory;
 	protected String workingDirectoryBasePath = null;
 	
-	protected TCPPyTranslator pyt = null;
+	protected PyTranslator pyt = null;
 	protected File cacheFolder;
 	private ClientProcessWrapper cpw = null;
 	
@@ -93,16 +93,18 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		if(this.workingDirectoryBasePath == null) {
 			this.createCacheFolder();
 		}
+
 		// check if we have already created a process wrapper
-		if(this.cpw == null) {
-			this.cpw = new ClientProcessWrapper();
+		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+		if(this.cpw != null) {
+			this.cpw.shutdown(false);
 		}
 		
 		String timeout = "30";
 		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
 			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
 		}
-		if(this.cpw.getSocketClient() == null) {
+		if(cpwToInit.getSocketClient() == null) {
 			boolean debug = false;
 			
 			// pull the relevant values from the smss
@@ -128,15 +130,15 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			String serverDirectory = this.cacheFolder.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {
-				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
+				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
 			}
-		} else if (!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
+		} else if (!cpwToInit.getSocketClient().isConnected()) {
+			cpwToInit.shutdown(false);
 			try {
-				this.cpw.reconnect();
+				cpwToInit.reconnect();
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " +this.getEngineName());
@@ -144,8 +146,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		
 		// create the py translator
-		pyt = new TCPPyTranslator();
-		pyt.setSocketClient(this.cpw.getSocketClient());
+		pyt = new PyTranslator();
+		pyt.setSocketClient(cpwToInit.getSocketClient());
 		
 		try {
 			// execute all the basic commands
@@ -159,18 +161,20 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			pyt.runEmptyPy(commands);
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-								+ " ptyhon process with commands >>> " + String.join("\n", commands));	
+								+ " python process with commands >>> " + String.join("\n", commands));	
 			
 			// run a prefix command
-			setPrefix();
+			setPrefix(cpwToInit);
 			
+			// finally set the cpw in the class
+			this.cpw = cpwToInit;
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			if(this.cpw != null) {
+			if(cpwToInit != null) {
 				classLogger.warn("Able to start the python process for the python model engine " 
 						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 						+ " but the start script failed.");
-				this.cpw.shutdown(false);
+				cpwToInit.shutdown(false);
 			}
 			throw e;
 		}
@@ -188,39 +192,55 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	/**
 	 * 
 	 */
-	private void setPrefix() {
-		this.prefix = this.cpw.getPrefix();
+	private void setPrefix(ClientProcessWrapper cpwToInit) {
+		this.prefix = cpwToInit.getPrefix();
 		PayloadStruct prefixPayload = new PayloadStruct();
 		prefixPayload.payload = new String[] {"prefix", this.prefix};
 		prefixPayload.operation = PayloadStruct.OPERATION.CMD;
-		this.cpw.getSocketClient().executeCommand(prefixPayload);
+		cpwToInit.getSocketClient().executeCommand(prefixPayload);
 	}
 	
 
 	@Override
 	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> parameters) {
 		checkSocketStatus();
-		
+
 		boolean keepConvoHisotry = this.keepsConversationHistory();
-		
+		final String TRIPLE_QUOTE = "\"\"\"";
+
 		StringBuilder callMaker = new StringBuilder(varName + ".ask(");		
-		
 		if (fullPrompt != null) {
 			callMaker.append(FULL_PROMPT)
-					 .append("=")
-					 .append(PyUtils.determineStringType(fullPrompt));
+					.append("=")
+					.append(PyUtils.determineStringType(fullPrompt));
 		} else {
-			callMaker.append("question=\"\"\"")
-					 .append(question.replace("\"", "\\\""))
-					 .append("\"\"\"");
-	
-			if(context != null) {
-				callMaker.append(",")
-						 .append("context=\"\"\"")
-						 .append(context.replace("\"", "\\\""))
-						 .append("\"\"\"");	
+			if(question.startsWith("\"")) {
+				question = " " + question;
 			}
-			
+			if(question.endsWith("\"")) {
+				question = question + " ";
+			}
+			question = question.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+			callMaker.append("question=")
+				.append(TRIPLE_QUOTE)
+				.append(question)
+				.append(TRIPLE_QUOTE);
+
+			if(context != null) {
+				if(context.startsWith("\"")) {
+					context = " " + context;
+				}
+				if(context.endsWith("\"")) {
+					context = context + " ";
+				}
+				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+				callMaker.append(",")
+					.append("context=")
+					.append(TRIPLE_QUOTE)
+					.append(context)
+					.append(TRIPLE_QUOTE);	
+			}
+
 			String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
 			if(history != null) {
 				//could still be null if its the first question in the convo
@@ -277,14 +297,31 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	public InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
 		checkSocketStatus();
 		
+		final String TRIPLE_QUOTE = "\"\"\"";
 		StringBuilder callMaker = new StringBuilder(varName + ".instruct(");
 		
-		callMaker.append("task=\"\"\"").append(task.replace("\"", "\\\"")).append("\"\"\"");
+		if(task.startsWith("\"")) {
+			task = " " + task;
+		}
+		if(task.endsWith("\"")) {
+			task = task + " ";
+		}
+		task = task.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+		
+		callMaker.append("task=").append(TRIPLE_QUOTE).append(task).append(TRIPLE_QUOTE);
 		if(context != null) {
+			if(context.startsWith("\"")) {
+				context = " " + context;
+			}
+			if(context.endsWith("\"")) {
+				context = context + " ";
+			}
+			context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
 			callMaker.append(",")
-					 .append("context=\"\"\"")
-					 .append(context.replace("\"", "\\\""))
-					 .append("\"\"\"");	
+				.append("context=")
+				.append(TRIPLE_QUOTE)
+				.append(context)
+				.append(TRIPLE_QUOTE);	
 		}
 		
 		callMaker.append(",").append("projectData=").append(PyUtils.determineStringType(projectData));
@@ -386,22 +423,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		Object responseObject = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		EmbeddingsModelEngineResponse embeddingsResponse = EmbeddingsModelEngineResponse.fromObject(responseObject);
 		return embeddingsResponse;
-	}
-
-	@Override
-	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
-		checkSocketStatus();
-				
-		StringBuilder callMaker = new StringBuilder(varName);
-		String inputAsString = PyUtils.determineStringType(input);
-		callMaker.append(".model(input = ").append(inputAsString);
-		if (parameters != null && !parameters.isEmpty()) {
-			callMaker.append(", **").append(PyUtils.determineStringType(parameters));
-		}
-		callMaker.append(")");
-		
-		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		return output;
 	}
 
 	@Override

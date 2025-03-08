@@ -23,11 +23,9 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import prerna.auth.User;
-import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.FstUtil;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -40,8 +38,8 @@ public class SocketClient implements Runnable, Closeable {
     private int PORT = -1;
     private boolean SSL = false;
     
-    Map requestMap = new HashMap();
-    Map responseMap = new HashMap();
+    Map<String, PayloadStruct> requestMap = new HashMap<>();
+    Map<String, PayloadStruct> responseMap = new HashMap<>();
     private boolean ready = false;
     private boolean connected = false;
     private AtomicInteger count = new AtomicInteger(0);
@@ -53,7 +51,6 @@ public class SocketClient implements Runnable, Closeable {
 	InputStream is = null;
 	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
-	Map <String, Insight> insightMap = new HashMap<String, Insight>();
 
 	/**
 	 * 
@@ -85,8 +82,8 @@ public class SocketClient implements Runnable, Closeable {
         // Configure SSL.git
     	int attempt = 1;
     	int SLEEP_TIME = 800;
-    	if(DIHelper.getInstance().getProperty("SLEEP_TIME") != null) {
-    		SLEEP_TIME = Integer.parseInt(DIHelper.getInstance().getProperty("SLEEP_TIME"));
+    	if(Utility.getDIHelperProperty("SLEEP_TIME") != null) {
+    		SLEEP_TIME = Integer.parseInt(Utility.getDIHelperProperty("SLEEP_TIME"));
     	}
     	
     	classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
@@ -103,7 +100,7 @@ public class SocketClient implements Runnable, Closeable {
 		        }
 		
 		        // Configure the client.
-				boolean blocking = DIHelper.getInstance().getProperty(Settings.BLOCKING) != null && DIHelper.getInstance().getProperty(Settings.BLOCKING).equalsIgnoreCase("true");
+				boolean blocking = Utility.getDIHelperProperty(Settings.BLOCKING) != null && Utility.getDIHelperProperty(Settings.BLOCKING).equalsIgnoreCase("true");
 		        	
 	    		clientSocket =  new Socket(this.HOST, this.PORT);
 	    		
@@ -256,10 +253,9 @@ public class SocketClient implements Runnable, Closeable {
 
     /**
      * 
-     * @param dir
      * @return
      */
-    public boolean stopPyServe() {
+    public boolean stopServer() {
 		try {
     		if(isConnected()) {
     			ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -295,7 +291,6 @@ public class SocketClient implements Runnable, Closeable {
     		// always call close on the IO
     		close();
     	}
-		
     }
 
     /**
@@ -399,11 +394,4 @@ public class SocketClient implements Runnable, Closeable {
 	public boolean isReady() {
 		return this.ready;
 	}
-    
-
-    public void addInsight2Insight(String insightId, Insight insight)
-    {
-    	insightMap.put(insightId, insight);
-    }
-    
 }

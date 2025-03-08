@@ -24,6 +24,7 @@ class Insight(ServerProxy):
         assert insight_id is not None
 
         epoc = super().get_next_epoc()
+
         pixelReturn = super().callReactor(
             epoc=epoc,
             pixel=pixel,

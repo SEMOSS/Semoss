@@ -111,6 +111,52 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         params = {structured_param_name: param_value, **kwargs}
         return self._get_structured_output_response(params)
 
+    def _update_model_specific_kwargs(self, **kwargs) -> dict:
+        """
+        Update the kwargs based on the model name to ensure compatibility with the model's capabilities.
+        Returns:
+            dict: Updated kwargs
+        """
+        updated_kwargs = kwargs.copy()
+
+        # Handle o1-mini (doesn't support system/developer roles)
+        if self.model_name.startswith("o1-mini"):
+            # Remove temperature - only 1.0 is supported
+            if "temperature" in updated_kwargs and updated_kwargs["temperature"] != 1.0:
+                del updated_kwargs["temperature"]
+
+            updated_kwargs["stream"] = False
+
+            # Convert system/developer messages to user messages
+            if "messages" in updated_kwargs:
+                messages = updated_kwargs["messages"]
+                for i, msg in enumerate(messages):
+                    if msg.get("role") in ["system", "developer"]:
+                        original_role = msg.get("role").upper()
+                        messages[i]["role"] = "user"
+                        messages[i][
+                            "content"
+                        ] = f"{original_role}: {messages[i]['content']}"
+                updated_kwargs["messages"] = messages
+
+        # Handle regular o1 models
+        elif self.model_name == "o1" or self.model_name.startswith("o1-preview"):
+            # Temperature - only 1.0 is supported
+            if "temperature" in updated_kwargs and updated_kwargs["temperature"] != 1.0:
+                del updated_kwargs["temperature"]
+
+            updated_kwargs["stream"] = False
+
+        # Handle o3-mini
+        elif self.model_name.startswith("o3-mini"):
+            # Remove temperature - only 1.0 is supported
+            if "temperature" in updated_kwargs and updated_kwargs["temperature"] != 1.0:
+                del updated_kwargs["temperature"]
+
+            updated_kwargs["stream"] = False
+
+        return updated_kwargs
+
     def inference_call(self, prefix: str, **kwargs) -> str:
         final_query = ""
         # For Remote Client Server Models
@@ -126,9 +172,15 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         kwargs["stream"] = kwargs.get("stream", True)
 
-        if self.model_name == "o1-preview" or self.model_name == "o1-mini":
-            max_tokens = kwargs.pop("max_tokens")
+        # Check if 'max_tokens' exists in kwargs and remove it, saving its value
+        max_tokens = kwargs.pop("max_tokens", None)
+
+        # If 'max_tokens' was found and 'max_completion_tokens' is not already in kwargs, set it
+        if max_tokens is not None and "max_completion_tokens" not in kwargs:
             kwargs["max_completion_tokens"] = max_tokens
+
+        # Update model specific kwargs
+        kwargs = self._update_model_specific_kwargs(**kwargs)
 
         openai_response = self.client.chat.completions.create(
             model=self.model_name, **kwargs

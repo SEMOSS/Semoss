@@ -32,7 +32,8 @@ public class ApiTestsSemossConstants {
 	
 	
 	// constants for email api
-	public static final String EMAIL_BCC = "Bcc";	
+	public static final String EMAIL_BCC = "Bcc";
+	public static final String EMAIL_CC = "Cc";		
 	public static final String EMAIL_TO = "To";	
 	public static final String EMAIL_FROM = "From";	
 	public static final String EMAIL_ADDRESS = "Address";	

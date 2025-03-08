@@ -10,8 +10,10 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.api.FunctionTypeEnum;
+import prerna.engine.impl.SmssUtilities;
 import prerna.om.ClientProcessWrapper;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -22,18 +24,18 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(LocalPythonFunctionEngine.class);
 	
-	private static final String INIT_FUNCTION_ENGINE = "INIT_FUNCTION_ENGINE";
-	private static final String PYTHON_FILE_NAME = "PYTHON_FILE_NAME";
+	protected static final String INIT_FUNCTION_ENGINE = "INIT_FUNCTION_ENGINE";
+	protected static final String PYTHON_FILE_NAME = "PYTHON_FILE_NAME";
 	
-	private String pythonFileName;
-	private String engineDirectoryPath = null;
+	protected String pythonFileName;
+	protected String engineDirectoryPath = null;
+	protected File cacheFolder;
 	
-	private TCPPyTranslator pyt = null;
-	private File cacheFolder;
-	private ClientProcessWrapper cpw = null;
-	
+	protected ClientProcessWrapper cpw = null;
+	protected PyTranslator pyt = null;
+
 	// string substitute vars
-	private Map<String, String> vars = new HashMap<>();
+	protected Map<String, String> vars = new HashMap<>();
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -55,7 +57,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		}
 	}
 
-	private synchronized void startServer(int port) {
+	protected synchronized void startServer(int port) {
 		// already created by another thread
 		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
 			return;
@@ -71,8 +73,9 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		}
 		
 		// check if we have already created a process wrapper
-		if(this.cpw == null) {
-			this.cpw = new ClientProcessWrapper();
+		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+		if(this.cpw != null) {
+			this.cpw.shutdown(false);
 		}
 		
 		String timeout = "30";
@@ -80,68 +83,77 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
 		}
 		
-		if(this.cpw.getSocketClient() == null) {
-			boolean debug = false;
-			
-			// pull the relevant values from the smss
-			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-			
-			if(port < 0) {
-				// port has not been forced
-				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch(NumberFormatException e) {
-						classLogger.warn("Function Engine " + this.getEngineName() + " has an invalid FORCE_PORT value");
-					}
+		boolean debug = false;
+		
+		// pull the relevant values from the smss
+		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+		String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+		
+		if(port < 0) {
+			// port has not been forced
+			if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
+				try {
+					port = Integer.parseInt(forcePort);
+					debug = true;
+				} catch(NumberFormatException e) {
+					classLogger.warn("Function Engine " + this.getEngineName() + " has an invalid FORCE_PORT value");
 				}
 			}
-			
-			String serverDirectory = this.cacheFolder.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
-			try {
-				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to server for local python function engine.");
-			}
-		} else if (!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
-			try {
-				this.cpw.reconnect();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Function Engine = " + this.getEngineName());
-			}
+		}
+		
+		String serverDirectory = this.cacheFolder.getAbsolutePath();
+		boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
+		try {
+			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Unable to connect to server for local python function engine.");
 		}
 		
 		// create the py translator
-		pyt = new TCPPyTranslator();
-		pyt.setSocketClient(this.cpw.getSocketClient());
+		pyt = new PyTranslator();
+		pyt.setSocketClient(cpwToInit.getSocketClient());
 		
-		String execCommand = "import sys\n" 
-				+ "import os\n" 
-				+ "sys.path.append('" + this.engineDirectoryPath + "')\n" 
-				+ "os.chdir('" + this.engineDirectoryPath + "')\n"
-				+ "exec(open('" + this.engineDirectoryPath + "/" + this.pythonFileName + "').read())";
+		try {
+			String execCommand = "import sys\n" 
+					+ "import os\n" 
+					+ "sys.path.append('" + this.engineDirectoryPath + "')\n" 
+					+ "sys.path.append('" + this.engineDirectoryPath + "/py')\n" 
+					+ "os.chdir('" + this.engineDirectoryPath + "')\n"
+					+ "exec(open('" + this.engineDirectoryPath + "/" + this.pythonFileName + "').read())";
 
-		// execute all the basic commands
-		String initCommands = this.smssProp.getProperty(INIT_FUNCTION_ENGINE);
-		if(initCommands != null && !(initCommands=initCommands.trim()).isEmpty()) {
-			// break the commands separated by ;
-			String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
-			// replace the Vars
-			for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-				execCommand += "\n" + fillVars(commands[commandIndex]);
+			// execute all the basic commands
+			String initCommands = this.smssProp.getProperty(INIT_FUNCTION_ENGINE);
+			if(initCommands != null && !(initCommands=initCommands.trim()).isEmpty()) {
+				// break the commands separated by ;
+				String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
+				// replace the Vars
+				for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+					execCommand += "\n" + fillVars(commands[commandIndex]);
+				}
 			}
+			
+			this.pyt.runScript(execCommand);
+
+			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+								+ " python process with commands >>> " + String.join("\n", execCommand));
+			
+			// finally set the cpw in the class
+			this.cpw = cpwToInit;
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			if(cpwToInit != null) {
+				classLogger.warn("Able to start the python process for local python function engine " 
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+						+ " but the start script failed.");
+				cpwToInit.shutdown(false);
+			}
+			throw e;
 		}
 		
-		this.pyt.runScript(execCommand);
 	}
 	
 	/**
@@ -149,13 +161,13 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 	 * @param input
 	 * @return
 	 */
-	private String fillVars(String input) {
+	protected String fillVars(String input) {
 		StringSubstitutor sub = new StringSubstitutor(vars);
 		String resolvedString = sub.replace(input);
 		return resolvedString;
 	}
 	
-	private void checkSocketStatus() {
+	protected void checkSocketStatus() {
 		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			this.startServer(-1);
 		}
@@ -178,5 +190,10 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		if(this.cpw != null) {
 			this.cpw.shutdown(true);
 		}
+	}
+	
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return FunctionTypeEnum.LOCAL_PYTHON.name();
 	}
 }

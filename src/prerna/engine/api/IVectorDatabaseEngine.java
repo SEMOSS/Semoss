@@ -127,6 +127,14 @@ public interface IVectorDatabaseEngine extends IEngine {
 	List<Map<String, Object>> listDocuments(Map<String, Object> parameters);
 	
 	/**
+	 * List all the records/chunks present in the vector database
+	 * 
+	 * @param parameters
+	 * @return
+	 */
+	List<Map<String, Object>> listAllRecords(Map<String, Object> parameters);
+	
+	/**
 	 * 
 	 * @param indexClass
 	 * @return

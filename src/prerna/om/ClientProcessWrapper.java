@@ -1,5 +1,6 @@
 package prerna.om;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -189,14 +190,19 @@ public class ClientProcessWrapper {
 		        Callable<Boolean> callableTask = () -> {
 		        	boolean result = false;
 		        	if(cleanUpFolder) {
-		        		this.socketClient.stopPyServe();
+		        		this.socketClient.stopServer();
 		        		classLogger.info("Sucessfully stopped the process");
 		        		int attempt = 0;
-		        		while(!result && attempt <= 10) {
+		        		File serverDir = new File(this.serverDirectory);
+		        		while(!result && attempt < 3) {
 		        			try {
-		        				FileUtils.deleteDirectory(this.serverDirectory);
-				        		classLogger.info("Sucessfully cleaned up the directory");
-		        				result = true;
+		        				if(serverDir.exists()) {
+			        				FileUtils.deleteDirectory(this.serverDirectory);
+					        		classLogger.info("Sucessfully cleaned up the directory");
+			        				result = true;
+		        				} else {
+		        					classLogger.info("Server directory does not exist");
+		        				}
 		        			} catch (Exception ignored) {
 		        				classLogger.info("Failed attempt # " + attempt + " to delete the folder " + this.serverDirectory);
 		        				attempt++;
@@ -208,7 +214,7 @@ public class ClientProcessWrapper {
 		        			}
 		        		}
 		        	} else {
-		        		this.socketClient.stopPyServe();
+		        		this.socketClient.stopServer();
 		        		classLogger.info("Sucessfully stopped the process");
 		        		result = true;
 		        	}
@@ -218,7 +224,7 @@ public class ClientProcessWrapper {
 		        Future<Boolean> future = executor.submit(callableTask);
 		        try {
 		        	// dont have the user wait forever...
-		            Boolean result = future.get(70, TimeUnit.SECONDS);
+		            Boolean result = future.get(50, TimeUnit.SECONDS);
 		            if(result) {
 		            	classLogger.info("Successfully shutdown the process");
 		            } else {
@@ -391,38 +397,5 @@ public class ClientProcessWrapper {
 	public void setServerDirectory(String serverDirectory) {
 		this.serverDirectory = serverDirectory;
 	}
-	
-	
-//	  //chroot dir is created by MountHelper and initialized at /opt/user_id__sessionid
-//    // when initalized, it has the semosshome folder present - ex. /opt/user_id__sessionid/opt/semosshome
-//    
-//    //assume /Users/kunalppatel9/Documents/Semoss_Docs/Daily_Notes/chroot is /opt/user_id__sessionid
-//    String chrootDir = "/Users/kunalppatel9/Documents/Semoss_Docs/Daily_Notes/chroot";
-//    String dir = "/opt/semosshome";
-//    
-//    Path chrootPath = Paths.get(Utility.normalizePath(chrootDir)); 
-//    System.out.println("chrootDir: "+chrootDir.toString());
-//
-//    Path mainCachePath = Paths.get(chrootDir+dir); 
-//    System.out.println("mainCachePath: "+mainCachePath.toString()); // /opt/user_id__sessionid/opt/semosshome
-//    
-//
-//    //create the user py folder a123456 at /opt/user_id__sessionid/opt/semosshome/a123456
-//    Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
-//    System.out.println("tempDirForUser: "+tempDirForUser.toString());// /opt/user_id__sessionid/opt/semosshome/a123456
-//    
-//    //i now don't know what the relative folder was inside the chroot from above, so i relativize it here
-//    //chrootPath =  /opt/user_id__sessionid
-//    //tempDirforUser =  /opt/user_id__sessionid/opt/semosshome/a123456
-//    // relative = opt/semosshome/a123456
-//    String relative = chrootPath.relativize(tempDirForUser).toString();
-//    
-//    if(!relative.startsWith("/")) {
-//        relative ="/"+relative;
-//    }
-//    
-//    System.out.println("relative: "+relative); // /opt/semosshome/a123456
-
-	
 	
 }

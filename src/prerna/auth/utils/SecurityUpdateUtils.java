@@ -90,12 +90,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				{
 					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-					String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, LASTLOGIN=?, MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? WHERE ID=?";
+					String updateQuery = "UPDATE SMSS_USER SET ID=?, TYPE=?, NAME=?, USERNAME=?, EMAIL=?, LASTLOGIN=?, MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? WHERE ID=?";
 					PreparedStatement ps = null;
 					try {
 						int parameterIndex = 1;
 						ps = securityDb.getPreparedStatement(updateQuery);
 						ps.setString(parameterIndex++, newId);
+						ps.setString(parameterIndex++, newUser.getProvider().toString());
 						if(newUser.getName() == null) {
 							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 						} else {
@@ -111,13 +112,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						} else {
 							ps.setString(parameterIndex++, newUser.getEmail());
 						}
+						ps.setTimestamp(parameterIndex++, timestamp);
 						if(newUser.getModelMaxTokens() == 0) {
-							ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
+							ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 						} else {
 							ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
 						}
 						if(newUser.getModelMaxResponseTime() == 0.0) {
-							ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
+							ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 						} else {
 							ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 						}
@@ -131,8 +133,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						} else {
 							ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
 						}
-						ps.setString(parameterIndex++, newUser.getProvider().toString());
-						ps.setTimestamp(parameterIndex++, timestamp);
 						ps.setString(parameterIndex++, oldId);
 						ps.execute();
 						if(!ps.getConnection().getAutoCommit()) {
@@ -185,7 +185,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 				if (userExists) {
 					classLogger.info("User " + newUser.getId() + " already exists");
-					return validateUserLogin(newUser);
+					return false;
 				}
 
 				// need to synchronize the adding of new users
@@ -311,7 +311,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static boolean validateUserLogin(AccessToken newUser) throws Exception {
+	public static void validateUserLogin(AccessToken newUser) throws Exception {
 		// make sure user is not locked out
 		Object[] lastLoginDetails = SecurityQueryUtils.getUserLockAndLastLoginAndLastPassReset(newUser.getId(), newUser.getProvider());
 		if(lastLoginDetails != null) {
@@ -347,7 +347,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			
 			if(isLocked) {
 				classLogger.info("User " + newUser.getId() + " is locked");
-				return false;
+				return;
 			} 
 			
 			if(daysToLock > 0 && lastLogin != null) {
@@ -358,7 +358,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					// we should lock the account
 					SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
 					newUser.setLocked(true);
-					return false;
+					return;
 				}
 			}
 			
@@ -381,7 +381,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(!newUser.isLocked()) {
 			SecurityUpdateUtils.updateUserLastLogin(newUser.getId(), newUser.getProvider());
 		}
-		return false;
 	}
 	
 	/**
