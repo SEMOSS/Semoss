@@ -22,26 +22,17 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
-import oshi.software.os.OperatingSystem.ProcessFiltering;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
-import prerna.ds.py.PyUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
-import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.query.querystruct.filters.OrQueryFilter;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
-import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -233,16 +224,16 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, bulkRequest, ContentType.APPLICATION_JSON, null, null, null);
 		if(response == null || (response=response.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Received no response from open search endpoint");
+			throw new IllegalArgumentException("Received no response from elastic search endpoint");
 		}
 		
 		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
         Number insertions = (Number) responseMap.get("took");
-        classLogger.info("Inserted " + insertions.intValue() + " bulk inserts (create index + record value) into open search index " + this.indexName);
+        classLogger.info("Inserted " + insertions.intValue() + " bulk inserts (create index + record value) into elastic search index " + this.indexName);
         
         Boolean errors = (Boolean) responseMap.get("errors");
         if(errors) {
-        	classLogger.warn("There were errors with some of the bulk insertions in the open search index " + this.indexName);
+        	classLogger.warn("There were errors with some of the bulk insertions in the elastic search index " + this.indexName);
         }
 	}
 	
@@ -371,13 +362,11 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 							ElasticSearchRestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
 						}
 						
-						//call to process filter
-						
 						bool.add("filter", filter);
 						bool.add("should", should);
 						bool.add("must_not", must_not);
 						
-						if (should.size() > 0) {
+						if (should.size() > 1) {
 							bool.addProperty("minimum_should_match", 1);
 						}
 					}
@@ -389,7 +378,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			
 		}
 		
-		// System.out.println("ELASTIC FINAL SEARCH QUERY : " + search.toString());
+		 System.out.println("ELASTIC FINAL SEARCH QUERY : " + search.toString());
 		
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();
@@ -461,7 +450,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		
 		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 
-		List<Map<String, Object>> filesInOpenSearch = new ArrayList<>();
+		List<Map<String, Object>> filesInElasticSearch = new ArrayList<>();
 		
 		for (Map<String, Object> bucketDetails : buckets) {
 			Map<String, Object> fileInfo = new HashMap<>();
@@ -480,14 +469,13 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				fileInfo.put("lastModified", lastModified);
 			}
 			
-			filesInOpenSearch.add(fileInfo);
+			filesInElasticSearch.add(fileInfo);
 		}
 		
-		return filesInOpenSearch;
+		return filesInElasticSearch;
 	}
 	
 	/**
-	 * https://opensearch.org/docs/latest/search-plugins/knn/knn-index/
 	 * 
 	 * @param specificIndexName
 	 * @param embeddings
@@ -525,8 +513,6 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	}
 
 	/**
-	 * https://opensearch.org/docs/latest/search-plugins/knn/knn-index/
-	 * 
 	 * @param specificIndexName
 	 * @param dimension
 	 * @param methodName
@@ -577,8 +563,6 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	}
 
 	/**
-	 * https://opensearch.org/docs/latest/search-plugins/knn/knn-index/
-	 * 
 	 * @param specificIndexName
 	 * @param dimension
 	 * @param methodName

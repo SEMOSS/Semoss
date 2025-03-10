@@ -22,9 +22,9 @@ public final class ElasticSearchRestVectorQueryFilterTranslationHelper {
 		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 			addSimpleQueryFilter((SimpleQueryFilter) queryFilter, filter, must_not);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
-			addAndFilter((AndQueryFilter) queryFilter, filter, must_not);
+			addAndFilter((AndQueryFilter) queryFilter, filter, should, must_not);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
-			addOrFilter((OrQueryFilter) queryFilter, should, must_not);
+			addOrFilter((OrQueryFilter) queryFilter, filter, should, must_not);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.FUNCTION) {
 			throw new IllegalArgumentException("Filters with a Query Filter Type of Function are not supported for Elastic Search vector databases");
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.BETWEEN) {
@@ -49,67 +49,129 @@ public final class ElasticSearchRestVectorQueryFilterTranslationHelper {
 		FILTER_TYPE fType = filter.getSimpleFilterType();
 
 		if(fType == FILTER_TYPE.COL_TO_COL) {
-			throw new IllegalArgumentException("Filter of with a Filter Type of COL_TO_COL are not supported for FAISS vector databases");
+			throw new IllegalArgumentException("Filter of with a Filter Type of COL_TO_COL are not supported for Elastic Search vector databases");
 		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
 			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator);
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
-			throw new IllegalArgumentException("Filter of with a Filter Type of VALUES_TO_COL are not supported for FAISS vector databases");
+			throw new IllegalArgumentException("Filter of with a Filter Type of VALUES_TO_COL are not supported for Elastic Search vector databases");
 		} else if(fType == FILTER_TYPE.COL_TO_QUERY) {
-			throw new IllegalArgumentException("Filter of with a Filter Type of COL_TO_QUERY are not supported for FAISS vector databases");
+			throw new IllegalArgumentException("Filter of with a Filter Type of COL_TO_QUERY are not supported for Elastic Search vector databases");
 		} else if(fType == FILTER_TYPE.QUERY_TO_COL) {
-			throw new IllegalArgumentException("Filter of with a Filter Type of QUERY_TO_COL are not supported for FAISS vector databases");
+			throw new IllegalArgumentException("Filter of with a Filter Type of QUERY_TO_COL are not supported for Elastic Search vector databases");
 		} else if(fType == FILTER_TYPE.COL_TO_LAMBDA) {
-			throw new IllegalArgumentException("Filter of with a Filter Type of COL_TO_LAMBDA are not supported for FAISS vector databases");
+			throw new IllegalArgumentException("Filter of with a Filter Type of COL_TO_LAMBDA are not supported for Elastic Search vector databases");
 		} else if(fType == FILTER_TYPE.LAMBDA_TO_COL) {
-			// same logic as above, just switch the order and reverse the comparator if it is numeric
-			throw new IllegalArgumentException("Filter of with a Filter Type of LAMBDA_TO_COL are not supported for FAISS vector databases");
+			throw new IllegalArgumentException("Filter of with a Filter Type of LAMBDA_TO_COL are not supported for Elastic Search vector databases");
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
-			// WHY WOULD YOU DO THIS!!!
-			throw new IllegalArgumentException("Filter of with a Filter Type of VALUE_TO_VALUE are not supported for FAISS vector databases");
+			throw new IllegalArgumentException("Filter of with a Filter Type of VALUE_TO_VALUE are not supported for Elastic Search vector databases");
 		}
 		return null;
 	}
 	
-	private static void addAndFilter(AndQueryFilter queryFilter, JsonArray targetArray, JsonArray must_not) {
+	private static void addAndFilter(AndQueryFilter queryFilter, JsonArray filter, JsonArray should, JsonArray must_not) {
 		
 		List<IQueryFilter> filterList = queryFilter.getFilterList();
+
 		int numAnds = filterList.size();
+		
+		boolean isNestedFilter = containsNestedFilter(filterList);
+		
 		for(int i = 0; i < numAnds; i++) {
-			IQueryFilter filter2 = filterList.get(i);
-			if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-				addSimpleQueryFilter((SimpleQueryFilter) filterList.get(i), targetArray, must_not);
-			} else if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
-				addAndFilter((AndQueryFilter) filterList.get(i), targetArray, must_not);
+			JsonObject nestedBool = new JsonObject();
+			{
+				//filter contains simple or AND conditions
+				JsonArray nestedFilter = new JsonArray();
+				
+				//should contains OR condition filters
+				JsonArray nestedShould = new JsonArray();
+				
+				//must not contains not equals to filters
+				JsonArray nestedMustNot = new JsonArray();
+				
+					IQueryFilter filter2 = filterList.get(i);
+					if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+						if (isNestedFilter) {
+							addSimpleQueryFilter((SimpleQueryFilter) filterList.get(i), nestedFilter, nestedMustNot);
+						} else {
+							addSimpleQueryFilter((SimpleQueryFilter) filterList.get(i), filter, must_not);
+						}
+					} else if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+						addAndFilter((AndQueryFilter) filterList.get(i), nestedFilter, nestedShould, nestedMustNot);
+					} else if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+						addOrFilter((OrQueryFilter) filterList.get(i), nestedFilter, nestedShould, nestedMustNot);
+					}
+				
+				nestedBool.add("filter", nestedFilter);
+				nestedBool.add("should", nestedShould);
+				nestedBool.add("must_not", nestedMustNot);
+				
+				if (nestedShould.size() > 1) {
+					nestedBool.addProperty("minimum_should_match", 1);
+				}
+			}
+			
+			if (isNestedFilter) {
+				JsonObject nestedBoolParent = new JsonObject();
+				{
+					nestedBoolParent.add("bool", nestedBool);
+				}
+				filter.add(nestedBoolParent);
 			}
 		}
-        // Add other filter types if needed
+		
     }
 	
-	private static void addOrFilter(OrQueryFilter queryFilter, JsonArray targetArray, JsonArray must_not) {
+	private static void addOrFilter(OrQueryFilter queryFilter, JsonArray filter, JsonArray should, JsonArray must_not) {
 		
 		List<IQueryFilter> filterList = queryFilter.getFilterList();
+
 		int numAnds = filterList.size();
+		
+		boolean isNestedFilter = containsNestedFilter(filterList);
+		
 		for(int i = 0; i < numAnds; i++) {
-			IQueryFilter filter2 = filterList.get(i);
-			if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-				addSimpleQueryFilter((SimpleQueryFilter) filterList.get(i), targetArray, must_not);
-			} else if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.OR) {
-				addOrFilter((OrQueryFilter) filterList.get(i), targetArray, must_not);
+			JsonObject nestedBool = new JsonObject();
+			{
+				//filter contains simple or AND conditions
+				JsonArray nestedFilter = new JsonArray();
+				
+				//should contains OR condition filters
+				JsonArray nestedShould = new JsonArray();
+				
+				//must not contains not equals to filters
+				JsonArray nestedMustNot = new JsonArray();
+				
+					IQueryFilter filter2 = filterList.get(i);
+					if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+						if (isNestedFilter) {
+							addSimpleQueryFilter((SimpleQueryFilter) filterList.get(i), nestedShould, nestedMustNot);
+						} else {
+							addSimpleQueryFilter((SimpleQueryFilter) filterList.get(i), should, must_not);
+						}
+					} else if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+						addOrFilter((OrQueryFilter) filterList.get(i), nestedFilter, nestedShould, nestedMustNot);
+					} else if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+						addAndFilter((AndQueryFilter) filterList.get(i), nestedFilter, nestedShould, nestedMustNot);
+					}
+				
+				nestedBool.add("filter", nestedFilter);
+				nestedBool.add("should", nestedShould);
+				nestedBool.add("must_not", nestedMustNot);
+				
+				if (nestedShould.size() > 1) {
+					nestedBool.addProperty("minimum_should_match", 1);
+				}
+			}
+			
+			if (isNestedFilter) {
+				JsonObject nestedBoolParent = new JsonObject();
+				{
+					nestedBoolParent.add("bool", nestedBool);
+				}
+				should.add(nestedBoolParent);
 			}
 		}
-        // Add other filter types if needed
     }
-
-//	public static JsonArray processAndQueryFilter(AndQueryFilter queryFilter, JsonArray filter, JsonArray should, JsonArray must_not) {
-//		JsonArray filtersArray = new JsonArray();
-//		List<IQueryFilter> filterList = queryFilter.getFilterList();
-//		int numAnds = filterList.size();
-//		for(int i = 0; i < numAnds; i++) {
-//			filtersArray.push(processFilter(filterList.get(i), filter, should, must_not));
-//			IQueryFilter filter2 = filterList.get(i);
-//		}
-//		return filtersArray;
-//	}
 		
 	private static JsonObject addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		
@@ -177,4 +239,14 @@ public final class ElasticSearchRestVectorQueryFilterTranslationHelper {
 		return null;
 		
 	}
+
+	private static boolean containsNestedFilter(List<IQueryFilter> filterList) {
+		for (IQueryFilter filter : filterList) {
+            if (filter instanceof AndQueryFilter || filter instanceof OrQueryFilter) {
+                return true;
+            }
+        }
+        return false;
+	}
+	
 }
