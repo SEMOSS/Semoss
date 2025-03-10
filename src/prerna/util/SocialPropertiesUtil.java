@@ -108,6 +108,9 @@ public class SocialPropertiesUtil {
 		return SocialPropertiesUtil.processor.getSamlAttributeNames();
 	}
 	
+	// Added for Apache Kafka Connections
+	
+	
 	@Deprecated
 	public boolean emailEnabled() {
 		classLogger.warn("METHOD DEPRECATED - PLEASE USE smtpEmailEnabled()");

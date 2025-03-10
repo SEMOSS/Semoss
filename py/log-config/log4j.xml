@@ -1,9 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
 <log4j:configuration debug="true"
 	xmlns:log4j='http://jakarta.apache.org/log4j/'>
-
-	<appender name="file" class="org.apache.log4j.RollingFileAppender">
+<Property name="QUEUE_TYPE">${sys:QUEUE_TYPE}</Property>
+logs_queue
+<Appenders>
+    <appender name="file" class="org.apache.log4j.RollingFileAppender">
 	   <param name="append" value="false" />
 	   <param name="maxFileSize" value="10KB" />
 	   <param name="maxBackupIndex" value="5" />
@@ -14,10 +16,27 @@
 			value="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
 	   </layout>
 	</appender>
-
-	<root>
-		<level value="DEBUG" />
-		<appender-ref ref="file" />
-	</root>
-
-</log4j:configuration>
+    <appender name="KafkaAppender" class="org.apache.log4j.KafkaAppender">
+	   <param name="brokerlist" value="localhost:9092" />
+	   <param name="topic" value="logs" />
+	  
+	   <param name="ConsoleAppender" target="SYSTEM_OUT" />
+	   <layout class="org.apache.log4j.PatternLayout">
+		<!-- <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" /> -->
+		<param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n" />
+	   </layout>
+	</appender>
+    <JMS name="RabbitMQAppender" factoryName="org.apache.activemq.jndi.JNDIReferenceFactory"
+         providerUrl="tcp://localhost:61616"
+         queueBindingName="logs_queue"
+         userName="guest"
+         password="guest">
+        <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n" />
+    </JMS>
+</Appenders>
+<Loggers>
+    <Root level="info">
+        <AppenderRef ref="Console"/>
+        <AppenderRef ref="${QUEUE_TYPE}Appender"/>
+    </Root>
+</Loggers>

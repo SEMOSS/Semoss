@@ -2406,6 +2406,18 @@
 			<version>1.19.6</version>
 			<scope>test</scope>
 		</dependency>
+		<!--  added for apache kafka and RabbitMQ  log4j queue implemntations -->
+		<dependency>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>kafka-clients</artifactId>
+			<version>3.4.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.rabbitmq</groupId>
+			<artifactId>amqp-client</artifactId>
+			<version>5.15.0</version>
+		</dependency>
+		<!--  -->
 
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>

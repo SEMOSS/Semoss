@@ -37,7 +37,22 @@ public class SocialPropertiesProcessor {
 	public static final String IMAP_ENABLED = "imap_enabled";
 	public static final String IMAP_USERNAME = "imap_username";
 	public static final String IMAP_PASSWORD = "imap_password";
-
+	
+	//Added for Kafka Server Properties
+	
+	public static final String BOOTSTRAP_SERVERS ="bootstrap.servers";
+	public static final String ACKS ="acks";
+	public static final String RETRIES ="retries";
+	public static final String ENABLE_IDEMPOTENCE ="enable.idempotence";
+	public static final String KEY_SERIALIZER ="key.serializer";
+	public static final String VALUE_SERIALIZER ="value.serializer";
+	
+	public static final String QUEUE_TYPE ="QUEUE_TYPE";
+	
+	public static final String TOPIC_NAME ="topic_name";
+	
+	public static final String QUEUE_NAME ="queue_name";
+	
 	private static final Logger logger = LogManager.getLogger(SocialPropertiesProcessor.class);
 
 	private String socialPropFile = null;
@@ -398,6 +413,8 @@ public class SocialPropertiesProcessor {
 	public boolean imapEmailEnabled() {
 		return Boolean.parseBoolean(this.socialData.getProperty(IMAP_ENABLED, "false"));
 	}
+	
+	
 
 	/**
 	 * Return a properties object with the details of the application central SMTP
@@ -665,7 +682,42 @@ public class SocialPropertiesProcessor {
 	public String getImapPassword() {
 		return this.socialData.getProperty(IMAP_PASSWORD);
 	}
-
+	//added for kafka configuration
+	
+	public String getBootstrapServers() {
+		return this.socialData.getProperty(BOOTSTRAP_SERVERS);
+	}
+	public String getAcks() {
+		return this.socialData.getProperty(ACKS);
+	}
+	
+	public String getRetries() {
+		return this.socialData.getProperty(RETRIES);
+	}
+	
+	public boolean enableIdempotence() {
+		return Boolean.parseBoolean(this.socialData.getProperty(ENABLE_IDEMPOTENCE, "true"));
+	}
+	
+	public  String getKeySerializer() {
+		return this.socialData.getProperty(KEY_SERIALIZER);
+	}
+	
+	public String getValueSerializer() {
+		return this.socialData.getProperty(VALUE_SERIALIZER);
+	}
+	
+	public  String getQueueType() {
+		return this.socialData.getProperty(QUEUE_TYPE);
+	}
+	
+	public String getTopicName() {
+		return this.socialData.getProperty(TOPIC_NAME);
+	}	
+	public  String getQueueName() {
+		return this.socialData.getProperty(QUEUE_NAME);
+	}
+	
 	public Session getSmtpEmailSession() {
 		if (this.smtpEmailSession == null) {
 			loadSmtpEmailSession();
