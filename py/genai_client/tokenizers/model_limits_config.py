@@ -19,5 +19,5 @@ FALLBACK_CONFIG = {"context_window": 8192, "max_completion_tokens": 2048}
 
 
 def get_model_limits(model_name: str):
-    # Retrieve model-specific token limits, falling back to default if not found.
+    """Retrieve model-specific token limits, falling back to default if not found."""
     return MODEL_LIMITS_CONFIG.get(model_name, FALLBACK_CONFIG)

@@ -1,5 +1,5 @@
-from .openai_chat_completion_client import OpenAiChatCompletion
 import tiktoken
+from .openai_chat_completion_client import OpenAiChatCompletion
 
 
 class AzureOpenAiChatCompletion(OpenAiChatCompletion):
@@ -23,6 +23,7 @@ class AzureOpenAiChatCompletion(OpenAiChatCompletion):
         )
 
     def _get_tokenizer(self, init_args):
+        """Retrieve the appropriate tokenizer for the model."""
         try:
             tiktoken.encoding_for_model(self.model_name)
         except Exception:
@@ -32,6 +33,7 @@ class AzureOpenAiChatCompletion(OpenAiChatCompletion):
         return super()._get_tokenizer(init_args)
 
     def _get_client(self, api_key, **kwargs):
+        """Initialize the Azure OpenAI client."""
         from openai import AzureOpenAI
 
         return AzureOpenAI(api_key=api_key, **kwargs)

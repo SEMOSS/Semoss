@@ -1,5 +1,4 @@
 from typing import List, Dict, Tuple
-
 from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import AskModelEngineResponse
 
@@ -61,12 +60,13 @@ class OpenAiCompletion(AbstractOpenAiClient):
         return model_engine_response
 
     def _normalize_kwargs(self, kwargs):
-        if "repetition_penalty" in kwargs.keys():
+        if "repetition_penalty" in kwargs:
             kwargs["frequency_penalty"] = float(kwargs.pop("repetition_penalty"))
-        if "stop_sequences" in kwargs.keys():
+        if "stop_sequences" in kwargs:
             kwargs["stop"] = kwargs.pop("stop_sequences")
 
     def _inference_call(self, prompt, prefix: str, kwargs) -> str:
+        """Handles the inference call with OpenAI's API and streams responses."""
         final_query = ""
 
         kwargs["stream"] = kwargs.get("stream", True)

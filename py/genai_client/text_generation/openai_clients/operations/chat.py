@@ -31,7 +31,7 @@ class Chat:
         # first we determine the type of completion, since this determines how we structure the payload
         message_payload = []
 
-        if FULL_PROMPT not in kwargs.keys():
+        if FULL_PROMPT not in kwargs:
             message_payload = self._process_chat_completion(
                 question=question,
                 context=context,
@@ -70,9 +70,9 @@ class Chat:
         return model_engine_response
 
     def _normalize_kwargs(self, kwargs: Dict) -> Dict:
-        if "repetition_penalty" in kwargs.keys():
+        if "repetition_penalty" in kwargs:
             kwargs["frequency_penalty"] = float(kwargs.pop("repetition_penalty"))
-        if "stop_sequences" in kwargs.keys():
+        if "stop_sequences" in kwargs:
             kwargs["stop"] = kwargs.pop("stop_sequences")
         return kwargs
 

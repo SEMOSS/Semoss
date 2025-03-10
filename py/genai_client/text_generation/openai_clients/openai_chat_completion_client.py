@@ -154,9 +154,10 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         return updated_kwargs
 
     def inference_call(self, prefix: str, **kwargs) -> str:
+        """Handles the inference call with OpenAI's API and streams responses."""
         final_query = ""
         # For Remote Client Server Models
-        if "base_url" in kwargs.keys():
+        if "base_url" in kwargs:
             self.client.base_url, self.client.api_key = kwargs.pop("base_url"), "EMPTY"
 
         # Process structured output
@@ -188,7 +189,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         else:
             final_query = (
                 response.choices[0].message.function_call.arguments
-                if "function_call" in kwargs.keys()
+                if "function_call" in kwargs
                 else response.choices[0].message.content
             )
 
