@@ -216,7 +216,7 @@ class AskModelTests(unittest.TestCase):
 
         # TODO: ignored vertex related test cases for now
 
-    def etest_vertex_text_bison(self):
+    def test_vertex_text_bison(self):
         import os
 
         vertex_sercive_key_path = os.environ.get("GOOGLE_SERVIVE_ACCOUNT_FILE_PATH")
@@ -244,7 +244,7 @@ class AskModelTests(unittest.TestCase):
             ["response", "numberOfTokensInPrompt", "numberOfTokensInResponse"],
         )
 
-    def etest_vertex_chat_bison(self):
+    def test_vertex_chat_bison(self):
         import os
 
         vertex_sercive_key_path = os.environ.get("GOOGLE_SERVIVE_ACCOUNT_FILE_PATH")
@@ -272,7 +272,7 @@ class AskModelTests(unittest.TestCase):
             ["response", "numberOfTokensInPrompt", "numberOfTokensInResponse"],
         )
 
-    def etest_vertex_gemini(self):
+    def test_vertex_gemini(self):
         import os
 
         vertex_sercive_key_path = os.environ.get("GOOGLE_SERVIVE_ACCOUNT_FILE_PATH")
@@ -300,7 +300,7 @@ class AskModelTests(unittest.TestCase):
             ["response", "numberOfTokensInPrompt", "numberOfTokensInResponse"],
         )
 
-    def etest_vertex_code_bison(self):
+    def test_vertex_code_bison(self):
         import os
 
         vertex_sercive_key_path = os.environ.get("GOOGLE_SERVIVE_ACCOUNT_FILE_PATH")
@@ -328,7 +328,7 @@ class AskModelTests(unittest.TestCase):
             ["response", "numberOfTokensInPrompt", "numberOfTokensInResponse"],
         )
 
-    def etest_vertex_codechat_bison(self):
+    def test_vertex_codechat_bison(self):
         import os
 
         vertex_sercive_key_path = os.environ.get("GOOGLE_SERVIVE_ACCOUNT_FILE_PATH")

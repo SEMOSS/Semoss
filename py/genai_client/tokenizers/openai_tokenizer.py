@@ -25,23 +25,10 @@ class OpenAiTokenizer(AbstractTokenizer):
             max_completion_tokens=max_completion_tokens,
         )
 
+        # https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
         self.tokens_per_message, self.tokens_per_name = self._set_token_adjustments(
             encoder_name
         )
-
-        """
-        self.tokens_per_message = 0
-        self.tokens_per_name = 0
-        # https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
-        if ("gpt-4" in encoder_name) or ("gpt-3.5-turbo" in encoder_name):
-            self.tokens_per_message = 3
-            self.tokens_per_name = 1
-        elif encoder_name == "gpt-3.5-turbo-0301":
-            self.tokens_per_message = (
-                4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
-            )
-            self.tokens_per_name = -1  # if there's a name, the role is omitted
-        """
 
     def _set_token_adjustments(self, encoder_name: str):
         """Sets token adjustment values based on the OpenAI model."""
