@@ -316,93 +316,48 @@ public final class Utility {
 	 * 
 	 */
 	public static Map<String, Object> addVectorDatabaseTool(String engineId, String command, int limit) {
-        Map<String, Object> functionEngine = new HashMap<>();
+        Map<String, Object> tool = new HashMap<>();
+        
+        // Level 5: engine id 
+    	Map<String, Object> engineParamProperty = new HashMap<>();
+    	engineParamProperty.put("type", "string");
+    	engineParamProperty.put("description", "The unique identifier for the vector engine provided in the description.");
+    	
+    	// Level 5: command
+    	Map<String, Object> commandParamProperty = new HashMap<>();
+    	commandParamProperty.put("type", "string");
+    	commandParamProperty.put("description", "User queries.");
+    	
+    	// Level 5: Limit
+    	Map<String, Object> limitParamProperty = new HashMap<>();
+    	limitParamProperty.put("type", "int");
+    	limitParamProperty.put("description", "Restrict number of results returned by query.");
 		
-		// If it's a vector:
-        // Function => Parameters => Properties => MAP => Properties => Parameter
+    	// Level 4: Properties
         Map<String, Object> parametersProperties = new HashMap<>();
         parametersProperties.put("engineId", engineId);
-        parametersProperties.put("command", command);
-        parametersProperties.put("limit", limit);
-        
-        // Level 5: Parameters=>Properties=>function_id
-        Map<String, Object> functionIdMap = new HashMap<>();
-        functionIdMap.put("type", "object");
-        functionIdMap.put("description", "The unique identifier for the function_engine provided in the description.");
-       
-        // Level 4: Parameters=>Properties=>MAP
-        Map<String, Object> propertiesMap = new HashMap<>();
-        propertiesMap.put("type", "object"); // value is DYNAMIC
-        propertiesMap.put("properties", parametersProperties); 
-        propertiesMap.put("required", new String[]{"engineId", "command", "limit"}); // Add more required parameters as needed
-        propertiesMap.put("description", "<PARAM OBJECT DESCRIPTION>");
+        parametersProperties.put("command", commandParamProperty);
+        parametersProperties.put("limit", limitParamProperty);
      
-        // Level 3: Parameters=>Type, Parameters=>Properties, Parameters=>Required
+        // Level 3: Parameters
         Map<String, Object> functionParameters = new HashMap<>();
         functionParameters.put("type", "object");
-        functionParameters.put("properties", propertiesMap);
-        // Dynamically inputs a list of the other level 3 elements that are required
+        functionParameters.put("properties", parametersProperties);
         functionParameters.put("required", new String[]{"engineId", "command", "limit"});
+        functionParameters.put("additionalProperties", false);
 
-        // Level 2: name, description, and parameters
+        // Level 2: function 
         Map<String, Object> function = new HashMap<>();
         function.put("name", "add_vector_database");
         function.put("description", "Adds a new vector database");
         function.put("parameters", functionParameters);
 
-        // Level 1: function 
-        functionEngine.put("function", function);
-		
-        return functionEngine;
-    }   
-	
-	/**
-	 * 
-	 * @param
-	 * 
-	 * @return JSON format of vector 
-	 * 
-	 */
-	public static Map<String, Object> addFunctionTool(String engineId) {
-        Map<String, Object> functionEngine = new HashMap<>();
-		
-		// If it's a vector:
-        // Function => Parameters => Properties => MAP => Properties => Parameter
-        Map<String, Object> parametersProperties = new HashMap<>();
-        parametersProperties.put("engineId", engineId);
-        parametersProperties.put("command", command);
-        parametersProperties.put("limit", limit);
+        // Level 1: tool 
+        tool.put("type", "function");
+        tool.put("function", function);
         
-        // Level 5: Parameters=>Properties=>function_id
-        Map<String, Object> functionIdMap = new HashMap<>();
-        functionIdMap.put("type", "object");
-        functionIdMap.put("description", "The unique identifier for the function_engine provided in the description.");
-       
-        // Level 4: Parameters=>Properties=>MAP
-        Map<String, Object> propertiesMap = new HashMap<>();
-        propertiesMap.put("type", "object"); // value is DYNAMIC
-        propertiesMap.put("properties", parametersProperties); 
-        propertiesMap.put("required", new String[]{"engineId", "command", "limit"}); // Add more required parameters as needed
-        propertiesMap.put("description", "<PARAM OBJECT DESCRIPTION>");
-     
-        // Level 3: Parameters=>Type, Parameters=>Properties, Parameters=>Required
-        Map<String, Object> functionParameters = new HashMap<>();
-        functionParameters.put("type", "object");
-        functionParameters.put("properties", propertiesMap);
-        // Dynamically inputs a list of the other level 3 elements that are required
-        functionParameters.put("required", new String[]{"engineId", "command", "limit"});
-
-        // Level 2: name, description, and parameters
-        Map<String, Object> function = new HashMap<>();
-        function.put("name", "add_vector_database");
-        function.put("description", "Adds a new vector database");
-        function.put("parameters", functionParameters);
-
-        // Level 1: function 
-        functionEngine.put("function", function);
-		
-        return functionEngine;
-    }   
+        return tool;
+    }     
 	
 	/**
 	 * Get the Base Folder
