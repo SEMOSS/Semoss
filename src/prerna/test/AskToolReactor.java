@@ -62,49 +62,50 @@ public class AskToolReactor extends AbstractReactor {
 
         Map<String, Object> output = modelResponse.toMap();
 
-//    	if(modelResponse.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
-//    		// the response is for a tool call
-    		// we need to call the actual tool now. 
-    		// AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) modelResponse;
-    		
-    		// // tool result will be a custom element in the paramMap
-    		// HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
-    		// toolExecutionMap.put(AbstractModelEngine.ROLE, "tool");
-    		// toolExecutionMap.put("tool_call_id",toolResponse.getToolCallId());
-    		// toolExecutionMap.put("name",toolResponse.getToolCallName());
+        if(modelResponse.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
+            // the response is for a tool call
+            // we need to call the actual tool now. 
+            AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) modelResponse;
+            
+            // tool result will be a custom element in the paramMap
+            HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
+            toolExecutionMap.put(AbstractModelEngine.ROLE, "tool");
+            toolExecutionMap.put("tool_call_id",toolResponse.getToolCallId());
+            toolExecutionMap.put("name",toolResponse.getToolCallName());
 
-            // // {"function_id":"123-3345-567","map":{"lat":"123","lon":"321"}}
-    		// String toolArguments = toolResponse.getToolCallArgumentsAsString();
+            // {"function_id":"123-3345-567","map":{"lat":"123","lon":"321"}}
+            String toolArguments = toolResponse.getToolCallArgumentsAsString();
 
-            // ObjectMapper mapper = new ObjectMapper();
-            // Map<String, Object> functionParams = new HashMap<String, Object>();
-            // try {
-            //     functionParams = mapper.readValue(toolArguments, Map.class);
-            // } catch (Exception e) {
-            //     // Handle parsing error
-            //     functionParams = null;
-            // }
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> functionParams = new HashMap<String, Object>();
+            try {
+                functionParams = mapper.readValue(toolArguments, Map.class);
+            } catch (Exception e) {
+                // Handle parsing error
+                functionParams = null;
+            }
 
-            // IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("function_id"));
+            IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("function_id"));
 
-            // Object functionReturn = function.execute(functionParams);
-            // String functionReturnString = null;
+            Object functionReturn = function.execute(functionParams);
+            String functionReturnString = null;
 
-            //  try {
-            //     functionReturnString = mapper.writeValueAsString(functionReturn);
-            // } catch (JsonProcessingException e) {
-            //     // Handle the exception, maybe log it or return a default value
-            //     e.printStackTrace();
-            //     functionReturnString = "{}";
-            // }
+            try {
+                functionReturnString = mapper.writeValueAsString(functionReturn);
+            } catch (JsonProcessingException e) {
+                // Handle the exception, maybe log it or return a default value
+                e.printStackTrace();
+                functionReturnString = "{}";
+            }
 
-    		// toolExecutionMap.put("content", functionReturnString);
-    		
+            toolExecutionMap.put("content", functionReturnString);
+            
 
-    		// paramMap.put("toolExecution", toolExecutionMap);
-            // AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", "", this.insight, paramMap);
-//  
-//    	}
+            paramMap.put("toolExecution", toolExecutionMap);
+            AskModelEngineResponse toolExecutionResponse = modelEngine.ask(question, context, this.insight, paramMap);
+
+            output = toolExecutionResponse.toMap();
+        }
         
         Object response = output.get(AbstractModelEngineResponse.RESPONSE);
 //        //add logic here for checking if output is a map or if its a string
