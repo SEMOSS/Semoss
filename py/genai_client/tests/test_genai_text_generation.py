@@ -214,8 +214,6 @@ class AskModelTests(unittest.TestCase):
             ["response", "numberOfTokensInPrompt", "numberOfTokensInResponse"],
         )
 
-        # TODO: ignored vertex related test cases for now
-
     def test_vertex_text_bison(self):
         import os
 
