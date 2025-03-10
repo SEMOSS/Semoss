@@ -142,18 +142,6 @@ class OpenAiTokenizer(AbstractTokenizer):
         """
         model_name = model_name or self.encoder_name
         model_limits_config = get_model_limits(model_name)
-
-        # code review required for this code optimization to ensure it
-        return {
-            "context_window": self.context_window
-            or self.max_tokens
-            or self.get_max_token_length()
-            or model_limits_config["context_window"],
-            "max_completion_tokens": self.max_completion_tokens
-            or self.max_input_tokens
-            or model_limits_config["max_completion_tokens"],
-        }
-        """
         model_limits = {
             "context_window": None,
             "max_completion_tokens": None,
@@ -186,4 +174,3 @@ class OpenAiTokenizer(AbstractTokenizer):
             ]
 
         return model_limits
-        """

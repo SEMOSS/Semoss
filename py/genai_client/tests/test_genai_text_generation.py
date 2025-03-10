@@ -52,7 +52,6 @@ class AskModelTests(unittest.TestCase):
     def test_text_generation_inference(self):
         # declare the model
         model = TextGenClient(
-            # Not sure what should be the endpoint here, tried with Llama model_name and endpoint. but still getting some issue
             endpoint="***REMOVED***",
             model_name="garage-bAInd/Platypus2-70B-instruct",
             max_tokens=8192,
@@ -111,8 +110,7 @@ class AskModelTests(unittest.TestCase):
 
         # declare the model
         model = OpenAiClient(
-            # Seems like having some issue with gpt-3.5-turbo-instruct model, so changed to babbage-002 which is similar one
-            model_name="babbage-002",
+            model_name="gpt-3.5-turbo-instruct",
             api_key=openai_key,
             max_tokens=4097,
             chat_type="completions",
@@ -140,9 +138,9 @@ class AskModelTests(unittest.TestCase):
 
         # declare the model
         model = AzureOpenAiClient(
-            model_name="gpt-4o",  # got some error with this model (-gpt-35-turbo) so changed for now.
+            model_name="gpt-4o",
             api_key=api_key,
-            endpoint="https://semoss-openai.openai.azure.com/",  # previously it was ***REMOVED***
+            endpoint="***REMOVED***",
             max_tokens=4097,
         )
 
@@ -181,11 +179,6 @@ class AskModelTests(unittest.TestCase):
     #     self.assertCountEqual(embeddings_response, ['response', 'numberOfTokensInPrompt', 'numberOfTokensInResponse'])
 
     def test_aws_bedrock_claude(self):
-        """For this test case, getting this below error - it seems like credentials issue
-        ERROR - botocore.exceptions.ClientError: An error occurred (IncompleteSignatureException) when calling the
-                ConverseStream operation: Invalid key=value pair (missing equal-sign) in Authorization header
-                (hashed with SHA-256 and encoded with Base64): 'i7SxkAMuZwTkKGrYMsh/lv0NkEWq35Uja7JQ4GF7d0E='.
-        """
         import os
 
         secret_key = os.environ.get("AWS_SECRET_KEY")
