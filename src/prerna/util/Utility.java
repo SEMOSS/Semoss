@@ -294,33 +294,35 @@ public final class Utility {
 		return paramHash;
 	}
 	
-	public static Map<String, Object> getToolJsonOuput(String engineId) {
-			
-		// Get the engine id and look for its type
-		IEngine.CATALOG_TYPE type = (IEngine.CATALOG_TYPE)SecurityEngineUtils.getEngineTypeAndSubtype(engineId)[0];
-		
-		if (IEngine.CATALOG_TYPE.VECTOR == type) {
-			addVectorDatabaseTool(engineId, )
-		} else if (IEngine.CATALOG_TYPE.FUNCTION == type) {
-			addFunctionTool(engineId)
-		}
-		
-	}
+//	public static Map<String, Object> getToolJsonOuput(String engineId) {
+//			
+//		// Get the engine id and look for its type
+//		IEngine.CATALOG_TYPE type = (IEngine.CATALOG_TYPE)SecurityEngineUtils.getEngineTypeAndSubtype(engineId)[0];
+//		
+//		if (IEngine.CATALOG_TYPE.VECTOR == type) {
+//			addVectorDatabaseTool(engineId, )
+//		} else if (IEngine.CATALOG_TYPE.FUNCTION == type) {
+//			addFunctionTool(engineId)
+//		}
+//		
+//	}
 	
 	/**
 	 * 
-	 * @param engineId, command, limit.
+	 * @param engineId
 	 * 
 	 * @return JSON format of vector 
 	 * 
 	 */
-	public static Map<String, Object> addVectorDatabaseTool(String engineId, String command, int limit) {
+	public static Map<String, Object> addVectorDatabaseTool(String engineId) {
         Map<String, Object> tool = new HashMap<>();
         
         // Level 5: engine id 
     	Map<String, Object> engineParamProperty = new HashMap<>();
     	engineParamProperty.put("type", "string");
-    	engineParamProperty.put("description", "The unique identifier for the vector engine provided in the description.");
+    	engineParamProperty.put("description", SecurityEngineUtils.getAggregateEngineMetadata(engineId, SecurityEngineUtils.getAllMetakeys(), true));
+    	
+    	System.out.print(SecurityEngineUtils.getAggregateEngineMetadata(engineId, SecurityEngineUtils.getAllMetakeys(), true));
     	
     	// Level 5: command
     	Map<String, Object> commandParamProperty = new HashMap<>();
@@ -348,7 +350,7 @@ public final class Utility {
         // Level 2: function 
         Map<String, Object> function = new HashMap<>();
         function.put("name", "add_vector_database");
-        function.put("description", "Adds a new vector database");
+        function.put("description", "");
         function.put("parameters", functionParameters);
 
         // Level 1: tool 
