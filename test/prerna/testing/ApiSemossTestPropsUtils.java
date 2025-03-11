@@ -23,12 +23,15 @@ protected static final Logger classLogger = LogManager.getLogger(ApiSemossTestPr
 		configurationManager.changeRDFMap(ApiTestsSemossConstants.TEST_BASE_DIRECTORY.replace('\\', '/'), "80",
 				ApiTestsSemossConstants.TEST_RDF_MAP.toAbsolutePath().toString());
 		DIHelper.getInstance().loadCoreProp(ApiTestsSemossConstants.TEST_RDF_MAP.toAbsolutePath().toString());
+		
+		
+		Properties coreProps = DIHelper.getInstance().getCoreProp();
+		coreProps.setProperty(Constants.PY_BASE_FOLDER, ApiTestsSemossConstants.BASE_DIRECTORY);
 
 		// Just in case, manually override USE_PYTHON to be true for testing purposes
 		// Warn if this was not the case to begin with
 		if (!Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.USE_PYTHON))) {
 			classLogger.warn("Python must be functional for local testing.");
-			Properties coreProps = DIHelper.getInstance().getCoreProp();
 			coreProps.setProperty(Constants.USE_PYTHON, "true");
 			DIHelper.getInstance().setCoreProp(coreProps);
 		}
@@ -37,21 +40,18 @@ protected static final Logger classLogger = LogManager.getLogger(ApiSemossTestPr
 		// set jri to false
 		// use user rserve
 
-		Properties corePropsR = DIHelper.getInstance().getCoreProp();
-		corePropsR.setProperty(Constants.USE_R, "true");
-		corePropsR.setProperty(Constants.R_CONNECTION_JRI, "true");
-		corePropsR.setProperty("IS_USER_RSERVE", "false");
-		corePropsR.setProperty("R_USER_CONNECTION_TYPE", "dedicated");
-		DIHelper.getInstance().setCoreProp(corePropsR);
+		coreProps.setProperty(Constants.USE_R, "true");
+		coreProps.setProperty(Constants.R_CONNECTION_JRI, "true");
+		coreProps.setProperty("IS_USER_RSERVE", "false");
+		coreProps.setProperty("R_USER_CONNECTION_TYPE", "dedicated");
 
 
 		// Turn tracking off while testing
 		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.T_ON))) {
 			classLogger.info("Setting tracking off during unit tests.");
-			Properties coreProps = DIHelper.getInstance().getCoreProp();
 			coreProps.setProperty(Constants.T_ON, "false");
-			DIHelper.getInstance().setCoreProp(coreProps);
 		}
+		DIHelper.getInstance().setCoreProp(coreProps);
 	}
 	
 	
