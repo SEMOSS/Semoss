@@ -137,6 +137,8 @@ class Chat:
             # add the new question to the payload
             if question is not None and len(question) > 0:
                 message_payload.append({"role": "user", "content": question})
+                if "toolExecution" in fill_variables:
+                    message_payload.append(fill_variables.pop("toolExecution"))
 
         return message_payload
 

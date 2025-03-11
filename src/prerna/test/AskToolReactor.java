@@ -87,7 +87,7 @@ public class AskToolReactor extends AbstractReactor {
 
             IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("function_id"));
 
-            Object functionReturn = function.execute(functionParams);
+            Object functionReturn = function.execute((Map<String, Object>)functionParams.get("map"));
             String functionReturnString = null;
 
             try {
@@ -99,9 +99,11 @@ public class AskToolReactor extends AbstractReactor {
             }
 
             toolExecutionMap.put("content", functionReturnString);
-            
 
             paramMap.put("toolExecution", toolExecutionMap);
+            // remove tools from paramMap since we have the tool result
+            paramMap.remove("tools");
+            paramMap.remove("tool_choice");
             AskModelEngineResponse toolExecutionResponse = modelEngine.ask(question, context, this.insight, paramMap);
 
             output = toolExecutionResponse.toMap();
