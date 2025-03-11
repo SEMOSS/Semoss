@@ -243,6 +243,14 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 					.append(context)
 					.append(TRIPLE_QUOTE);	
 			}
+			
+			if (parameters.containsKey("toolExecution")) {
+	            Map<String, Object> toolExecutionMap = (Map<String, Object>) parameters.get("toolExecution");
+		        if (chatHistory.containsKey(insight.getInsightId())) {
+		            chatHistory.get(insight.getInsightId()).add(toolExecutionMap);
+		        }
+		        parameters.remove("toolExecution");
+	        }
 
 			String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
 			if(history != null) {

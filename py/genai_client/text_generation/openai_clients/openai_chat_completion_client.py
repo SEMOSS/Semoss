@@ -170,7 +170,9 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         # If "tool_choice" is in kwargs, set stream to False
         if "tool_choice" in kwargs:
-            kwargs["stream"] = False        # Check if 'max_tokens' exists in kwargs and remove it, saving its value
+            kwargs["stream"] = False
+
+        # Check if 'max_tokens' exists in kwargs and remove it, saving its value
         max_tokens = kwargs.pop("max_tokens", None)
         # If 'max_tokens' was found and 'max_completion_tokens' is not already in kwargs, set it
         if max_tokens is not None and "max_completion_tokens" not in kwargs:
@@ -198,12 +200,17 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             else:
                 final_query = response.choices[0].message.content
             response_tokens = response.usage.completion_tokens
-        else:            if kwargs["stream"]:
+        else:
+            if kwargs["stream"]:
                 for chunk in response:
                     if chunk.choices and (len(chunk.choices) > 0):
-                        content = chunk.choices[0].delta.content                        if content != None:                            final_query += content                            print(prefix + content, end="")            else:
-                final_query = openai_response.choices[0].message.content
-                response_tokens = openai_response.usage.completion_tokens
+                        content = chunk.choices[0].delta.content
+                        if content != None:
+                            final_query += content
+                            print(prefix + content, end="")
+            else:
+                final_query = response.choices[0].message.content
+                response_tokens = response.usage.completion_tokens
 
         return final_query, response_tokens, messageType
 

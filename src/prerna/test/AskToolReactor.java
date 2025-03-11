@@ -8,6 +8,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.function.FunctionEngineToolShell;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -23,8 +24,11 @@ import prerna.util.Utility;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.json.JSONObject;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 
 import java.util.ArrayList;
 
@@ -32,8 +36,8 @@ public class AskToolReactor extends AbstractReactor {
 
     public AskToolReactor() {
         this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-                ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-        this.keyRequired = new int[] { 1, 1, 0, 0 };
+                ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() ,"engine_tools"};
+        this.keyRequired = new int[] { 1, 1, 0, 0 , 0};
     }
 
     @Override
@@ -58,11 +62,64 @@ public class AskToolReactor extends AbstractReactor {
             paramMap = new HashMap<String, Object>();
         }
 
+		List<String> engineIdForTools = getEngineIDs();
+        if (!engineIdForTools.isEmpty()) {
+        	
+            // Check if the "tools_choice" key exists in the paramMap, else add it
+            if (!paramMap.containsKey("tool_choice")) {
+            	paramMap.put("tool_choice", "auto");                
+            }
+            
+            // Check if the "tools" key exists in the paramMap
+            List<Map<String, Object> > toolsList;
+            if (paramMap.containsKey("tools")) {
+                // Retrieve the existing list of tools
+                toolsList = (List<Map<String, Object> >) paramMap.get("tools");
+            } else {
+                // Create a new list for tools
+                toolsList = new ArrayList<Map<String, Object> >();
+                paramMap.put("tools", toolsList);
+            }
+
+            // Iterate over each engine ID and add the function tool to the tools list
+            
+            //TODO this is hard checked for function engines - will need expand this out. 
+            for (String toolEngineID : engineIdForTools) {
+                IFunctionEngine function = Utility.getFunctionEngine(toolEngineID);
+                Map<String, Object> functionTool = function.buildFunctionEngineToolMap();
+                toolsList.add(functionTool);
+            }
+        }
+		
         AskModelEngineResponse modelResponse = modelEngine.ask(question, context, this.insight, paramMap);
 
         Map<String, Object> output = modelResponse.toMap();
 
         if(modelResponse.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
+        	
+        	//TODO process the tool call here into a response that looks like the below to return to the FE
+        	
+        	/*
+        	 * {
+				toolCall:{
+					name: WeatherFunction
+					type: function_engine
+					data:[{ 
+						paramName: lat,
+						paramType: String,
+						paraValue: "34.5",
+					},{ 
+						paramName: lon,
+						paramType: String,
+						paraValue: "30.5",
+					}
+					]
+				}
+
+        	 * 
+        	 */
+        	
+        	
             // the response is for a tool call
             // we need to call the actual tool now. 
             AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) modelResponse;
@@ -85,61 +142,57 @@ public class AskToolReactor extends AbstractReactor {
                 functionParams = null;
             }
 
-            IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("function_id"));
+            IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("id"));
 
-            Object functionReturn = function.execute(functionParams);
-            String functionReturnString = null;
-
-            try {
-                functionReturnString = mapper.writeValueAsString(functionReturn);
-            } catch (JsonProcessingException e) {
-                // Handle the exception, maybe log it or return a default value
-                e.printStackTrace();
-                functionReturnString = "{}";
-            }
-
-            toolExecutionMap.put("content", functionReturnString);
             
-
-            paramMap.put("toolExecution", toolExecutionMap);
-            AskModelEngineResponse toolExecutionResponse = modelEngine.ask(question, context, this.insight, paramMap);
-
-            output = toolExecutionResponse.toMap();
-        }
-        
-        Object response = output.get(AbstractModelEngineResponse.RESPONSE);
-//        //add logic here for checking if output is a map or if its a string
-//        
-//        // Logic to check if the response is a String or a Map
-//        if (response instanceof String) {
-//            // If it's a string, simply return it
-//            output.put("processedResponse", response);
-//        } else if (response instanceof Map) {
-//            // If it's a map, convert it to a string representation
-//            output.put("processedResponse", ((AskToolModelEngineResponse)modelResponse).getStringResponse());
-//            
-//            //execute tool
-//            
-//            // get tool response 
-//            
-//            //feed tool response, back to the model.
-//            
-//        } else {
-//            // Handle other types if necessary
-//            output.put("processedResponse", "Unsupported response type");
-//        }
-
-//	     // Parse markdown code blocks
-//	     List<CodeBlock> codeBlocks = parseMarkdownCodeBlocks(response);
+            //remove the execution of the function for now. will add back later with a boolean passed in
+//            Object functionReturn = function.execute((Map<String, Object> )functionParams.get("map"));
+//            String functionReturnString = null;
 //
-//	 	//if codeBlocks is not empty
-//	     if(codeBlocks.size()>0) {
-//	    	 output.put("codeBlocks", codeBlocks);
-//	     }
-//	     
+//            try {
+//                functionReturnString = mapper.writeValueAsString(functionReturn);
+//            } catch (JsonProcessingException e) {
+//                // Handle the exception, maybe log it or return a default value
+//                e.printStackTrace();
+//                functionReturnString = "{}";
+//            }
+//
+//            toolExecutionMap.put("content", functionReturnString);         
+//            paramMap.put("toolExecution", toolExecutionMap);
+//            AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", null, this.insight, paramMap);
+//            output = toolExecutionResponse.toMap();
+        }
+
+        
+//        else {
+        	//this is a standard response - process it for code blocks.
+        	
+            //TODO Alter the askTool logic flow, such that if there is a tool,
+        	//return based on above. Otherwise, check if there is markdown. 
+        	// If there is markdown, process it similar to AskRoom and return like below.
+        	
+//        	tool:{
+//        		name: code_engine
+//        		type: code_engine
+//        		data:[{ 
+//        			language: py,
+//        			title: helloWorld.py,
+//        			code: "print("hello world")",
+//        		},
+//        		]
+//        	}
+
+ //       }
+        
+        Object response = modelResponse.toMap().get(AbstractModelEngineResponse.RESPONSE);
+
+        
+        
         return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
     }
     
+    
+
  // Method to parse markdown code blocks
     private List<CodeBlock> parseMarkdownCodeBlocks(String response) {
         List<CodeBlock> codeBlocks = new ArrayList<>();
@@ -155,6 +208,31 @@ public class AskToolReactor extends AbstractReactor {
         return codeBlocks;
     }
 
+	/**
+	 * 
+	 * @return list of engines 
+	 */
+	public List<String> getEngineIDs() {
+		List<String> inputStrings = new ArrayList<>();
+
+		// see if added as key
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++) {
+				inputStrings.add(grs.get(i).toString());
+			}
+			return inputStrings;
+		}
+
+		// no key is added, grab all inputs
+		int size = this.curRow.size();
+		for (int i = 0; i < size; i++) {
+			inputStrings.add(this.curRow.get(i).toString());
+		}
+		
+		return inputStrings;
+	}
 
     private Map<String, Object> getMap() {
         GenRowStruct mapGrs = this.store.getNoun(keysToGet[3]);

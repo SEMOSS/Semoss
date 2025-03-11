@@ -442,10 +442,6 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 		return new EmbeddingsModelEngineResponse(null, null, null);
 	}
 
-	@Override
-	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
-		return "This model does have an model method defined.";
-	}
 
 	/**
 	 * This class is used to process the responses from the Open AI Chat Completions

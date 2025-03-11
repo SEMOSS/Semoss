@@ -2,6 +2,8 @@ package prerna.engine.impl.function;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -15,6 +17,7 @@ import org.json.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -236,5 +239,209 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	public boolean holdsFileLocks() {
 		return false;
 	}
+	
+	 public Map<String, Object> buildFunctionEngineToolMap() {
+	        // Fetch metadata for the engine
+	        Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(
+	            this.getEngineId(),
+	            Arrays.asList("description"),
+	            true
+	        );
 
+	        // Extract the description from metadata
+	        String description = (String) metadata.get("description");
+	        if (description == null) {
+	            description = "No description available.";
+	        }
+
+	        // Create the main map
+	        Map<String, Object> toolMap = new HashMap<>();
+	        toolMap.put("type", "function");
+
+	        // Create the function map
+	        Map<String, Object> functionMap = new HashMap<>();
+	        functionMap.put("name", "function_engine");
+	        functionMap.put("description", description);
+
+	        // Create the parameters map
+	        Map<String, Object> parametersMap = new HashMap<>();
+	        parametersMap.put("type", "object");
+
+	        // Create the properties map
+	        Map<String, Object> propertiesMap = new HashMap<>();
+
+	        // Add the id property
+	        Map<String, Object> idMap = new HashMap<>();
+	        idMap.put("type", "string");
+	        idMap.put("description", "The unique identifier for this function_engine used to call this specific engine");
+	        idMap.put("enum", Arrays.asList(this.getEngineId()));
+	        propertiesMap.put("id", idMap);
+
+	        // Add the map property
+	        Map<String, Object> mapMap = new HashMap<>();
+	        mapMap.put("type", "object");
+
+	        // Create the map properties map
+	        Map<String, Object> mapPropertiesMap = new HashMap<>();
+	        for (FunctionParameter param : this.getParameters()) {
+	            Map<String, Object> paramMap = new HashMap<>();
+	            paramMap.put("type", param.getParameterType());
+	            paramMap.put("description", param.getParameterDescription());
+	            mapPropertiesMap.put(param.getParameterName(), paramMap);
+	        }
+	        mapMap.put("properties", mapPropertiesMap);
+	        mapMap.put("required", this.getRequiredParameters());
+	        mapMap.put("description", "A map containing the parameters to pass into the function_engine call.");
+
+	        propertiesMap.put("map", mapMap);
+
+	        // Finalize parameters map
+	        parametersMap.put("properties", propertiesMap);
+	        parametersMap.put("required", Arrays.asList("id", "map"));
+
+	        // Add parameters to function map
+	        functionMap.put("parameters", parametersMap);
+
+	        // Add function map to main map
+	        toolMap.put("function", functionMap);
+
+	        return toolMap;
+	    }
+	 
+	public FunctionEngineToolShell buildFunctionEngineTool() {
+	    // Fetch metadata for the engine
+	    Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(
+	        this.getEngineId(),
+	        Arrays.asList("description"),
+	        true
+	    );
+
+	    // Extract the description from metadata
+	    String description = (String) metadata.get("description");
+	    if (description == null) {
+	        description = "No description available.";
+	    }
+
+	    // Create and populate the FunctionEngineTool object
+	    FunctionEngineToolShell tool = new FunctionEngineToolShell();
+	    tool.setType("function");
+
+	    Function function = new Function();
+	    function.setName("function_engine");
+	    function.setDescription(description);
+
+	    Parameters parameters = new Parameters();
+	    parameters.setType("object");
+
+	    FunctionProperties properties = new FunctionProperties();
+
+	    IdProperty idProperty = new IdProperty();
+	    idProperty.setType("string");
+	    idProperty.setDescription("The unique identifier for this function_engine used to call this specific engine");
+	    idProperty.setEnumValues(Arrays.asList(this.getEngineId()));
+
+	    MapProperty mapProperty = new MapProperty();
+	    mapProperty.setType("object");
+	    mapProperty.setDescription("A map containing the parameters to pass into the function_engine call.");
+	    mapProperty.setProperties(new HashMap<>());
+	    for (FunctionParameter param : this.getParameters()) {
+	        PropertyDetail paramDetail = new PropertyDetail();
+	        paramDetail.setType(param.getParameterType());
+	        paramDetail.setDescription(param.getParameterDescription());
+	        mapProperty.getProperties().put(param.getParameterName(), paramDetail);
+	    }
+	    mapProperty.setRequired(this.getRequiredParameters());
+
+	    properties.setId(idProperty);
+	    properties.setMap(mapProperty);
+
+	    parameters.setProperties(properties);
+	    parameters.setRequired(Arrays.asList("id", "map"));
+
+	    function.setParameters(parameters);
+	    tool.setFunction(function);
+
+	    return tool;
+	}
+//	/*
+//	 * This method is for building the json a function engine for a AI tools call
+//	 * 
+//	 */
+//	@Override
+//    public JSONObject buildFunctionEngineToolJson() {
+//    	
+//        // Fetch metadata for the engine
+//        Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(
+//            this.getEngineId(),
+//            Arrays.asList("description"),
+//            true
+//        );
+//        
+//        // Extract the description from metadata
+//        String description = (String) metadata.get("description");
+//        if (description == null) {
+//            description = "No description available.";
+//        }
+//        
+//        // Create the main JSON object
+//        JSONObject json = new JSONObject();
+//        json.put("type", "function");
+//
+//        // Create the function object
+//        JSONObject functionJson = new JSONObject();
+//        functionJson.put("name", "function_engine");
+//        functionJson.put("description", description);
+//
+//        // Create the parameters object
+//        JSONObject parametersJson = new JSONObject();
+//        parametersJson.put("type", "object");
+//
+//        // Create the properties object
+//        JSONObject propertiesJson = new JSONObject();
+//
+//        // Add the id property
+//        JSONObject idJson = new JSONObject();
+//        idJson.put("type", "string");
+//        idJson.put("description", "The unique identifier for this function_engine used to call this specific engine");
+//        idJson.put("enum", new JSONArray().put(this.getEngineId()));
+//        propertiesJson.put("id", idJson);
+//
+//        // Add the map property
+//        JSONObject mapJson = new JSONObject();
+//        mapJson.put("type", "object");
+//
+//        // Create the map properties object
+//        JSONObject mapPropertiesJson = new JSONObject();
+//        for (FunctionParameter param : this.getParameters()) {
+//            JSONObject paramJson = new JSONObject();
+//            paramJson.put("type", param.getParameterType());
+//            paramJson.put("description", param.getParameterDescription());
+//            mapPropertiesJson.put(param.getParameterName(), paramJson);
+//        }
+//        mapJson.put("properties", mapPropertiesJson);
+//
+//        // Add required parameters to map
+//        JSONArray requiredArray = new JSONArray();
+//        for (String requiredParam : this.getRequiredParameters()) {
+//            requiredArray.put(requiredParam);
+//        }
+//        mapJson.put("required", requiredArray);
+//        mapJson.put("description", "A map containing the parameters to pass into the function_engine call.");
+//
+//        propertiesJson.put("map", mapJson);
+//
+//        // Finalize parameters object
+//        parametersJson.put("properties", propertiesJson);
+//        parametersJson.put("required", new JSONArray().put("id").put("map"));
+//
+//        // Add parameters to function object
+//        functionJson.put("parameters", parametersJson);
+//
+//        // Add function object to main JSON
+//        json.put("function", functionJson);
+//
+//        return json;
+//    }
+
+	
 }
