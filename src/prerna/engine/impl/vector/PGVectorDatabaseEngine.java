@@ -212,7 +212,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	 * @throws SQLException
 	 */
 	private void execCreateStatement(String createQuery) throws SQLException {
-		//creating the default embeddings table
 		Connection conn = null;
 		Statement stmt = null;
 		try {
@@ -224,7 +223,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		} catch(SQLException e) {
 			classLogger.warn("Unable to create the table " + createQuery);;
 			classLogger.error(Constants.STACKTRACE, e);
-//			throw new SQLException("Unable to create the table " + createQuery);
 		} finally {
 			if(this.dataSource != null) {
 				ConnectionUtils.closeAllConnections(conn, stmt);
