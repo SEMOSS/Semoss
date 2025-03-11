@@ -114,7 +114,7 @@
 							<test>prerna.testing.AllTests</test>
 						</configuration>
 					</plugin>
-					
+
 					<plugin>
 						<groupId>com.rudikershaw.gitbuildhook</groupId>
 						<artifactId>git-build-hook-maven-plugin</artifactId>
@@ -627,19 +627,6 @@
 			<artifactId>HikariCP</artifactId>
 			<version>4.0.3</version>
 		</dependency>
-		<!-- 
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-dbcp2</artifactId>
-			<version>2.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency> 
-		-->
 		<dependency>
 			<groupId>commons-discovery</groupId>
 			<artifactId>commons-discovery</artifactId>
@@ -1533,7 +1520,7 @@
 		<dependency>
 			<groupId>org.javassist</groupId>
 			<artifactId>javassist</artifactId>
-			<version>3.20.0-GA</version>
+			<version>3.30.2-GA</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/net.lingala.zip4j/zip4j -->
 		<!--
@@ -1939,7 +1926,8 @@
 			<artifactId>azure-identity</artifactId>
 			<version>1.12.2</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.azure/azure-security-keyvault-secrets -->
+		<!--
+		https://mvnrepository.com/artifact/com.azure/azure-security-keyvault-secrets -->
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-security-keyvault-secrets</artifactId>
@@ -2264,7 +2252,17 @@
 		<dependency>
 			<groupId>org.apache.pdfbox</groupId>
 			<artifactId>pdfbox</artifactId>
-			<version>2.0.26</version>
+			<version>3.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox-io</artifactId>
+			<version>3.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>jbig2-imageio</artifactId>
+			<version>3.0.4</version>
 		</dependency>
 		<!-- https://github.com/cdarras/clamav-client -->
 		<dependency>
@@ -2329,7 +2327,7 @@
 		<dependency>
 			<groupId>com.pgvector</groupId>
 			<artifactId>pgvector</artifactId>
-			<version>0.1.4</version>
+			<version>0.1.6</version>
 		</dependency>
 		<!--  Weaviate Vector Engine -->
 		<!-- https://mvnrepository.com/artifact/io.weaviate/client -->
@@ -2366,11 +2364,6 @@
 			<version>1.4.0</version>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.pdfbox</groupId>
-			<artifactId>jbig2-imageio</artifactId>
-			<version>3.0.4</version>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-imaging</artifactId>
 			<version>1.0-alpha2</version>
@@ -2379,6 +2372,13 @@
 			<groupId>com.microsoft.playwright</groupId>
 			<artifactId>playwright</artifactId>
 			<version>1.48.0</version>
+		</dependency>
+		<!--
+		https://mvnrepository.com/artifact/com.github.albfernandez/juniversalchardet -->
+		<dependency>
+			<groupId>com.github.albfernandez</groupId>
+			<artifactId>juniversalchardet</artifactId>
+			<version>2.5.0</version>
 		</dependency>
 
 		<!--  testing jars  -->
