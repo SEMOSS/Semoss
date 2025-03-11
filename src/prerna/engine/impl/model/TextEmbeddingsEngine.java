@@ -96,13 +96,6 @@ public class TextEmbeddingsEngine extends AbstractRESTModelEngine {
 	}
 
 	@Override
-	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
-		return "This model does have an model method defined.";
-	}
-	
-
-	
-	@Override
 	public ModelTypeEnum getModelType() {
 		return ModelTypeEnum.TEXT_EMBEDDINGS;
 	}

@@ -96,7 +96,6 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	public PersistentHash conceptIdHash = null;
 
-//	private RdbmsConnectionBuilder connBuilder;
 	private String userName = null;
 	private String password = null;
 	private String driver = null;
@@ -111,6 +110,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	private int poolMaxSize = 16;
 	private int queryTimeout = -1;
 	private Boolean autoCommit = null;
+	private String connectionTestQuery = null;
 	private int transactionIsolationType = -1;
 	
 	private long leakDetectionThresholdMilliseconds = 30_000;
@@ -158,7 +158,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			this.password = decryptPass(smssFilePath, false);
 		} 
 		if(this.password == null) {
-			this.password = this.smssProp.containsKey(queryUtil.getConnectionPasswordKey()) ? this.smssProp.getProperty(queryUtil.getConnectionPasswordKey()) : "";
+			this.password = this.smssProp.getProperty(queryUtil.getConnectionPasswordKey());
 		}
 
 		// grab the connection url
@@ -198,7 +198,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					this.fetchSize = Integer.parseInt(fetchSizeStr);
 				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the fetch size");
+					classLogger.warn("Error occurred trying to parse and get the fetch size");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -210,7 +210,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					this.queryTimeout = Integer.parseInt(queryTimeoutStr);
 				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the query timeout");
+					classLogger.warn("Error occurred trying to parse and get the query timeout");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -220,6 +220,13 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			String autoCommitStr = this.smssProp.getProperty(Constants.AUTO_COMMIT);
 			if(!(autoCommitStr=autoCommitStr.trim()).isEmpty()) {
 				this.autoCommit = Boolean.parseBoolean(autoCommitStr);
+			}
+		}
+		// connection test query
+		if(this.smssProp.getProperty(Constants.CONNECTION_TEST_QUERY) != null) {
+			String connectionTestQuery = this.smssProp.getProperty(Constants.CONNECTION_TEST_QUERY);
+			if(!(connectionTestQuery=connectionTestQuery.trim()).isEmpty()) {
+				this.connectionTestQuery = connectionTestQuery;
 			}
 		}
 		// connection transaction type
@@ -234,7 +241,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					this.leakDetectionThresholdMilliseconds = Long.parseLong(leakDetectionStr);
 				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the leak detection threshold");
+					classLogger.warn("Error occurred trying to parse and get the leak detection threshold");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -246,7 +253,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					this.idelTimeout = Long.parseLong(idleTimeoutStr);
 				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the idle timeout");
+					classLogger.warn("Error occurred trying to parse and get the idle timeout");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -258,7 +265,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					this.poolMinSize = Integer.parseInt(minPoolSizeStr);
 				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the min pool size");
+					classLogger.warn("Error occurred trying to parse and get the min pool size");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -270,7 +277,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					this.poolMaxSize = Integer.parseInt(maxPoolSizeStr);
 				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the max pool size");
+					classLogger.warn("Error occurred trying to parse and get the max pool size");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -298,7 +305,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				this.fileCreateString = RdbmsQueryBuilder.createTableFromFile(this.fileDB, this.fileConceptAndType);
 
 				// this makes the connection and creates the table
-				makeConnection(dbType.getDriver(), this.userName, this.password, this.connectionURL, this.fileCreateString);
+				makeConnectionFromFile(dbType.getDriver(), this.userName, this.password, this.connectionURL, this.fileCreateString);
 			}
 			
 			// init - example of this is H2Server where we spin up and have a new connection url
@@ -312,7 +319,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			this.queryUtil.setConnectionUrl(this.connectionURL);
 			// if we are connection pooling
 			if(useConnectionPooling) {
-				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
+				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(this.driver, this.queryUtil.getConnectionUrl(), this.userName, this.password);
 				setDataSourceProperties(this.dataSource);
 				this.datasourceConnected = true;
 				classLogger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
@@ -366,7 +373,9 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		dataSource.setMaximumPoolSize(this.poolMaxSize);
 		dataSource.setLeakDetectionThreshold(this.leakDetectionThresholdMilliseconds);
 		dataSource.setIdleTimeout(this.idelTimeout);
-//		dataSource.setConnectionTimeout(connectionTimeoutMs);
+		if(this.connectionTestQuery != null && this.connectionTestQuery.isEmpty()) {
+			dataSource.setConnectionTestQuery(this.connectionTestQuery);
+		}
 	}
 
 	@Override
@@ -404,7 +413,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		return this.schema;
 	}
 
-	private void makeConnection(String driver, String userName, String password, String connectionUrl, String createString) {
+	private void makeConnectionFromFile(String driver, String userName, String password, String connectionUrl, String createString) {
 		Statement stmt = null;
 		try {
 			Class.forName(driver);
@@ -448,7 +457,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	public void reloadFile() {
 		try {
 			this.engineConn.close();
-			makeConnection(this.driver, this.userName, this.password, this.connectionURL, this.fileCreateString);
+			makeConnectionFromFile(this.driver, this.userName, this.password, this.connectionURL, this.fileCreateString);
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -488,20 +497,20 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		}
 
 		// re-establish bad connections
-		if(!isConnected() || this.engineConn.isClosed() || !this.engineConn.isValid(1)) {
+		if(!isConnected() || this.engineConn.isClosed() || !testIsConnectionValid(this.engineConn)) {
 			String initUrl = init(this.originalConnectionURL, true);
 			if(initUrl != null) {
 				this.connectionURL = initUrl;
 				this.queryUtil.setConnectionUrl(this.connectionURL);
 			}
 			if(useConnectionPooling) {
-				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
+				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), this.userName, this.password);
 				setDataSourceProperties(this.dataSource);
 				this.engineConn = this.dataSource.getConnection();
 				this.datasourceConnected = true;
 				classLogger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
-				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, smssProp);
+				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, this.smssProp);
 				classLogger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 			this.queryUtil.enhanceConnection(this.engineConn);
@@ -549,11 +558,40 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		}
 	}
 
+	/**
+	 * 
+	 * @param conn
+	 * @param rs
+	 * @param stmt
+	 */
 	private void closeConnections(Connection conn, ResultSet rs, Statement stmt){
 		if(isConnected()){
 			conn = null;
 		}
 		ConnectionUtils.closeAllConnections(conn, stmt, null);
+	}
+	
+	/**
+	 * 
+	 * @param conn
+	 * @return
+	 * @throws SQLException
+	 */
+	private boolean testIsConnectionValid(Connection conn) throws SQLException {
+		if(this.connectionTestQuery == null || this.connectionTestQuery.isEmpty()) {
+			return conn.isValid(1);
+		}
+		
+		try(Statement statment = conn.createStatement(); 
+				ResultSet rs = statment.executeQuery(this.connectionTestQuery)
+				) {
+			// if you can execute, you are valid
+			return true;
+		} catch(Exception e) {
+			classLogger.warn("Connection is not valid. Error message = " + e.getMessage());
+		}
+		
+		return false;
 	}
 
 	@Override
@@ -669,7 +707,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		if(this.useConnectionPooling) {
 			return this.dataSource != null && this.datasourceConnected;
 		}
-		return engineConn !=null && this.engineConnected;
+		return engineConn != null && this.engineConnected;
 	}
 
 	@Override
