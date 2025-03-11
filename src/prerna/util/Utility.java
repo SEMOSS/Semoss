@@ -2405,6 +2405,10 @@ public final class Utility {
 		File owlFile = SmssUtilities.getOwlFile(prop);
 		if(owlFile == null) {
 			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
+			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
+			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
+			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
+			return;
 		}
 		String engineDbTime = df.format(new Date(owlFile.lastModified()));
 

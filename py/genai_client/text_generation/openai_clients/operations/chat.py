@@ -23,10 +23,7 @@ class Chat:
         prefix="",
         **kwargs,
     ) -> AskModelEngineResponse:
-        if "repetition_penalty" in kwargs.keys():
-            kwargs["frequency_penalty"] = float(kwargs.pop("repetition_penalty"))
-        if "stop_sequences" in kwargs.keys():
-            kwargs["stop"] = kwargs.pop("stop_sequences")
+        kwargs = self._normalize_kwargs(kwargs)
 
         if template_name is None:
             template_name = self.client.template_name
@@ -34,8 +31,7 @@ class Chat:
         # first we determine the type of completion, since this determines how we structure the payload
         message_payload = []
 
-        if FULL_PROMPT not in kwargs.keys():
-
+        if FULL_PROMPT not in kwargs:
             message_payload = self._process_chat_completion(
                 question=question,
                 context=context,
@@ -43,7 +39,6 @@ class Chat:
                 template_name=template_name,
                 fill_variables=kwargs,
             )
-
         else:
             message_payload = self._process_full_prompt(kwargs.pop(FULL_PROMPT))
 
@@ -62,7 +57,7 @@ class Chat:
             )
         )
 
-        # Add the message payload as a kwarg
+        # Add the message payload as a kwargs
         kwargs["messages"] = prompt
 
         model_engine_response.response, model_engine_response.response_tokens, model_engine_response.messageType = self.client.inference_call(
@@ -75,6 +70,13 @@ class Chat:
             )
 
         return model_engine_response
+
+    def _normalize_kwargs(self, kwargs: Dict) -> Dict:
+        if "repetition_penalty" in kwargs:
+            kwargs["frequency_penalty"] = float(kwargs.pop("repetition_penalty"))
+        if "stop_sequences" in kwargs:
+            kwargs["stop"] = kwargs.pop("stop_sequences")
+        return kwargs
 
     def _process_chat_completion(
         self,
@@ -114,28 +116,22 @@ class Chat:
             message_payload.extend(history)
 
         # check if images are in the fill args
-        if IMAGE_ENCODED in fill_variables:
+        if IMAGE_ENCODED in fill_variables or IMAGE_URL in fill_variables:
             # add the new question to the payload
-            if question is not None and len(question) > 0:
-                image_payload = []
-                image_payload.append({"type": "text", "text": question})
-                image_url = {}
-                image_url["url"] = (
-                    f"data:image/png;base64,{fill_variables.pop(IMAGE_ENCODED)}"
-                )
-                image_payload.append({"type": "image_url", "image_url": image_url})
-                message_payload.append({"role": "user", "content": image_payload})
-        if IMAGE_URL in fill_variables:
-            if question is not None and len(question) > 0:
-                image_payload = []
-                image_payload.append({"type": "text", "text": question})
-                image_url = {}
-                image_url["url"] = fill_variables.pop(IMAGE_URL)
+            if question:
+                image_payload = [{"type": "text", "text": question}]
+                image_url = {
+                    "url": (
+                        f"data:image/png;base64,{fill_variables.pop(IMAGE_ENCODED)}"
+                        if IMAGE_ENCODED in fill_variables
+                        else fill_variables.pop(IMAGE_URL)
+                    )
+                }
                 image_payload.append({"type": "image_url", "image_url": image_url})
                 message_payload.append({"role": "user", "content": image_payload})
         else:
             # add the new question to the payload
-            if question is not None and len(question) > 0:
+            if question:
                 message_payload.append({"role": "user", "content": question})
 
         return message_payload

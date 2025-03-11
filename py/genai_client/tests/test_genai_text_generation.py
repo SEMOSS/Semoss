@@ -138,7 +138,7 @@ class AskModelTests(unittest.TestCase):
 
         # declare the model
         model = AzureOpenAiClient(
-            model_name="-gpt-35-turbo",
+            model_name="gpt-4o",
             api_key=api_key,
             endpoint="***REMOVED***",
             max_tokens=4097,

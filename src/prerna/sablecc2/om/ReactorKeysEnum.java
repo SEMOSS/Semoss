@@ -259,8 +259,6 @@ public enum ReactorKeysEnum {
     TEMPLATE("template",										"Template folder name"),
     THRESHOLD("threshold", 										"Threshold to be used for search"),
     TOKEN_COUNT("tokenCount",                                   "Number of tokens to create in GPT based generators"),					
-    TOPIC_ENGINE("T_ENGINE",								    "Reference to the topic model engine that will be used for finding topics"),
-    TOPIC_MAP("topicMap",										"Map of all the topics along with threshold, typically used in the topic filtering functions"),
 	UNIQUE_COLUMN("uniqueColumn", 								"Unique column identifier for csv/excel table uploads"),
 	USE_FRAME_FILTERS("useFrameFilters", 						"A boolean indication (true or false) to use frame filters"), 	
 	USERNAME("username", 										"Unique identifier for the user to access a service"),
