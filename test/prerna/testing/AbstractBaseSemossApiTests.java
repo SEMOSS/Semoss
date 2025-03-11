@@ -1,14 +1,18 @@
 package prerna.testing;
 
+import java.util.Optional;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
 public abstract class AbstractBaseSemossApiTests {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractBaseSemossApiTests.class);
+	private static final Logger LOGGER = LogManager.getLogger(AbstractBaseSemossApiTests.class);
 
 	protected boolean clearAllDatabasesBetweenTests = true;
 	protected boolean clearAllEmailsBetweenTests = true;
@@ -17,13 +21,13 @@ public abstract class AbstractBaseSemossApiTests {
 	public static void initialSetup() throws Exception {
 		long start = System.nanoTime();
 		if (ApiSemossTestUtils.isFirstClass()) {
-			classLogger.info("Log check");
-			classLogger.info("INFO");
-			classLogger.debug("DEBUG");
-			classLogger.warn("WARN");
-			classLogger.error("ERROR");
-			classLogger.fatal("FATAL");
-			classLogger.info("Log check end");
+			LOGGER.info("Log check");
+			LOGGER.info("INFO");
+			LOGGER.debug("DEBUG");
+			LOGGER.warn("WARN");
+			LOGGER.error("ERROR");
+			LOGGER.fatal("FATAL");
+			LOGGER.info("Log check end");
 
 			ApiSemossTestSetupUtils.ensureTestFolderStructure();
 
@@ -38,11 +42,12 @@ public abstract class AbstractBaseSemossApiTests {
 
 			ApiSemossTestEngineUtils.createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL,
 					"Native", true);
+
 			
-			ApiRTestUtils.check();
-			ApiPyTestUtils.check();
+			ApiRTestUtils.setup();
+			ApiPyTestUtils.setupAndCheck();
 		}
-		classLogger.info("Semoss Before All Time: " + (System.nanoTime() - start) / 1000000000);
+		LOGGER.info("Semoss Before All Time: " + (System.nanoTime() - start) / 1000000000);
 	}
 
 	@AfterAll
@@ -50,6 +55,7 @@ public abstract class AbstractBaseSemossApiTests {
 //		ApiInsightAndPropsInitUtils.unloadDIHelper();
 //		ApiDatabaseInitUtils.unloadDatabases();
 //		ApiInsightAndPropsInitUtils.unloadSocialProps();
+		
 	}
 
 	// Ensure that everything is pointing in the correct direction before each test
@@ -77,4 +83,18 @@ public abstract class AbstractBaseSemossApiTests {
 		ApiSemossTestInsightUtils.clearInsightCacheDifferently();
 	}
 	
+	@AfterEach
+	public void resetBeforeNextTest(TestInfo ti) {
+		String testClass = "";
+		if (ti.getTestClass().isPresent()) {
+			testClass = ti.getTestClass().get().getCanonicalName();
+		}
+		
+		String testMethod = "";
+		if (ti.getTestMethod().isPresent()) {
+			testMethod = ti.getTestMethod().get().toString();
+		}
+		LOGGER.info("Test finished for: {} : {}", testClass, testMethod);
+	}
+
 }
