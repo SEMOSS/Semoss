@@ -80,13 +80,9 @@ public enum AuthProvider implements Serializable {
 		return tokenFillerClass;
 	}
 	
-	/**
-	 * Really gross looking... you get things like "Ms", "Cac"...
-	 * IF CREATING NEW LOGIC, PLEASE USE AuthProvider.name / getLabel
-	 */
-	@Deprecated
+	@Override
 	public String toString() {
-		return name().charAt(0) + name().substring(1).toLowerCase();
+		return getLabel();
 	}
 	
 	public static AuthProvider getProviderFromString(String authProv) {
@@ -129,6 +125,24 @@ public enum AuthProvider implements Serializable {
 		}
 		
 		return vals;
+	}
+	
+	@Deprecated
+	public static Map<String, String> getLabelToLegacyName() {
+		Map<String, String> vals = new HashMap<>();
+		for(AuthProvider auth : AuthProvider.values()) {
+			vals.put(auth.label, auth.getLegacyName());
+		}
+		return vals;
+	}
+	
+	/**
+	 * Really gross looking... you get things like "Ms", "Cac"...
+	 * IF CREATING NEW LOGIC, PLEASE USE AuthProvider.name / getLabel
+	 */
+	@Deprecated
+	private String getLegacyName() {
+		return name().charAt(0) + name().substring(1).toLowerCase();
 	}
 
 }
