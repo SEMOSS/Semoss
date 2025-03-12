@@ -37,45 +37,62 @@ import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
 import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.query.querystruct.filters.VectorDbGenericFilter;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
+public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(MilvusVectorDatabaseEngine.class);
-
-	private static final String COLLECTIONS_ENDPOINT = "/v2/vectordb/collections";
+	
+	public static final String DATABASE_NAME = "DATABASE_NAME";
+	private static final String V2_VECTOR_ENDPOINT = "/v2/vectordb";
+	private static final String CREATE_INDEX_ENDPOINT = "/indexes/create";
+	private static final String DATABASE_LIST_ENDPOINT ="/databases/list";
+	private static final String DATABASE_CREATE_ENDPOINT = "/databases/create";
+	private static final String DATABASE_DISCRIBE_ENDPOINT = "/databases/describe";
+	private static final String DATABASE_DROP_ENDPOINT = "/databases/drop";
+	public static final String COLLECTION_NAME = "COLLECTION_NAME";
+	private static final String COLLECTION_LIST_ENDPOINT = "/collections/list";
+	private static final String COLLECTION_CREATE_ENDPOINT = "/collections/create";
+	private static final String COLLECTION_DESCRIBE_ENDPOINT = "/collections/describe";
+	private static final String COLLECTION_GET_STATS_ENDPOINT = "/collections/get_stats";
+	private static final String COLLECTION_HAS_COLLECTION_ENDPOINT = "/collections/has";
+	private static final String COLLECTION_GET_LOAD_STATE_ENDPOINT = "/collections/get_load_state";
+	private static final String COLLECTION_LOAD_ENDPOINT = "/collections/load";
+	private static final String COLLECTION_RELEASE_ENDPOINT = "/collections/release";
+	private static final String COLLECTION_RENAME_ENDPOINT = "/collections/rename";
+	private static final String COLLECTION_DROP_ENDPOINT = "/collections/drop";
 	private static final String ENTITIES_ENDPOINT = "/v2/vectordb/entities";
-	private static final String COLLECTION_LIST_ENDPOINT = "/list";
-	private static final String CREATE_ENDPOINT = "/create";
 	private static final String QUERY_ENDPOINT = "/query";
 	private static final String INSERT_ENDPOINT = "/insert";
 	private static final String DELETE_ENDPOINT = "/delete";
 	private static final String SEARCH_ENDPOINT = "/search";
-	private static final String DESCRIBE_ENDPOINT = "/describe";
-	public static final String COLLECTION_NAME = "COLLECTION_NAME";
-	private static final String GET_STATS_ENDPOINT = "/get_stats";
-	private static final String HAS_COLLECTION_ENDPOINT = "/has";
-	private static final String GET_LOAD_STATE_ENDPOINT = "/get_load_state";
-	private static final String LOAD_ENDPOINT = "/load";
-	private static final String RELEASE_ENDPOINT = "/release";
-	private static final String RENAME_ENDPOINT = "/rename";
+	private String apiKey = null;
 	private String milvusUrl = null;
+	private String databaseName = null;
 	private String collectionName = null;
 	private String embeddings = "vector";
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-
+		
+		this.apiKey = smssProp.getProperty(Constants.API_KEY);
+		if (this.apiKey == null || (this.apiKey = this.apiKey.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must define the api key");
+		}
 		this.milvusUrl = this.smssProp.getProperty(Constants.HOSTNAME);
 		this.collectionName = this.smssProp.getProperty(COLLECTION_NAME);
-	
-		if (!doesCollectionExist()) {
-			createCollection();
-		}
+		this.databaseName = smssProp.getProperty(DATABASE_NAME);
+
+		    if (!doesDatabaseExist()) {
+		        createDatabase();
+		    }
+
+		    if (!doesCollectionExist()) {
+		        createCollection();
+		    }
 	}
 
 	@Override
@@ -97,7 +114,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
 		for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
 
 			// Generate a unique primary key for Milvus Vector Database
-			int id = (row.getSource() + "_" + row.getDivider()).hashCode();
+			int id = row.getContent().hashCode();
 
 			JsonObject record = new JsonObject();
 			record.addProperty("id", id);
@@ -118,7 +135,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
 		Map<String, String> headers = getHeaders();
 
 		try {
-			String response = HttpHelperUtility.postRequestStringBody(url, headers, requestBody.toString(),ContentType.APPLICATION_JSON, null, null, null);
+			String response = HttpHelperUtility.postRequestStringBody(url, headers, requestBody.toString(),
+					ContentType.APPLICATION_JSON, null, null, null);
 
 			if (response == null || response.trim().isEmpty()) {
 				throw new RuntimeException("Failed to insert embeddings into Milvus");
@@ -139,7 +157,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR+ AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR
+				+ AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 
 		JsonObject deleteRequest = new JsonObject();
 		deleteRequest.addProperty("collectionName", this.collectionName);
@@ -210,21 +229,32 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
 		outputFields.add("*");
 		search.add("outputFields", outputFields);
 		
-	    StringBuilder filterBuilder = new StringBuilder();
-	    VectorDbGenericFilter dbfilter = new VectorDbGenericFilter();
-	    if (parameters.containsKey("filters")) {
-	        List<IQueryFilter> filters = (List<IQueryFilter>) parameters.get("filters");
-	        VectorDatabaseTypeEnum vectorDbType  = getVectorDatabaseType();
-	        for (IQueryFilter filter : filters) {
-	            filterBuilder.append((dbfilter.processFilter((IQueryFilter) filter , vectorDbType))); 
-	        }
-	        search.addProperty("filter", filterBuilder.toString() );
-	    }
+		List<IQueryFilter> filters = null;
+		List<IQueryFilter> metaFilters = null;
+		StringBuilder filterBuilder = new StringBuilder();
+		MilvusVectorQueryFitlerTranslationHelper dbfilter = new MilvusVectorQueryFitlerTranslationHelper();
+		
+		if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
+			filters = (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY);
+			for (IQueryFilter filter : filters) {
+				filterBuilder.append((dbfilter.processMilvusFilter((IQueryFilter) filter)));
+			}
+			search.addProperty("filter", filterBuilder.toString());
+		}
+		
+		if (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY)) {
+			metaFilters = (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY);
+			for (IQueryFilter metaFilter : metaFilters) {
+				filterBuilder.append((dbfilter.processMilvusFilter((IQueryFilter) metaFilter)));
+			}
+			search.addProperty("filter", filterBuilder.toString());
+		}
 
 		String url = this.milvusUrl + ENTITIES_ENDPOINT + SEARCH_ENDPOINT;
 		Map<String, String> headersMap = getHeaders();
 
-		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(),ContentType.APPLICATION_JSON, null, null, null);
+		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(),
+				ContentType.APPLICATION_JSON, null, null, null);
 		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {
 		}.getType());
 		List<Map<String, Object>> vectorSearchResults = new ArrayList<>();
@@ -243,8 +273,6 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
 		return vectorSearchResults;
 	}
 
-
-
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
 		List<Map<String, Object>> filesInMilvus = new ArrayList<>();
@@ -262,7 +290,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
 		Map<String, String> headersMap = getHeaders();
 
 		try {
-			String response = HttpHelperUtility.postRequestStringBody(url, headersMap, queryRequest.toString(),ContentType.APPLICATION_JSON, null, null, null);
+			String response = HttpHelperUtility.postRequestStringBody(url, headersMap, queryRequest.toString(),
+					ContentType.APPLICATION_JSON, null, null, null);
 			Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {
 			}.getType());
 			String indexClass = this.defaultIndexClass;
@@ -300,7 +329,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
 			}
 
 		} catch (Exception e) {
-			throw new RuntimeException("Error while fetching documents from Milvus Vector Database: " + e.getMessage(),e);
+			throw new RuntimeException("Error while fetching documents from Milvus Vector Database: " + e.getMessage(),
+					e);
 		}
 		return filesInMilvus;
 	}
@@ -317,13 +347,74 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
 		}
 		return arr;
 	}
+	//Indexing has not been implemented based on the intended use.Will implement it accordingly
+	private void createIndex() {
+	    JsonObject createIndexRequest = new JsonObject();
+	    createIndexRequest.addProperty("collectionName", this.collectionName);
+
+	    JsonArray indexParams = new JsonArray();
+	    JsonObject indexParamObject = new JsonObject();
+	    indexParamObject.addProperty("index_type", "AUTOINDEX"); 
+	    indexParamObject.addProperty("metricType", "L2"); 
+	    indexParamObject.addProperty("fieldName", "");
+	    indexParamObject.addProperty("indexName", ""); 
+
+	    indexParams.add(indexParamObject);
+	    createIndexRequest.add("indexParams", indexParams);
+
+	    JsonObject response = sendPostRequest(CREATE_INDEX_ENDPOINT, createIndexRequest);
+
+	    if (response == null) {
+	        classLogger.error("Failed to create index on field '{}' in collection '{}'", "", this.collectionName);
+	        throw new RuntimeException("Failed to create index in Milvus collection: " + this.collectionName);
+	    }
+
+	    classLogger.info("Index '{}' created successfully for collection '{}'", "", this.collectionName);
+	}
 	
+	
+	/**
+	 * Check if the database exists in Milvus.
+	 */
+	private boolean doesDatabaseExist() {
+	    JsonObject request = new JsonObject();
+	    request.addProperty("dbName", this.databaseName);
+	    JsonObject response = sendPostRequest(DATABASE_LIST_ENDPOINT, request);
+
+	    if (response != null && response.has("data")) {
+	        JsonArray databases = response.getAsJsonArray("data");
+
+	        return StreamSupport.stream(databases.spliterator(), false)
+	                .map(JsonElement::getAsString)
+	                .anyMatch(db -> db.equalsIgnoreCase(this.databaseName));
+	    }
+	    classLogger.warn("Database check failed or returned empty response.");
+	    return false;
+	}
+
+	/**
+	 * Create the database if it does not exist.
+	 */
+	private void createDatabase() {
+	    JsonObject createRequest = new JsonObject();
+	    createRequest.addProperty("dbName", this.databaseName);
+	    JsonObject response = sendPostRequest(DATABASE_CREATE_ENDPOINT, createRequest);
+
+	    if (response == null) {
+	        classLogger.error("Failed to create database '{}'", this.databaseName);
+	        throw new RuntimeException("Failed to create Milvus database: " + this.databaseName);
+	    }
+
+	    classLogger.info("Milvus database '{}' created successfully", this.databaseName);
+	}
+
 	/**
 	 * 
 	 * @return
 	 */
 	private boolean doesCollectionExist() {
 		JsonObject createRequest = new JsonObject();
+		createRequest.addProperty("dbName", this.databaseName);
 		JsonObject responseObject = sendPostRequest(COLLECTION_LIST_ENDPOINT, createRequest);
 
 		if (responseObject != null && responseObject.has("data")) {
@@ -332,7 +423,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
 			return StreamSupport.stream(collections.spliterator(), false).map(JsonElement::getAsString)
 					.anyMatch(name -> name.equalsIgnoreCase(this.collectionName));
 		}
-		return false;
+		 classLogger.warn("Collection check failed or returned empty response.");
+		  return false;
 	}
 
 	/**
@@ -342,7 +434,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
 	 * @return
 	 */
 	private JsonObject sendPostRequest(String endpoint, JsonObject requestBody) {
-		String url = this.milvusUrl + COLLECTIONS_ENDPOINT + endpoint;
+		String url = this.milvusUrl + V2_VECTOR_ENDPOINT + endpoint;
 		Map<String, String> headers = getHeaders();
 
 		try {
@@ -357,15 +449,16 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
 		}
 		return null;
 	}
-  
+   
 	private void createCollection() {
 		JsonObject createRequest = new JsonObject();
+		createRequest.addProperty("dbName", this.databaseName);
 		createRequest.addProperty("collectionName", this.collectionName);
 		createRequest.addProperty("dimension", 1024);
 		createRequest.addProperty("metricType", "COSINE");
 		createRequest.addProperty("vectorField", this.embeddings);
 
-		JsonObject response = sendPostRequest(CREATE_ENDPOINT, createRequest);
+		JsonObject response = sendPostRequest(COLLECTION_CREATE_ENDPOINT, createRequest);
 
 		if (response == null) {
 			throw new RuntimeException("Failed to create Milvus Vector collection");
@@ -373,96 +466,142 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine  {
 
 		classLogger.info("Milvus Vector collection '{}' created successfully", this.collectionName);
 	}
-   /**
-    * 
-    * @param collectionName
-    * @return
-    */
+	
+	/**
+	 * 
+	 * @param databaseName
+	 * @return
+	 */
+	public JsonObject describeDatabase(String databaseName) {
+		JsonObject request = new JsonObject();
+		request.addProperty("dbName", this.databaseName);
+		return sendPostRequest(DATABASE_DISCRIBE_ENDPOINT, request);
+	}
+	
+	/**
+	 * 
+	 * @param databaseName
+	 * @return
+	 */
+	public JsonObject dropDatabase(String databaseName) {
+		JsonObject request = new JsonObject();
+		request.addProperty("dbName", this.databaseName);
+		return sendPostRequest(DATABASE_DROP_ENDPOINT, request);
+	}
+
+	/**
+	 * 
+	 * @param collectionName
+	 * @return
+	 */
 	public JsonObject describeCollection(String collectionName) {
 		JsonObject request = new JsonObject();
+		request.addProperty("dbName", this.databaseName);
 		request.addProperty("collectionName", collectionName);
-		return sendPostRequest(DESCRIBE_ENDPOINT, request);
+		return sendPostRequest(COLLECTION_DESCRIBE_ENDPOINT, request);
 	}
-    /**
-     * 
-     * @param collectionName
-     * @return
-     */
+
+	/**
+	 * 
+	 * @param collectionName
+	 * @return
+	 */
 	public JsonObject getCollectionStats(String collectionName) {
 		JsonObject request = new JsonObject();
+		request.addProperty("dbName", this.databaseName);
 		request.addProperty("collectionName", collectionName);
-		return sendPostRequest(GET_STATS_ENDPOINT, request);
+		return sendPostRequest(COLLECTION_GET_STATS_ENDPOINT, request);
 	}
-    /**
-     * 
-     * @param collectionName
-     * @return
-     */
+
+	/**
+	 * 
+	 * @param collectionName
+	 * @return
+	 */
 	public JsonObject hasCollection(String collectionName) {
 		JsonObject request = new JsonObject();
 		request.addProperty("collectionName", collectionName);
-		return sendPostRequest(HAS_COLLECTION_ENDPOINT, request);
+		return sendPostRequest(COLLECTION_HAS_COLLECTION_ENDPOINT, request);
 	}
-    /**
-     * 
-     * @param collectionName
-     * @param partitionNames
-     * @return
-     */
+
+	/**
+	 * 
+	 * @param collectionName
+	 * @param partitionNames
+	 * @return
+	 */
 	public JsonObject getCollectionLoadState(String collectionName, List<String> partitionNames) {
 		JsonObject request = new JsonObject();
 		request.addProperty("collectionName", collectionName);
-
+		request.addProperty("dbName", this.databaseName);
 		JsonArray partitions = new JsonArray();
 		partitionNames.forEach(partitions::add);
 		request.add("partitionNames", partitions);
 
-		return sendPostRequest(GET_LOAD_STATE_ENDPOINT, request);
+		return sendPostRequest(COLLECTION_GET_LOAD_STATE_ENDPOINT, request);
 	}
-    /**
-     * 
-     * @param collectionName
-     * @return
-     */
+
+	/**
+	 * 
+	 * @param collectionName
+	 * @return
+	 */
 	public JsonObject loadCollection(String collectionName) {
 		JsonObject request = new JsonObject();
+		request.addProperty("dbName", this.databaseName);
 		request.addProperty("collectionName", collectionName);
-		return sendPostRequest(LOAD_ENDPOINT, request);
+		return sendPostRequest(COLLECTION_LOAD_ENDPOINT, request);
 	}
-    /**
-     * 
-     * @param collectionName
-     * @return
-     */
+
+	/**
+	 * 
+	 * @param collectionName
+	 * @return
+	 */
 	public JsonObject releaseCollection(String collectionName) {
 		JsonObject request = new JsonObject();
+		request.addProperty("dbName", this.databaseName);
 		request.addProperty("collectionName", collectionName);
-		return sendPostRequest(RELEASE_ENDPOINT, request);
+		return sendPostRequest(COLLECTION_RELEASE_ENDPOINT, request);
 	}
-    /**
-     * 
-     * @param collectionName
-     * @param newCollectionName
-     * @return
-     */
+
+	/**
+	 * 
+	 * @param collectionName
+	 * @param newCollectionName
+	 * @return
+	 */
 	public JsonObject renameCollection(String collectionName, String newCollectionName) {
 		JsonObject request = new JsonObject();
+		request.addProperty("dbName", this.databaseName);
 		request.addProperty("collectionName", collectionName);
 		request.addProperty("newCollectionName", newCollectionName);
-		return sendPostRequest(RENAME_ENDPOINT, request);
+		return sendPostRequest(COLLECTION_RENAME_ENDPOINT, request);
 	}
-    /**
-     * 
-     * @return
-     */
+	
+	/**
+	 * 
+	 * @param collectionName
+	 * @return
+	 */
+	public JsonObject dropCollection(String collectionName) {
+		JsonObject request = new JsonObject();
+		request.addProperty("dbName", this.databaseName);
+		request.addProperty("collectionName", collectionName);
+		return sendPostRequest(COLLECTION_DROP_ENDPOINT, request);
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
 	private Map<String, String> getHeaders() {
 		Map<String, String> headers = new HashMap<>();
 		headers.put(HttpHeaders.CONTENT_TYPE, "application/json");
-		headers.put(HttpHeaders.AUTHORIZATION,
-				"Bearer YOURS_TOKEN");
+		headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + this.apiKey);
 		return headers;
 	}
-    
+
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.MILVUS;
