@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -36,6 +37,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -111,7 +113,9 @@ public abstract class AbstractSecurityUtils {
 			owlCreator.remakeOwl();
 		}
 		initialize();
-
+		// this is to update the bad naming in the security db for type values
+		updateUserTypeEnum();
+		
 		Object anonymousUsers = Utility.getDIHelperLocalProperty(Constants.ANONYMOUS_USER_ALLOWED);
 		if(anonymousUsers == null) {
 			anonymousUsersEnabled = false;
@@ -1057,7 +1061,7 @@ public abstract class AbstractSecurityUtils {
 	
 	
 			// ASSETENGINE
-			colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
+			colNames = new String[] {"USERID", "TYPE", "PROJECTID"};
 			types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("ASSETENGINE", colNames, types));
@@ -2004,6 +2008,66 @@ public abstract class AbstractSecurityUtils {
 		//		colNames = new String[] { "groupid", "seedid" };
 		//		types = new String[] { "integer", "integer" };
 		//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
+	}
+	
+	private static void updateUserTypeEnum() {
+		Map<String, String[]> allValues = new HashMap<>();
+		allValues.put("ASSETENGINE", new String[]{"TYPE"});
+		allValues.put("CUSTOMGROUPASSIGNMENT", new String[] {"TYPE", "PERMISSIONGRANTEDBYTYPE"});
+		allValues.put("ENGINE", new String[] {"CREATEDBYTYPE"});
+		allValues.put("ENGINEACCESSREQUEST", new String[] {"REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE"});
+		allValues.put("ENGINEPERMISSION", new String[] {"PERMISSIONGRANTEDBYTYPE"});
+		allValues.put("GROUPENGINEPERMISSION", new String[] {"TYPE", "PERMISSIONGRANTEDBYTYPE"});
+		allValues.put("GROUPINSIGHTPERMISSION", new String[] {"TYPE", "PERMISSIONGRANTEDBYTYPE"});
+		allValues.put("GROUPPROJECTPERMISSION", new String[] {"TYPE", "PERMISSIONGRANTEDBYTYPE"});
+		allValues.put("INSIGHTACCESSREQUEST", new String[] {"REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE"});
+		allValues.put("PASSWORD_HISTORY", new String[] {"TYPE"});
+		allValues.put("PASSWORD_RESET", new String[] {"TYPE"});
+		allValues.put("PROJECT", new String[] {"CREATEDBYTYPE", "PORTALPUBLISHEDTYPE", "REACTORSCOMPILEDTYPE"});
+		allValues.put("PROJECTACCESSREQUEST", new String[] {"REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE"});
+		allValues.put("PROJECTDEPENDENCIES", new String[] {"TYPE"});
+		allValues.put("SESSION_SHARE", new String[] {"TYPE"});
+		allValues.put("SMSS_GROUP", new String[] {"TYPE", "USERIDTYPE"});
+		allValues.put("SMSS_USER", new String[] {"TYPE"});
+		allValues.put("SMSS_USER_ACCESS_KEYS", new String[] {"TYPE"});
+		allValues.put("USERINSIGHTPERMISSION", new String[] {"PERMISSIONGRANTEDBYTYPE"});
+		allValues.put("WORKSPACEENGINE", new String[] {"TYPE"});
+
+		// grab the new fixed names to the old names
+		Map<String, String> newTypesMap = AuthProvider.getLabelToLegacyName();
+		
+		// repeat for all tables
+		for(String tableName : allValues.keySet()) {
+			// repeat for all columns
+			String[] columns = allValues.get(tableName);
+			for(String columnName : columns) {
+				// update every table -> column pair
+				Connection conn = null;
+				PreparedStatement ps = null;
+				try {
+					conn = securityDb.getConnection();
+					StringBuilder query = new StringBuilder();
+					query.append("UPDATE ").append(tableName).append(" SET ")
+						.append(columnName).append("=? WHERE ")
+						.append(columnName).append("=?");
+					ps = conn.prepareStatement(query.toString());
+					
+					for(String newType : newTypesMap.keySet()) {
+						ps.setString(1, newType);
+						ps.setString(2, newTypesMap.get(newType));
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					if(!conn.getAutoCommit()) {
+						conn.commit();
+					}
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn, ps, null);
+				}
+			}
+		}
 	}
 
 	@Deprecated

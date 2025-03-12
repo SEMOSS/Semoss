@@ -1775,7 +1775,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, projectId);
 					ps.setString(parameterIndex++, depEngineId);
 					ps.setString(parameterIndex++, token.getId());
-					ps.setString(parameterIndex++, token.getName());
+					ps.setString(parameterIndex++, token.getProvider().getLabel());
 					ps.setTimestamp(parameterIndex++, timestamp);
 					ps.addBatch();
 				}

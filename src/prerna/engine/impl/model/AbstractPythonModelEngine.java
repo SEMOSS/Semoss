@@ -284,8 +284,14 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
 		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		
-		AskModelEngineResponse response = AskModelEngineResponse.fromObject(output);
+		AskModelEngineResponse response = null;
+		try {
+			response = AskModelEngineResponse.fromObject(output);
+		} catch(Exception e) {
+			classLogger.warn("Could not create response object from output = " + output);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e.getMessage());
+		}
 		
 		if (keepConvoHisotry) {
 			//IF ITS A tool call - then append adjust history
@@ -380,13 +386,17 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		
 		callMaker.append(")");
-		
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
 		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		
-		InstructModelEngineResponse response = InstructModelEngineResponse.fromObject(output);
-		
+		InstructModelEngineResponse response = null;
+		try {
+			response = InstructModelEngineResponse.fromObject(output);
+		} catch(Exception e) {
+			classLogger.warn("Could not create response object from output = " + output);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e.getMessage());
+		}
 		return response;
 	}
 	
@@ -420,9 +430,16 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			
 		callMaker.append(")");
 		
-		Object responseObject = pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		EmbeddingsModelEngineResponse embeddingsResponse = EmbeddingsModelEngineResponse.fromObject(responseObject);
-		return embeddingsResponse;
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		EmbeddingsModelEngineResponse response = null;
+		try {
+			response = EmbeddingsModelEngineResponse.fromObject(output);
+		} catch(Exception e) {
+			classLogger.warn("Could not create response object from output = " + output);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e.getMessage());
+		}
+		return response;
 	}
 	
 	
@@ -455,9 +472,16 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			
 		callMaker.append(")");
 		
-		Object responseObject = pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		EmbeddingsModelEngineResponse embeddingsResponse = EmbeddingsModelEngineResponse.fromObject(responseObject);
-		return embeddingsResponse;
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		EmbeddingsModelEngineResponse response = null;
+		try {
+			response = EmbeddingsModelEngineResponse.fromObject(output);
+		} catch(Exception e) {
+			classLogger.warn("Could not create response object from output = " + output);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e.getMessage());
+		}
+		return response;
 	}
 
 	@Override
