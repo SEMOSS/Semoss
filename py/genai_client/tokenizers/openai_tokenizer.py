@@ -25,17 +25,18 @@ class OpenAiTokenizer(AbstractTokenizer):
             max_completion_tokens=max_completion_tokens,
         )
 
-        self.tokens_per_message = 0
-        self.tokens_per_name = 0
         # https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
+        self.tokens_per_message, self.tokens_per_name = self._set_token_adjustments(
+            encoder_name
+        )
+
+    def _set_token_adjustments(self, encoder_name: str):
+        """Sets token adjustment values based on the OpenAI model."""
         if ("gpt-4" in encoder_name) or ("gpt-3.5-turbo" in encoder_name):
-            self.tokens_per_message = 3
-            self.tokens_per_name = 1
+            return 3, 1
         elif encoder_name == "gpt-3.5-turbo-0301":
-            self.tokens_per_message = (
-                4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
-            )
-            self.tokens_per_name = -1  # if there's a name, the role is omitted
+            return 4, -1
+        return 0, 0
 
     def _get_tokenizer(self, encoder_name: str):
         """
@@ -70,10 +71,10 @@ class OpenAiTokenizer(AbstractTokenizer):
             return self.tokenizer.apply_chat_template(messages, tokenize=False)
         return "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
 
-    def count_tokens(self, input: Union[List[Dict], str]) -> int:
+    def count_tokens(self, input_data: Union[List[Dict], str]) -> int:
         num_tokens = 0
-        if isinstance(input, list):
-            for message in input:
+        if isinstance(input_data, list):
+            for message in input_data:
                 num_tokens += self.tokens_per_message
                 for key, value in message.items():
                     if key == "content":
@@ -90,28 +91,29 @@ class OpenAiTokenizer(AbstractTokenizer):
                     elif key == "name":
                         num_tokens += self.tokens_per_name
             num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
-        elif isinstance(input, str):
-            num_tokens = len(self.get_tokens_ids(input))
+        elif isinstance(input_data, str):
+            num_tokens = len(self.get_tokens_ids(input_data))
 
         return num_tokens
 
-    def get_tokens_ids(self, input: Union[List[Dict], str]) -> List[int]:
-        if isinstance(input, list):
-            input = " ".join(
+    def get_tokens_ids(self, input_data: Union[List[Dict], str]) -> List[int]:
+        if isinstance(input_data, list):
+            input_data = " ".join(
                 [
-                    message.get("content") or message.get("text")
-                    for message in input
-                    if "content" in message or "text" in message
+                    msg.get("content") or msg.get("text")
+                    for msg in input_data
+                    if "content" in msg or "text" in msg
                 ]
             )
-        elif isinstance(input, dict):
-            input = input["content"]
+        elif isinstance(input_data, dict):
+            input_data = input_data.get("content")
 
-        return self.tokenizer.encode(input)
+        return self.tokenizer.encode(input_data)
 
-    def get_tokens(self, input: Union[List[Dict], str]) -> List[str]:
+    def get_tokens(self, input_data: Union[List[Dict], str]) -> List[str]:
         return [
-            self.tokenizer.decode([tokenId]) for tokenId in self.get_tokens_ids(input)
+            self.tokenizer.decode([token_id])
+            for token_id in self.get_tokens_ids(input_data)
         ]
 
     def get_max_token_length(self) -> int:
@@ -124,8 +126,8 @@ class OpenAiTokenizer(AbstractTokenizer):
     def get_max_input_token_length(self) -> int:
         return self.max_input_tokens
 
-    def decode_token_ids(self, input: List[int]) -> str:
-        return self.tokenizer.decode(input)
+    def decode_token_ids(self, token_ids: List[int]) -> str:
+        return self.tokenizer.decode(token_ids)
 
     def get_model_limits(self, model_name: Optional[str]) -> Dict[str, int]:
         """
