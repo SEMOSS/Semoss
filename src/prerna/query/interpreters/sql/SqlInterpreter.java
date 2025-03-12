@@ -1204,7 +1204,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	 * @param comparator
 	 * @return
 	 */
-	protected String getFormatedObject(String dataType, List<Object> objects, String comparator) {
+	public String getFormatedObject(String dataType, List<Object> objects, String comparator) {
 		// this will hold the sql acceptable format of the object
 		StringBuilder myObj = new StringBuilder();
 		
