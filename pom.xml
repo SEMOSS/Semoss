@@ -114,6 +114,24 @@
 							<test>prerna.testing.AllTests</test>
 						</configuration>
 					</plugin>
+
+					<plugin>
+						<groupId>com.rudikershaw.gitbuildhook</groupId>
+						<artifactId>git-build-hook-maven-plugin</artifactId>
+						<version>3.5.0</version>
+						<configuration>
+							<gitConfig>
+								<core.hooksPath>hooks/</core.hooksPath>
+							</gitConfig>
+						</configuration>
+						<executions>
+							<execution>
+								<goals>
+									<goal>configure</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
@@ -519,6 +537,12 @@
 			<groupId>org.openrdf.sesame</groupId>
 			<artifactId>sesame-runtime</artifactId>
 			<version>2.7.12</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!--
 		https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-rio-rdfxml -->
@@ -526,6 +550,12 @@
 			<groupId>org.openrdf.sesame</groupId>
 			<artifactId>sesame-rio-rdfxml</artifactId>
 			<version>2.7.12</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!--
 		https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-queryresultio-sparqljson -->
@@ -574,7 +604,7 @@
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
-			<version>1.13</version>
+			<version>1.18.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -608,20 +638,13 @@
 			<groupId>com.zaxxer</groupId>
 			<artifactId>HikariCP</artifactId>
 			<version>4.0.3</version>
-		</dependency>
-		<!-- 
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-dbcp2</artifactId>
-			<version>2.0</version>
 			<exclusions>
 				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency> 
-		-->
+		</dependency>
 		<dependency>
 			<groupId>commons-discovery</groupId>
 			<artifactId>commons-discovery</artifactId>
@@ -647,7 +670,7 @@
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
-			<version>2.14.0</version>
+			<version>2.18.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -757,17 +780,6 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
-			<artifactId>gremlin-groovy</artifactId>
-			<version>3.7.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-shaded</artifactId>
 			<version>3.7.1</version>
 			<exclusions>
@@ -777,6 +789,21 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!--
+		<dependency>
+			<groupId>org.apache.tinkerpop</groupId>
+			<artifactId>gremlin-groovy</artifactId>
+			<version>3.7.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		-->
+		<!-- removing this, we dont run gremlin via groovy -->
+		<!--
 		<dependency>
 			<groupId>org.codehaus.groovy</groupId>
 			<artifactId>groovy-jsr223</artifactId>
@@ -789,6 +816,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
@@ -1150,7 +1178,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
-			<version>2.17.1</version>
+			<version>2.24.3</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1161,7 +1189,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<version>2.17.1</version>
+			<version>2.24.3</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1174,7 +1202,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-web</artifactId>
-			<version>2.17.1</version>
+			<version>2.24.3</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1185,7 +1213,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j-impl</artifactId>
-			<version>2.17.1</version>
+			<version>2.24.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mariadb.jdbc</groupId>
@@ -1244,18 +1272,25 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>4.1.1</version>
+			<version>5.4.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<!-- required for poi -->
+		<!-- https://mvnrepository.com/artifact/com.zaxxer/SparseBitSet -->
+		<dependency>
+		    <groupId>com.zaxxer</groupId>
+		    <artifactId>SparseBitSet</artifactId>
+		    <version>1.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
-			<version>4.1.1</version>
+			<version>5.4.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1263,10 +1298,19 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- this is required for poi-ooxml -->
+		<!-- https://mvnrepository.com/artifact/com.github.virtuald/curvesapi -->
 		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi-ooxml-schemas</artifactId>
-			<version>4.1.1</version>
+		    <groupId>com.github.virtuald</groupId>
+		    <artifactId>curvesapi</artifactId>
+		    <version>1.08</version>
+		</dependency>
+		<!-- this is required for poi-ooxml -->
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-compress -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-compress</artifactId>
+			<version>1.27.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1274,16 +1318,29 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-lite -->
 		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>ooxml-schemas</artifactId>
-			<version>1.4</version>
+		    <groupId>org.apache.poi</groupId>
+		    <artifactId>poi-ooxml-lite</artifactId>
+		    <version>5.4.0</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-full -->
+		<dependency>
+		    <groupId>org.apache.poi</groupId>
+		    <artifactId>poi-ooxml-full</artifactId>
+		    <version>5.4.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-scratchpad -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-scratchpad</artifactId>
-			<version>4.1.1</version>
+			<version>5.4.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/net.sf.cssbox/jstyleparser -->
 		<dependency>
@@ -1373,7 +1430,7 @@
 		<dependency>
 			<groupId>org.apache.xmlbeans</groupId>
 			<artifactId>xmlbeans</artifactId>
-			<version>3.1.0</version>
+			<version>5.3.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1471,6 +1528,12 @@
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-repository-sail</artifactId>
 			<version>4.3.10</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!--
 		https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-memory -->
@@ -1478,6 +1541,12 @@
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-memory</artifactId>
 			<version>4.3.10</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!--
 		https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-rio-rdfxml -->
@@ -1485,6 +1554,12 @@
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-rio-rdfxml</artifactId>
 			<version>4.3.10</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!--
 		https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-inferencer -->
@@ -1492,6 +1567,12 @@
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-inferencer</artifactId>
 			<version>4.3.10</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- dependency>
 			<groupId>org.openrdf.sesame</groupId>
@@ -1515,7 +1596,7 @@
 		<dependency>
 			<groupId>org.javassist</groupId>
 			<artifactId>javassist</artifactId>
-			<version>3.20.0-GA</version>
+			<version>3.30.2-GA</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/net.lingala.zip4j/zip4j -->
 		<!--
@@ -1549,6 +1630,10 @@
 				<exclusion>
 					<groupId>com.zaxxer</groupId>
 					<artifactId>HikariCP-java7</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -1662,6 +1747,12 @@
 			<groupId>org.eclipse.jgit</groupId>
 			<artifactId>org.eclipse.jgit</artifactId>
 			<version>5.13.3.202401111512-r</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.kohsuke/github-api -->
 		<dependency>
@@ -1773,6 +1864,14 @@
 					<groupId>io.netty</groupId>
 					<artifactId>netty-handler</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.apache.tinkerpop</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.squareup/javapoet -->
@@ -1801,6 +1900,12 @@
 			<groupId>org.xerial</groupId>
 			<artifactId>sqlite-jdbc</artifactId>
 			<version>3.43.2.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.jayway.jsonpath</groupId>
@@ -1920,8 +2025,15 @@
 			<groupId>com.azure</groupId>
 			<artifactId>azure-identity</artifactId>
 			<version>1.12.2</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.azure/azure-security-keyvault-secrets -->
+		<!--
+		https://mvnrepository.com/artifact/com.azure/azure-security-keyvault-secrets -->
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-security-keyvault-secrets</artifactId>
@@ -1982,17 +2094,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-compress</artifactId>
-			<version>1.21</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
 		<!-- https://mvnrepository.com/artifact/net.snowflake/snowflake-jdbc -->
 		<dependency>
 			<groupId>net.snowflake</groupId>
@@ -2037,12 +2138,28 @@
 			<groupId>org.janusgraph</groupId>
 			<artifactId>janusgraph-core</artifactId>
 			<version>1.1.0-20240301-215803.ce17428</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.tinkerpop</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.janusgraph/janusgraph-es -->
 		<dependency>
 			<groupId>org.janusgraph</groupId>
 			<artifactId>janusgraph-es</artifactId>
 			<version>1.1.0-20240301-215803.ce17428</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- html to pdf -->
 		<dependency>
@@ -2057,6 +2174,10 @@
 				<exclusion>
 					<groupId>org.bouncycastle</groupId>
 					<artifactId>bcprov-jdk14</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -2110,6 +2231,10 @@
 				<exclusion>
 					<groupId>log4j</groupId>
 					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -2205,6 +2330,10 @@
 					<groupId>ch.qos.logback</groupId>
 					<artifactId>logback-core</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
@@ -2226,6 +2355,12 @@
 			<groupId>org.xeustechnologies</groupId>
 			<artifactId>jcl-core</artifactId>
 			<version>2.8</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.maven.shared</groupId>
@@ -2236,6 +2371,12 @@
 			<groupId>com.github.oshi</groupId>
 			<artifactId>oshi-core</artifactId>
 			<version>5.7.2</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.bettercloud</groupId>
@@ -2246,13 +2387,29 @@
 		<dependency>
 			<groupId>org.apache.pdfbox</groupId>
 			<artifactId>pdfbox</artifactId>
-			<version>2.0.26</version>
+			<version>3.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox-io</artifactId>
+			<version>3.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>jbig2-imageio</artifactId>
+			<version>3.0.4</version>
 		</dependency>
 		<!-- https://github.com/cdarras/clamav-client -->
 		<dependency>
 			<groupId>xyz.capybara</groupId>
 			<artifactId>clamav-client</artifactId>
 			<version>2.1.2</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.maxmind.geoip2/geoip2 -->
 		<dependency>
@@ -2271,6 +2428,12 @@
 			<groupId>com.hierynomus</groupId>
 			<artifactId>sshj</artifactId>
 			<version>0.39.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
 		<dependency>
@@ -2289,6 +2452,12 @@
 			<groupId>org.apache.parquet</groupId>
 			<artifactId>parquet-avro</artifactId>
 			<version>1.15.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-common -->
 		<dependency>
@@ -2307,11 +2476,17 @@
 			<groupId>org.apache.tika</groupId>
 			<artifactId>tika-core</artifactId>
 			<version>2.9.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.pgvector</groupId>
 			<artifactId>pgvector</artifactId>
-			<version>0.1.4</version>
+			<version>0.1.6</version>
 		</dependency>
 		<!--  Weaviate Vector Engine -->
 		<!-- https://mvnrepository.com/artifact/io.weaviate/client -->
@@ -2348,11 +2523,6 @@
 			<version>1.4.0</version>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.pdfbox</groupId>
-			<artifactId>jbig2-imageio</artifactId>
-			<version>3.0.4</version>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-imaging</artifactId>
 			<version>1.0-alpha2</version>
@@ -2361,6 +2531,13 @@
 			<groupId>com.microsoft.playwright</groupId>
 			<artifactId>playwright</artifactId>
 			<version>1.48.0</version>
+		</dependency>
+		<!--
+		https://mvnrepository.com/artifact/com.github.albfernandez/juniversalchardet -->
+		<dependency>
+			<groupId>com.github.albfernandez</groupId>
+			<artifactId>juniversalchardet</artifactId>
+			<version>2.5.0</version>
 		</dependency>
 
 		<!--  testing jars  -->

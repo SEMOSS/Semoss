@@ -17,8 +17,10 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.io.RandomAccessReadBufferedFile;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentNameDictionary;
 import org.apache.pdfbox.pdmodel.PDEmbeddedFilesNameTreeNode;
@@ -31,6 +33,7 @@ import org.apache.pdfbox.pdmodel.common.filespecification.PDComplexFileSpecifica
 import org.apache.pdfbox.pdmodel.common.filespecification.PDEmbeddedFile;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
@@ -68,7 +71,7 @@ public final class PDFUtility {
 	 */
 	public static PDDocument createDocument(String filePath) throws IOException {
 		File file = new File(filePath);
-		return PDDocument.load(file);
+		return Loader.loadPDF(new RandomAccessReadBufferedFile(file));
 	}
 
 	public static void addSignatureBlock(PDDocument document) throws IOException {
@@ -130,7 +133,7 @@ public final class PDFUtility {
 
 		PDPageContentStream contentStream = new PDPageContentStream(document, lastPage, AppendMode.APPEND, true);
 		contentStream.beginText();
-		contentStream.setFont(PDType1Font.TIMES_ROMAN, 12);
+		contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.TIMES_ROMAN), 12);
 		contentStream.setLeading(16f);
 		contentStream.newLineAtOffset(375, 65);
 		contentStream.showText(signatureLabel);
@@ -458,7 +461,7 @@ public final class PDFUtility {
 
 			PDPageContentStream contentStream = new PDPageContentStream(document, thisPage, AppendMode.APPEND, true);
 			contentStream.beginText();
-			contentStream.setFont(PDType1Font.TIMES_ROMAN, 8);
+			contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.TIMES_ROMAN), 8);
 			contentStream.setLeading(16f);
 			contentStream.newLineAtOffset(thisPage.getMediaBox().getWidth()/2, 10);
 			contentStream.showText((startingNumber++) + "");
@@ -842,8 +845,12 @@ public final class PDFUtility {
 		document.getDocumentCatalog().setNames( names );
 	}
 
-
-
+	/**
+	 * 
+	 * @param document
+	 * @param rectPage
+	 * @throws IOException
+	 */
 	public static void addTextField(PDDocument document, FormObject rectPage) throws IOException {
 		int pageNum = rectPage.page;
 		PDPage page = document.getPage(pageNum-1);
@@ -879,7 +886,7 @@ public final class PDFUtility {
 		textBox.setFieldFlags(4);
 		textBox.setMultiline(true);
 
-		PDFont font = PDType1Font.HELVETICA;
+		PDFont font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
 		PDResources resources = new PDResources();
 		resources.put(COSName.getPDFName("Helv"), font);
 		acroForm.setDefaultResources(resources);
@@ -899,8 +906,12 @@ public final class PDFUtility {
 		textBox.setValue(rectPage.getKeyword());
 	}
 
-
-
+	/**
+	 * 
+	 * @param document
+	 * @param rectPage
+	 * @throws IOException
+	 */
 	public static void addCheckbox(PDDocument document, FormObject rectPage) throws IOException {
 		int pageNum = rectPage.page;
 		PDPage page = document.getPage(pageNum-1);
@@ -922,7 +933,7 @@ public final class PDFUtility {
 		try (PDPageContentStream pdPageContentStream = new PDPageContentStream(document, pdAppearanceStream))
 		{
 			float fontSize = Float.min(rect.getWidth(), rect.getHeight()) - 2;
-			pdPageContentStream.setFont(PDType1Font.ZAPF_DINGBATS, fontSize);
+			pdPageContentStream.setFont(new PDType1Font(Standard14Fonts.FontName.ZAPF_DINGBATS), fontSize);
 			pdPageContentStream.beginText();
 			pdPageContentStream.newLineAtOffset(3, 4);
 			pdPageContentStream.showText("\u2714");
@@ -935,7 +946,7 @@ public final class PDFUtility {
 		pdAppearanceStream.setResources(new PDResources());
 		try (PDPageContentStream pdPageContentStream = new PDPageContentStream(document, pdAppearanceStream))
 		{
-			pdPageContentStream.setFont(PDType1Font.ZAPF_DINGBATS, 14.5f);
+			pdPageContentStream.setFont(new PDType1Font(Standard14Fonts.FontName.ZAPF_DINGBATS), 14.5f);
 			pdPageContentStream.beginText();
 			pdPageContentStream.newLineAtOffset(3, 4);
 			pdPageContentStream.showText(" ");
@@ -986,22 +997,16 @@ public final class PDFUtility {
 		}
 	}
 
-	public static boolean validatePDImages(String filePath) throws IOException {
+	public static boolean pdfContainsImages(String filePath) throws IOException {
 		boolean status = false;
-		PDDocument pdDoc = null;
-		try {
-			File f = new File(filePath);
-			pdDoc = PDDocument.load(f);
-			int count = getPDFImagesCount(pdDoc);
+		try (PDDocument document = Loader.loadPDF(new RandomAccessReadBufferedFile(new File(filePath)))) {
+			int count = getPDFImagesCount(document);
 			if (count > 0) {
 				status = true;
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			pdDoc.close();
 		}
-
 		return status;
 	}
 

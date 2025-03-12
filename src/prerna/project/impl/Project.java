@@ -155,9 +155,6 @@ public class Project implements IProject {
 	// project specific analytics thread
 	private transient ClientProcessWrapper cpw = new ClientProcessWrapper();
 	
-	// notebook helper
-	private transient INotebookBuilder notebookBuilder = null;
-	
 	@Override
 	public void open(String smssFilePath) throws Exception {
 		setSmssFilePath(smssFilePath);

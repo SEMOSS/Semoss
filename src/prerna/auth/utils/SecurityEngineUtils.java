@@ -1788,7 +1788,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param usageFrequency
 	 * @throws Exception
 	 */
-	public static void copyEnginePermissions(String sourceEngineId, String targetEngineId, int maxTokens, double maxResponseTime, String usageRestriction, String usageFrequency) throws Exception {
+	public static void copyEnginePermissions(String sourceEngineId, String targetEngineId) throws Exception {
 		
 		String insertTargetEnginePermissionSql = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION, VISIBILITY, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement insertTargetEnginePermissionStatement = securityDb.getPreparedStatement(insertTargetEnginePermissionSql);
@@ -3049,8 +3049,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (!deletePs.getConnection().getAutoCommit()) {
 				deletePs.getConnection().commit();
 			}
-			
+
 			if(enginePermissions != null && !enginePermissions.isEmpty()) {
+				String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, DATEADDED) VALUES (?, ?, ?, ?)";
+				insertPs = securityDb.getPreparedStatement(insertQuery);
+				
 				Timestamp currentTimestamp = Utility.getCurrentSqlTimestampUTC();
 				// loop through to add the new permissions
 				for (Map<String, Object> permissionMap : enginePermissions) {
@@ -3068,8 +3071,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					}
 					
 					// Step 3: Insert new permissions
-					String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, DATEADDED) VALUES (?, ?, ?, ?)";
-					insertPs = securityDb.getPreparedStatement(insertQuery);
 					insertPs.setString(1, userDetails.getValue0());
 					insertPs.setInt(2, AccessPermissionEnum.getIdByPermission(permission));
 					insertPs.setString(3, engineId);

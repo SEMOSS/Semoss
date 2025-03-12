@@ -153,10 +153,12 @@ public class SocialPropertiesProcessor {
 				}
 			}
 			
+			AuthProvider thisProvider = allProviders.get(provider);
 			Map<String, Object> providerMap = new HashMap<>();
 			providerMap.put("name", name);
 			providerMap.put("provider", provider);
-			providerMap.put("isOauth", allProviders.get(provider).isOAuth());
+			providerMap.put("isOauth", thisProvider.isOAuth());
+			providerMap.put("label", thisProvider.getLabel());
 			this.availableProviders.add(providerMap);
 		}
 	}

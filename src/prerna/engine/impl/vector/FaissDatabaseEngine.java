@@ -1,14 +1,17 @@
 package prerna.engine.impl.vector;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -48,33 +51,32 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 	
-	public static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
-	private static final String FAISS_INIT_SCRIPT = "${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}')";
-	
-	private HashMap<String, Boolean> indexClassHasDatasetLoaded = new HashMap<String, Boolean>();
 	private String vectorDatabaseSearcher = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		
 		this.vectorDatabaseSearcher = Utility.getRandomString(6);
-		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
 	}
 	
 	@Override
 	protected String[] getServerStartCommands() {
-		String [] commands = (TOKENIZER_INIT_SCRIPT+FAISS_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
+		String faissInitScript = this.vectorDatabaseSearcher+"=vector_database.FAISSDatabase("
+				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', "
+				+ "tokenizer = cfg_tokenizer, "
+				+ "keyword_engine_id = '${KEYWORD_ENGINE_ID}', "
+				+ "distance_method = '${DISTANCE_METHOD}')";
+		String [] commands = (TOKENIZER_INIT_SCRIPT+faissInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
 		
 		// need to iterate through and potential spin up tables themselves
 		if (this.indexClasses.size() > 0) {
 	        ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
 			for (String indexClass : this.indexClasses) {
 				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass, "dataset.pkl");
-				modifiedCommands.add("${"+VECTOR_SEARCHER_NAME+"}.create_searcher(searcher_name = '"+indexClass+"', base_path = '"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
+				modifiedCommands.add(this.vectorDatabaseSearcher+".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
 				if (fileToCheck.exists()) {
-			        modifiedCommands.add("${"+VECTOR_SEARCHER_NAME+"}.searchers['"+indexClass+"'].load_dataset('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'dataset.pkl')");
-			        modifiedCommands.add("${"+VECTOR_SEARCHER_NAME+"}.searchers['"+indexClass+"'].load_encoded_vectors('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'vectors.pkl')");
+			        modifiedCommands.add(this.vectorDatabaseSearcher+".searchers['"+indexClass+"'].load_dataset('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'dataset.pkl')");
+			        modifiedCommands.add(this.vectorDatabaseSearcher+".searchers['"+indexClass+"'].load_encoded_vectors('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'vectors.pkl')");
 		        }
 			}
             commands = modifiedCommands.stream().toArray(String[]::new);
@@ -83,25 +85,13 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return commands;
 	}
 
-	@Override
-	protected synchronized void startServer(int port) {
-		super.startServer(port);
-		
-		if (this.indexClasses.size() > 0) {
-			for (String indexClass : this.indexClasses) {
-				StringBuilder checkForEmptyDatabase = new StringBuilder(this.vectorDatabaseSearcher)
-					.append(".searchers['")
-					.append(indexClass)
-					.append("']")
-					.append(".datasetsLoaded()");
-				
-				boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
-				this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
-			}
-		}
-	}
-	
 	protected void addIndexClass(String indexClass) {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
+		checkSocketStatus();
+		
 		this.indexClasses.add(indexClass);
 		//TODO: do we really need base path for this?
 		String basePath = this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR;
@@ -225,7 +215,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 							.append(indexClass)
 							.append("']");
 		
-		addDocumentPyCommand.append(".addDocumet(documentFileLocation = ['")
+		addDocumentPyCommand.append(".addDocument(documentFileLocation = ['")
 							.append(String.join("','", vectorCsvFiles))
 							.append("'], insight_id = '")
 							.append(insight.getInsightId())
@@ -243,7 +233,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 										 )
 								 ));
 		}
-		
+
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
 			// add the columns based in the vector db query
 			addDocumentPyCommand.append(", ")
@@ -280,7 +270,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 							 .append("']")
 							 .append(".datasetsLoaded()");
 		boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
-		this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
 	}
 	
 	@Override
@@ -320,7 +309,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	
 	@Override
-	public void removeDocument(List<String> filePaths, Map <String, Object> parameters) {
+	public void removeDocument(List<String> fileNames, Map <String, Object> parameters) throws IOException {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey(INDEX_CLASS)) {
 			indexClass = (String) parameters.get(INDEX_CLASS);
@@ -331,56 +320,84 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		checkSocketStatus();
-		
+
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		String indexedFilesPath = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "indexed_files";
 		Path indexDirectory = Paths.get(indexedFilesPath);
-		for (String document : filePaths) {
-			String documentName = document.split("\\.")[0];
-	        String[] fileNamesToDelete = {documentName + "_dataset.pkl", documentName + "_vectors.pkl", documentName + ".csv"};
-
-	        // Create a filter for the file names
-	        DirectoryStream.Filter<Path> fileNameFilters = entry -> {
-	            String fileName = entry.getFileName().toString();
-	            for (String fileNameToDelete : fileNamesToDelete) {
-	                if (fileName.equals(fileNameToDelete)) {
-	                    return true;
-	                }
-	            }
-	            return false;
-	        };
-	        
-	        DirectoryStream<Path> stream;
-			try {
-				stream = Files.newDirectoryStream(indexDirectory, fileNameFilters);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable determine files in " + indexDirectory.getFileName());
-			}
-	        for (Path entry : stream) {
-                // Delete each file that matches the specified file name
-                try {
-					Files.delete(entry);
-					filesToRemoveFromCloud.add(entry.toString());
+        DirectoryStream<Path> stream = null;
+        try {
+        	List<String> sourceNames = new ArrayList<>();
+        	for(String document : fileNames) {
+				String documentName = FilenameUtils.getName(document);
+				File f = new File(document);
+				if(f.exists() && f.getName().endsWith(".csv")) {
+					sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
+				} else {
+					sourceNames.add(documentName);
+				}
+        	}
+        	
+			for (String document : sourceNames) {
+				String documentName = FilenameUtils.getName(document);
+		        String[] fileNamesToDelete = {documentName + "_dataset.pkl", documentName + "_vectors.pkl", documentName + ".csv"};
+	
+		        // Create a filter for the file names
+		        DirectoryStream.Filter<Path> fileNameFilters = entry -> {
+		            String fileName = entry.getFileName().toString();
+		            for (String fileNameToDelete : fileNamesToDelete) {
+		                if (fileName.equals(fileNameToDelete)) {
+		                    return true;
+		                }
+		            }
+		            return false;
+		        };
+		        
+				try {
+					stream = Files.newDirectoryStream(indexDirectory, fileNameFilters);
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Unable to remove file: " + entry.getFileName());
+					throw new IllegalArgumentException("Unable determine files in " + indexDirectory.getFileName());
 				}
-                classLogger.info("Deleted: " + entry.toString());
-            }
-	        try {
-	        	File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", document);
-				FileUtils.forceDelete(documentFile);
-				filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to delete " + document + "from documents directory");
+		        for (Path entry : stream) {
+	                // Delete each file that matches the specified file name
+	                try {
+						Files.delete(entry);
+						filesToRemoveFromCloud.add(entry.toString());
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Unable to remove file: " + entry.getFileName());
+					}
+	                classLogger.info("Deleted: " + entry.toString());
+	            }
+		        try {
+		        	File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", document);
+					if(documentFile.exists() && documentFile.isFile()) {
+			        	FileUtils.forceDelete(documentFile);
+						filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
+					}
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to delete " + document + "from documents directory");
+				}
+			}
+		} finally {
+			if(stream != null) {
+				try {
+					stream.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
 		// this would mean the indexClass is now empty, we should delete it
 		File indexedFolder = new File(indexedFilesPath);
-		if (indexedFolder.list().length == 0) {
+		if (indexedFolder.list(new FilenameFilter() {
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.endsWith(".pkl");
+			}
+		}).length == 0) {
 			try {
 				File indexClassDirectory = new File(indexedFolder.getParent());
 				
@@ -396,7 +413,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 			this.pyt.runScript(this.vectorDatabaseSearcher + ".delete_searcher(searcher_name = '"+indexClass+"')");
 			this.indexClasses.remove(indexClass);
-			this.indexClassHasDatasetLoaded.remove(indexClass);
 		} else {
 			// Regenerate the master "dataset.pkl" and "vectors.pkl" files
 	        StringBuilder updateMasterFilesCommand = new StringBuilder();
@@ -411,16 +427,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	        String script = updateMasterFilesCommand.toString();
 	        classLogger.info("Running >>>" + script);
 	        this.pyt.runScript(script);
-
-	        // Verify index class loaded the dataset
-	        StringBuilder checkForEmptyDatabase = new StringBuilder();
-	        checkForEmptyDatabase.append(this.vectorDatabaseSearcher)
-	                             .append(".searchers['")
-	                             .append(indexClass)
-	                             .append("']")
-	                             .append(".datasetsLoaded()");
-	        boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
-	        this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
 		}
 		
 		if (ClusterUtil.IS_CLUSTER) {
@@ -435,11 +441,17 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
-		
 		checkSocketStatus();
+
 		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey(INDEX_CLASS)) {
+			indexClass = (String) parameters.get(INDEX_CLASS);
+		}
+		
 		insight.getVarStore().put(LATEST_VECTOR_SEARCH_STATEMENT, new NounMetadata(question, PixelDataType.CONST_STRING));
 		
+		final String TRIPLE_QUOTE = "\"\"\"";
+
 		StringBuilder callMaker = new StringBuilder();
 		if (parameters.containsKey(INDEX_CLASS)) {
 			Object indexClassObj = parameters.get(INDEX_CLASS);
@@ -447,52 +459,66 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				indexClass = (String) indexClassObj;
 				// make the python method
 				callMaker.append(this.vectorDatabaseSearcher)
-						 .append(".searchers['")
+						 .append(".nearestNeighbor(")
+						 .append("indexClasses=['")
 						 .append(indexClass)
-						 .append("']")
-						 .append(".nearestNeighbor(");
+						 .append("'], ")
+						 ;
 			} else if (indexClassObj instanceof Collection) {
 				indexClass = PyUtils.determineStringType(indexClassObj);
 				// make the python method
 				callMaker.append(this.vectorDatabaseSearcher)
 						 .append(".nearestNeighbor(")
-						 .append("indexClasses = ")
+						 .append("indexClasses=")
 						 .append(indexClass)
 						 .append(", ");
 			}
 		} else {
 			// make the python method
 			callMaker.append(this.vectorDatabaseSearcher)
-					 .append(".searchers['")
+					 .append(".nearestNeighbor(")
+					 .append("indexClasses=['")
 					 .append(indexClass)
-					 .append("']")
-					 .append(".nearestNeighbor(");
+					 .append("'], ")
+					 ;
 		}
 		
-		// make sure the database has docuemnts loaded / added
-		if (!this.indexClassHasDatasetLoaded.containsKey(indexClass) || this.indexClassHasDatasetLoaded.get(indexClass) == false) {
-			throw new IllegalArgumentException("There are no documents loaded in the index class of the vector database.");
+		if(question.startsWith("\"")) {
+			question = " " + question;
 		}
-	
-		// make the question arg
-		callMaker.append("question=\"\"\"")
-				 .append(question.replace("\"", "\\\""))
-				 .append("\"\"\"");
+		if(question.endsWith("\"")) {
+			question = question + " ";
+		}
+		question = question.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+		callMaker.append("question=")
+			.append(TRIPLE_QUOTE)
+			.append(question)
+			.append(TRIPLE_QUOTE)
+			;
 		
 		callMaker.append(", insight_id='")
-				 .append(insight.getInsightId())
-				 .append("'");
+			.append(insight.getInsightId())
+			.append("'")
+			;
 				
 		String searchFilters = "None";
 		if (parameters.containsKey("filters")) {
 			// TODO modify so query can come from py world
 			List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
 			searchFilters = addFilters(filters);
-			// make the filter arg
-			callMaker.append(", ")
-					 .append("filter=\"\"\"")
-					 .append(searchFilters)
-					 .append("\"\"\"");
+			
+			if(searchFilters.startsWith("\"")) {
+				searchFilters = " " + searchFilters;
+			}
+			if(searchFilters.endsWith("\"")) {
+				searchFilters = searchFilters + " ";
+			}
+			searchFilters = searchFilters.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+			callMaker.append(", filter=")
+				.append(TRIPLE_QUOTE)
+				.append(searchFilters)
+				.append(TRIPLE_QUOTE)
+				;
 		}
 		
 		// make the limit, i.e. the number of responses we want
@@ -543,13 +569,20 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		// close the method
  		callMaker.append(")");
- 		classLogger.info("Running >>>" + callMaker.toString());
+ 		classLogger.info("Running >>> " + callMaker.toString());
 		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		
 		return (List<Map<String, Object>>) output;
 	}
 	
-	public Map<String, String> removeCorruptedFiles(String indexClass){
+	/**
+	 * 
+	 * @param indexClass
+	 * @return
+	 */
+	public Map<String, String> removeCorruptedFiles(String indexClass) {
+		checkSocketStatus();
+
 		if (indexClass == null || indexClass.isEmpty()) {
 			indexClass = this.defaultIndexClass;
 		}
@@ -579,19 +612,67 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			deleteFilesFromCloudThread.start();
 		}
 		
-		// verify the index class loaded the dataset
-		StringBuilder checkForEmptyDatabase = new StringBuilder();
-		checkForEmptyDatabase.append(this.vectorDatabaseSearcher)
-							 .append(".searchers['")
-							 .append(indexClass)
-							 .append("']")
-							 .append(".datasetsLoaded()");
-		boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
-		this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
-		
 		return corruptedFilesToReason;
 	}
+	
+	@Override
+	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey(INDEX_CLASS)) {
+			indexClass = (String) parameters.get(INDEX_CLASS);
+		}
+		
+		checkSocketStatus();
+		
+		StringBuilder listDocumentsCommand = new StringBuilder();
+		listDocumentsCommand.append(this.vectorDatabaseSearcher)
+				.append(".searchers['")
+				.append(indexClass)
+				.append("']")
+				.append(".list_documents()  if ")
+				.append(this.vectorDatabaseSearcher)
+				.append(".searcher_exists('")
+				.append(indexClass)
+				.append("') else []");
+		
+		List<String> sources = (List<String>) pyt.runSmssWrapperEval(listDocumentsCommand.toString(), null);
+		
+		List<Map<String, Object>> fileList = new ArrayList<>();
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		if(documentsDir.exists() && documentsDir.isDirectory()) {
+			for(String fileName : sources) {
+				Map<String, Object> fileInfo = new HashMap<>();
+				fileInfo.put("fileName", fileName);
+				File thisF = new File(documentsDir, fileName);
+				if(thisF.exists() && thisF.isFile()) {
+					long fileSizeInBytes = thisF.length();
+					double fileSizeInMB = (double) fileSizeInBytes / (1024);
+					SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+					String lastModified = dateFormat.format(new Date(thisF.lastModified()));
 
+					// add file size and last modified into the map
+					fileInfo.put("fileSize", fileSizeInMB);
+					fileInfo.put("lastModified", lastModified);
+				}
+				fileList.add(fileInfo);
+			}
+		}
+		
+		return fileList;
+	}
+
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		checkSocketStatus();
+		
+		StringBuilder getAllRecordsCommand = new StringBuilder();
+		getAllRecordsCommand.append(this.vectorDatabaseSearcher)
+				.append(".list_all_records()");
+		
+		List<Map<String, Object>> allRecords = (List<Map<String, Object>>) pyt.runSmssWrapperEval(getAllRecordsCommand.toString(), null);
+		return allRecords;
+	}
+	
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.FAISS;

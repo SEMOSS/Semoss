@@ -56,6 +56,9 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     	this.insight = insight;
     	this.context = context;
         this.prompt = prompt;
+        if(this.prompt != null) {
+        	this.prompt = this.prompt.trim();
+        }
         this.fullPrompt = fullPrompt;
         this.promptTokens = promptTokens;
         this.inputTime = inputTime;
@@ -102,7 +105,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			}
 		}
 				
-		if (prompt == null) {
+		if (prompt == null || prompt.isEmpty()) {
 			if(fullPrompt instanceof Collection && ((Collection) fullPrompt).size() == 1) {
 				Object promptObj = ((Collection) fullPrompt).iterator().next();
 				if(promptObj instanceof String) {
@@ -113,8 +116,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			} else {
 				prompt = new GsonBuilder().disableHtmlEscaping().create().toJson(fullPrompt);
 			}
-		} else {
-			prompt = prompt.replace("'", "\'");
 		}
 		
         Duration duration = Duration.between(inputTime, responseTime);
@@ -176,7 +177,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			ModelInferenceLogsUtils.doRecordMessage(
 				messageId, 
 				RESPONSE,
-				response.replace("'", "\'"),
+				response,
 				this.messageMethod,
 				responseTokens,
 				millisecondsDouble,
