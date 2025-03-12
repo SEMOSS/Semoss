@@ -1,4 +1,4 @@
-package prerna.testing;
+package prerna.testing.reactor.variable;
 
 import prerna.testing.AbstractBaseSemossApiTests;
 
