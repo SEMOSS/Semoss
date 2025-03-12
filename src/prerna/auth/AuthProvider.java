@@ -21,7 +21,7 @@ public enum AuthProvider implements Serializable {
 	GITLAB("GITLAB", "GitLab", true, GitLabTokenFiller.class.getName()),
 	//TODO: build out custom endpoint in UserResource
 	KEYCLOAK("KEYCLOAK", "Keycloak", true, GenericTokenFiller.class.getName()),
-	MS("MS", "Microsoft", true, MicrosoftTokenFiller.class.getName()), // this is azure graph
+	MICROSOFT("MICROSOFT", "Microsoft", true, MicrosoftTokenFiller.class.getName()), // this is azure graph
 	SALESFORCE("SALESFORCE", "Salesforce", true, null), 
 	SITEMINDER("SITEMINDER", "SiteMinder", true, null),
 	SURVEYMONKEY("SURVEYMONKEY", "SurveyMonkey", true, null),
