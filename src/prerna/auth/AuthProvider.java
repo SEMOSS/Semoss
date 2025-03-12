@@ -105,7 +105,8 @@ public enum AuthProvider implements Serializable {
 		for(AuthProvider auth : AuthProvider.values()) {
 			vals.add(auth.name().toLowerCase());
 		}
-		
+		// TODO: account for legacy MS
+		vals.add("ms");
 		return vals;
 	}
 	
@@ -114,15 +115,8 @@ public enum AuthProvider implements Serializable {
 		for(AuthProvider auth : AuthProvider.values()) {
 			vals.put(auth.name().toLowerCase(), auth);
 		}
-		
-		return vals;
-	}
-	
-	public static Map<String, Boolean> getOAuthLoginProviders() {
-		Map<String, Boolean> vals = new HashMap<>();
-		for(AuthProvider auth : AuthProvider.values()) {
-			vals.put(auth.name().toLowerCase(), auth.isOAuth);
-		}
+		// TODO: account for legacy MS
+		vals.put("ms", AuthProvider.MICROSOFT);
 		
 		return vals;
 	}
