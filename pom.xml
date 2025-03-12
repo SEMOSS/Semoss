@@ -592,7 +592,7 @@
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
-			<version>1.13</version>
+			<version>1.18.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -652,7 +652,7 @@
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
-			<version>2.14.0</version>
+			<version>2.18.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -762,17 +762,6 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
-			<artifactId>gremlin-groovy</artifactId>
-			<version>3.7.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-shaded</artifactId>
 			<version>3.7.1</version>
 			<exclusions>
@@ -782,6 +771,21 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!--
+		<dependency>
+			<groupId>org.apache.tinkerpop</groupId>
+			<artifactId>gremlin-groovy</artifactId>
+			<version>3.7.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		-->
+		<!-- removing this, we dont run gremlin via groovy -->
+		<!--
 		<dependency>
 			<groupId>org.codehaus.groovy</groupId>
 			<artifactId>groovy-jsr223</artifactId>
@@ -794,6 +798,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
@@ -1155,7 +1160,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
-			<version>2.17.1</version>
+			<version>2.24.3</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1166,7 +1171,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<version>2.17.1</version>
+			<version>2.24.3</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1179,7 +1184,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-web</artifactId>
-			<version>2.17.1</version>
+			<version>2.24.3</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1190,7 +1195,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j-impl</artifactId>
-			<version>2.17.1</version>
+			<version>2.24.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mariadb.jdbc</groupId>
@@ -1249,18 +1254,25 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>4.1.1</version>
+			<version>5.4.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<!-- required for poi -->
+		<!-- https://mvnrepository.com/artifact/com.zaxxer/SparseBitSet -->
+		<dependency>
+		    <groupId>com.zaxxer</groupId>
+		    <artifactId>SparseBitSet</artifactId>
+		    <version>1.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
-			<version>4.1.1</version>
+			<version>5.4.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1268,10 +1280,19 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- this is required for poi-ooxml -->
+		<!-- https://mvnrepository.com/artifact/com.github.virtuald/curvesapi -->
 		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi-ooxml-schemas</artifactId>
-			<version>4.1.1</version>
+		    <groupId>com.github.virtuald</groupId>
+		    <artifactId>curvesapi</artifactId>
+		    <version>1.08</version>
+		</dependency>
+		<!-- this is required for poi-ooxml -->
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-compress -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-compress</artifactId>
+			<version>1.27.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1279,16 +1300,29 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-lite -->
 		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>ooxml-schemas</artifactId>
-			<version>1.4</version>
+		    <groupId>org.apache.poi</groupId>
+		    <artifactId>poi-ooxml-lite</artifactId>
+		    <version>5.4.0</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-full -->
+		<dependency>
+		    <groupId>org.apache.poi</groupId>
+		    <artifactId>poi-ooxml-full</artifactId>
+		    <version>5.4.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-scratchpad -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-scratchpad</artifactId>
-			<version>4.1.1</version>
+			<version>5.4.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/net.sf.cssbox/jstyleparser -->
 		<dependency>
@@ -1378,7 +1412,7 @@
 		<dependency>
 			<groupId>org.apache.xmlbeans</groupId>
 			<artifactId>xmlbeans</artifactId>
-			<version>3.1.0</version>
+			<version>5.3.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1778,6 +1812,10 @@
 					<groupId>io.netty</groupId>
 					<artifactId>netty-handler</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.apache.tinkerpop</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.squareup/javapoet -->
@@ -1988,17 +2026,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-compress</artifactId>
-			<version>1.21</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
 		<!-- https://mvnrepository.com/artifact/net.snowflake/snowflake-jdbc -->
 		<dependency>
 			<groupId>net.snowflake</groupId>
@@ -2043,6 +2070,12 @@
 			<groupId>org.janusgraph</groupId>
 			<artifactId>janusgraph-core</artifactId>
 			<version>1.1.0-20240301-215803.ce17428</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.tinkerpop</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.janusgraph/janusgraph-es -->
 		<dependency>
