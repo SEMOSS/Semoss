@@ -223,7 +223,13 @@ public final class UploadUtilities {
 	 */
 	public static File generateEmptyRDFXMLFile(String owlLocation) {
 		File owlFile = new File(owlLocation);
-		
+		if(!owlFile.exists()) {
+			try {
+				owlFile.createNewFile();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 

@@ -579,7 +579,7 @@ public class User implements Serializable {
 			throw new IllegalArgumentException("User must have primary login");
 		}
 		String userid = user.getAccessToken(login).getId();
-		return Pair.with(userid, login.name());
+		return Pair.with(userid, login.getLabel());
 	}
 	
 	@Deprecated
@@ -599,7 +599,7 @@ public class User implements Serializable {
 			throw new IllegalArgumentException("User must have primary login");
 		}
 		String userid = user.getAccessToken(login).getId();
-		creds.add(Pair.with(userid, login.name()));
+		creds.add(Pair.with(userid, login.getLabel()));
 
 		if (creds.size() == 0) {
 			throw new IllegalArgumentException("User needs to be logged in.");

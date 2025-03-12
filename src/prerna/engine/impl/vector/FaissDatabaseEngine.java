@@ -514,7 +514,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				searchFilters = searchFilters + " ";
 			}
 			searchFilters = searchFilters.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-			callMaker.append("filter=")
+			callMaker.append(", filter=")
 				.append(TRIPLE_QUOTE)
 				.append(searchFilters)
 				.append(TRIPLE_QUOTE)
