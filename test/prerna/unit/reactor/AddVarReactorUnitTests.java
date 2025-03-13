@@ -1,10 +1,11 @@
-package prerna.testing;
+package prerna.unit.reactor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
@@ -63,43 +64,41 @@ public class AddVarReactorUnitTests {
 		String language = "python"; //R Python or Java
 		String format = "jpeg"; //format to save as jpeg gif or png
 		
+		
         // Arrange
-//        when(nounStore.getNoun(ReactorKeysEnum.VARIABLE.getKey()).get(0)).thenReturn(variable);
-//        when(nounStore.getNoun(ReactorKeysEnum.FRAME.getKey()).getAllValues()).thenReturn(Arrays.asList(frames));
-//        when(nounStore.getNoun(ReactorKeysEnum.EXPRESSION.getKey()).get(0)).thenReturn(expression);
-//        when(nounStore.getNoun(ReactorKeysEnum.LANGUAGE.getKey()).get(0)).thenReturn(language);
-		when(nounStore.getNoun(ReactorKeysEnum.VARIABLE.getKey()).get(0)).thenReturn(variable);
-		when(nounStore.getNoun(ReactorKeysEnum.FRAME.getKey()).get(0)).thenReturn(frames);
-		when(nounStore.getNoun(ReactorKeysEnum.EXPRESSION.getKey()).get(0)).thenReturn(expression);
-		when(nounStore.getNoun(ReactorKeysEnum.LANGUAGE.getKey()).get(0)).thenReturn(language);
-
+		GenRowStruct grsV = new GenRowStruct();
+		NounMetadata nV = new NounMetadata (variable, PixelDataType.CONST_STRING);
+		grsV.add(nV);
+		when(nounStore.getNoun(ReactorKeysEnum.VARIABLE.getKey())).thenReturn(grsV);
 		
-		//so this isn't working as a way to store the keys ...
-		//bc the reactor doesn't call for keyValues... DUUHH
-//		keyValues.put(ReactorKeysEnum.VARIABLE.getKey(), "Test");
-//		keyValues.put(ReactorKeysEnum.FRAME.getKey(), "FRAME1");
-//		keyValues.put(ReactorKeysEnum.EXPRESSION.getKey(), "x + y");
-//		keyValues.put(ReactorKeysEnum.LANGUAGE.getKey(), "python");
-//		keyValues.put(ReactorKeysEnum.FORMAT.getKey(), "jpeg");
+		GenRowStruct grsF = new GenRowStruct();
+		NounMetadata nF = new NounMetadata (frames, PixelDataType.CONST_STRING);
+		grsF.add(nF);
+		when(nounStore.getNoun(ReactorKeysEnum.FRAME.getKey())).thenReturn(grsF);
 		
+		GenRowStruct grsE = new GenRowStruct();
+		NounMetadata nE = new NounMetadata (expression, PixelDataType.CONST_STRING);
+		grsE.add(nE);
+		when(nounStore.getNoun(ReactorKeysEnum.EXPRESSION.getKey())).thenReturn(grsE);
+		
+		when(insight.addVariable(any(Variable.class))).thenReturn(true);
+		when(insight.getRJavaTranslator(anyString()).runRAndReturnOutput(anyString())).thenReturn("success");
         // Act
-        NounMetadata result = null;
-        result = reactor.execute();
-
+        NounMetadata result = reactor.execute();
         // Assert
         assertNotNull(result);
         //assertEquals("varName", result.getName());
         assertEquals(PixelDataType.CONST_STRING, result.getNounType());
         assertEquals(PixelOperationType.ADD_VARIABLE, result.getNounType());
         
-        assertTrue(result.getAdditionalReturn().contains(NounMetadata.getSuccessNounMessage("Variable Set : varName")));
+        assertTrue(result.getAdditionalReturn().contains(NounMetadata.getSuccessNounMessage("Variable Set : Test")));
 		
 		
 
 //		when(insight.getRJavaTranslator(AddVarReactor.class.getCanonicalName())
 //				.runRAndReturnOutput("tryCatch(" + expression + ", error=function(e) { 'error'})"))
 //				.thenReturn("success");
-//		
+		
 	
 		
 	}
