@@ -33,6 +33,7 @@ import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -317,22 +318,68 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		{
 			JsonObject query = new JsonObject();
 			{
-				JsonObject knn = new JsonObject();
-				{
-					JsonObject embedding = new JsonObject();
-					embedding.add("vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
-					embedding.addProperty("k", limit);
-					// store key using the field name for the vector in parent
-					knn.add(this.embeddings, embedding);
-				}
-				// add to parent
-				query.add("knn", knn);
+				if (!parameters.containsKey("filters")) {
+					JsonObject knn = new JsonObject();
+					{
+						JsonObject embedding = new JsonObject();
+						embedding.add("vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
+						embedding.addProperty("k", limit);
+						// store key using the field name for the vector in parent
+						knn.add(this.embeddings, embedding);
+					}
+					// add to parent
+					query.add("knn", knn);
+				} else if (parameters.containsKey("filters")) {
+					JsonObject bool = new JsonObject();
+					{
+						JsonArray must = new JsonArray();
+						{
+							JsonObject knnParent = new JsonObject();
+							{								
+								JsonObject knn = new JsonObject();
+								{
+									JsonObject embedding = new JsonObject();
+									embedding.add("vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
+									embedding.addProperty("k", limit);
+									// store key using the field name for the vector in parent
+									knn.add(this.embeddings, embedding);
+								}
+								knnParent.add("knn", knn);
+							}
+							must.add(knnParent);
+						}
+						bool.add("must", must);
+						
+						//filteration logic starts here
+						//filter contains simple or AND conditions
+						JsonArray filter = new JsonArray();
+						
+						//should contains OR condition filters
+						JsonArray should = new JsonArray();
+						
+						//must not contains not equals to filters
+						JsonArray must_not = new JsonArray();
+						
+						List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
+						for(IQueryFilter queryFilter : filters) {
+							ElasticSearchRestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
+						}
+						
+						//call to process filter
+						
+						bool.add("filter", filter);
+						bool.add("should", should);
+						bool.add("must_not", must_not);
+						
+						if (should.size() > 1) {
+							bool.addProperty("minimum_should_match", 1);
+						}
+					}
+					query.add("bool", bool);
+					}
 			}
 			// add to parent
 			search.add("query", query);
-		}
-		
-		if (parameters.containsKey("filters")) {
 			
 		}
 		
