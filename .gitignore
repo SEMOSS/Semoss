@@ -96,3 +96,8 @@ py/.env
 
 /testfolder/py
 /testfolder/R
+
+# JetBrains IDE's
+out/
+.idea/
+semoss.iml
