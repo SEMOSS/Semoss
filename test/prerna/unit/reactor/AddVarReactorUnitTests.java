@@ -58,8 +58,8 @@ public class AddVarReactorUnitTests {
 	void testExecute() {
 		//keys (language and format aren't required)
 		String variable = "Test";
-		//List<Object> frames = Arrays.asList("FRAME610908"); //
-		String frames = "FRAME1";
+		List<String> frames = Arrays.asList("FRAME610908"); //
+		String frame = "FRAME1";
 		String expression = "x + y"; //expression that needs to be dynamically calculated
 		String language = "python"; //R Python or Java
 		String format = "jpeg"; //format to save as jpeg gif or png
@@ -81,8 +81,13 @@ public class AddVarReactorUnitTests {
 		grsE.add(nE);
 		when(nounStore.getNoun(ReactorKeysEnum.EXPRESSION.getKey())).thenReturn(grsE);
 		
-		when(insight.addVariable(any(Variable.class))).thenReturn(true);
-		when(insight.getRJavaTranslator(anyString()).runRAndReturnOutput(anyString())).thenReturn("success");
+		Variable var = new Variable();
+		var.setName(variable);
+		var.setExpression(expression);
+		var.setFrames(frames);
+		
+		when(insight.addVariable(var)).thenReturn(true);
+		//when(insight.getRJavaTranslator(anyString()).runRAndReturnOutput(anyString())).thenReturn("success");
         // Act
         NounMetadata result = reactor.execute();
         // Assert
