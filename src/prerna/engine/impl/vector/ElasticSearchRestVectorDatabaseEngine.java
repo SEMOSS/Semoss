@@ -359,7 +359,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 						
 						List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
 						for(IQueryFilter queryFilter : filters) {
-							ElasticSearchRestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
+							RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
 						}
 						
 						bool.add("filter", filter);

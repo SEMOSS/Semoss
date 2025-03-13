@@ -362,7 +362,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 						
 						List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
 						for(IQueryFilter queryFilter : filters) {
-							ElasticSearchRestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
+							RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
 						}
 						
 						//call to process filter

@@ -13,7 +13,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public final class ElasticSearchRestVectorQueryFilterTranslationHelper {
+public final class RestVectorQueryFilterTranslationHelper {
 	
 
 	public static void processFilter(IQueryFilter queryFilter, JsonArray filter, JsonArray should, JsonArray must_not) {
