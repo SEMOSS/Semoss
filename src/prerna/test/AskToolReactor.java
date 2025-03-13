@@ -3,6 +3,7 @@ package prerna.test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -95,31 +96,7 @@ public class AskToolReactor extends AbstractReactor {
 
         Map<String, Object> output = modelResponse.toMap();
 
-        if(modelResponse.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
-        	
-        	//TODO process the tool call here into a response that looks like the below to return to the FE
-        	
-        	/*
-        	 * {
-				toolCall:{
-					name: WeatherFunction
-					type: function_engine
-					data:[{ 
-						paramName: lat,
-						paramType: String,
-						paraValue: "34.5",
-					},{ 
-						paramName: lon,
-						paramType: String,
-						paraValue: "30.5",
-					}
-					]
-				}
-
-        	 * 
-        	 */
-        	
-        	
+        if(modelResponse.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {  	
             // the response is for a tool call
             // we need to call the actual tool now. 
             AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) modelResponse;
@@ -143,7 +120,24 @@ public class AskToolReactor extends AbstractReactor {
             }
 
             IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("id"));
+            
+            // object for tool call information for the front end to execute the tool
+            HashMap<String, Object> toolCallInfo = new HashMap<String, Object>();
+            toolCallInfo.put("name", function.getFunctionName());
+            toolCallInfo.put("type", function.getCatalogType());
+            
+            // object to store params needed to call the tool
+            List<HashMap<String, Object>> toolCallInfoData = new ArrayList<HashMap<String, Object>>();
+            for(Entry<String, Object> functionParam : ((Map<String, Object>)functionParams.get("map")).entrySet()){
+                HashMap<String, Object> paramInfo = new HashMap<String, Object>();
+                paramInfo.put("paramName", functionParam.getKey());
+                paramInfo.put("paramType", functionParam.getValue().getClass().getSimpleName());
+                paramInfo.put("paramValue", functionParam.getValue());
+                toolCallInfoData.add(paramInfo);
+            }
 
+            toolCallInfo.put("data", toolCallInfoData);
+            output.put("toolCall", toolCallInfo);
             
             //remove the execution of the function for now. will add back later with a boolean passed in
 //            Object functionReturn = function.execute((Map<String, Object> )functionParams.get("map"));
