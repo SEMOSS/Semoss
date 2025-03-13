@@ -8,3 +8,8 @@ services:
     ports:
       - "2222:22"
     command: foo:pass:1001
+    networks:
+      - tnet
+
+networks:
+  tnet:
