@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
 import prerna.cluster.util.RemoteClientServerZK;
+import prerna.engine.impl.model.kserve.KServeAdapter;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.RemoteModelStateEnum;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -31,6 +32,7 @@ import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Settings;
+
 
 /**
  * This is a class used to be extended by models running on a RemoteClientServer ONLY.
@@ -76,7 +78,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 
 		this.zkClient = RemoteClientServerZK.getInstance();
 
-		// THIS EQUALS == INIT_ENGINE_TYPE
 		String initEngineTypeKey = INIT_PREFIX+Constants.ENGINE_TYPE;
 		String initEngineType = smssProp.getProperty(initEngineTypeKey);
 
@@ -113,12 +114,11 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	        return false;
 	    }
 
-	    // Construct the deployment endpoint URL
 	    String deploymentUrl;
 	    if (devPortFowarding) {
-	        deploymentUrl = "http://localhost:8000/api/start";
+	        deploymentUrl = "http://localhost:8000/api/v2/start";
 	    } else {
-	        deploymentUrl = String.format("http://%s/api/start", modelScalerIp);
+	        deploymentUrl = String.format("http://%s/api/v2/start", modelScalerIp);
 	    }
 
 	    // Deployment request in separate thread
@@ -242,8 +242,13 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 
 		if (currentState != RemoteModelStateEnum.ACTIVE) {
-			classLogger.error("Model {} is not active. Current state: {}", this.engineId, currentState);
-			return null;
+			// TEMP SOLUTION TO CURATOR DESYNC ISSUE
+			classLogger.error("Model {} is not active in conncurrent hashmap. Current state: {}. Checking path directly", this.engineId, currentState);
+			Boolean modelActive = zkClient.isModelActive(this.engineId);
+			if (!modelActive) {
+				classLogger.error("Model {} is not active in ZooKeeper", this.engineId);
+				return null;
+			}
 		}
 
 		String clusterIp = zkClient.getModelClusterIp(this.engineId);
@@ -257,11 +262,18 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 
 	// For models that don't go through the OpenAI API (ie. NER, etc.)
 	private JSONObject makeGenerateRequest(String clusterIp, JSONObject requestPayload) {
+		// Formatting the payload into KServe Protocol format
+		JSONObject kservePayload = KServeAdapter.toKServeRequest(requestPayload);
+		
+		classLogger.debug("Sending KServe payload: {}", kservePayload.toString(2));
+		
+		classLogger.info("Sending request to model {} at cluster IP {}", this.engineId, clusterIp);
+		
 		String url = "";
 		if (devPortFowarding) {
-			url = "http://localhost:8888/api/generate";
+			url = String.format("http://localhost:8080/v2/models/%s/infer", this.model);
 		} else {
-			url = String.format("http://%s/api/generate", clusterIp);
+			url = String.format("http://%s/v2/models/%s/infer", clusterIp, this.model);
 		}
 
 		RequestConfig requestConfig = RequestConfig.custom()
@@ -276,8 +288,9 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			HttpPost httpPost = new HttpPost(url);
 			httpPost.setHeader("Accept", "text/event-stream");
 			httpPost.setHeader("Content-Type", "application/json");
+			httpPost.setHeader("Inference-Header-Content-Length", "2000");
 
-			StringEntity entity = new StringEntity(requestPayload.toString(), ContentType.APPLICATION_JSON);
+			StringEntity entity = new StringEntity(kservePayload.toString(), ContentType.APPLICATION_JSON);
 			httpPost.setEntity(entity);
 
 			try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
@@ -293,33 +306,21 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 					return null;
 				}
 
-				try (BufferedReader reader = new BufferedReader(
-						new InputStreamReader(responseEntity.getContent(), StandardCharsets.UTF_8))) {
-
-					String line;
-					while ((line = reader.readLine()) != null) {
-						if (line.startsWith("data:")) {
-							String dataStr = line.substring(5).trim();
-							if (!dataStr.isEmpty()) {
-								JSONObject data = new JSONObject(dataStr);
-								String status = data.optString("status");
-								String message = data.optString("message");
-
-								classLogger.info("Status Update: {} - {}", status, message);
-
-								switch (status) {
-								case "complete":
-									return data;
-								case "error":
-								case "cancelled":
-								case "timeout":
-									classLogger.error("Job {}: {}", status, message);
-									return null;
-								}
-							}
-						}
-					}
-				}
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(responseEntity.getContent(), StandardCharsets.UTF_8))) {
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    
+                    JSONObject kserveResponse = new JSONObject(sb.toString());
+                    
+                    JSONObject modelResponse = KServeAdapter.formatKServeResponse(kserveResponse);
+                    
+                    return modelResponse;
+                }
+				
 			}
 		} catch (Exception e) {
 			classLogger.error("Error making HTTP request", e);
