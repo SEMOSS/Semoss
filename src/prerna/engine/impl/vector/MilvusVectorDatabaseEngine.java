@@ -18,16 +18,15 @@ import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHeaders;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.http.entity.ContentType;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
@@ -73,7 +72,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private String databaseName = null;
 	private String collectionName = null;
 	private String embeddings = "vector";
-
+	private static final Gson gson = new Gson();
+	
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -109,7 +109,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
 
 		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
-		List<JsonObject> entities = new ArrayList<>();
+		JsonArray entities = new JsonArray();
 
 		for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
 
@@ -129,7 +129,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		JsonObject requestBody = new JsonObject();
 		requestBody.addProperty("collectionName", this.collectionName);
-		requestBody.add("data", new Gson().toJsonTree(entities));
+		requestBody.add("data", entities);
 
 		String url = this.milvusUrl + ENTITIES_ENDPOINT + INSERT_ENDPOINT;
 		Map<String, String> headers = getHeaders();
@@ -164,8 +164,9 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		deleteRequest.addProperty("collectionName", this.collectionName);
 
 		// Delete by file name filter
-		String filter = fileNames.stream().map(fileName -> "Source like \"" + fileName + "\"")
-				.collect(Collectors.joining(" OR "));
+		String filter = fileNames.stream()
+		        .map(fileName -> "Source like '" + fileName.replace("'", "''").replace("\\", "\\\\") + "'")
+		        .collect(Collectors.joining(" OR "));
 		deleteRequest.addProperty("filter", filter);
 		String url = this.milvusUrl + ENTITIES_ENDPOINT + DELETE_ENDPOINT;
 		Map<String, String> headersMap = getHeaders();
@@ -235,31 +236,39 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		MilvusVectorQueryFitlerTranslationHelper dbfilter = new MilvusVectorQueryFitlerTranslationHelper();
 		
 		if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
-			filters = (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY);
-			for (IQueryFilter filter : filters) {
-				filterBuilder.append((dbfilter.processMilvusFilter((IQueryFilter) filter)));
-			}
-			search.addProperty("filter", filterBuilder.toString());
-		}
-		
-		if (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY)) {
-			metaFilters = (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY);
-			for (IQueryFilter metaFilter : metaFilters) {
-				filterBuilder.append((dbfilter.processMilvusFilter((IQueryFilter) metaFilter)));
-			}
-			search.addProperty("filter", filterBuilder.toString());
+		    filters = (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY);
+		    for (IQueryFilter filter : filters) {
+		        filterBuilder.append(dbfilter.processMilvusFilter(filter));
+		    }
 		}
 
+		if (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY)) {
+		    StringBuilder metaFilterBuilder = new StringBuilder();
+		    metaFilters = (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY);
+		    for (IQueryFilter metaFilter : metaFilters) {
+		        metaFilterBuilder.append(dbfilter.processMilvusFilter(metaFilter));
+		    }
+		    
+		    if (filterBuilder.length() > 0 && metaFilterBuilder.length() > 0) {
+		        filterBuilder.append(" AND ").append(metaFilterBuilder);
+		    } else {
+		        filterBuilder.append(metaFilterBuilder);
+		    }
+		}
+
+		if (filterBuilder.length() > 0) {
+		    search.addProperty("filter", filterBuilder.toString());
+		}
+		
 		String url = this.milvusUrl + ENTITIES_ENDPOINT + SEARCH_ENDPOINT;
 		Map<String, String> headersMap = getHeaders();
 
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
-		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {
-		}.getType());
+		List<Map<String, JsonElement>> data = parseJsonResponse(response);
+		
 		List<Map<String, Object>> vectorSearchResults = new ArrayList<>();
-		List<Map<String, Object>> hits = (List<Map<String, Object>>) responseMap.get("data");
-		for (Map<String, Object> match : hits) {
+		for (Map<String, JsonElement> match : data) {
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put(VectorDatabaseCSVTable.SOURCE, match.get(VectorDatabaseCSVTable.SOURCE));
 			retMap.put(VectorDatabaseCSVTable.MODALITY, match.get(VectorDatabaseCSVTable.MODALITY));
@@ -292,8 +301,6 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		try {
 			String response = HttpHelperUtility.postRequestStringBody(url, headersMap, queryRequest.toString(),
 					ContentType.APPLICATION_JSON, null, null, null);
-			Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {
-			}.getType());
 			String indexClass = this.defaultIndexClass;
 			if (parameters.containsKey("indexClass")) {
 				indexClass = (String) parameters.get("indexClass");
@@ -302,15 +309,19 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass
 					+ DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 
-			List<Map<String, Object>> results = (List<Map<String, Object>>) responseMap.get("data");
+			List<Map<String, JsonElement>> results = parseJsonResponse(response);
 
 			if (results != null && !results.isEmpty()) {
-				Set<String> uniqueFileNames = new HashSet<>();
+			    Set<String> uniqueFileNames = new HashSet<>();
 
-				filesInMilvus.addAll(results.stream().map(record -> (String) record.get("Source"))
-						.filter(uniqueFileNames::add).map(fileName -> {
-							Map<String, Object> fileInfo = new HashMap<>();
-							fileInfo.put("fileName", fileName);
+			    filesInMilvus.addAll(results.stream()
+			        .map(record -> record.get("Source"))
+			        .filter(Source -> Source != null)  
+			        .map(JsonElement::getAsString) 
+			        .filter(uniqueFileNames::add)  
+			        .map(fileName -> {
+			            Map<String, Object> fileInfo = new HashMap<>();
+			            fileInfo.put("fileName", fileName);
 
 							// Check if file exists
 							File file = new File(documentsDir, fileName);
@@ -334,6 +345,17 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		return filesInMilvus;
 	}
+	
+	public static List<Map<String, JsonElement>> parseJsonResponse(String response) {
+        JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+
+        if (!jsonObject.has("data")) {
+            throw new RuntimeException("No data found in response");
+        }
+
+        JsonArray recordsArray = jsonObject.getAsJsonArray("data");
+        return gson.fromJson(recordsArray, new TypeToken<List<Map<String, JsonElement>>>() {}.getType());
+    }
 
 	/**
 	 * 
@@ -347,6 +369,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		return arr;
 	}
+	
 	//Indexing has not been implemented based on the intended use.Will implement it accordingly
 	private void createIndex() {
 	    JsonObject createIndexRequest = new JsonObject();
@@ -605,5 +628,84 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.MILVUS;
+	}
+
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+	 List<Map<String, Object>> documentsList = new ArrayList<>();
+	 int offset = 0;  
+	 int limit = 100; // Fetch 100 records per request
+	 boolean hasMoreRecords = true;
+
+	 while (hasMoreRecords) {
+	     JsonObject queryRequest = new JsonObject();
+	     queryRequest.addProperty("dbName", this.databaseName);
+	     queryRequest.addProperty("collectionName", this.collectionName);
+	     queryRequest.addProperty("offset", offset);
+	     queryRequest.addProperty("limit", limit);
+
+	    JsonArray outputFields = new JsonArray();
+	    outputFields.add("Source");  
+	    outputFields.add("Content");  
+	    outputFields.add("Modality"); 
+	    outputFields.add("Part"); 
+	    outputFields.add("Tokens"); 
+	    outputFields.add("Divider");
+	    outputFields.add("id");
+	    queryRequest.add("outputFields", outputFields);
+
+	    String url = this.milvusUrl + ENTITIES_ENDPOINT + QUERY_ENDPOINT;
+	    Map<String, String> headersMap = getHeaders();
+
+	    try {
+	        String response = HttpHelperUtility.postRequestStringBody(url, headersMap, queryRequest.toString(),
+	                ContentType.APPLICATION_JSON, null, null, null);
+	        
+	        List<Map<String, JsonElement>> records = parseJsonResponse(response);
+	        if (records != null && !records.isEmpty()) {
+	            for (Map<String, JsonElement> record : records) {
+	                Map<String, Object> document = new HashMap<>();
+	                document.put("Source", getJsonValue(record.get("Source")));
+	                document.put("Modality", getJsonValue(record.get("Modality")));
+	                document.put("Divider", getJsonValue(record.get("Divider")));
+	                document.put("Part", getJsonValue(record.get("Part")));
+	                document.put("Tokens", getJsonValue(record.get("Tokens")));
+	                document.put("Content", getJsonValue(record.get("Content")));
+	                document.put("id", getJsonValue(record.get("id"))); 
+
+	                documentsList.add(document);
+	            }
+	            // Move to the next batch
+                offset += limit;
+            } else {
+                hasMoreRecords = false; // No more data to fetch
+            }
+
+	    } catch (Exception e) {
+	        throw new RuntimeException("Error while fetching documents from Milvus Vector Database: " + e.getMessage(), e);
+	    }
+	 }   
+	    return documentsList;
+	    
+ }
+
+	/**
+	 * Helper method to extract the correct type from JsonElement.
+	 */
+	private Object getJsonValue(JsonElement element) {
+	    if (element == null || element.isJsonNull()) {
+	        return null;
+	    } else if (element.isJsonPrimitive()) {
+	        JsonPrimitive primitive = element.getAsJsonPrimitive();
+	        if (primitive.isNumber()) {
+	            return primitive.getAsInt(); 
+	        } else if (primitive.isBoolean()) {
+	            return primitive.getAsBoolean();
+	        } else {
+	            return primitive.getAsString();
+	        }
+	    } else {
+	        return element.toString(); 
+	    }
 	}
 }
