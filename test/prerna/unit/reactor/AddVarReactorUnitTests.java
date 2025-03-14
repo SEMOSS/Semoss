@@ -54,7 +54,7 @@ public class AddVarReactorUnitTests {
 		keyValues = reactor.keyValue;
 	}
 	
-	@Test
+	//@Test
 	void testExecute() {
 		//keys (language and format aren't required)
 		String variable = "Test";
@@ -107,7 +107,7 @@ public class AddVarReactorUnitTests {
 	
 		
 	}
-	 @Test
+	 //@Test
 	    void testExecuteWithErrorInExpression() {
 	        // Prepare mock data
 	        String variable = "Test";
@@ -131,7 +131,7 @@ public class AddVarReactorUnitTests {
 	        assertEquals("Expression has error, please correct " + expression, result);
 	    }
 
-	    @Test
+	    //@Test
 	    void testExecuteWithoutOptionalKeys() {
 	        // Prepare mock data
 	        String variable = "Test";

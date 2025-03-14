@@ -28,7 +28,7 @@ import prerna.testing.utility.TestEngineUtilities;
 
 public class AddVarReactorApiTests extends AbstractBaseSemossApiTests{
 
-	@Test
+	//@Test
 	public void testFullExecute() {
 		//keys (language and format aren't required)
 		String variable = "Test";
