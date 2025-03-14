@@ -254,26 +254,20 @@ class BedrockClient(AbstractTextGenerationClient):
             should_stream = stream if stream is not None else self.response_stream
             should_stream = should_stream in (True, "true")
 
+            request_params = self._create_request_params(
+                messages, inference_config, guardrail_config, system_prompt
+            )
+
             if should_stream:
                 try:
-                    response = client.converse_stream(
-                        **self._create_request_params(
-                            messages, inference_config, guardrail_config, system_prompt
-                        )
-                    )
+                    response = client.converse_stream(**request_params)
                 except botocore.exceptions.ParamValidationError as e:
-                    import json
-
-                    logger.info(f"PARAM VALIDATION ERROR EXCEPION OCCURED: {e}")
-                    # converting list into string format
-                    messages[0]["content"][0]["text"] = json.dumps(
+                    logger.info(f"Param Validation Error Occurred: {e}")
+                    messages[0]["content"][0]["text"] = str(
                         messages[0]["content"][0]["text"]
-                    )
-                    response = client.converse_stream(
-                        **self._create_request_params(
-                            messages, inference_config, guardrail_config, system_prompt
-                        )
-                    )
+                    )  # convert to valid format
+                    response = client.converse_stream(**request_params)
+
                 final_response = self._handle_stream_response(
                     prefix, response.get("stream", [])
                 )
