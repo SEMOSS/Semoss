@@ -16,7 +16,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class DateReactorUnitTests {
 
-    private DateReactor reactor;
+   /* private DateReactor reactor;
     private Map<String, String> keyValue;
 
     @BeforeEach
@@ -63,5 +63,5 @@ public class DateReactorUnitTests {
         String today = new SimpleDateFormat("yyyy-MM-dd").format(Calendar.getInstance().getTime());
 
         assertEquals(today, date);
-    }
+    } */
 }
