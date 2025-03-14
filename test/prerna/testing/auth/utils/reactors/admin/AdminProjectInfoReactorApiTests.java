@@ -39,7 +39,7 @@ public class AdminProjectInfoReactorApiTests extends AbstractBaseSemossApiTests{
 		assertTrue(Boolean.valueOf(retValue.get("project_global").toString()));
 		
 		assertEquals(project, retValue.get("project_id").toString());
-		assertEquals("Native", retValue.get("project_created_by_type").toString());
+		assertEquals("NATIVE", retValue.get("project_created_by_type").toString());
 		assertEquals("INSIGHTS", retValue.get("project_type").toString());
 		assertEquals("testProject", retValue.get("project_name").toString());
 		assertEquals("testproject", retValue.get("low_project_name").toString());
@@ -68,7 +68,7 @@ public class AdminProjectInfoReactorApiTests extends AbstractBaseSemossApiTests{
 		assertTrue(Boolean.valueOf(retValue.get("project_global").toString()));
 		
 		assertEquals(project, retValue.get("project_id").toString());
-		assertEquals("Native", retValue.get("project_created_by_type").toString());
+		assertEquals("NATIVE", retValue.get("project_created_by_type").toString());
 		assertEquals("INSIGHTS", retValue.get("project_type").toString());
 		assertEquals("testProject", retValue.get("project_name").toString());
 		assertEquals("testproject", retValue.get("low_project_name").toString());
@@ -100,7 +100,7 @@ public class AdminProjectInfoReactorApiTests extends AbstractBaseSemossApiTests{
 		assertTrue(Boolean.valueOf(retValue.get("project_global").toString()));
 		
 		assertEquals(project, retValue.get("project_id").toString());
-		assertEquals("Native", retValue.get("project_created_by_type").toString());
+		assertEquals("NATIVE", retValue.get("project_created_by_type").toString());
 		assertEquals("INSIGHTS", retValue.get("project_type").toString());
 		assertEquals("testProject", retValue.get("project_name").toString());
 		assertEquals("testproject", retValue.get("low_project_name").toString());
