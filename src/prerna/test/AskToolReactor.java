@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.UUID;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -34,7 +35,18 @@ import com.google.gson.Gson;
 import java.util.ArrayList;
 
 public class AskToolReactor extends AbstractReactor {
-
+    private static final Pattern MARKDOWN_CODE_PATTERN = Pattern.compile(
+        "```" +                          // Opening backticks
+        "(?:([a-zA-Z0-9]+))?" +          // Language (optional, group 1)
+        "(?:" +                          // Non-capturing group for title alternatives
+            "\\s+title=\"([^\"]+)\"" +   // Either title="filename" (group 2)
+            "|\\s+([^\\s\\n]+)" +        // Or direct filename (group 3)
+        ")?" +                           // Title is optional
+        "\\s*\\n" +                      // Whitespace and mandatory newline
+        "(.*?)" +                        // Code content (group 4)
+        "```",                           // Closing backticks
+        Pattern.DOTALL
+    );
     public AskToolReactor() {
         this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
                 ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() ,"engine_tools"};
@@ -155,28 +167,36 @@ public class AskToolReactor extends AbstractReactor {
 //            paramMap.put("toolExecution", toolExecutionMap);
 //            AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", null, this.insight, paramMap);
 //            output = toolExecutionResponse.toMap();
+        } else {
+            // 	this is a standard response - process it for code blocks.
+        	
+            // Process the response to extract code blocks and replace with UUID references
+            ProcessedResponse processedResponse = processMarkdownCodeBlocks(modelResponse.getStringResponse());
+
+            // Add code blocks to output if any exist
+            if (!processedResponse.getCodeBlocks().isEmpty()) {
+                // object for tool call information for the front end to process code blocks
+                HashMap<String, Object> toolCallInfo = new HashMap<String, Object>();
+                toolCallInfo.put("name", "code_engine");
+                toolCallInfo.put("type", "code_engine");
+                
+                // object to store params needed to call the tool
+                List<HashMap<String, Object>> toolCallInfoData = new ArrayList<HashMap<String, Object>>();
+                for(CodeBlock codeBlock : processedResponse.getCodeBlocks().values()){
+                    HashMap<String, Object> paramInfo = new HashMap<String, Object>();
+                    paramInfo.put("language", codeBlock.getLanguage());
+                    paramInfo.put("title", codeBlock.getTitle());
+                    paramInfo.put("code", codeBlock.getCode());
+                    toolCallInfoData.add(paramInfo);
+                }
+    
+                toolCallInfo.put("data", toolCallInfoData);
+                output.put("toolCall", toolCallInfo);
+
+                output.put(AbstractModelEngineResponse.RESPONSE, processedResponse.getModifiedResponse());
+                output.put("orignalResponse", modelResponse.getStringResponse());
+            }
         }
-
-        
-//        else {
-        	//this is a standard response - process it for code blocks.
-        	
-            //TODO Alter the askTool logic flow, such that if there is a tool,
-        	//return based on above. Otherwise, check if there is markdown. 
-        	// If there is markdown, process it similar to AskRoom and return like below.
-        	
-//        	tool:{
-//        		name: code_engine
-//        		type: code_engine
-//        		data:[{ 
-//        			language: py,
-//        			title: helloWorld.py,
-//        			code: "print("hello world")",
-//        		},
-//        		]
-//        	}
-
- //       }
         
         Object response = modelResponse.toMap().get(AbstractModelEngineResponse.RESPONSE);
 
@@ -188,18 +208,27 @@ public class AskToolReactor extends AbstractReactor {
     
 
  // Method to parse markdown code blocks
-    private List<CodeBlock> parseMarkdownCodeBlocks(String response) {
-        List<CodeBlock> codeBlocks = new ArrayList<>();
-        Pattern pattern = Pattern.compile("```(.*?)\n(.*?)```", Pattern.DOTALL);
-        Matcher matcher = pattern.matcher(response);
+    private ProcessedResponse processMarkdownCodeBlocks(String response) {
+        Map<String, CodeBlock> codeBlocks = new HashMap<>();
+        Matcher matcher = MARKDOWN_CODE_PATTERN.matcher(response);
+        StringBuffer modifiedResponse = new StringBuffer();
 
         while (matcher.find()) {
-            String language = matcher.group(1).trim();
-            String code = matcher.group(2).trim();
-            codeBlocks.add(new CodeBlock(language, code));
+            String language = matcher.group(1) != null ? matcher.group(1).trim() : "";
+            // Check both title formats and use the first non-null one
+            String title = matcher.group(2) != null ? matcher.group(2).trim() : 
+                        matcher.group(3) != null ? matcher.group(3).trim() : "";
+            String code = matcher.group(4).trim();
+            
+            String uuid = UUID.randomUUID().toString();
+            codeBlocks.put(uuid, new CodeBlock(language, code, title));
+            
+            matcher.appendReplacement(modifiedResponse, 
+                Matcher.quoteReplacement("<CODEBLOCK>" + uuid + "</CODEBLOCK>"));
         }
+        matcher.appendTail(modifiedResponse);
 
-        return codeBlocks;
+        return new ProcessedResponse(modifiedResponse.toString(), codeBlocks);
     }
 
 	/**
@@ -244,14 +273,35 @@ public class AskToolReactor extends AbstractReactor {
     }
     
 
+    // Helper class to represent the processed response
+    private static class ProcessedResponse {
+        private final String modifiedResponse;
+        private final Map<String, CodeBlock> codeBlocks;
+
+        public ProcessedResponse(String modifiedResponse, Map<String, CodeBlock> codeBlocks) {
+            this.modifiedResponse = modifiedResponse;
+            this.codeBlocks = codeBlocks;
+        }
+
+        public String getModifiedResponse() {
+            return modifiedResponse;
+        }
+
+        public Map<String, CodeBlock> getCodeBlocks() {
+            return codeBlocks;
+        }
+    }
+
     // Class to represent a code block
     private static class CodeBlock {
-        private String language;
-        private String code;
+        private final String language;
+        private final String code;
+        private final String title;
 
-        public CodeBlock(String language, String code) {
+        public CodeBlock(String language, String code, String title) {
             this.language = language;
             this.code = code;
+            this.title = title;
         }
 
         public String getLanguage() {
@@ -260,6 +310,10 @@ public class AskToolReactor extends AbstractReactor {
 
         public String getCode() {
             return code;
+        }
+
+        public String getTitle() {
+            return title;
         }
     }
 }
