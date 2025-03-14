@@ -1,10 +1,11 @@
-package prerna.query.querystruct.update.reactors;
+package prerna.testing.query.querystruct.update.reactors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
 import prerna.query.querystruct.update.UpdateQueryStruct;
+import prerna.query.querystruct.update.reactors.UpdateReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.testing.ApiSemossTestUtils;

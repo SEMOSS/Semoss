@@ -31,6 +31,9 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(SFTPStorageEngine.class);
 
+	private static final String KEEP_ALIVE_INTERVAL = "KEEP_ALIVE_INTERVAL";
+	private static final String SSH_TIMEOUT = "SSH_TIMEOUT";
+	
 	private transient SSHClient sshClient = null;
 	private transient SFTPClient sftpClient = null;
 
@@ -39,6 +42,11 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	private transient String username = null;
 	private transient String password = null;
 
+	// this is in seconds
+	private int keepAlive = 60;
+	// this is in millisecond
+	private int sshConnectionTimeout = 300000; // 5min
+	
 	@Override
 	public StorageTypeEnum getStorageType() {
 		return StorageTypeEnum.SFTP;
@@ -56,18 +64,42 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		this.username = smssProp.getProperty(Constants.USERNAME);
 		this.password = smssProp.getProperty(Constants.PASSWORD);
 
-		sshClient = new SSHClient();
+		if(this.smssProp.getProperty(KEEP_ALIVE_INTERVAL) != null) {
+			String keepAliveStr = this.smssProp.getProperty(KEEP_ALIVE_INTERVAL);
+			if(!(keepAliveStr=keepAliveStr.trim()).isEmpty()) {
+				try {
+					this.keepAlive = Integer.parseInt(keepAliveStr);
+				} catch(Exception e) {
+					classLogger.warn("Error occurred trying to parse and get the keep alive interval");
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		if(this.smssProp.getProperty(SSH_TIMEOUT) != null) {
+			String sshConnectionTimeoutStr = this.smssProp.getProperty(SSH_TIMEOUT);
+			if(!(sshConnectionTimeoutStr=sshConnectionTimeoutStr.trim()).isEmpty()) {
+				try {
+					this.sshConnectionTimeout = Integer.parseInt(sshConnectionTimeoutStr);
+				} catch(Exception e) {
+					classLogger.warn("Error occurred trying to parse and get the ssh connection timeout");
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		this.sshClient = new SSHClient();
 		try {
-			sshClient.loadKnownHosts();
+			this.sshClient.loadKnownHosts();
 		} catch(IOException e) {
 			classLogger.warn("Unable to find/load known hosts... ignoring error");
 		}
-		sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-		sshClient.connect(this.host, Integer.parseInt(this.port.trim()));
-		sshClient.getConnection().getKeepAlive().setKeepAliveInterval(5);
-		sshClient.authPassword(username, password);
+		this.sshClient.addHostKeyVerifier(new PromiscuousVerifier());
+		this.sshClient.connect(this.host, Integer.parseInt(this.port.trim()));
+		this.sshClient.setTimeout(this.sshConnectionTimeout); 
+		this.sshClient.getConnection().getKeepAlive().setKeepAliveInterval(this.keepAlive);
+		this.sshClient.authPassword(this.username, this.password);
 		
-		sftpClient = sshClient.newSFTPClient();
+		this.sftpClient = this.sshClient.newSFTPClient();
 		classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 	}
 
