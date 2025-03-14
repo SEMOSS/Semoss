@@ -39,7 +39,7 @@ import prerna.engine.api.RemoteModelStateEnum;
  * This is required to give the FastAPI service a grace time between when the model is added to the active path and the time it requires to start up in the container.
  * This is used by engines that extend the AbstractRemoteModelEngine IE: NEREngine..
  */
-public class RemoteClientServerZK {
+public class RemoteClientServerZK implements IRemoteClientServer {
 	
 	private static final Logger classLogger = LogManager.getLogger(RemoteClientServerZK.class);
 	
@@ -548,23 +548,6 @@ public class RemoteClientServerZK {
 			classLogger.error("Error waiting for model {} to reach state {}", modelId, desiredState, e);
 			return false;
 		}
-	}
-
-	public class RemoteModelInfo {
-	    private final String id;
-	    private final String name;
-	    private final RemoteModelStateEnum state;
-
-	    public RemoteModelInfo(String id, String name, RemoteModelStateEnum state) {
-	        this.id = id;
-	        this.name = name;
-	        this.state = state;
-	    }
-
-	    // Getters
-	    public String getId() { return id; }
-	    public String getName() { return name; }
-	    public RemoteModelStateEnum getState() { return state; }
 	}
 
 	/**

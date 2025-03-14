@@ -13,8 +13,9 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.cluster.util.RemoteClientServerZK;
-import prerna.cluster.util.RemoteClientServerZK.RemoteModelInfo;
+import prerna.cluster.util.IRemoteClientServer;
+import prerna.cluster.util.RemoteModelInfo;
+import prerna.cluster.util.ZKClientFactory;
 
 
 public class MyRemoteModelsStatus extends AbstractReactor {
@@ -23,8 +24,8 @@ public class MyRemoteModelsStatus extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		final RemoteClientServerZK zkClient;
-		zkClient = RemoteClientServerZK.getInstance();
+		final IRemoteClientServer zkClient = ZKClientFactory.getZKClient();
+		
 		List<RemoteModelInfo> activeModels = zkClient.getActiveModels();
 	    List<RemoteModelInfo> warmingModels = zkClient.getWarmingModels();
 	    
@@ -49,5 +50,4 @@ public class MyRemoteModelsStatus extends AbstractReactor {
 
 		return new NounMetadata(modelsMap, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
-
 }

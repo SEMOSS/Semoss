@@ -22,7 +22,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.cluster.util.IRemoteClientServer;
 import prerna.cluster.util.RemoteClientServerZK;
+import prerna.cluster.util.RemoteClientServerZKRESTProxy;
+import prerna.cluster.util.ZKClientFactory;
 import prerna.engine.impl.model.kserve.KServeAdapter;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.RemoteModelStateEnum;
@@ -46,7 +49,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	protected String model;
 	protected String modelRepoId;
 	protected String modelType;
-	private RemoteClientServerZK zkClient;
+	private IRemoteClientServer zkClient;
 	// Use this to simulate the cluster environment
 	private Boolean devPortFowarding = false;
 	// For normal development
@@ -77,7 +80,12 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			throw new IllegalArgumentException("Model Type is not defined in SMSS file.");
 		}
 
-		this.zkClient = RemoteClientServerZK.getInstance();
+		// Get the appropriate ZK client implementation based on environment
+		this.zkClient = ZKClientFactory.getZKClient();
+		
+		// Check if we're using the REST proxy (for KMS_INGRESS validation)
+		boolean usingRestProxy = this.zkClient instanceof RemoteClientServerZKRESTProxy;
+		
 		
 		this.kmsIngressUrl = System.getenv("KMS_INGRESS");
 		if (this.kmsIngressUrl != null && !this.kmsIngressUrl.isEmpty()) {
@@ -131,7 +139,12 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    } else if (kmsIngressUrl != null) {
 	        deploymentUrl = kmsIngressUrl + "api/v2/start";
 	    } else {
-	        String modelScalerIp = zkClient.getModelScalerIp();
+	        if (zkClient instanceof RemoteClientServerZKRESTProxy) {
+	            throw new IllegalStateException("KMS_INGRESS environment variable must be set when using ZK REST Proxy");
+	        }
+	        
+	        RemoteClientServerZK directZkClient = (RemoteClientServerZK) zkClient;
+	        String modelScalerIp = directZkClient.getModelScalerIp();
 	        if (modelScalerIp == null) {
 	            classLogger.error("Unable to get model scaler IP from ZooKeeper");
 	            return false;
@@ -203,7 +216,13 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	        shutdownUrl = String.format("%sapi/v2/stop?model_id=%s&model=%s", 
 	            kmsIngressUrl, this.engineId, this.model);
 	    } else {
-	        String modelScalerIp = zkClient.getModelScalerIp();
+	        // When using ZK REST Proxy, we must have kmsIngressUrl set
+	        if (zkClient instanceof RemoteClientServerZKRESTProxy) {
+	            throw new IllegalStateException("KMS_INGRESS environment variable must be set when using ZK REST Proxy");
+	        }
+	        
+	        RemoteClientServerZK directZkClient = (RemoteClientServerZK) zkClient;
+	        String modelScalerIp = directZkClient.getModelScalerIp();
 	        if (modelScalerIp == null) {
 	            classLogger.error("Unable to get model scaler IP from ZooKeeper");
 	            return "Failed to get model scaler IP";
