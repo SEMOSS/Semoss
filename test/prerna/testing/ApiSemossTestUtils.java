@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Map;
 
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -97,6 +99,7 @@ public class ApiSemossTestUtils {
 	
 	private static NounMetadata processRawPixel(String pixel, PixelRunner pr) {
 		try {
+			System.out.println(pixel);
 			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
 		} catch(SemossPixelException e) {
 			classLogger.error(Constants.ERROR_MESSAGE, e);

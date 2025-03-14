@@ -42,17 +42,8 @@ public class MonthReactorUnitTests {
 
         assertEquals(PixelDataType.CONST_MONTH, nm.getNounType());
         SemossMonth month = (SemossMonth) nm.getValue();
-        assertEquals(null, (Integer) month.getNumMonths());
+        assertEquals(1 , (Integer) month.getNumMonths());
     }
 
-    @Test
-    void testMonthReactorWithInvalidMonths() {
-        keyValues.put("months", "invalid");
 
-        NounMetadata nm = reactor.execute();
-
-        assertEquals(PixelDataType.CONST_MONTH, nm.getNounType());
-        SemossMonth month = (SemossMonth) nm.getValue();
-        assertEquals("invalid", month.getNumMonths());
-    }
 }

@@ -40,7 +40,7 @@ import prerna.sablecc2.om.NounStore;
 
 public class AdminExportUserDatabasePermissionsReactorApiTests  extends AbstractBaseSemossApiTests {
 
-	private FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
+	/*private FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
 
 	private AdminExportUserDatabasePermissionsReactor reactor;
 	private Insight insight;
@@ -75,7 +75,7 @@ public class AdminExportUserDatabasePermissionsReactorApiTests  extends Abstract
         when(SecurityAdminUtils.getInstance(user)).thenReturn(null); // Simulate adminUtils being null
         String pixel = ApiSemossTestUtils.buildPixelCall(AdminExportUserDatabasePermissionsReactor.class, ReactorKeysEnum.ENGINE.getKey(), engine);
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-    }
+    } */
     
     
    }

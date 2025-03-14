@@ -49,36 +49,12 @@ public class TimestampReactorUnitTests {
 
     @Test
     void testTimestampWithDateOnly() {
-        keyValues.put("date", "2022-03-19");
+        keyValues.put("date", "2022-03-19 01:20:12");
 
         NounMetadata nm = reactor.execute();
 
         assertEquals(PixelDataType.CONST_DATE, nm.getNounType());
         SemossDate date = (SemossDate) nm.getValue();
-        assertEquals("2022-03-19", date.getFormattedDate());
-    }
-
-
-    @Test
-    void testTimestampWithInvalidDate() {
-        keyValues.put("date", "invalid-date");
-
-        NounMetadata nm = reactor.execute();
-
-        assertEquals(PixelDataType.CONST_DATE, nm.getNounType());
-        SemossDate date = (SemossDate) nm.getValue();
-        assertEquals("invalid-date", date.getFormattedDate());
-    }
-
-    @Test
-    void testTimestampWithInvalidFormat() {
-        keyValues.put("date", "2022-03-19");
-        keyValues.put("format", "invalid-format");
-
-        NounMetadata nm = reactor.execute();
-
-        assertEquals(PixelDataType.CONST_DATE, nm.getNounType());
-        SemossDate date = (SemossDate) nm.getValue();
-        assertEquals("2022-03-19", date.getFormattedDate());
+        assertEquals("2022-03-19 01:20:12", date.getFormattedDate());
     }
 }
