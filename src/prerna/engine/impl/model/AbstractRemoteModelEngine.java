@@ -35,9 +35,8 @@ import prerna.util.Settings;
 
 
 /**
- * This is a class used to be extended by models running on a RemoteClientServer ONLY.
+ * This is a class used to be extended by models running on KServe.
  * It contains methods for deploying the model to the cluster and making HTTP requests to the model.
- * See https://github.com/SEMOSS/remote-client-server for RemoteClientServer implementation.
  * See https://github.com/SEMOSS/kubernetes-model-scaler for Kubernetes model scaling.
  */
 
@@ -48,8 +47,10 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	protected String modelRepoId;
 	protected String modelType;
 	private RemoteClientServerZK zkClient;
+	// Use this to simulate the cluster environment
 	private Boolean devPortFowarding = false;
-
+	// For normal development
+	private String kmsIngressUrl = null;
 	private AbstractModelEngine implementingEngineClass = null;
 
 	private final String INIT_PREFIX = "INIT_";
@@ -77,6 +78,18 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 
 		this.zkClient = RemoteClientServerZK.getInstance();
+		
+		this.kmsIngressUrl = System.getenv("KMS_INGRESS");
+		if (this.kmsIngressUrl != null && !this.kmsIngressUrl.isEmpty()) {
+			classLogger.info("Using KMS_INGRESS from environment: {}", this.kmsIngressUrl);
+			if (!this.kmsIngressUrl.endsWith("/")) {
+				this.kmsIngressUrl += "/";
+			}
+		} else if (this.devPortFowarding) {
+			classLogger.info("Using devPortforwarding for KMS URL with localhost:8000");
+		} else {
+			classLogger.info("KMS_INGRESS environment variable not found and devPortforwarding not set, using ZooKeeper for KMS IP resolution. This is correct for production deployments.");
+		}
 
 		String initEngineTypeKey = INIT_PREFIX+Constants.ENGINE_TYPE;
 		String initEngineType = smssProp.getProperty(initEngineTypeKey);
@@ -108,18 +121,26 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	        return zkClient.waitForModelActive(this.engineId, timeoutMs);
 	    }
 
-	    String modelScalerIp = zkClient.getModelScalerIp();
-	    if (modelScalerIp == null) {
-	        classLogger.error("Unable to get model scaler IP from ZooKeeper");
-	        return false;
-	    }
-
 	    String deploymentUrl;
+	    // Priority order: 
+	    // 1. Use devPortForwarding if enabled
+	    // 2. Use kmsIngressUrl if available
+	    // 3. Use modelScalerIp from ZooKeeper
 	    if (devPortFowarding) {
 	        deploymentUrl = "http://localhost:8000/api/v2/start";
+	    } else if (kmsIngressUrl != null) {
+	        deploymentUrl = kmsIngressUrl + "api/v2/start";
 	    } else {
+	        String modelScalerIp = zkClient.getModelScalerIp();
+	        if (modelScalerIp == null) {
+	            classLogger.error("Unable to get model scaler IP from ZooKeeper");
+	            return false;
+	        }
 	        deploymentUrl = String.format("http://%s/api/v2/start", modelScalerIp);
 	    }
+	    
+	    classLogger.info("Using deployment URL: {}", deploymentUrl);
+
 
 	    // Deployment request in separate thread
 	    CompletableFuture<Void> deploymentFuture = CompletableFuture.runAsync(() -> {
@@ -170,20 +191,28 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	        return String.format("Model %s is already cold", this.engineId);
 	    }
 	    
-	    String modelScalerIp = zkClient.getModelScalerIp();
-	    if (modelScalerIp == null) {
-	        classLogger.error("Unable to get model scaler IP from ZooKeeper");
-	        return "Failed to get model scaler IP";
-	    }
-	    
 	    String shutdownUrl;
+	    // Priority order: 
+	    // 1. Use devPortForwarding if enabled
+	    // 2. Use kmsIngressUrl if available
+	    // 3. Use modelScalerIp from ZooKeeper
 	    if (devPortFowarding) {
-	        shutdownUrl = String.format("http://localhost:8000/api/stop?model_id=%s&model=%s", 
+	        shutdownUrl = String.format("http://localhost:8000/api/v2/stop?model_id=%s&model=%s", 
 	            this.engineId, this.model);
+	    } else if (kmsIngressUrl != null) {
+	        shutdownUrl = String.format("%sapi/v2/stop?model_id=%s&model=%s", 
+	            kmsIngressUrl, this.engineId, this.model);
 	    } else {
-	        shutdownUrl = String.format("http://%s/api/stop?model_id=%s&model=%s", 
+	        String modelScalerIp = zkClient.getModelScalerIp();
+	        if (modelScalerIp == null) {
+	            classLogger.error("Unable to get model scaler IP from ZooKeeper");
+	            return "Failed to get model scaler IP";
+	        }
+	        shutdownUrl = String.format("http://%s/api/v2/stop?model_id=%s&model=%s", 
 	            modelScalerIp, this.engineId, this.model);
 	    }
+	    
+	    classLogger.debug("Using KMS shutdown URL: {}", shutdownUrl);
 
 	    RequestConfig requestConfig = RequestConfig.custom()
 	            .setConnectTimeout(30000)
