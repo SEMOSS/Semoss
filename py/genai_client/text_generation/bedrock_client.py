@@ -1,4 +1,5 @@
 import boto3
+import botocore.exceptions
 import logging
 from .abstract_text_generation_client import AbstractTextGenerationClient
 from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
@@ -254,11 +255,25 @@ class BedrockClient(AbstractTextGenerationClient):
             should_stream = should_stream in (True, "true")
 
             if should_stream:
-                response = client.converse_stream(
-                    **self._create_request_params(
-                        messages, inference_config, guardrail_config, system_prompt
+                try:
+                    response = client.converse_stream(
+                        **self._create_request_params(
+                            messages, inference_config, guardrail_config, system_prompt
+                        )
                     )
-                )
+                except botocore.exceptions.ParamValidationError as e:
+                    import json
+
+                    logger.info(f"PARAM VALIDATION ERROR EXCEPION OCCURED: {e}")
+                    # converting list into string format
+                    messages[0]["content"][0]["text"] = json.dumps(
+                        messages[0]["content"][0]["text"]
+                    )
+                    response = client.converse_stream(
+                        **self._create_request_params(
+                            messages, inference_config, guardrail_config, system_prompt
+                        )
+                    )
                 final_response = self._handle_stream_response(
                     prefix, response.get("stream", [])
                 )
