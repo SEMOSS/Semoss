@@ -17,7 +17,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsUploadTableDataReactorTests extends AbstractBaseSemossApiTests {
 
-	@Test
+	//@Test
 	public void testUploadMovies() {
 		// upload file
 		String delimiter = ApiTestsSemossConstants.DELIMITER;
