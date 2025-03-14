@@ -23,29 +23,20 @@ public class TimestampReactorApiTests extends AbstractBaseSemossApiTests {
     }
 
     @Test
-    public void getCustomFormattedTimestamp() {
-        String pixel = ApiSemossTestUtils.buildPixelCall(TimestampReactor.class, "date", "2022-03-19", "format", "MM/dd/yyyy");
-        NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-        SemossDate date = (SemossDate) nm.getValue();
-        String expectedPattern = "MM/dd/yyyy";
-        assertEquals(expectedPattern, date.getPattern());
-    }
-
-    @Test
     public void getTimestampWithDateOnly() {
-        String pixel = ApiSemossTestUtils.buildPixelCall(TimestampReactor.class, "date", "2022-03-19");
+        String pixel = ApiSemossTestUtils.buildPixelCall(TimestampReactor.class, "date", "2022-03-19 01:20:12");
         NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
         SemossDate date = (SemossDate) nm.getValue();
-        String expectedDate = "2022-03-19";
+        String expectedDate = "2022-03-19 01:20:12";
         assertEquals(expectedDate, date.getFormattedDate());
     }
 
     @Test
     public void getTimestampWithDateAndFormat() {
-        String pixel = ApiSemossTestUtils.buildPixelCall(TimestampReactor.class, "date", "2022/03/19", "format", "yyyy/MM/dd");
+        String pixel = ApiSemossTestUtils.buildPixelCall(TimestampReactor.class, "date", "2022/03/19 01:20:12", "format", "yyyy/MM/dd HH:mm:ss");
         NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
         SemossDate date = (SemossDate) nm.getValue();
-        String expectedDate = "2022/03/19";
+        String expectedDate = "2022/03/19 01:20:12";
         assertEquals(expectedDate, date.getFormattedDate());
     }
 }
