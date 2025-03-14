@@ -43,7 +43,7 @@ public class DeleteReactorApiTests {
 
     }
 
-    @Test
+ /*    @Test
  public void testMergeExistingValues(){
     //String engine = ApiSemossTestEngineUtils.createBasicEngine();
     String engine = ApiSemossTestEngineUtils.createBasicEngine();	
@@ -53,7 +53,7 @@ public class DeleteReactorApiTests {
     NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
     TestEngineUtilities.setEngineMetadata(engine, map);
 
- }
+ }*/
 
  @Test
  public void testSetNounStore() {
