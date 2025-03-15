@@ -54,9 +54,16 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	private Boolean devPortFowarding = false;
 	// For normal development
 	private String kmsIngressUrl = null;
+	private String modelIngressUrl = null;
 	private AbstractModelEngine implementingEngineClass = null;
 
 	private final String INIT_PREFIX = "INIT_";
+	
+	private enum Services {
+		KMS_START, // Kubernetes Model Scaler Start
+		KMS_SHUTDOWN, // Kubernetes Model Scaler Shutdown
+		MODEL // Model Specific Deployment
+	}
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -86,7 +93,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		// Check if we're using the REST proxy (for KMS_INGRESS validation)
 		boolean usingRestProxy = this.zkClient instanceof RemoteClientServerZKRESTProxy;
 		
-		
 		this.kmsIngressUrl = System.getenv("KMS_INGRESS");
 		if (this.kmsIngressUrl != null && !this.kmsIngressUrl.isEmpty()) {
 			classLogger.info("Using KMS_INGRESS from environment: {}", this.kmsIngressUrl);
@@ -94,9 +100,21 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 				this.kmsIngressUrl += "/";
 			}
 		} else if (this.devPortFowarding) {
-			classLogger.info("Using devPortforwarding for KMS URL with localhost:8000");
+			classLogger.info("Using devPortforwarding for KMS URL with localhost:8000/");
 		} else {
 			classLogger.info("KMS_INGRESS environment variable not found and devPortforwarding not set, using ZooKeeper for KMS IP resolution. This is correct for production deployments.");
+		}
+		
+		this.modelIngressUrl = System.getenv("MODEL_INGRESS");
+		if (this.modelIngressUrl != null && !this.modelIngressUrl.isEmpty()) {
+			classLogger.info("Using MODEL_INGRESS from environment: {}", this.modelIngressUrl);
+			if (!this.modelIngressUrl.endsWith("/")) {
+				this.modelIngressUrl += "/";
+			}
+		} else if (this.devPortFowarding) {
+			classLogger.info("Using devPortForwarding for model URLs with localhost:8888/");
+		} else {
+			classLogger.info("MODEL_INGRESS environment variable not found and devPortforwarding not set, using ZooKeeper for Model IP resolution. This is correct for production deployments.");
 		}
 
 		String initEngineTypeKey = INIT_PREFIX+Constants.ENGINE_TYPE;
@@ -118,6 +136,79 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 	}
 	
+	private String createServiceUrl(Services service) throws Exception {
+	    // Priority order: 
+	    // 1. Use devPortForwarding if enabled
+	    // 2. Use kmsIngressUrl if available
+	    // 3. Use service ip from ZooKeeper
+		String serviceUrl;
+		
+		// KMS SHUTDOWN
+		if (service == Services.KMS_SHUTDOWN) {
+		    if (devPortFowarding) {
+		    	serviceUrl = String.format("http://localhost:8000/api/v2/stop?model_id=%s&model=%s", 
+		            this.engineId, this.model);
+		    } else if (kmsIngressUrl != null) {
+		    	serviceUrl = String.format("%sapi/v2/stop?model_id=%s&model=%s", 
+		            kmsIngressUrl, this.engineId, this.model);
+		    } else {
+		        if (zkClient instanceof RemoteClientServerZKRESTProxy) {
+		            throw new IllegalStateException("KMS_INGRESS environment variable must be set when using ZK REST Proxy");
+		        }
+		        
+		        RemoteClientServerZK directZkClient = (RemoteClientServerZK) zkClient;
+		        String modelScalerIp = directZkClient.getModelScalerIp();
+		        if (modelScalerIp == null) {
+		            classLogger.error("Unable to get model scaler IP from ZooKeeper");
+		            throw new IllegalStateException("Unable to get model scaler IP from ZooKeeper for shutdown operation.");
+		        }
+		        serviceUrl = String.format("http://%s/api/v2/stop?model_id=%s&model=%s", 
+		            modelScalerIp, this.engineId, this.model);
+		    }
+		// KMS START
+		} else if (service == Services.KMS_START) {
+		    if (devPortFowarding) {
+		    	serviceUrl = "http://localhost:8000/api/v2/start";
+		    } else if (kmsIngressUrl != null) {
+		    	serviceUrl = kmsIngressUrl + "api/v2/start";
+		    } else {
+		        if (zkClient instanceof RemoteClientServerZKRESTProxy) {
+		            throw new IllegalStateException("KMS_INGRESS environment variable must be set when using ZK REST Proxy");
+		        }
+		        
+		        RemoteClientServerZK directZkClient = (RemoteClientServerZK) zkClient;
+		        String modelScalerIp = directZkClient.getModelScalerIp();
+		        if (modelScalerIp == null) {
+		            classLogger.error("Unable to get model scaler IP from ZooKeeper");
+		            throw new IllegalStateException("Unable to get model scaler IP from ZooKeeper for deployment operation.");
+		        }
+		        serviceUrl = String.format("http://%s/api/v2/start", modelScalerIp);
+		    }
+		// MODEL INFERENCE
+		} else if (service == Services.MODEL) {
+			// Grabbing the cluster IP in all situations since it should always have one
+			String clusterIp = zkClient.getModelClusterIp(this.engineId);
+			if (clusterIp == null) {
+				classLogger.error("No cluster IP available for model {}", this.engineId);
+				throw new IllegalStateException("Unable to get cluster ip for model.");
+			}
+			
+			if (devPortFowarding) {
+				serviceUrl = String.format("http://localhost:8080/v2/models/%s/infer", this.model);
+			} else if (this.modelIngressUrl != null) {
+				serviceUrl = this.modelIngressUrl + this.model + "/v2/models/" + this.model + "/infer";
+			}
+			else {
+				serviceUrl = String.format("http://%s/v2/models/%s/infer", clusterIp, this.model);
+			}
+		} else {
+		    throw new IllegalArgumentException("Unsupported service: " + service);
+		}
+		
+		return serviceUrl;
+	}
+	
+	// STARTING A MODEL..
 	public boolean initiateAndWaitForDeployment(long timeoutMs) throws Exception {
 	    if (zkClient.isModelActive(this.engineId)) {
 	        classLogger.info("Model {} is already active", this.engineId);
@@ -129,29 +220,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	        return zkClient.waitForModelActive(this.engineId, timeoutMs);
 	    }
 
-	    String deploymentUrl;
-	    // Priority order: 
-	    // 1. Use devPortForwarding if enabled
-	    // 2. Use kmsIngressUrl if available
-	    // 3. Use modelScalerIp from ZooKeeper
-	    if (devPortFowarding) {
-	        deploymentUrl = "http://localhost:8000/api/v2/start";
-	    } else if (kmsIngressUrl != null) {
-	        deploymentUrl = kmsIngressUrl + "api/v2/start";
-	    } else {
-	        if (zkClient instanceof RemoteClientServerZKRESTProxy) {
-	            throw new IllegalStateException("KMS_INGRESS environment variable must be set when using ZK REST Proxy");
-	        }
-	        
-	        RemoteClientServerZK directZkClient = (RemoteClientServerZK) zkClient;
-	        String modelScalerIp = directZkClient.getModelScalerIp();
-	        if (modelScalerIp == null) {
-	            classLogger.error("Unable to get model scaler IP from ZooKeeper");
-	            return false;
-	        }
-	        deploymentUrl = String.format("http://%s/api/v2/start", modelScalerIp);
-	    }
-	    
+	    String deploymentUrl = this.createServiceUrl(Services.KMS_START);
 	    classLogger.info("Using deployment URL: {}", deploymentUrl);
 
 
@@ -180,7 +249,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    });
 
 	    long startTime = System.currentTimeMillis();
-	    long warmingTimeout = Math.min(30000, timeoutMs); // 30 seconds or remaining timeout
+	    long warmingTimeout = Math.min(120000, timeoutMs);
 	    
 	    while (System.currentTimeMillis() - startTime < warmingTimeout) {
 	        if (zkClient.isModelWarming(this.engineId)) {
@@ -196,40 +265,16 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    return false;
 	}
 	
+	
 	public String shutdownModelRequest() throws Exception {
 	    RemoteModelStateEnum currentState = zkClient.getModelState(this.engineId);
 	    
 	    if (currentState == RemoteModelStateEnum.COLD) {
-	        classLogger.info("Model {} is already cold", this.engineId);
-	        return String.format("Model %s is already cold", this.engineId);
+	        classLogger.info("Model {} is already shutdown", this.engineId);
+	        return String.format("Model %s is already shutdown", this.engineId);
 	    }
 	    
-	    String shutdownUrl;
-	    // Priority order: 
-	    // 1. Use devPortForwarding if enabled
-	    // 2. Use kmsIngressUrl if available
-	    // 3. Use modelScalerIp from ZooKeeper
-	    if (devPortFowarding) {
-	        shutdownUrl = String.format("http://localhost:8000/api/v2/stop?model_id=%s&model=%s", 
-	            this.engineId, this.model);
-	    } else if (kmsIngressUrl != null) {
-	        shutdownUrl = String.format("%sapi/v2/stop?model_id=%s&model=%s", 
-	            kmsIngressUrl, this.engineId, this.model);
-	    } else {
-	        // When using ZK REST Proxy, we must have kmsIngressUrl set
-	        if (zkClient instanceof RemoteClientServerZKRESTProxy) {
-	            throw new IllegalStateException("KMS_INGRESS environment variable must be set when using ZK REST Proxy");
-	        }
-	        
-	        RemoteClientServerZK directZkClient = (RemoteClientServerZK) zkClient;
-	        String modelScalerIp = directZkClient.getModelScalerIp();
-	        if (modelScalerIp == null) {
-	            classLogger.error("Unable to get model scaler IP from ZooKeeper");
-	            return "Failed to get model scaler IP";
-	        }
-	        shutdownUrl = String.format("http://%s/api/v2/stop?model_id=%s&model=%s", 
-	            modelScalerIp, this.engineId, this.model);
-	    }
+	    String shutdownUrl = this.createServiceUrl(Services.KMS_SHUTDOWN);
 	    
 	    classLogger.debug("Using KMS shutdown URL: {}", shutdownUrl);
 
@@ -305,24 +350,18 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			return null;
 		}
 
-		return makeGenerateRequest(clusterIp, requestPayload);
+		return makeInferenceRequest(clusterIp, requestPayload);
 	}
 
 	// For models that don't go through the OpenAI API (ie. NER, etc.)
-	private JSONObject makeGenerateRequest(String clusterIp, JSONObject requestPayload) {
+	private JSONObject makeInferenceRequest(String clusterIp, JSONObject requestPayload) throws Exception {
 		// Formatting the payload into KServe Protocol format
 		JSONObject kservePayload = KServeAdapter.toKServeRequest(requestPayload);
 		
 		classLogger.debug("Sending KServe payload: {}", kservePayload.toString(2));
-		
 		classLogger.info("Sending request to model {} at cluster IP {}", this.engineId, clusterIp);
 		
-		String url = "";
-		if (devPortFowarding) {
-			url = String.format("http://localhost:8080/v2/models/%s/infer", this.model);
-		} else {
-			url = String.format("http://%s/v2/models/%s/infer", clusterIp, this.model);
-		}
+		String url = this.createServiceUrl(Services.MODEL);
 
 		RequestConfig requestConfig = RequestConfig.custom()
 				.setConnectTimeout(30000)
@@ -385,7 +424,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	@Override
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
-
 	}
 
 	/**
@@ -400,6 +438,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 	}
 	
+	// I don't have a solution for this yet since the KServe models use the infer endpoint
 	private String getModelUrl() {
 		String clusterAddress = zkClient.getModelClusterIp(this.engineId);
 		if (this.devPortFowarding) {

@@ -450,13 +450,13 @@ public class RemoteClientServerZKRESTProxy implements IRemoteClientServer {
         
         if (clusterIp == null) {
             String path = ACTIVE_PATH + "/" + modelId;
-            String modelData = getZNodeData(path);
+            JSONObject modelData = getZNodeDataAsJson(path);
             
             if (modelData != null && !modelData.isEmpty()) {
                 try {
-                    JSONObject jsonData = new JSONObject(modelData);
-                    clusterIp = jsonData.getString("ip");
-                    String modelName = jsonData.getString("model_name");
+                    classLogger.info("modelData: {}", modelData);
+                    clusterIp = modelData.getString("ip");
+                    String modelName = modelData.getString("model_name");
                     
                     modelClusterIps.put(modelId, clusterIp);
                     modelNames.put(modelId, modelName);
