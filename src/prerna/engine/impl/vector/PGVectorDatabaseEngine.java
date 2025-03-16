@@ -1205,5 +1205,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
 		}
 	}
+	
+	// This method has not been implemented yet
+	@Override
+	public void recalculateEmbeddings(String newEmbedderEngineId, Insight insight, Map<String, Object> paramMap) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }

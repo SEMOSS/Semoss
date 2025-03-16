@@ -944,6 +944,12 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String colName = selector.getColumn();
 		return colName;
 	}
+	// This method has not been implemented yet
+	@Override
+	public void recalculateEmbeddings(String newEmbedderEngineId, Insight insight, Map<String, Object> paramMap) {
+		// TODO Auto-generated method stub
+		
+	}
 	
 //	public static void main(String[] args) throws Exception {
 //		Properties tempSmss = new Properties();

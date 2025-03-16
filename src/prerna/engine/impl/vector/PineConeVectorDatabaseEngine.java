@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
@@ -470,6 +472,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			recordMap.put(VectorDatabaseCSVTable.PART, metadata.get(VectorDatabaseCSVTable.PART).getAsString());
 			recordMap.put(VectorDatabaseCSVTable.TOKENS, metadata.get(VectorDatabaseCSVTable.TOKENS).getAsInt());
 			recordMap.put(VectorDatabaseCSVTable.CONTENT, metadata.get(VectorDatabaseCSVTable.CONTENT).getAsString());
+			recordMap.put("id", record.get("id"));
 			records.add(recordMap);
 		}
 
@@ -507,4 +510,87 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return VectorDatabaseTypeEnum.PINECONE;
 	}
 
+	@Override
+	public void recalculateEmbeddings(String newEmbedderEngineId, Insight insight, Map<String, Object> paramMap) { 
+		
+     List<Map<String, Object>> existingRecords = listAllRecords(paramMap);
+	    
+	    if (existingRecords == null || existingRecords.isEmpty()) {
+	        classLogger.warn("No existing records found for embedding engine ID: {}");
+	        return;
+	    }
+
+	    IModelEngine embeddingsEngine = Utility.getModel(newEmbedderEngineId);
+	    if (embeddingsEngine == null) {
+	        throw new RuntimeException("Failed to load embeddings engine: " + newEmbedderEngineId);
+	    }
+
+	    JsonArray upsertEntities = new JsonArray();
+	    for (Map<String, Object> record : existingRecords) {
+	        if (record.containsKey("Content")) {
+	            String content = (String) record.get("Content");
+	            if (content == null || content.trim().isEmpty()) {
+	                classLogger.warn("Skipping empty content row.");
+	                continue;
+	            }
+	            List <Double> vector = embeddingsEngine.embeddings(Arrays.asList(new String[] {content}), insight, null).getResponse().get(0);
+				JsonObject thisChunkJson = new JsonObject();
+				JsonObject metadata = new JsonObject();
+				JsonElement idElement = (JsonElement) record.get("id");
+				thisChunkJson.addProperty("id", idElement.getAsString());
+				String[] keys = {"Source", "Modality", "Divider", "Part", "Tokens","Content"};
+	            for (String key : keys) {
+	                String value = record.containsKey(key) ? record.get(key).toString() : "";
+	                metadata.addProperty(key, value);
+	            }
+				JsonArray thisEmbeddingVector = new JsonArray();
+				for(Double d : vector) {
+					thisEmbeddingVector.add(d);
+				}
+				thisChunkJson.add("values", thisEmbeddingVector);
+				thisChunkJson.add("metadata", metadata);
+				upsertEntities.add(thisChunkJson);
+	            
+	        }
+	    }
+
+	    if (!upsertEntities.isEmpty()) {
+	    	bulkUpsert(upsertEntities);
+        } else {
+            classLogger.info("No valid records found for upserting embeddings in PineCone.");
+        }
+    }
+
+    private void bulkUpsert(JsonArray upsertEntities) {
+        String url = this.hostname + API_UPSERT;
+        Map<String, String> headers = getHeaders();
+        
+        try {
+        	JsonObject requestBody = new JsonObject();
+            requestBody.addProperty("namespace", "Default");
+            requestBody.add("vectors", upsertEntities);
+
+            String response = HttpHelperUtility.postRequestStringBody(
+                    url, headers, requestBody.toString(),
+                    ContentType.APPLICATION_JSON, null, null, null
+            );
+        
+            if (response == null || response.trim().isEmpty()) {
+                throw new RuntimeException("Failed to upsert embeddings in Pinecone");
+            }
+
+            classLogger.info("Upserted {} records in Pinecone Vector collection", upsertEntities.size());
+        } catch (Exception e) {
+            classLogger.error("Error upserting embeddings in Pinecone Vector Database: ", e);
+            throw new RuntimeException("Upsert in Pinecone Vector Database failed", e);
+        }
+    }
+
+    private Map<String, String> getHeaders() {
+        Map<String, String> headersMap = new HashMap<>();
+        headersMap.put(API_KY, this.apiKey);
+        headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+        return headersMap;
+    }
+	
 }

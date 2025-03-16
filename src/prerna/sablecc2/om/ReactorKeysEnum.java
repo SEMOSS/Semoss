@@ -64,6 +64,7 @@ public enum ReactorKeysEnum {
 	END_DATE("endDate",											"Ending Date to filter on"),
 	END_ROW("endRow",	 									    "The ending row number to import from a file."),
 	ENGINE("engine",											"Id/Name of the engine"),
+	NEW_EMBEDDER("new_embedder",										"Id/Name of the new embedder"),
 	ENGINE_TYPE("engineTypes",									"The type of engine to filter into (DATABASE, STORAGE, MODEL, etc.)"),
 	ENTITIES("entities",                                        "The entities to locate within a given text"),
 	EXPIRES_ON("expires",	 									"The date when the api expires"),

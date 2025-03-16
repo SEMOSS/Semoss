@@ -67,6 +67,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final String INSERT_ENDPOINT = "/insert";
 	private static final String DELETE_ENDPOINT = "/delete";
 	private static final String SEARCH_ENDPOINT = "/search";
+	private static final String UPSERT_ENDPOINT = "/upsert";
 	private String apiKey = null;
 	private String milvusUrl = null;
 	private String databaseName = null;
@@ -708,4 +709,79 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	        return element.toString(); 
 	    }
 	}
+
+	@Override
+	public void recalculateEmbeddings(String newEmbedderEngineId, Insight insight, Map<String, Object> paramMap) {
+     List<Map<String, Object>> existingRecords = listAllRecords(paramMap);
+	    
+	    if (existingRecords == null || existingRecords.isEmpty()) {
+	        classLogger.warn("No existing records found for embedding engine ID: {}");
+	        return;
+	    }
+
+	    IModelEngine embeddingsEngine = Utility.getModel(newEmbedderEngineId);
+	    if (embeddingsEngine == null) {
+	        throw new RuntimeException("Failed to load embeddings engine: " + newEmbedderEngineId);
+	    }
+
+	    JsonArray upsertEntities = new JsonArray();
+	    for (Map<String, Object> record : existingRecords) {
+	        if (record.containsKey("Content")) {
+	            String content = (String) record.get("Content");
+	            if (content == null || content.trim().isEmpty()) {
+	                classLogger.warn("Skipping empty content row.");
+	                continue;
+	            }
+	            
+	            int id = record.containsKey("id") ? Integer.parseInt(record.get("id").toString()) : Math.abs((int) content.hashCode()); 
+	            List <Double> vector = embeddingsEngine.embeddings(Arrays.asList(new String[] {content}), insight, null).getResponse().get(0);
+	            
+	            JsonObject thisChunkJson = new JsonObject();
+	            thisChunkJson.addProperty("id", id);
+	            String[] keys = { "Source", "Modality", "Divider", "Part", "Tokens"};
+	            for (String key : keys) {
+	                String value = record.containsKey(key) ? record.get(key).toString() : "";
+	                thisChunkJson.addProperty(key, value);
+	            }
+	            JsonArray thisEmbeddingVector = new JsonArray();
+				for(Double d : vector) {
+					thisEmbeddingVector.add(d);
+				}
+	            thisChunkJson.addProperty("Content", content);
+	            thisChunkJson.add("vector", thisEmbeddingVector);
+	            upsertEntities.add(thisChunkJson);
+	        }
+	    }
+	        
+	        if (!upsertEntities.isEmpty()) {
+	        	bulkUpsert(upsertEntities);
+		    } else {
+	            classLogger.info("No valid records found for upserting embeddings in Milvus.");
+	        }
+	    }
+	
+	private void bulkUpsert(JsonArray upsertEntities) {
+	    JsonObject requestBody = new JsonObject();
+	    requestBody.addProperty("dbName", this.databaseName);
+	    requestBody.addProperty("collectionName", this.collectionName);
+	    requestBody.add("data", upsertEntities);
+	    
+	    String url = this.milvusUrl + ENTITIES_ENDPOINT + UPSERT_ENDPOINT;
+	    Map<String, String> headers = getHeaders();
+
+	    try {
+	        String response = HttpHelperUtility.postRequestStringBody(url, headers, requestBody.toString(),
+	                ContentType.APPLICATION_JSON, null, null, null);
+
+	        if (response == null || response.trim().isEmpty()) {
+	            throw new RuntimeException("Failed to upsert embeddings in Milvus");
+	        }
+
+	        classLogger.info("Upserted {} records in Milvus Vector collection", upsertEntities.size());
+	    } catch (Exception e) {
+	        classLogger.error("Error upserting embeddings in Milvus Vector Database: ", e);
+	        throw new RuntimeException("Upsert in Milvus Vector Database failed", e);
+	    }
+	}
+		
 }

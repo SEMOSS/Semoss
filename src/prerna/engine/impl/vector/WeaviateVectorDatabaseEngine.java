@@ -361,6 +361,13 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.WEAVIATE;
 	}
+
+	// This method has not been implemented yet
+	@Override
+	public void recalculateEmbeddings(String newEmbedderEngineId, Insight insight, Map<String, Object> paramMap) {
+		
+		
+	}
 	
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////

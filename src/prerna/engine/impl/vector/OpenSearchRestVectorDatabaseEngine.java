@@ -650,5 +650,12 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.OPEN_SEARCH;
 	}
+	
+	// This method has not been implemented yet
+	@Override
+	public void recalculateEmbeddings(String newEmbedderEngineId, Insight insight, Map<String, Object> paramMap) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }

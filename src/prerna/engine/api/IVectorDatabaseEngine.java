@@ -154,4 +154,7 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 */
 	boolean userCanAccessEmbeddingModels(User user);
 	
+	void recalculateEmbeddings(String newEmbedderEngineId, Insight insight, Map<String, Object> paramMap);
+
+	
 }
