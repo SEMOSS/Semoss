@@ -179,7 +179,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			int parameterIndex = 1;
 			ps = securityDb.getPreparedStatement(insertQuery);
 			ps.setString(parameterIndex++, accessToken.getId()); 
-			ps.setString(parameterIndex++, accessToken.getProvider().toString()); 
+			ps.setString(parameterIndex++, accessToken.getProvider().getLabel()); 
 			ps.setString(parameterIndex++, accessKey); 
 			ps.setString(parameterIndex++, saltedSecretKey); 
 			ps.setString(parameterIndex++, salt); 
