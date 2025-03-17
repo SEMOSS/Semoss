@@ -162,6 +162,22 @@ public class SocialPropertiesProcessor {
 			this.availableProviders.add(providerMap);
 		}
 	}
+	
+	/**
+	 * 
+	 * @param provider
+	 * @return
+	 */
+	public boolean accessKeyAllowed(AuthProvider provider) {
+		String prefix = provider.toString().toLowerCase();
+		boolean accessKeysAllowed = Boolean.parseBoolean(SocialPropertiesUtil.getInstance().getProperty(prefix + "_access_keys_allowed")+"");
+		// LEGACY 
+		if(!accessKeysAllowed && provider == AuthProvider.MICROSOFT) {
+			accessKeysAllowed = Boolean.parseBoolean(SocialPropertiesUtil.getInstance().getProperty("ms_access_keys_allowed")+"");
+		}
+		
+		return accessKeysAllowed;
+	}
 
 	/**
 	 * 
