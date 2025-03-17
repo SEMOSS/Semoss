@@ -1,6 +1,6 @@
 import boto3
+import botocore.exceptions
 import logging
-
 from .abstract_text_generation_client import AbstractTextGenerationClient
 from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..constants import (
@@ -45,12 +45,20 @@ class BedrockClient(AbstractTextGenerationClient):
         self.guardrail_identifier = guardrail_identifier
         self.guardrail_version = guardrail_version
 
-        # hard code the tokenizer for now
+        # get tokenizer based on model
+        tokenizer_name = self._get_default_tokenizer(modelId)
         self.tokenizer = HuggingfaceTokenizer(
-            encoder_name="bert-base-uncased",
+            encoder_name=tokenizer_name,
             max_tokens=kwargs.pop(MAX_TOKENS, None),
             max_input_tokens=kwargs.pop(MAX_INPUT_TOKENS, None),
         )
+
+    def _get_default_tokenizer(self, modelId):
+        """Retrieve the default tokenizer for a given model."""
+        model_tokenizer_map = {
+            "anthropic.claude-instant-v1": "bert-base-uncased",
+        }
+        return model_tokenizer_map.get(modelId, "bert-base-uncased")
 
     def _get_client(self):
         if self.access_key and self.secret_key:
@@ -97,7 +105,7 @@ class BedrockClient(AbstractTextGenerationClient):
         message_payload = []
         mapping = {"question": question} | kwargs
 
-#TODO context here should not be user but system...anthropic doesnt like system prompts tho.
+        # TODO context here should not be user but system...anthropic doesnt like system prompts tho.
         # if context:
         #     content = self._handle_context(context, template_name, **mapping)
         #     message_payload.append(
@@ -131,7 +139,9 @@ class BedrockClient(AbstractTextGenerationClient):
             return self.fill_context(context, **mapping)[0]
         return context
 
-    def _create_request_params(self, messages, inference_config, guardrail_config=None, system_prompt=None):
+    def _create_request_params(
+        self, messages, inference_config, guardrail_config=None, system_prompt=None
+    ):
         """Create the request parameters for the Bedrock API."""
         params = {
             "modelId": self.modelId,
@@ -142,7 +152,7 @@ class BedrockClient(AbstractTextGenerationClient):
         if guardrail_config:
             params["guardrailConfig"] = guardrail_config
         if system_prompt:
-            params["system"]=system_prompt
+            params["system"] = system_prompt
         return params
 
     def _handle_stream_response(self, prefix: str, stream_response):
@@ -153,7 +163,7 @@ class BedrockClient(AbstractTextGenerationClient):
                 text = event["contentBlockDelta"]["delta"]["text"]
                 if text != None:
                     final_response += text
-                    print(prefix + text, end="")                
+                    print(prefix + text, end="")
         return final_response
 
     def _get_guardrail_config(self):
@@ -217,14 +227,15 @@ class BedrockClient(AbstractTextGenerationClient):
             message_payload = self._prepare_message_payload(
                 question, context, template_name, history, **kwargs
             )
-            system_prompt = None
-            if context is not None and isinstance(context, str):
-                system_prompt = [{'text':context}]
+            system_prompt = (
+                [{"text": context}]
+                if context is not None and isinstance(context, str)
+                else None
+            )
 
-            if kwargs.get(FULL_PROMPT):
-                raw_content = kwargs[FULL_PROMPT]
-            else:
-                raw_content = self._get_raw_content(message_payload)
+            raw_content = kwargs.get(FULL_PROMPT) or self._get_raw_content(
+                message_payload
+            )
 
             model_engine_response.prompt_tokens = self.tokenizer.count_tokens(
                 raw_content
@@ -243,14 +254,22 @@ class BedrockClient(AbstractTextGenerationClient):
             should_stream = stream if stream is not None else self.response_stream
             should_stream = should_stream in (True, "true")
 
+            request_params = self._create_request_params(
+                messages, inference_config, guardrail_config, system_prompt
+            )
+
             if should_stream:
-                response = client.converse_stream(
-                    **self._create_request_params(
-                        messages, inference_config, guardrail_config, system_prompt
-                    )
-                )
-                final_response = self._handle_stream_response(prefix,
-                    response.get("stream", [])
+                try:
+                    response = client.converse_stream(**request_params)
+                except botocore.exceptions.ParamValidationError as e:
+                    logger.info(f"Param Validation Error Occurred: {e}")
+                    messages[0]["content"][0]["text"] = str(
+                        messages[0]["content"][0]["text"]
+                    )  # convert to valid format
+                    response = client.converse_stream(**request_params)
+
+                final_response = self._handle_stream_response(
+                    prefix, response.get("stream", [])
                 )
                 model_engine_response.response_tokens = self.tokenizer.count_tokens(
                     final_response
@@ -261,8 +280,12 @@ class BedrockClient(AbstractTextGenerationClient):
                         messages, inference_config, guardrail_config, system_prompt
                     )
                 )
-                output_message = response["output"]["message"]["content"]
-                final_response = output_message[0]["text"] if output_message else ""
+
+                final_response = (
+                    response["output"]["message"]["content"][0]["text"]
+                    if response["output"]["message"]["content"]
+                    else ""
+                )
                 model_engine_response.response_tokens = response["usage"][
                     "outputTokens"
                 ]

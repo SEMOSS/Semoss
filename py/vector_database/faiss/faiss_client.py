@@ -144,38 +144,38 @@ class FAISSSearcher:
         Find the closest match(es) between the question bassed in and the embedded documents using Euclidena Distance.
 
         Args:
-        question(`str`):
-            The string you are trying to match against the embedded documents
-        filter(`str`):
-            A SQL filter to find the appropriate indexes before executing the semantic search
-        results(`Optional[int]`, *optional*):
-            The number of matches under the threshold that will be returned
-        columns_to_return(`List[str]`):
-            A list of column names that will be sent back in the return payload.
-            Example:
-            # Given the following dataset
-            >>> dataset
-            Dataset({
-                features: ['doc_index', 'content', 'tokens', 'url'],
-                num_rows: 902
-            })
+            question(`str`):
+                The string you are trying to match against the embedded documents
+            filter(`str`):
+                A SQL filter to find the appropriate indexes before executing the semantic search
+            results(`Optional[int]`, *optional*):
+                The number of matches under the threshold that will be returned
+            columns_to_return(`List[str]`):
+                A list of column names that will be sent back in the return payload.
+                Example:
+                # Given the following dataset
+                >>> dataset
+                Dataset({
+                    features: ['doc_index', 'content', 'tokens', 'url'],
+                    num_rows: 902
+                })
 
-            # if columns_to_return = None, then all four columns will be returned
+                # if columns_to_return = None, then all four columns will be returned
 
-            # if columns_to_return = ['doc_index']
+                # if columns_to_return = ['doc_index']
 
-            >>> FAISSearcher.nearestNeighbor(
-            ...     question = 'Sample',
-            ...     columns_to_return = ['doc_index'],
-            ...     results = 1
-            ... )
-            [{'Score':0.23, "doc_index":"<theDocIndexThatMathced"}]
-        return_threshold(`Optional[Union[int,float]]`):
-            A numerical value that specifies what Score should be less than.
-        ascending(`Optional[bool]`):
-            A boolean flag to return results in ascending order or not. Default is True
-        insight_id(`Optional[str]`):
-            The unique identifier of the insight from which the call is being made
+                >>> FAISSearcher.nearestNeighbor(
+                ...     question = 'Sample',
+                ...     columns_to_return = ['doc_index'],
+                ...     results = 1
+                ... )
+                [{'Score':0.23, "doc_index":"<theDocIndexThatMathced"}]
+            return_threshold(`Optional[Union[int,float]]`):
+                A numerical value that specifies what Score should be less than.
+            ascending(`Optional[bool]`):
+                A boolean flag to return results in ascending order or not. Default is True
+            insight_id(`Optional[str]`):
+                The unique identifier of the insight from which the call is being made
 
         Return:
             `List[Dict]` consisting of Score and columns
@@ -333,7 +333,7 @@ class FAISSSearcher:
             try:
                 loaded_dataset = Dataset.from_csv(
                     path_or_paths=dataset_location,
-                    encoding="iso-8859-1",
+                    encoding="utf-8",
                     keep_in_memory=True,
                 )
             except:

@@ -59,6 +59,10 @@ public class VectorDatabaseCSVTable {
     	return this.rows;
     }
     
+    public File getFile() {
+    	return this.file;
+    }
+    
     public void setKeywordEngine(IModelEngine keywordEngine) {
     	if(!(keywordEngine instanceof EmbeddedModelEngine)) {
     		throw new IllegalArgumentException("Keyword Engine must be of type EmbeddedModelEngine");
