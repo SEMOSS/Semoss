@@ -1,12 +1,12 @@
 package prerna.engine.api;
 
 import prerna.engine.impl.vector.ChromaVectorDatabaseEngine;
+import prerna.engine.impl.vector.ElasticSearchRestVectorDatabaseEngine;
 import prerna.engine.impl.vector.FaissDatabaseEngine;
 import prerna.engine.impl.vector.OpenSearchRestVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 import prerna.engine.impl.vector.PineConeVectorDatabaseEngine;
 import prerna.engine.impl.vector.WeaviateVectorDatabaseEngine;
-import prerna.engine.impl.vector.ElasticSearchRestVectorDatabaseEngine;
 
 public enum VectorDatabaseTypeEnum {
 

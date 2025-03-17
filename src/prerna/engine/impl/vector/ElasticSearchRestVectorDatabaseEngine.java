@@ -22,7 +22,9 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
@@ -38,130 +40,130 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(ElasticSearchRestVectorDatabaseEngine.class);
 
-	 public static final String INDEX_NAME = "INDEX_NAME";
+	public static final String INDEX_NAME = "INDEX_NAME";
 
-	 private static final String TEXT_DATATYPE = "text";
-	 private static final String KEYWORD_DATATYPE = "keyword";
-	 private static final String INT_DATATYPE = "integer";
-	 
-	 private static final String SEARCH_ENDPOINT = "/_search";
-	 private static final String BULK_ENDPOINT = "/_bulk";
-	 private static final String UPDATE_MAPPINGS_ENDPOINT = "/_mapping";
-	 private static final String DELETE_BY_QUERY_ENDPOINT = "/_delete_by_query";
-	 private static final String DELETE_ENDPOINT_STRING = "/delete";
+	private static final String TEXT_DATATYPE = "text";
+	private static final String KEYWORD_DATATYPE = "keyword";
+	private static final String INT_DATATYPE = "integer";
 
-	 private static final String EMBEDDINGS_COLUMN = "EMBEDDINGS_COLUMN";
-	 private static final String DIMENSION_SIZE = "DIMENSION_SIZE";
-	 private static final String METHOD_NAME = "METHOD_NAME";
-	 private static final String SPACE_TYPE = "SPACE_TYPE";
-	 private static final String INDEX_ENGINE = "INDEX_ENGINE";
-	 private static final String EF_CONSTRUCTION = "EF_CONSTRUCTION";
-	 private static final String M_VALUE = "M_VALUE";
-	 private static final String ADDITIONAL_MAPPINGS = "ADDITIONAL_MAPPINGS";
+	private static final String SEARCH_ENDPOINT = "/_search";
+	private static final String BULK_ENDPOINT = "/_bulk";
+	private static final String UPDATE_MAPPINGS_ENDPOINT = "/_mapping";
+	private static final String DELETE_BY_QUERY_ENDPOINT = "/_delete_by_query";
+	private static final String DELETE_ENDPOINT_STRING = "/delete";
 
-	 private String clusterUrl = null;
-	 private String username = null;
-	 private String password = null;
-	 private String apiKey = null;
-	 private String apiKey_id=null;
-	 //TODO: move this into enum for apiKey/Creds
-	 private String authorizationMethod = null;
+	private static final String EMBEDDINGS_COLUMN = "EMBEDDINGS_COLUMN";
+	private static final String DIMENSION_SIZE = "DIMENSION_SIZE";
+	private static final String METHOD_NAME = "METHOD_NAME";
+	private static final String SPACE_TYPE = "SPACE_TYPE";
+	private static final String INDEX_ENGINE = "INDEX_ENGINE";
+	private static final String EF_CONSTRUCTION = "EF_CONSTRUCTION";
+	private static final String M_VALUE = "M_VALUE";
+	private static final String ADDITIONAL_MAPPINGS = "ADDITIONAL_MAPPINGS";
 
-	 private String indexName = null;
-	 
-	 private String embeddings = "embeddings";
-	 private int dimension = 1024;
-	 private String methodName = "hnsw";
-	 private String spaceType = "l2";
-	 private String indexEngine = "lucene";
-	 private int efConstruction = 128;
-	 private int m = 24;
-	 
-	 private Map<String, String> otherPropsToType = new HashMap<>();
-	 
-	 @Override
-	 public void open(Properties smssProp) throws Exception {
-	  super.open(smssProp);
-	  
-	  this.clusterUrl = this.smssProp.getProperty(Constants.HOSTNAME);
-	  this.username = this.smssProp.getProperty(Constants.USERNAME);
-	  this.password = this.smssProp.getProperty(Constants.PASSWORD);
-	  this.apiKey = this.smssProp.getProperty(Constants.API_KEY);
-	  this.apiKey_id=this.smssProp.getProperty(Constants.API_KEY_ID);
-	  
-	  if (this.apiKey != null && !this.apiKey.trim().isEmpty() && this.apiKey_id!=null && !this.apiKey_id.trim().isEmpty()) {
-		this.authorizationMethod = "API_KEY";	
-	  } else if(this.username != null && this.password != null && !this.username.trim().isEmpty() && !this.password.trim().isEmpty()) {
-		  this.authorizationMethod = "BASIC_AUTH";
-	  } else {
-		  classLogger.error("Username/Password or ApiKey/Id required");
-		  throw new IllegalArgumentException("Username/Password or ApiKey/Id required");
-	  }
-	   
-	  this.indexName = this.smssProp.getProperty(INDEX_NAME);
-	  String customEmbeddingsName = this.smssProp.getProperty(EMBEDDINGS_COLUMN);
-	  if(customEmbeddingsName != null && !(customEmbeddingsName=customEmbeddingsName.trim()).isEmpty()) {
-	   this.embeddings = customEmbeddingsName;
-	  }
-	  String dimensionInput = this.smssProp.getProperty(DIMENSION_SIZE);
-	  if(dimensionInput != null && !(dimensionInput=dimensionInput.trim()).isEmpty()) {
-	   try {
-	    this.dimension = ((Number) Double.parseDouble(dimensionInput)).intValue();
-	   } catch(NumberFormatException e) {
-	    classLogger.warn("Invalid string value for dimension '"+dimensionInput+"'. Must be an integer value");
-	    classLogger.error(Constants.STACKTRACE, e);
-	   }
-	  }
-	  String methodNameInput = this.smssProp.getProperty(METHOD_NAME);
-	  if(methodNameInput != null && !(methodNameInput=methodNameInput.trim()).isEmpty()) {
-	   this.methodName = methodNameInput;
-	  }
-	  String spaceTypeInput = this.smssProp.getProperty(SPACE_TYPE);
-	  if(spaceTypeInput != null && !(spaceTypeInput=spaceTypeInput.trim()).isEmpty()) {
-	   this.spaceType = spaceTypeInput;
-	  }
-	  String indexEngineInput = this.smssProp.getProperty(INDEX_ENGINE);
-	  if(indexEngineInput != null && !(indexEngineInput=indexEngineInput.trim()).isEmpty()) {
-	   this.indexEngine = indexEngineInput;
-	  }
-	  String efConstructionInput = this.smssProp.getProperty(EF_CONSTRUCTION);
-	  if(efConstructionInput != null && !(efConstructionInput=efConstructionInput.trim()).isEmpty()) {
-	   try {
-	    this.efConstruction = ((Number) Double.parseDouble(efConstructionInput)).intValue();
-	   } catch(NumberFormatException e) {
-	    classLogger.warn("Invalid string value for ef construction '"+efConstructionInput+"'. Must be an integer value");
-	    classLogger.error(Constants.STACKTRACE, e);
-	   }
-	  }
-	  String mValueInput = this.smssProp.getProperty(M_VALUE);
-	  if(mValueInput != null && !(mValueInput=mValueInput.trim()).isEmpty()) {
-	   try {
-	    this.m = ((Number) Double.parseDouble(mValueInput)).intValue();
-	   } catch(NumberFormatException e) {
-	    classLogger.warn("Invalid string value for m value '"+mValueInput+"'. Must be an integer value");
-	    classLogger.error(Constants.STACKTRACE, e);
-	   }
-	  }
-	  
-	  String additionalMappingsStr = this.smssProp.getProperty(ADDITIONAL_MAPPINGS);
-	  if(additionalMappingsStr != null && !(additionalMappingsStr=additionalMappingsStr.trim()).isEmpty()) {
-	   this.otherPropsToType = new Gson().fromJson(additionalMappingsStr, new TypeToken<Map<String, String>>() {}.getType());
-	  }
-	  
-	  // we need to store our stuff
-	  this.otherPropsToType.put(VectorDatabaseCSVTable.SOURCE, KEYWORD_DATATYPE);
-	  this.otherPropsToType.put(VectorDatabaseCSVTable.MODALITY, KEYWORD_DATATYPE);
-	  this.otherPropsToType.put(VectorDatabaseCSVTable.DIVIDER, TEXT_DATATYPE);
-	  this.otherPropsToType.put(VectorDatabaseCSVTable.PART, TEXT_DATATYPE);
-	  this.otherPropsToType.put(VectorDatabaseCSVTable.TOKENS, INT_DATATYPE);
-	  this.otherPropsToType.put(VectorDatabaseCSVTable.CONTENT, TEXT_DATATYPE);
+	private String clusterUrl = null;
+	private String username = null;
+	private String password = null;
+	private String apiKey = null;
+	private String apiKeyId = null;
+	//TODO: move this into enum for apiKey/Creds
+	private String authorizationMethod = null;
 
-	  getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.spaceType, this.indexEngine, this.efConstruction, this.m);
-	  updateIndexMapping(this.indexName, this.otherPropsToType);  
-	 }
+	private String indexName = null;
+
+	private String embeddings = "embeddings";
+	private int dimension = 1024;
+	private String methodName = "hnsw";
+	private String spaceType = "l2";
+	private String indexEngine = "lucene";
+	private int efConstruction = 128;
+	private int m = 24;
+
+	private Map<String, String> otherPropsToType = new HashMap<>();
+
+	@Override
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+
+		this.clusterUrl = this.smssProp.getProperty(Constants.HOSTNAME);
+		this.username = this.smssProp.getProperty(Constants.USERNAME);
+		this.password = this.smssProp.getProperty(Constants.PASSWORD);
+		this.apiKey = this.smssProp.getProperty(Constants.API_KEY);
+		this.apiKeyId = this.smssProp.getProperty(Constants.API_KEY_ID);
+
+		if (this.apiKey != null && !this.apiKey.trim().isEmpty() && this.apiKeyId!=null && !this.apiKeyId.trim().isEmpty()) {
+			this.authorizationMethod = "API_KEY";	
+		} else if(this.username != null && this.password != null && !this.username.trim().isEmpty() && !this.password.trim().isEmpty()) {
+			this.authorizationMethod = "BASIC_AUTH";
+		} else {
+			classLogger.error("Username/Password or ApiKey/Id required");
+			throw new IllegalArgumentException("Username/Password or ApiKey/Id required");
+		}
+
+		this.indexName = this.smssProp.getProperty(INDEX_NAME);
+		String customEmbeddingsName = this.smssProp.getProperty(EMBEDDINGS_COLUMN);
+		if(customEmbeddingsName != null && !(customEmbeddingsName=customEmbeddingsName.trim()).isEmpty()) {
+			this.embeddings = customEmbeddingsName;
+		}
+		String dimensionInput = this.smssProp.getProperty(DIMENSION_SIZE);
+		if(dimensionInput != null && !(dimensionInput=dimensionInput.trim()).isEmpty()) {
+			try {
+				this.dimension = ((Number) Double.parseDouble(dimensionInput)).intValue();
+			} catch(NumberFormatException e) {
+				classLogger.warn("Invalid string value for dimension '"+dimensionInput+"'. Must be an integer value");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		String methodNameInput = this.smssProp.getProperty(METHOD_NAME);
+		if(methodNameInput != null && !(methodNameInput=methodNameInput.trim()).isEmpty()) {
+			this.methodName = methodNameInput;
+		}
+		String spaceTypeInput = this.smssProp.getProperty(SPACE_TYPE);
+		if(spaceTypeInput != null && !(spaceTypeInput=spaceTypeInput.trim()).isEmpty()) {
+			this.spaceType = spaceTypeInput;
+		}
+		String indexEngineInput = this.smssProp.getProperty(INDEX_ENGINE);
+		if(indexEngineInput != null && !(indexEngineInput=indexEngineInput.trim()).isEmpty()) {
+			this.indexEngine = indexEngineInput;
+		}
+		String efConstructionInput = this.smssProp.getProperty(EF_CONSTRUCTION);
+		if(efConstructionInput != null && !(efConstructionInput=efConstructionInput.trim()).isEmpty()) {
+			try {
+				this.efConstruction = ((Number) Double.parseDouble(efConstructionInput)).intValue();
+			} catch(NumberFormatException e) {
+				classLogger.warn("Invalid string value for ef construction '"+efConstructionInput+"'. Must be an integer value");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		String mValueInput = this.smssProp.getProperty(M_VALUE);
+		if(mValueInput != null && !(mValueInput=mValueInput.trim()).isEmpty()) {
+			try {
+				this.m = ((Number) Double.parseDouble(mValueInput)).intValue();
+			} catch(NumberFormatException e) {
+				classLogger.warn("Invalid string value for m value '"+mValueInput+"'. Must be an integer value");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
+		String additionalMappingsStr = this.smssProp.getProperty(ADDITIONAL_MAPPINGS);
+		if(additionalMappingsStr != null && !(additionalMappingsStr=additionalMappingsStr.trim()).isEmpty()) {
+			this.otherPropsToType = new Gson().fromJson(additionalMappingsStr, new TypeToken<Map<String, String>>() {}.getType());
+		}
+
+		// we need to store our stuff
+		this.otherPropsToType.put(VectorDatabaseCSVTable.SOURCE, KEYWORD_DATATYPE);
+		this.otherPropsToType.put(VectorDatabaseCSVTable.MODALITY, KEYWORD_DATATYPE);
+		this.otherPropsToType.put(VectorDatabaseCSVTable.DIVIDER, TEXT_DATATYPE);
+		this.otherPropsToType.put(VectorDatabaseCSVTable.PART, TEXT_DATATYPE);
+		this.otherPropsToType.put(VectorDatabaseCSVTable.TOKENS, INT_DATATYPE);
+		this.otherPropsToType.put(VectorDatabaseCSVTable.CONTENT, TEXT_DATATYPE);
+
+		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.spaceType, this.indexEngine, this.efConstruction, this.m);
+		updateIndexMapping(this.indexName, this.otherPropsToType);  
+	}
 
 	@Override
 	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
@@ -178,9 +180,9 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		// send all the strings to embed in one shot
 		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
-		
+
 		List<JsonObject> bulkInsert = new ArrayList<>();
-		
+
 		Map<String, Integer> sourceId = new HashMap<>();
 		for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
 			String source = row.getSource();
@@ -191,7 +193,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			} else {
 				sourceId.put(source, new Integer(0));
 			}
-			
+
 			// store creation of the index
 			{
 				JsonObject createIndexJson = new JsonObject();
@@ -214,9 +216,9 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				bulkInsert.add(record);
 			}
 		}
-		
+
 		String bulkRequest = String.join("\n", bulkInsert.stream().map(x -> x.toString()).collect(Collectors.toList())) + "\n";
-		
+
 		String url = this.clusterUrl + "/" + this.indexName + BULK_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(HttpHeaders.AUTHORIZATION, getCredsBase64Encoded());
@@ -226,17 +228,17 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		if(response == null || (response=response.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Received no response from elastic search endpoint");
 		}
-		
+
 		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
-        Number insertions = (Number) responseMap.get("took");
-        classLogger.info("Inserted " + insertions.intValue() + " bulk inserts (create index + record value) into elastic search index " + this.indexName);
-        
-        Boolean errors = (Boolean) responseMap.get("errors");
-        if(errors) {
-        	classLogger.warn("There were errors with some of the bulk insertions in the elastic search index " + this.indexName);
-        }
+		Number insertions = (Number) responseMap.get("took");
+		classLogger.info("Inserted " + insertions.intValue() + " bulk inserts (create index + record value) into elastic search index " + this.indexName);
+
+		Boolean errors = (Boolean) responseMap.get("errors");
+		if(errors) {
+			classLogger.warn("There were errors with some of the bulk insertions in the elastic search index " + this.indexName);
+		}
 	}
-	
+
 	@Override
 	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
@@ -262,19 +264,19 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			// add to parent
 			search.add("query", query);
 		}
-		
+
 		String url = this.clusterUrl + "/" + this.indexName + DELETE_BY_QUERY_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(HttpHeaders.AUTHORIZATION, getCredsBase64Encoded());
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
-		
-        String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
-        Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
-        classLogger.info("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " removed " + responseMap.get("deleted") + " docs for files = " + fileNames);
-        List<Object> errors = (List<Object>) responseMap.get("failures");
-        if(errors != null && !errors.isEmpty()) {
-        	classLogger.warn("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " errors = '" + errors + "' when attempting to delete files = " + fileNames);
-        }
+
+		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
+		classLogger.info("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " removed " + responseJson.get("deleted") + " docs for files = " + fileNames);
+		JsonArray errors = responseJson.get("failures").getAsJsonArray();
+		if(errors != null && !errors.isEmpty()) {
+			classLogger.warn("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " errors = '" + errors + "' when attempting to delete files = " + fileNames);
+		}
 
 		// using the search result for the source, we need to delete all the ids we found
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
@@ -291,7 +293,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 			}
 		}
-		
+
 		if (ClusterUtil.IS_CLUSTER) {
 			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
 			deleteFilesFromCloudThread.start();
@@ -303,11 +305,11 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
-		
+
 		if (!this.modelPropsLoaded) {
 			verifyModelProps();
 		}
-		
+
 		IModelEngine engine = Utility.getModel(this.embedderEngineId);
 		EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] {searchStatement}), insight, null);
 
@@ -346,26 +348,26 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 							must.add(knnParent);
 						}
 						bool.add("must", must);
-						
+
 						//filteration logic starts here
 						//filter contains simple or AND conditions
 						JsonArray filter = new JsonArray();
-						
+
 						//should contains OR condition filters
 						JsonArray should = new JsonArray();
-						
+
 						//must not contains not equals to filters
 						JsonArray must_not = new JsonArray();
-						
+
 						List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
 						for(IQueryFilter queryFilter : filters) {
 							RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
 						}
-						
+
 						bool.add("filter", filter);
 						bool.add("should", should);
 						bool.add("must_not", must_not);
-						
+
 						if (should.size() > 1) {
 							bool.addProperty("minimum_should_match", 1);
 						}
@@ -375,36 +377,36 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			}
 			// add to parent
 			search.add("query", query);
-			
 		}
-		
-		 System.out.println("ELASTIC FINAL SEARCH QUERY : " + search.toString());
-		
+
+		classLogger.debug("ELASTIC FINAL SEARCH QUERY : " + search.toString());
+
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(HttpHeaders.AUTHORIZATION, getCredsBase64Encoded());
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
-		
-        String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
-        Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
 
-        List<Map<String, Object>> vectorSearchResults = new ArrayList<>();
-        List<Map<String, Object>> hits = (List<Map<String, Object>>) ((Map<String, Object>)responseMap.get("hits")).get("hits");
-        for(Map<String, Object> match : hits) {
-        	Double score = (Double) match.get("_score");
-        	Map<String, Object> sourceMap = (Map<String, Object>) match.get("_source");
-        	
-        	Map<String, Object> retMap = new HashMap<>();
-        	retMap.put(VectorDatabaseCSVTable.SOURCE, sourceMap.get(VectorDatabaseCSVTable.SOURCE));
-        	retMap.put(VectorDatabaseCSVTable.MODALITY, sourceMap.get(VectorDatabaseCSVTable.MODALITY));
-        	retMap.put(VectorDatabaseCSVTable.DIVIDER, sourceMap.get(VectorDatabaseCSVTable.DIVIDER));
-        	retMap.put(VectorDatabaseCSVTable.PART, sourceMap.get(VectorDatabaseCSVTable.PART));
-        	retMap.put(VectorDatabaseCSVTable.TOKENS, sourceMap.get(VectorDatabaseCSVTable.TOKENS));
-        	retMap.put(VectorDatabaseCSVTable.CONTENT, sourceMap.get(VectorDatabaseCSVTable.CONTENT));
-        	retMap.put("Score", score);
-        	vectorSearchResults.add(retMap);
-        }
-        
+		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
+		JsonArray hits = getHitsFromSearch(responseJson);
+		
+		List<Map<String, Object>> vectorSearchResults = new ArrayList<>();
+		for(JsonElement e : hits) {
+			Map<String, Object> thisMatch = new HashMap<>();
+			vectorSearchResults.add(thisMatch);
+
+			JsonObject hitJson = e.getAsJsonObject();
+			Double score = (Double) hitJson.get("_score").getAsDouble();
+			thisMatch.put("Score", score);
+			
+			JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
+			thisMatch.put(VectorDatabaseCSVTable.SOURCE, sourceDetails.get(VectorDatabaseCSVTable.SOURCE).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.MODALITY, sourceDetails.get(VectorDatabaseCSVTable.MODALITY).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.DIVIDER, sourceDetails.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
+			thisMatch.put(VectorDatabaseCSVTable.CONTENT, sourceDetails.get(VectorDatabaseCSVTable.CONTENT).getAsString());
+		}
 		return vectorSearchResults;
 	}
 
@@ -431,32 +433,30 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			search.add("aggs", aggs);
 			search.addProperty("size", 0);
 		}
-		
-		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;// + "?search_type=count";
+
+		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(HttpHeaders.AUTHORIZATION, getCredsBase64Encoded());
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
+
+		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
+		JsonArray bucketsArr = responseJson.getAsJsonObject("aggregations").getAsJsonObject(UNIQUE_SOURCES).getAsJsonArray("buckets");
 		
-        String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
-        Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
-        Map<String, Object> aggregations = (Map<String, Object>) responseMap.get("aggregations");
-        Map<String, Object> uScores = (Map<String, Object>) aggregations.get(UNIQUE_SOURCES);
-        List<Map<String, Object>> buckets = (List<Map<String, Object>>) uScores.get("buckets");
-        
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
-		
+
 		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 
-		List<Map<String, Object>> filesInElasticSearch = new ArrayList<>();
-		
-		for (Map<String, Object> bucketDetails : buckets) {
+		List<Map<String, Object>> returnSources = new ArrayList<>();
+		for (JsonElement bucket : bucketsArr) {
+			JsonObject bucketDetails = bucket.getAsJsonObject();
 			Map<String, Object> fileInfo = new HashMap<>();
-			String fileName = (String) bucketDetails.get("key");
+			String fileName = bucketDetails.get("key").getAsString();
 			fileInfo.put("fileName", fileName);
-			
+
 			File thisF = new File(documentsDir, fileName);
 			if(thisF.exists() && thisF.isFile()) {
 				long fileSizeInBytes = thisF.length();
@@ -468,11 +468,67 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				fileInfo.put("fileSize", fileSizeInMB);
 				fileInfo.put("lastModified", lastModified);
 			}
-			
-			filesInElasticSearch.add(fileInfo);
+
+			returnSources.add(fileInfo);
+		}
+
+		return returnSources;
+	}
+
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		// construct search query
+		JsonObject search = new JsonObject();
+		{
+			JsonArray fields = new JsonArray();
+			{	
+				fields.add(VectorDatabaseCSVTable.SOURCE);
+				fields.add(VectorDatabaseCSVTable.MODALITY);
+				fields.add(VectorDatabaseCSVTable.DIVIDER);
+				fields.add(VectorDatabaseCSVTable.PART);
+				fields.add(VectorDatabaseCSVTable.TOKENS);
+				fields.add(VectorDatabaseCSVTable.CONTENT);
+			}
+			// add to parent
+			search.add("fields", fields);
+			search.addProperty("_source", false);
+		}
+
+		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT + "?size=10000";
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(HttpHeaders.AUTHORIZATION, getCredsBase64Encoded());
+		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
+
+		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
+		JsonArray hits = getHitsFromSearch(responseJson);
+		
+		List<Map<String, Object>> allDocuments = new ArrayList<>();
+		for(JsonElement e : hits) {
+			Map<String, Object> thisDocument = new HashMap<>();
+			allDocuments.add(thisDocument);
+
+			JsonObject fields = e.getAsJsonObject().get("fields").getAsJsonObject();
+			thisDocument.put(VectorDatabaseCSVTable.SOURCE, fields.get(VectorDatabaseCSVTable.SOURCE).getAsString());
+			thisDocument.put(VectorDatabaseCSVTable.MODALITY, fields.get(VectorDatabaseCSVTable.MODALITY).getAsString());
+			thisDocument.put(VectorDatabaseCSVTable.DIVIDER, fields.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
+			thisDocument.put(VectorDatabaseCSVTable.PART, fields.get(VectorDatabaseCSVTable.PART).getAsString());
+			thisDocument.put(VectorDatabaseCSVTable.TOKENS, fields.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
+			thisDocument.put(VectorDatabaseCSVTable.CONTENT, fields.get(VectorDatabaseCSVTable.CONTENT).getAsString());
 		}
 		
-		return filesInElasticSearch;
+		return allDocuments;
+	}
+	
+	/**
+	 * 
+	 * @param responseObject
+	 * @return
+	 */
+	private JsonArray getHitsFromSearch(JsonObject responseObject) {
+		JsonObject hitsObject = responseObject.get("hits").getAsJsonObject();
+		JsonArray hitsArray = hitsObject.get("hits").getAsJsonArray();
+		return hitsArray;
 	}
 	
 	/**
@@ -492,7 +548,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			createIndex(specificIndexName, embeddings, dimension, methodName, spaceType, engine, efConstruction, m);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param specificIndexName
@@ -532,8 +588,8 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 					thisIndex.addProperty("type", "dense_vector");
 					thisIndex.addProperty("dims", dimension);
 					thisIndex.addProperty("index", true);
-					
-					
+
+
 					{
 						JsonObject indexOptions = new JsonObject();
 						indexOptions.addProperty("ef_construction", efConstruction);
@@ -551,15 +607,15 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			//add to parent
 			createIndexJson.add("mappings", mappings);
 		}
-		
-        String url = this.clusterUrl + "/" + specificIndexName;
+
+		String url = this.clusterUrl + "/" + specificIndexName;
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(HttpHeaders.AUTHORIZATION, getCredsBase64Encoded());
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-        String response = HttpHelperUtility.putRequestStringBody(url, headersMap, createIndexJson.toString(), ContentType.APPLICATION_JSON, null, null, null);
-        if(!parseResponseForAcknowledged(response)) {
-        	throw new IllegalArgumentException("Did not receive an acknowledgement from the server for creating the index with the embeddings column");
-        }
+		String response = HttpHelperUtility.putRequestStringBody(url, headersMap, createIndexJson.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		if(!parseResponseForAcknowledged(response)) {
+			throw new IllegalArgumentException("Did not receive an acknowledgement from the server for creating the index with the embeddings column");
+		}
 	}
 
 	/**
@@ -577,7 +633,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			JsonObject properties = new JsonObject();
 			for(String propName : propNameToType.keySet()) {
 				String propType = propNameToType.get(propName);
-				
+
 				JsonObject type = new JsonObject();
 				type.addProperty("type", propType);
 				properties.add(propName, type);
@@ -585,17 +641,17 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			//add to parent
 			updateProperties.add("properties", properties);
 		}
-		
-        String url = this.clusterUrl + "/" + this.indexName + UPDATE_MAPPINGS_ENDPOINT;
+
+		String url = this.clusterUrl + "/" + this.indexName + UPDATE_MAPPINGS_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(HttpHeaders.AUTHORIZATION, getCredsBase64Encoded());
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 		String response = HttpHelperUtility.putRequestStringBody(url, headersMap, updateProperties.toString(), ContentType.APPLICATION_JSON, null, null, null);
-        if(!parseResponseForAcknowledged(response)) {
-        	throw new IllegalArgumentException("Did not receive an acknowledgement from the server for updating the mappings");
-        }
+		if(!parseResponseForAcknowledged(response)) {
+			throw new IllegalArgumentException("Did not receive an acknowledgement from the server for updating the mappings");
+		}
 	}
-	
+
 	/**
 	 * 
 	 * @param response
@@ -605,16 +661,16 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		if(response == null || (response=response.trim()).isEmpty()) {
 			return false;
 		}
-		
+
 		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
-        Boolean valid = (Boolean) responseMap.get("acknowledged");
-        if(valid != null && valid) {
-        	return true;
-        }
-        
-        return false;
+		Boolean valid = (Boolean) responseMap.get("acknowledged");
+		if(valid != null && valid) {
+			return true;
+		}
+
+		return false;
 	}
-	
+
 	/**
 	 * 
 	 * @param row
@@ -627,7 +683,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		}
 		return arr;
 	}
-	
+
 	/**
 	 * 
 	 * @param row
@@ -640,7 +696,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		}
 		return arr;
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -648,25 +704,18 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	private String getCredsBase64Encoded() {
 		String encoding = null;
 		if (this.authorizationMethod.equals("API_KEY")) {
-			encoding = "ApiKey " + Base64.getEncoder().encodeToString((this.apiKey_id+":"+this.apiKey).getBytes());
-			
+			encoding = "ApiKey " + Base64.getEncoder().encodeToString((this.apiKeyId+":"+this.apiKey).getBytes());
+
 		} else if (this.authorizationMethod.equals("BASIC_AUTH")) {
 			encoding = "Basic " + Base64.getEncoder().encodeToString((this.username + ":" + this.password).getBytes());
 		}
-		
+
 		return encoding;
 	}
-	
+
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.ELASTIC_SEARCH;
 	}
 
-	@Override
-	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	 
 }
