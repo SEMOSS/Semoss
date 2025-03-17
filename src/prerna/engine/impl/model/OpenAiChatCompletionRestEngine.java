@@ -3,19 +3,17 @@ package prerna.engine.impl.model;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Type;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
- 
-import org.apache.http.entity.ContentType;
+
+import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
- 
- 
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -25,7 +23,7 @@ import com.google.gson.JsonSerializer;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
- 
+
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.ModelTypeEnum;

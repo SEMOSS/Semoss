@@ -64,6 +64,7 @@ import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDFDatabase;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -71,7 +72,7 @@ import prerna.util.Utility;
 /**
  * Holds the database in memory, and uses the Sesame API to facilitate querying of RDF data sources.
  */
-public class InMemorySesameEngine extends AbstractDatabaseEngine {
+public class InMemorySesameEngine extends AbstractDatabaseEngine implements IRDFDatabase {
 
 	private static final Logger classLogger = LogManager.getLogger(InMemorySesameEngine.class);
 	private RepositoryConnection rc = null;
@@ -272,13 +273,28 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 	 * is called and the connection becomes false when {@link #close()} is called.
 	
 	 * @return true if the engine is connected to its data store and false if it is not */
-	public boolean isConnected()
-	{
+	public boolean isConnected() {
 		return connected;
 	}
+
+	@Override
+	public void bulkInsert(List<Object[]> args) {
+		for(Object[] obj : args) {
+			addStatement(obj);
+		}
+		this.commit();
+	}
+
+	@Override
+	public void bulkRemoval(List<Object[]> args) {
+		for(Object[] obj : args) {
+			removeStatement(obj);
+		}
+		this.commit();
+	}
 	
-	public void addStatement(Object[] args)
-	{
+	@Override
+	public void addStatement(Object[] args) {
 		String subject = args[0]+"";
 		String predicate = args[1]+"";
 		Object object = args[2];
@@ -331,8 +347,8 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 		}
 	}
 
-	public void removeStatement(Object[] args)
-	{
+	@Override
+	public void removeStatement(Object[] args) {
 		String subject = args[0]+"";
 		String predicate = args[1]+"";
 		Object object = args[2];
@@ -430,4 +446,13 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 		return false;
 	}
 	
+	@Override
+	public void infer() throws Exception {
+		// do nothing
+	}
+
+	@Override
+	public void exportDB() throws Exception {
+		// do nothing
+	}
 }

@@ -27,32 +27,44 @@
  *******************************************************************************/
 package prerna.engine.impl.rdf;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.update.UpdateAction;
-
-import prerna.engine.impl.AbstractDatabaseEngine;
-import prerna.util.Constants;
-
+import org.apache.jena.update.UpdateFactory;
+import org.apache.jena.update.UpdateRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import prerna.engine.api.IRDFDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 
 /**
  * Holds the database in memory, and uses the Jena API to facilitate querying of RDF data sources.
  */
-public class InMemoryJenaEngine extends AbstractDatabaseEngine {
+public class InMemoryJenaEngine extends AbstractDatabaseEngine implements IRDFDatabase {
 
 	private static final Logger classLogger = LogManager.getLogger(InMemoryJenaEngine.class);
 
-	Model jenaModel = null;
+	private Model jenaModel = null;
 
 	@Override
 	public void open(String propFile) {
@@ -102,8 +114,16 @@ public class InMemoryJenaEngine extends AbstractDatabaseEngine {
 	 */
 	@Override
 	public void insertData(String query) {
-		UpdateAction.parseExecute(query, jenaModel);
-
+		UpdateRequest request = UpdateFactory.create();
+		request.add(query);
+		UpdateAction.execute(request, this.jenaModel);
+	}
+	
+	@Override
+	public void removeData(String query) {
+		UpdateRequest request = UpdateFactory.create();
+		request.add(query);
+		UpdateAction.execute(request, this.jenaModel);
 	}
 
 	/**
@@ -112,7 +132,10 @@ public class InMemoryJenaEngine extends AbstractDatabaseEngine {
 	 */
 	public void setModel(Model jenaModel) {
 		this.jenaModel = jenaModel;
-
+	}
+	
+	public Model getJenaModel() {
+		return this.jenaModel;
 	}
 	
 	@Override
@@ -135,23 +158,15 @@ public class InMemoryJenaEngine extends AbstractDatabaseEngine {
 	/**
 	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #open(String)} 
 	 * is called and the connection becomes false when {@link #close()} is called.
-	
 	 * @return true if the engine is connected to its data store and false if it is not */
 	@Override
 	public boolean isConnected() {
-		return false;
-	}
-
-	@Override
-	public void removeData(String query) {
-		// TODO Auto-generated method stub
-		
+		return true;
 	}
 
 	@Override
 	public void commit() {
-		// TODO Auto-generated method stub
-		
+		this.jenaModel.commit();
 	}
 
 	@Override
@@ -164,4 +179,100 @@ public class InMemoryJenaEngine extends AbstractDatabaseEngine {
 	public boolean holdsFileLocks() {
 		return false;
 	}
+	
+	@Override
+	public void addStatement(Object[] args) {
+		processStatement(args, true);
+	}
+	
+	@Override
+	public void removeStatement(Object[] args) {
+		processStatement(args, false);
+	}
+	
+	@Override
+	public void bulkInsert(List<Object[]> args) {
+		for(Object[] obj : args) {
+			processStatement(obj, true);
+		}
+		this.commit();
+	}
+
+	@Override
+	public void bulkRemoval(List<Object[]> args) {
+		for(Object[] obj : args) {
+			processStatement(obj, false);
+		}
+		this.commit();
+	}
+	
+	/**
+	 * Adds or removes a triple from the sail connection
+	 * @param args array contains the following
+	 * 				subject String - RDF Subject
+	 * 				predicate String - RDF Predicate
+	 * 				object Object - RDF Object
+	 * 				concept boolean - True if the statement is a concept (URI), False if it is a property (Literal)
+	 * @param add	if we are adding or removing the triple
+	 */
+	private void processStatement(Object[] args, boolean add) {
+		String subject = args[0]+"";
+		String predicate = args[1]+"";
+		Object object = args[2];
+		Boolean concept = (Boolean) args[3];
+			
+		Resource newSub = null;
+		Property newPred = null;
+		String subString = null;
+		String predString = null;
+		String sub = subject.trim();
+		String pred = predicate.trim();
+
+		subString = Utility.cleanString(sub, false);
+		newSub = this.jenaModel.createResource(subString);
+
+		predString = Utility.cleanString(pred, false);
+		newPred = this.jenaModel.createProperty(predString);
+
+		RDFNode newObject = null;
+
+		if(concept) {
+			String objString = Utility.cleanString((object + "").trim(), false);
+			newObject = this.jenaModel.createResource(objString);
+		} else {
+			if(object instanceof Number) {
+				classLogger.debug("Found Double " + object);
+		        newObject = ResourceFactory.createTypedLiteral( ((Number) object).doubleValue() );
+			} else if(object instanceof Date) {
+				classLogger.debug("Found Date " + object);
+				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+				String date = df.format(object);
+		        newObject = ResourceFactory.createTypedLiteral(date, XSDDatatype.XSDdateTime);
+			} else if(object instanceof Boolean) {
+				classLogger.debug("Found Boolean " + object);
+		        newObject = ResourceFactory.createTypedLiteral((Boolean) object);
+			} else {
+				classLogger.debug("Found String " + object);
+				newObject = ResourceFactory.createTypedLiteral(object+"");
+			}
+		}
+		
+		if(add) {
+			this.jenaModel.add(newSub, newPred, newObject);
+		} else {
+			this.jenaModel.remove(newSub, newPred, newObject);
+		}
+	}
+	
+	@Override
+	public void infer() throws Exception {
+		// do nothing
+	}
+
+	@Override
+	public void exportDB() throws Exception {
+		// do nothing
+		
+	}
+
 }

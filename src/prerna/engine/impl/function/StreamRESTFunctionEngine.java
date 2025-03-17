@@ -3,6 +3,7 @@ package prerna.engine.impl.function;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -10,21 +11,22 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.ClientProtocolException;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpHead;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpPut;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
+import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.NameValuePair;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -113,7 +115,7 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 		try {
 			httpClient = HttpHelperUtility.getCustomClient(null, null, null, null);
 			response = getResponse(httpClient, parameterValues);
-			int statusCode = response.getStatusLine().getStatusCode();
+			int statusCode = response.getCode();
 			entity = response.getEntity();
             if (statusCode >= 200 && statusCode < 300) {
             	 // Handle streaming response
@@ -140,7 +142,7 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
             }
 			
     		return responseData;
-		} catch (IOException e) {
+		} catch (IOException | ParseException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		} finally {
@@ -220,7 +222,7 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 					for(String key : parameterValues.keySet()) {
 						params.add(new BasicNameValuePair(key, parameterValues.get(key)+""));
 					}
-					httpPut.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+					httpPut.setEntity(new UrlEncodedFormEntity(params, Charset.forName("UTF-8")));
 				}
 			}
 			response = httpClient.execute(httpPut);
@@ -236,7 +238,7 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 					for(String key : parameterValues.keySet()) {
 						params.add(new BasicNameValuePair(key, parameterValues.get(key)+""));
 					}
-					httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+					httpPost.setEntity(new UrlEncodedFormEntity(params, Charset.forName("UTF-8")));
 				}
 			}
 			response = httpClient.execute(httpPost);
@@ -249,7 +251,7 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 	 * Add headers to a request
 	 * @param requestMethod
 	 */
-	private void addHeaders(HttpRequestBase requestMethod) {
+	private void addHeaders(HttpUriRequestBase requestMethod) {
 		if(this.headers != null && !this.headers.isEmpty()) {
 			for(String key : this.headers.keySet()) {
 				requestMethod.addHeader(key, this.headers.get(key));
