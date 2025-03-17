@@ -1,9 +1,9 @@
 package prerna.engine.impl.vector;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -18,9 +18,10 @@ import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHeaders;
+import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.http.entity.ContentType;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -51,6 +52,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final String DATABASE_CREATE_ENDPOINT = "/databases/create";
 	private static final String DATABASE_DISCRIBE_ENDPOINT = "/databases/describe";
 	private static final String DATABASE_DROP_ENDPOINT = "/databases/drop";
+	
 	public static final String COLLECTION_NAME = "COLLECTION_NAME";
 	private static final String COLLECTION_LIST_ENDPOINT = "/collections/list";
 	private static final String COLLECTION_CREATE_ENDPOINT = "/collections/create";
@@ -67,12 +69,12 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final String INSERT_ENDPOINT = "/insert";
 	private static final String DELETE_ENDPOINT = "/delete";
 	private static final String SEARCH_ENDPOINT = "/search";
+	
 	private String apiKey = null;
 	private String milvusUrl = null;
 	private String databaseName = null;
 	private String collectionName = null;
 	private String embeddings = "vector";
-	private static final Gson gson = new Gson();
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -354,7 +356,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
         }
 
         JsonArray recordsArray = jsonObject.getAsJsonArray("data");
-        return gson.fromJson(recordsArray, new TypeToken<List<Map<String, JsonElement>>>() {}.getType());
+        return new Gson().fromJson(recordsArray, new TypeToken<List<Map<String, JsonElement>>>() {}.getType());
     }
 
 	/**
