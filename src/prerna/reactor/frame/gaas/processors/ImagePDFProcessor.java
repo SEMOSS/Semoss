@@ -7,7 +7,9 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.io.RandomAccessReadBufferedFile;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDResources;
@@ -29,11 +31,11 @@ public class ImagePDFProcessor extends AbstractFileImageProcessor {
 
 	@Override
 	public void process() {
-		try (PDDocument document = PDDocument.load(new File(this.filePath))) {
+		try (PDDocument document = Loader.loadPDF(new RandomAccessReadBufferedFile(new File(this.filePath)))) {
 			PDFTextStripper stripper = new PDFTextStripper();
 			String source = getSource(this.filePath);
 
-			for (int pageIndex = 0; pageIndex < document.getNumberOfPages(); pageIndex++) {
+			for (int pageIndex = 1; pageIndex <= document.getNumberOfPages(); pageIndex++) {
 				stripper.setStartPage(pageIndex + 1);
 				stripper.setEndPage(pageIndex + 1);
 				String text = stripper.getText(document);

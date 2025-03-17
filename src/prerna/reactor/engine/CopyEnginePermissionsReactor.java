@@ -32,10 +32,6 @@ public class CopyEnginePermissionsReactor extends AbstractReactor {
 		organizeKeys();
 		String sourceEngineId = this.keyValue.get(this.keysToGet[0]);
 		String targetEngineId = this.keyValue.get(this.keysToGet[1]);
-		int maxTokens = Integer.parseInt(keyValue.get(this.keysToGet[2]));
-		double maxResponseTime = Double.parseDouble(this.keyValue.get(this.keysToGet[3]));
-		String usageRestriction = this.keyValue.get(this.keysToGet[4]);
-		String usageFrequency = this.keyValue.get(this.keysToGet[5]);
 
 		// must be an editor for both to run this
 		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), sourceEngineId)) {
@@ -47,7 +43,7 @@ public class CopyEnginePermissionsReactor extends AbstractReactor {
 		
 		// now perform the operation
 		try {
-			SecurityEngineUtils.copyEnginePermissions(sourceEngineId, targetEngineId, maxTokens, maxResponseTime, usageRestriction, usageFrequency);
+			SecurityEngineUtils.copyEnginePermissions(sourceEngineId, targetEngineId);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred copying the engine permissions.  Detailed error: " + e.getMessage());
@@ -65,9 +61,9 @@ public class CopyEnginePermissionsReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(SOURCE_ENGINE)) {
-			return "The engine id that is used to provide information";
+			return "The engine id used to copy permissions from";
 		} else if(key.equals(TARGET_ENGINE)) {
-			return "The engine id that the operation is applied on";
+			return "The engine id to copy permissions to";
 		}
 		return ReactorKeysEnum.getDescriptionFromKey(key);
 	}

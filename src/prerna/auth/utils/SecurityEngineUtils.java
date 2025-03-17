@@ -1788,7 +1788,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param usageFrequency
 	 * @throws Exception
 	 */
-	public static void copyEnginePermissions(String sourceEngineId, String targetEngineId, int maxTokens, double maxResponseTime, String usageRestriction, String usageFrequency) throws Exception {
+	public static void copyEnginePermissions(String sourceEngineId, String targetEngineId) throws Exception {
 		
 		String insertTargetEnginePermissionSql = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION, VISIBILITY, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement insertTargetEnginePermissionStatement = securityDb.getPreparedStatement(insertTargetEnginePermissionSql);

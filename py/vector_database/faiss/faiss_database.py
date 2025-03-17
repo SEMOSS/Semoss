@@ -116,9 +116,14 @@ class FAISSDatabase:
     def nearestNeighbor(
         self,
         indexClasses: List[str],
-        results: Optional[Union[int, None]] = 5,
-        ascending: Optional[Union[bool, None]] = True,
-        **kwargs
+        question: str,
+        filter: Optional[str] = None,
+        results: Optional[int] = 5,
+        columns_to_return: Optional[List[str]] = None,
+        return_threshold: Optional[Union[int, float]] = 1000,
+        ascending: Optional[bool] = None,
+        total_results: Optional[int] = 10,  # this is used for reranking
+        insight_id: Optional[str] = None,
     ) -> List[Dict]:
         '''
         Given a set of Index Classes, find the closest match(es) using FAISSearcher.nearestNeighbor across all index classes.
@@ -126,13 +131,40 @@ class FAISSDatabase:
         Args:
             indexClasses(`List[str]`):
                 A list of string defining the index classes to search in the database
-            results(`Optional[Union[int, None]]`):
-                The number of matches under the threshold that will be returned. This same limit will be used for every index class search in case all of the top results come from a singular class
-            ascending(`Optional[Union[bool, None]]`):
-                 A boolean flag to return results in ascending order or not. Default is True.
+                    question(`str`):
+            The string you are trying to match against the embedded documents
+            filter(`str`):
+                A SQL filter to find the appropriate indexes before executing the semantic search
+            results(`Optional[int]`, *optional*):
+                The number of matches under the threshold that will be returned
+            columns_to_return(`List[str]`):
+                A list of column names that will be sent back in the return payload.
+                Example:
+                # Given the following dataset
+                >>> dataset
+                Dataset({
+                    features: ['doc_index', 'content', 'tokens', 'url'],
+                    num_rows: 902
+                })
 
-        Return:
-            `List[Dict]` consisting of Score and columns
+                # if columns_to_return = None, then all four columns will be returned
+
+                # if columns_to_return = ['doc_index']
+
+                >>> FAISSearcher.nearestNeighbor(
+                ...     question = 'Sample',
+                ...     columns_to_return = ['doc_index'],
+                ...     results = 1
+                ... )
+                [{'Score':0.23, "doc_index":"<theDocIndexThatMathced"}]
+            return_threshold(`Optional[Union[int,float]]`):
+                A numerical value that specifies what Score should be less than.
+            ascending(`Optional[bool]`):
+                A boolean flag to return results in ascending order or not. Default is True
+            insight_id(`Optional[str]`):
+                The unique identifier of the insight from which the call is being made
+            Return:
+                `List[Dict]` consisting of Score and columns
 
         Example:
             >>> ag4ariA.nearestNeighbor(
@@ -158,21 +190,32 @@ class FAISSDatabase:
 
         index_outputs = []
         for indexClass in indexClasses:
-            # perform the nn search in the index class
-            index_class_output = self.searchers[indexClass].nearestNeighbor(
-                results=results, ascending=ascending, **kwargs
-            )
+            if indexClass in self.searchers:
+                # perform the nn search in the index class
+                index_class_output = self.searchers[indexClass].nearestNeighbor(
+                    question=question,
+                    filter=filter,
+                    results=results,
+                    columns_to_return=columns_to_return,
+                    return_threshold=return_threshold,
+                    ascending=ascending,
+                    total_results=total_results,
+                    insight_id=insight_id,
+                )
 
-            # add the index class to the return payload for every object so the end user knows where the results are coming from
-            index_class_output = [
-                {**output, "indexClass": indexClass} for output in index_class_output
-            ]
+                # add the index class to the return payload for every object so the end user knows where the results are coming from
+                if len(indexClasses) > 1:
+                    index_class_output = [
+                        {**output, "indexClass": indexClass}
+                        for output in index_class_output
+                    ]
 
-            index_outputs.extend(index_class_output)
+                index_outputs.extend(index_class_output)
 
         # sort the total output and retrun the specified limit
-        index_outputs = sorted(
-            index_outputs, key=lambda x: x["Score"], reverse=not ascending
-        )[:results]
+        if len(index_outputs) > 0:
+            index_outputs = sorted(
+                index_outputs, key=lambda x: x["Score"], reverse=not ascending
+            )[:results]
 
         return index_outputs

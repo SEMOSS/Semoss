@@ -24,9 +24,9 @@ class VectorEngine(ServerProxy):
     def addDocument(
         self,
         file_paths: List[str],
+        space: Optional[str] = None,
         param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
-        space: Optional[str] = None,
     ) -> bool:
         """
         Add the documents into the vector database
@@ -35,6 +35,7 @@ class VectorEngine(ServerProxy):
             file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add
             param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+            space (`Optional[str]`): If the files being loaded are in an app and not the insight, provide space='appid'
         """
         assert file_paths is not None
         if insight_id is None:
@@ -48,7 +49,7 @@ class VectorEngine(ServerProxy):
             f",space=['{space}']" if (space is not None and space != "") else ""
         )
 
-        pixel = f'CreateEmbeddingsFromDocuments(engine="{self.engine_id}",filePaths={file_paths}{optionalParams}{optionalSpace});'
+        pixel = f'CreateEmbeddingsFromDocuments(engine="{self.engine_id}",filePaths={file_paths}{optionalSpace}{optionalParams});'
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(
@@ -66,6 +67,7 @@ class VectorEngine(ServerProxy):
     def addVectorCSVFile(
         self,
         file_paths: List[str],
+        space: Optional[str] = None,
         param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
     ) -> bool:
@@ -76,6 +78,7 @@ class VectorEngine(ServerProxy):
             file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add
             param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+            space (`Optional[str]`): If the files being loaded are in an app and not the insight, provide space='appid'
         """
         assert file_paths is not None
         if insight_id is None:
@@ -85,7 +88,11 @@ class VectorEngine(ServerProxy):
             f",paramValues=[{param_dict}]" if param_dict is not None else ""
         )
 
-        pixel = f'CreateEmbeddingsFromVectorCSVFile(engine="{self.engine_id}",filePaths={file_paths}{optionalParams});'
+        optionalSpace = (
+            f",space=['{space}']" if (space is not None and space != "") else ""
+        )
+
+        pixel = f'CreateEmbeddingsFromVectorCSVFile(engine="{self.engine_id}",filePaths={file_paths}{optionalSpace}{optionalParams});'
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(
