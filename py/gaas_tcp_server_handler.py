@@ -261,7 +261,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 payload[0][:50] if isinstance(payload, list) and payload else "N/A"
             )
 
-            log_message = f"Final Output: epoc={data.get('epoc', 'N/A')}, payload={trimmed_payload}, operation={data.get('operation', 'N/A')}"
+            log = {
+                "epoc": data.get("epoc", "N/A"),
+                "payload": trimmed_payload,
+                "operation": data.get("operation", "N/A"),
+            }
+
+            log_message = f"Final Output: {json.dumps(log, indent=4)}"
 
             self.prod_logger(log_message)
         except Exception as e:
@@ -372,6 +378,58 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     output, operation="PYTHON", response=True, exception=True
                 )
 
+    def log_payload_details(self, payload, operation, response, interim):
+        """
+        Logs payload details for debugging purposes.
+        This helps prevent excessive logging when streaming responses.
+        """
+        # When streaming responses, this will cause the log files to become very heavy, so we only want to do this during development. Switch dev_log_switch to True to enable this.
+        if self.log_file is None or not self.dev_log_switch:
+            return
+
+        try:
+            orig_payload_value = self.thread_local.payload.get(
+                "payload", ["There is no original payload."]
+            )[0]
+            new_payload = payload.get("payload", ["There is no new payload."])[0]
+            orig_payload_insight_id = self.thread_local.payload.get(
+                "insightId", "There is no insightId in the original payload."
+            )
+            new_payload_insight_id = payload.get("insightId", "There is no insightId.")
+            prefix_mssg = (
+                self.prefix if self.prefix is not None else "There is no prefix."
+            )
+
+            log_data = {
+                "Prefix": prefix_mssg,
+                "Operation": operation,
+                "Original Payload": orig_payload_value,
+                "Original Payload Insight ID": orig_payload_insight_id,
+                "New Payload": new_payload,
+                "New Payload Insight ID": new_payload_insight_id,
+            }
+
+            formatted_log = json.dumps(
+                log_data, indent=4
+            )  # formatting log data to pretty format
+
+            log_lines = [
+                "\n",
+                "--------------------- LOG START -------------------------\n",
+                f"{formatted_log}\n",
+                "--------------------- LOG END ---------------------------\n",
+            ]
+
+            self.log_file.writelines(log_lines)
+            self.log_file.flush()
+
+            if response and not interim:
+                self.log_file.write("\n")
+
+        except Exception:
+            # Ensure logging errors do not crash the application
+            self.custom_dev_logger("There was an error during logging")
+
     def send_output(
         self,
         output,
@@ -451,62 +509,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # pack the message next
         ret_array[4:] = output.encode("utf-8")
 
-        # When streaming responses, this will cause the log files to become very heavy, so we only want to do this during development. Switch dev_log_switch to True to enable this.
-        if self.log_file is not None and self.dev_log_switch:
-            try:
-                orig_payload_value = (
-                    self.thread_local.payload["payload"][0]
-                    if "payload" in self.thread_local.payload
-                    else "There is no original payload."
-                )
-                new_payload = (
-                    payload["payload"][0]
-                    if "payload" in payload
-                    else "There is no new payload."
-                )
-                orig_payload_insight_id = (
-                    self.thread_local.payload["insightId"]
-                    if "insightId" in self.thread_local.payload
-                    else "There is no insightId in the original payload."
-                )
-                new_payload_insight_id = (
-                    payload["insightId"]
-                    if "insightId" in payload
-                    else "There is no insightId."
-                )
-                prefix_mssg = (
-                    self.prefix if self.prefix is not None else "There is no prefix."
-                )
-
-                self.log_file.write("\n")
-                self.log_file.write(
-                    "---------------------000000-------------------------"
-                )
-                self.log_file.write("\n")
-                self.log_file.write(f"The Prefix is: {prefix_mssg}")
-                self.log_file.write("\n")
-                self.log_file.write(f"The Operation is {operation}")
-                self.log_file.write("\n")
-                # self.log_file.write(f"Original Payload: {orig_payload_value}")
-                self.log_file.write("\n")
-                self.log_file.write(
-                    f"Original Payload Insight ID: {orig_payload_insight_id}"
-                )
-                self.log_file.write("\n")
-                self.log_file.write(f"New Payload: {new_payload}")
-                self.log_file.write("\n")
-                self.log_file.write(f"New Payload Insight ID: {new_payload_insight_id}")
-                self.log_file.write("\n")
-                self.log_file.write("\n")
-                self.log_file.write(
-                    "----------------------END_OF_MESSAGE-------------------------"
-                )
-                self.log_file.flush()
-                if response and not interim:
-                    self.log_file.write("\n")
-            except:
-                # I don't want to ever stop if there is an error in this block
-                self.custom_dev_logger("There was an error during logging")
+        self.log_payload_details(payload, operation, response, interim)
 
         # send it out
         self.request.sendall(ret_array)
