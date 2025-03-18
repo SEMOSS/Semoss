@@ -24,7 +24,6 @@ import net.schmizz.sshj.xfer.FileSystemFile;
 import net.schmizz.sshj.xfer.LocalDestFile;
 import net.schmizz.sshj.xfer.LocalSourceFile;
 import prerna.engine.api.StorageTypeEnum;
-import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 
 public class SFTPStorageEngine extends AbstractStorageEngine {
@@ -95,16 +94,17 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 				try {
 					this.newConnection = Boolean.parseBoolean(newConnectionStr);
 				} catch(Exception e) {
-					classLogger.warn("Error occurred trying to parse and get the ssh connection timeout");
+					classLogger.warn("Error occurred trying to parse and get the new connection boolean");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 		
 		if(!this.newConnection) {
+			classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
 			this.sshClient = getSSHClient();
 			this.sftpClient = this.sshClient.newSFTPClient();
-			classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
 		}
 	}
 	
@@ -156,9 +156,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		SFTPClient sftpClient = null;
 		try {
 			if(this.newConnection) {
+				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
 				sshClient = getSSHClient();
 				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
 			} else {
 				sftpClient = this.sftpClient;
 			}
@@ -194,9 +195,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		SFTPClient sftpClient = null;
 		try {
 			if(this.newConnection) {
+				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
 				sshClient = getSSHClient();
 				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
 			} else {
 				sftpClient = this.sftpClient;
 			}
@@ -241,9 +243,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		SFTPClient sftpClient = null;
 		try {
 			if(this.newConnection) {
+				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
 				sshClient = getSSHClient();
 				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
 			} else {
 				sftpClient = this.sftpClient;
 			}
@@ -276,9 +279,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		SFTPClient sftpClient = null;
 		try {
 			if(this.newConnection) {
+				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
 				sshClient = getSSHClient();
 				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
 			} else {
 				sftpClient = this.sftpClient;
 			}
@@ -316,9 +320,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		SFTPClient sftpClient = null;
 		try {
 			if(this.newConnection) {
+				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
 				sshClient = getSSHClient();
 				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
 			} else {
 				sftpClient = this.sftpClient;
 			}
@@ -358,9 +363,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		SFTPClient sftpClient = null;
 		try {
 			if(this.newConnection) {
+				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
 				sshClient = getSSHClient();
 				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
 			} else {
 				sftpClient = this.sftpClient;
 			}
