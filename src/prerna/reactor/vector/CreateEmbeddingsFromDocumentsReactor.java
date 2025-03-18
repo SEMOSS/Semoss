@@ -42,7 +42,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	public CreateEmbeddingsFromDocumentsReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), FILE_PATHS_KEY, 
 				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
-		this.keyRequired = new int[] {1, 1, 0};
+		this.keyRequired = new int[] {1, 1, 0, 0};
 	}
 
 	@Override

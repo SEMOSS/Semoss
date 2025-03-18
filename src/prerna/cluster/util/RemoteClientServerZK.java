@@ -2,10 +2,13 @@ package prerna.cluster.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -35,9 +38,8 @@ import prerna.engine.api.RemoteModelStateEnum;
  * This class handles holding requests until models are in an active state by performing health checks on the FastAPI service running in the container.
  * This is required to give the FastAPI service a grace time between when the model is added to the active path and the time it requires to start up in the container.
  * This is used by engines that extend the AbstractRemoteModelEngine IE: NEREngine..
- * See https://github.com/SEMOSS/remote-client-server for RemoteClientServer implementation.
  */
-public class RemoteClientServerZK {
+public class RemoteClientServerZK implements IRemoteClientServer {
 	
 	private static final Logger classLogger = LogManager.getLogger(RemoteClientServerZK.class);
 	
@@ -63,6 +65,8 @@ public class RemoteClientServerZK {
 	public String modelScalerIp;
 
 	private Boolean devPortFowarding = false;
+	
+	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
 	private RemoteClientServerZK() {
 		classLogger.info("RemoteClientServerZK being initialized...");
@@ -122,6 +126,8 @@ public class RemoteClientServerZK {
 			setupCaches();
 
 			loadInitialState();
+			
+			setupCacheRefresher();
 
 		} catch (Exception e) {
 			classLogger.error("Failed to initialize ZooKeeper connection", e);
@@ -174,6 +180,44 @@ public class RemoteClientServerZK {
 	    } catch (Exception e) {
 	        classLogger.error("Error loading initial state", e);
 	    }
+	}
+	
+	private void setupCacheRefresher() {
+		classLogger.info("Setting up cache refresher for remote models...");
+	    scheduler.scheduleAtFixedRate(() -> {
+	        try {
+	            refreshModelStates();
+	        } catch (Exception e) {
+	            classLogger.error("Error refreshing model states", e);
+	        }
+	    }, 30, 30, TimeUnit.SECONDS); // Refresh every 30 seconds
+	}
+
+	private void refreshModelStates() throws Exception {
+		classLogger.debug("Refreshing model states...");
+		
+	    // Refresh active models
+	    List<String> activeModels = client.getChildren().forPath(ACTIVE_PATH);
+	    for (String modelId : activeModels) {
+	        modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
+	    }
+	    
+	    // Refresh warming models
+	    List<String> warmingModels = client.getChildren().forPath(WARMING_PATH);
+	    for (String modelId : warmingModels) {
+	        if (!modelStates.get(modelId).equals(RemoteModelStateEnum.ACTIVE)) {
+	            modelStates.put(modelId, RemoteModelStateEnum.WARMING);
+	        }
+	    }
+	    
+	    // Clean up stale entries
+	    for (String modelId : new HashSet<>(modelStates.keySet())) {
+	        if (!activeModels.contains(modelId) && !warmingModels.contains(modelId)) {
+	            modelStates.put(modelId, RemoteModelStateEnum.COLD);
+	        }
+	    }
+	    
+	    classLogger.debug("Refreshed model states, current map: {}", modelStates);
 	}
 
 
@@ -256,6 +300,8 @@ public class RemoteClientServerZK {
 				            }
 				            
 				            String rawData = new String(data, "UTF-8");
+				            
+				            classLogger.info("Processing raw data for model {}: {}", modelId, rawData);
 				            
 				            JSONObject jsonData = new JSONObject(rawData);
 				            String clusterIp = jsonData.getString("ip");
@@ -385,8 +431,8 @@ public class RemoteClientServerZK {
 	    }
 	    
 	    String healthUrl = devPortFowarding ? 
-	        "http://localhost:8888/api/health" :
-	        String.format("http://%s/api/health", clusterIp);
+	        "http://localhost:8888/v2/health/ready" :
+	        String.format("http://%s/v2/health/ready", clusterIp);
 	        
 	    classLogger.info("Attempting health check at URL: {}", healthUrl);
 	    
@@ -502,23 +548,6 @@ public class RemoteClientServerZK {
 			classLogger.error("Error waiting for model {} to reach state {}", modelId, desiredState, e);
 			return false;
 		}
-	}
-
-	public class RemoteModelInfo {
-	    private final String id;
-	    private final String name;
-	    private final RemoteModelStateEnum state;
-
-	    public RemoteModelInfo(String id, String name, RemoteModelStateEnum state) {
-	        this.id = id;
-	        this.name = name;
-	        this.state = state;
-	    }
-
-	    // Getters
-	    public String getId() { return id; }
-	    public String getName() { return name; }
-	    public RemoteModelStateEnum getState() { return state; }
 	}
 
 	/**
