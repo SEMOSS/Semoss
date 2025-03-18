@@ -157,7 +157,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		try {
 			if(this.newConnection) {
 				sshClient = getSSHClient();
-				sftpClient = this.sshClient.newSFTPClient();
+				sftpClient = sshClient.newSFTPClient();
 				classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
 				sftpClient = this.sftpClient;
@@ -195,7 +195,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		try {
 			if(this.newConnection) {
 				sshClient = getSSHClient();
-				sftpClient = this.sshClient.newSFTPClient();
+				sftpClient = sshClient.newSFTPClient();
 				classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
 				sftpClient = this.sftpClient;
@@ -242,7 +242,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		try {
 			if(this.newConnection) {
 				sshClient = getSSHClient();
-				sftpClient = this.sshClient.newSFTPClient();
+				sftpClient = sshClient.newSFTPClient();
 				classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
 				sftpClient = this.sftpClient;
@@ -277,7 +277,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		try {
 			if(this.newConnection) {
 				sshClient = getSSHClient();
-				sftpClient = this.sshClient.newSFTPClient();
+				sftpClient = sshClient.newSFTPClient();
 				classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
 				sftpClient = this.sftpClient;
@@ -317,7 +317,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		try {
 			if(this.newConnection) {
 				sshClient = getSSHClient();
-				sftpClient = this.sshClient.newSFTPClient();
+				sftpClient = sshClient.newSFTPClient();
 				classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
 				sftpClient = this.sftpClient;
@@ -359,7 +359,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		try {
 			if(this.newConnection) {
 				sshClient = getSSHClient();
-				sftpClient = this.sshClient.newSFTPClient();
+				sftpClient = sshClient.newSFTPClient();
 				classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
 				sftpClient = this.sftpClient;
