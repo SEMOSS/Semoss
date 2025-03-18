@@ -683,6 +683,7 @@ class ModelEngine(AbstractModelEngine):
         )
         from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
         from langchain.memory import ConversationSummaryMemory
+
         class SemossLangchainChatModel(BaseChatModel):
             engine_id: str
             model_engine: ModelEngine
@@ -697,7 +698,8 @@ class ModelEngine(AbstractModelEngine):
                 super().__init__(**data)
                 self._previous_messages = []
                 self._summary_memory = None
-                self._summary_data=[]
+                self._summary_data = []
+
             def get_chat_history(
                 self, insight_id: Optional[str] = None
             ) -> List[BaseMessage]:
@@ -712,26 +714,27 @@ class ModelEngine(AbstractModelEngine):
                     elif msg["MESSAGE_TYPE"] == "RESPONSE":
                         messages.append(AIMessage(content=msg["MESSAGE_DATA"]))
                 return messages
+
             def get_initialize_summary(self):
                 langchain_chat_model = self.model_engine.to_langchain_chat_model()
-
                 # Initialize ConversationSummaryMemory with a separate instance
                 self._summary_memory = ConversationSummaryMemory(
                     llm=langchain_chat_model, return_messages=True
                 )
                 return self._summary_memory
+
             class Config:
                 """Configuration for this pydantic object."""
 
                 allow_population_by_field_name = True
-            def summary_memory(self):
-                return self._summary_memory
-            def summary_save_data(self):
-                # if self._summary_memory ==[]:
+
+            def chat_history_summarization(self):
                 for data in self._summary_data:
-                    self._summary_memory.save_context(data[0],data[1])
+                    self._summary_memory.save_context(data[0], data[1])
                 self._summary_memory.load_memory_variables({})
+                self._summary_data = []
                 return self._summary_memory
+
             def _generate(
                 self,
                 messages: List[BaseMessage],
@@ -740,29 +743,28 @@ class ModelEngine(AbstractModelEngine):
             ) -> ChatResult:
                 """Top Level call"""
                 if self._summary_memory is None:
-                    self._summary_memory=self.get_initialize_summary()
-                
-
-                # Combine summary, memory, and new messages
-                full_messages = ([msg for pair in self._previous_messages for msg in pair["conversation"]] + messages
-                ) 
-
-                # Convert to full prompt format
+                    self._summary_memory = self.get_initialize_summary()
+                full_messages = [
+                    msg
+                    for pair in self._previous_messages
+                    for msg in pair["conversation"]
+                ] + messages
                 full_prompt = self.convert_messages_to_full_prompt(full_messages)
-
-                # Get response from model
                 response = self.model_engine.ask(
                     question="", param_dict={**kwargs, **{"full_prompt": full_prompt}}
                 )
-
-                # Store conversation in memory
                 new_ai_message = AIMessage(content=response[0]["response"])
-                self._previous_messages.append({"conversation": messages + [new_ai_message]})
+                self._previous_messages.append(
+                    {"conversation": messages + [new_ai_message]}
+                )
 
                 # Update ConversationSummaryMemory
-                self._summary_data.append((
-                    {"input": messages[-1].content}, {"output": new_ai_message.content}
-                ))
+                self._summary_data.append(
+                    (
+                        {"input": messages[-1].content},
+                        {"output": new_ai_message.content},
+                    )
+                )
 
                 return self._create_chat_result(response=response[0])
 
@@ -779,7 +781,7 @@ class ModelEngine(AbstractModelEngine):
                 )
 
                 generations.append(gen)
-                
+
                 return ChatResult(generations=generations, llm_output=response)
 
             def convert_messages_to_full_prompt(
