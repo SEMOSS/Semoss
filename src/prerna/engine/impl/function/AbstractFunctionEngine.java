@@ -308,61 +308,7 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	        return toolMap;
 	    }
 	 
-	public FunctionEngineToolShell buildFunctionEngineTool() {
-	    // Fetch metadata for the engine
-	    Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(
-	        this.getEngineId(),
-	        Arrays.asList("description"),
-	        true
-	    );
 
-	    // Extract the description from metadata
-	    String description = (String) metadata.get("description");
-	    if (description == null) {
-	        description = "No description available.";
-	    }
-
-	    // Create and populate the FunctionEngineTool object
-	    FunctionEngineToolShell tool = new FunctionEngineToolShell();
-	    tool.setType("function");
-
-	    Function function = new Function();
-	    function.setName("function_engine");
-	    function.setDescription(description);
-
-	    Parameters parameters = new Parameters();
-	    parameters.setType("object");
-
-	    FunctionProperties properties = new FunctionProperties();
-
-	    IdProperty idProperty = new IdProperty();
-	    idProperty.setType("string");
-	    idProperty.setDescription("The unique identifier for this function_engine used to call this specific engine");
-	    idProperty.setEnumValues(Arrays.asList(this.getEngineId()));
-
-	    MapProperty mapProperty = new MapProperty();
-	    mapProperty.setType("object");
-	    mapProperty.setDescription("A map containing the parameters to pass into the function_engine call.");
-	    mapProperty.setProperties(new HashMap<>());
-	    for (FunctionParameter param : this.getParameters()) {
-	        PropertyDetail paramDetail = new PropertyDetail();
-	        paramDetail.setType(param.getParameterType());
-	        paramDetail.setDescription(param.getParameterDescription());
-	        mapProperty.getProperties().put(param.getParameterName(), paramDetail);
-	    }
-	    mapProperty.setRequired(this.getRequiredParameters());
-
-	    properties.setId(idProperty);
-	    properties.setMap(mapProperty);
-
-	    parameters.setProperties(properties);
-	    parameters.setRequired(Arrays.asList("id", "map"));
-
-	    function.setParameters(parameters);
-	    tool.setFunction(function);
-
-	    return tool;
-	}
 
 	
 }
