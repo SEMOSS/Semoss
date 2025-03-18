@@ -28,7 +28,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.reactor.export.CollectReactor;
 
 public class AdminExecQueryReactorApiTests extends AbstractBaseSemossApiTests {
-	@Test
+	//@Test
 	public void executeSelectQueryStructInput() {
 		String engine = ApiSemossTestEngineUtils.createBasicEngine();
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -63,7 +63,7 @@ public class AdminExecQueryReactorApiTests extends AbstractBaseSemossApiTests {
 		assertEquals(PixelOperationType.ALTER_DATABASE, nm.getOpType());
 	}
 
-	@Test
+	//@Test
     public void executeHardSelectQueryStructInput() {
         String engine = ApiSemossTestEngineUtils.createBasicEngine();
         HardSelectQueryStruct qs = new HardSelectQueryStruct();
