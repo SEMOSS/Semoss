@@ -368,6 +368,13 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
     def get_model_engine_id(self) -> str:
         return self.engine_id
 
+    def get_chat_summary(self) -> str:
+        """Retrieve chat history and return a summarized version as a string."""
+        chat_history = self.get_conversation_history()
+        if not chat_history:
+            return "No chat history available."
+        summary = "\n".join([msg["MESSAGE_DATA"] for msg in chat_history])
+        return summary
 
 class HuggingFacePipelineModelEngine(AbstractModelEngine):
     def __init__(self, engine_id: str, pipeline_type: Optional[str] = None, **kwargs):
@@ -715,7 +722,7 @@ class ModelEngine(AbstractModelEngine):
                         messages.append(AIMessage(content=msg["MESSAGE_DATA"]))
                 return messages
 
-            def get_initialize_summary(self):
+            def get_initialize_summary(self) -> ConversationSummaryMemory:
                 langchain_chat_model = self.model_engine.to_langchain_chat_model()
                 # Initialize ConversationSummaryMemory with a separate instance
                 self._summary_memory = ConversationSummaryMemory(
@@ -728,12 +735,13 @@ class ModelEngine(AbstractModelEngine):
 
                 allow_population_by_field_name = True
 
-            def chat_history_summarization(self):
+            def chat_history_summarization(self) -> str:
                 for data in self._summary_data:
-                    self._summary_memory.save_context(data[0], data[1])
-                self._summary_memory.load_memory_variables({})
+                    if isinstance(data[0], dict) or isinstance(data[1], dict):
+                         self._summary_memory.save_context(data[0], data[1])
+                summary_history=self._summary_memory.load_memory_variables({})
                 self._summary_data = []
-                return self._summary_memory
+                return summary_history
 
             def _generate(
                 self,
@@ -765,7 +773,7 @@ class ModelEngine(AbstractModelEngine):
                         {"output": new_ai_message.content},
                     )
                 )
-
+                
                 return self._create_chat_result(response=response[0])
 
             def _create_chat_result(self, response: Dict[str, Any]) -> ChatResult:
