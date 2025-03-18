@@ -10,7 +10,6 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.function.FunctionEngineToolShell;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -26,11 +25,8 @@ import prerna.util.Utility;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.json.JSONObject;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
 
 import java.util.ArrayList;
 
