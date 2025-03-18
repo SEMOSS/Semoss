@@ -111,7 +111,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 					GitRepoUtils.commitAddedFiles(gitVersionFolder, comment, author, email);
 				}
 			}
-		} else {
+		} else if(space != null && !space.isEmpty()) {
 			IProject project = Utility.getProject(space);
 			String gitVersionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), space).replace("\\", "/");
 			if(realFilePath.startsWith(gitVersionFolder)) {

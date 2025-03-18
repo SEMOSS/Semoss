@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
@@ -178,16 +179,27 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	@Override
-	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) {
+	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws IOException {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
+		List<String> sourceNames = new ArrayList<>();
+    	for(String document : fileNames) {
+			String documentName = FilenameUtils.getName(document);
+			File f = new File(document);
+			if(f.exists() && f.getName().endsWith(".csv")) {
+				sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
+			} else {
+				sourceNames.add(documentName);
+			}
+    	}
+		
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 
 		// need to get the source names and then delete it based on the names
-		for (int fileIndex = 0; fileIndex < fileNames.size(); fileIndex++) {
+		for (int fileIndex = 0; fileIndex < sourceNames.size(); fileIndex++) {
 			String fileName = fileNames.get(fileIndex);
 
 			// Delete document in ChromaDB using their ID, but to get the ID we need to find

@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 import jakarta.mail.Session;
 import jakarta.mail.Store;
+import prerna.auth.AuthProvider;
 import prerna.util.ldap.ILdapAuthenticator;
 import prerna.util.ldap.LdapAuthenticationFactory;
 
@@ -70,6 +71,10 @@ public class SocialPropertiesUtil {
 	
 	public Map<String, Boolean> getLoginsAllowed() {
 		return SocialPropertiesUtil.processor.getLoginsAllowed();
+	}
+	
+	public boolean accessKeysAllowed(AuthProvider provider) {
+		return SocialPropertiesUtil.processor.accessKeyAllowed(provider);
 	}
 	
 	public boolean isNativeRegistrationAllowed() {

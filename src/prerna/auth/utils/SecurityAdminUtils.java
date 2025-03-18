@@ -678,28 +678,28 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		}
 		// the boolean values
-		Boolean adminChange = null;
+		Boolean adminValue = Boolean.FALSE;
 		if (userInfo.containsKey("admin")) {
 			if (userInfo.get("admin") instanceof Number) {
-				adminChange = ((Number) userInfo.get("admin")).intValue() == 1;
+				adminValue = ((Number) userInfo.get("admin")).intValue() == 1;
 			} else {
-				adminChange = Boolean.parseBoolean(userInfo.get("admin") + "");
+				adminValue = Boolean.parseBoolean(userInfo.get("admin") + "");
 			}
 		}
-		Boolean publisherChange = null;
+		Boolean publisherValue = Boolean.FALSE;
 		if (userInfo.containsKey("publisher")) {
 			if (userInfo.get("publisher") instanceof Number) {
-				publisherChange = ((Number) userInfo.get("publisher")).intValue() == 1;
+				publisherValue = ((Number) userInfo.get("publisher")).intValue() == 1;
 			} else {
-				publisherChange = Boolean.parseBoolean(userInfo.get("publisher") + "");
+				publisherValue = Boolean.parseBoolean(userInfo.get("publisher") + "");
 			}
 		}
-		Boolean exporterChange = Boolean.TRUE;
+		Boolean exporterValue = Boolean.FALSE;
 		if (userInfo.containsKey("exporter")) {
 			if (userInfo.get("exporter") instanceof Number) {
-				exporterChange = ((Number) userInfo.get("exporter")).intValue() == 1;
+				exporterValue = ((Number) userInfo.get("exporter")).intValue() == 1;
 			} else {
-				exporterChange = Boolean.parseBoolean(userInfo.get("exporter") + "");
+				exporterValue = Boolean.parseBoolean(userInfo.get("exporter") + "");
 			}
 		}
 
@@ -789,9 +789,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			editUserPs.setString(i++, email);
 			editUserPs.setString(i++, username);
 			editUserPs.setString(i++, name);
-			editUserPs.setBoolean(i++, adminChange);
-			editUserPs.setBoolean(i++, publisherChange);
-			editUserPs.setBoolean(i++, exporterChange);
+			editUserPs.setBoolean(i++, adminValue);
+			editUserPs.setBoolean(i++, publisherValue);
+			editUserPs.setBoolean(i++, exporterValue);
 			editUserPs.setString(i++, phone);
 			editUserPs.setString(i++, phoneExtension);
 			editUserPs.setString(i++, countryCode);

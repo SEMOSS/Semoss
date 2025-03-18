@@ -22,7 +22,8 @@ public class VectorDatabaseCSVWriter {
 	// takes an input file
 	// starts appending CSV to it
 	private String filePath = null;
-	private int rowsCreated;
+	// this is number of rows not including headers
+	private int rowsCreated = 0;
 	
 	public VectorDatabaseCSVWriter(String filePath) {
 		this.filePath = filePath;
@@ -51,6 +52,7 @@ public class VectorDatabaseCSVWriter {
 	}
 
 	protected void writeHeader() {
+		// this should always be the first row
 		StringBuffer row = new StringBuffer()
 				.append("Source").append(",")
 				.append("Modality").append(",")
@@ -59,9 +61,6 @@ public class VectorDatabaseCSVWriter {
 				.append("Content")
 				.append("\r\n");
 		this.pw.print(row + "");
-		
-		// this should always be the first row
-		this.rowsCreated = 1;
 	}
 	
 	/**

@@ -198,7 +198,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					this.fetchSize = Integer.parseInt(fetchSizeStr);
 				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the fetch size");
+					classLogger.warn("Error occurred trying to parse and get the fetch size");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -210,7 +210,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					this.queryTimeout = Integer.parseInt(queryTimeoutStr);
 				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the query timeout");
+					classLogger.warn("Error occurred trying to parse and get the query timeout");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -241,7 +241,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					this.leakDetectionThresholdMilliseconds = Long.parseLong(leakDetectionStr);
 				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the leak detection threshold");
+					classLogger.warn("Error occurred trying to parse and get the leak detection threshold");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -253,7 +253,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					this.idelTimeout = Long.parseLong(idleTimeoutStr);
 				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the idle timeout");
+					classLogger.warn("Error occurred trying to parse and get the idle timeout");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -265,7 +265,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					this.poolMinSize = Integer.parseInt(minPoolSizeStr);
 				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the min pool size");
+					classLogger.warn("Error occurred trying to parse and get the min pool size");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -277,7 +277,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					this.poolMaxSize = Integer.parseInt(maxPoolSizeStr);
 				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the max pool size");
+					classLogger.warn("Error occurred trying to parse and get the max pool size");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
