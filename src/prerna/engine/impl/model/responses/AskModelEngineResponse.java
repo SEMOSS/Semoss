@@ -1,6 +1,7 @@
 package prerna.engine.impl.model.responses;
 
 import java.util.Map;
+import org.json.JSONObject;
 
 public class AskModelEngineResponse extends AbstractModelEngineResponse<String> {
 
@@ -55,4 +56,43 @@ public class AskModelEngineResponse extends AbstractModelEngineResponse<String> 
 		Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
 		return fromMap(modelResponse);
     }
+	
+	/**
+	 * Creates an AskModelEngineResponse from a JSONObject returned by the KServe adapter
+	 * 
+	 * @param jsonResponse The JSONObject from makeModelRequest
+	 * @return AskModelEngineResponse constructed from the JSONObject
+	 */
+	public static AskModelEngineResponse fromJson(JSONObject jsonResponse) {
+	    if (jsonResponse == null) {
+	        return null;
+	    }
+	    
+	    String responseText;
+	    if (jsonResponse.has("output")) {
+	        Object outputObj = jsonResponse.get("output");
+	        if (outputObj instanceof JSONObject || outputObj instanceof org.json.JSONArray) {
+	            responseText = outputObj.toString();
+	        } else {
+	            responseText = jsonResponse.getString("output");
+	        }
+	    } else {
+	        responseText = "";
+	    }
+	    
+	    Integer promptTokens = 0;
+	    Integer responseTokens = 0;
+	    
+	    if (jsonResponse.has("numberOfTokensInPrompt")) {
+	        promptTokens = jsonResponse.getInt("numberOfTokensInPrompt");
+	    }
+	    
+	    if (jsonResponse.has("numberOfTokensInResponse")) {
+	        responseTokens = jsonResponse.getInt("numberOfTokensInResponse");
+	    }
+	    
+	    AskModelEngineResponse response = new AskModelEngineResponse(responseText, promptTokens, responseTokens);
+	    
+	    return response;
+	}
 }
