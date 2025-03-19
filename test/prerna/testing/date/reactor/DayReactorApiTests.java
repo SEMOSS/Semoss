@@ -18,16 +18,6 @@ public class DayReactorApiTests extends AbstractBaseSemossApiTests{
 		 NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		 SemossDay day = (SemossDay) nm.getValue();
 		 assertEquals(365, day.getNumDays());
-		 
 	}
-	
-	 // sanity check to make sure multiple tests run fine :)
-	public void getDay2() {
-		 String pixel = ApiSemossTestUtils.buildPixelCall(DayReactor.class, "days", "365");
-		 NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-		 SemossDay day = (SemossDay) nm.getValue();
-		 assertEquals(365, day.getNumDays());
-		 
-	}
-	
+
 }
