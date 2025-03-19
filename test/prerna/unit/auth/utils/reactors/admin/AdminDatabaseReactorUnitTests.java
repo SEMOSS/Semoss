@@ -10,17 +10,23 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityOwlCreator;
 import prerna.auth.utils.reactors.admin.AdminDatabaseReactor;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.unit.UnitTestUtils;
+import prerna.util.Utility;
 
 public class AdminDatabaseReactorUnitTests {
 
@@ -55,12 +61,19 @@ public class AdminDatabaseReactorUnitTests {
     }
 
     @Test
-    void testEngineIdEmpty() {
+    void testEngineIdEmpty() throws Exception {
         reactor.keyValue.put(ReactorKeysEnum.DATABASE.getKey(), "");
 
-        try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-            SecurityAdminUtils s = new SecurityAdminUtils();
-            sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+        try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
+             MockedConstruction<SecurityOwlCreator> ignored = Mockito.mockConstruction(SecurityOwlCreator.class, (mock, context) -> {
+                 when(mock.needsRemake()).thenReturn(false);
+             });
+             MockedStatic<AbstractSecurityUtils> asu = Mockito.mockStatic(AbstractSecurityUtils.class);
+             MockedConstruction<RawRDBMSSelectWrapper> ignored1 = Mockito.mockConstruction(RawRDBMSSelectWrapper.class, (mock, context) -> {
+                 when(mock.hasNext()).thenReturn(true);
+             })) {
+
+            UnitTestUtils.setupMocks(util, asu);
 
             NullPointerException e = assertThrows(NullPointerException.class, reactor::execute);
             assertEquals("The engine id cannot be null for this operation", e.getMessage());

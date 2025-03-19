@@ -30,6 +30,7 @@ import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.unit.UnitTestUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -51,22 +52,6 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
         when(insight.getUser()).thenReturn(user);
 
         keyValues = reactor.keyValue;
-    }
-
-    private static void setupMocks(MockedStatic<Utility> util, MockedStatic<AbstractSecurityUtils> asu) throws Exception {
-        RDBMSNativeEngine dbEngine = mock(RDBMSNativeEngine.class);
-        when(dbEngine.getEngineId()).thenReturn(Constants.SECURITY_DB);
-        when(dbEngine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
-
-        SqlInterpreter si = mock(SqlInterpreter.class);
-        when(dbEngine.getQueryInterpreter()).thenReturn(si);
-        when(si.composeQuery()).thenReturn("TEST QUERY");
-        AbstractSqlQueryUtil queryUtil = mock(AbstractSqlQueryUtil.class);
-        when(dbEngine.getQueryUtil()).thenReturn(queryUtil);
-        util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(dbEngine);
-
-        asu.when(() -> AbstractSecurityUtils.loadSecurityDatabase()).thenCallRealMethod();
-        AbstractSecurityUtils.loadSecurityDatabase();
     }
 
     @Test
@@ -91,7 +76,8 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
                  when(mock.hasNext()).thenReturn(true);
              })) {
 
-            setupMocks(util, asu);
+            UnitTestUtils.setupMocks(util, asu);
+
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
             assertEquals("Must input an project id", e.getMessage());
         }
@@ -130,7 +116,7 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
                  when(mock.hasNext()).thenReturn(true);
              })) {
 
-            setupMocks(util, asu);
+            UnitTestUtils.setupMocks(util, asu);
 
             spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias))
                     .thenReturn(projectId);
@@ -168,7 +154,7 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
              MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class)) {
 
 
-            setupMocks(util, asu);
+            UnitTestUtils.setupMocks(util, asu);
 
             spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias))
                     .thenReturn(projectId);
