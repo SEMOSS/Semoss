@@ -2,9 +2,10 @@ from typing import List, Optional, Dict, Union, Any
 
 from abc import ABC, abstractmethod
 
-import os
+import os,json
 
 from gaas_server_proxy import ServerProxy
+from langchain.memory import ConversationSummaryMemory
 
 
 class AbstractModelEngine(ABC):
@@ -59,6 +60,42 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         super().__init__()  # initialize the ServerProxy class
         self.engine_id = engine_id  # set the engine id
         self.insight_id = insight_id  # set the insight id
+        self._summary_memory = None  # Store ConversationSummaryMemory
+
+    def initialize_summary(self):
+        """Initialize ConversationSummaryMemory."""
+        ModelEngine_instance = ModelEngine(engine_id=self.engine_id)
+        langchain_llm = ModelEngine_instance.to_langchain_chat_model()
+
+        self._summary_memory = ConversationSummaryMemory(
+            llm=langchain_llm, return_messages=True
+        )
+        return self._summary_memory
+
+    def chat_history_summarization(self) -> str:
+        """Retrieve the latest summary from memory."""
+        if self._summary_memory is None:
+            self.initialize_summary()
+        self._summary_memory.clear()
+        message_history = self.get_conversation_history()
+        for i in range(0, len(message_history), 2):
+            if i + 1 < len(message_history):
+                try:
+                    user_data=json.loads(message_history[i]["MESSAGE_DATA"])["content"]
+                except:
+                    user_data=message_history[i]["MESSAGE_DATA"]
+
+                if (
+                    "Progressively summarize" in user_data
+                    and "Current summary" in message_history[i + 1]["MESSAGE_DATA"]
+                ):
+                    continue
+                ai_response = message_history[i + 1]["MESSAGE_DATA"]  # AI response
+                self._summary_memory.chat_memory.add_user_message(user_data)
+                self._summary_memory.chat_memory.add_ai_message(ai_response)
+        message_data = self._summary_memory.chat_memory.messages
+        summary_data = self._summary_memory.predict_new_summary( message_data, "")
+        return summary_data
 
     def get_model_type(self, insight_id: Optional[str] = None):
         """This method is responsible for returning the model API being used
@@ -368,13 +405,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
     def get_model_engine_id(self) -> str:
         return self.engine_id
 
-    def get_chat_summary(self) -> str:
-        """Retrieve chat history and return a summarized version as a string."""
-        chat_history = self.get_conversation_history()
-        if not chat_history:
-            return "No chat history available."
-        summary = "\n".join([msg["MESSAGE_DATA"] for msg in chat_history])
-        return summary
 
 class HuggingFacePipelineModelEngine(AbstractModelEngine):
     def __init__(self, engine_id: str, pipeline_type: Optional[str] = None, **kwargs):
@@ -659,6 +689,9 @@ class ModelEngine(AbstractModelEngine):
     def get_conversation_history(self):
         return self.model_engine.get_conversation_history()
 
+    def chat_history_summarization(self):
+        return self.model_engine.chat_history_summarization()
+
     def to_langchain_embedder(self):
         """Transform the model engine into a langchain `Embeddings`object so that it can be used with langchain code"""
 
@@ -711,7 +744,6 @@ class ModelEngine(AbstractModelEngine):
                 self, insight_id: Optional[str] = None
             ) -> List[BaseMessage]:
                 """Retrieve past conversation history and format it for Langchain."""
-
                 # Fetch chat history from ModelEngine
                 history = self.model_engine.get_conversation_history()
                 messages = []
@@ -722,26 +754,13 @@ class ModelEngine(AbstractModelEngine):
                         messages.append(AIMessage(content=msg["MESSAGE_DATA"]))
                 return messages
 
-            def get_initialize_summary(self) -> ConversationSummaryMemory:
-                langchain_chat_model = self.model_engine.to_langchain_chat_model()
-                # Initialize ConversationSummaryMemory with a separate instance
-                self._summary_memory = ConversationSummaryMemory(
-                    llm=langchain_chat_model, return_messages=True
-                )
-                return self._summary_memory
+            def chat_history_summarization(self) -> str:
+                return self.model_engine.chat_history_summarization()
 
             class Config:
                 """Configuration for this pydantic object."""
 
                 allow_population_by_field_name = True
-
-            def chat_history_summarization(self) -> str:
-                for data in self._summary_data:
-                    if isinstance(data[0], dict) or isinstance(data[1], dict):
-                         self._summary_memory.save_context(data[0], data[1])
-                summary_history=self._summary_memory.load_memory_variables({})
-                self._summary_data = []
-                return summary_history
 
             def _generate(
                 self,
@@ -750,35 +769,17 @@ class ModelEngine(AbstractModelEngine):
                 **kwargs: Any,
             ) -> ChatResult:
                 """Top Level call"""
-                if self._summary_memory is None:
-                    self._summary_memory = self.get_initialize_summary()
-                full_messages = [
-                    msg
-                    for pair in self._previous_messages
-                    for msg in pair["conversation"]
-                ] + messages
-                full_prompt = self.convert_messages_to_full_prompt(full_messages)
+               
+                full_prompt = self.convert_messages_to_full_prompt(messages)
                 response = self.model_engine.ask(
                     question="", param_dict={**kwargs, **{"full_prompt": full_prompt}}
                 )
-                new_ai_message = AIMessage(content=response[0]["response"])
-                self._previous_messages.append(
-                    {"conversation": messages + [new_ai_message]}
-                )
 
-                # Update ConversationSummaryMemory
-                self._summary_data.append(
-                    (
-                        {"input": messages[-1].content},
-                        {"output": new_ai_message.content},
-                    )
-                )
-                
                 return self._create_chat_result(response=response[0])
 
             def _create_chat_result(self, response: Dict[str, Any]) -> ChatResult:
                 generations = []
-
+             
                 message = response.pop("response", "")
                 generation_info = dict()
                 if "logprobs" in response.keys():
@@ -791,6 +792,7 @@ class ModelEngine(AbstractModelEngine):
                 generations.append(gen)
 
                 return ChatResult(generations=generations, llm_output=response)
+                
 
             def convert_messages_to_full_prompt(
                 self,
