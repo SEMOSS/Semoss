@@ -1,0 +1,15 @@
+version: '3.1'
+
+services:
+  sftp:
+    image: atmoz/sftp
+    volumes:
+      - /mnt/c/ws/docker/sftp/mount:/home/foo/upload
+    ports:
+      - "2222:22"
+    command: foo:pass:1001
+    networks:
+      - tnet
+
+networks:
+  tnet:
