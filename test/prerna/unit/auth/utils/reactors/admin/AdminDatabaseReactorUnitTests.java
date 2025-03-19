@@ -25,7 +25,6 @@ import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.unit.UnitTestUtils;
 import prerna.util.Utility;
 
 public class AdminDatabaseReactorUnitTests {
@@ -64,16 +63,10 @@ public class AdminDatabaseReactorUnitTests {
     void testEngineIdEmpty() throws Exception {
         reactor.keyValue.put(ReactorKeysEnum.DATABASE.getKey(), "");
 
-        try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-             MockedConstruction<SecurityOwlCreator> ignored = Mockito.mockConstruction(SecurityOwlCreator.class, (mock, context) -> {
-                 when(mock.needsRemake()).thenReturn(false);
-             });
-             MockedStatic<AbstractSecurityUtils> asu = Mockito.mockStatic(AbstractSecurityUtils.class);
-             MockedConstruction<RawRDBMSSelectWrapper> ignored1 = Mockito.mockConstruction(RawRDBMSSelectWrapper.class, (mock, context) -> {
-                 when(mock.hasNext()).thenReturn(true);
-             })) {
+        try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 
-            UnitTestUtils.setupMocks(util, asu);
+            SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+            sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
             NullPointerException e = assertThrows(NullPointerException.class, reactor::execute);
             assertEquals("The engine id cannot be null for this operation", e.getMessage());

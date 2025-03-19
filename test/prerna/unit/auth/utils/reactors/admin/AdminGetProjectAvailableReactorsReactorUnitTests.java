@@ -8,7 +8,6 @@ import static org.mockito.Mockito.*;
 import java.util.Map;
 import java.util.TreeSet;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
@@ -21,19 +20,13 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityOwlCreator;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.reactors.admin.AdminGetProjectAvailableReactorsReactor;
-import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
-import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.unit.UnitTestUtils;
-import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AdminGetProjectAvailableReactorsReactorUnitTests {
 
@@ -67,15 +60,10 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
 
     @Test
     void testProjectIdNull() throws Exception {
-        try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-             MockedConstruction<SecurityOwlCreator> ignored = Mockito.mockConstruction(SecurityOwlCreator.class, (mock, context) -> {
-                 when(mock.needsRemake()).thenReturn(false);
-             });
-             MockedStatic<AbstractSecurityUtils> asu = Mockito.mockStatic(AbstractSecurityUtils.class);
-             MockedConstruction<RawRDBMSSelectWrapper> ignored1 = Mockito.mockConstruction(RawRDBMSSelectWrapper.class, (mock, context) -> {
-                 when(mock.hasNext()).thenReturn(true);
-             })) {
+        try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 
+            SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+            sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
             assertEquals("Must input an project id", e.getMessage());
@@ -86,14 +74,10 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
     @Test
     void testProjectIdEmpty() {
         keyValues.put(ReactorKeysEnum.PROJECT.getKey(), "");
-        try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-             MockedConstruction<SecurityOwlCreator> ignored = Mockito.mockConstruction(SecurityOwlCreator.class, (mock, context) -> {
-                 when(mock.needsRemake()).thenReturn(false);
-             });
-             MockedStatic<AbstractSecurityUtils> asu = Mockito.mockStatic(AbstractSecurityUtils.class);
-             MockedConstruction<RawRDBMSSelectWrapper> ignored1 = Mockito.mockConstruction(RawRDBMSSelectWrapper.class, (mock, context) -> {
-                 when(mock.hasNext()).thenReturn(true);
-             })) {
+        try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+
+            SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+            sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
             assertEquals("Must input an project id", e.getMessage());
@@ -101,21 +85,17 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
     }
 
     @Test
-    void testExecuteNoReactorsReturned() throws Exception {
+    void testExecuteNoReactorsReturned() {
         String projectAlias = "test";
         String projectId = "testy";
         keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectAlias);
-        try (MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class);
+        try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+                MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class);
              MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-             MockedConstruction<SecurityOwlCreator> ignored = Mockito.mockConstruction(SecurityOwlCreator.class, (mock, context) -> {
-                 when(mock.needsRemake()).thenReturn(false);
-             });
-             MockedStatic<AbstractSecurityUtils> asu = Mockito.mockStatic(AbstractSecurityUtils.class);
-             MockedConstruction<RawRDBMSSelectWrapper> ignored1 = Mockito.mockConstruction(RawRDBMSSelectWrapper.class, (mock, context) -> {
-                 when(mock.hasNext()).thenReturn(true);
-             })) {
+             ) {
 
-            UnitTestUtils.setupMocks(util, asu);
+            SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+            sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
             spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias))
                     .thenReturn(projectId);
@@ -143,17 +123,12 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
         String projectId = "testy";
         keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectAlias);
         try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-             MockedConstruction<SecurityOwlCreator> ignored = Mockito.mockConstruction(SecurityOwlCreator.class, (mock, context) -> {
-                 when(mock.needsRemake()).thenReturn(false);
-             });
-             MockedStatic<AbstractSecurityUtils> asu = Mockito.mockStatic(AbstractSecurityUtils.class);
-             MockedConstruction<RawRDBMSSelectWrapper> ignored1 = Mockito.mockConstruction(RawRDBMSSelectWrapper.class, (mock, context) -> {
-                 when(mock.hasNext()).thenReturn(true);
-             });
+             MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
              MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class)) {
 
+            SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+            sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-            UnitTestUtils.setupMocks(util, asu);
 
             spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias))
                     .thenReturn(projectId);
