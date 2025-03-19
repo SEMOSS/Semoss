@@ -44,8 +44,6 @@ import prerna.util.Utility;
 
 public class AdminGetEngineSMSSReactorUnitTests {
 
-	private FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
-	
 	private AdminGetEngineSMSSReactor reactor;
 	private Insight insight;
 	private User user;
@@ -58,7 +56,6 @@ public class AdminGetEngineSMSSReactorUnitTests {
 	@BeforeEach
 	void setup() {
 		reactor = new AdminGetEngineSMSSReactor();
-		reactor.setFileSystem(fs);
 		insight = mock(Insight.class);
 		user = mock(User.class);
 		reactor.setInsight(insight);
@@ -120,8 +117,6 @@ public class AdminGetEngineSMSSReactorUnitTests {
 	@Test
 	void test_SmssFileReturnDirectory() throws IOException {
 		
-		Path dir = Files.createDirectories(fs.getPath("dir"));
-		
 		when(ns.size()).thenReturn(2);
 		when(ns.getNoun(ReactorKeysEnum.ENGINE.getKey())).thenReturn(engineGrs);
 		
@@ -129,7 +124,9 @@ public class AdminGetEngineSMSSReactorUnitTests {
 		when(engineGrs.get(0)).thenReturn("id");
 		
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class); 	
-				MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class)) {
+			 MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class);
+			 MockedStatic<Paths> mockPaths = Mockito.mockStatic(Paths.class);
+			 MockedStatic<Files> mockFiles = Mockito.mockStatic(Files.class)) {
 	
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
@@ -137,7 +134,11 @@ public class AdminGetEngineSMSSReactorUnitTests {
 			IEngine engine = mock(IEngine.class);
 			utility.when(() -> Utility.getEngine("id")).thenReturn(engine);
 			
-			when(engine.getSmssFilePath()).thenReturn(dir.toString());
+			when(engine.getSmssFilePath()).thenReturn("/path/to/file");
+
+			Path p = mock(Path.class);
+			mockPaths.when(() -> Paths.get("/path/to/file")).thenReturn(p);
+			mockFiles.when(() -> Files.isRegularFile(p)).thenReturn(false);
 			
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
@@ -147,13 +148,6 @@ public class AdminGetEngineSMSSReactorUnitTests {
 	
 	@Test
 	void test_SmssFileException() throws IOException {
-		
-		FileSystem mockFs = mock(FileSystem.class);
-		reactor.setFileSystem(mockFs);
-		Path mockPath = mock(Path.class);
-		when(mockFs.getPath("Semoss.txt")).thenReturn(mockPath);
-		
-		Path dir = Files.createDirectories(fs.getPath("dir"));
 		
 		when(ns.size()).thenReturn(2);
 		when(ns.getNoun(ReactorKeysEnum.ENGINE.getKey())).thenReturn(engineGrs);
@@ -172,16 +166,19 @@ public class AdminGetEngineSMSSReactorUnitTests {
 			IEngine engine = mock(IEngine.class);
 			utility.when(() -> Utility.getEngine("id")).thenReturn(engine);
 			when(engine.getSmssFilePath()).thenReturn("Semoss.txt");
-			
-			files.when(() -> Files.exists(mockPath)).thenReturn(true);
-			files.when(() -> Files.isRegularFile(mockPath)).thenReturn(true);
+
+			Path p = mock(Path.class);
+			paths.when(() -> Paths.get("Semoss.txt")).thenReturn(p);
+
+			files.when(() -> Files.exists(p)).thenReturn(true);
+			files.when(() -> Files.isRegularFile(p)).thenReturn(true);
 			
 			URI mockUri = mock(URI.class);
-			when(mockPath.toUri()).thenReturn(mockUri);
+			when(p.toUri()).thenReturn(mockUri);
 			
-			paths.when(() -> Paths.get(mockUri)).thenReturn(mockPath);
+			paths.when(() -> Paths.get(mockUri)).thenReturn(p);
 			
-			files.when(() -> Files.readAllBytes(mockPath)).thenThrow(new IOException("error"));
+			files.when(() -> Files.readAllBytes(p)).thenThrow(new IOException("error"));
 
 			
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
@@ -191,13 +188,6 @@ public class AdminGetEngineSMSSReactorUnitTests {
 	
 	@Test
 	void test_SmssFileNoException() throws IOException {
-		
-		FileSystem mockFs = mock(FileSystem.class);
-		reactor.setFileSystem(mockFs);
-		Path mockPath = mock(Path.class);
-		when(mockFs.getPath("Semoss.txt")).thenReturn(mockPath);
-		
-		Path dir = Files.createDirectories(fs.getPath("dir"));
 		
 		when(ns.size()).thenReturn(2);
 		when(ns.getNoun(ReactorKeysEnum.ENGINE.getKey())).thenReturn(engineGrs);
@@ -219,16 +209,18 @@ public class AdminGetEngineSMSSReactorUnitTests {
 			when(engine.getSmssFilePath()).thenReturn("Semoss.txt");
 			
 //			Files file = mock(Files.class);
-			files.when(() -> Files.exists(mockPath)).thenReturn(true);
-			files.when(() -> Files.isRegularFile(mockPath)).thenReturn(true);
-			
+			Path p = mock(Path.class);
+			paths.when(() -> Paths.get("Semoss.txt")).thenReturn(p);
+
+			files.when(() -> Files.exists(p)).thenReturn(true);
+			files.when(() -> Files.isRegularFile(p)).thenReturn(true);
+
 			URI mockUri = mock(URI.class);
-			when(mockPath.toUri()).thenReturn(mockUri);
-			
-			paths.when(() -> Paths.get(mockUri)).thenReturn(mockPath);
-			
+			when(p.toUri()).thenReturn(mockUri);
+
+			paths.when(() -> Paths.get(mockUri)).thenReturn(p);
 			String test = "test";
-			files.when(() -> Files.readAllBytes(mockPath)).thenReturn(test.getBytes());
+			files.when(() -> Files.readAllBytes(p)).thenReturn(test.getBytes());
 
 			smssUtil.when(() -> SmssUtilities.concealSmssSensitiveInfo(test)).thenReturn("test2");
 			NounMetadata nm = reactor.execute();

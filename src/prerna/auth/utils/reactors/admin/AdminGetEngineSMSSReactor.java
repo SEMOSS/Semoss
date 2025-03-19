@@ -20,8 +20,6 @@ import prerna.util.Utility;
 
 public class AdminGetEngineSMSSReactor extends AbstractReactor {
 
-	private FileSystem fs = FileSystems.getDefault();
-	
 	public AdminGetEngineSMSSReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
 	}
@@ -42,7 +40,7 @@ public class AdminGetEngineSMSSReactor extends AbstractReactor {
 		
 		IEngine engine = Utility.getEngine(engineId);
 		String currentSmssFileLocation = engine.getSmssFilePath();
-		Path currentSmssPath = fs.getPath(currentSmssFileLocation);
+		Path currentSmssPath = Paths.get(currentSmssFileLocation);
 		
 		if(!Files.exists(currentSmssPath) || !Files.isRegularFile(currentSmssPath)) {
 			throw new IllegalArgumentException("Could not find smss file for engine " + engineId + ". Please reach out to an administrator for assistance");
@@ -58,8 +56,5 @@ public class AdminGetEngineSMSSReactor extends AbstractReactor {
 		String concealedSmssContent = SmssUtilities.concealSmssSensitiveInfo(currentSmssContent);
 		return new NounMetadata(concealedSmssContent, PixelDataType.CONST_STRING);
 	}
-	
-	public void setFileSystem(FileSystem fs) {
-		this.fs = fs;
-	}
+
 }

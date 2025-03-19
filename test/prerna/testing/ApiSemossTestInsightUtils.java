@@ -17,7 +17,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class ApiSemossTestInsightUtils {
 
-	private static final Logger LOGGER = LogManager.getLogger(ApiSemossTestInsightUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(ApiSemossTestInsightUtils.class);
 	
 	private static Path TEST_INSIGHT_CACHE = null;
 	private static Insight INSIGHT = null;
@@ -55,7 +55,7 @@ public class ApiSemossTestInsightUtils {
 			try {
 				FileUtils.cleanDirectory(TEST_INSIGHT_CACHE.toFile());
 			} catch (IOException e) {
-				LOGGER.error("Could not clear Insight cache", e);
+				classLogger.error("Could not clear Insight cache", e);
 				e.printStackTrace();
 			}
 		}

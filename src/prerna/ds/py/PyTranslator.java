@@ -208,7 +208,9 @@ public class PyTranslator {
 			classLogger.error(Constants.STACKTRACE, e1);
 		} finally {
 			// Cleanup
-			ICache.deleteFolder(pyTempF);
+			scriptFile.delete();
+			// TODO - when fake insights are added, change back to delete folder
+			// ICache.deleteFolder(pyTempF);
 		}
 	}
 

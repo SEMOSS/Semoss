@@ -9,19 +9,27 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -50,8 +58,6 @@ import prerna.util.Utility;
 
 public class AdminExportUserDatabasePermissionsReactorUnitTests {
 
-	private FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
-
 	private AdminExportUserDatabasePermissionsReactor reactor;
 	private Insight insight;
 	private User user;
@@ -66,7 +72,6 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 	@BeforeEach
 	void setup() throws IOException {
 		reactor = new AdminExportUserDatabasePermissionsReactor();
-		reactor.setFileSystem(fs);
 		insight = mock(Insight.class);
 		user = mock(User.class);
 		reactor.setInsight(insight);
@@ -81,10 +86,6 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 		panelGrs = mock(GenRowStruct.class);
 
 		reactor.setNounStore(ns);
-
-		Path p = fs.getPath("work", "insight1");
-		Files.createDirectories(p);
-
 	}
 
 	@Test
@@ -159,7 +160,22 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class);
 				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class);
-				MockedStatic<ExcelUtility> eu = Mockito.mockStatic(ExcelUtility.class)) {
+				MockedStatic<ExcelUtility> eu = Mockito.mockStatic(ExcelUtility.class);
+			 	MockedStatic<Paths> mockPaths = Mockito.mockStatic(Paths.class);
+				MockedStatic<Files> mockFiles = Mockito.mockStatic(Files.class);
+				MockedConstruction<SXSSFWorkbook> workbook = Mockito.mockConstruction(SXSSFWorkbook.class, (mock, context) -> {
+					SXSSFSheet sheet = mock(SXSSFSheet.class);
+					when(mock.createSheet("sheetLabel")).thenReturn(sheet);
+
+					CreationHelper creationHelper = mock(CreationHelper.class);
+					when(mock.getCreationHelper()).thenReturn(creationHelper);
+
+					DataFormat df = mock(DataFormat.class);
+					when(creationHelper.createDataFormat()).thenReturn(df);
+
+					CellStyle cs = mock(CellStyle.class);
+					when(mock.createCellStyle()).thenReturn(cs);
+				})) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
@@ -180,8 +196,13 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 			utility.when(() -> Utility.normalizePath("/work/insight1/null.xlsx"))
 					.thenReturn("/work/insight1/null.xlsx");
 
-			Path p = fs.getPath("insight1");
-			when(insight.getInsightFolder()).thenReturn(p.toAbsolutePath().toString());
+			String path = "/work/insight1";
+			when(insight.getInsightFolder()).thenReturn(path);
+
+			Path p = mock(Path.class);
+			mockPaths.when(() -> Paths.get("/work/insight1")).thenReturn(p);
+
+			mockFiles.when(() -> Files.exists(p)).thenReturn(false);
 
 			when(irswMock.hasNext()).thenReturn(false);
 
@@ -196,6 +217,8 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 
 			eu.verify(() -> ExcelUtility.encrypt(any(Workbook.class), eq("/work/insight1/null.xlsx"), eq("encrypt")),
 					times(1));
+
+			mockFiles.verify(() -> Files.createDirectories(p), times(1));
 		}
 	}
 }

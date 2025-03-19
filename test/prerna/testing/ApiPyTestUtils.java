@@ -18,22 +18,22 @@ import prerna.tcp.client.SocketClient;
 
 public class ApiPyTestUtils {
 
-	private static final Logger LOGGER = LogManager.getLogger(ApiPyTestUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(ApiPyTestUtils.class);
 
 	public static void setupAndCheck() throws Exception {
-		LOGGER.info("Checking and setting up Python");
+		classLogger.info("Checking and setting up Python");
 		Path pyFolderInSemoss = Paths.get(ApiTestsSemossConstants.BASE_DIRECTORY, "py");
 		if (Files.exists(pyFolderInSemoss)) {
-			LOGGER.info("Py folder in base directory exists, setting up Python.");
+			classLogger.info("Py folder in base directory exists, setting up Python.");
 			copyPyDirectory();
 
-			LOGGER.info("Python pixel check");
+			classLogger.info("Python pixel check");
 			basicPythonPixelCheck();
 
-			LOGGER.info("Teardown py server");
+			classLogger.info("Teardown py server");
 			teardownPyServer();
 		} else {
-			LOGGER.warn("Py folder in base directory does not exist, Python will NOT be setup.");
+			classLogger.warn("Py folder in base directory does not exist, Python will NOT be setup.");
 		}
 
 	}
@@ -41,7 +41,7 @@ public class ApiPyTestUtils {
 	private static void teardownPyServer() {
 		try {
 
-			LOGGER.info("Killing python process for user");
+			classLogger.info("Killing python process for user");
 			User user = ApiSemossTestUserUtils.getUser();
 
 			ClientProcessWrapper cpw = user.getClientProcessWrapper();
@@ -50,43 +50,43 @@ public class ApiPyTestUtils {
 
 				SocketClient sc = cpw.getSocketClient();
 				if (sc != null && sc.isConnected() && sc.isKillAll()) {
-					LOGGER.info("Closing socket client");
+					classLogger.info("Closing socket client");
 					cpw.getSocketClient().close();
 				}
 
-				LOGGER.info("Closing CPW");
+				classLogger.info("Closing CPW");
 				if (cpw.getProcess() != null) {
-					LOGGER.info("Destroying cpw process");
+					classLogger.info("Destroying cpw process");
 					cpw.getProcess().destroyForcibly();
 				}
 
 			}
 
 		} catch (Exception e) {
-			LOGGER.fatal("COULD NOT KILL PYTHON PROCESS <<<<< LOOK AT THIS PLEASE", e);
+			classLogger.fatal("COULD NOT KILL PYTHON PROCESS <<<<< LOOK AT THIS PLEASE", e);
 		}
 	}
 
 	private static void basicPythonPixelCheck() {
 		String pixel = "Py(\"<encode>1+1</encode>\");";
-		LOGGER.info("Running basic python pixel");
+		classLogger.info("Running basic python pixel");
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		List<NounMetadata> val = (List<NounMetadata>) nm.getValue();
 		assertEquals(2, Integer.valueOf(val.get(0).getValue().toString()).intValue());
-		LOGGER.info("basic python pixel check passed");
+		classLogger.info("basic python pixel check passed");
 	}
 
 	private static void copyPyDirectory() throws Exception {
 		Path sourcePy = Paths.get(ApiTestsSemossConstants.BASE_DIRECTORY, "py");
 		Path testPy = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "py");
 
-		LOGGER.info("SOURCE: {} \n TEST: {}", sourcePy, testPy);
+		classLogger.info("SOURCE: {} \n TEST: {}", sourcePy, testPy);
 		if (Files.exists(testPy)) {
-			LOGGER.info("Test folder exists, cleaning");
+			classLogger.info("Test folder exists, cleaning");
 			FileUtils.cleanDirectory(testPy.toFile());
 		}
 
-		LOGGER.info("Copying source to testfolder");
+		classLogger.info("Copying source to testfolder");
 		FileUtils.copyDirectory(sourcePy.toFile(), testPy.toFile());
 
 	}

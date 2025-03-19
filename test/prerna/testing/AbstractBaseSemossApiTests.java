@@ -12,7 +12,7 @@ import org.junit.jupiter.api.TestInfo;
 
 public abstract class AbstractBaseSemossApiTests {
 
-	private static final Logger LOGGER = LogManager.getLogger(AbstractBaseSemossApiTests.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractBaseSemossApiTests.class);
 
 	protected boolean clearAllDatabasesBetweenTests = true;
 	protected boolean clearAllEmailsBetweenTests = true;
@@ -21,13 +21,13 @@ public abstract class AbstractBaseSemossApiTests {
 	public static void initialSetup() throws Exception {
 		long start = System.nanoTime();
 		if (ApiSemossTestUtils.isFirstClass()) {
-			LOGGER.info("Log check");
-			LOGGER.info("INFO");
-			LOGGER.debug("DEBUG");
-			LOGGER.warn("WARN");
-			LOGGER.error("ERROR");
-			LOGGER.fatal("FATAL");
-			LOGGER.info("Log check end");
+			classLogger.info("Log check");
+			classLogger.info("INFO");
+			classLogger.debug("DEBUG");
+			classLogger.warn("WARN");
+			classLogger.error("ERROR");
+			classLogger.fatal("FATAL");
+			classLogger.info("Log check end");
 
 			ApiSemossTestSetupUtils.ensureTestFolderStructure();
 
@@ -47,7 +47,7 @@ public abstract class AbstractBaseSemossApiTests {
 			ApiRTestUtils.setup();
 			ApiPyTestUtils.setupAndCheck();
 		}
-		LOGGER.info("Semoss Before All Time: " + (System.nanoTime() - start) / 1000000000);
+		classLogger.info("Semoss Before All Time: " + (System.nanoTime() - start) / 1000000000);
 	}
 
 	@AfterAll
@@ -94,7 +94,7 @@ public abstract class AbstractBaseSemossApiTests {
 		if (ti.getTestMethod().isPresent()) {
 			testMethod = ti.getTestMethod().get().toString();
 		}
-		LOGGER.info("Test finished for: {} : {}", testClass, testMethod);
+		classLogger.info("Test finished for: {} : {}", testClass, testMethod);
 	}
 
 }
