@@ -2,7 +2,7 @@ from typing import List, Optional, Dict, Union, Any
 
 from abc import ABC, abstractmethod
 
-import os,json
+import os, json
 
 from gaas_server_proxy import ServerProxy
 from langchain.memory import ConversationSummaryMemory
@@ -77,24 +77,27 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         if self._summary_memory is None:
             self.initialize_summary()
         self._summary_memory.clear()
+        key_word = ["progressively summarize", "current summary", "new summary"]
         message_history = self.get_conversation_history()
         for i in range(0, len(message_history), 2):
             if i + 1 < len(message_history):
                 try:
-                    user_data=json.loads(message_history[i]["MESSAGE_DATA"])["content"]
+                    user_data = json.loads(message_history[i]["MESSAGE_DATA"])[
+                        "content"
+                    ]
                 except:
-                    user_data=message_history[i]["MESSAGE_DATA"]
+                    user_data = message_history[i]["MESSAGE_DATA"]
 
                 if (
-                    "Progressively summarize" in user_data
-                    and "Current summary" in message_history[i + 1]["MESSAGE_DATA"]
+                    key_word in user_data.lower()
+                    and key_word in message_history[i + 1]["MESSAGE_DATA"].lower()
                 ):
                     continue
                 ai_response = message_history[i + 1]["MESSAGE_DATA"]  # AI response
                 self._summary_memory.chat_memory.add_user_message(user_data)
                 self._summary_memory.chat_memory.add_ai_message(ai_response)
         message_data = self._summary_memory.chat_memory.messages
-        summary_data = self._summary_memory.predict_new_summary( message_data, "")
+        summary_data = self._summary_memory.predict_new_summary(message_data, "")
         return summary_data
 
     def get_model_type(self, insight_id: Optional[str] = None):
@@ -769,7 +772,7 @@ class ModelEngine(AbstractModelEngine):
                 **kwargs: Any,
             ) -> ChatResult:
                 """Top Level call"""
-               
+                
                 full_prompt = self.convert_messages_to_full_prompt(messages)
                 response = self.model_engine.ask(
                     question="", param_dict={**kwargs, **{"full_prompt": full_prompt}}
@@ -779,7 +782,6 @@ class ModelEngine(AbstractModelEngine):
 
             def _create_chat_result(self, response: Dict[str, Any]) -> ChatResult:
                 generations = []
-             
                 message = response.pop("response", "")
                 generation_info = dict()
                 if "logprobs" in response.keys():
@@ -792,7 +794,6 @@ class ModelEngine(AbstractModelEngine):
                 generations.append(gen)
 
                 return ChatResult(generations=generations, llm_output=response)
-                
 
             def convert_messages_to_full_prompt(
                 self,
