@@ -268,8 +268,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             }
 
             log_message = f"Final Output: {json.dumps(log, indent=4)}"
-
+            self.prod_logger("\n------------- OUTPUT LOG - START ----------------\n")
             self.prod_logger(log_message)
+            self.prod_logger("\n------------- OUTPUT LOG - END ----------------\n")
         except Exception as e:
             self.prod_logger(f"Error in get_final_output: {str(e)}")
 
@@ -295,9 +296,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # SETTING THE PAYLOAD HERE... NO NEED TO PASS IT AROUND WITH PARAMS
             self.thread_local.payload = payload
 
+            payload_set_log = {
+                threading.current_thread().name: self.thread_local.payload
+            }
+            self.custom_dev_logger("\n---------- PAYLOAD SET LOG - START -----------\n")
             self.custom_dev_logger(
-                f"Payload set for thread {threading.current_thread().name}: {self.thread_local.payload}"
+                f"Payload Set For Thread - {json.dumps(payload_set_log, indent=4)}"
             )
+            self.custom_dev_logger("\n---------- PAYLOAD SET LOG - END -------------\n")
 
             command_list = payload["payload"]
             command = ""
@@ -538,7 +544,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # pack the message next
         ret_array[4:] = output.encode("utf-8")
 
-        self.custom_dev_logger(f"send_request(): REQUEST === {payload}")
+        self.custom_dev_logger("\n---------- SEND REQUEST LOG - START ---------\n")
+        self.custom_dev_logger(
+            f"send_request(): REQUEST === {json.dumps(payload, indent=4)}"
+        )
+        self.custom_dev_logger("\n---------- SEND REQUEST LOG - END -----------\n")
 
         # send it out
         self.request.sendall(ret_array)
@@ -669,17 +679,21 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         payload = self.thread_local.payload
         # print("In the response block")
         # this is a response coming back from a request from the java container
+        self.custom_dev_logger("\n---------- HANDLE RESPONSE LOG - START ---------\n")
         self.custom_dev_logger(
             f"handle_response() -- Handling response which is going to check the monitors for epoc {payload.get('epoc', 'EPOC NOT FOUND')}. Here are the monitors: {self.monitors}"
         )
         if payload["epoc"] in self.monitors:
-            self.prod_logger(f"handle_response() -- Payload Response: {payload}")
+            self.prod_logger(
+                f"\nhandle_response() -- Payload Response: {json.dumps(payload, indent=4)}"
+            )
 
             condition = self.monitors[payload["epoc"]]
             self.monitors.update({payload["epoc"]: payload})
             condition.acquire()
             condition.notifyAll()
             condition.release()
+        self.custom_dev_logger("\n---------- HANDLE RESPONSE LOG - END ---------\n")
 
     def handle_shell(self):
         payload = self.thread_local.payload
