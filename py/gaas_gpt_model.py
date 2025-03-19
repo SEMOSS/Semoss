@@ -61,6 +61,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         self.engine_id = engine_id  # set the engine id
         self.insight_id = insight_id  # set the insight id
         self._summary_memory = None  # Store ConversationSummaryMemory
+        self._question_ans = []
 
     def initialize_summary(self):
         """Initialize ConversationSummaryMemory."""
@@ -77,7 +78,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         if self._summary_memory is None:
             self.initialize_summary()
         self._summary_memory.clear()
-        key_word = ["progressively summarize", "current summary", "new summary"]
         message_history = self.get_conversation_history()
         for i in range(0, len(message_history), 2):
             if i + 1 < len(message_history):
@@ -87,11 +87,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
                     ]
                 except:
                     user_data = message_history[i]["MESSAGE_DATA"]
-
-                if (
-                    key_word in user_data.lower()
-                    and key_word in message_history[i + 1]["MESSAGE_DATA"].lower()
-                ):
+                if "Progressively summarize the lines of conversation" in user_data:
                     continue
                 ai_response = message_history[i + 1]["MESSAGE_DATA"]  # AI response
                 self._summary_memory.chat_memory.add_user_message(user_data)
@@ -772,7 +768,7 @@ class ModelEngine(AbstractModelEngine):
                 **kwargs: Any,
             ) -> ChatResult:
                 """Top Level call"""
-                
+
                 full_prompt = self.convert_messages_to_full_prompt(messages)
                 response = self.model_engine.ask(
                     question="", param_dict={**kwargs, **{"full_prompt": full_prompt}}
