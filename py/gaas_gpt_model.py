@@ -728,6 +728,11 @@ class ModelEngine(AbstractModelEngine):
             model_engine: ModelEngine
             model_type: str
 
+            class Config:
+                """Configuration for this pydantic object."""
+
+                allow_population_by_field_name = True
+
             def __init__(self, model_engine):
                 data = {
                     "engine_id": model_engine.get_model_engine_id(),
@@ -742,7 +747,7 @@ class ModelEngine(AbstractModelEngine):
             def get_chat_history(
                 self, insight_id: Optional[str] = None
             ) -> List[BaseMessage]:
-                """Retrieve past conversation history and format it for Langchain."""
+                """Retrieve past conversation history and formats it for Langchain."""
                 # Fetch chat history from ModelEngine
                 history = self.model_engine.get_conversation_history()
                 messages = []
@@ -755,11 +760,6 @@ class ModelEngine(AbstractModelEngine):
 
             def chat_history_summarization(self) -> str:
                 return self.model_engine.chat_history_summarization()
-
-            class Config:
-                """Configuration for this pydantic object."""
-
-                allow_population_by_field_name = True
 
             def _generate(
                 self,
