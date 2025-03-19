@@ -11,7 +11,7 @@ import prerna.om.Insight;
 
 public class KServeVisionEngine extends AbstractRemoteModelEngine {
 	
-	private static final Logger classLogger = LogManager.getLogger(AbstractRemoteModelEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(KServeVisionEngine.class);
 	
 	@Override
 	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> hyperParameters) {
