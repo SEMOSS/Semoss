@@ -257,13 +257,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 data = {}
 
             payload = data.get("payload", [])
-            trimmed_payload = (
-                payload[0][:50] if isinstance(payload, list) and payload else "N/A"
-            )
 
             log = {
                 "epoc": data.get("epoc", "N/A"),
-                "payload": trimmed_payload,
+                "payload": payload,
                 "operation": data.get("operation", "N/A"),
             }
 
@@ -559,6 +556,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.server.stop_it()
             self.request.close()
             import sys
+
+            self.custom_dev_logger("\n---------- STOP REQUEST LOG - START ---------\n")
+            self.custom_dev_logger("Connection has been closed")
+            self.custom_dev_logger("\n---------- STOP REQUEST LOG - END -----------\n")
 
             sys.exit("Connection has been closed")
             self.stop = True
