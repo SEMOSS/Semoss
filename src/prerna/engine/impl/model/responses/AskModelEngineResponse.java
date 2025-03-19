@@ -83,12 +83,12 @@ public class AskModelEngineResponse extends AbstractModelEngineResponse<String> 
 	    Integer promptTokens = 0;
 	    Integer responseTokens = 0;
 	    
-	    if (jsonResponse.has("numberOfTokensInPrompt")) {
-	        promptTokens = jsonResponse.getInt("numberOfTokensInPrompt");
+	    if (jsonResponse.has("input_tokens")) {
+	        promptTokens = jsonResponse.getInt("input_tokens");
 	    }
 	    
-	    if (jsonResponse.has("numberOfTokensInResponse")) {
-	        responseTokens = jsonResponse.getInt("numberOfTokensInResponse");
+	    if (jsonResponse.has("output_tokens")) {
+	        responseTokens = jsonResponse.getInt("output_tokens");
 	    }
 	    
 	    AskModelEngineResponse response = new AskModelEngineResponse(responseText, promptTokens, responseTokens);
