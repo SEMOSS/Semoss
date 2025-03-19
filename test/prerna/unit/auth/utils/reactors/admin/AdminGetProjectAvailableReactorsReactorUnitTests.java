@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Map;
 import java.util.TreeSet;
-import java.util.function.Function;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,106 +27,122 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class AdminGetProjectAvailableReactorsReactorUnitTests {
+	
+	private AdminGetProjectAvailableReactorsReactor reactor;
+	private Insight insight;
+	private User user;
+	
+	private Map<String, String> keyValues;
+	
+	@BeforeEach
+	void setup() {
+		reactor = new AdminGetProjectAvailableReactorsReactor();
+		insight = mock(Insight.class);
+		user = mock(User.class);
+		reactor.setInsight(insight);
+		when(insight.getUser()).thenReturn(user);
+		
+		keyValues = reactor.keyValue;
+	}
+	
+	@Test
+	void testAdminUtilsNull() {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(null);
 
-    private AdminGetProjectAvailableReactorsReactor reactor;
-    private Insight insight;
-    private User user;
-    private Function<User, SecurityAdminUtils> userSecurityAdminUtilsFunction;
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("User must be an admin to perform this function", e.getMessage());
+		}
+		//when(sau.apply(user)).thenReturn(null);
+	}
+	
+	@Test
+	void testProjectIdNull() {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+			SecurityAdminUtils s = new SecurityAdminUtils();
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-    private Map<String, String> keyValues;
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("Must input an project id", e.getMessage());
+		}
+	}
+	
+	@Test
+	void testProjectIdEmpty() {
+		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), "");
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+			SecurityAdminUtils s = new SecurityAdminUtils();
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-    @BeforeEach
-    void setup() {
-        reactor = new AdminGetProjectAvailableReactorsReactor();
-        insight = mock(Insight.class);
-        user = mock(User.class);
-        reactor.setInsight(insight);
-        userSecurityAdminUtilsFunction = mock(Function.class);
-        when(userSecurityAdminUtilsFunction.apply(user)).thenReturn(new SecurityAdminUtils());
-        reactor.setUserSecurityAdminUtilsFunction(userSecurityAdminUtilsFunction);
-        when(insight.getUser()).thenReturn(user);
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("Must input an project id", e.getMessage());
+		}
+	}
+	
+	@Test
+	void testExecuteNoReactorsReturned() {
+		String projectAlias = "test";
+		String projectId = "testy";
+		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectAlias);
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class);
+				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
 
-        keyValues = reactor.keyValue;
-    }
+				SecurityAdminUtils s = new SecurityAdminUtils();
+				sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			
+				spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias))
+				.thenReturn(projectId);
+			
+				IProject project = mock(IProject.class);
+				util.when(() -> Utility.getProject(projectId)).thenReturn(project);
 
-    @Test
-    void testAdminUtilsNull() {
-        when(userSecurityAdminUtilsFunction.apply(user)).thenReturn(null);
+				TreeSet<String> emptyTreeSet = new TreeSet<>();
+			
+				when(project.getAvailableReactors()).thenReturn(emptyTreeSet);
+				NounMetadata nm = reactor.execute();
+				assertNotNull(nm.getValue());
+				TreeSet<String> retValue = (TreeSet<String>) nm.getValue();
+				assertEquals(emptyTreeSet.size(), retValue.size());
+				assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
 
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-        assertEquals("User must be an admin to perform this function", e.getMessage());
-    }
+				
+				spu.verify(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias), times(1));
+				util.verify(() -> Utility.getProject(projectId), times (1));
+		}
+	}
+	
+	@Test
+	void testExecuteOneReactorReturned() {
+		String projectAlias = "test";
+		String projectId = "testy";
+		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectAlias);
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class);
+				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
 
-    @Test
-    void testProjectIdNull() {
-            IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-            assertEquals("Must input an project id", e.getMessage());
-    }
+				SecurityAdminUtils s = new SecurityAdminUtils();
+				sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			
+				spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias))
+				.thenReturn(projectId);
+			
+				IProject project = mock(IProject.class);
+				util.when(() -> Utility.getProject(projectId)).thenReturn(project);
 
-    @Test
-    void testProjectIdEmpty() {
-        keyValues.put(ReactorKeysEnum.PROJECT.getKey(), "");
-
-            IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-            assertEquals("Must input an project id", e.getMessage());
-    }
-
-    @Test
-    void testExecuteNoReactorsReturned() {
-        String projectAlias = "test";
-        String projectId = "testy";
-        keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectAlias);
-        try (MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class);
-             MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
-
-            spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias))
-                    .thenReturn(projectId);
-
-            IProject project = mock(IProject.class);
-            util.when(() -> Utility.getProject(projectId)).thenReturn(project);
-
-            TreeSet<String> emptyTreeSet = new TreeSet<>();
-
-            when(project.getAvailableReactors()).thenReturn(emptyTreeSet);
-            NounMetadata nm = reactor.execute();
-            assertNotNull(nm.getValue());
-            TreeSet<String> retValue = (TreeSet<String>) nm.getValue();
-            assertEquals(emptyTreeSet.size(), retValue.size());
-            assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
-
-
-            spu.verify(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias), times(1));
-            util.verify(() -> Utility.getProject(projectId), times(1));
-        }
-    }
-
-    @Test
-    void testExecuteOneReactorReturned() {
-        String projectAlias = "test";
-        String projectId = "testy";
-        keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectAlias);
-        try (MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class);
-             MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
-
-            spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias))
-                    .thenReturn(projectId);
-
-            IProject project = mock(IProject.class);
-            util.when(() -> Utility.getProject(projectId)).thenReturn(project);
-
-            TreeSet<String> emptyTreeSet = new TreeSet<>();
-            emptyTreeSet.add("reactor 1");
-
-            when(project.getAvailableReactors()).thenReturn(emptyTreeSet);
-            NounMetadata nm = reactor.execute();
-            assertNotNull(nm.getValue());
-            TreeSet<String> retValue = (TreeSet<String>) nm.getValue();
-            assertEquals(emptyTreeSet.size(), retValue.size());
-            assertEquals("reactor 1", retValue.first());
-            assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
-
-            spu.verify(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias), times(1));
-            util.verify(() -> Utility.getProject(projectId), times(1));
-        }
-    }
+				TreeSet<String> emptyTreeSet = new TreeSet<>();
+				emptyTreeSet.add("reactor 1");
+				
+				when(project.getAvailableReactors()).thenReturn(emptyTreeSet);
+				NounMetadata nm = reactor.execute();
+				assertNotNull(nm.getValue());
+				TreeSet<String> retValue = (TreeSet<String>) nm.getValue();
+				assertEquals(emptyTreeSet.size(), retValue.size());
+				assertEquals("reactor 1", retValue.first());
+				assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
+	
+				spu.verify(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias), times(1));
+				util.verify(() -> Utility.getProject(projectId), times (1));
+		}
+	}
 }
