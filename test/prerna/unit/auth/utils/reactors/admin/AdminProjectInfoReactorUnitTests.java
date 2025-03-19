@@ -75,7 +75,7 @@ public class AdminProjectInfoReactorUnitTests {
 	@Test
 	void testProjectIdNull() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
@@ -87,7 +87,7 @@ public class AdminProjectInfoReactorUnitTests {
 	void testProjectIdEmpty() {
 		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), "");
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);

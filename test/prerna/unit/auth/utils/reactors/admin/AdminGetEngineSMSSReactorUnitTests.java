@@ -83,7 +83,7 @@ public class AdminGetEngineSMSSReactorUnitTests {
 	@Test
 	void test_EngineIdNull() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
@@ -103,7 +103,7 @@ public class AdminGetEngineSMSSReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class); 	
 				MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class)) {
 	
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 			
 			IEngine engine = mock(IEngine.class);
@@ -131,7 +131,7 @@ public class AdminGetEngineSMSSReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class); 	
 				MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class)) {
 	
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 			
 			IEngine engine = mock(IEngine.class);
@@ -166,7 +166,7 @@ public class AdminGetEngineSMSSReactorUnitTests {
 				MockedStatic<Files> files = Mockito.mockStatic(Files.class);
 				MockedStatic<Paths> paths = Mockito.mockStatic(Paths.class)) {
 	
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 			
 			IEngine engine = mock(IEngine.class);
@@ -211,7 +211,7 @@ public class AdminGetEngineSMSSReactorUnitTests {
 				MockedStatic<Paths> paths = Mockito.mockStatic(Paths.class);
 				MockedStatic<SmssUtilities> smssUtil = Mockito.mockStatic(SmssUtilities.class)) {
 	
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 			
 			IEngine engine = mock(IEngine.class);

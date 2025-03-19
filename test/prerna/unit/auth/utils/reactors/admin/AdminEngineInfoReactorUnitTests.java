@@ -71,7 +71,7 @@ public class AdminEngineInfoReactorUnitTests {
 	@Test
 	void testEngineIdNull() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
@@ -84,7 +84,7 @@ public class AdminEngineInfoReactorUnitTests {
 		Map<String, String> keyvalues = reactor.keyValue;
 		keyvalues.put("engine", "");
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 			
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);

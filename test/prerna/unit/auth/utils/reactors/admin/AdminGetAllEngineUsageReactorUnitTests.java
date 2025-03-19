@@ -55,7 +55,8 @@ public class AdminGetAllEngineUsageReactorUnitTests {
 	@Test
 	public void noEngine() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(new SecurityAdminUtils());
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
 			assertEquals("Must input an engine id", e.getMessage());
@@ -71,7 +72,8 @@ public class AdminGetAllEngineUsageReactorUnitTests {
         try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
             MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class);
             MockedStatic<ModelInferenceLogsUtils> modelInference = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
-                sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(new SecurityAdminUtils());
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+                sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
                 squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine")).thenReturn("engine");
                 modelInference.when(() -> 
                         ModelInferenceLogsUtils.getOverAllEngineUsageFromModelInferenceLogs("engine", "limit", "offset", ReactorKeysEnum.START_DATE.getKey(), ReactorKeysEnum.END_DATE.getKey())

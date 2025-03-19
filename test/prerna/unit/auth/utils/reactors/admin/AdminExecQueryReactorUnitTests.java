@@ -108,7 +108,7 @@ public class AdminExecQueryReactorUnitTests {
 	@Test
 	void testQueryStructNotInstanceOfAbstractQueryStruct() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 			
 
@@ -129,7 +129,7 @@ public class AdminExecQueryReactorUnitTests {
 		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
 		when(grs.getNoun(0)).thenReturn(nm);
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 			
 
@@ -157,7 +157,7 @@ public class AdminExecQueryReactorUnitTests {
 		when(qs.retrieveQueryStructEngine()).thenReturn(null);
 		
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 			
 
@@ -201,7 +201,7 @@ public class AdminExecQueryReactorUnitTests {
 		when(engine.getDatabaseType()).thenReturn(dbType);
 		
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			if (!(dbType == IDatabaseEngine.DATABASE_TYPE.RDBMS || dbType == IDatabaseEngine.DATABASE_TYPE.SESAME || dbType == IDatabaseEngine.DATABASE_TYPE.JENA)) {
@@ -240,7 +240,7 @@ public class AdminExecQueryReactorUnitTests {
 //		}
 //		
 //		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-//			SecurityAdminUtils s = new SecurityAdminUtils();
+//			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 //			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 //
 //			SemossPixelException e = assertThrows(SemossPixelException.class, reactor::execute);
@@ -275,7 +275,7 @@ public class AdminExecQueryReactorUnitTests {
 		}
 		
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			SemossPixelException e = assertThrows(SemossPixelException.class, reactor::execute);
@@ -308,7 +308,7 @@ public class AdminExecQueryReactorUnitTests {
 		}
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			SemossPixelException e = assertThrows(SemossPixelException.class, reactor::execute);
@@ -353,7 +353,7 @@ public class AdminExecQueryReactorUnitTests {
 		}
 		
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class); MockedStatic<DeleteSqlInterpreter> deleteSqlInterpreterMockedStatic = Mockito.mockStatic(DeleteSqlInterpreter.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 			
 			SemossPixelException e = assertThrows(SemossPixelException.class, reactor::execute);
@@ -397,7 +397,7 @@ public class AdminExecQueryReactorUnitTests {
 		
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class); 
 				MockedStatic<UpdateSqlInterpreter> updateSqlInterpreterMockedStatic = Mockito.mockStatic(UpdateSqlInterpreter.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			SemossPixelException e = assertThrows(SemossPixelException.class, reactor::execute);

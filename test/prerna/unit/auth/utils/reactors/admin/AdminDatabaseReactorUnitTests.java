@@ -83,7 +83,7 @@ public class AdminDatabaseReactorUnitTests {
     @Test
 	void testEngineIdNull() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			NullPointerException e = assertThrows(NullPointerException.class, reactor::execute);
@@ -96,7 +96,7 @@ public class AdminDatabaseReactorUnitTests {
         reactor.keyValue.put(ReactorKeysEnum.DATABASE.getKey(), "testEngineId");
 
         try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-            SecurityAdminUtils s = new SecurityAdminUtils();
+            SecurityAdminUtils s = mock(SecurityAdminUtils.class);
             sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
             when(qs.getQsType()).thenReturn(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
@@ -111,7 +111,7 @@ public class AdminDatabaseReactorUnitTests {
         reactor.keyValue.put(ReactorKeysEnum.DATABASE.getKey(), "testEngineId");
 
         try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-            SecurityAdminUtils s = new SecurityAdminUtils();
+            SecurityAdminUtils s = mock(SecurityAdminUtils.class);
             sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
             
             qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);

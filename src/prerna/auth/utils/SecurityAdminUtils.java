@@ -55,7 +55,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	private static SecurityAdminUtils instance = new SecurityAdminUtils();
 	private static final Logger classLogger = LogManager.getLogger(SecurityAdminUtils.class);
 
-	public SecurityAdminUtils() {
+	private SecurityAdminUtils() {
 		
 	}
 	

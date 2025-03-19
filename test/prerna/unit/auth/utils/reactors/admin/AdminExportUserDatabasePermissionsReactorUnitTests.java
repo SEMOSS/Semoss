@@ -106,7 +106,7 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 		when(ns.getNoun(ReactorKeysEnum.DATABASE.getKey())).thenReturn(null);
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
@@ -124,7 +124,7 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 		when(pwGrs.get(0)).thenReturn("");
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
@@ -161,7 +161,7 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class);
 				MockedStatic<ExcelUtility> eu = Mockito.mockStatic(ExcelUtility.class)) {
 
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			RDBMSNativeEngine db = mock(RDBMSNativeEngine.class);

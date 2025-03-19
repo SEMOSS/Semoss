@@ -76,7 +76,6 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
                  when(mock.hasNext()).thenReturn(true);
              })) {
 
-            UnitTestUtils.setupMocks(util, asu);
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
             assertEquals("Must input an project id", e.getMessage());
