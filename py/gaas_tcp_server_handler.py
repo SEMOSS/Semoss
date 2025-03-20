@@ -80,33 +80,31 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     # Class attribute to hold a singleton instance
     da_server = None
 
-    def setup_logging(self):
+    def log_level_mapper(self, log_level_name):
+        log_mapper = {
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+            "CRITICAL": logging.CRITICAL,
+        }
+        return log_mapper.get(log_level_name)
+
+    def logging_setup(self):
         """Configures logging with environment-based log levels."""
-
-        def log_mapper(log_level_name):
-            log_mapper = {
-                "DEBUG": logging.DEBUG,
-                "INFO": logging.INFO,
-                "WARNING": logging.WARNING,
-                "ERROR": logging.ERROR,
-                "CRITICAL": logging.CRITICAL,
-            }
-            return log_mapper.get(log_level_name)
-
-        # Get log level from environment variable (default: INFO)
-        log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
-        # log_level = getattr(logging, log_level_name, logging.INFO)
+        log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()  # (default: INFO)
 
         logging.basicConfig(
             filename=f"{self.insight_folder}/log.txt",
-            level=log_mapper(log_level_name),
+            level=self.log_level_mapper(log_level_name),
             format="%(asctime)s - %(levelname)s - %(message)s",
-            filemode="a",  # Overwrite log file on each run
+            filemode="a",
             force=True,
         )
 
         # Create a logger and apply a filter to log only the exact level
         self.logger = logging.getLogger("TCPServerHandler")
+        # log_level = getattr(logging, log_level_name, logging.INFO)
         # self.logger.addFilter(
         #     lambda record: record.levelno == log_level
         # )  # Logs only the selected level
@@ -119,6 +117,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         The method is called automatically when the Server is instantiated,
         typically during the creation of the socketserver.ThreadingTCPServer instance, before the server starts listening for client connections.
         """
+        self.logging_setup()  # setting up to log
         self.stop = False
 
         # TODO: These are currently not in use. Check with PK whether or not the are needed
@@ -196,7 +195,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # define_root_logger_script = "import sys\nroot_logger = logging.getLogger()\nroot_logger.setLevel(logging.WARNING)\nhandler = logging.StreamHandler(sys.stdout)\nformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')\nhandler.setFormatter(formatter)\nroot_logger.addHandler(handler)"
         # with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(self.console):
         #     exec(define_root_logger_script, globals())
-        self.setup_logging()
 
     def custom_dev_logger(self, message):
         """
@@ -286,7 +284,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 data = {}
 
             payload = data.get("payload", [])
-            trim = payload[0][:50]  # TODO: added for testing purpose of warning message
+            # TODO: Need to remove below line -> just added for testing purpose of warning message
+            trim = payload[0][:50]
 
             log = {
                 "epoc": data.get("epoc", "N/A"),
