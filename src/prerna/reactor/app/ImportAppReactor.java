@@ -34,6 +34,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
@@ -71,7 +72,8 @@ public class ImportAppReactor extends AbstractReactor {
 		organizeKeys();
 		Logger logger = this.getLogger(CLASS_NAME);
 		int step = 1;
-		String zipFilePath = this.keyValue.get(this.keysToGet[0]);
+		String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		//this.keyValue.get(this.keysToGet[0]);
 		// do we want this project to be accessible to everyone
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 		//User auth
