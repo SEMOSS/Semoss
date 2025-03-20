@@ -5,71 +5,38 @@ import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.io.RandomAccessReadBufferedFile;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 
-public class PDFProcessor {
+public class PDFProcessor extends AbstractFileProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(PDFProcessor.class);
 
-	// constructor with file name
-	// For every slide get the text shapes
-	// index it into a csv
-	private String filePath = null;
-	private VectorDatabaseCSVWriter writer = null;
-
 	public PDFProcessor(String filePath, VectorDatabaseCSVWriter writer) {
-		this.filePath = filePath;
-		this.writer = writer;
+		super(filePath, writer);
 	}
 
-	/**
-	 * 
-	 */
-	public void process() {
-		PDDocument pdDoc = null;
-		try {
-			File f = new File(this.filePath);
+	@Override
+	public void process() throws IOException {
+		try (PDDocument document = Loader.loadPDF(new RandomAccessReadBufferedFile(new File(this.filePath)))) {
 			String source = getSource(this.filePath);
 			PDFTextStripper pdfStripper = new PDFTextStripper();
-			pdDoc = PDDocument.load(f);
-			int totalPages = pdDoc.getNumberOfPages();
-			for(int pageIndex = 1;pageIndex <= totalPages;pageIndex++)
-			{
+			
+			for (int pageIndex = 1; pageIndex <= document.getNumberOfPages(); pageIndex++) {
 				pdfStripper.setStartPage(pageIndex);
 				pdfStripper.setEndPage(pageIndex);
-				String parsedText = pdfStripper.getText(pdDoc);
-				writer.writeRow(source, pageIndex+"", parsedText, "");
+				String parsedText = pdfStripper.getText(document);
+				this.writer.writeRow(source, pageIndex+"", parsedText);
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(pdDoc != null) {
-				try {
-					pdDoc.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			throw e;
 		}
 	}	
 
-	/**
-	 * 
-	 * @param filePath
-	 * @return
-	 */
-	private String getSource(String filePath) {
-		String source = null;
-		File file = new File(filePath);
-		if(file.exists()) {
-			source = file.getName();
-		}
-//		source = Utility.cleanString(source, true);
-		return source;
-	}
-	
 }

@@ -23,6 +23,7 @@ public class VectorDatabaseMetadataCSVTable {
 	public static final String TIMESTAMP_VAL = "Timestamp_Value";
 
     public List<VectorDatabaseMetadataCSVRow> rows;
+	private File file;
 	
     public VectorDatabaseMetadataCSVTable() {
         this.rows = new ArrayList<>();
@@ -37,8 +38,26 @@ public class VectorDatabaseMetadataCSVTable {
     	return this.rows;
     }
     
+    /**
+     * 
+     * @param file
+     * @return
+     * @throws IOException
+     */
     public static VectorDatabaseMetadataCSVTable initCSVTable(File file) throws IOException {
+    	return initCSVTable(file, -1);
+    }
+    
+    /**
+     * 
+     * @param file
+     * @param limit
+     * @return
+     * @throws IOException
+     */
+    public static VectorDatabaseMetadataCSVTable initCSVTable(File file, long limit) throws IOException {
     	VectorDatabaseMetadataCSVTable csvTable = new VectorDatabaseMetadataCSVTable();
+    	csvTable.file = file;
     	
     	final String STR_DT = SemossDataType.STRING.toString();
     	final String INT_DT = SemossDataType.INT.toString();
@@ -52,7 +71,9 @@ public class VectorDatabaseMetadataCSVTable {
     	qs.setFilePath(file.getAbsolutePath());
     	qs.setSelectorsAndTypes(new String[] {SOURCE, ATTRIBUTE, STR_VALUE, INT_VALUE, NUM_VALUE, BOOL_VALUE, DATE_VAL, TIMESTAMP_VAL}, 
     			new String[] {STR_DT, STR_DT, STR_DT, INT_DT, NUM_DT, BOOL_DT, DATE_DT, TIMESTAMP_DT});
-    	
+    	if(limit > 0) {
+    		qs.setLimit(limit);
+    	}
     	CsvFileIterator csvIt = null;
     	try {
     		csvIt = new CsvFileIterator(qs);
@@ -76,5 +97,20 @@ public class VectorDatabaseMetadataCSVTable {
     	}
 
 		return csvTable;
+    }
+    
+    /**
+     * 
+     * @param file
+     * @return
+     * @throws IOException
+     */
+    public static boolean validateCSVTable(File file) throws IOException {
+    	VectorDatabaseMetadataCSVTable csvTable = initCSVTable(file, 1);
+    	if(!csvTable.getRows().isEmpty()) {
+    		return true;
+    	}
+    	
+    	return false;
     }
 }

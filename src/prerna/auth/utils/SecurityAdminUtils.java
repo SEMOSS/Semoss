@@ -179,26 +179,31 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public List<Map<String, Object>> getAllUsers(String searchTerm, long limit, long offset) throws IllegalArgumentException {
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
 
+		final String SMSS_USER_PREFIX = "SMSS_USER__";
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONE"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__TYPE"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"ID", "id"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"TYPE", "type"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"NAME", "name"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"USERNAME", "username"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"ADMIN", "admin"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"PUBLISHER", "publisher"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"EXPORTER", "EXPORTER"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"PHONE", "phone"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"PHONEEXTENSION", "phoneextension"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"COUNTRYCODE", "ountrycode"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"MODELUSAGERESTRICTION", "model_usage_restriction"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"MODELMAXTOKENS", "model_max_tokens"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"MODELMAXRESPONSETIME", "model_max_response_time"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"MODELUSAGEFREQUENCY", "model_usage_frequency"));
+		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX+"NAME"));
+		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX+"TYPE"));
 		if(hasSearchTerm) {
 			OrQueryFilter or = new OrQueryFilter();
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX+"ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX+"NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX+"USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX+"EMAIL", "?like", searchTerm));
 			qs.addExplicitFilter(or);
 		}
 		if(limit > 0) {
@@ -637,50 +642,64 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (userId == null || userId.isEmpty()) {
 			throw new NullPointerException("Must provide a unique and non-empty user id");
 		}
-		String password = userInfo.get("password") != null ? userInfo.get("password").toString() : "";
-		String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
 		String type = userInfo.get("type") != null ? userInfo.get("type").toString() : "";
+		if (type == null || type.isEmpty()) {
+			throw new NullPointerException("Must provide the user type");
+		}
+		// only relevant for native type
+		String password = userInfo.get("password") != null ? userInfo.get("password").toString() : "";
+		// other values
+		String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
+		String email = userInfo.get("email") != null ? userInfo.get("email").toString().trim().toLowerCase() : "";
+		String username = userInfo.get("username") != null ? userInfo.get("username").toString() : "";
+		// no one uses these... oh well
 		String phone = userInfo.get("phone") != null ? userInfo.get("phone").toString() : "";
 		String phoneExtension = userInfo.get("phoneextension") != null ? userInfo.get("phoneextension").toString() : "";
 		String countryCode = userInfo.get("countrycode") != null ? userInfo.get("countrycode").toString() : "";
-		// modified fields
-		String newUserId = (String) userInfo.get("newId");
-		if (newUserId != null && newUserId.trim().isEmpty()) {
-			newUserId = null;
+		// model restrictions
+		String modelUsageRestriction = userInfo.get("model_usage_restriction") != null ? userInfo.get("model_usage_restriction").toString() : null;
+		String modelUsageFrequency = userInfo.get("model_usage_frequency") != null ? userInfo.get("model_usage_frequency").toString() : null;
+		Integer modelMaxTokens = null;
+		if(userInfo.get("model_max_tokens") != null) {
+			try {
+				modelMaxTokens = ((Number) userInfo.get("model_max_tokens")).intValue();
+			} catch(ClassCastException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("model_max_tokens must be a valid integer value");
+			}
 		}
-		String newUsername = (String) userInfo.get("newUsername");
-		if (newUsername != null && newUsername.trim().isEmpty()) {
-			newUsername = null;
+		Double modelMaxResponseTime = null;
+		if(userInfo.get("model_max_response_time") != null) {
+			try {
+				modelMaxResponseTime = ((Number) userInfo.get("model_max_response_time")).doubleValue();
+			} catch(ClassCastException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("model_max_response_time must be a valid double value");
+			}
 		}
-		String newEmail = (String) userInfo.get("newEmail");
-		// always lower case emails
-		if (newEmail != null) {
-			newEmail = newEmail.toLowerCase();
-		}
-		Boolean adminChange = null;
+		// the boolean values
+		Boolean adminValue = Boolean.FALSE;
 		if (userInfo.containsKey("admin")) {
 			if (userInfo.get("admin") instanceof Number) {
-				adminChange = ((Number) userInfo.get("admin")).intValue() == 1;
+				adminValue = ((Number) userInfo.get("admin")).intValue() == 1;
 			} else {
-				adminChange = Boolean.parseBoolean(userInfo.get("admin") + "");
+				adminValue = Boolean.parseBoolean(userInfo.get("admin") + "");
 			}
 		}
-
-		Boolean publisherChange = null;
+		Boolean publisherValue = Boolean.FALSE;
 		if (userInfo.containsKey("publisher")) {
 			if (userInfo.get("publisher") instanceof Number) {
-				publisherChange = ((Number) userInfo.get("publisher")).intValue() == 1;
+				publisherValue = ((Number) userInfo.get("publisher")).intValue() == 1;
 			} else {
-				publisherChange = Boolean.parseBoolean(userInfo.get("publisher") + "");
+				publisherValue = Boolean.parseBoolean(userInfo.get("publisher") + "");
 			}
 		}
-
-		Boolean exporterChange = Boolean.TRUE;
+		Boolean exporterValue = Boolean.FALSE;
 		if (userInfo.containsKey("exporter")) {
 			if (userInfo.get("exporter") instanceof Number) {
-				exporterChange = ((Number) userInfo.get("exporter")).intValue() == 1;
+				exporterValue = ((Number) userInfo.get("exporter")).intValue() == 1;
 			} else {
-				exporterChange = Boolean.parseBoolean(userInfo.get("exporter") + "");
+				exporterValue = Boolean.parseBoolean(userInfo.get("exporter") + "");
 			}
 		}
 
@@ -697,63 +716,28 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			isNative = SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE);
 		}
 		if (isNative) {
-			// username and id must match for native
-			// so they should be updated together and have the same value
-			if (!((newUsername != null && newUserId != null) || (newUsername == null && newUserId == null))) {
-				throw new IllegalArgumentException(
-						"For native users, the id and the username must be updated together and have the same value");
+			// username cannot be changed and must match the userid
+			if(!userId.equals(username)) {
+				throw new IllegalArgumentException("For native users, the id and the username must match and cannot be udpated");
 			}
-			if (newUserId != null && newUserId.isEmpty()) {
-				throw new IllegalArgumentException(
-						"For native users, the id and the username must be updated together and have the same value");
-			}
-			if (newUserId != null && !newUserId.equalsIgnoreCase(newUsername)) {
-				throw new IllegalArgumentException(
-						"For native users, the id and the username must be updated together and have the same value");
-			}
-		}
-		// if we are updating the user id
-		// make sure the new id does not exist
-		if (newUserId != null) {
-			if (SecurityQueryUtils.checkUserExist(newUserId)) {
-				throw new IllegalArgumentException("The new user id already exists. Please enter a unique user id.");
-			}
+		} else {
+			password = null;
 		}
 
-		/**
-		 * validate and add the columns we wish to update to list
-		 */
-		List<String> columns = new ArrayList<String>();
-		List<Object> columnValues = new ArrayList<Object>();
-
-		if (newUserId != null) {
-			columns.add("ID");
-			columnValues.add(newUserId);
-		}
-
+		boolean updatePassword = isNative && password != null && !password.isEmpty();
+		
+		// grab and validate all these errors together...
+		// TODO: should combine with the above errors as well
 		String error = "";
-		if (newEmail != null && !newEmail.isEmpty()) {
+		if (email != null && !email.isEmpty()) {
 			try {
-				validEmail(newEmail, true);
+				validEmail(email, false);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				error += e.getMessage();
 			}
-			columns.add("EMAIL");
-			columnValues.add(newEmail);
 		}
-		if (newUsername != null && !newUsername.isEmpty()) {
-			boolean usernameExists = SecurityQueryUtils.checkUsernameExist(newUsername);
-			if (usernameExists) {
-				throw new IllegalArgumentException("The username already exists");
-			}
-
-			columns.add("USERNAME");
-			columnValues.add(newUsername);
-		}
-		if (isNative 
-				&& password != null 
-				&& !password.isEmpty()) {
+		if (updatePassword) {
 			try {
 				validPassword(userId, AuthProvider.NATIVE, password);
 			} catch (Exception e) {
@@ -762,32 +746,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 			if (error.isEmpty()) {
 				newSalt = SecurityQueryUtils.generateSalt();
-				columns.add("PASSWORD");
-				columnValues.add(newSalt);
 				newHashPass = SecurityQueryUtils.hash(password, newSalt);
-				columns.add("SALT");
-				columnValues.add(newHashPass);
 			}
-		}
-		if (name != null && !name.isEmpty()) {
-			columns.add("NAME");
-			columnValues.add(name);
-		}
-		if (type != null && !type.isEmpty()) {
-			columns.add("TYPE");
-			columnValues.add(type);
-		}
-		if (adminChange != null) {
-			columns.add("ADMIN");
-			columnValues.add(adminChange);
-		}
-		if (publisherChange != null) {
-			columns.add("PUBLISHER");
-			columnValues.add(publisherChange);
-		}
-		if (exporterChange != null) {
-			columns.add("EXPORTER");
-			columnValues.add(exporterChange);
 		}
 		if (phone != null && !phone.isEmpty()) {
 			try {
@@ -796,16 +756,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				classLogger.error(Constants.STACKTRACE, e);
 				error += e.getMessage();
 			}
-			columns.add("PHONE");
-			columnValues.add(phone);
-		}
-		if (phoneExtension != null && !phoneExtension.isEmpty()) {
-			columns.add("PHONEEXTENSION");
-			columnValues.add(phoneExtension);
-		}
-		if (countryCode != null && !countryCode.isEmpty()) {
-			columns.add("COUNTRYCODE");
-			columnValues.add(countryCode);
 		}
 
 		if (error != null && !error.isEmpty()) {
@@ -815,67 +765,65 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		/**
 		 * Create ps and add updated rows to ps and values 
 		 */
+		
+		String[] whereCol = { "ID" , "TYPE" };
+		String[] columnsToUpdate = null;
+		if(updatePassword) {
+			columnsToUpdate = new String[] {"EMAIL", "USERNAME", "NAME", 
+					"ADMIN", "PUBLISHER", "EXPORTER", 
+					"PHONE", "PHONEEXTENSION", "COUNTRYCODE", 
+					"MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME", "MODELUSAGEFREQUENCY",
+					"PASSWORD", "SALT"};
+		} else {
+			columnsToUpdate = new String[] {"EMAIL", "USERNAME", "NAME", 
+					"ADMIN", "PUBLISHER", "EXPORTER", 
+					"PHONE", "PHONEEXTENSION", "COUNTRYCODE", 
+					"MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME", "MODELUSAGEFREQUENCY"};
+		}
 
-		String[] colToUpdate = columns.toArray(new String[0]);
-		String[] whereCol = { "ID" };
-		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER", colToUpdate, whereCol);
+		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER", columnsToUpdate, whereCol);
 		PreparedStatement editUserPs = null;
 		try {
 			editUserPs = securityDb.getPreparedStatement(editUserQuery);
 			int i = 1;
-			if (newUserId != null && !newUserId.isEmpty()) {
-				editUserPs.setString(i++, newUserId);
+			editUserPs.setString(i++, email);
+			editUserPs.setString(i++, username);
+			editUserPs.setString(i++, name);
+			editUserPs.setBoolean(i++, adminValue);
+			editUserPs.setBoolean(i++, publisherValue);
+			editUserPs.setBoolean(i++, exporterValue);
+			editUserPs.setString(i++, phone);
+			editUserPs.setString(i++, phoneExtension);
+			editUserPs.setString(i++, countryCode);
+			
+			if (modelUsageRestriction == null || (modelUsageRestriction=modelUsageRestriction.trim()).isEmpty()) {
+				editUserPs.setNull(i++, java.sql.Types.VARCHAR);
+			} else {
+				editUserPs.setString(i++, modelUsageRestriction);
 			}
-			if(newEmail != null && !newEmail.isEmpty()) {
-				editUserPs.setString(i++, newEmail);
+			if (modelMaxTokens == null) {
+				editUserPs.setNull(i++, java.sql.Types.INTEGER);
+			} else {
+				editUserPs.setInt(i++, modelMaxTokens);
 			}
-			if (newUsername != null && !newUsername.isEmpty()) {
-				editUserPs.setString(i++, newUsername);
+			if (modelMaxResponseTime == null) {
+				editUserPs.setNull(i++, java.sql.Types.DOUBLE);
+			} else {
+				editUserPs.setDouble(i++, modelMaxResponseTime);
 			}
-			if (newHashPass != null && !newHashPass.isEmpty()) {
+			if (modelUsageFrequency == null || (modelUsageFrequency=modelUsageFrequency.trim()).isEmpty()) {
+				editUserPs.setNull(i++, java.sql.Types.VARCHAR);
+			} else {
+				editUserPs.setString(i++, modelUsageFrequency);
+			}
+			// we have these to update as well for native
+			if(updatePassword) {
 				editUserPs.setString(i++, newHashPass);
-			}
-			if (newSalt != null && !newSalt.isEmpty()) {
 				editUserPs.setString(i++, newSalt);
-			}
-			if (name != null && !name.isEmpty()) {
-				editUserPs.setString(i++, name);
-			}
-			if (type != null && !type.isEmpty()) {
-				editUserPs.setString(i++, type);
-			}
-			if (adminChange != null) {
-				if(adminChange) {
-					editUserPs.setBoolean(i++, true);
-				} else {
-					editUserPs.setBoolean(i++, false);
-				}
-			}
-			if (publisherChange != null) {
-				if(publisherChange) {
-					editUserPs.setBoolean(i++, true);
-				} else {
-					editUserPs.setBoolean(i++, false);
-				}
-			}
-			if (exporterChange != null) {
-				if(exporterChange) {
-					editUserPs.setBoolean(i++, true);
-				} else {
-					editUserPs.setBoolean(i++, false);
-				}
-			}
-			if (phone != null && !phone.isEmpty()) {
-				editUserPs.setString(i++, phone);
-			}
-			if (phoneExtension != null && !phoneExtension.isEmpty()) {
-				editUserPs.setString(i++, phoneExtension);
-			}
-			if (countryCode != null && !countryCode.isEmpty()) {
-				editUserPs.setString(i++, countryCode);
 			}
 			// Where 
 			editUserPs.setString(i++, userId);
+			editUserPs.setString(i++, type);
 			editUserPs.execute();
 			if (!editUserPs.getConnection().getAutoCommit()) {
 				editUserPs.getConnection().commit();
@@ -889,36 +837,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 
 		/**
-		 * HMM what to do about this one Should i update?
+		 * HMM what to do about this one should i update?
 		 */
-		if (isNative) {
-			if (newUserId != null && !userId.equals(newUserId)) {
-				// need to update the password history
-				String updateQuery = "UPDATE PASSWORD_HISTORY SET USERID=? WHERE USERID=? and TYPE=?";
-				PreparedStatement ps = null;
-				try {
-					ps = securityDb.getPreparedStatement(updateQuery);
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newUserId);
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, type);
-					ps.execute();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			}
-			if (newHashPass != null && newSalt != null) {
-				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-				try {
-					SecurityNativeUserUtils.storeUserPassword(userId, type, newHashPass, newSalt, timestamp);
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
+		if (updatePassword) {
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
+			try {
+				SecurityNativeUserUtils.storeUserPassword(userId, type, newHashPass, newSalt, timestamp);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return true;
@@ -1500,9 +1426,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param newUserId
 	 * @param engineId
 	 * @param permission
-	 * @return
+	 * @param user
+	 * @param endDate
+	 * @param usageRestriction
+	 * @param usageFrequency
+	 * @param maxTokens
+	 * @param maxResponseTime
 	 */
-	public void addEngineUser(String newUserId, String engineId, String permission, User user, String endDate) {
+	public void addEngineUser(String newUserId, String engineId, String permission, User user, String endDate, 
+			String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime) {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user doesn't already exist for this database
@@ -1518,7 +1450,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;	
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
@@ -1531,13 +1463,33 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			if(usageRestriction == null || (usageRestriction=usageRestriction.trim()).isEmpty()) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, usageRestriction);
+			}
+			if(usageFrequency == null || (usageFrequency=usageFrequency.trim()).isEmpty()) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, usageFrequency);
+			}
+			if(maxTokens == 0) {
+				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+			} else {
+				ps.setInt(parameterIndex++, maxTokens);
+			}
+			if(maxResponseTime == 0.0) {
+				ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+			} else {
+				ps.setDouble(parameterIndex++, maxResponseTime); 
+			}
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1545,44 +1497,73 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * 
-	 * @param newUserId
-	 * @param databaseId
+	 * @param engineId
 	 * @param permission
-	 * @return
+	 * @param user
 	 */
-	public void addEngineUserPermissions(String databaseId, List<Map<String,String>> permission, User user, String endDate) {
+	public void addEngineUserPermissions(String engineId, List<Map<String,Object>> permission, User user) {
 		// first, check to make sure these users do not already have permissions to database
 		// get list of userids from permission list map
-		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
+		List<String> userIds = permission.stream().map(map -> (String) map.get("userid")).collect(Collectors.toList());
 		// this returns a list of existing permissions
-		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(userIds, databaseId);
+		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(userIds, engineId);
 		if (!existingUserPermission.isEmpty()) {
 			throw new IllegalArgumentException("The following users already have access to this database. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
 		}
 		
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
 		
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
 			for(int i=0; i<permission.size(); i++) {
+				Map<String, Object> thisPermissionMap = permission.get(i);
+				
 				int parameterIndex = 1;
-				ps.setString(parameterIndex++, permission.get(i).get("userid"));
-				ps.setString(parameterIndex++, databaseId);
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
+				ps.setString(parameterIndex++, (String) thisPermissionMap.get("userid"));
+				ps.setString(parameterIndex++, engineId);
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission((String) thisPermissionMap.get("permission")));
 				ps.setBoolean(parameterIndex++, true);
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				// end date for this user
+				Timestamp verifiedEndDate = null;
+				if (thisPermissionMap.get("endDate") != null) {
+					verifiedEndDate = AbstractSecurityUtils.calculateEndDate((String) thisPermissionMap.get("endDate"));
+					ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+				}
+				
+				// engine usage restrictions
+				if(thisPermissionMap.get("usageRestriction") != null
+						&& !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
+					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageRestriction")).trim());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				}
+				if(thisPermissionMap.get("usageFrequency") != null
+						&& !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
+					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageFrequency")).trim());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				}
+				if(thisPermissionMap.get("maxTokens") != null) {
+					ps.setInt(parameterIndex++, ((Number)thisPermissionMap.get("maxTokens")).intValue());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+				}
+				if(thisPermissionMap.get("maxResponseTime") != null) {
+					ps.setDouble(parameterIndex++, ((Number)thisPermissionMap.get("maxResponseTime")).doubleValue());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+				}
+				
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -1591,7 +1572,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred setting the permissions for this engine");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1604,7 +1585,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addProjectUserPermissions(String projectId, List<Map<String,String>> permission, User user, String endDate) {
+	public void addProjectUserPermissions(String projectId, List<Map<String,String>> permission, User user) {
 		// first, check to make sure these users do not already have permissions to project
 		// get list of userids from permission list map
 		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
@@ -1613,14 +1594,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (!existingUserPermission.isEmpty()) {
 			throw new IllegalArgumentException("The following users already have access to this project. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
 		}
-		
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-		
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
@@ -1628,15 +1604,24 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
 			for(int i=0; i<permission.size(); i++) {
+				Map<String, String> thisPermissionMap = permission.get(i);
+
 				int parameterIndex = 1;
-				ps.setString(parameterIndex++, permission.get(i).get("userid"));
+				ps.setString(parameterIndex++, thisPermissionMap.get("userid"));
 				ps.setString(parameterIndex++, projectId);
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(thisPermissionMap.get("permission")));
 				ps.setBoolean(parameterIndex++, true);
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				// end date for this user
+				Timestamp verifiedEndDate = null;
+				if (thisPermissionMap.get("endDate") != null) {
+					verifiedEndDate = AbstractSecurityUtils.calculateEndDate(thisPermissionMap.get("endDate"));
+					ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+				}
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -1645,7 +1630,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this project. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1699,7 +1684,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this insight. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1747,7 +1732,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this project. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -2222,9 +2207,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param existingUserId
 	 * @param engineId
 	 * @param newPermission
-	 * @return
+	 * @param user
+	 * @param endDate
+	 * @param maxTokens
+	 * @param maxResponseTime
+	 * @param usageRestriction
+	 * @param usageFrequency
 	 */
-	public void editEngineUserPermission(String existingUserId, String engineId, String newPermission, User user, String endDate) {
+	public void editEngineUserPermission(String existingUserId, String engineId, String newPermission, User user, String endDate, String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime) {
 		// make sure we are trying to edit a permission that exists
 		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, engineId);
 		if(existingUserPermission == null) {
@@ -2239,7 +2229,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=? WHERE USERID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
@@ -2250,6 +2240,26 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			if(usageRestriction == null || (usageRestriction=usageRestriction.trim()).isEmpty()) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, usageRestriction);
+			}
+			if(usageFrequency == null || (usageFrequency=usageFrequency.trim()).isEmpty()) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, usageFrequency);
+			}
+			if(maxTokens == 0) {
+				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+			} else {
+				ps.setInt(parameterIndex++, maxTokens);
+			}
+			if(maxResponseTime == 0.0) {
+				ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+			} else {
+				ps.setDouble(parameterIndex++, maxResponseTime); 
+			}
 			//WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, engineId);
@@ -2259,7 +2269,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
@@ -2267,20 +2277,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * 
-	 * @param user
-	 * @param existingUserId
 	 * @param engineId
-	 * @param newPermission
+	 * @param permission
 	 * @param user
-	 * @param endDate
-	 * @return
-	 * @throws IllegalAccessException 
+	 * @throws IllegalAccessException
 	 */
-	public static void editEngineUserPermissions(String engineId, List<Map<String, String>> requests, User user, String endDate) throws IllegalAccessException {
+	public static void editEngineUserPermissions(String engineId, List<Map<String, Object>> permission, User user) throws IllegalAccessException {
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
-	    for(Map<String,String> i:requests){
-	    	String userId=Utility.inputSQLSanitizer(i.get("userid"));
+	    for(Map<String,Object> i:permission){
+	    	String userId=Utility.inputSQLSanitizer((String) i.get("userid"));
 	    	existingUserIds.add(userId);
 	    }
 			    
@@ -2295,28 +2301,58 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
 		
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// update user permissions in bulk
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=? WHERE USERID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
-			for(int i=0; i<requests.size(); i++) {
+			for(int i=0; i<permission.size(); i++) {
+				Map<String, Object> thisPermissionMap = permission.get(i);
+
 				int parameterIndex = 1;
 				//SET
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission((String) thisPermissionMap.get("permission")));
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				// end date for this user
+				Timestamp verifiedEndDate = null;
+				if (thisPermissionMap.get("endDate") != null) {
+					verifiedEndDate = AbstractSecurityUtils.calculateEndDate((String) thisPermissionMap.get("endDate"));
+					ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+				}
+				
+				// engine usage restrictions
+				if(thisPermissionMap.get("usageRestriction") != null
+						&& !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
+					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageRestriction")).trim());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				}
+				if(thisPermissionMap.get("usageFrequency") != null
+						&& !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
+					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageFrequency")).trim());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				}
+				if(thisPermissionMap.get("maxTokens") != null) {
+					ps.setInt(parameterIndex++, ((Number)thisPermissionMap.get("maxTokens")).intValue());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+				}
+				if(thisPermissionMap.get("maxResponseTime") != null) {
+					ps.setDouble(parameterIndex++, ((Number)thisPermissionMap.get("maxResponseTime")).doubleValue());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+				}
+				
 				//WHERE
-				ps.setString(parameterIndex++, requests.get(i).get("userid"));
+				ps.setString(parameterIndex++, (String) thisPermissionMap.get("userid"));
 				ps.setString(parameterIndex++, engineId);
 				ps.addBatch();
 			}
@@ -2326,7 +2362,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -2376,7 +2412,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this project");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this project. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -2442,7 +2478,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this project");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this project. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
@@ -2507,7 +2543,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this insight");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this insight. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
@@ -3640,6 +3676,36 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * 
+	 * @return
+	 */
+	public Object[] getAdminUserIdAndType() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return wrapper.next().getValues();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
 	 * Approving user access requests and giving user access in permissions
 	 * @param userId
 	 * @param userType
@@ -4059,6 +4125,20 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", Constants.MARKDOWN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", engineId));
 		return QueryExecutionUtility.flushToString(securityDb, qs);
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public Long getNumUsers() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+        fSelector.setAlias("num_users");
+        fSelector.setFunction(QueryFunctionHelper.COUNT);
+        fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+        qs.addSelector(fSelector);
+        return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 
 }

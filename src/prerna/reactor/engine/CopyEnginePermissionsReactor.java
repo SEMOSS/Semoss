@@ -51,6 +51,7 @@ public class CopyEnginePermissionsReactor extends AbstractReactor {
 
 		String sourceDatabase = SecurityEngineUtils.getEngineAliasForId(sourceEngineId);
 		String targetDatabase = SecurityEngineUtils.getEngineAliasForId(targetEngineId);
+		
 
 		return new NounMetadata("Copied permissions from database " 
 				+ sourceDatabase  + "__" + sourceEngineId + " to " + targetDatabase + "__" + targetEngineId, 
@@ -60,9 +61,9 @@ public class CopyEnginePermissionsReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(SOURCE_ENGINE)) {
-			return "The engine id that is used to provide information";
+			return "The engine id used to copy permissions from";
 		} else if(key.equals(TARGET_ENGINE)) {
-			return "The engine id that the operation is applied on";
+			return "The engine id to copy permissions to";
 		}
 		return ReactorKeysEnum.getDescriptionFromKey(key);
 	}

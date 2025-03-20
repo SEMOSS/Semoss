@@ -100,7 +100,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 				String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, "
-						+ "PASSWORD=?, SALT=?, LASTLOGIN=?, PHONE=?, PHONEEXTENSION=?, COUNTRYCODE=? WHERE ID=?";
+						+ "PASSWORD=?, SALT=?, LASTLOGIN=?, PHONE=?, PHONEEXTENSION=?, COUNTRYCODE=?, "
+						+ "MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? "
+						+ "WHERE ID=?";
 				PreparedStatement ps = null;
 				try {
 					int parameterIndex = 1;
@@ -139,6 +141,26 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getCountryCode());
+					}
+					if(newUser.getModelMaxTokens() == 0) {
+						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
+					} else {
+						ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
+					}
+					if(newUser.getModelMaxResponseTime() == 0.0) {
+						ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
+					} else {
+						ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
+					}
+					if(newUser.getModelUsageRestriction() == null || newUser.getModelUsageRestriction().isEmpty()) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
+					}
+					if(newUser.getModelUsageFrequency() == null || newUser.getModelUsageFrequency().isEmpty()) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
 					}
 					// where 
 					ps.setString(parameterIndex++, oldId);
@@ -200,8 +222,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 					
 					String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
-							+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE) "
-							+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+							+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE, "
+							+ "MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY, MODELUSAGERESTRICTION) "
+							+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 					
 					PreparedStatement ps = null;
 					try {
@@ -245,6 +268,26 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 						} else {
 							ps.setString(parameterIndex++, newUser.getCountryCode());
+						}
+						if(newUser.getModelMaxTokens() == 0) {
+							ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
+						} else {
+							ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
+						}
+						if(newUser.getModelMaxResponseTime() == 0.0) {
+							ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
+						} else {
+							ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
+						}
+						if(newUser.getModelUsageRestriction() == null || newUser.getModelUsageRestriction().isEmpty()) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
+						}
+						if(newUser.getModelUsageFrequency() == null || newUser.getModelUsageFrequency().isEmpty()) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
 						}
 						ps.execute();
 						if(!ps.getConnection().getAutoCommit()) {
@@ -477,7 +520,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(USERID_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.toString()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.getLabel()));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -542,7 +585,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(EMAIL_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.toString()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.getLabel()));
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -624,7 +667,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(PHONE_EXTENSION_COL));
 		qs.addSelector(new QueryColumnSelector(COUNTRY_CODE_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.toString()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.getLabel()));
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -777,7 +820,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			ps.execute();
 			
 			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-			storeUserPassword(userId, AuthProvider.NATIVE.toString(), hashPassword, salt, timestamp);
+			storeUserPassword(userId, AuthProvider.NATIVE.getLabel(), hashPassword, salt, timestamp);
 
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();

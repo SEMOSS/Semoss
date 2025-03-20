@@ -9,8 +9,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
-import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -143,9 +143,9 @@ public class RemoteModelEngine implements IModelEngine {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
+	
 	@Override
-	public Object model(Object input, Insight insight, Map<String, Object> parameters) {
+	public EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}

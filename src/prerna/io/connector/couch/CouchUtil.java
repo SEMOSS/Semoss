@@ -74,6 +74,7 @@ public class CouchUtil {
 	public static final String MODEL = "model";
 	public static final String VECTOR = "vector";
 	public static final String FUNCTION = "function";
+	public static final String GUARDRAIL = "guardrail";
 	public static final String INSIGHT = "insight";
 	public static final String PROJECT = "project";
 	

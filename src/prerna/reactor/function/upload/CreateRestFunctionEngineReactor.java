@@ -65,7 +65,7 @@ public class CreateRestFunctionEngineReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 
-		if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+		if (AbstractSecurityUtils.adminOnlyFunctionAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 
@@ -79,8 +79,8 @@ public class CreateRestFunctionEngineReactor extends AbstractReactor {
 		}
 
 		//String functionName = getFunctionName();
-		Map<String, String> functionDetails = getFunctionDetails();
-		String functionTypeStr = functionDetails.get(IFunctionEngine.FUNCTION_TYPE);
+		Map<String, Object> functionDetails = getFunctionDetails();
+		String functionTypeStr = (String) functionDetails.get(IFunctionEngine.FUNCTION_TYPE);
 		if(functionTypeStr == null || (functionTypeStr=functionTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the function type");
 		}
@@ -192,18 +192,18 @@ public class CreateRestFunctionEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private Map<String, String> getFunctionDetails() {
+	private Map<String, Object> getFunctionDetails() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if(mapNouns != null && !mapNouns.isEmpty()) {
-				return (Map<String, String>) mapNouns.get(0).getValue();
+				return (Map<String, Object>) mapNouns.get(0).getValue();
 			}
 		}
 		
 		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
 		if(mapNouns != null && !mapNouns.isEmpty()) {
-			return (Map<String, String>) mapNouns.get(0).getValue();
+			return (Map<String, Object>) mapNouns.get(0).getValue();
 		}
 		
 		throw new NullPointerException("Must define the properties for the new function engine");

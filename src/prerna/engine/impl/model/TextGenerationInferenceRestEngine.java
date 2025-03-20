@@ -487,12 +487,12 @@ public class TextGenerationInferenceRestEngine extends AbstractRESTModelEngine {
 	protected EmbeddingsModelEngineResponse embeddingsCall(List<String> stringsToEmbed, Insight insight, Map<String, Object> parameters) {
 		return new EmbeddingsModelEngineResponse(null, null, null);
 	}
-
-	@Override
-	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
-		return "This model does have an model method defined.";
-	}
 	
+	@Override
+	public EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters) {
+		return new EmbeddingsModelEngineResponse(null, null, null);
+	}
+
 	@Override
 	protected void resetAfterTimeout() {
 		// TODO Auto-generated method stub

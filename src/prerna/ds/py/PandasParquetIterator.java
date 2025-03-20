@@ -107,8 +107,6 @@ public class PandasParquetIterator implements Iterator<IHeadersDataRow> {
 			for(int colIndex = 0;colIndex < daList.size();colIndex++)
 			{
 				Object elem = daList.get(colIndex);
-				if(elem instanceof jep.NDArray)
-					elem = ((jep.NDArray)elem).getData();
 
 				if(elem instanceof long[])
 				{

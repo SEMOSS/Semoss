@@ -3,13 +3,16 @@ package prerna.engine.impl.vector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
@@ -119,10 +122,14 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		// if we were able to extract files, begin embeddings process
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-
 		// send all the strings to embed in one shot
-		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
-
+		try {
+			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred creating the embeddings for the generated chunks. Detailed error message = " + e.getMessage());
+		}
+		
 		Map<String, Object> vectors = new HashMap<>();
 		List<String> ids = new ArrayList<>();
 		List<Float[]> embeddings = new ArrayList<>();
@@ -172,16 +179,27 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	@Override
-	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) {
+	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws IOException {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
+		List<String> sourceNames = new ArrayList<>();
+    	for(String document : fileNames) {
+			String documentName = FilenameUtils.getName(document);
+			File f = new File(document);
+			if(f.exists() && f.getName().endsWith(".csv")) {
+				sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
+			} else {
+				sourceNames.add(documentName);
+			}
+    	}
+		
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 
 		// need to get the source names and then delete it based on the names
-		for (int fileIndex = 0; fileIndex < fileNames.size(); fileIndex++) {
+		for (int fileIndex = 0; fileIndex < sourceNames.size(); fileIndex++) {
 			String fileName = fileNames.get(fileIndex);
 
 			// Delete document in ChromaDB using their ID, but to get the ID we need to find
@@ -278,6 +296,49 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// Retrieve the metadatas list response
 		List<Map<String, Object>> resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
 		return (List<Map<String, Object>>) resultMap.get(0);
+	}
+	
+	@Override
+	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey("indexClass")) {
+			indexClass = (String) parameters.get("indexClass");
+		}
+
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+
+		List<Map<String, Object>> fileList = new ArrayList<>();
+
+		File[] files = documentsDir.listFiles();
+		if (files != null) {
+			for (File file : files) {
+				String fileName = file.getName();
+				long fileSizeInBytes = file.length();
+				double fileSizeInMB = (double) fileSizeInBytes / (1024);
+				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				String lastModified = dateFormat.format(new Date(file.lastModified()));
+
+				Map<String, Object> fileInfo = new HashMap<>();
+				fileInfo.put("fileName", fileName);
+				fileInfo.put("fileSize", fileSizeInMB);
+				fileInfo.put("lastModified", lastModified);
+				fileList.add(fileInfo);
+			}
+		} 
+
+		return fileList;
+	}
+	
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		throw new IllegalArgumentException("This method has not been implemented yet");
 	}
 	
 	@Override

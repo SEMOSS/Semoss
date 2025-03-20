@@ -1,7 +1,4 @@
 from typing import List, Tuple, Dict, Optional
-import os
-import zipfile
-import shutil
 
 from gaas_server_proxy import ServerProxy
 
@@ -11,23 +8,25 @@ class VectorEngine(ServerProxy):
 
     def __init__(
         self,
-        insight_folder: str,
         engine_id: str,
         insight_id: Optional[str] = None,
+        # we do not use this anymore
+        insight_folder: Optional[str] = None,
     ):
         assert engine_id is not None
         super().__init__()
         self.engine_id = engine_id
         self.insight_id = insight_id
+        # we do not use this anymore
         self.insight_folder = insight_folder
         print(f"Vector Engine {engine_id} is initialized")
 
     def addDocument(
         self,
         file_paths: List[str],
+        space: Optional[str] = None,
         param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
-        space: Optional[str] = None,
     ) -> bool:
         """
         Add the documents into the vector database
@@ -36,6 +35,7 @@ class VectorEngine(ServerProxy):
             file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add
             param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+            space (`Optional[str]`): If the files being loaded are in an app and not the insight, provide space='appid'
         """
         assert file_paths is not None
         if insight_id is None:
@@ -49,7 +49,7 @@ class VectorEngine(ServerProxy):
             f",space=['{space}']" if (space is not None and space != "") else ""
         )
 
-        pixel = f'CreateEmbeddingsFromDocuments(engine="{self.engine_id}",filePaths={file_paths}{optionalParams}{optionalSpace});'
+        pixel = f'CreateEmbeddingsFromDocuments(engine="{self.engine_id}",filePaths={file_paths}{optionalSpace}{optionalParams});'
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(
@@ -67,6 +67,7 @@ class VectorEngine(ServerProxy):
     def addVectorCSVFile(
         self,
         file_paths: List[str],
+        space: Optional[str] = None,
         param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
     ) -> bool:
@@ -77,6 +78,7 @@ class VectorEngine(ServerProxy):
             file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add
             param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+            space (`Optional[str]`): If the files being loaded are in an app and not the insight, provide space='appid'
         """
         assert file_paths is not None
         if insight_id is None:
@@ -86,7 +88,11 @@ class VectorEngine(ServerProxy):
             f",paramValues=[{param_dict}]" if param_dict is not None else ""
         )
 
-        pixel = f'CreateEmbeddingsFromVectorCSVFile(engine="{self.engine_id}",filePaths={file_paths}{optionalParams});'
+        optionalSpace = (
+            f",space=['{space}']" if (space is not None and space != "") else ""
+        )
+
+        pixel = f'CreateEmbeddingsFromVectorCSVFile(engine="{self.engine_id}",filePaths={file_paths}{optionalSpace}{optionalParams});'
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(
@@ -285,90 +291,63 @@ class VectorEngine(ServerProxy):
 
         return pixelReturn
 
-    def _determine_ids(
-        self, engine_id: Optional[str], insight_id: Optional[str]
-    ) -> Tuple[str, str]:
-        if engine_id is None:
-            engine_id = self.engine_id
+    def to_langchain_vector_store(self):
+        """Transform the vector engine into a langchain BaseRetriever object so that it can be used with langchain code."""
+        from langchain_core.callbacks import CallbackManagerForRetrieverRun
+        from langchain_core.documents import Document
+        from langchain_core.retrievers import BaseRetriever
 
-        if insight_id is None:
-            insight_id = self.insight_id
+        class SemossLangchainVector(BaseRetriever):
+            engine_id: str
+            vector_engine: VectorEngine
+            insight_id: Optional[str]
 
-        assert engine_id is not None
-        assert insight_id is not None
+            def __init__(self, vector_engine):
+                """Initialize with the provided vector engine."""
+                data = {
+                    "engine_id": vector_engine.engine_id,
+                    "insight_id": vector_engine.insight_id,
+                    "vector_engine": vector_engine,
+                }
+                super().__init__(**data)
 
-        return engine_id, insight_id
+            class Config:
+                """Configuration for this pydantic object."""
 
-    def get_files(self, file_paths: List[str]) -> List[str]:
-        valid_files = []
+                allow_population_by_field_name = True
 
-        for file_path in file_paths:
-            # Update file_path to include the insight folder path
-            if not os.path.isfile(file_path):
-                # should never start a path with a /
-                if file_path[0] == "/":
-                    file_path = file_path[1:]
-
-                updated_file_path = os.path.join(self.insight_folder, file_path)
-                if os.path.isfile(updated_file_path):
-                    file_path = updated_file_path
-                else:
-                    raise IOError(f"Unable to find file path for {file_path}")
-
-            if self._is_zip_file(file_path):
-                valid_files_in_zip = self._unzip_and_filter(
-                    file_path, os.path.splitext(file_path)[0]
+            def addDocs(self, file_paths: List[str]) -> None:
+                """Add documents to the vector store."""
+                self.vector_engine.addDocument(
+                    file_paths=file_paths, insight_id=self.insight_id
                 )
-                valid_files.extend(valid_files_in_zip)
-            elif self._is_supported_file_type(file_path):
-                valid_files.append(file_path)
 
-        return valid_files
+            def removeDocs(self, file_names: List[str]) -> None:
+                """Remove documents from the vector store."""
+                return self.vector_engine.removeDocument(
+                    file_names=file_names, insight_id=self.insight_id
+                )
 
-    @staticmethod
-    def _unzip_and_filter(zip_file_path, dest_directory) -> List[str]:
-        valid_file_paths = []
+            def similaritySearch(self, query: str, k: int) -> List[Document]:
+                """Search for documents similar to the query."""
+                results = self.vector_engine.nearestNeighbor(
+                    search_statement=query, limit=k, insight_id=self.insight_id
+                )
 
-        def extract_file(z, entry, file_path):
-            dir_path = os.path.dirname(file_path)
-            os.makedirs(dir_path, exist_ok=True)
-            with open(file_path, "wb") as f:
-                shutil.copyfileobj(z.open(entry), f)
+                documents = [
+                    Document(page_content=result["Content"], metadata=result)
+                    for result in results
+                ]
+                return documents
 
-        with zipfile.ZipFile(zip_file_path, "r") as z:
-            for entry in z.namelist():
-                file_path = os.path.join(dest_directory, entry)
-                if not entry.endswith("/") and VectorEngine._is_supported_file_type(
-                    file_path
-                ):
-                    extract_file(z, entry, file_path)
-                    valid_file_paths.append(file_path)
-                elif entry.endswith("/"):
-                    os.makedirs(file_path, exist_ok=True)
-                elif VectorEngine._is_zip_file(file_path):
-                    extract_file(z, entry, file_path)
-                    parent_path = os.path.dirname(file_path)
-                    base_name = os.path.splitext(os.path.basename(file_path))[0]
-                    nested_dest_directory = os.path.join(parent_path, base_name)
-                    nested_valid_paths = VectorEngine._unzip_and_filter(
-                        file_path, nested_dest_directory
-                    )
-                    valid_file_paths.extend(nested_valid_paths)
+            def listDocs(self):
+                """List the documents in the vector store"""
+                return self.vector_engine.listDocuments()
 
-        return valid_file_paths
+            def _get_relevant_documents(
+                self, query: str, *, run_manager: CallbackManagerForRetrieverRun, k: int
+            ) -> List[Document]:
+                """Retrieve relevant documents based on the query."""
+                return self.similarity_search(query, k)
 
-    @staticmethod
-    def _is_supported_file_type(file_path):
-        return file_path.split(".")[-1].lower() in {
-            "pdf",
-            "pptx",
-            "ppt",
-            "doc",
-            "docx",
-            "txt",
-            "csv",
-        }
-
-    @staticmethod
-    def _is_zip_file(file_path):
-        return file_path.split(".")[-1].lower() == "zip"
+        return SemossLangchainVector(vector_engine=self)

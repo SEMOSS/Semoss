@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
@@ -17,38 +18,33 @@ import prerna.util.Utility;
 public class LLMReactor extends AbstractReactor {
 	
 	public LLMReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), 
-				ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(), 
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
-		this.keyRequired = new int[] {1, 1, 0, 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
+				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
+		User user = this.insight.getUser();
+		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+			throw new IllegalArgumentException(
+					"Model " + engineId + " does not exist or user does not have access to this model");
 		}
-		
+
 		String question = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
 		String context = this.keyValue.get(this.keysToGet[2]);
 		if (context != null) {
 			context = Utility.decodeURIComponent(context);
 		}
-		
+
 		Map<String, Object> paramMap = getMap();
 		IModelEngine modelEngine = Utility.getModel(engineId);
-		if(paramMap == null) {
+		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
-		
-		//reverting this for now
-//		if (paramMap.containsKey("full_prompt")) {
-//			paramMap.put("full_prompt", Utility.decodeURIComponent((String) paramMap.get("full_prompt")));
-//		}
-//		
-		
+
 		Map<String, Object> output = modelEngine.ask(question, context, this.insight, paramMap).toMap();
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
@@ -71,5 +67,20 @@ public class LLMReactor extends AbstractReactor {
         }
         return null;
     }
+	
+	@Override
+	public String getReactorDescription() {
+		return "This method is used to run an LLM text-generation call";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+			return "This is the prompt to execute against the LLM";
+		} else if(key.equals(ReactorKeysEnum.CONTEXT.getKey())) {
+			return "The system prompt to use for the LLM call";
+		}
+		return super.getDescriptionForKey(key);
+	}
 	
 }

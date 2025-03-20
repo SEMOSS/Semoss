@@ -3,6 +3,7 @@ package prerna.reactor.utils;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -16,26 +17,39 @@ public class GetUserInfoReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		Map<String, Object> returnMap = new HashMap<String, Object>();
+		Map<String, Object> returnMap = new TreeMap<String, Object>();
 		User user = this.insight.getUser();
 		if(user != null) {
+			String userEpoch = user.getUserEpoch();
 			for (AuthProvider provider : user.getLogins()) {
 				String providerName = provider.name();
 				AccessToken token = user.getAccessToken(provider);
-				Map<String, Object> providerMap = new HashMap<>();
+				
+				// add basic user details we capture
+				Map<String, Object> providerMap = new TreeMap<>();
 				providerMap.put("id", token.getId() == null ? "null" : token.getId());
 				providerMap.put("name", token.getName() == null ? "null" : token.getName());
 				providerMap.put("username", token.getUsername() == null ? "null" : token.getUsername());
 				providerMap.put("email", token.getEmail() == null ? "null" : token.getEmail());
 				providerMap.put("lastPwdReset", token.getLastPasswordReset() == null ? "null" : token.getLastPasswordReset());
+				providerMap.put("lastLogin", token.getLastLogin() == null ? "null" : token.getLastLogin());
+
+				// add san info
 				Map<String, String> san = token.getSAN();
 				providerMap.put("san", san);
+				
+				// add group info
+				Map<String, Object> groupMap = new HashMap<>();
 				String groupType = token.getUserGroupType();
 				Collection<String> groups = token.getUserGroups();
-				Map<String, Object> groupMap = new HashMap<>();
 				groupMap.put("groupType", groupType);
 				groupMap.put("groups", groups);
 				providerMap.put("groupInfo", groupMap);
+				
+				// add user epoch into the login map
+				providerMap.put("userEpoch", userEpoch);
+				
+				// add the entire map
 				returnMap.put(providerName, providerMap);
 			}
 		} else {

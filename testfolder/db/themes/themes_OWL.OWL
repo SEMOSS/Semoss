@@ -1,82 +1,73 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
-	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept">
-	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Class"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation">
-	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
-</rdf:Description>
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ADMIN_THEME">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:STRING"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ADMIN_THEME"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ADMIN_THEME</Conceptual>
-	<LEGACY_PRIM_KEY xmlns="http://semoss.org/ontologies/Relation/">id</LEGACY_PRIM_KEY>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/id/ADMIN_THEME">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/ADMIN_THEME">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ADMIN_THEME">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/id/ADMIN_THEME"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/ADMIN_THEME"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/id/ADMIN_THEME">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/id/ADMIN_THEME"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">id</Conceptual>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/ADMIN_THEME">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/ADMIN_THEME"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ID</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/theme_name/ADMIN_THEME">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/THEME_NAME/ADMIN_THEME">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ADMIN_THEME">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/theme_name/ADMIN_THEME"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/THEME_NAME/ADMIN_THEME"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/theme_name/ADMIN_THEME">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/theme_name/ADMIN_THEME"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">theme_name</Conceptual>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/THEME_NAME/ADMIN_THEME">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/THEME_NAME/ADMIN_THEME"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">THEME_NAME</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/theme_map/ADMIN_THEME">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/THEME_MAP/ADMIN_THEME">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ADMIN_THEME">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/theme_map/ADMIN_THEME"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/THEME_MAP/ADMIN_THEME"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/theme_map/ADMIN_THEME">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:CLOB"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/theme_map/ADMIN_THEME"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">theme_map</Conceptual>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/THEME_MAP/ADMIN_THEME">
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/THEME_MAP/ADMIN_THEME"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">THEME_MAP</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/is_active/ADMIN_THEME">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_ACTIVE/ADMIN_THEME">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ADMIN_THEME">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/is_active/ADMIN_THEME"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_ACTIVE/ADMIN_THEME"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/is_active/ADMIN_THEME">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/is_active/ADMIN_THEME"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">is_active</Conceptual>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_ACTIVE/ADMIN_THEME">
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_ACTIVE/ADMIN_THEME"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_ACTIVE</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2021:07:26 15:46:15</TIME>
+	<TIME xmlns="ENGINE:">2024:10:01 15:00:21</TIME>
 </rdf:Description>
 
 </rdf:RDF>

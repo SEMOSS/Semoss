@@ -154,7 +154,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 			//get the app_root folder for the project
 			String projectAppRootFolder = AssetUtility.getProjectBaseFolder(project.getProjectName(), project.getProjectId());
-			this.insight.getUser().getUserMountHelper().mountFolder(projectAppRootFolder,projectAppRootFolder, false);
+			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
 		}
 
 		/*
