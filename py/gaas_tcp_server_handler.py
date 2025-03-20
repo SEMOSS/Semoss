@@ -117,7 +117,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         The method is called automatically when the Server is instantiated,
         typically during the creation of the socketserver.ThreadingTCPServer instance, before the server starts listening for client connections.
         """
-        self.logging_setup()  # setting up to log
         self.stop = False
 
         # TODO: These are currently not in use. Check with PK whether or not the are needed
@@ -195,6 +194,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # define_root_logger_script = "import sys\nroot_logger = logging.getLogger()\nroot_logger.setLevel(logging.WARNING)\nhandler = logging.StreamHandler(sys.stdout)\nformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')\nhandler.setFormatter(formatter)\nroot_logger.addHandler(handler)"
         # with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(self.console):
         #     exec(define_root_logger_script, globals())
+        self.logging_setup()  # setting up to log
 
     def custom_dev_logger(self, message):
         """
@@ -446,12 +446,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             )  # formatting log data to pretty format
 
             self.logger.info(
-                "--------------------- LOG START -------------------------\n"
+                "--------------------- SENDING OUTPUT -------------------------\n"
             )
             self.logger.info(formatted_log)
-            self.logger.info(
-                "--------------------- LOG END ---------------------------\n"
-            )
+            self.logger.info("--------------------- END ---------------------------\n")
 
         except Exception:
             # Ensure logging errors do not crash the application
