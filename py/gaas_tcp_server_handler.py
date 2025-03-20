@@ -80,6 +80,38 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     # Class attribute to hold a singleton instance
     da_server = None
 
+    def setup_logging(self):
+        """Configures logging with environment-based log levels."""
+
+        def log_mapper(log_level_name):
+            log_mapper = {
+                "DEBUG": logging.DEBUG,
+                "INFO": logging.INFO,
+                "WARNING": logging.WARNING,
+                "ERROR": logging.ERROR,
+                "CRITICAL": logging.CRITICAL,
+            }
+            return log_mapper.get(log_level_name)
+
+        # Get log level from environment variable (default: INFO)
+        log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+        # log_level = getattr(logging, log_level_name, logging.INFO)
+
+        logging.basicConfig(
+            filename=f"{self.insight_folder}/log.txt",
+            level=log_mapper(log_level_name),
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            filemode="a",  # Overwrite log file on each run
+            force=True,
+        )
+
+        # Create a logger and apply a filter to log only the exact level
+        self.logger = logging.getLogger("TCPServerHandler")
+        # self.logger.addFilter(
+        #     lambda record: record.levelno == log_level
+        # )  # Logs only the selected level
+        self.logger.info("Logging Setup Completed")
+
     def setup(self):
         """
         This method is responsible for initializing the server before it starts to serve client requests.
@@ -164,6 +196,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # define_root_logger_script = "import sys\nroot_logger = logging.getLogger()\nroot_logger.setLevel(logging.WARNING)\nhandler = logging.StreamHandler(sys.stdout)\nformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')\nhandler.setFormatter(formatter)\nroot_logger.addHandler(handler)"
         # with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(self.console):
         #     exec(define_root_logger_script, globals())
+        self.setup_logging()
 
     def custom_dev_logger(self, message):
         """
@@ -171,20 +204,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         Write to the log txt file. Ensures file exists, creates new line, adds message and flushes log.
         This is very useful when the python debugger cannot handle troubleshooting a threading issue.
         """
-        if self.log_file is not None and self.dev_log_switch:
-            self.log_file.write("\n")
-            self.log_file.write(message)
-            self.log_file.flush()
+        if self.logger and self.dev_log_switch:
+            self.logger.info(message)
 
     def prod_logger(self, message):
         """
         These messages will be logged to the log file in container environments.
         Write to the log txt file. Ensures file exists, creates new line, adds message and flushes log.
         """
-        if self.log_file is not None:
-            self.log_file.write("\n")
-            self.log_file.write(message)
-            self.log_file.flush()
+        if self.logger:
+            self.logger.info(message)
 
     def handle(self):
         while not self.stop:
@@ -238,8 +267,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     break
                     self.request.sendall(data)
             except Exception as e:
-                print(e)
-                print("connection closed.. closing this socket")
+                self.logger.warning(e)
+                self.logger.warning("connection closed.. closing this socket")
                 self.stop_request()
                 # self.server.stop_it()
             # print("all processing has finished !!")
@@ -257,6 +286,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 data = {}
 
             payload = data.get("payload", [])
+            trim = payload[0][:50]  # TODO: added for testing purpose of warning message
 
             log = {
                 "epoc": data.get("epoc", "N/A"),
@@ -265,11 +295,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             }
 
             log_message = f"Final Output: {json.dumps(log, indent=4)}"
-            self.prod_logger("\n------------- OUTPUT LOG - START ----------------\n")
+            self.prod_logger("------------- OUTPUT LOG - START ----------------\n")
             self.prod_logger(log_message)
-            self.prod_logger("\n------------- OUTPUT LOG - END ----------------\n")
+            self.prod_logger("------------- OUTPUT LOG - END ----------------\n")
         except Exception as e:
-            self.prod_logger(f"Error in get_final_output: {str(e)}")
+            self.logger.warning(f"Error in get_final_output: {str(e)}")
 
     def get_final_output(self, data=None, epoc=None):
         self.log_data(data)
@@ -296,11 +326,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             payload_set_log = {
                 threading.current_thread().name: self.thread_local.payload
             }
-            self.custom_dev_logger("\n---------- PAYLOAD SET LOG - START -----------\n")
+            self.custom_dev_logger("---------- PAYLOAD SET LOG - START -----------\n")
             self.custom_dev_logger(
                 f"Payload Set For Thread - {json.dumps(payload_set_log, indent=4)}"
             )
-            self.custom_dev_logger("\n---------- PAYLOAD SET LOG - END -------------\n")
+            self.custom_dev_logger("---------- PAYLOAD SET LOG - END -------------\n")
 
             command_list = payload["payload"]
             command = ""
@@ -387,7 +417,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         This helps prevent excessive logging when streaming responses.
         """
         # When streaming responses, this will cause the log files to become very heavy, so we only want to do this during development. Switch dev_log_switch to True to enable this.
-        if self.log_file is None or not self.dev_log_switch:
+        if not self.logger or not self.dev_log_switch:
             return
 
         try:
@@ -416,22 +446,17 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 log_data, indent=4
             )  # formatting log data to pretty format
 
-            log_lines = [
-                "\n",
-                "--------------------- LOG START -------------------------\n",
-                f"{formatted_log}\n",
-                "--------------------- LOG END ---------------------------\n",
-            ]
-
-            self.log_file.writelines(log_lines)
-            self.log_file.flush()
-
-            if response and not interim:
-                self.log_file.write("\n")
+            self.logger.info(
+                "--------------------- LOG START -------------------------\n"
+            )
+            self.logger.info(formatted_log)
+            self.logger.info(
+                "--------------------- LOG END ---------------------------\n"
+            )
 
         except Exception:
             # Ensure logging errors do not crash the application
-            self.custom_dev_logger("There was an error during logging")
+            self.logger.warning("There was an error during logging")
 
     def send_output(
         self,
@@ -541,11 +566,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # pack the message next
         ret_array[4:] = output.encode("utf-8")
 
-        self.custom_dev_logger("\n---------- SEND REQUEST LOG - START ---------\n")
+        self.custom_dev_logger("---------- SEND REQUEST LOG - START ---------\n")
         self.custom_dev_logger(
             f"send_request(): REQUEST === {json.dumps(payload, indent=4)}"
         )
-        self.custom_dev_logger("\n---------- SEND REQUEST LOG - END -----------\n")
+        self.custom_dev_logger("---------- SEND REQUEST LOG - END -----------\n")
 
         # send it out
         self.request.sendall(ret_array)
@@ -557,9 +582,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.request.close()
             import sys
 
-            self.custom_dev_logger("\n---------- STOP REQUEST LOG - START ---------\n")
+            self.custom_dev_logger("---------- STOP REQUEST LOG - START ---------\n")
             self.custom_dev_logger("Connection has been closed")
-            self.custom_dev_logger("\n---------- STOP REQUEST LOG - END -----------\n")
+            self.custom_dev_logger("---------- STOP REQUEST LOG - END -----------\n")
 
             sys.exit("Connection has been closed")
             self.stop = True
@@ -680,7 +705,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         payload = self.thread_local.payload
         # print("In the response block")
         # this is a response coming back from a request from the java container
-        self.custom_dev_logger("\n---------- HANDLE RESPONSE LOG - START ---------\n")
+        self.custom_dev_logger("---------- HANDLE RESPONSE LOG - START ---------\n")
         self.custom_dev_logger(
             f"handle_response() -- Handling response which is going to check the monitors for epoc {payload.get('epoc', 'EPOC NOT FOUND')}. Here are the monitors: {self.monitors}"
         )
@@ -694,7 +719,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             condition.acquire()
             condition.notifyAll()
             condition.release()
-        self.custom_dev_logger("\n---------- HANDLE RESPONSE LOG - END ---------\n")
+        self.custom_dev_logger("---------- HANDLE RESPONSE LOG - END ---------\n")
 
     def handle_shell(self):
         payload = self.thread_local.payload
@@ -811,6 +836,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             return cur_dir
         else:
             # raise exception
+            self.logger.warning(f"There is no mount point for {mount_name}")
             raise Exception(f"There is no mount point for {mount_name}")
 
     def exec_cd(self, mount_name=None, payload=None, check=True):
