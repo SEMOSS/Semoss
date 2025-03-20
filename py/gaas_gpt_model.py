@@ -682,11 +682,21 @@ class ModelEngine(AbstractModelEngine):
             ChatResult,
         )
         from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+        from langgraph.checkpoint.memory import MemorySaver
+        from langgraph.graph import MessagesState, StateGraph, START, END
 
         class SemossLangchainChatModel(BaseChatModel):
             engine_id: str
             model_engine: ModelEngine
             model_type: str
+
+            class Config:
+                """Configuration for this pydantic object."""
+
+                allow_population_by_field_name = True
+
+            class State(MessagesState):
+                summary: str
 
             def __init__(self, model_engine):
                 data = {
@@ -700,7 +710,6 @@ class ModelEngine(AbstractModelEngine):
                 self, insight_id: Optional[str] = None
             ) -> List[BaseMessage]:
                 """Retrieve past conversation history and format it for Langchain."""
-
                 # Fetch chat history from ModelEngine
                 history = self.model_engine.get_conversation_history()
                 messages = []
@@ -709,12 +718,12 @@ class ModelEngine(AbstractModelEngine):
                         messages.append(HumanMessage(content=msg["MESSAGE_DATA"]))
                     elif msg["MESSAGE_TYPE"] == "RESPONSE":
                         messages.append(AIMessage(content=msg["MESSAGE_DATA"]))
+                workflow = StateGraph(state_schema=MessagesState)
+                memory = MemorySaver()
+                workflow.update_state(insight_id, {"messages": messages})
+                app = self.workflow.compile(checkpointer=self.memory)
+                print(app)
                 return messages
-
-            class Config:
-                """Configuration for this pydantic object."""
-
-                allow_population_by_field_name = True
 
             def _generate(
                 self,
