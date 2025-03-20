@@ -319,7 +319,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 
 		List<String> lines = new ArrayList<>();
 		lines.add("<DataTable>");
-		lines.add("<TEST><cone>2024-01-01 01:01:01</cone></TEST>");
+		lines.add("<TEST><cone>2024-01-01 00:01:01</cone></TEST>");
 		lines.add("</DataTable>");
 
 		for (int i = 0; i < lines.size(); i++) {
