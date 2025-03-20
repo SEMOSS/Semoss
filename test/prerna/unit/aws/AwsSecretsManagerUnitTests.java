@@ -13,6 +13,7 @@ import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -56,6 +57,34 @@ public class AwsSecretsManagerUnitTests {
         aws.setSecretId("secret");
         aws.setVersionId(input);
         aws.setVersionStage(input);
+
+        aws.setKeyPass("keypass");
+        aws.setKeyStore("keystore");
+        aws.setKeyStorePass("keystorepass");
+        try (MockedStatic<HttpHelperUtility> http = Mockito.mockStatic(HttpHelperUtility.class)) {
+            http.when(() -> HttpHelperUtility.getRequest(eq("url"), any(Map.class), eq("keystore"),
+                    eq("keystorepass"), eq("keypass"))).thenReturn("{response: \"data\"}");
+
+            aws.makeRequest();
+
+            ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
+            http.verify(() -> HttpHelperUtility.getRequest(eq("url"), mapCaptor.capture(), eq("keystore"),
+                    eq("keystorepass"), eq("keypass")), times(1));
+            Map<String, String> map = mapCaptor.getValue();
+            assertEquals(1, map.size());
+            assertEquals("secret", map.get("SecretId"));
+        }
+
+        assertEquals("{response: \"data\"}", aws.getResponseData());
+        assertEquals("data", aws.getResponseJson().get("response"));
+    }
+
+    @Test
+    public void testMakRequestSecretKeyNull() {
+        aws.setUrl("url");
+        aws.setSecretId("secret");
+
+        aws.setAccessKey("hasAccessKey");
 
         aws.setKeyPass("keypass");
         aws.setKeyStore("keystore");
@@ -125,5 +154,48 @@ public class AwsSecretsManagerUnitTests {
             assertEquals("csp", aws.getKeyPass());
             assertTrue(aws.isUseApplicationCerts());
         }
+    }
+
+    @Test
+    void testNotUseApplicationCertsFalse() {
+        aws.setUseApplicationCerts(false);
+        assertFalse(aws.isUseApplicationCerts());
+    }
+
+    @Test
+    void testSettersAndGetters() {
+        aws.setUrl("test");
+        assertEquals("test", aws.getUrl());
+
+        aws.setAccessKey("ak");
+        assertEquals("ak", aws.getAccessKey());
+
+        aws.setSecretKey("sk");
+        assertEquals("sk", aws.getSecretKey());
+
+        aws.setKeyStore("keystore");
+        assertEquals("keystore", aws.getKeyStore());
+
+        aws.setKeyStorePass("keystorepass");
+        assertEquals("keystorepass", aws.getKeyStorePass());
+
+        aws.setKeyPass("keypass");
+        assertEquals("keypass", aws.getKeyPass());
+
+        aws.setSecretId("secret");
+        assertEquals("secret", aws.getSecretId());
+
+        aws.setVersionId("versionId");
+        assertEquals("versionId", aws.getVersionId());
+
+        aws.setVersionStage("versionStage");
+        assertEquals("versionStage", aws.getVersionStage());
+
+        aws.setResponseData("response");
+        assertEquals("response", aws.getResponseData());
+
+        Map<String, Object> map = new HashMap<>();
+        aws.setResponseJson(map);
+        assertEquals(map, aws.getResponseJson());
     }
 }
