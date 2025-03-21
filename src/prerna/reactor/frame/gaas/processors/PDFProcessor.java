@@ -36,8 +36,7 @@ public class PDFProcessor extends AbstractFileProcessor {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
-		}				// stripper is 1 based
-
-	}	
+		}
+	}
 
 }
