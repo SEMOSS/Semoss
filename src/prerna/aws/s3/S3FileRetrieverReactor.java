@@ -18,6 +18,10 @@ import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+/**
+ * Deprecated on March 21st 2025. Please use StorageEngine Directly
+ */
+@Deprecated
 public class S3FileRetrieverReactor extends AbstractQueryStructReactor {
 	
 	private static final Logger logger = LogManager.getLogger(S3FileRetrieverReactor.class);

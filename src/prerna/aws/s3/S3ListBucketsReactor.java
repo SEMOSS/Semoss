@@ -17,6 +17,10 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
+/**
+ * Deprecated on March 21st 2025. Please use StorageEngine Directly
+ */
+@Deprecated
 public class S3ListBucketsReactor extends AbstractReactor {
 
 	private static final Logger logger = LogManager.getLogger(S3ListBucketsReactor.class);
