@@ -26,8 +26,8 @@ public class PDFProcessor extends AbstractFileProcessor {
 		try (PDDocument document = Loader.loadPDF(new RandomAccessReadBufferedFile(new File(this.filePath)))) {
 			String source = getSource(this.filePath);
 			PDFTextStripper pdfStripper = new PDFTextStripper();
-			
 			for (int pageIndex = 1; pageIndex <= document.getNumberOfPages(); pageIndex++) {
+				// stripper is 1 based
 				pdfStripper.setStartPage(pageIndex);
 				pdfStripper.setEndPage(pageIndex);
 				String parsedText = pdfStripper.getText(document);
@@ -36,7 +36,8 @@ public class PDFProcessor extends AbstractFileProcessor {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
-		}
+		}				// stripper is 1 based
+
 	}	
 
 }
