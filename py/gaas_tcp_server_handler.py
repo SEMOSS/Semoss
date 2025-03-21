@@ -92,23 +92,29 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
     def logging_setup(self):
         """Configures logging with environment-based log levels."""
-        log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()  # (default: INFO)
+        try:
+            log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()  # (default: INFO)
 
-        logging.basicConfig(
-            filename=f"{self.insight_folder}/log.txt",
-            level=self.log_level_mapper(log_level_name),
-            format="%(asctime)s - %(levelname)s - %(message)s",
-            filemode="a",
-            force=True,
-        )
+            logging.basicConfig(
+                filename=f"{self.insight_folder}/log.txt",
+                level=self.log_level_mapper(log_level_name),
+                format="%(asctime)s - %(levelname)s - %(message)s",
+                filemode="a",
+                force=True,
+            )
 
-        # Create a logger and apply a filter to log only the exact level
-        self.logger = logging.getLogger("TCPServerHandler")
-        # log_level = getattr(logging, log_level_name, logging.INFO)
-        # self.logger.addFilter(
-        #     lambda record: record.levelno == log_level
-        # )  # Logs only the selected level
-        self.logger.info("Logging Setup Completed")
+            # Create a logger and apply a filter to log only the exact level
+            self.logger = logging.getLogger("TCPServerHandler")
+            log_level = getattr(
+                logging, log_level_name, self.log_level_mapper(log_level_name)
+            )
+            self.logger.addFilter(
+                lambda record: record.levelno == log_level
+            )  # Logs only the selected level
+            self.logger.info("Logging Setup Completed")
+        except Exception as e:
+            self.log_file.write("\n ERROR - Unexpected Error While Logging Setup.")
+            self.log_file.flush()
 
     def setup(self):
         """
@@ -138,6 +144,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.prefix = self.server.prefix
         self.insight_folder = self.server.insight_folder
         self.log_file = None
+        self.logger = None
 
         # need to set timeout here also
         if self.server.timeout_val > 0:
@@ -284,8 +291,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 data = {}
 
             payload = data.get("payload", [])
-            # TODO: Need to remove below line -> just added for testing purpose of warning message
-            trim = payload[0][:50]
 
             log = {
                 "epoc": data.get("epoc", "N/A"),
