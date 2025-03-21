@@ -3,6 +3,8 @@ package prerna.engine.impl.model.responses;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONObject;
+
 public class EmbeddingsModelEngineResponse extends AbstractModelEngineResponse<List<List<Double>>> {
 	
 	/**
@@ -32,4 +34,102 @@ public class EmbeddingsModelEngineResponse extends AbstractModelEngineResponse<L
 		Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
 		return fromMap(modelResponse);
     }
+	
+	public static EmbeddingsModelEngineResponse fromJson(JSONObject jsonResponse) {
+	    if (jsonResponse == null) {
+	        return null;
+	    }
+	    
+	    List<List<Double>> embeddings = null;
+	    Integer promptTokens = 0;
+	    Integer responseTokens = 0;
+	    
+	    if (jsonResponse.has("output")) {
+	        Object outputObj = jsonResponse.get("output");
+	        
+	        // Handle the case where output is a JSONArray containing a single JSON string
+	        if (outputObj instanceof org.json.JSONArray) {
+	            org.json.JSONArray outputArray = (org.json.JSONArray) outputObj;
+	            if (outputArray.length() > 0) {
+	                String jsonString = outputArray.getString(0);
+	                try {
+	                    JSONObject embeddingsJson = new JSONObject(jsonString);
+	                    
+	                    if (embeddingsJson.has("embeddings")) {
+	                        org.json.JSONArray embeddingsArray = embeddingsJson.getJSONArray("embeddings");
+	                        embeddings = new java.util.ArrayList<>();
+	                        
+	                        for (int i = 0; i < embeddingsArray.length(); i++) {
+	                            org.json.JSONArray vectorArray = embeddingsArray.getJSONArray(i);
+	                            List<Double> vector = new java.util.ArrayList<>();
+	                            
+	                            for (int j = 0; j < vectorArray.length(); j++) {
+	                                vector.add(vectorArray.getDouble(j));
+	                            }
+	                            
+	                            embeddings.add(vector);
+	                        }
+	                    }
+	                } catch (Exception e) {
+	                    throw new IllegalArgumentException("Failed to parse embeddings JSON: " + e.getMessage());
+	                }
+	            }
+	        } else if (outputObj instanceof JSONObject) {
+	            JSONObject embeddingsJson = (JSONObject) outputObj;
+	            
+	            if (embeddingsJson.has("embeddings")) {
+	                org.json.JSONArray embeddingsArray = embeddingsJson.getJSONArray("embeddings");
+	                embeddings = new java.util.ArrayList<>();
+	                
+	                for (int i = 0; i < embeddingsArray.length(); i++) {
+	                    org.json.JSONArray vectorArray = embeddingsArray.getJSONArray(i);
+	                    List<Double> vector = new java.util.ArrayList<>();
+	                    
+	                    for (int j = 0; j < vectorArray.length(); j++) {
+	                        vector.add(vectorArray.getDouble(j));
+	                    }
+	                    
+	                    embeddings.add(vector);
+	                }
+	            }
+	        } else if (outputObj instanceof String) {
+	            String jsonString = (String) outputObj;
+	            try {
+	                JSONObject embeddingsJson = new JSONObject(jsonString);
+	                
+	                if (embeddingsJson.has("embeddings")) {
+	                    org.json.JSONArray embeddingsArray = embeddingsJson.getJSONArray("embeddings");
+	                    embeddings = new java.util.ArrayList<>();
+	                    
+	                    for (int i = 0; i < embeddingsArray.length(); i++) {
+	                        org.json.JSONArray vectorArray = embeddingsArray.getJSONArray(i);
+	                        List<Double> vector = new java.util.ArrayList<>();
+	                        
+	                        for (int j = 0; j < vectorArray.length(); j++) {
+	                            vector.add(vectorArray.getDouble(j));
+	                        }
+	                        
+	                        embeddings.add(vector);
+	                    }
+	                }
+	            } catch (Exception e) {
+	                throw new IllegalArgumentException("Failed to parse embeddings JSON: " + e.getMessage());
+	            }
+	        }
+	    }
+	    
+	    if (embeddings == null) {
+	        embeddings = new java.util.ArrayList<>();
+	    }
+	    
+	    if (jsonResponse.has("input_tokens")) {
+	        promptTokens = jsonResponse.getInt("input_tokens");
+	    }
+	    
+	    if (jsonResponse.has("output_tokens")) {
+	        responseTokens = jsonResponse.getInt("output_tokens");
+	    }
+	    
+	    return new EmbeddingsModelEngineResponse(embeddings, promptTokens, responseTokens);
+	}
 }
