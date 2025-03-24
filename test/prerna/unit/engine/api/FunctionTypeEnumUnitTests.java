@@ -1,5 +1,10 @@
 package prerna.unit.engine.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.junit.jupiter.api.Test;
+
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.impl.function.AWSTextractFunctionEngine;
 import prerna.engine.impl.function.AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine;
@@ -7,10 +12,6 @@ import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
-
-import static org.junit.Assert.assertEquals;
-
-import org.junit.jupiter.api.Test;
 
 public class FunctionTypeEnumUnitTests {
 	
@@ -59,10 +60,10 @@ public class FunctionTypeEnumUnitTests {
 	@Test
 	void testBadFunctionName() {
 		String badName = "NOT_A_REAL_FUNCTION";
-		try {
-			FunctionTypeEnum.getEnumFromName(badName);
-		} catch (Exception e) {
-			assertEquals("Invalid input for name " + badName, e.getMessage());
-		}
+		Exception thrown = assertThrows(
+				IllegalArgumentException.class,
+				() -> FunctionTypeEnum.getEnumFromName(badName)
+				);
+		assertEquals("Invalid input for name " + badName, thrown.getMessage());
 	}
 }

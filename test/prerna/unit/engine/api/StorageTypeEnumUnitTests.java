@@ -1,6 +1,8 @@
 package prerna.unit.engine.api;
 
-import static org.junit.Assert.assertEquals;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
@@ -82,10 +84,10 @@ public class StorageTypeEnumUnitTests {
 	@Test
 	void testBadFunctionName() {
 		String badName = "NOT_A_REAL_STORAGE_TYPE";
-		try {
-			StorageTypeEnum.getEnumFromName(badName);
-		} catch (Exception e) {
-			assertEquals("Invalid input for name " + badName, e.getMessage());
-		}
+		Exception thrown = assertThrows(
+				IllegalArgumentException.class,
+				() -> StorageTypeEnum.getEnumFromName(badName)
+				);
+		assertEquals("Invalid input for name " + badName, thrown.getMessage());
 	}
 }
