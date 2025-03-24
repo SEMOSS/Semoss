@@ -1,10 +1,14 @@
 package prerna.testing;
 
+import java.util.Optional;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
 public abstract class AbstractBaseSemossApiTests {
 
@@ -32,11 +36,16 @@ public abstract class AbstractBaseSemossApiTests {
 			// moved this to the before because its hard to delete databases before each
 			// test due to database being in use
 			ApiSemossTestInsightUtils.initializeInsight();
+			ApiSemossTestUserUtils.clearUserDirectory();
 
 			ApiSemossTestSetupUtils.setup(true);
 
 			ApiSemossTestEngineUtils.createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL,
 					"Native", true);
+
+			
+			ApiRTestUtils.setup();
+			ApiPyTestUtils.setupAndCheck();
 		}
 		classLogger.info("Semoss Before All Time: " + (System.nanoTime() - start) / 1000000000);
 	}
@@ -46,6 +55,7 @@ public abstract class AbstractBaseSemossApiTests {
 //		ApiInsightAndPropsInitUtils.unloadDIHelper();
 //		ApiDatabaseInitUtils.unloadDatabases();
 //		ApiInsightAndPropsInitUtils.unloadSocialProps();
+		
 	}
 
 	// Ensure that everything is pointing in the correct direction before each test
@@ -71,6 +81,20 @@ public abstract class AbstractBaseSemossApiTests {
 		ApiSemossTestUserUtils.setDefaultTestUser();
 
 		ApiSemossTestInsightUtils.clearInsightCacheDifferently();
+	}
+	
+	@AfterEach
+	public void resetBeforeNextTest(TestInfo ti) {
+		String testClass = "";
+		if (ti.getTestClass().isPresent()) {
+			testClass = ti.getTestClass().get().getCanonicalName();
+		}
+		
+		String testMethod = "";
+		if (ti.getTestMethod().isPresent()) {
+			testMethod = ti.getTestMethod().get().toString();
+		}
+		classLogger.info("Test finished for: {} : {}", testClass, testMethod);
 	}
 
 }
