@@ -19,7 +19,6 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import prerna.om.ThreadStore;
-import prerna.test.TestUtilityMethods;
 import prerna.util.insight.InsightUtility;
 
 public class TCPChromeDriverUtility {
@@ -133,7 +132,7 @@ public class TCPChromeDriverUtility {
 				route = ChromeDriverUtility.routeCookieValue;
 			}
 			if(route != null && !route.isEmpty()) {
-				String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
+				String routeCookieName = Utility.getDIHelperProperty(Constants.LOAD_BALANCER_COOKIE_NAME);
 				if (routeCookieName != null && !routeCookieName.isEmpty()) {
 					updateCookie(driver, routeCookieName, route);
 				}
@@ -340,7 +339,7 @@ public class TCPChromeDriverUtility {
 				route = ChromeDriverUtility.routeCookieValue;
 			}
 			if(route != null && !route.isEmpty()) {
-				String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
+				String routeCookieName = Utility.getDIHelperProperty(Constants.LOAD_BALANCER_COOKIE_NAME);
 				if (routeCookieName != null && !routeCookieName.isEmpty()) {
 					updateCookie(TCPChromeDriverUtility.driver, routeCookieName, route);
 				}
