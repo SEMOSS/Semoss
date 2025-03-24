@@ -102,18 +102,18 @@ public class AskToolReactor extends AbstractReactor {
 		
         AskModelEngineResponse modelResponse = modelEngine.ask(question, context, this.insight, paramMap);
 
-        Map<String, Object> output = modelResponse.toMap();
-
+        Map<String, ArrayList<Map<String, Object>>> output = processModelResponse(modelResponse);
+          
+        return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
+    }
+    
+    private Map<String, ArrayList<Map<String, Object>>> processModelResponse(AskModelEngineResponse modelResponse){
+        Map<String, ArrayList<Map<String, Object>>> output = new HashMap<String, ArrayList<Map<String, Object>>>();
+        output.put("response", new ArrayList<Map<String, Object>>());
         if(modelResponse.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {  	
             // the response is for a tool call
             // we need to call the actual tool now. 
             AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) modelResponse;
-            
-            // tool result will be a custom element in the paramMap
-            HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
-            toolExecutionMap.put(AbstractModelEngine.ROLE, "tool");
-            toolExecutionMap.put("tool_call_id",toolResponse.getToolCallId());
-            toolExecutionMap.put("name",toolResponse.getToolCallName());
 
             // {"function_id":"123-3345-567","map":{"lat":"123","lon":"321"}}
             String toolArguments = toolResponse.getToolCallArgumentsAsString();
@@ -129,40 +129,22 @@ public class AskToolReactor extends AbstractReactor {
 
             IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("id"));
             
-            // object for tool call information for the front end to execute the tool
-            HashMap<String, Object> toolCallInfo = new HashMap<String, Object>();
-            toolCallInfo.put("name", function.getFunctionName());
-            toolCallInfo.put("type", function.getCatalogType());
-            
             // object to store params needed to call the tool
             List<HashMap<String, Object>> toolCallInfoData = new ArrayList<HashMap<String, Object>>();
             for(Entry<String, Object> functionParam : ((Map<String, Object>)functionParams.get("map")).entrySet()){
                 HashMap<String, Object> paramInfo = new HashMap<String, Object>();
-                paramInfo.put("paramName", functionParam.getKey());
-                paramInfo.put("paramType", functionParam.getValue().getClass().getSimpleName());
-                paramInfo.put("paramValue", functionParam.getValue());
+                paramInfo.put("name", functionParam.getKey());
+                paramInfo.put("type", functionParam.getValue().getClass().getSimpleName());
+                paramInfo.put("value", functionParam.getValue());
                 toolCallInfoData.add(paramInfo);
             }
 
-            toolCallInfo.put("data", toolCallInfoData);
-            output.put("toolCall", toolCallInfo);
-            
-            //remove the execution of the function for now. will add back later with a boolean passed in
-//            Object functionReturn = function.execute((Map<String, Object> )functionParams.get("map"));
-//            String functionReturnString = null;
-//
-//            try {
-//                functionReturnString = mapper.writeValueAsString(functionReturn);
-//            } catch (JsonProcessingException e) {
-//                // Handle the exception, maybe log it or return a default value
-//                e.printStackTrace();
-//                functionReturnString = "{}";
-//            }
-//
-//            toolExecutionMap.put("content", functionReturnString);         
-//            paramMap.put("toolExecution", toolExecutionMap);
-//            AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", null, this.insight, paramMap);
-//            output = toolExecutionResponse.toMap();
+            Map<String, Object> outputObject = new HashMap<String, Object>();
+            outputObject.put("type", "FUNCTION");
+            outputObject.put("name", function.getFunctionName());
+            outputObject.put("functionId", (String) functionParams.get("id"));
+            outputObject.put("parameters", toolCallInfoData);
+            output.get("response").add(outputObject);
         } else {
             // 	this is a standard response - process it for code blocks.
         	
@@ -171,37 +153,36 @@ public class AskToolReactor extends AbstractReactor {
 
             // Add code blocks to output if any exist
             if (!processedResponse.getCodeBlocks().isEmpty()) {
-                // object for tool call information for the front end to process code blocks
-                HashMap<String, Object> toolCallInfo = new HashMap<String, Object>();
-                toolCallInfo.put("name", "code_engine");
-                toolCallInfo.put("type", "code_engine");
-                
-                // object to store params needed to call the tool
-                List<HashMap<String, Object>> toolCallInfoData = new ArrayList<HashMap<String, Object>>();
-                for(CodeBlock codeBlock : processedResponse.getCodeBlocks().values()){
-                    HashMap<String, Object> paramInfo = new HashMap<String, Object>();
-                    paramInfo.put("language", codeBlock.getLanguage());
-                    paramInfo.put("title", codeBlock.getTitle());
-                    paramInfo.put("code", codeBlock.getCode());
-                    toolCallInfoData.add(paramInfo);
-                }
-    
-                toolCallInfo.put("data", toolCallInfoData);
-                output.put("toolCall", toolCallInfo);
+                String[] splitResponse = processedResponse.getModifiedResponse().split("<CODEBLOCK>.*<\\/CODEBLOCK>");
 
-                output.put(AbstractModelEngineResponse.RESPONSE, processedResponse.getModifiedResponse());
-                output.put("orignalResponse", modelResponse.getStringResponse());
+                for(int i = 0; i < splitResponse.length; i++){
+                    Map<String, Object> outputObject = new HashMap<String, Object>();
+                    outputObject.put("type", "CONTENT");
+                    outputObject.put("content", splitResponse[i]);
+                    output.get("response").add(outputObject);
+                    if(i < processedResponse.getCodeBlocks().values().toArray().length){
+                        CodeBlock codeBlock = (CodeBlock) processedResponse.getCodeBlocks().values().toArray()[i];
+                        HashMap<String, Object> paramInfo = new HashMap<String, Object>();
+                        paramInfo.put("type", "CODE");
+                        paramInfo.put("language", codeBlock.getLanguage());
+                        paramInfo.put("name", codeBlock.getTitle());
+                        paramInfo.put("content", codeBlock.getCode());
+                        output.get("response").add(paramInfo);
+                    }
+                }
+
+                Map<String, Object> outputObject = new HashMap<String, Object>();
+                outputObject.put("originalResponse", modelResponse.getStringResponse());
+                output.get("response").add(outputObject);
+            } else {
+                Map<String, Object> outputObject = new HashMap<String, Object>();
+                outputObject.put("type", "CONTENT");
+                outputObject.put("content", modelResponse.getStringResponse());
+                output.get("response").add(outputObject);
             }
         }
-        
-        Object response = modelResponse.toMap().get(AbstractModelEngineResponse.RESPONSE);
-
-        
-        
-        return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
+        return output;
     }
-    
-    
 
  // Method to parse markdown code blocks
     private ProcessedResponse processMarkdownCodeBlocks(String response) {
