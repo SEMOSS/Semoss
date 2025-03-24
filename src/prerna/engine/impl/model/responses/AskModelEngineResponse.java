@@ -103,45 +103,6 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
 		return fromMap(modelResponse);
     }
-	
-	/**
-	 * Creates an AskModelEngineResponse from a JSONObject returned by the KServe adapter
-	 * 
-	 * @param jsonResponse The JSONObject from makeModelRequest
-	 * @return AskModelEngineResponse constructed from the JSONObject
-	 */
-	public static AskModelEngineResponse fromJson(JSONObject jsonResponse) {
-	    if (jsonResponse == null) {
-	        return null;
-	    }
-	    
-	    String responseText;
-	    if (jsonResponse.has("output")) {
-	        Object outputObj = jsonResponse.get("output");
-	        if (outputObj instanceof JSONObject || outputObj instanceof org.json.JSONArray) {
-	            responseText = outputObj.toString();
-	        } else {
-	            responseText = jsonResponse.getString("output");
-	        }
-	    } else {
-	        responseText = "";
-	    }
-	    
-	    Integer promptTokens = 0;
-	    Integer responseTokens = 0;
-	    
-	    if (jsonResponse.has("input_tokens")) {
-	        promptTokens = jsonResponse.getInt("input_tokens");
-	    }
-	    
-	    if (jsonResponse.has("output_tokens")) {
-	        responseTokens = jsonResponse.getInt("output_tokens");
-	    }
-	    
-	    AskModelEngineResponse response = new AskModelEngineResponse(responseText, promptTokens, responseTokens);
-	    
-	    return response;
-	}
 
 	public abstract String getStringResponse();
 }
