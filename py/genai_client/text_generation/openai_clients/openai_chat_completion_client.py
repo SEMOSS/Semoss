@@ -205,7 +205,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         # Check if we are close to the context window limit of 80%
         if safe_prompt_tokens >= int(context_window * 0.8):
             warnings.append(
-                "Your prompt has already reached 80% of the model's context window."
+                "Prompt has already reached 80% of the model's context window."
             )
 
         # 4. Check if we need to truncate
