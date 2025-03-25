@@ -31,7 +31,8 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         if isinstance(schema, str):
             # Attempting to parse as JSON
             try:
-                return "dict", json.loads(schema)
+                schema = json.loads(schema)
+                return ("dict", schema)
             except json.JSONDecodeError:
                 raise ValueError("Invalid JSON string provided for schema.")
         elif isinstance(schema, dict):
@@ -41,10 +42,10 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                 return ("dict", schema)
             except TypeError:
                 raise ValueError("Schema dict contains non-serializable values.")
-        elif isinstance(schema, BaseModel) or (
-            isinstance(schema, type) and issubclass(schema, BaseModel)
-        ):
-            # checking if Pydantic model
+        elif isinstance(schema, BaseModel):
+            # Checking if Pydantic model
+            return ("pydantic", schema)
+        elif isinstance(schema, type) and issubclass(schema, BaseModel):
             return ("pydantic", schema)
         else:
             raise ValueError("Schema must be a JSON string, dict, or Pydantic model.")
@@ -59,17 +60,17 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         and whether the schema is a dict or Pydantic model.
         """
         if self.model_type == "OPEN_AI":
-            return (
-                (
+            if schema_type == "dict":
+                return (
                     "response_format",
                     {
                         "type": "json_schema",
                         "json_schema": {"name": "custom_schema", "schema": schema},
                     },
                 )
-                if schema_type == "dict"
-                else ("response_format", schema)  # Pydantic model
-            )
+            else:
+                # Pydantic model
+                return ("response_format", schema)
         else:
             # For vLLM it is the same for both dict and Pydantic model
             return ("extra_body", {"guided_json": schema})
@@ -79,11 +80,14 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         Make the structured output call to the correct endpoint based on model type.
         vLLM requires a different endpoint...
         """
-        response = (
-            self.client.beta.chat.completions.parse(model=self.model_name, **params)
-            if self.model_type == "OPEN_AI"
-            else self.client.chat.completions.create(model=self.model_name, **params)
-        )
+        if self.model_type == "OPEN_AI":
+            response = self.client.beta.chat.completions.parse(
+                model=self.model_name, **params
+            )
+        else:
+            response = self.client.chat.completions.create(
+                model=self.model_name, **params
+            )
         try:
             return response.choices[0].message.content
         except Exception as e:
@@ -100,65 +104,20 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         # Validating the schema and identifying the type
         schema_type, schema = self._validate_structured_input(schema)
         # Creating the structured response format with the correct parameter name
-        structured_param_name, structured_param_value = (
-            self._create_structured_response_format(schema_type, schema)
+        structured_param_name, param_value = self._create_structured_response_format(
+            schema_type, schema
         )
         # Making new params so I can use dynamic keys
-        params = {structured_param_name: structured_param_value, **kwargs}
+        params = {structured_param_name: param_value, **kwargs}
         return self._get_structured_output_response(params)
 
-    def _update_model_specific_kwargs(self, **kwargs) -> dict:
-        """
-        Update the kwargs based on the model name to ensure compatibility with the model's capabilities.
-        Returns:
-            dict: Updated kwargs
-        """
-        updated_kwargs = kwargs.copy()
-
-        # Handle o1-mini (doesn't support system/developer roles)
-        if self.model_name.startswith("o1-mini"):
-            # Remove temperature - only 1.0 is supported
-            if "temperature" in updated_kwargs and updated_kwargs["temperature"] != 1.0:
-                del updated_kwargs["temperature"]
-
-            updated_kwargs["stream"] = False
-
-            # Convert system/developer messages to user messages
-            if "messages" in updated_kwargs:
-                messages = updated_kwargs["messages"]
-                for i, msg in enumerate(messages):
-                    if msg.get("role") in ["system", "developer"]:
-                        original_role = msg.get("role").upper()
-                        messages[i]["role"] = "user"
-                        messages[i][
-                            "content"
-                        ] = f"{original_role}: {messages[i]['content']}"
-                updated_kwargs["messages"] = messages
-
-        # Handle regular o1 models
-        elif self.model_name == "o1" or self.model_name.startswith("o1-preview"):
-            # Temperature - only 1.0 is supported
-            if "temperature" in updated_kwargs and updated_kwargs["temperature"] != 1.0:
-                del updated_kwargs["temperature"]
-
-            updated_kwargs["stream"] = False
-
-        # Handle o3-mini
-        elif self.model_name.startswith("o3-mini"):
-            # Remove temperature - only 1.0 is supported
-            if "temperature" in updated_kwargs and updated_kwargs["temperature"] != 1.0:
-                del updated_kwargs["temperature"]
-
-            updated_kwargs["stream"] = False
-
-        return updated_kwargs
-
     def inference_call(self, prefix: str, **kwargs) -> str:
-        """Handles the inference call with OpenAI's API and streams responses."""
         final_query = ""
         # For Remote Client Server Models
-        if "base_url" in kwargs:
-            self.client.base_url, self.client.api_key = kwargs.pop("base_url"), "EMPTY"
+        if "base_url" in kwargs.keys():
+            base_url = kwargs.pop("base_url")
+            self.client.base_url = base_url
+            self.client.api_key = "EMPTY"
 
         # Process structured output
         has_schema = kwargs.get("schema", False)
@@ -174,24 +133,39 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         if max_tokens is not None and "max_completion_tokens" not in kwargs:
             kwargs["max_completion_tokens"] = max_tokens
 
-        # Update model specific kwargs
-        kwargs = self._update_model_specific_kwargs(**kwargs)
+        if (
+            self.model_name.startswith("o1-preview")
+            or self.model_name.startswith("o1-mini")
+            or self.model_name.startswith("o3-mini")
+            or self.model_name == "o1"
+        ):
+            # Check and remove "temperature" if it exists as its not supported
+            if "temperature" in kwargs:
+                del kwargs["temperature"]
 
-        response = self.client.chat.completions.create(model=self.model_name, **kwargs)
+        if (
+            self.model_name.startswith("o1-preview")
+            or self.model_name.startswith("o1-mini")
+            or self.model_name == "o1"
+        ):
+            kwargs["stream"] = False
+
+        openai_response = self.client.chat.completions.create(
+            model=self.model_name, **kwargs
+        )
 
         if kwargs["stream"]:
-            for chunk in response:
-                if chunk.choices:
-                    content = chunk.choices[0].delta.content
-                    if content != None:
-                        final_query += content
-                        print(prefix + content, end="")
+            for chunk in openai_response:
+                if chunk.choices and (len(chunk.choices) > 0):
+                    response = chunk.choices[0].delta.content
+                    if response != None:
+                        final_query += response
+                        print(prefix + response, end="")
         else:
-            final_query = (
-                response.choices[0].message.function_call.arguments
-                if "function_call" in kwargs
-                else response.choices[0].message.content
-            )
+            if "function_call" in kwargs.keys():
+                final_query = openai_response.choices[0].message.function_call.arguments
+            else:
+                final_query = openai_response.choices[0].message.content
 
         return final_query
 
@@ -215,11 +189,8 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         # 2. Get model limits
         model_limits = self.tokenizer.get_model_limits(self.model_name)
-        context_window, max_completion_tokens = (
-            model_limits["context_window"],
-            model_limits["max_completion_tokens"],
-        )
-
+        context_window = model_limits["context_window"]
+        max_completion_tokens = model_limits["max_completion_tokens"]
         # If the user provides a token limit for completions we can honor it as long as it is less than the model limit
         if user_max_tokens is not None and user_max_tokens < max_completion_tokens:
             max_completion_tokens = user_max_tokens
@@ -230,6 +201,12 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         safety_margin = int(context_window * SAFETY_PERCENTAGE)
         safe_prompt_tokens = num_tokens_in_prompt + safety_margin
+
+        # Check if we are close to the context window limit of 80%
+        if safe_prompt_tokens >= int(context_window * 0.8):
+            warnings.append(
+                "Your prompt has already reached 80% of the model's context window."
+            )
 
         # 4. Check if we need to truncate
         if safe_prompt_tokens > (context_window * TRUNCATION_THRESHOLD):
@@ -270,9 +247,9 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         available_context = context_window - safe_prompt_tokens
         final_max_tokens = min(available_context, max_completion_tokens)
         final_max_tokens = max(0, final_max_tokens)
-
         model_engine_response.prompt_tokens = num_tokens_in_prompt
-        if warnings:
+
+        if len(warnings) > 0:
             model_engine_response.warning = "\\n\\n".join(warnings)
 
         return prompt_payload, int(final_max_tokens), model_engine_response
