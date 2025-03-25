@@ -1,46 +1,21 @@
 package prerna.engine.impl.model.responses;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
-import org.json.JSONArray;
 
-
-public class ImageModelEngineResponse extends AbstractModelEngineResponse<Map<String, Object>> {
-	private static final Logger classLogger = LogManager.getLogger(ImageModelEngineResponse.class);
-    private static final long serialVersionUID = 1L;
-    
-    public static final String MESSAGE_ID = "messageId";
-	public static final String ROOM_ID = "roomId";
-
-    private String messageId;
-    private String roomId;
-    
-    public ImageModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
+public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<String, Object>> {
+	private static final Logger classLogger = LogManager.getLogger(AskImageModelEngineResponse.class);
+	private static final long serialVersionUID = 1L;
+	
+    public AskImageModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
 
-	public void setMessageId(String messageId) {
-		this.messageId = messageId;
-	}
-	
-	public String getMessageId() {
-		return this.messageId;
-	}
-	
-	public void setRoomId(String roomId) {
-		this.roomId = roomId;
-	}
-	
-	public String getRoomId() {
-		return this.roomId;
-	}
-	
-    public static ImageModelEngineResponse fromKServe(JSONObject response) {
+	public static AskImageModelEngineResponse getKServeImageResponse(JSONObject response) {
         if (response != null) {
             Map<String, Object> responseMap = new HashMap<>();
             
@@ -84,15 +59,21 @@ public class ImageModelEngineResponse extends AbstractModelEngineResponse<Map<St
                 responseMap.put("seed", seed);
             }
 
-            return new ImageModelEngineResponse(responseMap, 0, 0);
+            return new AskImageModelEngineResponse(responseMap, 0, 0);
         } else {
         	classLogger.error("Null response from model request");
 	        Map<String, Object> errorMap = new HashMap<>();
 	        errorMap.put("status", "error");
 	        errorMap.put("message", "Null response from model request");
 	        
-	        return new ImageModelEngineResponse(errorMap, 0, 0);
+	        return new AskImageModelEngineResponse(errorMap, 0, 0);
         }
     
+    }
+	
+    @Override
+    public String getStringResponse() {    
+        JSONObject jsonObject = new JSONObject(this.getResponse());
+        return jsonObject.toString();
     }
 }
