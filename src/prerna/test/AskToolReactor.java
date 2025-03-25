@@ -147,21 +147,21 @@ public class AskToolReactor extends AbstractReactor {
             output.get("response").add(outputObject);
 
             //remove the execution of the function for now. will add back later with a boolean passed in
-            //            Object functionReturn = function.execute((Map<String, Object> )functionParams.get("map"));
-            //            String functionReturnString = null;
-            //
-            //            try {
-            //                functionReturnString = mapper.writeValueAsString(functionReturn);
-            //            } catch (JsonProcessingException e) {
-            //                // Handle the exception, maybe log it or return a default value
-            //                e.printStackTrace();
-            //                functionReturnString = "{}";
-            //            }
-            //
-            //            toolExecutionMap.put("content", functionReturnString);         
-            //            paramMap.put("toolExecution", toolExecutionMap);
-            //            AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", null, this.insight, paramMap);
-            //            output = toolExecutionResponse.toMap();
+//            Object functionReturn = function.execute((Map<String, Object> )functionParams.get("map"));
+//            String functionReturnString = null;
+//
+//            try {
+//                functionReturnString = mapper.writeValueAsString(functionReturn);
+//            } catch (JsonProcessingException e) {
+//                // Handle the exception, maybe log it or return a default value
+//                e.printStackTrace();
+//                functionReturnString = "{}";
+//            }
+//
+//            toolExecutionMap.put("content", functionReturnString);         
+//            paramMap.put("toolExecution", toolExecutionMap);
+//            AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", null, this.insight, paramMap);
+//            output = toolExecutionResponse.toMap();
         } else {
             // 	this is a standard response - process it for code blocks.
         	
