@@ -153,9 +153,10 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         return updated_kwargs
 
-    def inference_call(self, prefix: str, **kwargs) -> str:
-        """Handles the inference call with OpenAI's API and streams responses."""
+    def inference_call(self, prefix: str, **kwargs) -> Tuple[str, int, str]:
         final_query = ""
+        response_tokens = None
+        messageType = "CHAT"
         # For Remote Client Server Models
         if "base_url" in kwargs:
             self.client.base_url, self.client.api_key = kwargs.pop("base_url"), "EMPTY"
@@ -167,9 +168,12 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         kwargs["stream"] = kwargs.get("stream", True)
 
+        # If "tool_choice" is in kwargs, set stream to False
+        if "tool_choice" in kwargs:
+            kwargs["stream"] = False
+
         # Check if 'max_tokens' exists in kwargs and remove it, saving its value
         max_tokens = kwargs.pop("max_tokens", None)
-
         # If 'max_tokens' was found and 'max_completion_tokens' is not already in kwargs, set it
         if max_tokens is not None and "max_completion_tokens" not in kwargs:
             kwargs["max_completion_tokens"] = max_tokens
@@ -179,21 +183,36 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         response = self.client.chat.completions.create(model=self.model_name, **kwargs)
 
-        if kwargs["stream"]:
-            for chunk in response:
-                if chunk.choices:
-                    content = chunk.choices[0].delta.content
-                    if content != None:
-                        final_query += content
-                        print(prefix + content, end="")
+        if "tool_choice" in kwargs:
+            tools_call = response.choices[0].message.tool_calls
+            toolResult = []
+            if tools_call:  # Check if tools_call is not empty
+                for tool_call in tools_call:
+                    toolResult.append(
+                        {
+                            "id": tool_call.id,
+                            "name": tool_call.function.name,
+                            "arguments": tool_call.function.arguments,
+                        }
+                    )
+                final_query = toolResult
+                messageType = "TOOL"
+            else:
+                final_query = response.choices[0].message.content
+            response_tokens = response.usage.completion_tokens
         else:
-            final_query = (
-                response.choices[0].message.function_call.arguments
-                if "function_call" in kwargs
-                else response.choices[0].message.content
-            )
+            if kwargs["stream"]:
+                for chunk in response:
+                    if chunk.choices and (len(chunk.choices) > 0):
+                        content = chunk.choices[0].delta.content
+                        if content != None:
+                            final_query += content
+                            print(prefix + content, end="")
+            else:
+                final_query = response.choices[0].message.content
+                response_tokens = response.usage.completion_tokens
 
-        return final_query
+        return final_query, response_tokens, messageType
 
     def check_token_limits(
         self,
