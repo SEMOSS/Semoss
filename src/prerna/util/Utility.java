@@ -4546,7 +4546,7 @@ public final class Utility {
 	}
 	
 	public static String getApplicationOptionalRoutePath() {
-		String route = (String) DIHelper.getInstance().getLocalProp(Constants.MONOLITH_ROUTE);
+		String route = Utility.getDIHelperProperty(Constants.MONOLITH_ROUTE);
 		if(route == null) {
 			Map<String, String> envMap = System.getenv();
 			if (envMap.containsKey(Constants.MONOLITH_ROUTE)) {

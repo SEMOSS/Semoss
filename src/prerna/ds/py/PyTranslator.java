@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.cache.ICache;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
@@ -208,6 +209,8 @@ public class PyTranslator {
 		} finally {
 			// Cleanup
 			scriptFile.delete();
+			// TODO - when fake insights are added, change back to delete folder
+			// ICache.deleteFolder(pyTempF);
 		}
 	}
 
