@@ -17,7 +17,6 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
 import prerna.om.ThreadStore;
-import prerna.test.TestUtilityMethods;
 import prerna.util.insight.InsightUtility;
 
 public class ChromeDriverUtility {
@@ -70,7 +69,7 @@ public class ChromeDriverUtility {
 		System.setProperty("webdriver.chrome.whitelistedIps", "");
 
 		ChromeOptions chromeOptions = new ChromeOptions();
-		String customGoogleBinaryLocation = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_BINARY);
+		String customGoogleBinaryLocation = Utility.getDIHelperProperty(Constants.LOAD_BALANCER_COOKIE_NAME);
 		if (customGoogleBinaryLocation != null && !customGoogleBinaryLocation.isEmpty()) {
 			chromeOptions.setBinary(customGoogleBinaryLocation);
 		}
@@ -139,7 +138,7 @@ public class ChromeDriverUtility {
 				route = ChromeDriverUtility.routeCookieValue;
 			}
 			if(route != null && !route.isEmpty()) {
-				String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
+				String routeCookieName = Utility.getDIHelperProperty(Constants.LOAD_BALANCER_COOKIE_NAME);
 				if (routeCookieName != null && !routeCookieName.isEmpty()) {
 					updateCookie(driver, routeCookieName, route);
 				}
@@ -310,7 +309,7 @@ public class ChromeDriverUtility {
 				route = ChromeDriverUtility.routeCookieValue;
 			}
 			if(route != null && !route.isEmpty()) {
-				String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
+				String routeCookieName = Utility.getDIHelperProperty(Constants.LOAD_BALANCER_COOKIE_NAME);
 				if (routeCookieName != null && !routeCookieName.isEmpty()) {
 					updateCookie(driver, routeCookieName, route);
 				}
