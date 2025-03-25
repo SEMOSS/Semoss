@@ -14,6 +14,7 @@ import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -90,13 +91,17 @@ public class AskToolReactor extends AbstractReactor {
                 paramMap.put("tools", toolsList);
             }
 
-            // Iterate over each engine ID and add the function tool to the tools list
-            
-            //TODO this is hard checked for function engines - will need expand this out. 
+            // Iterate over each engine ID and add the tool to the tools list
             for (String toolEngineID : engineIdForTools) {
-                IFunctionEngine function = Utility.getFunctionEngine(toolEngineID);
-                Map<String, Object> functionTool = function.buildFunctionEngineToolMap();
-                toolsList.add(functionTool);
+                IProject project = Utility.getProject(toolEngineID);
+                Map<String, Object> toolMap;
+                if(project != null){
+                    toolMap = project.buildProjectToolMap();
+                } else {
+                    IFunctionEngine function = Utility.getFunctionEngine(toolEngineID);
+                    toolMap = function.buildFunctionEngineToolMap();
+                }
+                toolsList.add(toolMap);
             }
         }
 		
@@ -127,8 +132,20 @@ public class AskToolReactor extends AbstractReactor {
                 functionParams = null;
             }
 
-            IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("id"));
+            Map<String, Object> outputObject = new HashMap<String, Object>();
+            String toolName;
+            String toolType;
             
+            if(toolResponse.getResponse().get("name").equals("project_engine")){
+                IProject project = Utility.getProject((String) functionParams.get("id"));
+                toolName = project.getProjectName();
+                toolType = "PROJECT";
+            } else {
+                IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("id"));
+                toolName = function.getEngineName();
+                toolType = "FUNCTION";
+            }
+
             // object to store params needed to call the tool
             List<HashMap<String, Object>> toolCallInfoData = new ArrayList<HashMap<String, Object>>();
             for(Entry<String, Object> functionParam : ((Map<String, Object>)functionParams.get("map")).entrySet()){
@@ -139,11 +156,11 @@ public class AskToolReactor extends AbstractReactor {
                 toolCallInfoData.add(paramInfo);
             }
 
-            Map<String, Object> outputObject = new HashMap<String, Object>();
-            outputObject.put("type", "FUNCTION");
-            outputObject.put("name", function.getFunctionName());
+            outputObject.put("type", toolType);
+            outputObject.put("name", toolName);
             outputObject.put("functionId", (String) functionParams.get("id"));
             outputObject.put("parameters", toolCallInfoData);
+
             output.get("response").add(outputObject);
         } else {
             // 	this is a standard response - process it for code blocks.
