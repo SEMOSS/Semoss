@@ -27,7 +27,7 @@ public class TinkerUtilities {
 	 * @param engine
 	 */
 	public static void removeAllVertices(TinkerEngine engine) {
-		GraphTraversal<Vertex, Long> iterate = engine.g.traversal().V().drop().iterate().count();
+		GraphTraversal<Vertex, Long> iterate = engine.getGraph().traversal().V().drop().iterate().count();
 		while(iterate.hasNext()) {
 			Long count = iterate.next();
 			classLogger.info("Dropping " + count + " verticies from engine " + engine.getEngineName() + "__" + engine.getEngineId());
