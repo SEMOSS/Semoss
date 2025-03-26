@@ -35,7 +35,7 @@ public class MDCRegexFilter extends AbstractFilter {
 
     @PluginFactory
     public static MDCRegexFilter createFilter(@PluginAttribute("valRegex") String regex, @PluginAttribute("key") String key ,
-                                              @PluginAttribute("onMatch") Result onMatch,  @PluginAttribute("onMismatch") Result onMismatch) {
+                                   @PluginAttribute("onMatch") Result onMatch,  @PluginAttribute("onMismatch") Result onMismatch) {
         return new MDCRegexFilter(key, regex, onMatch, onMismatch);
     }
 

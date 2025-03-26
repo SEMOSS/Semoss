@@ -1,4 +1,4 @@
-package prerna.logging;
+package prerna.logger;
 
 import java.util.Properties;
 
