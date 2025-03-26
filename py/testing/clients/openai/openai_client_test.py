@@ -21,6 +21,7 @@ from genai_client import OpenAiClient
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+MAX_TOKENS = 4097
 SAMPLE_QUESTION = "What is the capital of India?"
 
 
@@ -30,7 +31,7 @@ def openai_chat_completion_client():
     return OpenAiClient(
         model_name="gpt-3.5-turbo",
         api_key=OPENAI_API_KEY,
-        max_tokens=4097,
+        max_tokens=MAX_TOKENS,
         chat_type="chat-completion",
     )
 
@@ -41,7 +42,7 @@ def openai_completion_client():
     return OpenAiClient(
         model_name="babbage-002",
         api_key=OPENAI_API_KEY,
-        max_tokens=4097,
+        max_tokens=MAX_TOKENS,
         chat_type="completions",
     )
 
@@ -51,14 +52,18 @@ def test_openai_chat_completions(openai_chat_completion_client):
     ask_response = openai_chat_completion_client.ask(question=SAMPLE_QUESTION)
     print("openai chat completion ask_response - ", ask_response)
 
-    assert isinstance(
-        ask_response, Dict
-    ), "Response Should be a Dictionary"  # Structured JSON response
+    assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
     assert set(ask_response.keys()) == {
         "response",
         "numberOfTokensInPrompt",
         "numberOfTokensInResponse",
-    }, "Response Keys Mismatch"  # Correct response parameters
+    }, "Response Keys Mismatch"
+
+    total_tokens = (
+        ask_response["numberOfTokensInPrompt"]
+        + ask_response["numberOfTokensInResponse"]
+    )
+    assert total_tokens <= MAX_TOKENS, "Exceeds token limit"
 
 
 def test_openai_completions(openai_completion_client):
@@ -72,3 +77,9 @@ def test_openai_completions(openai_completion_client):
         "numberOfTokensInPrompt",
         "numberOfTokensInResponse",
     }, "Response Keys Mismatch"
+
+    total_tokens = (
+        ask_response["numberOfTokensInPrompt"]
+        + ask_response["numberOfTokensInResponse"]
+    )
+    assert total_tokens <= MAX_TOKENS, "Exceeds token limit"

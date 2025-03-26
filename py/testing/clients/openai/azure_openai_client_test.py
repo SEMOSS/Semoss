@@ -23,23 +23,24 @@ load_dotenv()
 
 AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+MAX_TOKENS = 4097
 SAMPLE_QUESTION = "What is the capital of Germany?"
 
 
 @pytest.fixture
-def azure_openai_client():
+def azure_chat_completion_client():
     """Fixture to create an Azure OpenAI client instance."""
     return AzureOpenAiClient(
         model_name="gpt-4o",
         api_key=AZURE_OPENAI_API_KEY,
         endpoint=AZURE_OPENAI_ENDPOINT,
-        max_tokens=4097,
+        max_tokens=MAX_TOKENS,
     )
 
 
-def test_azure_chat_completions(azure_openai_client):
-    """Test the Azure OpenAI chat completion."""
-    ask_response = azure_openai_client.ask(question=SAMPLE_QUESTION)
+def test_azure_openai_chat_completions(azure_chat_completion_client):
+    """Test the Azure OpenAI chat completion client"""
+    ask_response = azure_chat_completion_client.ask(question=SAMPLE_QUESTION)
     print("azure chat completion ask_response - ", ask_response)
 
     assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
@@ -48,3 +49,9 @@ def test_azure_chat_completions(azure_openai_client):
         "numberOfTokensInPrompt",
         "numberOfTokensInResponse",
     }, "Response Keys Mismatch"
+
+    total_tokens = (
+        ask_response["numberOfTokensInPrompt"]
+        + ask_response["numberOfTokensInResponse"]
+    )
+    assert total_tokens <= MAX_TOKENS, "Exceeds token limit"
