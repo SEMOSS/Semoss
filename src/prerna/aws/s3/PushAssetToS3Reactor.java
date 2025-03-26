@@ -3,6 +3,9 @@ package prerna.aws.s3;
 import static prerna.aws.s3.S3Utils.BUCKET;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,6 +27,10 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+/**
+ * Deprecated on March 21st 2025. Please use StorageEngine Directly
+ */
+@Deprecated
 public class PushAssetToS3Reactor extends AbstractReactor {
 
 	private static final Logger logger = LogManager.getLogger(PushAssetToS3Reactor.class);
@@ -65,8 +72,8 @@ public class PushAssetToS3Reactor extends AbstractReactor {
 
 		if (relativeAssetPath != null && relativeAssetPath.length() > 0) {
 			pushPath = assetFolder + DIR_SEPARATOR + relativeAssetPath;
-			File assetToPush = new File(Utility.normalizePath(pushPath));
-			if (!assetToPush.exists()) {
+			Path assetToPush = Paths.get(Utility.normalizePath(pushPath));
+			if (!Files.exists(assetToPush)) {
 				NounMetadata error = NounMetadata.getErrorNounMessage("File does not exist");
 				SemossPixelException exception = new SemossPixelException(error);
 				exception.setContinueThreadOfExecution(false);
@@ -76,12 +83,12 @@ public class PushAssetToS3Reactor extends AbstractReactor {
 			TransferManager xfer_mgr = TransferManagerBuilder.standard().withS3Client(s3Client).build();
 			boolean transferFailure = false;
 			try {
-				if (assetToPush.isDirectory()) {
+				if (Files.isDirectory(assetToPush)) {
 					MultipleFileUpload xfer = xfer_mgr.uploadDirectory(bucketName,
-							relativeAssetPath, assetToPush, true);
+							relativeAssetPath, assetToPush.toFile(), true);
 					xfer.waitForCompletion();
 				} else {
-					Upload xfer = xfer_mgr.upload(bucketName, relativeAssetPath, assetToPush);
+					Upload xfer = xfer_mgr.upload(bucketName, relativeAssetPath, assetToPush.toFile());
 					xfer.waitForCompletion();
 				}
 			} catch (AmazonClientException | InterruptedException e) {

@@ -24,6 +24,11 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+
+/**
+ * Deprecated on March 21st 2025. Please use StorageEngine Directly
+ */
+@Deprecated
 public class S3FileDownloadToAssetsReactor extends AbstractReactor {
 
 	private static final Logger logger = LogManager.getLogger(S3FileDownloadToAssetsReactor.class);
