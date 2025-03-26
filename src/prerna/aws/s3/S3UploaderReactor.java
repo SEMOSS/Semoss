@@ -24,6 +24,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+/**
+ * Deprecated on March 21st 2025. Please use StorageEngine Directly
+ */
+@Deprecated
 public class S3UploaderReactor extends TaskBuilderReactor {
 	
 	private static final String CLASS_NAME = S3UploaderReactor.class.getName();
