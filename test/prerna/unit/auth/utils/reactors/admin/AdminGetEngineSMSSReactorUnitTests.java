@@ -1,24 +1,13 @@
 package prerna.unit.auth.utils.reactors.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.nio.file.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +17,6 @@ import org.mockito.Mockito;
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
 
-import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.reactors.admin.AdminGetEngineSMSSReactor;
@@ -51,6 +39,8 @@ public class AdminGetEngineSMSSReactorUnitTests {
 	private IEngine engine;
 	private NounStore ns;
 	private GenRowStruct engineGrs;
+
+	private FileSystem fs;
 	
 	
 	@BeforeEach
@@ -65,6 +55,7 @@ public class AdminGetEngineSMSSReactorUnitTests {
 
 		engineGrs = mock(GenRowStruct.class);
 		reactor.setNounStore(ns);
+		fs = Jimfs.newFileSystem(Configuration.unix());
 	}
 	
 	@Test
@@ -125,8 +116,7 @@ public class AdminGetEngineSMSSReactorUnitTests {
 		
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class); 	
 			 MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class);
-			 MockedStatic<Paths> mockPaths = Mockito.mockStatic(Paths.class);
-			 MockedStatic<Files> mockFiles = Mockito.mockStatic(Files.class)) {
+			 MockedStatic<FileSystems> fss = Mockito.mockStatic(FileSystems.class)) {
 	
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
@@ -134,12 +124,11 @@ public class AdminGetEngineSMSSReactorUnitTests {
 			IEngine engine = mock(IEngine.class);
 			utility.when(() -> Utility.getEngine("id")).thenReturn(engine);
 			
-			when(engine.getSmssFilePath()).thenReturn("/path/to/file");
+			when(engine.getSmssFilePath()).thenReturn("dir");
 
-			Path p = mock(Path.class);
-			mockPaths.when(() -> Paths.get("/path/to/file")).thenReturn(p);
-			mockFiles.when(() -> Files.isRegularFile(p)).thenReturn(false);
-			
+
+			fss.when(FileSystems::getDefault).thenReturn(fs);
+			Files.createDirectory(fs.getPath("dir"));
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
 			assertEquals("Could not find smss file for engine id. Please reach out to an administrator for assistance", e.getMessage());
