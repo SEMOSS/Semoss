@@ -5,6 +5,8 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<String, Object>> {
@@ -15,13 +17,36 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
 
-	public static AskImageModelEngineResponse getKServeImageResponse(JSONObject response) {
+    public static AskImageModelEngineResponse getKServeImageResponse(JSONObject response) {
         if (response != null) {
             Map<String, Object> responseMap = new HashMap<>();
             
             if (response.has("output")) {
-                JSONObject outputValue = response.getJSONObject("output");
-                responseMap.put("output", outputValue);
+                Object outputObj = response.get("output");
+                String outputStr = null;
+                
+                if (outputObj instanceof JSONArray) {
+                    JSONArray images = (JSONArray) outputObj;
+                    String[] imageList = new String[images.length()];
+                    for (int i = 0; i < images.length(); i++) {
+                        imageList[i] = images.getString(i);
+                    }
+                    responseMap.put("images", imageList);
+                } else if (outputObj instanceof String) {
+                    outputStr = (String) outputObj;
+                    try {
+                        JSONArray images = new JSONArray(outputStr);
+                        String[] imageList = new String[images.length()];
+                        for (int i = 0; i < images.length(); i++) {
+                            imageList[i] = images.getString(i);
+                        }
+                        responseMap.put("images", imageList);
+                    } catch (JSONException e) {
+                        responseMap.put("images", outputStr);
+                    }
+                } else {
+                    responseMap.put("images", outputObj);
+                }
             }
             
             if (response.has("prompt")) {
@@ -61,19 +86,35 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
 
             return new AskImageModelEngineResponse(responseMap, 0, 0);
         } else {
-        	classLogger.error("Null response from model request");
-	        Map<String, Object> errorMap = new HashMap<>();
-	        errorMap.put("status", "error");
-	        errorMap.put("message", "Null response from model request");
-	        
-	        return new AskImageModelEngineResponse(errorMap, 0, 0);
+            classLogger.error("Null response from model request");
+            Map<String, Object> errorMap = new HashMap<>();
+            errorMap.put("status", "error");
+            errorMap.put("message", "Null response from model request");
+            
+            return new AskImageModelEngineResponse(errorMap, 0, 0);
         }
-    
     }
 	
     @Override
-    public String getStringResponse() {    
-        JSONObject jsonObject = new JSONObject(this.getResponse());
+    public String getStringResponse() {
+        Map<String, Object> response = this.getResponse();
+        JSONObject jsonObject = new JSONObject();
+        
+        if (response.containsKey("images")) {
+            Object imagesObj = response.get("images");
+            if (imagesObj instanceof JSONArray) {
+
+                JSONArray imagesArray = (JSONArray) imagesObj;
+                jsonObject.put("images", imagesArray);
+            } else {
+                jsonObject.put("images", imagesObj);
+            }
+        } else {
+            for (Map.Entry<String, Object> entry : response.entrySet()) {
+                jsonObject.put(entry.getKey(), entry.getValue());
+            }
+        }
+        
         return jsonObject.toString();
     }
 }

@@ -8,7 +8,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.model.responses.AskImageModelEngineResponse;
-import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
 import prerna.om.Insight;
 import prerna.engine.api.ModelTypeEnum;
 
