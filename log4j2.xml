@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO"  packages="prerna.logging">
+    <Appenders>
+        <QueueAppender name="QueueAppender">
+            <JsonLayout complete="false"  compact="true" eventEol="true" timestampFormat="yyyy-MM-dd HH:mm:ss,SSS" includeTimeMillis="false" stacktraceAsString="true" properties="true">
+                <KeyValuePair key="requestId"  value="${ctx:requestId}"/>
+                <KeyValuePair key="logId"  value="${ctx:logId}"/>
+                <KeyValuePair key="userId"  value="${ctx:userId}"/>
+                <KeyValuePair key="sessionId"  value="${ctx:sessionId}"/>
+                <KeyValuePair key="host"  value="${ctx:host}"/>
+                <KeyValuePair key="IP"  value="${ctx:IP}"/>
+                <KeyValuePair key="serviceName"  value="${ctx:serviceName}"/>
+                <KeyValuePair key="method"  value="${ctx:method}"/>
+                <KeyValuePair key="endpoint"  value="${ctx:endpoint}"/>
+            </JsonLayout>
+            <loggerClass>prerna.logger.impl.KafkaLogger</loggerClass>
+            <loggerConfig>bootstrap.servers=localhost:9092,topic=logs1</loggerConfig>
+            <MDCRegexFilter key="requestId" valRegex=".*" onMatch="ACCEPT" onMismatch="DENY"/>
+        </QueueAppender>
+
+        <Console name="Console" target="SYSTEM_OUT">
+            <JsonLayout complete="false"  compact="false" eventEol="true" timestampFormat="yyyy-MM-dd HH:mm:ss,SSS" includeTimeMillis="true" stacktraceAsString="true" properties="true">
+                <KeyValuePair key="requestId"  value="${ctx:requestId}"/>
+                <KeyValuePair key="logId"  value="${ctx:logId}"/>
+                <KeyValuePair key="userId"  value="${ctx:userId}"/>
+                <KeyValuePair key="sessionId"  value="${ctx:sessionId}"/>
+                <KeyValuePair key="host"  value="${ctx:host}"/>
+                <KeyValuePair key="IP"  value="${ctx:IP}"/>
+                <KeyValuePair key="serviceName"  value="${ctx:serviceName}"/>
+                <KeyValuePair key="method"  value="${ctx:method}"/>
+                <KeyValuePair key="endpoint"  value="${ctx:endpoint}"/>
+            </JsonLayout>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="QueueAppender"/>
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+</Configuration>
