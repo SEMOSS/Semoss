@@ -202,12 +202,6 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         safety_margin = int(context_window * SAFETY_PERCENTAGE)
         safe_prompt_tokens = num_tokens_in_prompt + safety_margin
 
-        # Check if we are close to the context window limit of 80%
-        if safe_prompt_tokens >= int(context_window * 0.8):
-            warnings.append(
-                "Prompt has already reached 80% of the model's context window."
-            )
-
         # 4. Check if we need to truncate
         if safe_prompt_tokens > (context_window * TRUNCATION_THRESHOLD):
             token_counter = 0
@@ -242,7 +236,13 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                     break
 
                 token_counter = next_count
-
+        
+        # Check if we are close to the context window limit of 80%
+        if safe_prompt_tokens >= int(context_window * 0.8):
+            warnings.append(
+                "Prompt has already reached 80% of the model's context window."
+            )
+        
         # 5. Calculate available context and final tokens
         available_context = context_window - safe_prompt_tokens
         final_max_tokens = min(available_context, max_completion_tokens)
