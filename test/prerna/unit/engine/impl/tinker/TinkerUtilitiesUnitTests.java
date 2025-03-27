@@ -33,8 +33,8 @@ import prerna.ds.TinkerFrame;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.engine.impl.tinker.TinkerUtilities;
 
-public class TinkerUtilitiesTests {
-	private static final Logger classLogger = LogManager.getLogger(TinkerUtilitiesTests.class);
+public class TinkerUtilitiesUnitTests {
+	private static final Logger classLogger = LogManager.getLogger(TinkerUtilitiesUnitTests.class);
 
 	private FileSystem fs;
 
