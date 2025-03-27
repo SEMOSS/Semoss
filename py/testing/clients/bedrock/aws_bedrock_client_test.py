@@ -1,8 +1,8 @@
 """
 To run the tests, navigate to the Semoss_Dev/py directory and then run the following command:
 
-    pytest -s testing/clients/bedrock/aws_bedrock_client_test.py
-    -s => For enabling the print statements
+    pytest testing/clients/bedrock/aws_bedrock_client_test.py
+    pytest -s testing/clients/bedrock/aws_bedrock_client_test.py => For enabling the print statements
 
 Ensure you have a valid `.env` file with the below required keys:
     - AWS_SECRET_KEY

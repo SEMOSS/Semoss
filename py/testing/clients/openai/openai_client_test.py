@@ -1,8 +1,8 @@
 """
 To run the tests, navigate to the Semoss_Dev/py directory and then run the following command:
 
-    pytest -s testing/clients/openai/openai_client_test.py
-    -s => For enabling the print statements
+    pytest testing/clients/openai/openai_client_test.py
+    pytest -s testing/clients/openai/openai_client_test.py -> For enabling the print statements
 
 Ensure you have a valid `.env` file with the below required keys:
     - OPENAI_API_KEY
@@ -22,7 +22,7 @@ load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 MAX_TOKENS = 4097
-SAMPLE_QUESTION = "What is the capital of India?"
+SAMPLE_QUESTION = "What is the capital of France?"
 
 
 @pytest.fixture
