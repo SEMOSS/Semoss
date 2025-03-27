@@ -1820,9 +1820,11 @@ public abstract class AbstractSecurityUtils {
 			
 			// SESSION SHARE
 			colNames = new String[] { "SHARE_VAL", "SESSION_VAL", "ROUTE_VAL", 
+					"IS_SESSION_SHARE", "IS_AUTH_SHARE",
 					"DATE_ADDED", "DATE_USED", "USE_VALID", 
 					"USERID", "TYPE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 					"VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
@@ -1836,6 +1838,19 @@ public abstract class AbstractSecurityUtils {
 					String sql = queryUtil.createTable("SESSION_SHARE", colNames, types);
 					classLogger.info("Running sql " + sql);
 					securityDb.insertData(sql);
+				}
+			}
+			// make sure all the columns are still valid
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "SESSION_SHARE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+						String addColumnSql = queryUtil.alterTableAddColumn("SESSION_SHARE", col, types[i]);
+						classLogger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
 				}
 			}
 	
