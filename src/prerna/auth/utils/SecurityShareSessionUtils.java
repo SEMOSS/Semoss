@@ -10,6 +10,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
@@ -23,6 +25,12 @@ import prerna.util.Utility;
 
 public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 
+	/*
+	 * This class is primarily being used for share the session
+	 * We are now extending to also handle the authentication only w/o 
+	 * caring about redirect to the same session
+	 */
+	
 	private static final Logger classLogger = LogManager.getLogger(SecurityShareSessionUtils.class);
 
 	private static final String SESSION_SHARE_TABLE_NAME = "SESSION_SHARE";
@@ -34,7 +42,9 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	private static final String USE_VALID = "USE_VALID";
 	private static final String USERID = "USERID";
 	private static final String TYPE = "TYPE";
-	
+	private static final String SESSION_SHARE = "IS_SESSION_SHARE";
+	private static final String AUTH_SHARE = "IS_AUTH_SHARE";
+
 	private static final String QS_SHARE_VAL = SESSION_SHARE_TABLE_NAME + "__" + SHARE_VAL;
 	private static final String QS_SESSION_VAL = SESSION_SHARE_TABLE_NAME + "__" + SESSION_VAL;
 	private static final String QS_ROUTE_VAL = SESSION_SHARE_TABLE_NAME + "__" + ROUTE_VAL;
@@ -43,12 +53,49 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	private static final String QS_USE_VALID = SESSION_SHARE_TABLE_NAME + "__" + USE_VALID;
 	private static final String QS_USERID = SESSION_SHARE_TABLE_NAME + "__" + USERID;
 	private static final String QS_TYPE = SESSION_SHARE_TABLE_NAME + "__" + TYPE;
+	private static final String QS_SESSION_SHARE = SESSION_SHARE_TABLE_NAME + "__" + SESSION_SHARE;
+	private static final String QS_AUTH_SHARE = SESSION_SHARE_TABLE_NAME + "__" + AUTH_SHARE;
 
 	private SecurityShareSessionUtils() {
 		
 	}
 	
+	/**
+	 * 
+	 * @param user
+	 * @param sessionId
+	 * @param routeId
+	 * @return
+	 * @throws SQLException
+	 */
 	public static String createShareToken(User user, String sessionId, String routeId) throws SQLException {
+		return createToken(user, sessionId, routeId, true, false);
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param sessionId
+	 * @param routeId
+	 * @return
+	 * @throws SQLException
+	 */
+	public static String createAuthToken(User user, String sessionId, String routeId) throws SQLException {
+		return createToken(user, sessionId, routeId, false, true);
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param sessionId
+	 * @param routeId
+	 * @param sessionToken
+	 * @param authToken
+	 * @return
+	 * @throws SQLException
+	 */
+	public static String createToken(User user, String sessionId, String routeId,
+			boolean sessionToken, boolean authToken) throws SQLException {
 		if(user == null || user.isAnonymous()) {
 			throw new IllegalArgumentException("Cannot share a session for a user who is not logged in");
 		}
@@ -63,13 +110,16 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 			ps = securityDb.bulkInsertPreparedStatement(new Object[] {
 					SESSION_SHARE_TABLE_NAME, 
 					SHARE_VAL, SESSION_VAL, ROUTE_VAL,
-					DATE_ADDED, USERID, TYPE
+					DATE_ADDED, SESSION_SHARE, AUTH_SHARE,
+					USERID, TYPE
 				});
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, shareToken);
 			ps.setString(parameterIndex++, sessionId);
 			ps.setString(parameterIndex++, routeId);
 			ps.setTimestamp(parameterIndex++, timestamp);
+			ps.setBoolean(parameterIndex++, sessionToken);
+			ps.setBoolean(parameterIndex++, authToken);
 			ps.setString(parameterIndex++, loginDetails.getValue0());
 			ps.setString(parameterIndex++, loginDetails.getValue1());
 			ps.execute();
@@ -78,7 +128,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 			}
 		} catch(SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred inserting the request to update the password");
+			throw new IllegalArgumentException("Error occurred inserting to create a new token");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -133,6 +183,10 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(QS_DATE_ADDED));
 		qs.addSelector(new QueryColumnSelector(QS_DATE_USED));
 		qs.addSelector(new QueryColumnSelector(QS_USE_VALID));
+		qs.addSelector(new QueryColumnSelector(QS_SESSION_SHARE));
+		qs.addSelector(new QueryColumnSelector(QS_AUTH_SHARE));
+		qs.addSelector(new QueryColumnSelector(QS_USERID));
+		qs.addSelector(new QueryColumnSelector(QS_TYPE));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(QS_SHARE_VAL, "==", shareToken));
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -188,4 +242,77 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 		return shareToken;
 	}
 
+	/**
+	 * 
+	 * @param shareDetails
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static AccessToken generateAccessTokenForShareAuth(Object[] shareDetails) throws IllegalAccessException {
+		int index = 0;
+		String shareToken = (String) shareDetails[index++];
+		String sessionVal = (String) shareDetails[index++];
+		String routeVal = (String) shareDetails[index++];
+		SemossDate dateAddedVal = (SemossDate) shareDetails[index++];
+		SemossDate dateUsedVal = (SemossDate) shareDetails[index++];
+		Boolean useValid = (Boolean) shareDetails[index++];
+		boolean shareSession = (Boolean) shareDetails[index++];
+		boolean shareAuth = (Boolean) shareDetails[index++];
+		String userId = (String) shareDetails[index++];
+		String userType = (String) shareDetails[index++];
+
+		if(!shareAuth) {
+			throw new IllegalAccessException("Token is not an auth token");
+		} else if(useValid != null) {
+			throw new IllegalAccessException("Token has already been used. Please get a new token");
+		}
+		
+		final String SMSS_USER_TABLE_NAME = "SMSS_USER";
+		final String SMSS_USER_USERID_COL = SMSS_USER_TABLE_NAME + "__ID";
+		final String SMSS_USER_USERTYPE_COL = SMSS_USER_TABLE_NAME + "__TYPE";
+		final String SMSS_USER_NAME_COL = SMSS_USER_TABLE_NAME + "__NAME";
+		final String SMSS_USER_USERNAME_COL = SMSS_USER_TABLE_NAME + "__USERNAME";
+		final String SMSS_USER_EMAIL_COL = SMSS_USER_TABLE_NAME + "__EMAIL";
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_USERID_COL));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_USERTYPE_COL));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_NAME_COL));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_USERNAME_COL));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_EMAIL_COL));
+		// filter to this user id and type
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_USERID_COL, "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_USERTYPE_COL, "==", userType));
+
+		AccessToken token = new AccessToken();
+		AuthProvider provider = AuthProvider.getProviderFromString(userType);
+		token.setProvider(provider);
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				String name = (String) values[2];
+				String username = (String) values[3];
+				String email = (String) values[4];
+
+				token.setName(name);
+				token.setUsername(username);
+				token.setEmail(email);
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		return token;
+	}
 }
