@@ -41,54 +41,73 @@ public class NerModelEngineResponse extends AbstractModelEngineResponse<Map<Stri
 	}
 	
 	public static NerModelEngineResponse fromJson(JSONObject response) {
-		if (response != null) {      
+	    Logger classLogger = LogManager.getLogger(NerModelEngineResponse.class);
+	    
+	    if (response != null) {      
 	        Map<String, Object> responseMap = new HashMap<>();
 	        
-	        // Handle mask_values
-	        JSONObject maskValues = response.getJSONObject("mask_values");
-	        Map<String, String> maskValuesMap = new HashMap<>();
-	        for (String key : maskValues.keySet()) {
-	            maskValuesMap.put(key, maskValues.getString(key));
+	        if (response.has("mask_values")) {
+	            JSONObject maskValues = response.getJSONObject("mask_values");
+	            Map<String, String> maskValuesMap = new HashMap<>();
+	            for (String key : maskValues.keySet()) {
+	                maskValuesMap.put(key, maskValues.getString(key));
+	            }
+	            responseMap.put("mask_values", maskValuesMap);
 	        }
-	        responseMap.put("mask_values", maskValuesMap);
 	        
-	        // Handle entities
-	        JSONArray entitiesArray = response.getJSONArray("entities");
-	        List<String> entitiesList = new ArrayList<>();
-	        for (int i = 0; i < entitiesArray.length(); i++) {
-	            entitiesList.add(entitiesArray.getString(i));
+	        if (response.has("entities")) {
+	            JSONArray entitiesArray = response.getJSONArray("entities");
+	            List<String> entitiesList = new ArrayList<>();
+	            for (int i = 0; i < entitiesArray.length(); i++) {
+	                entitiesList.add(entitiesArray.getString(i));
+	            }
+	            responseMap.put("entities", entitiesList);
 	        }
-	        responseMap.put("entities", entitiesList);
 	        
-	        // Handle raw_output
-	        JSONArray rawOutput = response.getJSONArray("raw_output");
-	        List<Map<String, Object>> rawOutputList = new ArrayList<>();
-	        for (int i = 0; i < rawOutput.length(); i++) {
-	            JSONObject entity = rawOutput.getJSONObject(i);
-	            Map<String, Object> entityMap = new HashMap<>();
-	            entityMap.put("start", entity.getInt("start"));
-	            entityMap.put("end", entity.getInt("end"));
-	            entityMap.put("text", entity.getString("text"));
-	            entityMap.put("label", entity.getString("label"));
-	            entityMap.put("score", entity.getDouble("score"));
-	            rawOutputList.add(entityMap);
+	        if (response.has("raw_output")) {
+	            JSONArray rawOutput = response.getJSONArray("raw_output");
+	            List<Map<String, Object>> rawOutputList = new ArrayList<>();
+	            for (int i = 0; i < rawOutput.length(); i++) {
+	                JSONObject entity = rawOutput.getJSONObject(i);
+	                Map<String, Object> entityMap = new HashMap<>();
+	                entityMap.put("start", entity.getInt("start"));
+	                entityMap.put("end", entity.getInt("end"));
+	                entityMap.put("text", entity.getString("text"));
+	                entityMap.put("label", entity.getString("label"));
+	                entityMap.put("score", entity.getDouble("score"));
+	                rawOutputList.add(entityMap);
+	            }
+	            responseMap.put("raw_output", rawOutputList);
 	        }
-	        responseMap.put("raw_output", rawOutputList);
 	        
-	        responseMap.put("output", response.getString("output"));
-	        responseMap.put("input", response.getString("input"));
-	        responseMap.put("message", response.getString("message"));
-	        responseMap.put("status", response.getString("status"));
+	        if (response.has("output")) {
+	            responseMap.put("output", response.getString("output"));
+	        }
+	        
+	        if (response.has("input")) {
+	            responseMap.put("input", response.getString("input"));
+	        }
+	        
+	        if (response.has("status")) {
+	            responseMap.put("status", response.getString("status"));
+	        } else {
+	            responseMap.put("status", "success");
+	        }
+	        
+	        if (response.has("message")) {
+	            responseMap.put("message", response.getString("message"));
+	        } else {
+	            responseMap.put("message", "");
+	        }
 	        
 	        return new NerModelEngineResponse(responseMap, 0, 0);
-		} else {
-            classLogger.error("Null response from model request");
-            Map<String, Object> errorMap = new HashMap<>();
-            errorMap.put("status", "error");
-            errorMap.put("message", "Null response from model request");
-            
-            return new NerModelEngineResponse(errorMap, 0, 0);
-		}
-		
+	    } else {
+	        classLogger.error("Null response from model request");
+	        Map<String, Object> errorMap = new HashMap<>();
+	        errorMap.put("status", "error");
+	        errorMap.put("message", "Null response from model request");
+	        
+	        return new NerModelEngineResponse(errorMap, 0, 0);
+	    }
 	}
 }
