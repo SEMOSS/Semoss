@@ -32,7 +32,10 @@ public interface ICache {
 	 * @return				A clean version of the input folder/file name
 	 */
 	static String cleanFolderAndFileName(String s){
-		return s.replaceAll("[^a-zA-Z0-9-_\\.]", "_");
+		if (s != null) {
+			s = s.replaceAll("[^a-zA-Z0-9-_\\.]", "_");
+		}
+		return s;
 	}
 	
 	/**
