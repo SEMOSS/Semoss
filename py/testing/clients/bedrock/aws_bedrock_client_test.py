@@ -43,11 +43,25 @@ def test_aws_bedrock_claude(aws_bedrock_client):
     ask_response = aws_bedrock_client.ask_call(question=SAMPLE_QUESTION)
     print("bedrock ask_response - ", ask_response)
 
+    embeddings_response = aws_bedrock_client.embeddings(
+        strings_to_embed=[SAMPLE_QUESTION]
+    )
+    print("bedrock embeddings_response - ", embeddings_response)
+
     assert isinstance(
         ask_response, AskModelEngineResponse
-    ), "Response Shoule be an instance of AskModelEngineResponse"
+    ), "Response Should be an instance of AskModelEngineResponse"
     assert set(ask_response.to_dict().keys()) == {
         "response",
         "numberOfTokensInPrompt",
         "numberOfTokensInResponse",
+        "messageType",
     }, "Response Keys Mismatch"
+
+    # Checking the embeddings response
+    assert isinstance(embeddings_response, Dict)
+    assert set(embeddings_response.keys()) == {
+        "response",
+        "numberOfTokensInPrompt",
+        "numberOfTokensInResponse",
+    }
