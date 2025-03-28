@@ -50,12 +50,12 @@ def openai_completion_client():
 def test_openai_chat_completions(openai_chat_completion_client):
     """Test the OpenAI chat completion client."""
     ask_response = openai_chat_completion_client.ask(question=SAMPLE_QUESTION)
-    print("openai chat completion ask_response - ", ask_response)
+    print("\n openai chat completion ask_response - ", ask_response)
 
     embeddings_response = openai_chat_completion_client.embeddings(
         strings_to_embed=[SAMPLE_QUESTION]
     )
-    print("openai chat completion embeddings_response - ", embeddings_response)
+    print("\n openai chat completion embeddings_response - ", embeddings_response)
 
     # Checking the ask response
     assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
@@ -84,12 +84,12 @@ def test_openai_chat_completions(openai_chat_completion_client):
 def test_openai_completions(openai_completion_client):
     """Test the OpenAI completion client."""
     ask_response = openai_completion_client.ask(question=SAMPLE_QUESTION)
-    print("openai completion ask_response - ", ask_response)
+    print("\n openai completion ask_response - ", ask_response)
 
     embeddings_response = openai_completion_client.embeddings(
         strings_to_embed=[SAMPLE_QUESTION]
     )
-    print("openai completion embeddings_response - ", embeddings_response)
+    print("\n openai completion embeddings_response - ", embeddings_response)
 
     # Checking the ask response
     assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
