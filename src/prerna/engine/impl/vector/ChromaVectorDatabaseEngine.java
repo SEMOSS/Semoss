@@ -2,7 +2,10 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -10,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -312,24 +316,36 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+		Path documentsDir = Paths.get(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 
 		List<Map<String, Object>> fileList = new ArrayList<>();
 
-		File[] files = documentsDir.listFiles();
+		List<Path> files = null;
+		try {
+			files = Files.list(documentsDir).collect(Collectors.toList());
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 		if (files != null) {
-			for (File file : files) {
-				String fileName = file.getName();
-				long fileSizeInBytes = file.length();
-				double fileSizeInMB = (double) fileSizeInBytes / (1024);
-				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				String lastModified = dateFormat.format(new Date(file.lastModified()));
+			for (Path file : files) {
+				try {
+					String fileName = file.getFileName().toString();
+					Long fileSizeInBytes = Files.size(file);
+					double fileSizeInMB = (double) fileSizeInBytes / (1024);
+					SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+					FileTime fileTime = Files.getLastModifiedTime(file);
+		            long lastModifiedMillis = fileTime.toMillis();
+		             Date lastModified = new Date(lastModifiedMillis);
 
-				Map<String, Object> fileInfo = new HashMap<>();
-				fileInfo.put("fileName", fileName);
-				fileInfo.put("fileSize", fileSizeInMB);
-				fileInfo.put("lastModified", lastModified);
-				fileList.add(fileInfo);
+		            Map<String, Object> fileInfo = new HashMap<>();
+					fileInfo.put("fileName", fileName);
+					fileInfo.put("fileSize", fileSizeInMB);
+					fileInfo.put("lastModified", lastModified);
+					fileList.add(fileInfo);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+//					throw e;
+				}
 			}
 		} 
 

@@ -1,24 +1,31 @@
 package prerna.unit.engine.impl.vector;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.spy;
+
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.http.entity.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +65,8 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	private ChromaVectorDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
 	
+	private FileSystem fs;
+	
 	@BeforeEach
 	void setUp() {
 		engine = new ChromaVectorDatabaseEngine();
@@ -66,6 +75,8 @@ public class ChromaVectorDatabaseEngineUnitTests {
 		engineFileDirectory = ApiTestsSemossConstants.BASE_DIRECTORY;
 		
 		modelEmbedder = mock(IModelEngine.class);
+		
+		fs = Jimfs.newFileSystem(Configuration.unix());
 	}
 	
 	private IModelEngine getAbstractEmbedder() {
@@ -339,7 +350,6 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	
 	@Test
 	void testRemoveDocument() throws Exception {
-//		String schemaFolder = 
 		openEngine(engine, null); // set initial properties
 		// both objects needed for method call
 		Map<String, Object> parameters = new HashMap<>();
@@ -371,17 +381,124 @@ public class ChromaVectorDatabaseEngineUnitTests {
 			paths.when(() -> Paths.get(doc1)).thenReturn(p);
 			when(p.getFileName()).thenReturn(p);
 			when(p.toString()).thenReturn(doc1);
+			
+			engine.removeDocument(fileNames, parameters);
 		}
 	}
 	
 	@Test
-	void testNearestNeighborCall() {
+	void testNearestNeighborCall() throws Exception {
+		Number limit = 1;
+		String searchStatement = "searchStatement";
+		String testEmbedderId = "123-456-789";
+		List<List<Double>> mockedEmbeddingList = new Vector<>();
+		List<Double> mockedEmbeddings = new Vector<>();
+		{
+			mockedEmbeddings.add(new Double(0.2));
+			mockedEmbeddings.add(new Double(0.4));
+			mockedEmbeddings.add(new Double(0.6));
+			mockedEmbeddings.add(new Double(0.8));
+			
+			mockedEmbeddingList.add(mockedEmbeddings);
+		}
+		Map<String, String> extraProps = new HashMap<>();
+		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
+		openEngine(engine, extraProps); // set initial properties
 		
+		try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
+				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class)){
+			// used in verifyModelProps & addEmbeddings
+			u.when(()-> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
+			
+			// model embedder properties
+			Properties embedderProps = new Properties();
+			embedderProps.setProperty(Constants.MODEL, "embedder_model");
+			embedderProps.setProperty(IModelEngine.MODEL_TYPE, "embedder_model_type");
+			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			///// all previous statements were for verifyModelProps()
+			
+			// mocking getting embeddings
+//			ChromaVectorDatabaseEngine engineMocked = mock(ChromaVectorDatabaseEngine.class);
+			EmbeddingsModelEngineResponse responseMocked = mock(EmbeddingsModelEngineResponse.class);
+			when(modelEmbedder.embeddings(Arrays.asList(new String[] {searchStatement}), insight, null)).thenReturn(responseMocked);
+			when(responseMocked.getResponse()).thenReturn(mockedEmbeddingList);
+			
+			// mocking http request
+			Map<String, Object> query = new HashMap<>();
+			List<List<Double>> queryEmbeddings = new ArrayList<>();
+			// this is done to put a list of embeddings inside another list otherwise the
+			// API throws error.
+			queryEmbeddings.add(mockedEmbeddings); 
+			Gson gson = new Gson();
+											
+			// List<Map<String, Object>> metadatas = new ArrayList<>(); add metadata filter
+			query.put("query_texts", searchStatement);
+			query.put("n_results", limit);
+			query.put("query_embeddings", queryEmbeddings);
+			String body = gson.toJson(query);
+			Map<String, Object> responseMap = new HashMap<>();
+			List<Map<String, Object>> metadatas = new Vector<>();
+			Map<String, Object> metadata = new HashMap<>();
+			{
+				metadata.put("test_meta", "meta1");
+				metadatas.add(metadata);
+				responseMap.put("metadatas", metadatas);
+			}
+			String nearestNeigborResponse = gson.toJson(responseMap);
+			
+			hhu.when(()-> HttpHelperUtility.postRequestStringBody(
+					"http://fake.url/" + "TEST_ID" + "/query",
+					null, body, ContentType.APPLICATION_JSON, null, null, null)).thenReturn(nearestNeigborResponse);
+			/*
+			 * TODO there is an issue with mismatched return values on ChromaVectorDatabaseEngine
+			 * update this once the issue is fixed
+			 */
+//			List<Map<String, Object>> returnMetadata = engine.nearestNeighborCall(insight, searchStatement, limit, null);
+//			assertEquals(metadata, returnMetadata);
+		}
 	}
 	
 	@Test
-	void testListDocuments() {
+	void testNearestNeighborCallNoInsight() {
+		Number limit = 1;
+		String searchStatement = "searchStatement";
+		IllegalArgumentException e = assertThrows(
+				IllegalArgumentException.class,
+				()->engine.nearestNeighborCall(null, searchStatement, limit, null));
+		assertEquals("Insight must be provided to run Model Engine Encoder", 
+				e.getMessage());
+	}
+	
+	@Test
+	void testListDocuments() throws Exception {
+		String testEmbedderId = "123-456-789";
+		Map<String, String> extraProps = new HashMap<>();
+		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
+		openEngine(engine, extraProps); // set initial properties
 		
+		
+		Map<String, Object> parameters = new HashMap<>();
+		String indexClass = "TEST_INDEX_CLASS";
+		parameters.put("indexClass", indexClass);
+	
+		String fileName = "newFile.txt";
+	    Path path = fs.getPath("C:\\workspace\\Semoss_Dev\\schema/" + indexClass + "/documents");
+	    Files.createDirectories(path);
+	    Path filePath = path.resolve(fileName);
+	    Files.createFile(filePath);
+		
+		try (MockedStatic<FileSystems> fss = Mockito.mockStatic(FileSystems.class);){
+			fss.when(FileSystems::getDefault).thenReturn(fs);
+			List<Map<String, Object>> fileList = engine.listDocuments(parameters);
+			assertEquals(1, fileList.size());
+			Map<String, Object> fileData = fileList.get(0);
+			assertEquals(fileName, fileData.get("fileName"));
+			assertEquals(0.0, fileData.get("fileSize"));
+			Date fileDate = (Date) fileData.get("lastModified");
+			LocalDate lfd = fileDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+			LocalDate todaysDate = LocalDate.now();
+			assertEquals(todaysDate, lfd);
+		}
 	}
 	
 	@Test
@@ -399,7 +516,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	/*
-	 * Set up the properties file to allow for other operations
+	 * Set up the properties to allow for other operations
 	 */
 	void openEngine(ChromaVectorDatabaseEngine engine, Map<String, String> extraProps) throws Exception {
 		Properties testProps = new Properties();
