@@ -4,12 +4,10 @@ To run the tests, navigate to the Semoss_Dev/py directory and then run the follo
     pytest testing/tokenizers/hf_tokenizer_tests.py
     pytest -s  testing/tokenizers/hf_tokenizer_tests.py -> For enabling the print statements
 
-Ensure you have a valid `.env` file with the below required keys:
-    - OPENAI_API_KEY
-
 Install pytest if not already installed:
     pip install pytest
 """
+
 
 
 import pytest
