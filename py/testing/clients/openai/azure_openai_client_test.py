@@ -30,32 +30,38 @@ MAX_TOKENS = 4097
 SAMPLE_QUESTION = "What is the capital of France?"
 
 
-@pytest.fixture(
-    params=[
-        ("gpt-4o", AZURE_OPENAI_GPT_4O_ENDPOINT),
-        ("o1-mini", AZURE_OPENAI_O1_MINI_ENDPOINT),
-    ]
-)
-def azure_openai_client(request):
-    """
-    Fixture to create an Azure OpenAI client for "gpt-4o" & "o1-mini" Chat Completion models.
-    This will run like a loop from the params.
-        1. "gpt-4o", AZURE_OPENAI_GPT_4O_ENDPOINT
-        2. "o1-mini", AZURE_OPENAI_O1_MINI_ENDPOINT
-    """
-    model_name, endpoint = request.param
+@pytest.fixture
+def azure_openai_gpt_4o_client():
+    """Fixture to create an Azure OpenAI client for "gpt-4o" Chat Completion model."""
     return AzureOpenAiClient(
-        model_name=model_name,
+        model_name="gpt-4o",
         api_key=AZURE_OPENAI_API_KEY,
-        endpoint=endpoint,
+        endpoint=AZURE_OPENAI_GPT_4O_ENDPOINT,
         max_tokens=MAX_TOKENS,
     )
 
 
-def test_azure_openai_ask(azure_openai_client):
-    """Test Azure OpenAI client's ask method for "gpt-4o" & "o1-mini" chat completion models"""
-    ask_response = azure_openai_client.ask(question=SAMPLE_QUESTION)
-    print("ask_response -", ask_response)
+@pytest.fixture
+def azure_openai_o1_mini_client():
+    """Fixture to create an Azure OpenAI client for "o1-mini" Chat Completion model."""
+    return AzureOpenAiClient(
+        model_name="o1-mini",
+        api_key=AZURE_OPENAI_API_KEY,
+        endpoint=AZURE_OPENAI_O1_MINI_ENDPOINT,
+        max_tokens=MAX_TOKENS,
+    )
+
+
+def test_azure_openai_gpt_4o_chat_completion(azure_openai_gpt_4o_client):
+    """Test Azure OpenAI client's ask method for "gpt-4o" chat completion model"""
+    ask_response = azure_openai_gpt_4o_client.ask(question=SAMPLE_QUESTION)
+    print("\n gpt-4o ask_response -", ask_response)
+
+    """Test Azure OpenAI client's embeddings method for "gpt-4o" chat completion model"""
+    embeddings_response = azure_openai_gpt_4o_client.embeddings(
+        strings_to_embed=[SAMPLE_QUESTION]
+    )
+    print("\n gpt-4o embeddings_response -", embeddings_response)
 
     # Checking response type, paramaters and token limits
     assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
@@ -72,13 +78,40 @@ def test_azure_openai_ask(azure_openai_client):
     )
     assert total_tokens <= MAX_TOKENS, "Exceeds token limit"
 
+    # Checking embeddings response type and paramaters
+    assert isinstance(embeddings_response, Dict), "Response should be a dictionary"
+    assert set(embeddings_response.keys()) == {
+        "response",
+        "numberOfTokensInPrompt",
+        "numberOfTokensInResponse",
+    }, "Response Keys Mismatch"
 
-def test_azure_openai_embeddings(azure_openai_client):
-    """Test Azure OpenAI client's embeddings method for "gpt-4o" & "o1-mini" chat completion models"""
-    embeddings_response = azure_openai_client.embeddings(
+
+def test_azure_openai_o1_mini_chat_completion(azure_openai_o1_mini_client):
+    """Test Azure OpenAI client's ask method for "o1-mini" chat completion model"""
+    ask_response = azure_openai_o1_mini_client.ask(question=SAMPLE_QUESTION)
+    print("\n o1-mini ask_response -", ask_response)
+
+    """Test Azure OpenAI client's embeddings method for "o1-mini" chat completion model"""
+    embeddings_response = azure_openai_o1_mini_client.embeddings(
         strings_to_embed=[SAMPLE_QUESTION]
     )
-    print("embeddings_response -", embeddings_response)
+    print("\n o1-mini embeddings_response -", embeddings_response)
+
+    # Checking response type, paramaters and token limits
+    assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
+    assert set(ask_response.keys()) == {
+        "response",
+        "numberOfTokensInPrompt",
+        "numberOfTokensInResponse",
+        "messageType",
+    }, "Response Keys Mismatch"
+
+    total_tokens = (
+        ask_response["numberOfTokensInPrompt"]
+        + ask_response["numberOfTokensInResponse"]
+    )
+    assert total_tokens <= MAX_TOKENS, "Exceeds token limit"
 
     # Checking embeddings response type and paramaters
     assert isinstance(embeddings_response, Dict), "Response should be a dictionary"

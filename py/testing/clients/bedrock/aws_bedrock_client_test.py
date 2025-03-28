@@ -41,12 +41,12 @@ def aws_bedrock_client():
 def test_aws_bedrock_claude(aws_bedrock_client):
     """Test the AWS Bedrock Claude chat completion."""
     ask_response = aws_bedrock_client.ask_call(question=SAMPLE_QUESTION)
-    print("bedrock ask_response - ", ask_response)
+    print("\n bedrock ask_response - ", ask_response)
 
     embeddings_response = aws_bedrock_client.embeddings(
         strings_to_embed=[SAMPLE_QUESTION]
     )
-    print("bedrock embeddings_response - ", embeddings_response)
+    print("\n bedrock embeddings_response - ", embeddings_response)
 
     assert isinstance(
         ask_response, AskModelEngineResponse
