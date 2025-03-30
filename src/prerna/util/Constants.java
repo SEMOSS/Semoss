@@ -762,9 +762,10 @@ public class Constants {
 
 	//cookie name of a load load balancing routing
 	public static final String CONTEXT_PATH_KEY = "CONTEXT_PATH_KEY";
-	public static final String MONOLITH_ROUTE = "MONOLITH_ROUTE";
+	public static final String LOAD_BALANCER_COOKIE_NAME = "LOAD_BALANCER_COOKIE_NAME";
 	public static final String MONOLITH_PREFIX = "MONOLITH_PREFIX";
 	public static final String ENDPOINT_REDIRECT_KEY = "ENDPOINT_REDIRECT_KEY";
+	public static final String MONOLITH_ROUTE = "MONOLITH_ROUTE";
 	
 	//Graph engines
 	public static final String TYPE_MAP = "TYPE_MAP";
