@@ -4,9 +4,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.nullable;
 
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
@@ -77,119 +81,6 @@ public class ChromaVectorDatabaseEngineUnitTests {
 		modelEmbedder = mock(IModelEngine.class);
 		
 		fs = Jimfs.newFileSystem(Configuration.unix());
-	}
-	
-	private IModelEngine getAbstractEmbedder() {
-		return new IModelEngine() {
-			@Override
-			public void setEngineId(String engineId) {
-				// TODO Auto-generated method stub	
-			}
-			@Override
-			public String getEngineId() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			@Override
-			public void setEngineName(String engineName) {
-				// TODO Auto-generated method stub
-				
-			}
-			@Override
-			public String getEngineName() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			@Override
-			public void open(String smssFilePath) throws Exception {
-				// TODO Auto-generated method stub
-				
-			}
-			@Override
-			public void open(Properties smssProp) throws Exception {
-				// TODO Auto-generated method stub
-				
-			}
-			@Override
-			public void setSmssFilePath(String smssFilePath) {
-				// TODO Auto-generated method stub
-				
-			}
-			@Override
-			public String getSmssFilePath() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			@Override
-			public void setSmssProp(Properties smssProp) {
-				// TODO Auto-generated method stub
-				
-			}
-			@Override
-			public Properties getSmssProp() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			@Override
-			public Properties getOrigSmssProp() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			@Override
-			public CATALOG_TYPE getCatalogType() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			@Override
-			public String getCatalogSubType(Properties smssProp) {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			@Override
-			public void delete() throws IOException {
-				// TODO Auto-generated method stub
-				
-			}
-			@Override
-			public boolean holdsFileLocks() {
-				// TODO Auto-generated method stub
-				return false;
-			}
-			@Override
-			public void close() throws IOException {
-				// TODO Auto-generated method stub
-				
-			}
-			@Override
-			public ModelTypeEnum getModelType() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			@Override
-			public AskModelEngineResponse ask(String question, String context, Insight insight,
-					Map<String, Object> parameters) {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			@Override
-			public InstructModelEngineResponse instruct(String task, String context,
-					List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			@Override
-			public EmbeddingsModelEngineResponse embeddings(List<String> stringsToEmbed, Insight insight,
-					Map<String, Object> parameters) {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			@Override
-			public EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight,
-					Map<String, Object> parameters) {
-				// TODO Auto-generated method stub
-				return null;
-			}
-		};
 	}
 
 	@Test
@@ -353,36 +244,30 @@ public class ChromaVectorDatabaseEngineUnitTests {
 		openEngine(engine, null); // set initial properties
 		// both objects needed for method call
 		Map<String, Object> parameters = new HashMap<>();
-		List<String> fileNames = new Vector<>(); 
-		String doc1 = "doc_1";
-		{
-			fileNames.add(doc1);
-		}
-		File file = mock(File.class);
-		when(file.exists()).thenReturn(false);
+		String indexClass = "TEST_INDEX_CLASS";
+		parameters.put("indexClass", indexClass);
+	
+		String fileName1 = "newFile1.txt";
+		String fileName2 = "newFile2.txt";
+	    Path path = fs.getPath("C:\\workspace\\Semoss_Dev\\schema/" + indexClass + "/documents");
+	    Files.createDirectories(path);
+	    Files.createFile(path.resolve(fileName1));
+	    Files.createFile(path.resolve(fileName2));
+	    List<String> fileNames = new Vector<>();
+	    fileNames.add(fileName1);
+	    fileNames.add(fileName2);
 		try(MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
-				MockedStatic<Paths> paths = Mockito.mockStatic(Paths.class);){
+				MockedStatic<FileSystems> fss = Mockito.mockStatic(FileSystems.class);){
 			
-			Map<String, Object> fileNamesForDelete = new HashMap<>();
-			Map<String, String> sourceProperty = new HashMap<>();
+			fss.when(FileSystems::getDefault).thenReturn(fs);
+			
+			// we sub in ANY string for request body and url
+			hhu.when(() -> HttpHelperUtility.postRequestStringBody(any(String.class), nullable(Map.class), any(String.class),
+					any(ContentType.class), nullable(String.class), nullable(String.class), nullable(String.class))).thenReturn("response");
 
-			// replace spaces with _ since thats how
-			// readCSV creates Source Property.
-			sourceProperty.put("Source", doc1.replaceAll(" ", "_")); 
-																			
-			fileNamesForDelete.put("where", sourceProperty);
-
-			String body = new Gson().toJson(fileNamesForDelete);
-			
-			hhu.when(() -> HttpHelperUtility.postRequestStringBody("http://fake.url/" + "TEST_ID" + "/add", 
-					null, body, ContentType.APPLICATION_JSON, null, null, null)).thenReturn("response");
-			
-			Path p = mock(Path.class);
-			paths.when(() -> Paths.get(doc1)).thenReturn(p);
-			when(p.getFileName()).thenReturn(p);
-			when(p.toString()).thenReturn(doc1);
-			
+			fileNames.forEach(fileName -> assertTrue(Files.exists(path.resolve(fileName))));
 			engine.removeDocument(fileNames, parameters);
+			fileNames.forEach(fileName -> assertFalse(Files.exists(path.resolve(fileName))));
 		}
 	}
 	

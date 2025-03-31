@@ -233,20 +233,23 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 					headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 
 			//TODO: let us add validation by looking at the response			
-			
-			String documentName = Paths.get(fileName).getFileName().toString();
+//			String fullDocumentPath = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR
+//					+ "documents" + DIR_SEPARATOR + fileName;
+			Path document = Paths.get(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR
+					+ "documents", fileName);
 			// remove the physical documents
-			File documentFile = new File(
-					this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents",
-					documentName);
-			try {
-				if (documentFile.exists()) {
-					FileUtils.forceDelete(documentFile);
-					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+			boolean deleted = Files.deleteIfExists(document);
+			if (deleted) {
+				filesToRemoveFromCloud.add(document.normalize().toAbsolutePath().toString());
 			}
+//			try {
+//				if (documentFile.exists()) {
+//					FileUtils.forceDelete(documentFile);
+//					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
+//				}
+//			} catch (IOException e) {
+//				classLogger.error(Constants.STACKTRACE, e);
+//			}
 
 		}
 
