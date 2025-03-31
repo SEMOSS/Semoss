@@ -46,8 +46,8 @@ public class AskToolReactor extends AbstractReactor {
     );
     public AskToolReactor() {
         this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-                ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() ,"engine_tools"};
-        this.keyRequired = new int[] { 1, 1, 0, 0 , 0};
+                ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() ,"engine_tools","project_tools"};
+        this.keyRequired = new int[] { 1, 1, 0, 0 , 0, 0};
     }
 
     @Override
@@ -72,16 +72,20 @@ public class AskToolReactor extends AbstractReactor {
             paramMap = new HashMap<String, Object>();
         }
 
-		List<String> engineIdForTools = getEngineIDs();
-        if (!engineIdForTools.isEmpty()) {
+		List<String> engineToolIDs = getEngineToolIDs();
+		List<String> projectToolIDs = getProjectToolIDs();
+
+        if (!engineToolIDs.isEmpty() || !projectToolIDs.isEmpty()) {
         	
             // Check if the "tools_choice" key exists in the paramMap, else add it
             if (!paramMap.containsKey("tool_choice")) {
             	paramMap.put("tool_choice", "auto");                
             }
+
+            List<Map<String, Object> > toolsList;
             
             // Check if the "tools" key exists in the paramMap
-            List<Map<String, Object> > toolsList;
+            // this is if a user has explicitly adding tools to the param map. 
             if (paramMap.containsKey("tools")) {
                 // Retrieve the existing list of tools
                 toolsList = (List<Map<String, Object> >) paramMap.get("tools");
@@ -91,18 +95,23 @@ public class AskToolReactor extends AbstractReactor {
                 paramMap.put("tools", toolsList);
             }
 
+            
             // Iterate over each engine ID and add the tool to the tools list
-            for (String toolEngineID : engineIdForTools) {
-                IProject project = Utility.getProject(toolEngineID);
-                Map<String, Object> toolMap;
-                if(project != null){
-                    toolMap = project.buildProjectToolMap();
-                } else {
-                    IFunctionEngine function = Utility.getFunctionEngine(toolEngineID);
-                    toolMap = function.buildFunctionEngineToolMap();
-                }
-                toolsList.add(toolMap);
+            for (String engineToolID : engineToolIDs) {
+            	//TODO add a safety check here for function engines only
+                IFunctionEngine function = Utility.getFunctionEngine(engineToolID);
+                Map<String, Object> functionToolMap = function.buildFunctionEngineToolMap();
+                toolsList.add(functionToolMap);
             }
+            
+            // Iterate over each project ID and add the tool to the tools list
+            for (String projectToolID : projectToolIDs) {
+            	//TODO add a safety check here for code projects only
+                IProject project = Utility.getProject(projectToolID);
+                Map<String, Object> projectToolMap = project.buildProjectToolMap();
+                toolsList.add(projectToolMap);
+            }
+            
         }
 		
         AskModelEngineResponse modelResponse = modelEngine.ask(question, context, this.insight, paramMap);
@@ -158,7 +167,7 @@ public class AskToolReactor extends AbstractReactor {
 
             outputObject.put("type", toolType);
             outputObject.put("name", toolName);
-            outputObject.put("functionId", (String) functionParams.get("id"));
+            outputObject.put("id", (String) functionParams.get("id"));
             outputObject.put("parameters", toolCallInfoData);
 
             output.get("response").add(outputObject);
@@ -246,11 +255,33 @@ public class AskToolReactor extends AbstractReactor {
 	 * 
 	 * @return list of engines 
 	 */
-	public List<String> getEngineIDs() {
+	public List<String> getEngineToolIDs() {
 		List<String> inputStrings = new ArrayList<>();
 
 		// see if added as key
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++) {
+				inputStrings.add(grs.get(i).toString());
+			}
+			return inputStrings;
+		}
+
+		// no key is added, grab all inputs
+		int size = this.curRow.size();
+		for (int i = 0; i < size; i++) {
+			inputStrings.add(this.curRow.get(i).toString());
+		}
+		
+		return inputStrings;
+	}
+	
+	public List<String> getProjectToolIDs() {
+		List<String> inputStrings = new ArrayList<>();
+
+		// see if added as key
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
