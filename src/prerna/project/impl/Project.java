@@ -1194,6 +1194,23 @@ public class Project implements IProject {
 		return null;
 	}
 	
+	public Map<String, String> getNotebookVariables() {
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			INotebookHelper helper = NotebookHelperFactory.getNotebookHelper(blocksF);
+			Map<String, String> engineMap = helper.getNotebookVariables();
+			return engineMap;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+	
 	private File getBlocksF() {
 		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
 		File blocksF = new File(blocksFilePath);
