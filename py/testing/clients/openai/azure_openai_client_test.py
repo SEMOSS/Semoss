@@ -19,8 +19,8 @@ from dotenv import load_dotenv
 from typing import Dict
 from genai_client import AzureOpenAiClient
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env.example file
+load_dotenv("testing/.env.example")
 
 AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 AZURE_OPENAI_GPT_4O_ENDPOINT = os.getenv("AZURE_OPENAI_GPT_4O_ENDPOINT")
@@ -52,18 +52,18 @@ def azure_openai_o1_mini_client():
     )
 
 
-def test_azure_openai_gpt_4o_chat_completion(azure_openai_gpt_4o_client):
-    """Test Azure OpenAI client's ask method for "gpt-4o" chat completion model"""
+def test_azure_openai_gpt_4o_chat_completion_for_ask(azure_openai_gpt_4o_client):
+    """
+    Test the Azure OpenAI client's ask method for "gpt-4o" chat completion model using assertions.
+        - Checking the type of response
+        - Checking the required key parameters of response
+        - Checking the token limit of prompt and response against model token limit
+    """
+    # Add "stream=True" or "stream=False" in the ask call if required
     ask_response = azure_openai_gpt_4o_client.ask(question=SAMPLE_QUESTION)
     print("\n gpt-4o ask_response -", ask_response)
 
-    """Test Azure OpenAI client's embeddings method for "gpt-4o" chat completion model"""
-    embeddings_response = azure_openai_gpt_4o_client.embeddings(
-        strings_to_embed=[SAMPLE_QUESTION]
-    )
-    print("\n gpt-4o embeddings_response -", embeddings_response)
-
-    # Checking response type, paramaters and token limits
+    # Assertions for response type, paramaters and token limits
     assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
     assert set(ask_response.keys()) == {
         "response",
@@ -78,7 +78,19 @@ def test_azure_openai_gpt_4o_chat_completion(azure_openai_gpt_4o_client):
     )
     assert total_tokens <= MAX_TOKENS, "Exceeds token limit"
 
-    # Checking embeddings response type and paramaters
+
+def test_azure_openai_gpt_4o_chat_completion_for_embeddings(azure_openai_gpt_4o_client):
+    """
+    Test the Azure OpenAI client's embeddings method for "gpt-4o" chat completion model using assertions.
+        - Checking the type of response
+        - Checking the required key parameters of response
+    """
+    embeddings_response = azure_openai_gpt_4o_client.embeddings(
+        strings_to_embed=[SAMPLE_QUESTION]
+    )
+    print("\n gpt-4o embeddings_response -", embeddings_response)
+
+    # Assertions for embeddings response type and paramaters
     assert isinstance(embeddings_response, Dict), "Response should be a dictionary"
     assert set(embeddings_response.keys()) == {
         "response",
@@ -87,18 +99,18 @@ def test_azure_openai_gpt_4o_chat_completion(azure_openai_gpt_4o_client):
     }, "Response Keys Mismatch"
 
 
-def test_azure_openai_o1_mini_chat_completion(azure_openai_o1_mini_client):
-    """Test Azure OpenAI client's ask method for "o1-mini" chat completion model"""
+def test_azure_openai_o1_mini_chat_completion_for_ask(azure_openai_o1_mini_client):
+    """
+    Test the Azure OpenAI client's ask method for "o1-mini" chat completion model using assertions.
+        - Checking the type of response
+        - Checking the required key parameters of response
+        - Checking the token limit of prompt and response against model token limit
+    """
+    # Add "stream=True" or "stream=False" in the ask call if required
     ask_response = azure_openai_o1_mini_client.ask(question=SAMPLE_QUESTION)
     print("\n o1-mini ask_response -", ask_response)
 
-    """Test Azure OpenAI client's embeddings method for "o1-mini" chat completion model"""
-    embeddings_response = azure_openai_o1_mini_client.embeddings(
-        strings_to_embed=[SAMPLE_QUESTION]
-    )
-    print("\n o1-mini embeddings_response -", embeddings_response)
-
-    # Checking response type, paramaters and token limits
+    # Assertions for response type, paramaters and token limits
     assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
     assert set(ask_response.keys()) == {
         "response",
@@ -113,7 +125,21 @@ def test_azure_openai_o1_mini_chat_completion(azure_openai_o1_mini_client):
     )
     assert total_tokens <= MAX_TOKENS, "Exceeds token limit"
 
-    # Checking embeddings response type and paramaters
+
+def test_azure_openai_o1_mini_chat_completion_for_embeddings(
+    azure_openai_o1_mini_client,
+):
+    """
+    Test the Azure OpenAI client's embeddings method for "o1-mini" chat completion model using assertions.
+        - Checking the type of response
+        - Checking the required key parameters of response
+    """
+    embeddings_response = azure_openai_o1_mini_client.embeddings(
+        strings_to_embed=[SAMPLE_QUESTION]
+    )
+    print("\n o1-mini embeddings_response -", embeddings_response)
+
+    # Assertions for embeddings response type and paramaters
     assert isinstance(embeddings_response, Dict), "Response should be a dictionary"
     assert set(embeddings_response.keys()) == {
         "response",
