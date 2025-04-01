@@ -2,6 +2,7 @@ package prerna.engine.api;
 
 import prerna.engine.impl.vector.ChromaVectorDatabaseEngine;
 import prerna.engine.impl.vector.ElasticSearchRestVectorDatabaseEngine;
+import prerna.engine.impl.vector.AzureAISearchRestVectorDatabaseEngine;
 import prerna.engine.impl.vector.FaissDatabaseEngine;
 import prerna.engine.impl.vector.OpenSearchRestVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
@@ -15,6 +16,7 @@ public enum VectorDatabaseTypeEnum {
 	PGVECTOR("PGVECTOR", PGVectorDatabaseEngine.class.getName()),
 	OPEN_SEARCH("OPEN_SEARCH", OpenSearchRestVectorDatabaseEngine.class.getName()),
 	ELASTIC_SEARCH("ELASTIC_SEARCH", ElasticSearchRestVectorDatabaseEngine.class.getName()),
+	AZURE_AI_SEARCH("AZURE_AI_SEARCH", AzureAISearchRestVectorDatabaseEngine.class.getName()),
 	WEAVIATE("WEAVIATE", WeaviateVectorDatabaseEngine.class.getName()),
 	PINECONE("PINECONE", PineConeVectorDatabaseEngine.class.getName());
 		
