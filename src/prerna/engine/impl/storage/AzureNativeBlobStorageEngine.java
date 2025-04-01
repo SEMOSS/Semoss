@@ -39,27 +39,20 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 	private static final Logger classLogger = LogManager.getLogger(AzureNativeBlobStorageEngine.class);
 
 	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
-	private transient String connectionString;
+	private transient String connectionString = null;
 	private transient BlobServiceClient blobServiceClient;
 
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-
 		this.connectionString = smssProp.getProperty(AZ_CONN_STRING);
 		if (this.connectionString == null || this.connectionString.isEmpty()) {
-			classLogger.error("Azure Blob connection string is missing.");
+			classLogger.error("Azure Blob connection string is missing, cannot initialize Azure Blob client.");
 			throw new IllegalStateException("Azure Blob connection string is required.");
 		}
 		createServiceClient();
 	}
 
 	public void createServiceClient() {
-		this.connectionString = AZ_CONN_STRING;
-		if (this.connectionString == null || this.connectionString.isEmpty()) {
-			classLogger.error("Connection string is missing. Cannot initialize Azure Blob client.");
-			throw new IllegalStateException("Azure Blob connection string not set.");
-		}
-
 		this.blobServiceClient = new BlobServiceClientBuilder().connectionString(this.connectionString).buildClient();
 		classLogger.info("Azure Blob Service client created successfully.");
 	}
