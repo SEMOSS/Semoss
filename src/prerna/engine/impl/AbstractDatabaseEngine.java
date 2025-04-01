@@ -240,7 +240,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			try {
 				// store in the OWL
 				// so that the local master can pick up the OWL 
-				if(owlPropStr == null || (owlPropStr=owlPropStr.trim()).isEmpty()) {
+				if(owlPropStr == null || owlPropStr.trim().isEmpty()) {
 					Map<String, String> mods = new HashMap<>();
 					mods.put(Constants.OWL, Constants.DATABASE_FOLDER+"/@ENGINE@/"+new File(owlFile).getName());
 					Utility.addKeysAtLocationIntoPropertiesFile(this.smssFilePath, null, mods);
@@ -273,7 +273,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} else {
-			classLogger.warn("Please consider adding a default database zome id for engine " + 
+			classLogger.warn("Please consider adding a default database zone id for engine " +
 					SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		}
 	}
