@@ -1,149 +1,31 @@
 package prerna.reactor.app;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.zip.ZipOutputStream;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.SmssUtilities;
-import prerna.om.InsightFile;
-import prerna.project.api.IProject;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
+import prerna.reactor.utils.ExportProjectAppReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
-import prerna.util.ZipUtils;
 
-
-public class ExportAppReactor extends AbstractReactor {
+public class ExportAppReactor extends ExportProjectAppReactor {
 	
-	private static final Logger classLogger = LogManager.getLogger(ExportAppReactor.class);
-
-	private static final String CLASS_NAME = ExportAppReactor.class.getName();
+	/**
+	 * 
+	 * @param projectNameAndId
+	 * @return
+	 */
+	@Override
+	protected String getFileName(String projectNameAndId) {
+		return projectNameAndId + "_app.smss-app";
+	}
 	
 	@Override
 	public String getReactorDescription() {
-	    return "This reactor is intended to export apps from the platform as a single .smss-app file";
+	    return "Export an app as a single .smss-app file";
 	}
+	
 	@Override
 	protected String getDescriptionForKey(String key) {
 	    if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-	        return "This is a required value containing the Id of the app that is being exported";
+	        return "This is a required value containing the id of the app that is being exported";
 	    }
 	    return super.getDescriptionForKey(key);
-	}
-	
-	public ExportAppReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
-	}
-
-	@Override
-	public NounMetadata execute() {
-		Logger logger = getLogger(CLASS_NAME);
-		logger.info("Checking app information and user permissions.");
-		organizeKeys();
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		
-		User user = this.insight.getUser();
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if (!isAdmin) {
-			boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
-			if (!isOwner) {
-				throw new IllegalArgumentException("Project " + projectId + "does not exist or user does not have access to export.");
-			}
-		}
-
-		logger.info("Exporting app now...");
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
-		if(!baseFolder.endsWith("/")) {
-			baseFolder += "/";
-		}
-		IProject project = Utility.getProject(projectId);
-		String projectName = project.getProjectName();
-		String projectNameAndId = SmssUtilities.getUniqueName(projectName, projectId);
-		String baseProjectDir = baseFolder + Constants.PROJECT_FOLDER;
-		String projectAssetFolder = AssetUtility.getProjectAssetFolder(projectName, projectId);
-		String outputDir = this.insight.getInsightFolder();
-		String zipFilePath = outputDir + "/" + projectNameAndId + ".smss-app";
-
-		// zip project
-		ZipOutputStream zos = null;
-		FileOutputStream fos = null;
-		try {
-			fos = new FileOutputStream(zipFilePath);
-			zos = new ZipOutputStream(fos);
-			// extract all content inside of assets and add to zip
-			{
-				logger.info("Flatten the assets file...");
-				ZipUtils.flattenDir(projectAssetFolder, zos);
-				logger.info("Done extracting assets...");
-			}
-			
-			// zip up the project metadata
-			{
-				logger.info("Grabbing project metadata to write to temporary file to zip...");
-				Map<String, Object> projectMeta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, null, false);
-				ZipUtils.zipObjectToFile(zos, null, outputDir+"/"+projectName+IEngine.METADATA_FILE_SUFFIX, projectMeta);
-				logger.info("Done zipping project metadata...");
-			}
-			
-			// zip up the project dependencies
-			{
-				logger.info("Grabbing project dependencies to write to temporary file to zip...");
-				List<Map<String, Object>> projectDependencies = SecurityProjectUtils.getProjectDependencyDetails(projectId);
-				ZipUtils.zipObjectToFile(zos, null, outputDir+"/"+projectName+IProject.DEPENDENCIES_FILE_SUFFIX, projectDependencies);
-				logger.info("Done zipping project dependencies...");
-			}
-			
-			// add smss file
-			logger.info("Zipping project smss...");
-			File smss = new File(baseProjectDir + "/" + projectNameAndId + ".smss");
-			ZipUtils.addToZipFile(smss, zos);
-			logger.info("Done zipping project smss files...");
-			logger.info("Zipping Complete");
-			
-		} catch (Exception e) {
-			logger.info("Error occurred zipping up project");
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("Error occurred generating zip file. Detailed message = " + e.getMessage());
-			
-		} finally {
-			try {
-				if (zos != null) {
-					zos.flush();
-					zos.close();
-				}
-				
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		// Generate a new key for the name of the zip file.
-		String downloadKey = UUID.randomUUID().toString();
-		InsightFile insightFile = new InsightFile();
-		insightFile.setFileKey(downloadKey);
-		insightFile.setDeleteOnInsightClose(true);
-		insightFile.setFilePath(zipFilePath);
-		this.insight.addExportFile(downloadKey, insightFile);
-		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
 	
 }

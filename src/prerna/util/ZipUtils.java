@@ -7,7 +7,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
@@ -15,7 +14,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -343,60 +341,4 @@ public final class ZipUtils {
 		return paths;
 	}
 	
-	//Extract all subfolders  and files within given folder path
-	public static boolean flattenDir(String folderPath, ZipOutputStream zos) {
-		boolean complete = false;
-		Path flattenFolder = Paths.get(folderPath);
-		
-		if(!Files.exists(flattenFolder) || !Files.isDirectory(flattenFolder)) {
-			return complete;
-		}
-		try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(flattenFolder)){
-			for (Path subfolder : directoryStream) {
-				if(Files.isDirectory(subfolder)) {
-					addFolderContentsToZip(subfolder, zos, subfolder.getFileName().toString() + "/");	
-				}
-			}
-		} catch (IOException e){
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		return true;
-	}
-
-	//Populate zip with extracted folder content
-	public static void addFolderContentsToZip(Path folder, ZipOutputStream zos, String zipPathPrefix) throws IOException {
-		final boolean[] isEmpty = {true};
-	
-		Files.walkFileTree(folder, new SimpleFileVisitor<Path>( ) {
-			@Override
-			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-				isEmpty[0] = false;
-				
-				String zipEntryName = zipPathPrefix + file.getFileName().toString();
-				ZipEntry zipEntry = new ZipEntry(zipEntryName);
-				zos.putNextEntry(zipEntry);
-				Files.copy(file, zos);
-				zos.closeEntry();
-				return FileVisitResult.CONTINUE;
-			}
-		});
-		
-		if(isEmpty[0]) {
-			ZipEntry emptyFolderEntry = new ZipEntry(zipPathPrefix);
-			zos.putNextEntry(emptyFolderEntry);
-			zos.closeEntry();
-		}
-	}
-//	public static void main(String[] args) throws FileNotFoundException, IOException {
-//		//		String dest = "C:\\Users\\SEMOSS\\workspace\\Semoss\\db\\Movie__6e41aba8-29da-4616-b2f9-647a8ef01313\\version";
-//		//		dest = "C:\\Users\\SEMOSS\\workspace";
-//		//		dest = dest.replace("\\", "/");
-//		String zip = "C:\\Users\\mahkhalil\\Desktop\\Movie.zip";
-//		zip = zip.replace("\\", "/");
-//		Path zipUri = Paths.get(zip);		
-//		Map<String, List<String>> map = listFilesInZip(zipUri);
-//		Gson gson = GsonUtility.getDefaultGson();
-//		classLogger.info(gson.toJson(map));
-//	}
-
 }
