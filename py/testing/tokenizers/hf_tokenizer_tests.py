@@ -21,7 +21,7 @@ import pytest
 from genai_client.tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 
 # test parameters
-ENCODER_NAME = "gpt-4o"
+ENCODER_NAME = "gpt-4-turbo"
 MAX_TOKENS = 512
 MAX_INPUT_TOKENS = 256
 CONTEXT_WINDOW = 1280
@@ -69,6 +69,16 @@ def test_get_tokens(tokenizer):
     tokens = tokenizer.get_tokens(SAMPLE_INPUT_TEXT)
     assert isinstance(tokens, list), "Output should be a list of tokens"
     assert len(tokens) > 0, "Token list should not be empty"
+
+def test_get_token_ids(tokenizer):
+    """
+    Tests the get_tokens_ids method.
+    - Checks if the token IDs are returned correctly.
+    - Ensures the output is a list.
+    """
+    token_ids = tokenizer.get_tokens_ids(SAMPLE_INPUT_TEXT)
+    print(f"Token IDs: {token_ids}")
+    assert isinstance(token_ids, list), "Output should be a list of token IDs"
 
 
 def test_decode_tokens(tokenizer):
