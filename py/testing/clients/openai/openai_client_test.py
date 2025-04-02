@@ -18,7 +18,7 @@ from typing import Dict
 from genai_client import OpenAiClient
 
 # Load environment variables from .env.example file
-load_dotenv("testing/.env.example")
+load_dotenv("testing/.env")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 MAX_TOKENS = 4097

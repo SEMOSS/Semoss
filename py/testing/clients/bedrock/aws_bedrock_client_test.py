@@ -20,7 +20,7 @@ from genai_client import BedrockClient
 from genai_client.constants import AskModelEngineResponse
 
 # Load environment variables from .env.example file
-load_dotenv("testing/.env.example")
+load_dotenv("testing/.env")
 
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
