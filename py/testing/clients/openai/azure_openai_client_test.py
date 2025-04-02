@@ -20,7 +20,7 @@ from typing import Dict
 from genai_client import AzureOpenAiClient
 
 # Load environment variables from .env.example file
-load_dotenv("testing/.env.example")
+load_dotenv("testing/.env")
 
 AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 AZURE_OPENAI_GPT_4O_ENDPOINT = os.getenv("AZURE_OPENAI_GPT_4O_ENDPOINT")
