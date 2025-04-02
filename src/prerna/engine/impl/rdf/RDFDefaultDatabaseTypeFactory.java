@@ -51,7 +51,7 @@ public final class RDFDefaultDatabaseTypeFactory {
 		}
 		
 		if(engine == null) {
-			engine = new BigDataEngine();
+			engine = new RDFFileSesameEngine();
 		}
 		
 		return engine;
