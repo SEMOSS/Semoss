@@ -211,4 +211,21 @@ public class NotebookHelper implements INotebookHelper {
 		return engineMap;
 	}
 	
+	@Override
+	public Map<String, String> getNotebookVariables() {
+		Map<String, String> variableMap = new HashMap<>();
+		
+		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
+		for(String varName : variables.keySet()) {
+			JsonObject varMap = variables.get(varName).getAsJsonObject();
+					String value = INotebookHelper.UNDEFINED_VALUE;
+					if(varMap.has("value")) {
+						value = varMap.get("value").getAsString();
+					}
+					variableMap.put(varName, value);
+		}
+		
+		return variableMap;
+	}
+	
 }
