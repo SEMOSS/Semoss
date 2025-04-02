@@ -46,6 +46,7 @@ def tokenizer():
 @pytest.mark.parametrize(
     "input_text", ["This is a test sentence to check token count."]
 )
+
 def test_count_tokens(tokenizer, input_text):
     """
     Tests the count_tokens method.
@@ -54,7 +55,6 @@ def test_count_tokens(tokenizer, input_text):
     - Ensures the output is an integer.
     """
     token_count = tokenizer.count_tokens(input_text)
-    print(f"Input: {input_text}, Token Count: {token_count}")
     assert isinstance(token_count, int), "Token count should be an integer"
     assert token_count > 0, "Token count should be greater than zero"
 
@@ -77,7 +77,6 @@ def test_get_token_ids(tokenizer):
     - Ensures the output is a list.
     """
     token_ids = tokenizer.get_tokens_ids(SAMPLE_INPUT_TEXT)
-    print(f"Token IDs: {token_ids}")
     assert isinstance(token_ids, list), "Output should be a list of token IDs"
 
 
@@ -102,7 +101,6 @@ def test_model_limits(tokenizer):
     - Confirms the presence of specific keys: context_window, max_completion_tokens.
     """
     limits = tokenizer.get_model_limits(model_name=ENCODER_NAME)
-    print(f"Model Limits for {ENCODER_NAME}: {limits}")
     assert isinstance(limits, dict), "Limits should be a dictionary"
     assert "context_window" in limits, "Dictionary should contain context_window"
     assert (

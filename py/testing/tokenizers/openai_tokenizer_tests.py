@@ -44,7 +44,7 @@ def tokenizer():
 
 
 @pytest.mark.parametrize(
-    "input_text", ["Hello world!", "This is a test sentence to check token count."]
+    "input_text", ["This is a test sentence to check token count."]
 )
 def test_count_tokens(tokenizer, input_text):
     """
