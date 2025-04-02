@@ -34,7 +34,12 @@ public class VisionReactor extends AbstractReactor {
 		}
 
 		String prompt = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
-		String image = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[2]));
+		String image = this.keyValue.get(this.keysToGet[2]);
+
+		// We do NOT want to decode base64 encoded images
+		if (image.startsWith("http")) {
+		    image = Utility.decodeURIComponent(image);
+		} 
 
 		Map<String, Object> paramMap = getMap();
 		IModelEngine modelEngine = Utility.getModel(engineId);
