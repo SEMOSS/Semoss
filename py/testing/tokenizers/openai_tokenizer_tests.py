@@ -4,23 +4,13 @@ To run the tests, navigate to the Semoss_Dev/py directory and then run the follo
     pytest -v testing/tokenizers/openai_tokenizer_tests.py
     pytest -s  testing/tokenizers/openai_tokenizer_tests.py -> For enabling the print statements
 
-If any errors occur, such as:
-    ModuleNotFoundError: No module named 'genai_client'
-Follow these steps to resolve them:
-
-1. Open the command prompt and navigate to the directory where your Python script is located.
-2. Set the PYTHONPATH environment variable to include the directory where your module is located. Example: sset PYTHONPATH=%PYTHONPATH%;D:\\Users\\username\\pythonupdates\\Semoss\\py
-3. Run the script again:
-    pytest testing/tokenizers/openai_tokenizer_tests.py
-    pytest -s testing/tokenizers/openai_tokenizer_tests.py -> For enabling the print statements
 Install pytest if not already installed:
     pip install pytest
 """
 
 import pytest
-from genai_client.tokenizers.openai_tokenizer import OpenAiTokenizer  # Adjust if needed
+from genai_client.tokenizers.openai_tokenizer import OpenAiTokenizer
 
-# test parameters
 ENCODER_NAME = "gpt-4-turbo"
 MAX_TOKENS = 512
 MAX_INPUT_TOKENS = 256
