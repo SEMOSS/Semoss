@@ -19,8 +19,8 @@ from typing import Dict
 from genai_client import BedrockClient
 from genai_client.constants import AskModelEngineResponse
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env.example file
+load_dotenv("testing/.env.example")
 
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
@@ -39,7 +39,14 @@ def aws_bedrock_client():
 
 
 def test_aws_bedrock_claude(aws_bedrock_client):
-    """Test the AWS Bedrock Claude chat completion."""
+    """
+    Test the ask call of AWS Bedrock Claude client using assertions.
+        - Checking the type of response
+        - Checking the required key parameters of response
+    Test the embeddings call of AWS Bedrock Claude client using assertions.
+        - Checking the type of response
+        - Checking the required key parameters of response
+    """
     ask_response = aws_bedrock_client.ask_call(question=SAMPLE_QUESTION)
     print("\n bedrock ask_response - ", ask_response)
 
@@ -48,6 +55,7 @@ def test_aws_bedrock_claude(aws_bedrock_client):
     )
     print("\n bedrock embeddings_response - ", embeddings_response)
 
+    # Assertions for the ask response
     assert isinstance(
         ask_response, AskModelEngineResponse
     ), "Response Should be an instance of AskModelEngineResponse"
@@ -58,7 +66,7 @@ def test_aws_bedrock_claude(aws_bedrock_client):
         "messageType",
     }, "Response Keys Mismatch"
 
-    # Checking the embeddings response
+    # Assertions for the embeddings response
     assert isinstance(embeddings_response, Dict)
     assert set(embeddings_response.keys()) == {
         "response",
