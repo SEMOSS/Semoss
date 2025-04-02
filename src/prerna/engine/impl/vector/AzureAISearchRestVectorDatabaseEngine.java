@@ -215,7 +215,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				// store the actual index details
 				{
 					JsonObject record = new JsonObject();
-					record.addProperty(Constants.AZURE_AI_SEARCH_VECTOR_ID, source + "_" + index);
+					record.addProperty(Constants.AZURE_AI_SEARCH_VECTOR_ID, this.sanitizeKey(source) + "_" + index);
 					record.addProperty(VectorDatabaseCSVTable.SOURCE, source);
 					record.addProperty(VectorDatabaseCSVTable.MODALITY, row.getModality());
 					record.addProperty(VectorDatabaseCSVTable.DIVIDER, row.getDivider());
@@ -233,6 +233,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		String url = this.clusterUrl + "/" + BULK_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName) + "?" + this.getMustQueryParamString();
 		System.out.println("AZURE_AI_SEARCH :: BULK Insert URL >> " + url);
+		System.out.println("AZURE_AI_SEARCH :: BULK Insert >> " + bulkInsert);
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
@@ -240,16 +241,16 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, bulkInsert.toString(), ContentType.APPLICATION_JSON, null, null, null);
 		System.out.println("AUZRE_AI_SEARCH :: " + response);
 		if(response == null || (response=response.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Received no response from elastic search endpoint");
+			throw new IllegalArgumentException("Received no response from azure ai search endpoint");
 		}
 
 		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
-		Number insertions = (Number) responseMap.get("took");
-		classLogger.info("Inserted " + insertions.intValue() + " bulk inserts (create index + record value) into elastic search index " + this.indexName);
+		ArrayList<Object> insertions = (ArrayList<Object>) responseMap.get("value");
+		classLogger.info("Inserted " + insertions.size() + " bulk inserts (create index + record value) into azure ai search index " + this.indexName);
 
 		Boolean errors = (Boolean) responseMap.get("errors");
-		if(errors) {
-			classLogger.warn("There were errors with some of the bulk insertions in the elastic search index " + this.indexName);
+		if(errors != null && errors) {
+			classLogger.warn("There were errors with some of the bulk insertions in the azure ai search index " + this.indexName);
 		}
 	}
 
@@ -731,4 +732,10 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		return Constants.AZURE_API_VERSION + "=" + this.apiVersion;
 	}
 
+	public String sanitizeKey(String key) {
+        // Regular expression to match allowed characters
+        String regex = "[^a-zA-Z0-9_\\-=]";
+        // Replace all characters not matching the regex with an underscore
+        return key.replaceAll(regex, "_");
+    }
 }
