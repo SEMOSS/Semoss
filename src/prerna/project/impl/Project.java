@@ -1896,7 +1896,7 @@ public class Project implements IProject {
 
 		// Create the map properties map
 		Map<String, Object> mapPropertiesMap = new HashMap<>();
-		for (Entry<String, String> entry: this.getEngineDependencies().entrySet()) {
+		for (Entry<String, String> entry: this.getNotebookVariables().entrySet()) {
 			Map<String, Object> paramMap = new HashMap<>();
 			paramMap.put("type", "String");
 			paramMap.put("description", "no description");
