@@ -18,9 +18,9 @@ import org.codehaus.plexus.util.FileUtils;
 
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
+import prerna.util.ChrootHelper;
 import prerna.util.Constants;
 import prerna.util.PortAllocator;
-import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 
 public class ClientProcessWrapper {
@@ -38,7 +38,7 @@ public class ClientProcessWrapper {
 	private String serverDirectory;
 	
 	private boolean nativePyServer;
-	private SymlinkHelper chrootSymlinkHelper;
+	private ChrootHelper chrootSymlinkHelper;
 	private String classPath;
 	private boolean debug;
 	private String timeout;
@@ -56,7 +56,7 @@ public class ClientProcessWrapper {
 	 * @throws Exception
 	 */
 	public void createProcessAndClient(boolean nativePyServer,
-			SymlinkHelper chrootSymlinkHelper,
+			ChrootHelper chrootSymlinkHelper,
 			int port,
 			String venvPath,
 			String serverDirectory, 

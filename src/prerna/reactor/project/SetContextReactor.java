@@ -1,6 +1,7 @@
 package prerna.reactor.project;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.reactor.AbstractReactor;
@@ -36,8 +37,7 @@ public class SetContextReactor extends AbstractReactor {
 		}
 		boolean load = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]) + "");
 		
-
-		// need to replace the app with the
+		// context is the app
 		boolean success = this.insight.setContext(context);
 		// attempt once to directly map it with same name
 		if (!success) {
@@ -48,7 +48,11 @@ public class SetContextReactor extends AbstractReactor {
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			// get the app_root folder for the project
 			String projectAppRootFolder = AssetUtility.getProjectBaseFolder(context);
-			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
+			if(SecurityProjectUtils.userCanEditProject(this.insight.getUser(), context)) {
+				this.insight.getUser().getUserChrootHelper().symlinkFolder(projectAppRootFolder);
+			} else {
+				this.insight.getUser().getUserChrootHelper().copyAppFolder(projectAppRootFolder);
+			}
 		}
 
 		// if python enabled

@@ -333,7 +333,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						            String insightId = finalPs.insightId;
 						            Insight insight = InsightStore.getInstance().get(insightId);
 						            if(insight == null) {
-						            	throw new IllegalArgumentException("Could not find the insight id");
+						            	throw new IllegalArgumentException("Could not find the insight id = " + insightId);
 						            }
 						            String pixelOp = (String) finalPs.payload[0];
 						            if(!(pixelOp=pixelOp.trim()).endsWith(";")) {

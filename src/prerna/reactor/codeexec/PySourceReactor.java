@@ -6,6 +6,7 @@ import java.util.Vector;
 
 import org.apache.commons.io.FilenameUtils;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.reactor.frame.py.AbstractPyFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -30,19 +31,18 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
-			 if(Boolean.parseBoolean(disable_terminal)) {
-					throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			 };
+			if(Boolean.parseBoolean(disable_terminal)) {
+				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
+			}
 		}
-		
+
 		//check if script sourcing terminal is disabled
 		String disable_script_scource =  DIHelper.getInstance().getProperty(Constants.DISABLE_SCRIPT_SOURCE);
 		if(disable_script_scource != null && !disable_script_scource.isEmpty() ) {
-			 if(Boolean.parseBoolean(disable_script_scource)) {
-					throw new IllegalArgumentException("Script Sourcing has been disabled.");
-			 }
+			if(Boolean.parseBoolean(disable_script_scource)) {
+				throw new IllegalArgumentException("Script Sourcing has been disabled.");
+			}
 		}
-		
 		
 		String relativePath =  Utility.normalizePath( this.keyValue.get(this.keysToGet[0]));
 		String path = getBaseFolder() + "/Py/" + relativePath;
@@ -57,16 +57,27 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		//strict script source, we will check if its .r/.R or .py/.Py
 		String strict_script_source =  DIHelper.getInstance().getProperty(Constants.STRICT_SCRIPT_SOURCE);
 		if(Boolean.parseBoolean(strict_script_source)){
-			 String extension = FilenameUtils.getExtension(path);
-			 if(!extension.equalsIgnoreCase("Py")) {
-					throw new IllegalArgumentException("Only user code with extensions .py or .PY may be sourced by this reactor");
-			 }
+			String extension = FilenameUtils.getExtension(path);
+			if(!extension.equalsIgnoreCase("Py")) {
+				throw new IllegalArgumentException("Only user code with extensions .py or .PY may be sourced by this reactor");
+			}
 		}
 
 		//if we have a chroot, mount the project for that user.
 		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
-			//get the app_root folder for the project
-			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(assetFolder);
+			if(space != null && !space.isEmpty() 
+					&& !AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)
+					&& !AssetUtility.INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
+				// the space must be a project
+				// so let us double check permissions for symlink or copy
+				if(SecurityProjectUtils.userCanEditProject(this.insight.getUser(), space)) {
+					this.insight.getUser().getUserChrootHelper().symlinkFolder(assetFolder);
+				} else {
+					this.insight.getUser().getUserChrootHelper().copyAppFolder(assetFolder);
+				}
+			} else {
+				this.insight.getUser().getUserChrootHelper().symlinkFolder(assetFolder);
+			}
 		}
 		
 		File file = new File(path);

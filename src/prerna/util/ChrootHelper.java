@@ -1,26 +1,26 @@
 package prerna.util;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.stream.Stream;
-import java.io.IOException;
 
-public class SymlinkHelper {
+public class ChrootHelper {
 
-	private static final Logger classLogger = LogManager.getLogger(SymlinkHelper.class);
-	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static final Logger classLogger = LogManager.getLogger(ChrootHelper.class);
 	private String userChrootFolder = null;
 
-
-	// this will be username__uuid - ex. /opt/kunalppatel9__a123123
-	public SymlinkHelper(String targetDirName) {
-
+	/**
+	 * This will be username__uuid - ex. /opt/
+	 * @param targetDirName
+	 */
+	public ChrootHelper(String targetDirName) {
 		this.userChrootFolder = targetDirName;
 		File targetDir = new File(Utility.normalizePath(userChrootFolder));
 		if (!targetDir.exists()) {
@@ -30,22 +30,23 @@ public class SymlinkHelper {
 		}
 
 		// also create the semoss home folder
-		String newSemossHomeFolderPath = this.userChrootFolder + FILE_SEPARATOR + DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String newSemossHomeFolderPath = this.userChrootFolder + "/" + Utility.getBaseFolder();
 		File userSemosshomeDir = new File(Utility.normalizePath(newSemossHomeFolderPath));
 		if (!userSemosshomeDir.exists()) {
 			userSemosshomeDir.mkdirs(); // make user home directory
 		}
 		
 		initalizeChrootFolder();
-
 	}
 	
+	/**
+	 * 
+	 */
 	private void initalizeChrootFolder() {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		symlinkFolder(baseFolder + FILE_SEPARATOR + Constants.PY_BASE_FOLDER);
-		symlinkFolder(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
+		symlinkFolder(Utility.getBaseFolder() + "/" + Constants.PY_BASE_FOLDER);
+		symlinkFolder(Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR));
         // Read paths from DIHelper or configuration
-        String pathsToSymlink = DIHelper.getInstance().getProperty("CHROOT_SYMLINK_PATHS");
+        String pathsToSymlink = Utility.getDIHelperProperty("CHROOT_SYMLINK_PATHS");
         if (pathsToSymlink != null && !pathsToSymlink.isEmpty()) {
             String[] paths = pathsToSymlink.split(",");
             for (String path : paths) {
@@ -56,6 +57,10 @@ public class SymlinkHelper {
         }
 	}	
 	
+	/**
+	 * 
+	 * @param sourceDirName
+	 */
 	public void symlinkFolder(String sourceDirName) {
 	    classLogger.debug("Making symlink for folder " + sourceDirName);
 	    // Convert the source directory and user chroot folder to Path objects
@@ -96,6 +101,60 @@ public class SymlinkHelper {
 	        classLogger.error("Symbolic links are not supported on this file system.", e);
 	    }
 	}
+	
+	/**
+	 * 
+	 * @param sourceDirName
+	 */
+	public void copyAppFolder(String sourceDirName) {
+		classLogger.debug("Copying folder " + sourceDirName);
+	    // Convert the source directory and user chroot folder to Path objects
+	    sourceDirName = Utility.normalizePath(sourceDirName);
+	    Path sourceDir = Paths.get(sourceDirName);
+	    Path userChrootPath = Paths.get(userChrootFolder);
+
+	    classLogger.debug("User chroot path is " + userChrootFolder);
+
+	    Path copyPath = userChrootPath.resolve(sourceDirName.substring(1)); // Remove leading slash
+	    classLogger.debug("Full copy path is " + copyPath);
+
+	    try {
+	        // Check if the source directory exists
+	        if (!Files.exists(sourceDir)) {
+	            throw new IllegalArgumentException("Source directory does not exist: " + sourceDirName);
+	        }
+
+	        // Ensure the parent directories exist for the copy path
+	        Files.createDirectories(copyPath.getParent());
+
+	        // Check if the symlink already exists
+	        if (Files.exists(copyPath)) {
+	            classLogger.debug("Copy path already exists at: " + copyPath);
+	            // Optionally, delete the existing path
+	            // Files.delete(copyPath);
+	        } else {
+	            // copy the entire folder over
+	        	Files.walk(sourceDir)
+	        	.forEach(sourcePath -> {
+	        		try {
+	        			Path targetPath = userChrootPath.resolve(sourceDir.relativize(sourcePath));
+	        			if(sourcePath.toFile().isFile()) {
+	        				targetPath.toFile().getParentFile().mkdirs();
+	        				Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+	        			}
+	        		} catch (IOException ex) {
+	        			classLogger.warn("Error with copying file");
+	        			classLogger.error(Constants.STACKTRACE, ex);
+	        		}
+	        	});
+	            classLogger.info("Copy created at: " + copyPath);
+	        }
+	    } catch (IllegalArgumentException e) {
+	        classLogger.error("Invalid argument: " + e.getMessage(), e);
+	    } catch (IOException e) {
+	        classLogger.error("Error copying app: " + e.getMessage(), e);
+	    }
+	}
     
 	public String getUserChrootFolder() {
 		return this.userChrootFolder;
@@ -108,8 +167,6 @@ public class SymlinkHelper {
         } catch (IOException e) {
         	classLogger.error(Constants.STACKTRACE, "Error deleting directory: " + e.getMessage());
         }
-		
 	}
-	
 
 }

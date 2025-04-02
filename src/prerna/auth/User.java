@@ -33,11 +33,11 @@ import prerna.om.CopyObject;
 import prerna.reactor.mgmt.MgmtUtil;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
+import prerna.util.ChrootHelper;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.SemossClassloader;
 import prerna.util.Settings;
-import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 
 public class User implements Serializable {
@@ -68,8 +68,9 @@ public class User implements Serializable {
 	private transient ClientProcessWrapper rCPW = new ClientProcessWrapper();
 	private transient Process rProcess = null;
 
-	private transient SymlinkHelper symlinkHelper = null;
+	// chroot
 	private String chrootPath = null;
+	private transient ChrootHelper chrootHelper = null;
 
 	// keeping this for a later time when personal experimental stuff
 	private transient ClassLoader customLoader = null;
@@ -763,16 +764,20 @@ public class User implements Serializable {
 	    return this.cmdUtil;
 	}
 	
-	public SymlinkHelper getUserSymlinkHelper() {
+	/**
+	 * 
+	 * @return
+	 */
+	public ChrootHelper getUserChrootHelper() {
 		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if(symlinkHelper == null) {		
+			if(this.chrootHelper == null) {		
 				String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
 				String chrootDir = Utility.getDIHelperProperty("CHROOT_DIR");
 				chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
 				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
-				symlinkHelper = new SymlinkHelper(chrootPath);
+				this.chrootHelper = new ChrootHelper(chrootPath);
 			}
-			return symlinkHelper;
+			return this.chrootHelper;
 		} else {
 			throw new IllegalArgumentException("Mounting + Chroot is set to false for this instance");
 		}
@@ -820,12 +825,12 @@ public class User implements Serializable {
 
 			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
-				this.symlinkHelper = getUserSymlinkHelper();
+				this.chrootHelper = getUserChrootHelper();
 				
 				// we do not define the Server Directory here - because it will dynamically generate in the chroot location
 				try {
 					// TODO update once venv with chroot is enabled
-					this.pythonCPW.createProcessAndClient(nativePyServer, this.symlinkHelper, port, null, null, customClassPath, debug, "-1", loggerLevel);
+					this.pythonCPW.createProcessAndClient(nativePyServer, this.chrootHelper, port, null, null, customClassPath, debug, "-1", loggerLevel);
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to connect to user server");

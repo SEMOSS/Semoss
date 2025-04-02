@@ -14,6 +14,7 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -33,7 +34,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 	private static Logger classLogger = LogManager.getLogger(BrowseAssetReactor.class);
 
 	public BrowseAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(),  ReactorKeysEnum.SPACE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 	}
 
 	@Override
@@ -44,7 +45,6 @@ public class BrowseAssetReactor extends AbstractReactor {
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
 		String replacer = "";
 		
-
 		// specific folder to browse
 		String locFolder = assetFolder;
 		if (keyValue.containsKey(keysToGet[0])) {
@@ -52,17 +52,26 @@ public class BrowseAssetReactor extends AbstractReactor {
 			locFolder = locFolder.replaceAll("\\\\", "/");
 		}
 		
-		 // set the context here
-		if(!keyValue.containsKey(keysToGet[0]) && space != null) {
-			try {
-				this.insight.setContext(space);
-				//if we have a chroot, mount the project for that user.
-				if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-					//get the app_root folder for the project
-					this.insight.getUser().getUserSymlinkHelper().symlinkFolder(assetFolder);
+		boolean spaceIsProject = space != null && !space.isEmpty() 
+				&& !AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)
+				&& !AssetUtility.INSIGHT_SPACE_KEY.equalsIgnoreCase(space);
+		
+		// set the context if project
+		if(spaceIsProject) {
+			this.insight.setContext(space);
+		}
+		//if we have a chroot, mount the project for that user.
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			if(spaceIsProject) {
+				// the space must be a project
+				// so let us double check permissions for symlink or copy
+				if(SecurityProjectUtils.userCanEditProject(this.insight.getUser(), space)) {
+					this.insight.getUser().getUserChrootHelper().symlinkFolder(assetFolder);
+				} else {
+					this.insight.getUser().getUserChrootHelper().copyAppFolder(assetFolder);
 				}
-			} catch(IllegalArgumentException e) {
-				// ignore
+			} else {
+				this.insight.getUser().getUserChrootHelper().symlinkFolder(assetFolder);
 			}
 		}
 		
@@ -72,8 +81,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 			cloneRepo(locFolder, assetFolder);
 		}
 
-		List <Map<String, Object>> output = GitAssetUtils.getAssetMetadata(locFolder, assetFolder, replacer, false);
-		
+		List<Map<String, Object>> output = GitAssetUtils.getAssetMetadata(locFolder, assetFolder, replacer, false);
 		
 		// add the files from repository and show it as if those files are there
 		if(locFolder.length() == 0) {

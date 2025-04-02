@@ -270,7 +270,7 @@ public class Insight implements Serializable {
 		// put the pragmap
 		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)+"")) {
 			if(this.user != null) {
-				this.user.getUserSymlinkHelper().symlinkFolder(getInsightFolder());
+				this.user.getUserChrootHelper().symlinkFolder(getInsightFolder());
 			}
 		}
 	}
@@ -1455,33 +1455,21 @@ public class Insight implements Serializable {
 	//TODO: on tomcat side, when context changes needs to be told
 	//TODO: on tomcat side, when context changes needs to be told
 	//TODO: on tomcat side, when context changes needs to be told
-	public boolean setContext(String projectId) 
-	{
+	public boolean setContext(String projectId) {
 		// sets the context space for the user
 		// also set the cmd context right here
 		if(this.contextProjectId != null && this.contextProjectId.equals(projectId)) {
 			return true;
 		}
-		if(this.user != null) {
-			if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-				return false;
-			}
-			this.contextProjectId = projectId;
-			this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-			this.user.setContext(contextProjectId, contextProjectName);
-				
-			this.contextReinitialized = true;
-			return true;
+		if(!SecurityProjectUtils.userCanViewProject(this.user, projectId)) {
+			return false;
 		}
-		// should we allow this if no one is logged in?
-		else {
-			String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-			String mountDir = AssetUtility.getProjectVersionFolder(projectName, projectId);
-	
-			this.cmdUtil = new CmdExecUtil(projectName, mountDir, this.user.getSocketClient(false));
-			this.contextProjectId = projectId;
-			return true;
-		}
+		this.contextProjectId = projectId;
+		this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+		this.user.setContext(contextProjectId, contextProjectName);
+			
+		this.contextReinitialized = true;
+		return true;
 	}
 	
 	public CmdExecUtil getCmdUtil() {
