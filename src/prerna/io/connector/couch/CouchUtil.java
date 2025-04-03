@@ -77,6 +77,7 @@ public class CouchUtil {
 	public static final String GUARDRAIL = "guardrail";
 	public static final String INSIGHT = "insight";
 	public static final String PROJECT = "project";
+	public static final String AGENT = "agent";
 	
 	private static final Logger classLogger = LogManager.getLogger(CouchUtil.class);
 	

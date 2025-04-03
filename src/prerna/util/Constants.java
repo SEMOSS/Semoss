@@ -394,6 +394,7 @@ public class Constants {
 	public static final String PORTALS_FOLDER = "portals";
 	public static final String VERSION_FOLDER = "version";
 	public static final String USER_FOLDER = "user";
+	public static final String AGENT_FOLDER = "agent";
 
 	@Deprecated
 	public static final String PIXEL_UPDATE = "PIXEL_UPDATE";

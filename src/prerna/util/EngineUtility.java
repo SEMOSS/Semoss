@@ -23,6 +23,7 @@ public class EngineUtility {
 	public static final String LOCAL_FUNCTION_IMAGE_RELPATH = "images/functions";
 	public static final String LOCAL_GUARDRAIL_IMAGE_RELPATH = "images/guardrail";
 	public static final String LOCAL_PROJECT_IMAGE_RELPATH = "images/projects";
+	public static final String LOCAL_AGENT_IMAGE_RELPATH = "images/agents";
 
 	public static final String DATABASE_FOLDER = BASE_FOLDER + Constants.DATABASE_FOLDER;
 	public static final String STORAGE_FOLDER = BASE_FOLDER + Constants.STORAGE_FOLDER;
@@ -34,6 +35,7 @@ public class EngineUtility {
 	// project is special engine
 	public static final String PROJECT_FOLDER = BASE_FOLDER + Constants.PROJECT_FOLDER;
 	public static final String USER_FOLDER = BASE_FOLDER + Constants.USER_FOLDER;
+	public static final String AGENT_FOLDER = BASE_FOLDER + Constants.AGENT_FOLDER;
 	
 	public static final String DATABASE_IMAGE_FOLDER = BASE_FOLDER + LOCAL_DATABASE_IMAGE_RELPATH;
 	public static final String STORAGE_IMAGE_FOLDER = BASE_FOLDER + LOCAL_STORAGE_IMAGE_RELPATH;
@@ -42,6 +44,7 @@ public class EngineUtility {
 	public static final String FUNCTION_IMAGE_FOLDER = BASE_FOLDER + LOCAL_FUNCTION_IMAGE_RELPATH;
 	public static final String GUARDRAIL_IMAGE_FOLDER = BASE_FOLDER + LOCAL_GUARDRAIL_IMAGE_RELPATH;
 	public static final String PROJECT_IMAGE_FOLDER = BASE_FOLDER + LOCAL_PROJECT_IMAGE_RELPATH;
+	public static final String AGENT_IMAGE_FOLER = BASE_FOLDER + LOCAL_AGENT_IMAGE_RELPATH;
 	
 	/**
 	 * 
@@ -109,6 +112,8 @@ public class EngineUtility {
 			return VENV_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.AGENT == type) {
+			return AGENT_FOLDER;
 		}
 		
 		throw new IllegalArgumentException("Unhandled engine type = " + type);
@@ -134,6 +139,8 @@ public class EngineUtility {
 			return GUARDRAIL_IMAGE_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_IMAGE_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.AGENT == type) {
+			return AGENT_FOLDER;
 		}
 		
 		throw new IllegalArgumentException("Unhandled engine type = " + type);
@@ -159,6 +166,8 @@ public class EngineUtility {
 			return CouchUtil.GUARDRAIL;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return CouchUtil.PROJECT;
+		} else if(IEngine.CATALOG_TYPE.AGENT == type) {
+			return CouchUtil.AGENT;
 		}
 		
 		throw new IllegalArgumentException("Unhandled engine type = " + type);
