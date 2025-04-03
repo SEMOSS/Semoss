@@ -86,9 +86,10 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 			for (BlobContainerItem blobContainerItem : containerItems) {
 				Map<String, Object> containerItemMap = new HashMap<>();
 				containerItemMap.put("name", blobContainerItem.getName());
-				containerItemMap.put("metadata",
-						blobContainerItem.getMetadata() != null ? blobContainerItem.getMetadata()
-								: Collections.emptyMap());
+				// Fetch metadata separately
+	            BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(blobContainerItem.getName());
+	            Map<String, String> metadata = containerClient.getProperties().getMetadata();
+	            containerItemMap.put("metadata", metadata.isEmpty() ? Collections.emptyMap() : metadata);
 				containersList.add(containerItemMap);
 			}
 		}
