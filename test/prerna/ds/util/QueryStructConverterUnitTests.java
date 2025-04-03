@@ -1,4 +1,4 @@
-package prerna.unit.ds.util;
+package prerna.ds.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
