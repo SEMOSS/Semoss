@@ -37,4 +37,6 @@ public interface INotebookHelper {
 	 */
 	Map<String, String> getBlocksEngineDependencies();
 
+	Map<String, String> getNotebookVariables();
+
 }
