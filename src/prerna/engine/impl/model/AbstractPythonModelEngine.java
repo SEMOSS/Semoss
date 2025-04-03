@@ -602,4 +602,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		return null;
 	}
 	
+	public List<String> keywordExtraction(Object input, Insight insight, Map <String, Object> parameters) {
+		throw new IllegalArgumentException("Keyword Extraction is not implemented for this model");
+	}
+	
 }

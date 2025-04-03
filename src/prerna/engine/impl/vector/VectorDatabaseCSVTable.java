@@ -3,6 +3,7 @@ package prerna.engine.impl.vector;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,8 +13,10 @@ import java.util.Set;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.BedrockEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.om.Insight;
 import prerna.query.querystruct.CsvQueryStruct;
 
@@ -27,7 +30,7 @@ public class VectorDatabaseCSVTable {
 	public static final String CONTENT = "Content";
 	
     public List<VectorDatabaseCSVRow> rows;
-    private EmbeddedModelEngine keywordEngine = null;
+    private AbstractPythonModelEngine keywordEngine = null;
 	private int maxKeywords = 12;
 	private int percentile = 0;
 	
@@ -64,14 +67,21 @@ public class VectorDatabaseCSVTable {
     }
     
     public void setKeywordEngine(IModelEngine keywordEngine) {
-    	if(!(keywordEngine instanceof EmbeddedModelEngine)) {
+    	if(!(keywordEngine instanceof EmbeddedModelEngine) && !(keywordEngine instanceof BedrockEngine)) {
     		throw new IllegalArgumentException("Keyword Engine must be of type EmbeddedModelEngine");
     	}
-        this.keywordEngine = (EmbeddedModelEngine) keywordEngine;
+
+    	if (keywordEngine instanceof EmbeddedModelEngine) {
+    		this.keywordEngine = (EmbeddedModelEngine) keywordEngine;
+    		return;
+    	} else if (keywordEngine instanceof BedrockEngine) {
+    		this.keywordEngine = (BedrockEngine) keywordEngine;
+    		return;
+    	}
     }
     
-    public EmbeddedModelEngine getKeywordEngine() {
-        return this.keywordEngine;
+    public AbstractPythonModelEngine getKeywordEngine() {
+    	return this.keywordEngine;
     }
 
     /**
@@ -86,8 +96,7 @@ public class VectorDatabaseCSVTable {
     		Map<String, Object> keywordEngineParams = new HashMap<>();
     		keywordEngineParams.put("max_keywords", maxKeywords);
     		keywordEngineParams.put("percentile", percentile);
-    		
-			List<String> keywordsFromChunks = (List<String>) this.keywordEngine.keywordExtraction(stringsToEmbed, insight, keywordEngineParams); 		
+			List<String> keywordsFromChunks = (List<String>) this.keywordEngine.keywordExtraction(stringsToEmbed, insight, keywordEngineParams);	
     		for (int i = 0; i < this.rows.size(); i++) {
     			String keywordChunk = keywordsFromChunks.get(i);
     			

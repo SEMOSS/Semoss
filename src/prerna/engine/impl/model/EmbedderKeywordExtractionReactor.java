@@ -41,14 +41,13 @@ public class EmbedderKeywordExtractionReactor extends AbstractReactor {
 		}
 
 		IModelEngine modelE = Utility.getModel(engineId);
-		if( !(modelE instanceof EmbeddedModelEngine)) {
+		if(!(modelE instanceof EmbeddedModelEngine) && !(modelE instanceof BedrockEngine)) {
 			throw new IllegalArgumentException("This method only works for Local EmbeddedModelEngines");
 		}
 
 		String percentile = this.keyValue.get(PERCENTILE);
 		String limit = this.keyValue.get(this.keysToGet[3]);
 
-		EmbeddedModelEngine eme = (EmbeddedModelEngine) modelE;
 		Map<String, Object> parameters = new HashMap<>();
 		if(percentile != null && !(percentile=percentile.trim()).isEmpty()) {
 			parameters.put("percentile", ((Number) Double.parseDouble(percentile)).intValue());
@@ -61,11 +60,20 @@ public class EmbedderKeywordExtractionReactor extends AbstractReactor {
 		if(input.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in list of inputs");
 		}
+		
 		List<String> decoded = new ArrayList<>(input.size());
 		for(int i = 0; i < input.size(); i++) {
 			decoded.add( Utility.decodeURIComponent(input.get(i)) );
 		}
-		List<String> keywords = eme.keywordExtraction(decoded, insight, parameters);
+		
+		List<String> keywords = null;
+		if(modelE instanceof EmbeddedModelEngine) {
+			EmbeddedModelEngine keywordModel = (EmbeddedModelEngine) modelE;
+			keywords = keywordModel.keywordExtraction(decoded, insight, parameters);
+		} else if (modelE instanceof BedrockEngine) {
+			BedrockEngine keywordModel = (BedrockEngine) modelE;	
+			keywords = keywordModel.keywordExtraction(decoded, insight, parameters);
+		}
 		return new NounMetadata(keywords, PixelDataType.VECTOR);
 	}
 

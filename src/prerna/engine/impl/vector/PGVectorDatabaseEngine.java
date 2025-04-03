@@ -44,6 +44,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.EmbedderKeywordExtractionReactor;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -58,7 +59,12 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
+import prerna.reactor.PixelPlanner;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
+import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -172,6 +178,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
         if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID)) {
         	this.customDocumentProcessorFunctionID = this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID);
         }
+        
+        // smss properties for keyword engine
+        if (this.smssProp.containsKey(Constants.KEYWORD_ENGINE_ID)) {
+			this.keywordGeneratorEngineId = this.smssProp.getProperty(Constants.KEYWORD_ENGINE_ID);
+		}
         
 		// highest directory (first layer inside vector db base folder)
 		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
@@ -315,6 +326,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
+	// This is where vectors are being embedded and added to db when document is added to the database
 	@Override
 	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (insight == null) {
@@ -328,6 +340,15 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		// if we were able to extract files, begin embeddings process
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
 		// send all the strings to embed in one shot
+
+		// set keyword engine
+		if (this.keywordGeneratorEngineId != null) {
+			if (!this.keywordGeneratorEngineId.isEmpty()) {
+				IModelEngine keywordEngine = Utility.getModel(this.keywordGeneratorEngineId);
+				vectorCsvTable.setKeywordEngine(keywordEngine);
+			}
+		}
+
 		try {
 			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 		} catch (Exception e) {

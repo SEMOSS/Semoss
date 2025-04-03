@@ -32,6 +32,7 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 		return output;
 	}
 	
+	@Override
 	public List<String> keywordExtraction(Object input, Insight insight, Map <String, Object> parameters) {		
 		ZonedDateTime inputTime = ZonedDateTime.now();
 		List<String> keywordExtractionResponse = keywordExtractionCall(input, insight, parameters);
