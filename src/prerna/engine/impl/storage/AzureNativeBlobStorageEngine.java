@@ -27,11 +27,9 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
-import com.azure.storage.blob.models.BlobContainerItem;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
-import com.azure.storage.blob.models.ListBlobContainersOptions;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import prerna.engine.api.StorageTypeEnum;
 
@@ -61,39 +59,33 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 	public StorageTypeEnum getStorageType() {
 		return StorageTypeEnum.MICROSOFT_AZURE_BLOB_STORAGE;
 	}
-
+	
 	@Override
-	public List<String> list(String containerPrefix) throws BlobStorageException {
-		ListBlobContainersOptions options = new ListBlobContainersOptions().setPrefix(containerPrefix);
-		List<String> containersList = new ArrayList<>();
-
-		PagedIterable<BlobContainerItem> containerItems = this.blobServiceClient.listBlobContainers(options, null);
-		if (containerItems != null) {
-			for (BlobContainerItem blobContainerItem : containerItems) {
-				containersList.add(blobContainerItem.getName());
-			}
-		}
-		return containersList;
+	public List<String> list(String containerName) throws BlobStorageException {
+	    List<String> fileList = new ArrayList<>();
+	    BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+	    // List blobs inside the container
+	    for (BlobItem blobItem : containerClient.listBlobs()) {
+	    	fileList.add(blobItem.getName());
+	    }
+	    return fileList;
 	}
-
+	
 	@Override
-	public List<Map<String, Object>> listDetails(String containerPrefix) throws BlobStorageException {
-		ListBlobContainersOptions options = new ListBlobContainersOptions().setPrefix(containerPrefix);
-		List<Map<String, Object>> containersList = new ArrayList<>();
-
-		PagedIterable<BlobContainerItem> containerItems = this.blobServiceClient.listBlobContainers(options, null);
-		if (containerItems != null) {
-			for (BlobContainerItem blobContainerItem : containerItems) {
-				Map<String, Object> containerItemMap = new HashMap<>();
-				containerItemMap.put("name", blobContainerItem.getName());
-				// Fetch metadata separately
-	            BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(blobContainerItem.getName());
-	            Map<String, String> metadata = containerClient.getProperties().getMetadata();
-	            containerItemMap.put("metadata", metadata.isEmpty() ? Collections.emptyMap() : metadata);
-				containersList.add(containerItemMap);
-			}
-		}
-		return containersList;
+	public List<Map<String, Object>> listDetails(String containerName) throws BlobStorageException {
+	    List<Map<String, Object>> detailsList = new ArrayList<>();
+	    BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+	    // List blobs and fetch their details
+	    for (BlobItem blobItem : containerClient.listBlobs()) {
+	        Map<String, Object> blobMap = new HashMap<>();
+	        blobMap.put("name", blobItem.getName());
+	        // Fetch metadata separately
+	        BlobClient blobClient = containerClient.getBlobClient(blobItem.getName());
+	        Map<String, String> metadata = blobClient.getProperties().getMetadata();
+	        blobMap.put("metadata", metadata.isEmpty() ? Collections.emptyMap() : metadata);
+	        detailsList.add(blobMap);
+	    }
+	    return detailsList;
 	}
 
 	@Override
