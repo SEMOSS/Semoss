@@ -2,7 +2,10 @@ package prerna.auth.utils.reactors.admin;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import prerna.auth.User;
@@ -37,15 +40,15 @@ public class AdminGetEngineSMSSReactor extends AbstractReactor {
 		
 		IEngine engine = Utility.getEngine(engineId);
 		String currentSmssFileLocation = engine.getSmssFilePath();
-		File currentSmssFile = new File(currentSmssFileLocation);
+		Path currentSmssPath = Paths.get(currentSmssFileLocation);
 		
-		if(!currentSmssFile.exists() || !currentSmssFile.isFile()) {
+		if(!Files.exists(currentSmssPath) || !Files.isRegularFile(currentSmssPath)) {
 			throw new IllegalArgumentException("Could not find smss file for engine " + engineId + ". Please reach out to an administrator for assistance");
 		}
 		
 		String currentSmssContent = null;
 		try {
-			currentSmssContent = new String(Files.readAllBytes(Paths.get(currentSmssFile.toURI())));
+			currentSmssContent = new String(Files.readAllBytes(Paths.get(currentSmssPath.toUri())));
 		} catch (IOException e) {
 			throw new IllegalArgumentException("An error occurred reading the current engine smss details. Detailed message = " + e.getMessage());
 		}
@@ -53,4 +56,5 @@ public class AdminGetEngineSMSSReactor extends AbstractReactor {
 		String concealedSmssContent = SmssUtilities.concealSmssSensitiveInfo(currentSmssContent);
 		return new NounMetadata(concealedSmssContent, PixelDataType.CONST_STRING);
 	}
+
 }

@@ -955,6 +955,34 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return wrapper;
 	}
+	
+	/**
+	 * See if project exists
+	 * @return
+	 */
+	public static boolean projectExists(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return false;
+	}
 
 	/**
 	 * See if specific project is global
@@ -1224,14 +1252,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getProjectUsers(User user, String projectId, String searchParam, String permission, long limit, long offset) throws IllegalAccessException {
 		if(!userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException("The user does not have access to view this project");
+			throw new IllegalAccessException("The user does not have access to view this project");
 		}
 		return SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission, limit, offset);
 	}
 	
 	public static long getProjectUsersCount(User user, String projectId, String searchParam, String permission) throws IllegalAccessException {
 		if(!userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException("The user does not have access to view this project");
+			throw new IllegalAccessException("The user does not have access to view this project");
 		}
 		boolean hasSearchParam = searchParam != null && !(searchParam=searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
@@ -1348,7 +1376,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// make sure we are trying to edit a permission that exists
 		Integer existingUserPermission = getUserProjectPermission(existingUserId, projectId);
 		if(existingUserPermission == null) {
-			throw new IllegalArgumentException("Attempting to modify project permission for a user who does not currently have access to the project");
+			throw new IllegalAccessException("Attempting to modify project permission for a user who does not currently have access to the project");
 		}
 
 		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
@@ -1707,10 +1735,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param isPublic
 	 * @return
+	 * @throws IllegalAccessException 
 	 */
-	public static boolean setProjectName(User user, String projectId, String newProjectName) {
+	public static boolean setProjectName(User user, String projectId, String newProjectName) throws IllegalAccessException {
 		if(!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
-			throw new IllegalArgumentException("The user doesn't have the permission to change the project name. Only the owner or an admin can perform this action.");
+			throw new IllegalAccessException("The user doesn't have the permission to change the project name. Only the owner or an admin can perform this action.");
 		}
 		PreparedStatement ps = null;
 		try {
@@ -1774,7 +1803,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, projectId);
 					ps.setString(parameterIndex++, depEngineId);
 					ps.setString(parameterIndex++, token.getId());
-					ps.setString(parameterIndex++, token.getName());
+					ps.setString(parameterIndex++, token.getProvider().getLabel());
 					ps.setTimestamp(parameterIndex++, timestamp);
 					ps.addBatch();
 				}
@@ -2104,7 +2133,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		 * Security check to make sure that the user can view the application provided. 
 		 */
 		if(!userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException("The user does not have access to view this project");
+			throw new IllegalAccessException("The user does not have access to view this project");
 		}	
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -3556,7 +3585,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		// only project owners can deny user access requests
 		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			throw new IllegalArgumentException("Insufficient privileges to deny user access requests.");
+			throw new IllegalAccessException("Insufficient privileges to deny user access requests.");
 		}
 				
 		// bulk update to projectaccessrequest table

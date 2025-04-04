@@ -300,6 +300,11 @@ public interface IProject extends IEngine, Closeable {
 	 * @return
 	 */
 	String getCompileOutput();
-	
+
+	/**
+	 * 
+	 * @return json representation of project
+	 */
+	Map<String, Object> buildProjectToolMap();
 }
 

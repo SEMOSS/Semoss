@@ -325,10 +325,13 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * @return
 	 */
 	public String getFormattedDate() {
+		if(this.zdt == null) {
+			return null;
+		}
 		if(this.strDate == null) {
 			getZonedDateTime();
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern(this.pattern, Locale.ENGLISH);
-			this.strDate = zdt.format(formatter);
+			this.strDate = this.zdt.format(formatter);
 		}
 		return this.strDate;
 	}
