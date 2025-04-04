@@ -272,6 +272,8 @@ public final class Utility {
 	 * @param Query.
 	 * 
 	 * @return Hashtable of queries to be replaced
+	 * @return JSON format of vector 
+	 * 
 	 */
 	public static Hashtable getParamTypeHash(String query) {
 		Hashtable paramHash = new Hashtable();
@@ -288,9 +290,9 @@ public final class Utility {
 			// put something to strip the @
 			paramHash.put(paramName, paramValue);
 		}
-
+		
 		return paramHash;
-	}
+	}  
 	
 	/**
 	 * Get the Base Folder
@@ -4540,7 +4542,7 @@ public final class Utility {
 	}
 	
 	public static String getApplicationOptionalRoutePath() {
-		String route = (String) DIHelper.getInstance().getLocalProp(Constants.MONOLITH_ROUTE);
+		String route = Utility.getDIHelperProperty(Constants.MONOLITH_ROUTE);
 		if(route == null) {
 			Map<String, String> envMap = System.getenv();
 			if (envMap.containsKey(Constants.MONOLITH_ROUTE)) {

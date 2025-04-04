@@ -24,7 +24,6 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.sail.SailException;
 
 import prerna.auth.User;
-import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDFDatabase;
@@ -394,8 +393,6 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 				Object propValue = ExcelParsing.getCell(nextRow.getCell(colIndex));
 				if(propValue == null || propValue.toString().trim().isEmpty()) {
 					continue;
-				} else if (propValue instanceof SemossDate) {
-					propValue = ((SemossDate) propValue).getZonedDateTime();
 				}
 				propHash.put(propName, propValue);
 			}

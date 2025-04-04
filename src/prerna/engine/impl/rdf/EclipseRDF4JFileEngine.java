@@ -105,7 +105,8 @@ public class EclipseRDF4JFileEngine extends AbstractDatabaseEngine implements IR
 		
 		String dataDir = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
 		dataDir += "/data";
-		this.myRepository = new SailRepository(new SchemaCachingRDFSInferencer (new NativeStore(new File(dataDir))));
+		String indexes = "spoc,psoc,ospc";
+		this.myRepository = new SailRepository(new SchemaCachingRDFSInferencer (new NativeStore(new File(dataDir), indexes)));
 		this.myRepository.init();
 
 		// you can technically set the filename directly

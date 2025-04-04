@@ -3,6 +3,7 @@ package prerna.engine.impl.rdf;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
@@ -16,6 +17,7 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 
+import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDFDatabase;
 import prerna.engine.api.ISesameRDFEngine;
@@ -172,19 +174,10 @@ public class RdfUploadReactorUtility {
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owlEngine.addProp(subjectNodeType, key, "DOUBLE");
 				}
-			} else if (propHash.get(key) instanceof Date) {
-				Date value = (Date) propHash.get(key);
-				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-				String date = df.format(value);
-				Date dateFormatted;
-				try {
-					dateFormatted = df.parse(date);
-				} catch (ParseException e) {
-//					logger.error("ERROR: could not parse date: " + date);
-					continue;
-				}
-				// logger.info("Processing Date value " + dateFormatted);
-				allStatementInserts.add(new Object[] { instanceURI, propURI, dateFormatted, false });
+			} else if (propHash.get(key) instanceof SemossDate) {
+				ZonedDateTime value = ((SemossDate) propHash.get(key)).getZonedDateTime();
+		        Date date = new Date(value.toInstant().toEpochMilli());
+				allStatementInserts.add(new Object[] { instanceURI, propURI, date, false });
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owlEngine.addProp(subjectNodeType, key, "DATE");
 				}

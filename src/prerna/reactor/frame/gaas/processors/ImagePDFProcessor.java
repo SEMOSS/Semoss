@@ -36,12 +36,14 @@ public class ImagePDFProcessor extends AbstractFileImageProcessor {
 			String source = getSource(this.filePath);
 
 			for (int pageIndex = 1; pageIndex <= document.getNumberOfPages(); pageIndex++) {
-				stripper.setStartPage(pageIndex + 1);
-				stripper.setEndPage(pageIndex + 1);
+				// stripper is 1 based
+				stripper.setStartPage(pageIndex);
+				stripper.setEndPage(pageIndex);
 				String text = stripper.getText(document);
 
 				// Extract images
-				PDPage page = document.getPage(pageIndex);
+				// getPage is 0 based
+				PDPage page = document.getPage(pageIndex-1);
 				List<String> imageIds = extractImages(page);
 				classLogger.debug("Found {} images in {} on page {}", imageIds.size(), source, pageIndex);
 				// Combine text and image placeholders
