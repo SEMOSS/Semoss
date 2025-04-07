@@ -88,7 +88,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 
 	@Override
 	public StorageTypeEnum getStorageType() {
-		return StorageTypeEnum.GOOGLE_CLOUD_STORAGE;
+		return StorageTypeEnum.GOOGLE_CLOUD_NATIVE_STORAGE;
 	}
 	
 	@Override
@@ -705,18 +705,6 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
             outputStream.write(blob.getContent());
         }
     }
-	
-	public void listFilesInCloudStorageFolderPath(String storagePath) {
-		  String normalizedPath = storagePath.replace("\\", "/").replaceAll("/+", "/").trim();
-		   // Remove leading slash if present
-		    if (normalizedPath.startsWith("/") || normalizedPath.startsWith("//") || normalizedPath.startsWith("\\")  ) {
-		        normalizedPath = normalizedPath.substring(1);
-		    }
-		    // Retrieve all blobs that start with the given path (recursively lists all files)
-		    for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(normalizedPath)).iterateAll()) {
-		        System.out.println(blob.getName());
-		    }
-	}
 	
 	@Override
 	public void close() throws IOException {
