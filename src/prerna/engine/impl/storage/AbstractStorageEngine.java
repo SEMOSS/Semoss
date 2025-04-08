@@ -2,6 +2,10 @@ package prerna.engine.impl.storage;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -62,6 +66,37 @@ public abstract class AbstractStorageEngine implements IStorageEngine {
 			}
 		}
 	}
+	
+	// Converts comma-separated local file/folder paths to List<Path>
+		protected List<Path> parseLocalPaths(String commaSeparatedPaths) throws Exception {
+		    List<Path> result = new ArrayList<>();
+		    String[] parts = commaSeparatedPaths.split(",");
+
+		    for (String part : parts) {
+		        String trimmed = part.trim();
+		        if (!trimmed.isEmpty()) {
+		            result.add(Paths.get(trimmed));
+		        }
+		    }
+
+		    return result;
+		}
+
+		// Converts comma-separated cloud storage object paths to normalized String list
+		protected List<String> parseStorageObjectPaths(String commaSeparatedPaths) {
+		    List<String> result = new ArrayList<>();
+		    String[] parts = commaSeparatedPaths.split(",");
+
+		    for (String part : parts) {
+		        String trimmed = part.trim();
+		        if (!trimmed.isEmpty()) {
+		            String normalized = trimmed.replace("\\", "/").replaceFirst("^/", "");
+		            result.add(normalized);
+		        }
+		    }
+
+		    return result;
+		}
 	
 	@Override
 	public void setEngineId(String engineId) {

@@ -228,11 +228,13 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		List<String> failedFiles = new ArrayList<>();
 		boolean found = false;
 		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
-		Path filePath = Paths.get(localFilePath);
-
-		if (!Files.exists(filePath)) {
-			throw new FileNotFoundException("File not found: " + localFilePath);
-		}
+		List<Path> paths = parseLocalPaths(localFilePath);
+		 for (Path filePath : paths) {
+	            if (!Files.exists(filePath)) {
+	                classLogger.error("File not found: " + filePath);
+	                failedFiles.add(filePath.toString());
+	                continue;
+	            }
 		// Delete empty directories before upload
 		deleteEmptyDirectories(filePath);
 
@@ -258,6 +260,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 				classLogger.error("Failed to upload file: " + filePath, e);
 				rollbackUploads(containerClient, failedFiles);
 			}
+		  }
 		}
 		// Delete empty folder from azure storage (zero-byte blob)
 		deleteEmptyBlobs(containerClient);
@@ -275,15 +278,15 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		String blobDirectory = containerAndPath[1];
 		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
 		Path localDirectory = Paths.get(localFolderPath);
-		blobDirectory = blobDirectory.replace("\\", "/").replaceFirst("^/", "");
+		List<String> paths = parseStorageObjectPaths(blobDirectory);
 		// Ensure local directory exists
 		Files.createDirectories(localDirectory);
 
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
 		boolean found = false;
-
-		Iterable<BlobItem> getBlobItems = blobDirectory.isEmpty() ? containerClient.listBlobs()
-				: containerClient.listBlobs(new ListBlobsOptions().setPrefix(blobDirectory), null);
+		for (String path : paths) {
+		Iterable<BlobItem> getBlobItems = paths.isEmpty() ? containerClient.listBlobs()
+				: containerClient.listBlobs(new ListBlobsOptions().setPrefix(path), null);
 
 		for (BlobItem blobItem : getBlobItems) {
 			String blobName = blobItem.getName();
@@ -293,7 +296,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 			deleteEmptyBlobs(containerClient);
 
 			Path localFilePath = localDirectory
-					.resolve(blobName.substring(blobDirectory.length()).replace("/", File.separator));
+					.resolve(blobName.substring(path.length()).replace("/", File.separator));
 			try {
 				Files.createDirectories(localFilePath.getParent());
 				retryOperation(() -> blobClient.downloadToFile(localFilePath.toString(), true),
@@ -305,6 +308,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 				failedFiles.add(blobName);
 				classLogger.error("Failed to download: " + blobName, e);
 			}
+		  }
 		}
 
 		// Delete empty directories after download
