@@ -34,7 +34,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.reactor.job.JobReactor;
-import prerna.sablecc2.comm.JobManager;
+import prerna.sablecc2.comm.PixelJobManager;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -126,7 +126,7 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
                         while ((line = reader.readLine()) != null) {
 //                        	System.out.println("My line is = " + line);
                         	responseAssimilator.append(line);
-                            JobManager.getManager().addPartialOut(jobId, line);
+                        	PixelJobManager.getManager().addPartialOut(jobId, line);
                         }
                         
                         // return the combined outputs

@@ -30,7 +30,7 @@ import prerna.engine.impl.model.responses.IModelEngineResponseHandler;
 import prerna.engine.impl.model.responses.IModelEngineResponseStreamHandler;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
-import prerna.sablecc2.comm.JobManager;
+import prerna.sablecc2.comm.PixelJobManager;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 
@@ -138,7 +138,7 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 	                                
 	                                if (partial != null) {
 	                                	responseObject.appendStream(partialObject);
-		                                JobManager.getManager().addPartialOut(insightId, partial+"");
+	                                	PixelJobManager.getManager().addPartialOut(insightId, partial+"");
 		                                responseAssimilator.append(partial);
 	                                }
 	                            } else if(!line.isEmpty()){

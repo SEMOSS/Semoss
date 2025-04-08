@@ -337,7 +337,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	public static boolean adminOnlyEngineAdd(String engineId) {
-		return adminOnlyEngineAdd(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineAdd(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineAdd(IEngine.CATALOG_TYPE type) {
@@ -357,7 +357,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean adminOnlyEngineDelete(String engineId) {
-		return adminOnlyEngineDelete(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineDelete(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineDelete(IEngine.CATALOG_TYPE type) {
@@ -377,7 +377,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean adminOnlyEngineAddAccess(String engineId) {
-		return adminOnlyEngineAddAccess(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineAddAccess(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineAddAccess(IEngine.CATALOG_TYPE type) {
@@ -397,7 +397,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean adminOnlyEngineSetPublic(String engineId) {
-		return adminOnlyEngineSetPublic(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineSetPublic(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineSetPublic(IEngine.CATALOG_TYPE type) {
@@ -417,7 +417,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean adminOnlyEngineSetDiscoverable(String engineId) {
-		return adminOnlyEngineSetDiscoverable(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineSetDiscoverable(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineSetDiscoverable(IEngine.CATALOG_TYPE type) {
