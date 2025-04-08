@@ -233,18 +233,19 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
     
     @Override
     public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws Exception {
-        Path filePath = Paths.get(localFilePath);
-
-        if (!Files.exists(filePath)) {
-            throw new FileNotFoundException("File not found: " + localFilePath);
-        }
-
-        // Delete empty directories before upload
-        deleteEmptyDirectories(filePath);
-
+    	List<Path> paths = parseLocalPaths(localFilePath);
         List<String> uploadedFiles = new ArrayList<>();
         List<String> failedFiles = new ArrayList<>();
         boolean found = false;
+        for (Path filePath : paths) {
+            if (!Files.exists(filePath)) {
+                classLogger.error("File not found: " + filePath);
+                failedFiles.add(filePath.toString());
+                continue;
+            }
+            
+            // Delete empty directories before upload
+            deleteEmptyDirectories(filePath);
 
         if (Files.isDirectory(filePath)) {
             try (Stream<Path> fileStream = Files.walk(filePath).filter(Files::isRegularFile)) {
@@ -268,6 +269,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
                 classLogger.error("Failed to upload file: " + filePath, e);
                 rollbackUploads(storage, failedFiles);
             }
+          }
         }
 
         // Delete empty blobs from GCS
@@ -279,23 +281,21 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
     
     @Override
     public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
+    	List<String> paths = parseStorageObjectPaths(storageFilePath);
         Path localDirectory = Paths.get(localFolderPath);
-
         // Ensure local directory exists
         Files.createDirectories(localDirectory);
 
-        // Normalize the storage path 
-        storageFilePath = storageFilePath.replace("\\", "/").replaceFirst("^/", "");
-
         List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
         boolean found = false;
+        for (String path : paths) {
         // Delete empty blobs (zero-byte files)
-        deleteEmptyBlobs( storageFilePath);
+        deleteEmptyBlobs( path);
         
         // Fetch all files matching the given prefix
-        for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(storageFilePath)).iterateAll()) {
+        for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(path)).iterateAll()) {
             String blobName = blob.getName();
-            Path localFilePath = localDirectory.resolve(blobName.substring(storageFilePath.length()).replace("/", File.separator));
+            Path localFilePath = localDirectory.resolve(blobName.substring(path.length()).replace("/", File.separator));
             try {
                 Files.createDirectories(localFilePath.getParent());
                 retryOperation(() -> {
@@ -312,6 +312,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
                 failedFiles.add(blobName);
                 classLogger.error("Failed to download: " + blobName, e);
             }
+          }
         }
         
         // Delete empty directories after download
@@ -418,7 +419,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
             BlobId blobId = BlobId.of(this.BUCKET, folderPath);
             BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
             storage.create(blobInfo, "".getBytes(StandardCharsets.UTF_8));
-            System.out.println("Preserved folder structure: " + folderPath);
+            classLogger.info("Preserved folder structure: " + folderPath);
         }
     }
 
@@ -705,7 +706,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
             outputStream.write(blob.getContent());
         }
     }
-	
+    
 	@Override
 	public void close() throws IOException {
 		// there is no disconnect logic
