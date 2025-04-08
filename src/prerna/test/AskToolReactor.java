@@ -46,8 +46,8 @@ public class AskToolReactor extends AbstractReactor {
     );
     public AskToolReactor() {
         this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-                ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() ,"engine_tools","project_tools"};
-        this.keyRequired = new int[] { 1, 1, 0, 0 , 0, 0};
+                ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() ,"engine_tools","project_tools", "execute_tool"};
+        this.keyRequired = new int[] { 1, 1, 0, 0 , 0, 0, 0};
     }
 
     @Override
@@ -155,6 +155,7 @@ public class AskToolReactor extends AbstractReactor {
                 toolType = "FUNCTION";
             }
 
+            
             // object to store params needed to call the tool
             List<HashMap<String, Object>> toolCallInfoData = new ArrayList<HashMap<String, Object>>();
             for(Entry<String, Object> functionParam : ((Map<String, Object>)functionParams.get("map")).entrySet()){
@@ -171,23 +172,37 @@ public class AskToolReactor extends AbstractReactor {
             outputObject.put("parameters", toolCallInfoData);
 
             output.get("response").add(outputObject);
-
+            
+            boolean executeTool = false;
+            if (this.keyValue.get("execute_tool") != null) {
+                executeTool = Boolean.parseBoolean(this.keyValue.get("execute_tool"));
+            }
+            
+            String engineId = this.keyValue.get(this.keysToGet[0]);
+            IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("id"));
+            Map<String, Object> paramMap = getMap();
+            Map<String, Object> toolExecutionMap = getMap();
+            IModelEngine modelEngine = Utility.getModel(engineId);
+            
             //remove the execution of the function for now. will add back later with a boolean passed in
-//            Object functionReturn = function.execute((Map<String, Object> )functionParams.get("map"));
-//            String functionReturnString = null;
-//
-//            try {
-//                functionReturnString = mapper.writeValueAsString(functionReturn);
-//            } catch (JsonProcessingException e) {
-//                // Handle the exception, maybe log it or return a default value
-//                e.printStackTrace();
-//                functionReturnString = "{}";
-//            }
-//
-//            toolExecutionMap.put("content", functionReturnString);         
-//            paramMap.put("toolExecution", toolExecutionMap);
-//            AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", null, this.insight, paramMap);
-//            output = toolExecutionResponse.toMap();
+            if(executeTool==true) {
+            	  Object functionReturn = function.execute((Map<String, Object> )functionParams.get("map"));
+                  String functionReturnString = null;
+
+                  try {
+                      functionReturnString = mapper.writeValueAsString(functionReturn);
+                  } catch (Exception e) {
+                      // Handle the exception, maybe log it or return a default value
+                      e.printStackTrace();
+                      functionReturnString = "{}";
+                  }
+                  
+                  toolExecutionMap.put("content", functionReturnString);         
+                  paramMap.put("toolExecution", toolExecutionMap);
+                  AskModelEngineResponse toolExecutionResponse = modelEngine.ask("", null, this.insight, paramMap);
+                  output = toolExecutionResponse.toMap();
+            }
+          
         } else {
             // 	this is a standard response - process it for code blocks.
         	
