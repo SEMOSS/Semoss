@@ -216,7 +216,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				// store the actual index details
 				{
 					JsonObject record = new JsonObject();
-					record.addProperty(Constants.AZURE_AI_SEARCH_VECTOR_ID, source + "_" + index);
+					record.addProperty(Constants.AZURE_AI_SEARCH_VECTOR_ID, this.sanitizeKey(source) + "_" + index);
 					record.addProperty(VectorDatabaseCSVTable.SOURCE, source);
 					record.addProperty(VectorDatabaseCSVTable.MODALITY, row.getModality());
 					record.addProperty(VectorDatabaseCSVTable.DIVIDER, row.getDivider());
@@ -234,6 +234,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		String url = this.clusterUrl + "/" + BULK_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName) + "?" + this.getMustQueryParamString();
 		System.out.println("AZURE_AI_SEARCH :: BULK Insert URL >> " + url);
+		System.out.println("AZURE_AI_SEARCH :: BULK Insert >> " + bulkInsert);
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
@@ -241,16 +242,16 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, bulkInsert.toString(), ContentType.APPLICATION_JSON, null, null, null);
 		System.out.println("AUZRE_AI_SEARCH :: " + response);
 		if(response == null || (response=response.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Received no response from elastic search endpoint");
+			throw new IllegalArgumentException("Received no response from azure ai search endpoint");
 		}
 
 		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
-		Number insertions = (Number) responseMap.get("took");
-		classLogger.info("Inserted " + insertions.intValue() + " bulk inserts (create index + record value) into elastic search index " + this.indexName);
+		ArrayList<Object> insertions = (ArrayList<Object>) responseMap.get("value");
+		classLogger.info("Inserted " + insertions.size() + " bulk inserts (create index + record value) into azure ai search index " + this.indexName);
 
 		Boolean errors = (Boolean) responseMap.get("errors");
-		if(errors) {
-			classLogger.warn("There were errors with some of the bulk insertions in the elastic search index " + this.indexName);
+		if(errors != null && errors) {
+			classLogger.warn("There were errors with some of the bulk insertions in the azure ai search index " + this.indexName);
 		}
 	}
 
@@ -386,73 +387,25 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		// construct search query
 		JsonObject search = new JsonObject();
-		search.addProperty("size", limit);
+		search.addProperty("count", true);
+		search.addProperty("select", "*");
 		{
-			JsonObject query = new JsonObject();
+			JsonArray vectorQueries = new JsonArray();
 			{
-				if (!parameters.containsKey("filters")) {
-					JsonObject knn = new JsonObject();
-					{
-						knn.add("query_vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
-						knn.addProperty("k", limit);
-						// store key using the field name for the vector in parent
-						knn.addProperty("field", this.embeddings);
-					}
-					// add to parent
-					query.add("knn", knn);
-				} else if (parameters.containsKey("filters")) {
-					JsonObject bool = new JsonObject();
-					{
-						JsonArray must = new JsonArray();
-						{
-							JsonObject knnParent = new JsonObject();
-							{								
-								JsonObject knn = new JsonObject();
-								{
-									knn.add("query_vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
-									knn.addProperty("k", limit);
-									// store key using the field name for the vector in parent
-									knn.addProperty("field", this.embeddings);
-								}
-								knnParent.add("knn", knn);
-							}
-							must.add(knnParent);
-						}
-						bool.add("must", must);
-
-						//filteration logic starts here
-						//filter contains simple or AND conditions
-						JsonArray filter = new JsonArray();
-
-						//should contains OR condition filters
-						JsonArray should = new JsonArray();
-
-						//must not contains not equals to filters
-						JsonArray must_not = new JsonArray();
-
-						List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
-						for(IQueryFilter queryFilter : filters) {
-							RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
-						}
-
-						bool.add("filter", filter);
-						bool.add("should", should);
-						bool.add("must_not", must_not);
-
-						if (should.size() > 1) {
-							bool.addProperty("minimum_should_match", 1);
-						}
-					}
-					query.add("bool", bool);
+				JsonObject vectorQuery = new JsonObject();
+				{
+					vectorQuery.add("vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
+					vectorQuery.addProperty("k", limit);
+					vectorQuery.addProperty("fields", this.embeddings);
+					vectorQuery.addProperty("kind", "vector");
+//					vectorQuery.addProperty("exhaustive", false);
 				}
+				vectorQueries.add(vectorQuery);
 			}
-			// add to parent
-			search.add("query", query);
+			search.add("vectorQueries", vectorQueries);
 		}
 
-		classLogger.debug("ELASTIC FINAL SEARCH QUERY : " + search.toString());
-
-		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
+		String url = this.clusterUrl + "/" + SEARCH_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName) + "?" + this.getMustQueryParamString();
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
@@ -467,16 +420,16 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			vectorSearchResults.add(thisMatch);
 
 			JsonObject hitJson = e.getAsJsonObject();
-			Double score = (Double) hitJson.get("_score").getAsDouble();
+			Double score = (Double) hitJson.get("@search.score").getAsDouble();
 			thisMatch.put("Score", score);
 			
-			JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
-			thisMatch.put(VectorDatabaseCSVTable.SOURCE, sourceDetails.get(VectorDatabaseCSVTable.SOURCE).getAsString());
-			thisMatch.put(VectorDatabaseCSVTable.MODALITY, sourceDetails.get(VectorDatabaseCSVTable.MODALITY).getAsString());
-			thisMatch.put(VectorDatabaseCSVTable.DIVIDER, sourceDetails.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
-			thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
-			thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
-			thisMatch.put(VectorDatabaseCSVTable.CONTENT, sourceDetails.get(VectorDatabaseCSVTable.CONTENT).getAsString());
+//			JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
+			thisMatch.put(VectorDatabaseCSVTable.SOURCE, hitJson.get(VectorDatabaseCSVTable.SOURCE).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.MODALITY, hitJson.get(VectorDatabaseCSVTable.MODALITY).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.DIVIDER, hitJson.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.PART, hitJson.get(VectorDatabaseCSVTable.PART).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.TOKENS, hitJson.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
+			thisMatch.put(VectorDatabaseCSVTable.CONTENT, hitJson.get(VectorDatabaseCSVTable.CONTENT).getAsString());
 		}
 		return vectorSearchResults;
 	}
@@ -583,8 +536,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	 * @return
 	 */
 	private JsonArray getHitsFromSearch(JsonObject responseObject) {
-		JsonObject hitsObject = responseObject.get("hits").getAsJsonObject();
-		JsonArray hitsArray = hitsObject.get("hits").getAsJsonArray();
+		JsonArray hitsArray = responseObject.get("value").getAsJsonArray();
 		return hitsArray;
 	}
 	
@@ -774,4 +726,10 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		return Constants.AZURE_API_VERSION + "=" + this.apiVersion;
 	}
 
+	public String sanitizeKey(String key) {
+        // Regular expression to match allowed characters
+        String regex = "[^a-zA-Z0-9_\\-=]";
+        // Replace all characters not matching the regex with an underscore
+        return key.replaceAll(regex, "_");
+    }
 }
