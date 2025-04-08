@@ -10,30 +10,30 @@ import prerna.om.Insight;
 import prerna.sablecc2.PixelRunner;
 import prerna.util.Constants;
 
-public class JobThread extends Thread {
+public class PixelJobThread extends Thread {
 
-	private static final Logger logger = LogManager.getLogger(JobThread.class);
+	private static final Logger logger = LogManager.getLogger(PixelJobThread.class);
 
-	private JobStatus status = JobStatus.CREATED;
+	private PixelJobStatus status = PixelJobStatus.CREATED;
 	private String jobId = null;
 	
 	private Insight insight = null;
 	private PixelRunner runner = null;
 	private List<String> pixel = null;
 	
-	public JobThread(String jobId) {
+	public PixelJobThread(String jobId) {
 		this.jobId = jobId;
 	}
 
 	@Override
 	public void run() {
 		try {
-			this.status = JobStatus.IN_PROGRESS;
+			this.status = PixelJobStatus.IN_PROGRESS;
 			this.runner = insight.runPixel(pixel);
-			this.status = JobStatus.PROGRESS_COMPLETE;
+			this.status = PixelJobStatus.PROGRESS_COMPLETE;
 		} catch (Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
-			this.status = JobStatus.ERROR;
+			this.status = PixelJobStatus.ERROR;
 		}
 	}
 	
@@ -60,8 +60,12 @@ public class JobThread extends Thread {
 		return this.jobId;
 	}
 
-	public void setStatus(JobStatus status) {
+	public void setStatus(PixelJobStatus status) {
 		this.status = status;
+	}
+	
+	public PixelJobStatus getPixelJobStatus() {
+		return this.status;
 	}
 	
 	public String getStatus() {

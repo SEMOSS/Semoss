@@ -38,8 +38,8 @@ import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.export.GraphFormatter;
 import prerna.reactor.frame.FrameFactory;
-import prerna.sablecc2.comm.JobStatus;
-import prerna.sablecc2.comm.JobThread;
+import prerna.sablecc2.comm.PixelJobStatus;
+import prerna.sablecc2.comm.PixelJobThread;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -77,7 +77,7 @@ public class PixelStreamUtility {
 	 * @param jt
 	 * @return
 	 */
-	public static StreamingOutput collectPixelData(PixelRunner runner, JobThread jt) {
+	public static StreamingOutput collectPixelData(PixelRunner runner, PixelJobThread jt) {
 		// get the default gson object
 		Gson gson = GsonUtility.getDefaultGson();
 
@@ -88,7 +88,7 @@ public class PixelStreamUtility {
 				@Override
 				public void write(OutputStream outputStream) throws IOException, WebApplicationException {
 					if(jt != null) {
-						jt.setStatus(JobStatus.STREAMING);
+						jt.setStatus(PixelJobStatus.STREAMING);
 					}
 					try {
 						ps = new PrintStream(outputStream, true, "UTF-8");
@@ -107,13 +107,13 @@ public class PixelStreamUtility {
 						ThreadStore.remove();
 					}
 					if(jt != null) {
-						jt.setStatus(JobStatus.COMPLETE);
+						jt.setStatus(PixelJobStatus.COMPLETE);
 					}
 				}};
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			if(jt != null) {
-				jt.setStatus(JobStatus.ERROR);
+				jt.setStatus(PixelJobStatus.ERROR);
 			}
 		}
 		return null;
