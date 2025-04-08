@@ -28,9 +28,9 @@ public class JobThread extends Thread {
 	@Override
 	public void run() {
 		try {
-			this.status = JobStatus.INPROGRESS;
+			this.status = JobStatus.IN_PROGRESS;
 			this.runner = insight.runPixel(pixel);
-			this.status = JobStatus.STREAMING;
+			this.status = JobStatus.PROGRESS_COMPLETE;
 		} catch (Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 			this.status = JobStatus.ERROR;

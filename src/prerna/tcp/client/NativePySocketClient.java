@@ -340,7 +340,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						                pixelOp+=";";
 						            }
 						            PixelRunner pixelRunner = insight.runPixel(pixelOp);
-						            StreamingOutput streamedOutput = PixelStreamUtility.collectPixelData(pixelRunner);
+						            StreamingOutput streamedOutput = PixelStreamUtility.collectPixelData(pixelRunner, null);
 						            streamedOutput.write(output);
 						            JsonElement json = JsonParser.parseString(new String(output.toByteArray(),"UTF-8"));
 						            finalPs.payload = new Object[] {json};

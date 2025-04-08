@@ -38,6 +38,8 @@ import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.export.GraphFormatter;
 import prerna.reactor.frame.FrameFactory;
+import prerna.sablecc2.comm.JobStatus;
+import prerna.sablecc2.comm.JobThread;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -72,9 +74,10 @@ public class PixelStreamUtility {
 	/**
 	 * Collect pixel data from the runner
 	 * @param runner
+	 * @param jt
 	 * @return
 	 */
-	public static StreamingOutput collectPixelData(PixelRunner runner) {
+	public static StreamingOutput collectPixelData(PixelRunner runner, JobThread jt) {
 		// get the default gson object
 		Gson gson = GsonUtility.getDefaultGson();
 
@@ -84,6 +87,9 @@ public class PixelStreamUtility {
 				PrintStream ps = null;
 				@Override
 				public void write(OutputStream outputStream) throws IOException, WebApplicationException {
+					if(jt != null) {
+						jt.setStatus(JobStatus.STREAMING);
+					}
 					try {
 						ps = new PrintStream(outputStream, true, "UTF-8");
 						// we want to ignore the first index since it will be a job
@@ -100,9 +106,15 @@ public class PixelStreamUtility {
 						}
 						ThreadStore.remove();
 					}
+					if(jt != null) {
+						jt.setStatus(JobStatus.COMPLETE);
+					}
 				}};
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			if(jt != null) {
+				jt.setStatus(JobStatus.ERROR);
+			}
 		}
 		return null;
 	}
@@ -137,46 +149,12 @@ public class PixelStreamUtility {
 		return fileToWrite;
 	}
 	
-	/** 
-	 * Made for testing generation purposes, uncomment if you'd like to generate test output
+	/**
+	 * 
+	 * @param ps
+	 * @param gson
+	 * @param runner
 	 */
-	public static File writePixelDataForTest(PixelRunner runner, File fileToWrite) {
-		Gson gson = GsonUtility.getDefaultGson();
-		FileOutputStream fos = null;
-		try {
-			StreamingOutput output = new StreamingOutput() {
-				PrintStream ps = null;
-				@Override
-				public void write(OutputStream outputStream) throws IOException, WebApplicationException {
-					try {
-						ps = new PrintStream(outputStream, true, "UTF-8");
-						processPixelRunnerForTest(ps,gson,runner);
-					} catch(Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					} finally {
-						if(ps != null) {
-							ps.close();
-						}
-					}
-				}};
-			fos = new FileOutputStream(fileToWrite);
-			output.write(fos);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			try {
-				if (fos != null) {
-					fos.flush();
-					fos.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		
-		return fileToWrite;
-	}
-
 	private static void processPixelRunner(PrintStream ps, Gson gson, PixelRunner runner) {
 		// get the values we need from the runner
 		Insight in = runner.getInsight();
@@ -246,30 +224,6 @@ public class PixelStreamUtility {
 		runner = null;
 	}
 	
-	/** 
-	 * Made for testing generation purposes, uncomment if you'd like to generate test output
-	 */
-	private static void processPixelRunnerForTest(PrintStream ps, Gson gson, PixelRunner runner) {
-		Insight in = runner.getInsight();
-		List<NounMetadata> resultList = runner.getResults();
-		List<Pixel> pixelList = runner.getReturnPixelList();
-
-		int size = pixelList.size();
-		
-		if(size > 0) {
-			int lastItem = size-1;
-			NounMetadata noun = resultList.get(lastItem);
-			Pixel pixelObj = pixelList.get(lastItem);
-			processNounMetadata(in, ps, gson, noun, pixelObj);
-		}
-
-		resultList.clear();
-		pixelList.clear();
-		resultList = null;
-		pixelList = null;
-		runner = null;
-	}
-
 	/**
 	 * Process the noun metadata for consumption on the FE
 	 * @param in 			Insight 
@@ -857,5 +811,69 @@ public class PixelStreamUtility {
 		ps.print("]}");
 		ps.flush();
 	}
+	
+//	/** 
+//	 * Made for testing generation purposes, uncomment if you'd like to generate test output
+//	 */
+//	public static File writePixelDataForTest(PixelRunner runner, File fileToWrite) {
+//		Gson gson = GsonUtility.getDefaultGson();
+//		FileOutputStream fos = null;
+//		try {
+//			StreamingOutput output = new StreamingOutput() {
+//				PrintStream ps = null;
+//				@Override
+//				public void write(OutputStream outputStream) throws IOException, WebApplicationException {
+//					try {
+//						ps = new PrintStream(outputStream, true, "UTF-8");
+//						processPixelRunnerForTest(ps,gson,runner);
+//					} catch(Exception e) {
+//						classLogger.error(Constants.STACKTRACE, e);
+//					} finally {
+//						if(ps != null) {
+//							ps.close();
+//						}
+//					}
+//				}};
+//			fos = new FileOutputStream(fileToWrite);
+//			output.write(fos);
+//		} catch (Exception e) {
+//			classLogger.error(Constants.STACKTRACE, e);
+//		} finally {
+//			try {
+//				if (fos != null) {
+//					fos.flush();
+//					fos.close();
+//				}
+//			} catch (IOException e) {
+//				classLogger.error(Constants.STACKTRACE, e);
+//			}
+//		}
+//		
+//		return fileToWrite;
+//	}
+//
+//	/** 
+//	 * Made for testing generation purposes, uncomment if you'd like to generate test output
+//	 */
+//	private static void processPixelRunnerForTest(PrintStream ps, Gson gson, PixelRunner runner) {
+//		Insight in = runner.getInsight();
+//		List<NounMetadata> resultList = runner.getResults();
+//		List<Pixel> pixelList = runner.getReturnPixelList();
+//
+//		int size = pixelList.size();
+//		
+//		if(size > 0) {
+//			int lastItem = size-1;
+//			NounMetadata noun = resultList.get(lastItem);
+//			Pixel pixelObj = pixelList.get(lastItem);
+//			processNounMetadata(in, ps, gson, noun, pixelObj);
+//		}
+//
+//		resultList.clear();
+//		pixelList.clear();
+//		resultList = null;
+//		pixelList = null;
+//		runner = null;
+//	}
 	
 }

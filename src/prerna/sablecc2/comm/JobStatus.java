@@ -4,9 +4,11 @@ public enum JobStatus {
 
 	CREATED ("Created"), 
 	SUBMITTED ("Submitted"), 
-	INPROGRESS ("InProgress"), 
+	IN_PROGRESS ("InProgress"),
+	PROGRESS_COMPLETE ("ProgressComplete"), 
 	STREAMING ("Streaming"), 
 	COMPLETE ("Complete"), 
+	
 	PAUSED ("Paused"), 
 	ERROR ("Error"),
 	UNKNOWN_JOB ("UnknownJob");
