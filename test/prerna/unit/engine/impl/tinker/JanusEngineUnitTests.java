@@ -25,23 +25,8 @@ public class JanusEngineUnitTests {
 
 	///////////// Test Open
 	
+	// unable to open graph
 	// java.lang.NoClassDefFoundError: org/apache/tinkerpop/gremlin/groovy/jsr223/GremlinGroovyScriptEngine
-//	at org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration$4.<init>(GraphDatabaseConfiguration.java:1307)
-//	at org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.<clinit>(GraphDatabaseConfiguration.java:1304)
-//	at org.janusgraph.core.JanusGraphFactory.getLocalConfiguration(JanusGraphFactory.java:382)
-//	at org.janusgraph.core.JanusGraphFactory.getLocalConfiguration(JanusGraphFactory.java:312)
-//	at org.janusgraph.core.JanusGraphFactory.open(JanusGraphFactory.java:94)
-//	at prerna.engine.impl.tinker.JanusEngine.open(JanusEngine.java:22)
-//	at prerna.unit.engine.impl.tinker.JanusEngineUnitTests.testOpenEmptyGraph(JanusEngineUnitTests.java:85)
-//	at java.lang.reflect.Method.invoke(Unknown Source)
-//	at java.util.ArrayList.forEach(Unknown Source)
-//	at java.util.ArrayList.forEach(Unknown Source)
-//Caused by: java.lang.ClassNotFoundException: org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine
-//	at java.net.URLClassLoader.findClass(Unknown Source)
-//	at java.lang.ClassLoader.loadClass(Unknown Source)
-//	at sun.misc.Launcher$AppClassLoader.loadClass(Unknown Source)
-//	at java.lang.ClassLoader.loadClass(Unknown Source)
-//	... 10 more
 	
 //	@Test
 //	public void testOpenEmptyGraph() {
