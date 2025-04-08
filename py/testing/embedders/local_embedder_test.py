@@ -1,8 +1,8 @@
 """
 To run the tests, navigate to the Semoss_Dev/py directory and then run the following command:
 
-    pytest -v testing/embedders/bedrock_embedder_test.py
-    pytest -s testing/embedders/bedrock_embedder_test.py -> For enabling the print statements
+    pytest -v testing/embedders/local_embedder_test.py
+    pytest -s testing/embedders/local_embedder_test.py -> For enabling the print statements
 
 Install pytest if not already installed:
     pip install pytest

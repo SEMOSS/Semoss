@@ -1,3 +1,17 @@
+"""
+To run the tests, navigate to the Semoss_Dev/py directory and then run the following command:
+
+    pytest -v testing/embedders/text_embeddings_inference_test.py
+    pytest -s testing/embedders/text_embeddings_inference_test.py -> For enabling the print statements
+
+Ensure you have a valid `.env` file with the below required keys:
+    - EMBEDDER_TEXT_EMBEDDING_ENDPOINT
+
+Install pytest if not already installed:
+    pip install pytest
+"""
+
+
 import pytest
 import os
 from typing import Dict

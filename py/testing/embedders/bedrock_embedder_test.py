@@ -1,3 +1,19 @@
+"""
+To run the tests, navigate to the Semoss_Dev/py directory and then run the following command:
+
+    pytest -v testing/embedders/bedrock_embedder_test.py
+    pytest -s testing/embedders/bedrock_embedder_test.py -> For enabling the print statements
+
+Ensure you have a valid `.env` file with the below required keys:
+    - EMBEDDER_BEDROCK_MODEL_ID
+    - EMBEDDER_BEDROCK_ACCESS_KEY
+    - EMBEDDER_BEDROCK_SECRET_KEY
+    - EMBEDDER_BEDROCK_REGION
+
+Install pytest if not already installed:
+    pip install pytest
+"""
+
 import pytest
 import os
 from genai_client import BedrockEmbedder
