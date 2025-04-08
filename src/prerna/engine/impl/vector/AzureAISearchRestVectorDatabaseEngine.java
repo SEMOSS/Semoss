@@ -6,13 +6,11 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHeaders;
@@ -27,7 +25,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
-import bsh.This;
 import net.snowflake.client.jdbc.internal.apache.commons.io.FilenameUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
@@ -36,7 +33,6 @@ import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
-import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -51,12 +47,12 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	private static final String INT_DATATYPE = "Edm.Int64";
 	private static final String EMBEDDINGS_DATATYPE = "Collection(Edm.Single)";
 
-	private static final String DOES_INDEX_EXISTS = "indexes/{{INDEX_NAME}}";
 	private static final String CREATE_INDEX = "indexes";
 	private static final String SEARCH_ENDPOINT = "indexes/{{INDEX_NAME}}/docs/search";
 	private static final String BULK_ENDPOINT = "indexes/{{INDEX_NAME}}/docs/index";
-	private static final String DELETE_BY_QUERY_ENDPOINT = "/_delete_by_query";
+	private static final String DELETE_BY_QUERY_ENDPOINT = "indexes/{{INDEX_NAME}}/docs/index";
 	private static final String DELETE_ENDPOINT_STRING = "indexes/{{INDEX_NAME}}";
+	private static final String DOES_INDEX_EXISTS = "indexes/{{INDEX_NAME}}";
 
 	private static final String EMBEDDINGS_COLUMN = "EMBEDDINGS_COLUMN";
 	private static final String DIMENSION_SIZE = "DIMENSION_SIZE";
@@ -67,6 +63,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	private static final String EF_CONSTRUCTION = "EF_CONSTRUCTION";
 	private static final String M_VALUE = "M_VALUE";
 	private static final String ADDITIONAL_MAPPINGS = "ADDITIONAL_MAPPINGS";
+	private static final String INDEX_NAME_PATTERN="^[a-z0-9](?:[a-z0-9-]{0,126}[a-z0-9])?$";
 
 	private String clusterUrl = null;
 	private String apiKey = null;
@@ -105,8 +102,11 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			classLogger.error("ApiKey is required");
 			throw new IllegalArgumentException("ApiKey is required");
 		}
-
 		this.indexName = this.smssProp.getProperty(INDEX_NAME);
+		if (!this.indexName.matches(INDEX_NAME_PATTERN)) {
+			throw new IllegalArgumentException(
+					"Index name must only contain lowercase letters, digits or dashes, cannot start or end with dashes and is limited to 128 characters");
+		}
 		String customEmbeddingsName = this.smssProp.getProperty(EMBEDDINGS_COLUMN);
 		if(customEmbeddingsName != null && !(customEmbeddingsName=customEmbeddingsName.trim()).isEmpty()) {
 			this.embeddings = customEmbeddingsName;
@@ -124,6 +124,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		if(methodNameInput != null && !(methodNameInput=methodNameInput.trim()).isEmpty()) {
 			this.methodName = methodNameInput;
 		}
+		
 		String distanceMethodInput = this.smssProp.getProperty(DISTANCE_METHOD);
 		if(distanceMethodInput != null && !(distanceMethodInput=distanceMethodInput.trim()).isEmpty()) {
 			this.distanceMethod = distanceMethodInput;
@@ -146,11 +147,14 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			}
 		}
 		String mValueInput = this.smssProp.getProperty(M_VALUE);
-		if(mValueInput != null && !(mValueInput=mValueInput.trim()).isEmpty()) {
+		if (mValueInput != null && !(mValueInput = mValueInput.trim()).isEmpty()) {
 			try {
 				this.m = ((Number) Double.parseDouble(mValueInput)).intValue();
-			} catch(NumberFormatException e) {
-				classLogger.warn("Invalid string value for m value '"+mValueInput+"'. Must be an integer value");
+				if (!(this.m > 3 && this.m <11)) {
+					throw new IllegalArgumentException("M_VALUE should be between 4 and 10");
+				}
+			} catch (NumberFormatException e) {
+				classLogger.warn("Invalid string value for m value '" + mValueInput + "'. Must be an integer value");
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
@@ -287,8 +291,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		
 		classLogger.info("Retriving ids against file name :: Request :: "+getIdRq);
 		
-		String url = this.clusterUrl + "/" + DOES_INDEX_EXISTS.replace("{{INDEX_NAME}}", this.indexName) + "/" + "docs/search"
-				+ "?" + this.getMustQueryParamString();
+		String url = this.clusterUrl + "/" + SEARCH_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName)+ "?" + this.getMustQueryParamString();
 		
 		
 		Map<String, String> headersMap = new HashMap<>();
@@ -299,8 +302,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject responseJsonSearchId = JsonParser.parseString(responseSearchId).getAsJsonObject();
 		JsonArray sourceArrId = responseJsonSearchId.getAsJsonObject().getAsJsonArray("value");
-		System.out.println(sourceArrId);
-		
+		classLogger.info("Response source ids :: "+sourceArrId);		
 		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 		//Delete Rq
 		JsonArray valueArr = new JsonArray();
@@ -436,7 +438,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
-		String url = this.clusterUrl + "/" + DOES_INDEX_EXISTS.replace("{{INDEX_NAME}}", this.indexName) + "/" + "docs/search"
+		String url = this.clusterUrl + "/" + SEARCH_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName)
 				+ "?" + this.getMustQueryParamString();
  
 		Map<String, String> headersMap = new HashMap<>();
@@ -732,4 +734,5 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
         // Replace all characters not matching the regex with an underscore
         return key.replaceAll(regex, "_");
     }
+
 }
