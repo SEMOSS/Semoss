@@ -2,7 +2,6 @@ package prerna.unit.engine.impl.tinker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -11,6 +10,7 @@ import java.util.Properties;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -24,90 +24,70 @@ import prerna.util.UploadUtilities;
 public class JanusEngineUnitTests {
 
 	///////////// Test Open
-	
+
 	// unable to open graph
-	// java.lang.NoClassDefFoundError: org/apache/tinkerpop/gremlin/groovy/jsr223/GremlinGroovyScriptEngine
-	
+	// java.lang.NoClassDefFoundError:
+	// org/apache/tinkerpop/gremlin/groovy/jsr223/GremlinGroovyScriptEngine
+
 //	@Test
-//	public void testOpenEmptyGraph() {
+//	public void testOpenEmptyGraph(@TempDir File tempDir) throws Exception {
+//		// create in memory janus config
+//		Properties janusProps = new Properties();
+//		String janusFilePath = "janus.properties";
+//		File janusPropFile = new File(tempDir, janusFilePath);
+//		try (FileOutputStream output = new FileOutputStream(janusPropFile)) {
+//			janusProps.setProperty("storage.backend", "inmemory");
+//			janusProps.setProperty("gremlin.tinkergraph.graph-location", "graph.db");
+//			janusProps.store(output, "janus properties");
+//		} catch (IOException io) {
+//			io.printStackTrace();
+//		}
+//
 //		// creating janus smss prop file
 //		Properties smssProp = new Properties();
-//		String filePath = "janus.properties";
 //		String engineId = "engineId";
 //		String engineName = "janusTest";
 //		String owlFileStr = "janusTest.owl";
 //		String typeMapStr = "";
 //		String nameMapStr = "";
 //		String tinkerDriver = "JANUS";
-//		Properties janusProps = new Properties();
-//		String janusFilePath = "janus.properties";
-//		
-//		try (FileOutputStream output = new FileOutputStream(janusFilePath)) {
-//			janusProps.setProperty("storage.backend", "inmemory");
-//			janusProps.setProperty("gremlin.tinkergraph.graph-location", "graph.db");
-//			janusProps.store(output, "janus properties");
-//		} catch (IOException io) {
-//			io.printStackTrace();
-//			fail();
-//		}
-//		
-//		try (FileOutputStream output = new FileOutputStream(filePath)) {
-//			smssProp.setProperty(Constants.ENGINE, engineId);
-//			smssProp.setProperty(Constants.ENGINE_ALIAS, engineName);
-//			smssProp.setProperty(Constants.OWL, owlFileStr);
-//			smssProp.setProperty("TYPE_MAP", typeMapStr);
-//			smssProp.setProperty("NAME_MAP", nameMapStr);
-//			
-//			// hacky to get janus engine to work, we need to fix open in tinkerEngine
-//			smssProp.setProperty(Constants.TINKER_FILE, janusFilePath);
-//			smssProp.setProperty(Constants.TINKER_DRIVER, tinkerDriver);
+//		smssProp.setProperty(Constants.ENGINE, engineId);
+//		smssProp.setProperty(Constants.ENGINE_ALIAS, engineName);
+//		smssProp.setProperty(Constants.OWL, owlFileStr);
+//		smssProp.setProperty("TYPE_MAP", typeMapStr);
+//		smssProp.setProperty("NAME_MAP", nameMapStr);
 //
-////	smssProp.store(output, "tinker engine props");
-//		} catch (IOException io) {
-//			io.printStackTrace();
-//			fail();
-//		}
+//		// hacky to get janus engine to work, we need to fix open in tinkerEngine
+//		smssProp.setProperty(Constants.TINKER_FILE, janusFilePath);
+//		smssProp.setProperty(Constants.TINKER_DRIVER, tinkerDriver);
 //
-//		try {
-//			try (MockedStatic<SmssUtilities> smssUtils = Mockito.mockStatic(SmssUtilities.class);
-////			MockedStatic<FileSystems> fss = Mockito.mockStatic(FileSystems.class);
-//					MockedStatic<UploadUtilities> uploadUtils = Mockito.mockStatic(UploadUtilities.class)) {
+//		try (MockedStatic<SmssUtilities> smssUtils = Mockito.mockStatic(SmssUtilities.class);
+//				MockedStatic<UploadUtilities> uploadUtils = Mockito.mockStatic(UploadUtilities.class)) {
+//			// static test setup
+//			File owlFile = new File(tempDir, engineName + ".OWL");
+//			File janusFile = new File(tempDir, janusFilePath);
+//			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
+//					.getAbsolutePath()).thenReturn(owlFile);
+//			smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
+//			smssUtils.when(() -> SmssUtilities.getTinkerFile(Mockito.any())).thenReturn(janusFile);
+//			smssUtils.when(() -> SmssUtilities.getJanusFile(Mockito.any())).thenReturn(janusFile);
+//			// testing open
+//			JanusEngine je = new JanusEngine();
+//			je.open(smssProp);
 //
-////		fss.when(FileSystems::getDefault).thenReturn(fs);
+//			// validations
+//			// empty graph
+//			Graph graph = je.getGraph();
+//			Long count = graph.traversal().V().count().next();
+//			assertEquals(0, count);
 //
-//				// static test setup
-//				File owlFile = new File(engineName + ".OWL");
-//				File janusFile = new File(janusFilePath);
-//				uploadUtils.when(() -> UploadUtilities
-//						.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName).getAbsolutePath())
-//						.thenReturn(owlFile);
-//				smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
-//				smssUtils.when(() -> SmssUtilities.getTinkerFile(Mockito.any())).thenReturn(janusFile);
-//				smssUtils.when(() -> SmssUtilities.getJanusFile(Mockito.any())).thenReturn(janusFile);
-//				// testing open
-//				JanusEngine je = new JanusEngine();
-//				je.open(smssProp);
+//			assertTrue(je.getTypeMap().isEmpty());
+//			assertTrue(je.getNameMap().isEmpty());
+//			je.close();
 //
-//				// validations
-//				// empty graph
-//				Graph graph = je.getGraph();
-//				Long count = graph.traversal().V().count().next();
-//				assertEquals(0, count);
-//
-//				assertTrue(je.getTypeMap().isEmpty());
-//				assertTrue(je.getNameMap().isEmpty());
-//				je.close();
-//
-////		GraphSONIo reader = Mockito.mock(GraphSONIo.class);
-////		Mockito.verify(reader).readGraph(tinkerFile.getAbsolutePath());
-//			}
-//
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//			fail();
 //		}
 //	}
-	
+
 	@Test
 	public void testGetDatabaseType() {
 		JanusEngine je = new JanusEngine();
