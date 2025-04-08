@@ -28,6 +28,7 @@ import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import bsh.This;
+import net.snowflake.client.jdbc.internal.apache.commons.io.FilenameUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
@@ -254,64 +255,120 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	}
 
 	@Override
-	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) {
+	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws IOException {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
-		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 
-		// construct search query
-		JsonObject search = new JsonObject();
-		search.addProperty("_source", false);
-		search.addProperty("size", 10_000);
-		JsonArray fieldsArr = new JsonArray(1);
-		fieldsArr.add("_id");
-		search.add("fields", fieldsArr);
-		{
-			JsonObject query = new JsonObject();
-			{
-				JsonObject terms = new JsonObject();
-				terms.add(VectorDatabaseCSVTable.SOURCE, convertListStrToJsonArray(fileNames));
-				query.add("terms", terms);
+		List<String> sourceNames = new ArrayList<>();
+		for(String document : fileNames) {
+			String documentName = FilenameUtils.getName(document);
+			File f = new File(document);
+			if(f.exists() && f.getName().endsWith(".csv")) {
+				sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
+			} else {
+				sourceNames.add(documentName);
 			}
-			// add to parent
-			search.add("query", query);
 		}
-
-		String url = this.clusterUrl + "/" + this.indexName + DELETE_BY_QUERY_ENDPOINT;
+		
+		//Logic to retrieve Id's against all file names
+		JsonObject getIdRq = new JsonObject();
+		String searchArr= new String();
+		
+		//Get the file name and join it with comma and add to string ex: file1.pdf , file2.pdf , file3.pdf
+		searchArr=String.join(",",sourceNames);
+		System.out.println("Search Arr "+searchArr);
+		getIdRq.addProperty("select", "id,Source");
+		getIdRq.addProperty("search", searchArr);
+		getIdRq.addProperty("searchFields","Source" );
+		getIdRq.addProperty("count",true);
+		
+		classLogger.info("Retriving ids against file name :: Request :: "+getIdRq);
+		
+		String url = this.clusterUrl + "/" + DOES_INDEX_EXISTS.replace("{{INDEX_NAME}}", this.indexName) + "/" + "docs/search"
+				+ "?" + this.getMustQueryParamString();
+		
+		
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
-
-		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
-		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
-		classLogger.info("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " removed " + responseJson.get("deleted") + " docs for files = " + fileNames);
-		JsonArray errors = responseJson.get("failures").getAsJsonArray();
-		if(errors != null && !errors.isEmpty()) {
-			classLogger.warn("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " errors = '" + errors + "' when attempting to delete files = " + fileNames);
-		}
-
-		// using the search result for the source, we need to delete all the ids we found
-		List<String> filesToRemoveFromCloud = new ArrayList<String>();
-		for (String document : fileNames) {
-			String documentName = Paths.get(document).getFileName().toString();
-			// remove the physical documents
-			File documentFile = new File(DOCUMENT_FOLDER, documentName);
-			if (documentFile.exists()) {
-				try {
-					FileUtils.forceDelete(documentFile);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-				filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
+		
+		String responseSearchId = HttpHelperUtility.postRequestStringBody(url, headersMap, getIdRq.toString(),
+				ContentType.APPLICATION_JSON, null, null, null);
+		JsonObject responseJsonSearchId = JsonParser.parseString(responseSearchId).getAsJsonObject();
+		JsonArray sourceArrId = responseJsonSearchId.getAsJsonObject().getAsJsonArray("value");
+		System.out.println(sourceArrId);
+		
+		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+		//Delete Rq
+		JsonArray valueArr = new JsonArray();
+				
+		//loop over this
+		for(JsonElement el : sourceArrId) {
+			String source = el.getAsJsonObject().get("Source").getAsString();
+			classLogger.info("Response :: Source ::  "+source +" fileNames in Para "+sourceNames);
+			if(sourceNames.contains(source)) {
+				String fId=el.getAsJsonObject().get("id").getAsString();
+				JsonObject sourceRq = new JsonObject();
+				sourceRq.addProperty("@search.action","delete");
+				sourceRq.addProperty("id", fId);
+				valueArr.add(sourceRq);	
 			}
 		}
+		
+		classLogger.info("Request Object for Deleting ::isEmpty Value   "+valueArr.isEmpty());
+		
+		if(!valueArr.isEmpty()) {
+			JsonObject delRq = new JsonObject();
+			delRq.add("value",valueArr);
+			System.out.println("value of final delete request"+delRq);
+			String urlDel = this.clusterUrl + "/" + DELETE_BY_QUERY_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName)+ "?" + this.getMustQueryParamString();
+			headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
+			headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
 
-		if (ClusterUtil.IS_CLUSTER) {
-			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
-			deleteFilesFromCloudThread.start();
+			String response = HttpHelperUtility.postRequestStringBody(urlDel, headersMap, delRq.toString(), ContentType.APPLICATION_JSON, null, null, null);
+			JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
+			classLogger.info("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " removed " +" docs for files = " + fileNames);
+			JsonArray responseArr = responseJson.get("value").getAsJsonArray();
+			JsonArray errors = new JsonArray();
+			for(JsonElement el : responseArr) {
+				JsonObject respObj = el.getAsJsonObject();
+				
+				if(!respObj.get("errorMessage").isJsonNull()) {
+					errors.add(respObj.get("errorMessage").getAsString());
+				}
+			}
+			
+			classLogger.info("Errors Array :: isEmpty "+errors);
+			
+			if(errors != null && !errors.isEmpty()) {
+				classLogger.warn("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " errors = '" + errors + "' when attempting to delete files = " + fileNames);
+			}
+
+			// using the search result for the source, we need to delete all the ids we found
+			List<String> filesToRemoveFromCloud = new ArrayList<String>();
+			for (String document : sourceNames) {
+				String documentName = Paths.get(document).getFileName().toString();
+				// remove the physical documents
+				File documentFile = new File(DOCUMENT_FOLDER, documentName);
+				if (documentFile.exists()) {
+					try {
+						FileUtils.forceDelete(documentFile);
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
+				}
+			}
+
+			if (ClusterUtil.IS_CLUSTER) {
+				Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
+				deleteFilesFromCloudThread.start();
+			}
 		}
+		
+		
 	}
 
 	@Override
@@ -426,66 +483,52 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
-		final String UNIQUE_SOURCES = "unique_sources";
-		// construct search query
-		JsonObject search = new JsonObject();
-		{
-			JsonObject aggs = new JsonObject();
-			{			
-				JsonObject uniqueScores = new JsonObject();
-				{
-					JsonObject terms = new JsonObject();
-					terms.addProperty("field", VectorDatabaseCSVTable.SOURCE);
-					terms.addProperty("min_doc_count", 1);
-					// add to parent
-					uniqueScores.add("terms", terms);
-				}
-				// add to parent
-				aggs.add(UNIQUE_SOURCES, uniqueScores);
-			}
-			// add to parent
-			search.add("aggs", aggs);
-			search.addProperty("size", 0);
-		}
-
-		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
+		String url = this.clusterUrl + "/" + DOES_INDEX_EXISTS.replace("{{INDEX_NAME}}", this.indexName) + "/" + "docs/search"
+				+ "?" + this.getMustQueryParamString();
+ 
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
-
-		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
+ 
+		JsonObject search = new JsonObject();
+		{
+			JsonArray facets = new JsonArray();
+			facets.add("Source");
+			search.addProperty("search", "*");
+			search.addProperty("select", "Source");
+			search.add("facets", facets);
+		}
+		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(),
+				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
-		JsonArray bucketsArr = responseJson.getAsJsonObject("aggregations").getAsJsonObject(UNIQUE_SOURCES).getAsJsonArray("buckets");
-		
+		JsonArray sourceArr = responseJson.getAsJsonObject("@search.facets").getAsJsonArray("Source");
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
-
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
-
+ 
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR
+				+ DOCUMENTS_FOLDER_NAME);
 		List<Map<String, Object>> returnSources = new ArrayList<>();
-		for (JsonElement bucket : bucketsArr) {
+		for (JsonElement bucket : sourceArr) {
 			JsonObject bucketDetails = bucket.getAsJsonObject();
 			Map<String, Object> fileInfo = new HashMap<>();
-			String fileName = bucketDetails.get("key").getAsString();
+			String fileName = bucketDetails.get("value").getAsString();
 			fileInfo.put("fileName", fileName);
-
 			File thisF = new File(documentsDir, fileName);
-			if(thisF.exists() && thisF.isFile()) {
+			if (thisF.exists() && thisF.isFile()) {
 				long fileSizeInBytes = thisF.length();
 				double fileSizeInMB = (double) fileSizeInBytes / (1024);
 				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 				String lastModified = dateFormat.format(new Date(thisF.lastModified()));
-
+ 
 				// add file size and last modified into the map
 				fileInfo.put("fileSize", fileSizeInMB);
 				fileInfo.put("lastModified", lastModified);
 			}
-
+ 
 			returnSources.add(fileInfo);
-		}
-
+		}	
 		return returnSources;
 	}
 
