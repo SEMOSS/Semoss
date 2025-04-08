@@ -139,7 +139,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @return
 	 */
-	public static IEngine.CATALOG_TYPE getEngineTyp(String engineId) {
+	public static IEngine.CATALOG_TYPE getEngineType(String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
