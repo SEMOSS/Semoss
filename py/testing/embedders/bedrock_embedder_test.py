@@ -1,0 +1,44 @@
+import pytest
+import os
+from genai_client import BedrockEmbedder
+from genai_client.constants import EmbeddingsModelEngineResponse
+from dotenv import load_dotenv
+
+# Load environment variables from .env.example file
+load_dotenv("testing/.env.example")
+
+# Bedrock Embedder
+@pytest.fixture
+def bedrock_embedder():
+    model_id = os.getenv("EMBEDDER_BEDROCK_MODEL_ID")
+    access_key = os.getenv("EMBEDDER_BEDROCK_ACCESS_KEY")
+    secret_key = os.getenv("EMBEDDER_BEDROCK_SECRET_KEY")
+    region = os.getenv("EMBEDDER_BEDROCK_REGION")
+    return BedrockEmbedder(
+        modelId=model_id,
+        access_key=access_key,
+        secret_key=secret_key,
+        region=region,
+    )
+ 
+ 
+def test_bedrock_embeddings_call_success(bedrock_embedder):
+    """
+    Tests the embeddings_call method of BedrockEmbedder.
+    - Ensures a valid EmbeddingsModelEngineResponse is returned.
+    - Validates the embeddings length and type.
+    """
+    response = bedrock_embedder.embeddings_call(strings_to_embed=["What is the capital of France?"])
+    assert isinstance(response, EmbeddingsModelEngineResponse)
+    assert isinstance(response.response, list)
+    assert len(response.response) == 1
+    assert isinstance(response.response[0], list)
+    assert isinstance(response.response[0][0], float)
+ 
+ 
+def test_bedrock_image_embeddings_not_supported(bedrock_embedder):
+    """
+    Tests that image_embeddings_call raises NotImplementedError.
+    """
+    with pytest.raises(NotImplementedError):
+        bedrock_embedder.image_embeddings_call(images_to_embed=["dummy_image_data"])
