@@ -19,7 +19,7 @@ public class KServeAdapter {
 	    adapterLogger.debug("Converting model payload to KServe format: {}", modelPayload.toString(2));
 	    
 	    for (String key : modelPayload.keySet()) {
-	        if (key.equals("model")) continue; // Skip model field
+	        if (key.equals("model")) continue;
 	        
 	        JSONObject input = new JSONObject();
 	        input.put("name", key);
@@ -58,9 +58,9 @@ public class KServeAdapter {
 	    return kserveRequest;
 	}
     
-    /**
-     * Extracts data from KServe response
-     */
+	/**
+	 * Extracts data from KServe response
+	 */
 	public static JSONObject formatKServeResponse(JSONObject kserveResponse) {
 	    Logger adapterLogger = LogManager.getLogger(KServeAdapter.class);
 	    JSONObject result = new JSONObject();
@@ -77,24 +77,29 @@ public class KServeAdapter {
 	            
 	            if (data.length() > 0) {
 	                if (data.length() == 1) {
+	                    Object dataValue = data.get(0);
 	                    
-	                    String value = data.getString(0);
-	                    
-	                    if ((value.startsWith("{") && value.endsWith("}")) || 
-	                        (value.startsWith("[") && value.endsWith("]"))) {
-	                        try {
-	                            if (value.startsWith("{")) {
-	                                result.put(name, new JSONObject(value));
-	                            } 
-	                            else if (value.startsWith("[")) {
-	                                result.put(name, new JSONArray(value));
+	                    if (dataValue instanceof String) {
+	                        String value = (String) dataValue;
+	                        
+	                        if ((value.startsWith("{") && value.endsWith("}")) || 
+	                            (value.startsWith("[") && value.endsWith("]"))) {
+	                            try {
+	                                if (value.startsWith("{")) {
+	                                    result.put(name, new JSONObject(value));
+	                                } 
+	                                else if (value.startsWith("[")) {
+	                                    result.put(name, new JSONArray(value));
+	                                }
+	                            } catch (Exception e) {
+	                                adapterLogger.debug("Could not parse JSON string for field {}: {}", name, e.getMessage());
+	                                result.put(name, value);
 	                            }
-	                        } catch (Exception e) {
-	                            adapterLogger.debug("Could not parse JSON string for field {}: {}", name, e.getMessage());
+	                        } else {
 	                            result.put(name, value);
 	                        }
 	                    } else {
-	                        result.put(name, value);
+	                        result.put(name, dataValue);
 	                    }
 	                } else {
 	                    result.put(name, data);

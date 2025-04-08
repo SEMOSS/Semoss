@@ -16,7 +16,7 @@ import prerna.engine.api.ModelTypeEnum;
  */
 public class NEREngine extends AbstractRemoteModelEngine {
 	
-	private static final Logger classLogger = LogManager.getLogger(AbstractRemoteModelEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(NEREngine.class);
 	
 	public NerModelEngineResponse predict(String text, List<String> entities, List<String> maskEntities, Insight insight, Map<String, Object> parameters) {
 	    JSONObject payload = new JSONObject();
