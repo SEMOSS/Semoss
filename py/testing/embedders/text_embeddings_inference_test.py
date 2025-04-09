@@ -11,7 +11,6 @@ Install pytest if not already installed:
     pip install pytest
 """
 
-
 import pytest
 import os
 from typing import Dict
@@ -22,10 +21,14 @@ from dotenv import load_dotenv
 # Load environment variables from .env.example fil
 load_dotenv("testing/.env.example")
 
+
 @pytest.fixture
 def inference_embedder():
     endpoint = os.getenv("EMBEDDER_TEXT_EMBEDDING_ENDPOINT")
-    return TextEmbeddingsInference(endpoint=endpoint, model_name="BAAI/bge-large-en-v1.5")
+    return TextEmbeddingsInference(
+        endpoint=endpoint, model_name="BAAI/bge-large-en-v1.5"
+    )
+
 
 def test_inference_embedder_ask(inference_embedder):
     """
@@ -37,14 +40,16 @@ def test_inference_embedder_ask(inference_embedder):
     assert isinstance(ask_response, Dict)
     assert ask_response["response"] == "This model does not support text generation."
 
+
 def test_inference_embedder_embeddings(inference_embedder):
     """
     Test the embeddings_call method.
     - Ensures a proper embedding response.
     - Checks for correct embedding length (1024).
     """
-    embeddings_response = inference_embedder.embeddings_call(strings_to_embed=["What is the capital of France?"])
+    embeddings_response = inference_embedder.embeddings_call(
+        strings_to_embed=["What is the capital of France?"]
+    )
     assert isinstance(embeddings_response, EmbeddingsModelEngineResponse)
     assert len(embeddings_response.response) == 1
     assert len(embeddings_response.response[0]) == 1024
- 

@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env.example file
 load_dotenv("testing/.env.example")
 
+
 # Bedrock Embedder
 @pytest.fixture
 def bedrock_embedder():
@@ -36,22 +37,24 @@ def bedrock_embedder():
         secret_key=secret_key,
         region=region,
     )
- 
- 
+
+
 def test_bedrock_embeddings_call_success(bedrock_embedder):
     """
     Tests the embeddings_call method of BedrockEmbedder.
     - Ensures a valid EmbeddingsModelEngineResponse is returned.
     - Validates the embeddings length and type.
     """
-    response = bedrock_embedder.embeddings_call(strings_to_embed=["What is the capital of France?"])
+    response = bedrock_embedder.embeddings_call(
+        strings_to_embed=["What is the capital of France?"]
+    )
     assert isinstance(response, EmbeddingsModelEngineResponse)
     assert isinstance(response.response, list)
     assert len(response.response) == 1
     assert isinstance(response.response[0], list)
     assert isinstance(response.response[0][0], float)
- 
- 
+
+
 def test_bedrock_image_embeddings_not_supported(bedrock_embedder):
     """
     Tests that image_embeddings_call raises NotImplementedError.
