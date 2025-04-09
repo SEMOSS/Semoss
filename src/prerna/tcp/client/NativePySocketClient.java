@@ -33,7 +33,7 @@ import prerna.om.InsightStore;
 import prerna.reactor.job.JobReactor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
-import prerna.sablecc2.comm.JobManager;
+import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.TCPLogMessage;
@@ -259,8 +259,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							if(ps.payload != null && !((String)ps.payload[0]).equalsIgnoreCase("NONE"))
 							{
 								partialAssimilator.append(ps.payload[0] + "");
-								if(lock != null && lock.insightId != null)
-									JobManager.getManager().addPartialOut(lock.insightId, ps.payload[0]+"");
+								if(lock != null && lock.insightId != null) {
+									PixelJobManager.getManager().addPartialOut(lock.insightId, ps.payload[0]+"");
+								}
 							}
 							if(!ps.interim)
 							{
@@ -340,7 +341,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						                pixelOp+=";";
 						            }
 						            PixelRunner pixelRunner = insight.runPixel(pixelOp);
-						            StreamingOutput streamedOutput = PixelStreamUtility.collectPixelData(pixelRunner);
+						            StreamingOutput streamedOutput = PixelStreamUtility.collectPixelData(pixelRunner, null);
 						            streamedOutput.write(output);
 						            JsonElement json = JsonParser.parseString(new String(output.toByteArray(),"UTF-8"));
 						            finalPs.payload = new Object[] {json};
@@ -468,7 +469,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		if(insightId != null && data != null) {
 			Insight insight = InsightStore.getInstance().get(insightId);
 			String jobId =  insight.getVarStore().get(JobReactor.JOB_KEY).getValue().toString();
-			JobManager.getManager().addStdOut(jobId, data);
+			PixelJobManager.getManager().addStdOut(jobId, data);
 		}
 	}
 

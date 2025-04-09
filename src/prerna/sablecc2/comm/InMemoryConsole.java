@@ -73,9 +73,9 @@ public class InMemoryConsole extends Logger {
 		super.info(this.jobID + " >> " + Utility.cleanLogString(message.toString()));
 		if(level == LOG_LEVEL.INFO || level == LOG_LEVEL.DEBUG || level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
 			if(partial) {
-				JobManager.getManager().addPartialOut(jobID, message + "");
+				PixelJobManager.getManager().addPartialOut(jobID, message + "");
 			} else {
-				JobManager.getManager().addStdOut(jobID, message + "");
+				PixelJobManager.getManager().addStdOut(jobID, message + "");
 			}
 		}
 	}
@@ -84,7 +84,7 @@ public class InMemoryConsole extends Logger {
 	public void debug(String message) {
 		super.debug(this.jobID + " >> " + Utility.cleanLogString(message));
 		if(level == LOG_LEVEL.DEBUG || level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
-			JobManager.getManager().addStdErr(jobID, message + "");
+			PixelJobManager.getManager().addStdErr(jobID, message + "");
 		}
 	}
 	
@@ -92,9 +92,8 @@ public class InMemoryConsole extends Logger {
 	public void warn(String message)
 	{
 		super.warn(this.jobID + " >> " + Utility.cleanLogString(message.toString()));
-		if(level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL)
-		{
-			JobManager.getManager().addStdErr(jobID, message + "");
+		if(level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
+			PixelJobManager.getManager().addStdErr(jobID, message + "");
 		}
 	}
 
@@ -102,9 +101,8 @@ public class InMemoryConsole extends Logger {
 	public void fatal(String message)
 	{
 		super.fatal(this.jobID + " >> " + message);
-		if(level == LOG_LEVEL.FATAL)
-		{
-			JobManager.getManager().addStdErr(jobID, message + "");
+		if(level == LOG_LEVEL.FATAL) {
+			PixelJobManager.getManager().addStdErr(jobID, message + "");
 		}
 	}
 }
