@@ -51,7 +51,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	private static final String SEARCH_ENDPOINT = "indexes/{{INDEX_NAME}}/docs/search";
 	private static final String BULK_ENDPOINT = "indexes/{{INDEX_NAME}}/docs/index";
 	private static final String DELETE_BY_QUERY_ENDPOINT = "indexes/{{INDEX_NAME}}/docs/index";
-	private static final String DELETE_ENDPOINT_STRING = "indexes/{{INDEX_NAME}}";
 	private static final String DOES_INDEX_EXISTS = "indexes/{{INDEX_NAME}}";
 
 	private static final String EMBEDDINGS_COLUMN = "EMBEDDINGS_COLUMN";
@@ -68,8 +67,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	private String clusterUrl = null;
 	private String apiKey = null;
 	private String apiVersion = null;
-	//TODO: move this into enum for apiKey/Creds
-	private String authorizationMethod = null;
 
 	private String indexName = null;
 
@@ -92,16 +89,11 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		this.apiKey = this.smssProp.getProperty(Constants.API_KEY);
 		this.apiVersion = this.smssProp.getProperty(Constants.API_VERSION);
 		
-		if (this.apiKey != null && !this.apiKey.trim().isEmpty() && this.apiVersion != null && !this.apiVersion.trim().isEmpty()) {
-			this.authorizationMethod = "API_KEY";
+		if (this.apiKey == null || this.apiKey.trim().isEmpty() || this.apiVersion == null || this.apiVersion.trim().isEmpty()) {
+			classLogger.error("API Key or API Version is required");
+			throw new IllegalArgumentException("API Key or API Version is required");
 		}
-//		else if(this.username != null && this.password != null && !this.username.trim().isEmpty() && !this.password.trim().isEmpty()) {
-//			this.authorizationMethod = "TOKEN";
-//		} 
-		else {
-			classLogger.error("ApiKey is required");
-			throw new IllegalArgumentException("ApiKey is required");
-		}
+		
 		this.indexName = this.smssProp.getProperty(INDEX_NAME);
 		if (!this.indexName.matches(INDEX_NAME_PATTERN)) {
 			throw new IllegalArgumentException(
@@ -208,15 +200,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 					sourceId.put(source, new Integer(0));
 				}
 
-				// store creation of the index
-//				{
-//					JsonObject createIndexJson = new JsonObject();
-//					JsonObject indexDetails = new JsonObject();
-//					indexDetails.addProperty("_index", this.indexName);
-//					indexDetails.addProperty("_id", source+"_"+index);
-//					createIndexJson.add("index", indexDetails);
-//					bulkInsert.add(createIndexJson);
-//				}
 				// store the actual index details
 				{
 					JsonObject record = new JsonObject();
@@ -234,17 +217,12 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			bulkInsert.add("value", value);
 		}
 
-//		String valueString = String.join("\n", value.stream().map(x -> x.toString()).collect(Collectors.toList())) + "\n";
-
 		String url = this.clusterUrl + "/" + BULK_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName) + "?" + this.getMustQueryParamString();
-		System.out.println("AZURE_AI_SEARCH :: BULK Insert URL >> " + url);
-		System.out.println("AZURE_AI_SEARCH :: BULK Insert >> " + bulkInsert);
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, bulkInsert.toString(), ContentType.APPLICATION_JSON, null, null, null);
-		System.out.println("AUZRE_AI_SEARCH :: " + response);
 		if(response == null || (response=response.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Received no response from azure ai search endpoint");
 		}
@@ -282,14 +260,13 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		String searchArr= new String();
 		
 		//Get the file name and join it with comma and add to string ex: file1.pdf , file2.pdf , file3.pdf
-		searchArr=String.join(",",sourceNames);
-		System.out.println("Search Arr "+searchArr);
-		getIdRq.addProperty("select", "id,Source");
+		searchArr=String.join(",", sourceNames);
+		getIdRq.addProperty("select", Constants.AZURE_AI_SEARCH_VECTOR_ID + "," + VectorDatabaseCSVTable.SOURCE);
 		getIdRq.addProperty("search", searchArr);
-		getIdRq.addProperty("searchFields","Source" );
+		getIdRq.addProperty("searchFields", VectorDatabaseCSVTable.SOURCE);
 		getIdRq.addProperty("count",true);
 		
-		classLogger.info("Retriving ids against file name :: Request :: "+getIdRq);
+		classLogger.info("Retriving ids against file name :: Request :: " + getIdRq);
 		
 		String url = this.clusterUrl + "/" + SEARCH_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName)+ "?" + this.getMustQueryParamString();
 		
@@ -310,7 +287,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		//loop over this
 		for(JsonElement el : sourceArrId) {
 			String source = el.getAsJsonObject().get("Source").getAsString();
-			classLogger.info("Response :: Source ::  "+source +" fileNames in Para "+sourceNames);
+			classLogger.info("Response :: Source ::  " + source + " fileNames in Para " + sourceNames);
 			if(sourceNames.contains(source)) {
 				String fId=el.getAsJsonObject().get("id").getAsString();
 				JsonObject sourceRq = new JsonObject();
@@ -325,7 +302,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		if(!valueArr.isEmpty()) {
 			JsonObject delRq = new JsonObject();
 			delRq.add("value",valueArr);
-			System.out.println("value of final delete request"+delRq);
 			String urlDel = this.clusterUrl + "/" + DELETE_BY_QUERY_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName)+ "?" + this.getMustQueryParamString();
 			headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
 			headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
@@ -339,11 +315,9 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				JsonObject respObj = el.getAsJsonObject();
 				
 				if(!respObj.get("errorMessage").isJsonNull()) {
-					errors.add(respObj.get("errorMessage").getAsString());
+					errors.add(respObj);
 				}
 			}
-			
-			classLogger.info("Errors Array :: isEmpty "+errors);
 			
 			if(errors != null && !errors.isEmpty()) {
 				classLogger.warn("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " errors = '" + errors + "' when attempting to delete files = " + fileNames);
@@ -370,8 +344,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				deleteFilesFromCloudThread.start();
 			}
 		}
-		
-		
 	}
 
 	@Override
@@ -400,7 +372,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 					vectorQuery.addProperty("k", limit);
 					vectorQuery.addProperty("fields", this.embeddings);
 					vectorQuery.addProperty("kind", "vector");
-//					vectorQuery.addProperty("exhaustive", false);
 				}
 				vectorQueries.add(vectorQuery);
 			}
@@ -425,7 +396,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			Double score = (Double) hitJson.get("@search.score").getAsDouble();
 			thisMatch.put("Score", score);
 			
-//			JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
 			thisMatch.put(VectorDatabaseCSVTable.SOURCE, hitJson.get(VectorDatabaseCSVTable.SOURCE).getAsString());
 			thisMatch.put(VectorDatabaseCSVTable.MODALITY, hitJson.get(VectorDatabaseCSVTable.MODALITY).getAsString());
 			thisMatch.put(VectorDatabaseCSVTable.DIVIDER, hitJson.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
@@ -448,15 +418,15 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		JsonObject search = new JsonObject();
 		{
 			JsonArray facets = new JsonArray();
-			facets.add("Source");
+			facets.add(VectorDatabaseCSVTable.SOURCE);
 			search.addProperty("search", "*");
-			search.addProperty("select", "Source");
+			search.addProperty("select", VectorDatabaseCSVTable.SOURCE);
 			search.add("facets", facets);
 		}
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
-		JsonArray sourceArr = responseJson.getAsJsonObject("@search.facets").getAsJsonArray("Source");
+		JsonArray sourceArr = responseJson.getAsJsonObject("@search.facets").getAsJsonArray(VectorDatabaseCSVTable.SOURCE);
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
@@ -485,51 +455,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			returnSources.add(fileInfo);
 		}	
 		return returnSources;
-	}
-
-	@Override
-	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
-		// construct search query
-		JsonObject search = new JsonObject();
-		{
-			JsonArray fields = new JsonArray();
-			{	
-				fields.add(VectorDatabaseCSVTable.SOURCE);
-				fields.add(VectorDatabaseCSVTable.MODALITY);
-				fields.add(VectorDatabaseCSVTable.DIVIDER);
-				fields.add(VectorDatabaseCSVTable.PART);
-				fields.add(VectorDatabaseCSVTable.TOKENS);
-				fields.add(VectorDatabaseCSVTable.CONTENT);
-			}
-			// add to parent
-			search.add("fields", fields);
-			search.addProperty("_source", false);
-		}
-
-		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT + "?size=10000";
-		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
-		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
-
-		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
-		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
-		JsonArray hits = getHitsFromSearch(responseJson);
-		
-		List<Map<String, Object>> allDocuments = new ArrayList<>();
-		for(JsonElement e : hits) {
-			Map<String, Object> thisDocument = new HashMap<>();
-			allDocuments.add(thisDocument);
-
-			JsonObject fields = e.getAsJsonObject().get("fields").getAsJsonObject();
-			thisDocument.put(VectorDatabaseCSVTable.SOURCE, fields.get(VectorDatabaseCSVTable.SOURCE).getAsString());
-			thisDocument.put(VectorDatabaseCSVTable.MODALITY, fields.get(VectorDatabaseCSVTable.MODALITY).getAsString());
-			thisDocument.put(VectorDatabaseCSVTable.DIVIDER, fields.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
-			thisDocument.put(VectorDatabaseCSVTable.PART, fields.get(VectorDatabaseCSVTable.PART).getAsString());
-			thisDocument.put(VectorDatabaseCSVTable.TOKENS, fields.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
-			thisDocument.put(VectorDatabaseCSVTable.CONTENT, fields.get(VectorDatabaseCSVTable.CONTENT).getAsString());
-		}
-		
-		return allDocuments;
 	}
 	
 	/**
@@ -592,7 +517,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	 * @param m
 	 */
 	private void createIndex(String specificIndexName, String embeddings, int dimension, String methodName, String spaceType, String engine, int efConstruction, int m) {
-		System.out.println("AZURE_AI_SEARCH :: Creating new Index...");
 		JsonObject createIndexJson = new JsonObject();
 		{
 			createIndexJson.addProperty("name", specificIndexName);
@@ -663,7 +587,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		}
 
 		String url = this.clusterUrl + "/" + CREATE_INDEX + "?" + this.getMustQueryParamString();
-		System.out.println("AZURE_AI_SEARCH URL :: " + url);
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
@@ -706,19 +629,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		return arr;
 	}
 
-	/**
-	 * 
-	 * @param row
-	 * @return
-	 */
-	private JsonArray convertListStrToJsonArray(List<String> row) {
-		JsonArray arr = new JsonArray();
-		for(int i = 0; i < row.size(); i++) {
-			arr.add(row.get(i));
-		}
-		return arr;
-	}
-
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.AZURE_AI_SEARCH;
@@ -734,5 +644,11 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
         // Replace all characters not matching the regex with an underscore
         return key.replaceAll(regex, "_");
     }
+
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 }
