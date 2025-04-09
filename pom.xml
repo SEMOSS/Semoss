@@ -2605,8 +2605,23 @@
 			<version>1.3.0</version>
 			<scope>test</scope>
 		</dependency>
-
-
+		
+		<!-- https://mvnrepository.com/artifact/com.github.stefanbirkner/system-rules -->
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-inline</artifactId>
+			<version>4.11.0</version>
+			<scope>test</scope>
+		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/org.junit-pioneer/junit-pioneer -->
+		<dependency>
+    		<groupId>org.junit-pioneer</groupId>
+    		<artifactId>junit-pioneer</artifactId>
+    		<version>1.9.1</version>
+   		 	<scope>test</scope>
+		</dependency>
+		
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>
