@@ -1,5 +1,6 @@
 package prerna.engine.api;
 
+import prerna.engine.impl.storage.AWSNativeBlogStorageEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
 import prerna.engine.impl.storage.CephStorageEngine;
 import prerna.engine.impl.storage.GoogleCloudStorageEngine;
@@ -12,6 +13,7 @@ import prerna.engine.impl.storage.SFTPStorageEngine;
 public enum StorageTypeEnum {
 
 	AMAZON_S3("AMAZON_S3", S3StorageEngine.class.getName()),
+	AMAZON_S3_NATIVE("AMAZON_S3_NATIVE", AWSNativeBlogStorageEngine.class.getName()),
 	CEPH("CEPH", CephStorageEngine.class.getName()),
 	GOOGLE_CLOUD_STORAGE("GOOGLE_CLOUD_STORAGE", GoogleCloudStorageEngine.class.getName()),
 	JCIFS("JCIFS", JCIFSStorageEngine.class.getName()),
