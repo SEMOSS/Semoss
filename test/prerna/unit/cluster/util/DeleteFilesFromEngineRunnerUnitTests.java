@@ -18,7 +18,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 
 public class DeleteFilesFromEngineRunnerUnitTests {
 
-	
+
 	private DeleteFilesFromEngineRunner reactor;
 	private MockedStatic<ClusterUtil> mockedStaticCU ;
 	private final String engineId = "engineId";
@@ -28,43 +28,42 @@ public class DeleteFilesFromEngineRunnerUnitTests {
 		reactor = new DeleteFilesFromEngineRunner(engineId, IEngine.CATALOG_TYPE.DATABASE, new String[5]);
 		mockedStaticCU = Mockito.mockStatic(ClusterUtil.class);
 	}
-    @AfterEach
-    void tearDown() {
-        // Close static mocks
-        if (mockedStaticCU != null) {
-        	mockedStaticCU.close();
-        }
-        
-    }
-    
+	@AfterEach
+	void tearDown() {
+		// Close static mocks
+		if (mockedStaticCU != null) {
+			mockedStaticCU.close();
+		}
+	}
+
 	@Test
 	public void runTest() {
 		String[] array = new String[] {"a", "a", "a", "a", "a"};
 		mockedStaticCU.when(()-> ClusterUtil.deleteEngineCloudFile(engineId, CATALOG_TYPE.DATABASE, array[0])).thenAnswer(invocation -> null);
-		
+
 		assertDoesNotThrow(reactor::run);
 	}
-	
+
 	@Test
 	public void failTest() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
 		String[] array = new String[] {"a", "a", "a", "a", "a"};
 		mockedStaticCU.when(()-> ClusterUtil.deleteEngineCloudFile(engineId, CATALOG_TYPE.DATABASE, array[0])).thenThrow(new SemossPixelException("error"));
-		
-        // need to change final field value so need to use reflection
-        Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
-        field.setAccessible(true);
 
-        // remove final modifier
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+		// need to change final field value so need to use reflection
+		Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
+		field.setAccessible(true);
 
-        // set new value
-        field.set(ClusterUtil.IS_CLUSTER_ZK, true);
-        
-		
+		// remove final modifier
+		Field modifiersField = Field.class.getDeclaredField("modifiers");
+		modifiersField.setAccessible(true);
+		modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+
+		// set new value
+		field.set(ClusterUtil.IS_CLUSTER_ZK, true);
+
+
 		assertThrows(SemossPixelException.class, reactor::run);
-		
+
 		// reset the final field value for other tests
 		field.set(ClusterUtil.IS_CLUSTER_ZK, false);
 	}
