@@ -246,4 +246,9 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 		return "REACTOR";
 	}
 
+	@Override
+	public Map<String, Object> buildFunctionEngineToolMap() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

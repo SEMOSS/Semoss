@@ -1,5 +1,5 @@
 from typing import List, Tuple, Dict, Optional
-
+import json
 from gaas_server_proxy import ServerProxy
 
 
@@ -42,7 +42,7 @@ class VectorEngine(ServerProxy):
             insight_id = self.insight_id
 
         optionalParams = (
-            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+            f",paramValues=[{json.dumps(param_dict)}]" if param_dict is not None else ""
         )
 
         optionalSpace = (
@@ -85,7 +85,7 @@ class VectorEngine(ServerProxy):
             insight_id = self.insight_id
 
         optionalParams = (
-            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+            f",paramValues=[{json.dumps(param_dict)}]" if param_dict is not None else ""
         )
 
         optionalSpace = (
@@ -126,7 +126,7 @@ class VectorEngine(ServerProxy):
             insight_id = self.insight_id
 
         optionalParams = (
-            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+            f",paramValues=[{json.dumps(param_dict)}]" if param_dict is not None else ""
         )
 
         pixel = f'RemoveDocumentFromVectorDatabase(engine="{self.engine_id}",fileNames={file_names}{optionalParams});'
@@ -271,7 +271,7 @@ class VectorEngine(ServerProxy):
             insight_id = self.insight_id
 
         optionalParams = (
-            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+            f",paramValues=[{json.dumps(param_dict)}]" if param_dict is not None else ""
         )
 
         pixel = (
