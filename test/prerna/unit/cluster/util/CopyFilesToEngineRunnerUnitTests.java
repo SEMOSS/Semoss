@@ -3,6 +3,8 @@ package prerna.unit.cluster.util;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import java.lang.reflect.Field;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,9 +16,6 @@ import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import static org.mockito.ArgumentMatchers.eq;
-
-import java.lang.reflect.Field;
 
 
 public class CopyFilesToEngineRunnerUnitTests {
