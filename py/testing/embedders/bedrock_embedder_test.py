@@ -21,7 +21,7 @@ from genai_client.constants import EmbeddingsModelEngineResponse
 from dotenv import load_dotenv
 
 # Load environment variables from .env.example file
-load_dotenv("testing/.env.example")
+load_dotenv("testing/.env")
 
 
 # Bedrock Embedder
