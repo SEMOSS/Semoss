@@ -22,6 +22,8 @@ Install pytest if not already installed:
 
 import os
 import pytest
+import pandas as pd
+import tempfile
 from dotenv import load_dotenv
 from genai_client import get_tokenizer
 from gaas_gpt_model import ModelEngine
@@ -170,3 +172,53 @@ def test_extract_text():
 
     # Assert CSV is written
     assert os.path.exists(output_csv)
+
+
+@pytest.fixture
+def sample_csv():
+    """Fixture to create and remove the temp csv file in temp path for test the split_text."""
+    data = {
+        "Source": ["doc1", "doc1"],
+        "Divider": [1, 2],
+        "Modality": ["text", "text"],
+        "Content": [
+            "This is a test page one.",
+            "This is test page two. It has more words.",
+        ],
+    }
+    df = pd.DataFrame(data)
+    tmp_file = tempfile.NamedTemporaryFile(
+        delete=False, suffix=".csv", mode="w", newline=""
+    )
+    df.to_csv(tmp_file.name, index=False)
+    yield tmp_file.name
+    tmp_file.close()
+    os.remove(tmp_file.name)
+
+
+def test_split_text(embed_tokenizer, sample_csv):
+    """
+    Test the split_text function by passing sample csv file and using assertions.
+        - Checking the functionality to split the text from csv file content and write back with the splitted text content in csv file.
+        - Checking the required columns in the CSV file written using assertion.
+        - Checking the value of Modality column with the value "text" using assertion.
+        - Checking the type of Content column using assertion.
+    """
+    vector_database.split_text(
+        csv_file_location=sample_csv,
+        cfg_tokenizer=embed_tokenizer,
+        chunk_unit="tokens",
+        chunk_size=10,
+        chunk_overlap=0,
+        chunking_strategy="PAGE_BY_PAGE",
+    )
+
+    # Read back the output file
+    result_df = pd.read_csv(sample_csv)
+    print("result_df - ", result_df)
+
+    # Assertion checks
+    assert "Content" in result_df.columns
+    assert "Tokens" in result_df.columns
+    assert result_df["Modality"].isin(["text"]).all()
+    assert all(isinstance(x, str) for x in result_df["Content"])
