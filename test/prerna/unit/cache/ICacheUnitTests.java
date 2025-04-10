@@ -20,12 +20,12 @@ public class ICacheUnitTests {
 
 	@ParameterizedTest
 	@ValueSource(strings = { " ", "\t", "\n" })
-	public void cleanFolderAndFileName_weirdChars(String test) {
+	public void testCleanFolderAndFileName_weirdChars(String test) {
 		assertEquals("_", ICache.cleanFolderAndFileName(test));
 	}
 	
 	@Test
-	public void cleanFolderAndFileName() {
+	public void testCleanFolderAndFileName() {
 		assertEquals(null, ICache.cleanFolderAndFileName(null));
 		assertEquals("", ICache.cleanFolderAndFileName(""));
 		assertEquals("Hello_world.txt", ICache.cleanFolderAndFileName("Hello_world.txt"));
@@ -149,7 +149,7 @@ public class ICacheUnitTests {
    	}
     
     @Test
-	public void deleteFile(@TempDir File tempDir) throws IOException {
+	public void testDeleteFile(@TempDir File tempDir) throws IOException {
 		// add file
 		File file = new File(tempDir, "hello.txt");
 		file.createNewFile();
@@ -159,7 +159,7 @@ public class ICacheUnitTests {
    	}
     
     @Test
-   	public void deleteFileStr(@TempDir File tempDir) throws IOException {
+   	public void testDeleteFileStr(@TempDir File tempDir) throws IOException {
 		File file = new File(tempDir, "hello.txt");
 		file.createNewFile();
 		assertTrue(file.exists());
@@ -169,7 +169,7 @@ public class ICacheUnitTests {
    	}
     
     @Test
-   	public void deleteFileStrUsingDir(@TempDir File tempDir) throws IOException {
+   	public void testDeleteFileStrUsingDir(@TempDir File tempDir) throws IOException {
 		File file = new File(tempDir, "hello.txt");
 		assertFalse(file.exists());
    		String filePath = file.getAbsolutePath();
