@@ -1,14 +1,16 @@
 package prerna.engine.impl.storage;
 
-import java.io.FileOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,23 +18,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Constants;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.ResponseInputStream;
-import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -47,12 +50,11 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 	public static final String S3_BUCKET_KEY = "S3_BUCKET";
 	public static final String S3_ACCESS_KEY = "S3_ACCESS";
 	public static final String S3_SECRET_KEY = "S3_SECRET";
-	public static final String BUCKETNAME = "BUCKETNAME";
 
 	private String accessKey;
 	private String secretKey;
 	private String region;
-	private String bucketPath;
+	private String bucket;
 
 	private S3Client client = null;
 
@@ -63,7 +65,7 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 		this.accessKey = smssProp.getProperty(S3_ACCESS_KEY);
 		this.secretKey = smssProp.getProperty(S3_SECRET_KEY);
 		this.region = smssProp.getProperty(S3_REGION_KEY);
-		this.bucketPath = smssProp.getProperty(BUCKETNAME);
+		this.bucket = smssProp.getProperty(S3_BUCKET_KEY);
 
 		if (this.accessKey == null || this.accessKey.isEmpty()) {
 			throw new RuntimeException("Must pass in an access key");
@@ -74,14 +76,14 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 		if (this.region == null || this.region.isEmpty()) {
 			throw new RuntimeException("Must pass in a region");
 		}
-		if (this.bucketPath == null || this.bucketPath.isEmpty()) {
+		if (this.bucket == null || this.bucket.isEmpty()) {
 			throw new RuntimeException("Must pass in a S3BucketPath");
 		}
 		createServiceClient();
 	}
 
 	public void createServiceClient() {
-		this.client = S3Client.builder().region(Region.AP_SOUTH_1)
+		this.client = S3Client.builder().region(Region.of(this.region))
 				.credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
 				.build();
 		classLogger.info("S3 Blob Service client created successfully.");
@@ -95,11 +97,9 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 	@Override
 	public List<String> list(String path) throws Exception {
 		List<String> fileList = new ArrayList<String>();
-
+		path = path.replace("\\", "/").replaceAll("/+", "/").replaceFirst("^/", "").replaceAll("/+$", "");
 		try {
-			ListObjectsV2Request listObjectsV2Request = ListObjectsV2Request.builder().bucket(bucketPath).prefix(path)
-					.build();
-			ListObjectsV2Response listObjectsV2Response = this.client.listObjectsV2(listObjectsV2Request);
+			ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(path);
 			for (S3Object object : listObjectsV2Response.contents()) {
 				fileList.add(object.key());
 			}
@@ -114,19 +114,23 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 	@Override
 	public List<Map<String, Object>> listDetails(String path) throws Exception {
 		List<Map<String, Object>> objectDetails = new ArrayList<>();
+		path = path.replace("\\", "/").replaceAll("/+", "/").replaceFirst("^/", "").replaceAll("/+$", "");
 
 		try {
-
-			ListObjectsV2Request listObjectsV2Request = ListObjectsV2Request.builder().bucket(bucketPath).prefix(path)
-					.build();
-			ListObjectsV2Response listObjectsV2Response = this.client.listObjectsV2(listObjectsV2Request);
-
+			ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(path);
 			for (S3Object object : listObjectsV2Response.contents()) {
 				Map<String, Object> objectInfo = new HashMap<>();
 				objectInfo.put("key", object.key());
 				objectInfo.put("size", object.size());
 				objectInfo.put("lastModified", object.lastModified());
 				objectInfo.put("etag", object.eTag());
+				// Fetch object metadata
+				HeadObjectRequest headRequest = HeadObjectRequest.builder().bucket(this.bucket).key(object.key())
+						.build();
+				HeadObjectResponse headResponse = this.client.headObject(headRequest);
+				Map<String, String> metadata = headResponse.metadata();
+
+				objectInfo.put("metadata", (metadata != null) ? metadata : Collections.emptyMap());
 				objectDetails.add(objectInfo);
 			}
 
@@ -145,7 +149,6 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 		List<String> uploadedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
 		boolean found = false;
-
 		try {
 			if (!Files.exists(localFilePath)) {
 				throw new Exception("Invalid path:" + localPath);
@@ -153,11 +156,14 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 			Path localBasePath = Files.isDirectory(localFilePath) ? localFilePath : localFilePath.getParent();
 
 			// Remove empty directories locally
-			deleteEmptyDirectories1(localFilePath);
+			deleteEmptyDirectories(localFilePath);
 
-			Files.walk(localBasePath).filter(Files::isRegularFile).forEach(file -> {
+			// Delete extra directory from AWS s3 storage
+			syncStorageDeletion(storagePath, localBasePath);
+
+			Files.walk(localFilePath).filter(Files::isRegularFile).forEach(file -> {
 				try {
-					uploadedFiles.add(uploadFileToS3(storagePath, file, metadata));
+					uploadedFiles.add(uploadFileToS3(storagePath, file, localBasePath, metadata));
 				} catch (Exception e) {
 					failedFiles.add(file.toString());
 					classLogger.error("Failed to upload file:" + file, e);
@@ -179,86 +185,134 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 	public void syncStorageToLocal(String storagePath, String localPath) throws Exception {
 
 		Path localDirectory = Paths.get(localPath);
+		Files.createDirectories(localDirectory);
 
-		if (!Files.exists(localDirectory) || !Files.isDirectory(localDirectory)) {
-			Files.createDirectories(localDirectory);
-		}
-
-		ListObjectsV2Response listObjectsResponse = s3ListObjectResponse(bucketPath, storagePath);
 		Set<String> cloudFiles = new HashSet<>();
+		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
+		boolean found = false;
 
-		// Iterate through each object found in the S3 bucket.
+		// Delete zero-byte objects from S3
+		deleteEmptyBlobsFromS3(storagePath);
+		
+		ListObjectsV2Response listObjectsResponse = s3ListObjectResponse(storagePath);
+
 		for (S3Object s3Object : listObjectsResponse.contents()) {
+			String relativePath;
 			String key = s3Object.key();
-			Path localFilePath = localDirectory.resolve(key.toString());
+			if (!storagePath.isEmpty() && key.startsWith(storagePath + "/")) {
+				relativePath = key.substring((storagePath + "/").length());
+			} else {
+				relativePath = key;
+			}
+			Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
 			cloudFiles.add(localFilePath.toString());
-
-			// Ensure the parent directories exist for the file before downloading.
 			Files.createDirectories(localFilePath.getParent());
 
-			// Check if the file needs to be downloaded based on its existence and
-			// modification time.
-			boolean shouldDownload = !Files.exists(localFilePath);
-			if (!shouldDownload) {
-				FileTime localModifiedTime = Files.getLastModifiedTime(localFilePath);
-				long localFileSize = Files.size(localFilePath);
+			if (Files.isDirectory(localFilePath))
+				continue;
 
-				shouldDownload = s3Object.size() != localFileSize
-						|| s3Object.lastModified().toEpochMilli() > localModifiedTime.toMillis();
-			}
+			try {
+				boolean fileExists = Files.exists(localFilePath);
+				boolean shouldDownload = !fileExists;
 
-			if (shouldDownload) {
-				downloadedFile(bucketPath, key, localFilePath);
-				classLogger.info("Downloaded: " + localFilePath);
+				if (fileExists) {
+					FileTime localModifiedTime = Files.getLastModifiedTime(localFilePath);
+					long localFileSize = Files.size(localFilePath);
+					long cloudFileSize = s3Object.size();
+					long cloudModifiedTime = s3Object.lastModified().toEpochMilli();
+					shouldDownload = cloudFileSize != localFileSize || cloudModifiedTime > localModifiedTime.toMillis();
+				}
+
+				if (shouldDownload) {
+					retryOperation(() -> {
+						try {
+							downloadedFile(this.bucket, key, localFilePath);
+						} catch (IOException e) {
+							classLogger.error("Failed to write file: " + localFilePath, e);
+							throw new RuntimeException("Error writing file: " + localFilePath, e);
+						}
+					}, "Syncing file to local: " + key);
+
+					downloadedFiles.add(key);
+					classLogger.info(
+							fileExists ? "Updated file: " + localFilePath : "Downloaded new file: " + localFilePath);
+				}
+				found = true;
+			} catch (Exception e) {
+				failedFiles.add(key);
+				classLogger.error("Failed to sync file: " + key, e);
 			}
 		}
+
+		// Delete local files not present in S3
+		Files.walk(localDirectory).filter(Files::isRegularFile)
+				.filter(localFile -> !cloudFiles.contains(localFile.toString())).forEach(localFile -> {
+					try {
+						Files.delete(localFile);
+						classLogger.info("Deleted extra local file: " + localFile);
+					} catch (IOException e) {
+						classLogger.error("Failed to delete extra file: " + localFile, e);
+					}
+				});
+
+		// Delete empty local directories
+		deleteEmptyDirectories(localDirectory);
+
+		classLogger.info(downloadedFiles.isEmpty() ? "No files were downloaded."
+				: "Successfully downloaded files: " + downloadedFiles);
+
+		if (!failedFiles.isEmpty()) {
+			classLogger.error("Some files failed to sync. Rolling back...");
+			rollbackDownloads(failedFiles, localDirectory);
+		}
+
+		classLogger.info(found ? "Sync completed successfully for: " + storagePath
+				: "No files found to sync for: " + storagePath);
 	}
 
 	@Override
-	public void copyToStorage(String storageFolderPath, String localFilePath, Map<String, Object> metadata)
+	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
 			throws Exception {
-		Path filePath = Paths.get(localFilePath);
-		if (!Files.exists(filePath)) {
-			throw new IOException("File not found: " + localFilePath);
-		}
-
+		List<Path> paths = parseLocalPaths(localFilePath);
 		List<String> uploadedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
 		boolean found = false;
 
-		List<Path> paths = parseLocalPaths(localFilePath);
-
-		for (Path filePaths : paths) {
-			if (!Files.exists(filePaths)) {
-				classLogger.error("File not found: " + filePaths);
-				failedFiles.add(filePaths.toString());
+		for (Path path : paths) {
+			if (!Files.exists(path)) {
+				classLogger.error("File not found: " + path);
+				failedFiles.add(path.toString());
 				continue;
 			}
 
-		}
+			deleteEmptyDirectories(path);
 
-		deleteEmptyDirectories1(filePath);
-
-		if (Files.isDirectory(filePath)) {
-			try (Stream<Path> fileStream = Files.walk(filePath).filter(Files::isRegularFile)) {
-				fileStream.forEach(file -> {
-					try {
-						uploadedFiles.add(uploadFile(storageFolderPath, file, metadata));
-					} catch (Exception e) {
-						failedFiles.add(file.toString());
-					}
-				});
+			if (Files.isDirectory(path)) {
+				try (Stream<Path> fileStream = Files.walk(path).filter(Files::isRegularFile)) {
+					fileStream.forEach(file -> {
+						try {
+							uploadedFiles.add(uploadFile(path, file, storageFolderPath, metadata));
+						} catch (Exception e) {
+							failedFiles.add(file.toString());
+							classLogger.error("Failed to upload file: " + file, e);
+							rollbackUploads(this.client, failedFiles);
+						}
+					});
+					found = true;
+				}
+			} else {
+				try {
+					uploadedFiles.add(uploadFile(path.getParent(), path, storageFolderPath, metadata));
+					found = true;
+				} catch (Exception e) {
+					failedFiles.add(path.toString());
+					classLogger.error("Failed to upload file: " + path, e);
+					rollbackUploads(this.client, failedFiles);
+				}
 			}
-			found = true;
-		} else {
-			try {
-				uploadedFiles.add(uploadFile(storageFolderPath, filePath, metadata));
-				found = true;
-			} catch (Exception e) {
-				failedFiles.add(filePath.toString());
-			}
 		}
-
+		// Delete empty blobs from GCS
+		deleteEmptyBlobsFromS3(storageFolderPath);
 		classLogger.info(
 				uploadedFiles.isEmpty() ? "No files were uploaded." : "Successfully uploaded files: " + uploadedFiles);
 		classLogger.info(found ? "Copy completed successfully for: " + storageFolderPath
@@ -266,81 +320,102 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void copyToLocal(String storagePath, String localFolderPath) throws Exception {
-		// Extract bucket name and folder path
-		String[] parts = storagePath.split("/", 2);
-		String s3FolderPath = parts.length > 1 ? parts[1] : "";
-
-		localFolderPath = "D://dev//punith";
-		
-		// Ensure the local directory exists
+	public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
+		List<String> paths = parseStorageObjectPaths(storageFilePath);
 		Path localDirectory = Paths.get(localFolderPath);
+
+		// Ensure local directory exists
 		Files.createDirectories(localDirectory);
 
 		List<String> downloadedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
 		boolean found = false;
-		ListObjectsV2Response listObjectsResponse = s3ListObjectResponse(bucketPath, s3FolderPath);
 
-		for (S3Object s3Object : listObjectsResponse.contents()) {
-			String key = s3Object.key();
-			/*
-			 * Path localFilePath =
-			 * localDirectory.resolve(key.substring(s3FolderPath.length()));
-			 */
+		for (String s3FolderPath : paths) {
+			// Delete empty folder blobs
+			deleteEmptyBlobsFromS3(s3FolderPath);
 
-			try {
-				/* Files.createDirectories(localDirectory.getParent()); */
-				downloadFile(key, localDirectory);
-				downloadedFiles.add(key);
-				classLogger.info("Downloaded file: " + localDirectory);
-				found = true;
-			} catch (Exception e) {
-				failedFiles.add(key);
-				classLogger.info("Failed to download: " + key + " - " + e.getMessage());
+			// Normalize prefix
+			String prefix = s3FolderPath.replace("\\", "/").replaceAll("/+", "/").trim();
+			if (!prefix.endsWith("/")) {
+				prefix += "/";
 			}
+
+			ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(this.bucket).prefix(prefix)
+					.build();
+
+			ListObjectsV2Response response;
+			do {
+				response = this.client.listObjectsV2(request);
+
+				for (S3Object s3Object : response.contents()) {
+					String key = s3Object.key();
+
+					// Skip empty folder markers (zero-byte keys ending with "/")
+					if (key.endsWith("/") && s3Object.size() == 0)
+						continue;
+
+					Path localFilePath = localDirectory
+							.resolve(key.substring(prefix.length()).replace("/", File.separator));
+
+					try {
+						Files.createDirectories(localFilePath.getParent());
+
+						retryOperation(() -> {
+							try {
+								downloadFile(key, localFilePath);
+							} catch (Exception e) {
+								classLogger.error("Failed to download: " + key, e);
+							}
+						}, "Downloading file: " + key);
+
+						downloadedFiles.add(key);
+						classLogger.info("Downloaded file: " + localFilePath);
+						found = true;
+					} catch (Exception e) {
+						failedFiles.add(key);
+						classLogger.error("Failed to download: " + key, e);
+					}
+				}
+
+				request = request.toBuilder().continuationToken(response.nextContinuationToken()).build();
+
+			} while (response.isTruncated());
 		}
 
-		if (downloadedFiles.isEmpty()) {
-			classLogger.info("No files were downloaded.");
-		} else {
-			classLogger.info("Successfully downloaded files: " + downloadedFiles);
-		}
+		// delete empty local folders
+		deleteEmptyDirectories(localDirectory);
+
+		classLogger.info(downloadedFiles.isEmpty() ? "No files were downloaded."
+				: "Successfully downloaded files: " + downloadedFiles);
 
 		if (!failedFiles.isEmpty()) {
-			classLogger.info("Some files failed to download: " + failedFiles);
+			classLogger.error("Some files failed to download. Retrying...");
+			rollbackDownloads(failedFiles, localDirectory);
 		}
 
-		classLogger.info(found ? "Copy completed successfully for: " + storagePath
-				: "No files found to copy for: " + storagePath);
+		classLogger.info(found ? "Copy completed successfully for: " + storageFilePath
+				: "No files found to copy for: " + storageFilePath);
 	}
 
 	@Override
 	public void deleteFromStorage(String storagePath) throws Exception {
-
-		storagePath = storagePath.replace("\\", "/").replaceFirst("^/", "");
+		storagePath = storagePath.replace("\\", "/").replaceAll("//+", "/").replaceAll("^/+", "").replaceAll("/+$", "");
 
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
-
-		ListObjectsV2Request listObjectsV2Request = ListObjectsV2Request.builder().bucket(bucketPath)
-				.prefix(storagePath.isEmpty() ? null : storagePath).build();
-
-		ListObjectsV2Response result = client.listObjectsV2(listObjectsV2Request);
-
-		if (result == null || result.contents() == null || result.contents().isEmpty()) {
-
-			classLogger.info(storagePath.isEmpty() ? "No files found in bucket:testbucket-punith"
-					: "No files found in directory:" + storagePath);
+		boolean hasFilesToDelete = false;
+		ListObjectsV2Response responseListObjects = s3ListObjectResponse(storagePath);
+		if (responseListObjects == null || responseListObjects.contents() == null
+				|| responseListObjects.contents().isEmpty()) {
+			classLogger.warn(storagePath.isEmpty() ? "No files found in bucket: " + this.bucket
+					: "No files found in directory: " + storagePath);
 			return;
 		}
+		for (S3Object object : responseListObjects.contents()) {
+			String objectKey = object.key();
 
-		boolean hasFilesToDelete = false;
-
-		for (S3Object objectSummary : result.contents()) {
-			String objectKey = objectSummary.key();
-			if (!objectKey.equals(storagePath) || (objectKey.length() > storagePath.length()
-					&& !objectKey.substring(storagePath.length()).contains("/"))) {
+			if (storagePath.isEmpty() || objectKey.equals(storagePath) || objectKey.startsWith(storagePath + "/")) {
 				hasFilesToDelete = true;
 
 				if (deleteObject(objectKey)) {
@@ -352,9 +427,82 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 		}
 
 		if (!hasFilesToDelete) {
-			classLogger.warn(storagePath.isEmpty() ? "No files found in bucket: " + "testbucket-punith"
+			classLogger.warn(storagePath.isEmpty() ? "No files found in bucket: " + this.bucket
 					: "No files found in directory: " + storagePath);
 			return;
+		}
+		classLogger.info(
+				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
+
+		if (!failedFiles.isEmpty()) {
+			classLogger.error("Some files failed to delete. Retrying...");
+			retryDelete(failedFiles);
+		}
+	}
+
+	@Override
+	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
+		storagePath = storagePath.replace("\\", "/").replaceFirst("^/", "").replaceAll("/+$", "");
+		List<String> deletedFiles = new ArrayList<>();
+		List<String> failedFiles = new ArrayList<>();
+		ListObjectsV2Response responseListObjects = s3ListObjectResponse(storagePath);
+		List<S3Object> s3Objects = responseListObjects.contents();
+		boolean hasFilesToDelete = false;
+
+		for (S3Object s3Object : s3Objects) {
+			hasFilesToDelete = true;
+			String objectName = s3Object.key();
+
+			if (deleteObject(objectName)) {
+				deletedFiles.add(objectName);
+			} else {
+				failedFiles.add(objectName);
+			}
+		}
+
+		classLogger.info(hasFilesToDelete ? "Deletion process completed for: " + storagePath
+				: "No files found to delete in path: " + storagePath);
+
+		classLogger.info(
+				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
+
+		if (!failedFiles.isEmpty()) {
+			classLogger.error("Some files failed to delete. Retrying...");
+			retryDelete(failedFiles);
+		}
+
+		if (leaveFolderStructure && !deletedFiles.isEmpty()) {
+			preserveFolderStructure(deletedFiles);
+		}
+	}
+
+	@Override
+	public void deleteFolderFromStorage(String storageFolderPath) throws Exception {
+		List<String> deletedFiles = new ArrayList<>();
+		List<String> failedFiles = new ArrayList<>();
+
+		storageFolderPath = storageFolderPath.replace("\\", "/").replaceFirst("^/", "").replaceAll("/+$", "");
+		boolean folderExists = false;
+
+		classLogger.info(
+				storageFolderPath.isEmpty() ? "Folder path is empty. Deleting all files in bucket: " + this.bucket
+						: "Deleting folder: " + storageFolderPath);
+		ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(storageFolderPath);
+		for (S3Object object : listObjectsV2Response.contents()) {
+			folderExists = true;
+			String objectKey = object.key();
+			try {
+				retryOperation(() -> {
+					DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket)
+							.key(objectKey).build();
+					this.client.deleteObject(deleteRequest);
+					classLogger.info("Deleted file: " + objectKey);
+					deletedFiles.add(objectKey);
+				}, "Deleting file: " + objectKey);
+			} catch (Exception e) {
+				failedFiles.add(objectKey);
+				classLogger.error("Failed to delete file: " + objectKey, e);
+			}
 		}
 
 		classLogger.info(
@@ -364,112 +512,103 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 			classLogger.error("Some files failed to delete. Retrying...");
 			retryDelete(failedFiles);
 		}
-		classLogger.info(
-				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
+
+		classLogger.info(folderExists ? "Successfully deleted folder: " + storageFolderPath
+				: "No files found in directory: " + storageFolderPath);
 	}
 
-	private void retryDelete(List<String> failedFiles) {
-		if (failedFiles == null || failedFiles.isEmpty()) {
-			return;
-		}
-
-		List<String> stillFailedFiles = new ArrayList<>();
-
-		for (String file : failedFiles) {
-			if (!deleteObject(file)) {
-				stillFailedFiles.add(file);
-			}
-		}
-
-		if (!stillFailedFiles.isEmpty()) {
-			classLogger.error("Retry failed for some files: " + stillFailedFiles);
-		} else {
-			classLogger.info("All previously failed files were successfully deleted.");
-		}
-	}
-
-	@Override
-	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
-		storagePath = storagePath.replace("\\", "/").replaceFirst("^/", "");
-		List<String> deletedFiles = new ArrayList<>();
-		List<String> failedFiles = new ArrayList<>();
-
-		ListObjectsV2Request listObjects = ListObjectsV2Request.builder().bucket(bucketPath).prefix(storagePath)
-				.build();
-
-		ListObjectsV2Response responseListObjects = this.client.listObjectsV2(listObjects);
-		List<S3Object> s3Objects = responseListObjects.contents();
-		boolean hasFilesToDelete = false;
-
-		for (S3Object s3Object : s3Objects) {
-			hasFilesToDelete = true;
-			String objectName = s3Object.key();
-
-			// Attempt to delete the object
-			if (deleteObject(objectName)) {
-				deletedFiles.add(objectName);
-			} else {
-				failedFiles.add(objectName);
-			}
-		}
-		// Log deletion process results
-		classLogger.info(hasFilesToDelete ? "Deletion process completed for: " + storagePath
-				: "No files found to delete in path: " + storagePath);
-
-		classLogger.info(
-				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
-
-		// Preserve folder structure if required
-		if (leaveFolderStructure && !deletedFiles.isEmpty()) {
-			preserveFolderStructure(deletedFiles);
-		}
-	}
-
-	@Override
-	public void deleteFolderFromStorage(String storageFolderPath) throws Exception {
-		createServiceClient();
-
-		ListObjectsV2Request listObjectsV2Request = ListObjectsV2Request.builder().bucket(bucketPath)
-				.prefix(storageFolderPath + "/").build();
-
-		ListObjectsV2Response listObjectsV2Response = this.client.listObjectsV2(listObjectsV2Request);
-
-		for (S3Object object : listObjectsV2Response.contents()) {
-			DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder().bucket(bucketPath).key(object.key())
-					.build();
-			this.client.deleteObject(deleteObjectRequest);
-		}
-
-		DeleteObjectRequest deleteFolderRequest = DeleteObjectRequest.builder().bucket(bucketPath)
-				.key(storageFolderPath + "/").build();
-
-		this.client.deleteObject(deleteFolderRequest);
-
-	}
-
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
-
-	}
-
-	private String uploadFileToS3(String storageFolderPath, Path filePath, Map<String, Object> metadata)
+	private String uploadFileToS3(String storagePath, Path filePath, Path basePath, Map<String, Object> metadata)
 			throws Exception {
-		String fileKey = storageFolderPath + "/" + filePath.getFileName();
+		String relativePath = basePath.relativize(filePath).toString().replace("\\", "/");
+		String fileKey = storagePath + (storagePath.endsWith("/") ? "" : "/") + relativePath;
 
-		PutObjectRequest.Builder putObjectRequestBuilder = PutObjectRequest.builder().bucket(bucketPath).key(fileKey);
-		if (metadata != null && !metadata.isEmpty()) {
-			Map<String, String> metaDataMap = metadata.entrySet().stream()
-					.collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().toString()));
-			putObjectRequestBuilder.metadata(metaDataMap);
+		try {
+			HeadObjectRequest headRequest = HeadObjectRequest.builder().bucket(this.bucket).key(fileKey).build();
+
+			HeadObjectResponse headResponse = this.client.headObject(headRequest);
+
+			long cloudSize = headResponse.contentLength();
+			long cloudLastModified = headResponse.lastModified().toEpochMilli();
+
+			long localSize = Files.size(filePath);
+			long localLastModified = Files.getLastModifiedTime(filePath).toMillis();
+
+			if (localSize == cloudSize && localLastModified <= cloudLastModified) {
+				classLogger.info("Skipping unchanged file: " + fileKey);
+				return null;
+			}
+		} catch (S3Exception e) {
+			if (e.statusCode() != 404) {
+				classLogger.error("Error checking S3 object: " + fileKey, e);
+				throw e;
+			}
 		}
 
-		this.client.putObject(putObjectRequestBuilder.build(), filePath);
-		return storageFolderPath;
+		// Prepare metadata
+		Map<String, String> metaMap = metadata != null
+				? metadata.entrySet().stream()
+						.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()))
+				: Collections.emptyMap();
+		retryOperation(() -> {
+			PutObjectRequest putRequest = PutObjectRequest.builder().bucket(this.bucket).key(fileKey)
+					.metadata(metaMap).build();
 
+			this.client.putObject(putRequest, filePath);
+			classLogger.info("Uploaded/Updated file: " + fileKey);
+			return;
+		}, "Uploading file to S3: " + fileKey);
+
+		return fileKey;
 	}
 
-	private void deleteEmptyDirectories1(Path path) {
+	private void retryOperation(Runnable operation, String actionDescription) {
+		int maxRetries = 3;
+		int baseDelay = 2000;
+
+		for (int attempt = 1; attempt <= maxRetries; attempt++) {
+			try {
+				operation.run();
+				return;
+			} catch (Exception e) {
+				classLogger.error("Attempt " + attempt + " failed for " + actionDescription, e);
+				// If last attempt fails, throw an exception
+				if (attempt == maxRetries) {
+					classLogger.error("All retry attempts failed for: " + actionDescription);
+					throw new RuntimeException(
+							"Operation failed after " + maxRetries + " retries: " + actionDescription, e);
+				}
+				try {
+					long sleepTime = baseDelay * (long) Math.pow(2, attempt - 1); // Exponential backoff
+					Thread.sleep(sleepTime);
+				} catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					throw new RuntimeException("Retry operation interrupted: " + actionDescription, ie);
+				}
+			}
+		}
+	}
+
+	private void syncStorageDeletion(String storagePath, Path localBasePath) {
+		try {
+			ListObjectsV2Response listResponse = s3ListObjectResponse(storagePath);
+			for (S3Object s3Object : listResponse.contents()) {
+				String objectKey = s3Object.key();
+				String relativePath = objectKey.replaceFirst("^" + Pattern.quote(storagePath + "/"), "");
+				Path localFile = localBasePath.resolve(relativePath).normalize();
+
+				if (!Files.exists(localFile)) {
+					this.client
+							.deleteObject(DeleteObjectRequest.builder().bucket(this.bucket).key(objectKey).build());
+
+					classLogger.info("Deleted stale object from S3: " + objectKey);
+				}
+			}
+		} catch (S3Exception e) {
+			classLogger.error("Error while deleting stale objects from S3", e);
+		}
+	}
+
+	private void deleteEmptyDirectories(Path path) {
 		try {
 
 			List<Path> directories = Files.walk(path).sorted(Comparator.reverseOrder()) // Delete children first
@@ -490,89 +629,147 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 		}
 	}
 
-	private String uploadFile(String storageFolderPath, Path filePath, Map<String, Object> metadata)
-			throws S3Exception, IOException {
+	private void downloadedFile(String bucketName, String key, Path destinationPath) throws IOException {
+		GetObjectRequest getRequest = GetObjectRequest.builder().bucket(bucketName).key(key).build();
 
-		String fileKey = storageFolderPath + "/" + filePath.getFileName();
-		PutObjectRequest.Builder putObjectRequestBuilder = PutObjectRequest.builder().bucket(bucketPath).key(fileKey);
+		Files.createDirectories(destinationPath.getParent());
 
-		if (metadata != null && !metadata.isEmpty()) {
-			Map<String, String> metaDataMap = new HashMap<>();
-
-			for (Map.Entry<String, Object> entry : metadata.entrySet()) {
-				metaDataMap.put(entry.getKey(), entry.getValue().toString());
-
-			}
-			putObjectRequestBuilder.metadata(metaDataMap);
+		// Download and write the object
+		try (ResponseInputStream<GetObjectResponse> s3Object = this.client.getObject(getRequest)) {
+			Files.copy(s3Object, destinationPath, StandardCopyOption.REPLACE_EXISTING);
 		}
 
-		this.client.putObject(putObjectRequestBuilder.build(), filePath);
-		return fileKey;
-	}
-
-	private void downloadFile(String key, Path localFilePath) throws Exception {
-		GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucketPath).key(key).build();
-
-		// Stream the file from S3 to the local filesystem
-		try (InputStream s3Object = this.client.getObject(getObjectRequest);
-				FileOutputStream fileOutputStream = new FileOutputStream(localFilePath.toFile())) {
-			byte[] buffer = new byte[1024];
-			int length;
-			while ((length = s3Object.read(buffer)) != -1) {
-				fileOutputStream.write(buffer, 0, length);
-			}
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	// This method downloads a file from S3 to the specified local path.
-	private void downloadedFile(String bucket, String key, Path destinationPath) throws IOException {
-		GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucket).key(key).build();
-
-		try (ResponseInputStream<?> s3Object = this.client.getObject(getObjectRequest);
-				FileOutputStream fileOutputStream = new FileOutputStream(destinationPath.toFile())) {
-			byte[] buffer = new byte[1024];
-			int length;
-			while ((length = s3Object.read(buffer)) != -1) {
-				fileOutputStream.write(buffer, 0, length);
-			}
-		}
-	}
-
-	private ListObjectsV2Response s3ListObjectResponse(String bucket, String prefix) {
-		ListObjectsV2Request listObjectsRequest = ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build();
-
-		// Retrieve the list of objects from S3 based on the request.
-		ListObjectsV2Response listObjectsResponse = this.client.listObjectsV2(listObjectsRequest);
-		return listObjectsResponse;
+		classLogger.info("File downloaded from S3: " + key + " -> " + destinationPath);
 	}
 
 	private boolean deleteObject(String objectKey) {
 		try {
-			this.client.deleteObject(DeleteObjectRequest.builder().bucket(bucketPath).key(objectKey).build());
+			retryOperation(() -> {
+				this.client.deleteObject(DeleteObjectRequest.builder().bucket(this.bucket).key(objectKey).build());
+				classLogger.info("Deleted object: " + objectKey);
+			}, "Deleting object: " + objectKey);
 			return true;
-		} catch (SdkException e) {
-			classLogger.info("Failed to delete object: " + objectKey);
+		} catch (Exception e) {
+			classLogger.error("Failed to delete object: " + objectKey, e);
 			return false;
 		}
-
 	}
 
 	private void preserveFolderStructure(List<String> deletedFiles) {
-		for (String deletedFile : deletedFiles) {
+		Set<String> folderPaths = deletedFiles.stream()
+				.map(file -> file.contains("/") ? file.substring(0, file.lastIndexOf("/") + 1) : "")
+				.filter(path -> !path.isEmpty()).collect(Collectors.toSet());
 
-			String[] parts = deletedFile.split("/");
-			if (parts.length > 1) {
-				String folderPath = parts[0];
-				String folderPlaceHolder = folderPath + "/";
-				this.client.putObject(PutObjectRequest.builder().bucket(bucketPath).key(folderPlaceHolder).build(),
-						RequestBody.fromString(""));
-			}
+		for (String folderPath : folderPaths) {
+			PutObjectRequest request = PutObjectRequest.builder().bucket(this.bucket).key(folderPath).build();
 
-			classLogger.info("Folder structure preserved for deleted files.");
+			this.client.putObject(request, RequestBody.empty());
+			classLogger.info("Preserved folder structure: " + folderPath);
 		}
+	}
+
+	private void rollbackDownloads(List<String> failedKeys, Path baseDirectory) {
+		for (String key : failedKeys) {
+			try {
+				Path filePath = baseDirectory.resolve(key.replace("/", File.separator));
+				Files.deleteIfExists(filePath);
+				classLogger.info("Rolled back file: " + filePath);
+			} catch (IOException e) {
+				classLogger.error("Failed to rollback file: " + key, e);
+			}
+		}
+	}
+
+	private void deleteEmptyBlobsFromS3(String storagePrefix) {
+		
+		ListObjectsV2Response response = s3ListObjectResponse(storagePrefix);
+
+		for (S3Object obj : response.contents()) {
+			if (obj.size() == 0) {
+				DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket).key(obj.key())
+						.build();
+				this.client.deleteObject(deleteRequest);
+				classLogger.info("Deleted empty blob from S3: " + obj.key());
+			}
+		}
+	}
+
+	private void rollbackUploads(S3Client client, List<String> failedFiles) {
+		for (String fileKey : failedFiles) {
+			try {
+				retryOperation(() -> {
+					DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket)
+							.key(fileKey).build();
+					this.client.deleteObject(deleteRequest);
+					classLogger.info("Rolled back failed upload: " + fileKey);
+				}, "Rolling back failed upload: " + fileKey);
+			} catch (Exception e) {
+				classLogger.error("Rollback failed for: " + fileKey, e);
+			}
+		}
+	}
+
+	private String uploadFile(Path rootPath, Path file, String storageFolderPath, Map<String, Object> metadata)
+			throws IOException {
+		String normalizedPath = storageFolderPath.replace("\\", "/").replaceAll("/+", "/").trim();
+		if (normalizedPath.startsWith("/")) {
+			normalizedPath = normalizedPath.substring(1);
+		}
+
+		String relativePath = rootPath.relativize(file).toString().replace("\\", "/").replaceAll("/+", "/").trim();
+		String fileKey = normalizedPath.isEmpty() ? relativePath
+				: (normalizedPath.endsWith("/") ? normalizedPath + relativePath : normalizedPath + "/" + relativePath);
+
+		PutObjectRequest.Builder putBuilder = PutObjectRequest.builder().bucket(this.bucket).key(fileKey);
+
+		if (metadata != null && !metadata.isEmpty()) {
+			putBuilder.metadata(metadata.entrySet().stream()
+					.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())));
+		}
+
+		retryOperation(() -> {
+			this.client.putObject(putBuilder.build(), file);
+			classLogger.info("Uploaded file to S3: " + fileKey);
+		}, "Uploading to S3: " + fileKey);
+
+		return fileKey;
+	}
+
+	private void downloadFile(String key, Path localFilePath) throws IOException {
+		GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(this.bucket).key(key).build();
+
+		try (InputStream s3InputStream = this.client.getObject(getObjectRequest)) {
+			Files.copy(s3InputStream, localFilePath, StandardCopyOption.REPLACE_EXISTING);
+		}
+	}
+
+	private void retryDelete(List<String> failedFiles) {
+		List<String> remainingFailedFiles = new ArrayList<>();
+
+		for (String objectKey : failedFiles) {
+			if (deleteObject(objectKey)) {
+				classLogger.info("Successfully deleted on retry: " + objectKey);
+			} else {
+				remainingFailedFiles.add(objectKey);
+			}
+		}
+
+		if (!remainingFailedFiles.isEmpty()) {
+			classLogger.error("Some files still failed to delete after retries: " + remainingFailedFiles);
+		} else {
+			classLogger.info("All previously failed files were successfully deleted after retry.");
+		}
+	}
+	
+	private ListObjectsV2Response s3ListObjectResponse(String storagePrefix) {
+		ListObjectsV2Request listObjects = ListObjectsV2Request.builder().bucket(this.bucket).prefix(storagePrefix).build();
+		ListObjectsV2Response listObjectsResponse = this.client.listObjectsV2(listObjects);
+		return listObjectsResponse;
+	}
+
+	@Override
+	public void close() throws IOException {
+		// TODO Auto-generated method stub
 
 	}
 

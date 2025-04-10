@@ -57,7 +57,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public StorageTypeEnum getStorageType() {
-		return StorageTypeEnum.MICROSOFT_AZURE_BLOB_STORAGE;
+		return StorageTypeEnum.MICROSOFT_AZURE_NATIVE_BLOB_STORAGE;
 	}
 	
 	@Override

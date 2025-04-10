@@ -2,6 +2,7 @@ package prerna.engine.api;
 
 import prerna.engine.impl.storage.AWSNativeBlogStorageEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
+import prerna.engine.impl.storage.AzureNativeBlobStorageEngine;
 import prerna.engine.impl.storage.CephStorageEngine;
 import prerna.engine.impl.storage.GoogleCloudNativeBlobStorageEngine;
 import prerna.engine.impl.storage.GoogleCloudStorageEngine;
@@ -22,6 +23,7 @@ public enum StorageTypeEnum {
 	LOCAL_FILE_SYSTEM("LOCAL_FILE_SYSTEM", LocalFileSystemStorageEngine.class.getName()),
 //	GOOGLE_DRIVE("GOOGLE_DRIVE",""),
 	MICROSOFT_AZURE_BLOB_STORAGE("MICROSOFT_AZURE_BLOB_STORAGE", AzureBlobStorageEngine.class.getName()),
+	MICROSOFT_AZURE_NATIVE_BLOB_STORAGE("MICROSOFT_AZURE_NATIVE_BLOB_STORAGE", AzureNativeBlobStorageEngine.class.getName()),
 	MINIO("MINIO", MinioStorageEngine.class.getName()),
 	SFTP("SFTP", SFTPStorageEngine.class.getName()),
 	SMB_CIFS("SMB_CIFS", JCIFSStorageEngine.class.getName());
