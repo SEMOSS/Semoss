@@ -188,37 +188,6 @@ public abstract class AbstractStorageEngine implements IStorageEngine {
 		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
 	
-	// Converts comma-separated local file/folder paths to List<Path>
-	protected List<Path> parseLocalPaths(String commaSeparatedPaths) throws Exception {
-		List<Path> result = new ArrayList<>();
-		String[] parts = commaSeparatedPaths.split(",");
-
-		for (String part : parts) {
-			String trimmed = part.trim();
-			if (!trimmed.isEmpty()) {
-				result.add(Paths.get(trimmed));
-			}
-		}
-
-		return result;
-	}
-
-	// Converts comma-separated cloud storage object paths to normalized String list
-	protected List<String> parseStorageObjectPaths(String commaSeparatedPaths) {
-		List<String> result = new ArrayList<>();
-		String[] parts = commaSeparatedPaths.split(",");
-
-		for (String part : parts) {
-			String trimmed = part.trim();
-			if (!trimmed.isEmpty()) {
-				String normalized = trimmed.replace("\\", "/").replaceFirst("^/", "");
-				result.add(normalized);
-			}
-		}
-
-		return result;
-	}
-	
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
