@@ -94,6 +94,10 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 	@Override
 	public List<String> list(String containerPrefix) throws Exception {
 		 List<String> fileList = new ArrayList<>();
+		 containerPrefix = containerPrefix.replace("\\", "/")
+		           .replaceAll("/+", "/")
+		           .replaceFirst("^/", "")
+		           .replaceAll("/+$", "");
 	        for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
 	            fileList.add(blob.getName());
 	        }
@@ -103,6 +107,10 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 	@Override
 	public List<Map<String, Object>> listDetails(String containerPrefix) throws Exception {
 		 List<Map<String, Object>> detailsList = new ArrayList<>();
+		 containerPrefix = containerPrefix.replace("\\", "/")
+		           .replaceAll("/+", "/")
+		           .replaceFirst("^/", "")
+		           .replaceAll("/+$", "");
 	        for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
 	            Map<String, Object> details = new HashMap<>();
 	            details.put("name", blob.getName());
