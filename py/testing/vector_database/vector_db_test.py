@@ -13,8 +13,8 @@ Ensure the below items before run it,
         - Create the test_files folder if you don't have and add the pkl files into it from Dev_Testing_FAISS engine (Dev_Testing_FAISS_\Dev_Testing_FAISS_\schema\default)
     - Make sure you have a valid `.env.example` file with the below required keys:
         - SERVER_CLIENT_BASE
-        - ACCESS_KEY
-        - SECRET_KEY
+        - SERVER_ACCESS_KEY
+        - SERVER_SECRET_KEY
 
 Install pytest if not already installed:
     pip install pytest
@@ -31,8 +31,8 @@ import vector_database
 load_dotenv("testing/.env.example")
 
 SERVER_CLIENT_BASE = os.getenv("SERVER_CLIENT_BASE")
-ACCESS_KEY = os.getenv("ACCESS_KEY")
-SECRET_KEY = os.getenv("SECRET_KEY")
+SERVER_ACCESS_KEY = os.getenv("SERVER_ACCESS_KEY")
+SERVER_SECRET_KEY = os.getenv("SERVER_SECRET_KEY")
 
 
 @pytest.fixture
@@ -49,6 +49,7 @@ def test_nearestNeighbor_with_local_model(embed_tokenizer):
     """
     Test the nearestNeighbor function using local model engine using related functions and assertions.
         - Checking the `create_searcher` function by creating `default` searcher.
+        - Checking the `searcher_exists` function by checking the existing `default` searcher.
         - Checking the `load_dataset` by loading the `dataset.pkl` file.
         - Checking the `load_encoded_vectors` by loading the `vectors.pkl` file.
         - Checking the `nearestNeighbor` function by finding the nearest neightbor against the question.
@@ -113,8 +114,8 @@ def test_nearestNeighbor_with_tomcat_via_ai_server(embed_tokenizer):
 
     server_client = ServerClient(
         base=SERVER_CLIENT_BASE,
-        access_key=ACCESS_KEY,
-        secret_key=SECRET_KEY,
+        access_key=SERVER_ACCESS_KEY,
+        secret_key=SERVER_SECRET_KEY,
     )
 
     faiss_db = vector_database.FAISSDatabase(
