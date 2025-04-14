@@ -41,8 +41,9 @@ public class EmbedderKeywordExtractionReactor extends AbstractReactor {
 		}
 
 		IModelEngine modelE = Utility.getModel(engineId);
-		if(!(modelE instanceof EmbeddedModelEngine) && !(modelE instanceof BedrockEngine)) {
-			throw new IllegalArgumentException("This method only works for Local EmbeddedModelEngines");
+
+		if(!(modelE instanceof AbstractPythonModelEngine)) {
+			throw new IllegalArgumentException("This method does not work for this model");
 		}
 
 		String percentile = this.keyValue.get(PERCENTILE);
@@ -67,11 +68,8 @@ public class EmbedderKeywordExtractionReactor extends AbstractReactor {
 		}
 		
 		List<String> keywords = null;
-		if(modelE instanceof EmbeddedModelEngine) {
-			EmbeddedModelEngine keywordModel = (EmbeddedModelEngine) modelE;
-			keywords = keywordModel.keywordExtraction(decoded, insight, parameters);
-		} else if (modelE instanceof BedrockEngine) {
-			BedrockEngine keywordModel = (BedrockEngine) modelE;	
+		if(modelE instanceof AbstractPythonModelEngine) {
+			AbstractPythonModelEngine keywordModel = (AbstractPythonModelEngine) modelE;
 			keywords = keywordModel.keywordExtraction(decoded, insight, parameters);
 		}
 		return new NounMetadata(keywords, PixelDataType.VECTOR);

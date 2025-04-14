@@ -17,47 +17,4 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 		return ModelTypeEnum.EMBEDDED;
 	}
 	
-	protected List<String> keywordExtractionCall(Object input, Insight insight, Map<String, Object> parameters) {
-		checkSocketStatus();
-				
-		StringBuilder callMaker = new StringBuilder(varName);
-		String inputAsString = PyUtils.determineStringType(input);
-		callMaker.append(".keyword_extraction(input = ").append(inputAsString);
-		if (parameters != null && !parameters.isEmpty()) {
-			callMaker.append(", **").append(PyUtils.determineStringType(parameters));
-		}
-		callMaker.append(")");
-		
-		List<String> output = (List<String>) pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		return output;
-	}
-	
-	@Override
-	public List<String> keywordExtraction(Object input, Insight insight, Map <String, Object> parameters) {		
-		ZonedDateTime inputTime = ZonedDateTime.now();
-		List<String> keywordExtractionResponse = keywordExtractionCall(input, insight, parameters);
-		ZonedDateTime outputTime = ZonedDateTime.now();
-	
-		if (inferenceLogsEnbaled) {
-			String messageId = UUID.randomUUID().toString();
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/messageId,
-					/*messageMethod*/"textKeywords", 
-					/*engine*/this,
-					/*insight*/insight,
-					/*context*/null,
-					/*prompt*/input + "",
-					/*fullPrompt*/null,
-					/*promptTokens*/null,
-					/*inputTime*/inputTime, 
-					/*response*/PyUtils.determineStringType(keywordExtractionResponse),
-					/*responseTokens*/null,
-					/*outputTime*/outputTime
-			));
-			inferenceRecorder.start();
-		}
- 				
-		return keywordExtractionResponse;
-	}
-	
 }

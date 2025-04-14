@@ -2,6 +2,7 @@ package prerna.engine.impl.model;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
@@ -17,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -601,9 +604,63 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		return null;
 	}
+
+	protected List<String> keywordExtractionCall(Object input, Insight insight, Map<String, Object> parameters) {
+
+		checkSocketStatus();
+				
+		StringBuilder callMaker = new StringBuilder(varName);
+		String inputAsString = PyUtils.determineStringType(input);
+		callMaker.append(".keyword_extraction(input = ").append(inputAsString);
+		if (parameters != null && !parameters.isEmpty()) {
+			callMaker.append(", **").append(PyUtils.determineStringType(parameters));
+		}
+		callMaker.append(")");
+		
+		List<String> output = (List<String>) pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		return output;
+	}
 	
-	public List<String> keywordExtraction(Object input, Insight insight, Map <String, Object> parameters) {
-		throw new IllegalArgumentException("Keyword Extraction is not implemented for this model");
+	public List<String> keywordExtraction(Object input, Insight insight, Map <String, Object> parameters) {		
+
+		if (!this.getModelType().equals(ModelTypeEnum.EMBEDDED) && 
+			!this.getModelType().equals(ModelTypeEnum.BEDROCK) &&
+			!this.getModelType().equals(ModelTypeEnum.TEXT_EMBEDDINGS)) {
+			throw new IllegalArgumentException("Keyword Extraction is only implemented for embedding engines");
+		}
+		
+		// Check if bedrock engine is an embedding model
+		if (this.getModelType().equals(ModelTypeEnum.BEDROCK)) {
+			Properties prop = this.getSmssProp();
+			if (prop.getProperty("MODEL").equals("amazon.titan-embed-text-v2:0") && !prop.getProperty("MODEL").equals("cohere.embed")) {
+				throw new IllegalArgumentException("Keyword Extraction is only implemented for embedding engines");
+			}
+		}
+
+		ZonedDateTime inputTime = ZonedDateTime.now();
+		List<String> keywordExtractionResponse = keywordExtractionCall(input, insight, parameters);
+		ZonedDateTime outputTime = ZonedDateTime.now();
+	
+		if (inferenceLogsEnbaled) {
+			String messageId = UUID.randomUUID().toString();
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/messageId,
+					/*messageMethod*/"textKeywords", 
+					/*engine*/this,
+					/*insight*/insight,
+					/*context*/null,
+					/*prompt*/input + "",
+					/*fullPrompt*/null,
+					/*promptTokens*/null,
+					/*inputTime*/inputTime, 
+					/*response*/PyUtils.determineStringType(keywordExtractionResponse),
+					/*responseTokens*/null,
+					/*outputTime*/outputTime
+			));
+			inferenceRecorder.start();
+		}
+ 				
+		return keywordExtractionResponse;
 	}
 	
 }
