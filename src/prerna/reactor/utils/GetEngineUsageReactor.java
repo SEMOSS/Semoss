@@ -326,10 +326,10 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						"from gaas_gpt_database import DatabaseEngine\r\n" + 
 						"database = DatabaseEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 						"langhchain_db = database.to_langchain_database()\r\n" +
-						"langhchain_llm.executeQuery(query = 'SELECT * FROM table_name')\r\n"+
-						"langhchain_llm.insertQuery(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')\r\n"+
-						"langhchain_llm.updateQuery(query = 'UPDATE table_name set column1=value1 WHERE condition')\r\n"+
-						"langhchain_llm.removeQuery(query = 'DELETE FROM table_name WHERE condition')\r\n"+
+						"langhchain_db.executeQuery(query = 'SELECT * FROM table_name')\r\n"+
+						"langhchain_db.insertQuery(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')\r\n"+
+						"langhchain_db.updateQuery(query = 'UPDATE table_name set column1=value1 WHERE condition')\r\n"+
+						"langhchain_db.removeQuery(query = 'DELETE FROM table_name WHERE condition')\r\n"+
 					"```"
 					);
 			usage.add(usageMap);
