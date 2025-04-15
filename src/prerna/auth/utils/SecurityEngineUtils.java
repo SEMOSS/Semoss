@@ -3093,4 +3093,23 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	public static void updateEngineAppId(String engineId, String appId) {
+		PreparedStatement ps = null;
+		try {
+			String query = "UPDATE ENGINE SET APPID = ? WHERE ENGINEID = ?";
+			ps = securityDb.getPreparedStatement(query);
+			ps.setString(1, appId);
+			ps.setString(2, engineId);
+			ps.executeUpdate();
+
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error("Failed to update engine appId", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
 }
