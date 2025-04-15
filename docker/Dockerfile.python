@@ -1,0 +1,75 @@
+# docker build --build-arg CUDA_VERSION=12.4.1  --build-arg PYTHON_VERSION=3.12 -t semoss/pybuilder:ubutunu2204_py3.12  . -f Dockerfile.ubuntu2204
+
+
+# Base image arguments
+ARG BASE_REGISTRY=docker.io
+ARG BASE_IMAGE=ubuntu
+ARG BASE_TAG=22.04
+
+
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS builder
+
+LABEL maintainer="semoss@semoss.org"
+
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libffi-dev \
+    git \
+    # python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# installing rust as some python packages now require it for compiling
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Set environment variables for uv
+ENV UV_LINK_MODE=copy \
+UV_COMPILE_BYTECODE=1 \
+UV_NO_CACHE=1
+
+# we will install python inside /usr/lib/python/semossvenv
+# it is done here to carry forward and limit the duplicated chowns in opt
+ENV VIRTUAL_ENV="/usr/lib/python/semossvenv"
+ENV UV_PYTHON_INSTALL_DIR="/usr/lib/python"
+ENV UV_INSTALL_DIR="/usr/lib/uv/"
+ENV PATH=$UV_INSTALL_DIR:$PATH
+ENV PATH=$VIRTUAL_ENV/bin:$PATH
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+ARG PYTHON_VERSION=3.12
+
+RUN uv python install ${PYTHON_VERSION} --default --preview
+RUN uv venv --seed $VIRTUAL_ENV
+
+
+RUN cd /tmp && \
+    curl -o pyproject.toml https://raw.githubusercontent.com/SEMOSS/Semoss/refs/heads/dev/py/install_config/pyproject.toml && \
+    uv pip install -r pyproject.toml  --extra cpu
+	
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS final
+
+COPY --from=builder /usr/lib/python /usr/lib/python
+
+ENV VIRTUAL_ENV="/usr/lib/python/semossvenv"
+ENV PATH=$VIRTUAL_ENV/bin:$PATH
+
+# Install additional dependencies
+RUN apt-get update \
+    && apt-get install -y tesseract-ocr \
+    && apt-get -y autoremove \
+    && rm -rf /var/lib/apt/lists/*
+
+# FROM scratch AS final
+# COPY --from=builder / /
+WORKDIR /opt
+CMD ["bash"]
