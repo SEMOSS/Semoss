@@ -39,13 +39,13 @@ public class UpdateEngineAppLinkReactor extends AbstractReactor {
         if (isAdmin || isAuthor) {
             try {
                 hasAccessToAppAndEngine(user, engineId, projectId);
-                SecurityEngineUtils.updateEngineAppId(engineId, projectId);
-                noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new appId for the engine "+ engineId ));
+                SecurityEngineUtils.updateEngineToolApp(engineId, projectId);
+                noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new tool_app for the engine "+ engineId ));
             } catch (Exception e) {
-                throw new RuntimeException("Backend failure while setting appId", e);
+                throw new RuntimeException("Backend failure while setting tool_app", e);
             }
         } else {
-        	  noun.addAdditionalReturn(NounMetadata.getErrorNounMessage("Access Denied to user: " + userName + " - Only Admin or Author can update appId"));
+        	  noun.addAdditionalReturn(NounMetadata.getErrorNounMessage("Access Denied to user: " + userName + " - Only Admin or Author can update tool_app"));
         } 
         return noun;
     }

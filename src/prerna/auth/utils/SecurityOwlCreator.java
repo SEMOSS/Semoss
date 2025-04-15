@@ -160,7 +160,7 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINE", "CREATEDBY", "VARCHAR(255)");
 		owler.addProp("ENGINE", "CREATEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("ENGINE", "DATECREATED", "TIMESTAMP");
-		owler.addProp("ENGINE", "APPID", "VARCHAR(255)");
+		owler.addProp("ENGINE", "TOOL_APP", "VARCHAR(255)");
 
 		// ENGINEMETA
 		owler.addConcept("ENGINEMETA", null, null);
