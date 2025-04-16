@@ -277,7 +277,9 @@ public enum ReactorKeysEnum {
 	VOTE("vote",												"Either upvote or downvote"),		
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
-	WIDTH("width", 											    "The width to use for screenshot capture");
+	WIDTH("width", 											    "The width to use for screenshot capture"),
+	X("x",		 											    "The X coordiante."),
+	Y("y",		 											    "The Y coordiante.");
 
 	private String key;
 	private String description;
