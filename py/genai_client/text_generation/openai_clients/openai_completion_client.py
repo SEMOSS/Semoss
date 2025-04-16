@@ -10,7 +10,7 @@ class OpenAiCompletion(AbstractOpenAiClient):
         question: str = None,
         context: str = None,
         template_name: str = None,
-        useHistory: bool = True,  # To control history tracking
+        use_history: bool = True,  # To control history tracking
         history: List[Dict] = None,
         max_new_tokens=1000,
         prefix="",
@@ -42,7 +42,7 @@ class OpenAiCompletion(AbstractOpenAiClient):
             prompt = question
 
         # Add history if one is provided and useHistory is True
-        if history is not None and useHistory:
+        if history is not None and use_history:
             prompt = f"{prompt} {history}"
 
         # check to see if we need to adjust the prompt or max_new_tokens

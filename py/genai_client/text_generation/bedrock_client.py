@@ -92,7 +92,7 @@ class BedrockClient(AbstractTextGenerationClient):
         return inference_config
 
     def _prepare_message_payload(
-        self, question, context, template_name, history, **kwargs
+        self, question, context, template_name, history, use_history, **kwargs
     ):
         """Prepare the message payload for the Bedrock API request."""
         if FULL_PROMPT in kwargs:
@@ -118,7 +118,7 @@ class BedrockClient(AbstractTextGenerationClient):
         #             self._format_message_content({"role": "system", "content": content})
         #         )
 
-        if history is not None:
+        if use_history and history is not None:
             message_payload.extend(
                 [self._format_message_content(msg) for msg in history]
             )
@@ -218,6 +218,7 @@ class BedrockClient(AbstractTextGenerationClient):
         stop_sequences=None,
         prefix="",
         stream=True,
+        use_history=True,  # To control history
         **kwargs,
     ) -> AskModelEngineResponse:
         try:
@@ -225,7 +226,7 @@ class BedrockClient(AbstractTextGenerationClient):
             model_engine_response = AskModelEngineResponse()
 
             message_payload = self._prepare_message_payload(
-                question, context, template_name, history, **kwargs
+                question, context, template_name, history, use_history, **kwargs
             )
             system_prompt = (
                 [{"text": context}]

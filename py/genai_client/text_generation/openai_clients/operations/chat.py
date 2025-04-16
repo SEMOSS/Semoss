@@ -16,7 +16,7 @@ class Chat:
         question: str = None,
         context: str = None,
         template_name: str = None,
-        useHistory: bool = True,  # To control history tracking
+        use_history: bool = True,  # To control history tracking
         history: List[Dict] = None,
         # We should now expect max_completion_tokens but I can't get rid of this yet..
         max_new_tokens=None,  # Deprecated
@@ -37,8 +37,8 @@ class Chat:
                 question=question,
                 context=context,
                 history=(
-                    history if useHistory else None
-                ),  # Only include history if useHistory is True
+                    history if use_history else None
+                ),  # Only include history if use_history is True
                 template_name=template_name,
                 fill_variables=kwargs,
             )
