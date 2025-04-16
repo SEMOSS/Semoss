@@ -36,6 +36,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
@@ -512,6 +513,26 @@ public class ApiSemossTestEngineUtils {
 		Map<String, Object> ret = (Map<String, Object>) nm.getValue();
 		String engineId = (String) ret.get("database_id");
 		return engineId;
+	}
+	
+	
+	public static String createBasicEngine() {
+		// Create Engine
+		List<String> columns = new ArrayList<>();
+		columns.add("cone");
+
+		List<String> dtypes = new ArrayList<>();
+		dtypes.add(SemossDataType.BOOLEAN.toString());
+
+		Map<String, String> adt = new HashMap<>();
+
+		List<List<String>> vals = new ArrayList<>();
+		List<String> v1 = new ArrayList<>();
+		vals.add(v1);
+
+		v1.add("true");
+		String engine = addTestRdbmsDatabase("test", columns, dtypes, adt, vals);
+		return engine;
 	}
 
 }

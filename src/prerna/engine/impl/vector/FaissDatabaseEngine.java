@@ -297,15 +297,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	@Override
 	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		
-		// to implement
-		// write the vector csv table out to a file
-		// and call the addEmbeddingFiles method
-		
-		throw new IllegalArgumentException("This method is not yet implemented for this engine");
+		List<String> vectorCsvFilePaths = new ArrayList<>(1);
+		vectorCsvFilePaths.add(vectorCsvTable.getFile().getAbsolutePath());
+		addEmbeddings(vectorCsvFilePaths, insight, parameters);
 	}
 	
 	@Override
@@ -514,7 +508,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				searchFilters = searchFilters + " ";
 			}
 			searchFilters = searchFilters.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-			callMaker.append("filter=")
+			callMaker.append(", filter=")
 				.append(TRIPLE_QUOTE)
 				.append(searchFilters)
 				.append(TRIPLE_QUOTE)

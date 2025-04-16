@@ -76,4 +76,12 @@ public interface IFunctionEngine extends IEngine {
 	 */
 	org.json.JSONObject getFunctionDefintionJson();
 	
+	
+	/**
+	 * 
+	 * @return json representation of function
+	 */
+	Map<String, Object> buildFunctionEngineToolMap();
+
+	
 }

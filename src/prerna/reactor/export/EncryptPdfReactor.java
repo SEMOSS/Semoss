@@ -7,6 +7,8 @@ import java.util.UUID;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.io.RandomAccessReadBufferedFile;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
@@ -61,10 +63,7 @@ public class EncryptPdfReactor extends AbstractReactor {
 
 		String encryptedFilePath = FilenameUtils.removeExtension(filePath)+"-encrypted.pdf";
 		
-		PDDocument doc = null;
-		try {
-			doc = PDDocument.load(f);
-			
+		try (PDDocument doc = Loader.loadPDF(new RandomAccessReadBufferedFile(f))) {
 			// Define the length of the encryption key.
 			// Possible values are 40, 128 or 256.
 			int keyLength = 256;
@@ -73,7 +72,7 @@ public class EncryptPdfReactor extends AbstractReactor {
 			if(noPrint) {
 				// printing
 				ap.setCanPrint(false);
-				ap.setCanPrintDegraded(false);
+				ap.setCanPrintFaithful(false);
 			}
 			if(noCopy) {
 				// copying
@@ -105,14 +104,6 @@ public class EncryptPdfReactor extends AbstractReactor {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to encrypt the file. Error message = " + e.getMessage());
-		} finally {
-			if(doc != null) {
-				try {
-					doc.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		
 		String downloadKey = UUID.randomUUID().toString();

@@ -955,6 +955,34 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return wrapper;
 	}
+	
+	/**
+	 * See if project exists
+	 * @return
+	 */
+	public static boolean projectExists(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return false;
+	}
 
 	/**
 	 * See if specific project is global
@@ -1775,7 +1803,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, projectId);
 					ps.setString(parameterIndex++, depEngineId);
 					ps.setString(parameterIndex++, token.getId());
-					ps.setString(parameterIndex++, token.getName());
+					ps.setString(parameterIndex++, token.getProvider().getLabel());
 					ps.setTimestamp(parameterIndex++, timestamp);
 					ps.addBatch();
 				}

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -36,6 +37,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -111,7 +113,9 @@ public abstract class AbstractSecurityUtils {
 			owlCreator.remakeOwl();
 		}
 		initialize();
-
+		// this is to update the bad naming in the security db for type values
+		updateUserTypeEnum();
+		
 		Object anonymousUsers = Utility.getDIHelperLocalProperty(Constants.ANONYMOUS_USER_ALLOWED);
 		if(anonymousUsers == null) {
 			anonymousUsersEnabled = false;
@@ -332,7 +336,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	public static boolean adminOnlyEngineAdd(String engineId) {
-		return adminOnlyEngineAdd(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineAdd(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineAdd(IEngine.CATALOG_TYPE type) {
@@ -352,7 +356,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean adminOnlyEngineDelete(String engineId) {
-		return adminOnlyEngineDelete(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineDelete(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineDelete(IEngine.CATALOG_TYPE type) {
@@ -372,7 +376,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean adminOnlyEngineAddAccess(String engineId) {
-		return adminOnlyEngineAddAccess(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineAddAccess(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineAddAccess(IEngine.CATALOG_TYPE type) {
@@ -392,7 +396,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean adminOnlyEngineSetPublic(String engineId) {
-		return adminOnlyEngineSetPublic(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineSetPublic(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineSetPublic(IEngine.CATALOG_TYPE type) {
@@ -412,7 +416,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean adminOnlyEngineSetDiscoverable(String engineId) {
-		return adminOnlyEngineSetDiscoverable(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineSetDiscoverable(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineSetDiscoverable(IEngine.CATALOG_TYPE type) {
@@ -1057,7 +1061,7 @@ public abstract class AbstractSecurityUtils {
 	
 	
 			// ASSETENGINE
-			colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
+			colNames = new String[] {"USERID", "TYPE", "PROJECTID"};
 			types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("ASSETENGINE", colNames, types));
@@ -1816,9 +1820,11 @@ public abstract class AbstractSecurityUtils {
 			
 			// SESSION SHARE
 			colNames = new String[] { "SHARE_VAL", "SESSION_VAL", "ROUTE_VAL", 
+					"IS_SESSION_SHARE", "IS_AUTH_SHARE",
 					"DATE_ADDED", "DATE_USED", "USE_VALID", 
 					"USERID", "TYPE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 					"VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
@@ -1832,6 +1838,19 @@ public abstract class AbstractSecurityUtils {
 					String sql = queryUtil.createTable("SESSION_SHARE", colNames, types);
 					classLogger.info("Running sql " + sql);
 					securityDb.insertData(sql);
+				}
+			}
+			// make sure all the columns are still valid
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "SESSION_SHARE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+						String addColumnSql = queryUtil.alterTableAddColumn("SESSION_SHARE", col, types[i]);
+						classLogger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
 				}
 			}
 	
@@ -2004,6 +2023,66 @@ public abstract class AbstractSecurityUtils {
 		//		colNames = new String[] { "groupid", "seedid" };
 		//		types = new String[] { "integer", "integer" };
 		//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
+	}
+	
+	private static void updateUserTypeEnum() {
+		Map<String, String[]> allValues = new HashMap<>();
+		allValues.put("ASSETENGINE", new String[]{"TYPE"});
+		allValues.put("CUSTOMGROUPASSIGNMENT", new String[] {"TYPE", "PERMISSIONGRANTEDBYTYPE"});
+		allValues.put("ENGINE", new String[] {"CREATEDBYTYPE"});
+		allValues.put("ENGINEACCESSREQUEST", new String[] {"REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE"});
+		allValues.put("ENGINEPERMISSION", new String[] {"PERMISSIONGRANTEDBYTYPE"});
+		allValues.put("GROUPENGINEPERMISSION", new String[] {"TYPE", "PERMISSIONGRANTEDBYTYPE"});
+		allValues.put("GROUPINSIGHTPERMISSION", new String[] {"TYPE", "PERMISSIONGRANTEDBYTYPE"});
+		allValues.put("GROUPPROJECTPERMISSION", new String[] {"TYPE", "PERMISSIONGRANTEDBYTYPE"});
+		allValues.put("INSIGHTACCESSREQUEST", new String[] {"REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE"});
+		allValues.put("PASSWORD_HISTORY", new String[] {"TYPE"});
+		allValues.put("PASSWORD_RESET", new String[] {"TYPE"});
+		allValues.put("PROJECT", new String[] {"CREATEDBYTYPE", "PORTALPUBLISHEDTYPE", "REACTORSCOMPILEDTYPE"});
+		allValues.put("PROJECTACCESSREQUEST", new String[] {"REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE"});
+		allValues.put("PROJECTDEPENDENCIES", new String[] {"TYPE"});
+		allValues.put("SESSION_SHARE", new String[] {"TYPE"});
+		allValues.put("SMSS_GROUP", new String[] {"TYPE", "USERIDTYPE"});
+		allValues.put("SMSS_USER", new String[] {"TYPE"});
+		allValues.put("SMSS_USER_ACCESS_KEYS", new String[] {"TYPE"});
+		allValues.put("USERINSIGHTPERMISSION", new String[] {"PERMISSIONGRANTEDBYTYPE"});
+		allValues.put("WORKSPACEENGINE", new String[] {"TYPE"});
+
+		// grab the new fixed names to the old names
+		Map<String, String> newTypesMap = AuthProvider.getLabelToLegacyName();
+		
+		// repeat for all tables
+		for(String tableName : allValues.keySet()) {
+			// repeat for all columns
+			String[] columns = allValues.get(tableName);
+			for(String columnName : columns) {
+				// update every table -> column pair
+				Connection conn = null;
+				PreparedStatement ps = null;
+				try {
+					conn = securityDb.getConnection();
+					StringBuilder query = new StringBuilder();
+					query.append("UPDATE ").append(tableName).append(" SET ")
+						.append(columnName).append("=? WHERE ")
+						.append(columnName).append("=?");
+					ps = conn.prepareStatement(query.toString());
+					
+					for(String newType : newTypesMap.keySet()) {
+						ps.setString(1, newType);
+						ps.setString(2, newTypesMap.get(newType));
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					if(!conn.getAutoCommit()) {
+						conn.commit();
+					}
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn, ps, null);
+				}
+			}
+		}
 	}
 
 	@Deprecated
