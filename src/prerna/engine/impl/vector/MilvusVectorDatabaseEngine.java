@@ -46,6 +46,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final Logger classLogger = LogManager.getLogger(MilvusVectorDatabaseEngine.class);
 	
 	public static final String DATABASE_NAME = "DATABASE_NAME";
+	public static final String DEFAULT_DATABASE = "default";
 	private static final String V2_VECTOR_ENDPOINT = "/v2/vectordb";
 	private static final String CREATE_INDEX_ENDPOINT = "/indexes/create";
 	private static final String DATABASE_LIST_ENDPOINT ="/databases/list";
@@ -87,7 +88,14 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		this.milvusUrl = this.smssProp.getProperty(Constants.HOSTNAME);
 		this.collectionName = this.smssProp.getProperty(COLLECTION_NAME);
 		this.databaseName = smssProp.getProperty(DATABASE_NAME);
-
+		if (this.collectionName == null || (this.collectionName = this.collectionName.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Collection name must be provided");
+		}
+		
+		if (this.databaseName == null ||  (this.databaseName = this.databaseName.trim()).isEmpty() || this.databaseName.equalsIgnoreCase("null")) {
+			this.databaseName = DEFAULT_DATABASE;
+		}
+		
 		    if (!doesDatabaseExist()) {
 		        createDatabase();
 		    }
@@ -402,21 +410,24 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 * Check if the database exists in Milvus.
 	 */
 	private boolean doesDatabaseExist() {
-	    JsonObject request = new JsonObject();
-	    request.addProperty("dbName", this.databaseName);
-	    JsonObject response = sendPostRequest(DATABASE_LIST_ENDPOINT, request);
+		JsonObject request = new JsonObject();
+		request.addProperty("dbName", this.databaseName);
+		JsonObject response = sendPostRequest(DATABASE_LIST_ENDPOINT, request);
 
-	    if (response != null && response.has("data")) {
-	        JsonArray databases = response.getAsJsonArray("data");
+		if (response == null) {
+			classLogger.warn("Database check failed or returned unexpected response: {}", response);
+			return false;
+		}
+		JsonArray databases = response.getAsJsonArray("data");
 
-	        return StreamSupport.stream(databases.spliterator(), false)
-	                .map(JsonElement::getAsString)
-	                .anyMatch(db -> db.equalsIgnoreCase(this.databaseName));
-	    }
-	    classLogger.warn("Database check failed or returned empty response.");
-	    return false;
+		boolean exists = StreamSupport.stream(databases.spliterator(), false).map(JsonElement::getAsString)
+				.anyMatch(db -> db.equalsIgnoreCase(this.databaseName));
+		if (!exists) {
+			classLogger.warn("Database '{}' does not exist.", this.databaseName);
+		}
+		return exists;
 	}
-
+	
 	/**
 	 * Create the database if it does not exist.
 	 */
@@ -467,7 +478,13 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 					ContentType.APPLICATION_JSON, null, null, null);
 
 			if (response != null && !response.trim().isEmpty()) {
-				return JsonParser.parseString(response).getAsJsonObject();
+				JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+				if (json.has("code") && json.get("code").getAsInt() == 0) {
+					return json;
+				} else {
+					classLogger.warn("Request to '{}' failed. Response code is not 0: {}", endpoint, json);
+				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Error in request to endpoint {}: {}", endpoint, e.getMessage());
