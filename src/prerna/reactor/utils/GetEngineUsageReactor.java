@@ -66,28 +66,30 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"How to use in Javascript",
 					"Generation\r\n" + 
 						"```\r\n"+
-						"LLM(engine = \""+engineId+"\", command = \"<encode>Sample Question</encode>\", \r\n\tparamValues=[{'max_completion_tokens':2000,'temperature':0.3}]);\r\n" + 
+						"LLM(engine = \""+engineId+"\", command = \"<encode>Sample Question</encode>\", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}]);\r\n" + 
 						"```\r\n\r\n"+
 
 					"Geneartion with ChatML\r\n" +
 						"```\r\n"+
 						"LLM(engine = \""+engineId+"\", command = \"<encode>ignore</encode>\", paramValues=[\r\n"+
-						"\t{\"full_prompt\":\r\n"+
-						"\t\t[{\"role\":\"system\", \"content\": \"You are a helpful assistant.\"},\r\n"+
-						"\t\t{\"role\": \"user\", \"content\": \"Who won the world series in 2020?\"},\r\n"+
-						"\t\t{\"role\": \"assistant\", \"content\": \"The Los Angeles Dodgers won the World Series in 2020.\"},\r\n"+
-						"\t\t{\"role\": \"user\", \"content\": \"Where was it played?\"}],\r\n"+
-						"\t'max_completion_tokens':2000,\r\n"+
-						"\t'temperature':0.3\r\n"+
-						"\t}]);\r\n"+
+						"    {\"full_prompt\":[\r\n"+
+						"        {\"role\":\"system\", \"content\": \"You are a helpful assistant.\"},\r\n"+
+						"        {\"role\": \"user\", \"content\": \"Who won the world series in 2020?\"},\r\n"+
+						"        {\"role\": \"assistant\", \"content\": \"The Los Angeles Dodgers won the World Series in 2020.\"},\r\n"+
+						"        {\"role\": \"user\", \"content\": \"Where was it played?\"}\r\n"+ 
+						"    ],\r\n"+
+						"    'max_completion_tokens':2000,\r\n"+
+						"    'temperature':0.3\r\n"+
+						"    }]);\r\n"+
 						"```\r\n\r\n"+
-							
-					"Additional parameters found at: [OpenAI Parameter Spec](https://platform.openai.com/docs/api-reference/chat/create)\r\n\r\n" +
 							
 					"Embeddings\r\n" +
 						"```\r\n"+
 						"Embeddings(engine = \""+engineId+"\", values = [\"Sample String 1\", \"Sample String 2\"], paramValues=[{}]);\r\n" +
-						"```\r\n"
+						"```\r\n\r\n" +
+						
+					"Additional parameters found at: [OpenAI Parameter Spec](https://platform.openai.com/docs/api-reference/chat/create)\r\n\r\n"
+
 					);
 			usage.add(usageMap);
 		}
@@ -105,14 +107,15 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 						"\r\n# Geneartion with ChatML\r\n" +
 						"model.ask(question='ignore', param_dict=\r\n"+
-						"\t{\"full_prompt\":\r\n"+
-						"\t\t[{\"role\":\"system\", \"content\": \"You are a helpful assistant.\"},\r\n"+
-						"\t\t{\"role\": \"user\", \"content\": \"Who won the world series in 2020?\"},\r\n"+
-						"\t\t{\"role\": \"assistant\", \"content\": \"The Los Angeles Dodgers won the World Series in 2020.\"},\r\n"+
-						"\t\t{\"role\": \"user\", \"content\": \"Where was it played?\"}],\r\n"+
-						"\t'max_completion_tokens':2000,\r\n"+
-						"\t'temperature':0.3\r\n"+
-						"\t});\r\n"+
+						"    {\"full_prompt\":[\r\n"+
+						"        {\"role\":\"system\", \"content\": \"You are a helpful assistant.\"},\r\n"+
+						"        {\"role\": \"user\", \"content\": \"Who won the world series in 2020?\"},\r\n"+
+						"        {\"role\": \"assistant\", \"content\": \"The Los Angeles Dodgers won the World Series in 2020.\"},\r\n"+
+						"        {\"role\": \"user\", \"content\": \"Where was it played?\"}\r\n"+
+						"    ],\r\n"+
+						"    'max_completion_tokens':2000,\r\n"+
+						"    'temperature':0.3\r\n"+
+						"    });\r\n"+
 						
 						"\n# Embeddings\r\n" + 
 						"text_arr = ['Sample String 1', 'Sample String 2']\r\n" +
@@ -153,9 +156,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					+ "\r\n"
 					+ "import ai_server\r\n"
 					+ "server_connection=ai_server.ServerClient(\r\n"
-					+ "    base=\"<the api endpoint>\",\t\t# example: https://{domain}/{direcotry/path segment}/Monolith/api\r\n"
-					+ "    access_key=\"<your access key>\",\t\t# example: \"d0033d40-ea83-4083-96ce-17a01451f831\"\r\n"
-					+ "    secret_key=\"<your secret key>\"\t\t# example: \"c2b3fae8-20d1-458c-8565-30ae935c4dfb\"\r\n"
+					+ "    base=\"<the api endpoint>\",         # example: https://{domain}/{direcotry/path segment}/Monolith/api\r\n"
+					+ "    access_key=\"<your access key>\",    # example: 'd0033d40-ea83-4083-96ce-17a01451f831'\r\n"
+					+ "    secret_key=\"<your secret key>\"     # example: 'c2b3fae8-20d1-458c-8565-30ae935c4dfb'\r\n"
 					+ ")"
 					+ "\r\n"
 					+ "\r\n"
@@ -229,11 +232,11 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"```\r\n" 
 							+ "Storage(storage = \""+engineId+"\") | ListStoragePath(storagePath='/your/storage/path');\r\n"
 							+ "Storage(storage = \""+engineId+"\") | ListStoragePathDetails(storagePath='/your/storage/path');\r\n"
-							+ "Storage(storage = \""+engineId+"\") | PullFromStorage(storagePath='/your/storage/path', \r\n\t\tfilePath='/your/local/path');\r\n"
-							+ "Storage(storage = \""+engineId+"\") | PushToStorage(storagePath='/your/storage/path', \r\n\t\tfilePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);\r\n"
-							+ "Storage(storage = \""+engineId+"\") | SyncStorageToLocal(storagePath='/your/storage/path', \r\n\t\tfilePath='/your/local/path');\r\n"
-							+ "Storage(storage = \""+engineId+"\") | SyncLocalToStorage(storagePath='/your/storage/path', \r\n\t\tfilePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);\r\n"
-							+ "Storage(storage = \""+engineId+"\") | DeleteFromStorage(storagePath='/your/storage/path', \r\n\t\tleaveFolderStructure=false);\r\n"
+							+ "Storage(storage = \""+engineId+"\") | PullFromStorage(storagePath='/your/storage/path', filePath='/your/local/path');\r\n"
+							+ "Storage(storage = \""+engineId+"\") | PushToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);\r\n"
+							+ "Storage(storage = \""+engineId+"\") | SyncStorageToLocal(storagePath='/your/storage/path', filePath='/your/local/path');\r\n"
+							+ "Storage(storage = \""+engineId+"\") | SyncLocalToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);\r\n"
+							+ "Storage(storage = \""+engineId+"\") | DeleteFromStorage(storagePath='/your/storage/path', leaveFolderStructure=false);\r\n"
 					+ "```"
 					);
 			usage.add(usageMap);
