@@ -1807,52 +1807,6 @@ public class Project implements IProject {
 		return finalOutput;
 	}
 	
-	//////////////////////////////////////////////////////////////////
-	
-	/*
-	 * METHODS FROM IEngine that redirect to IProject methods
-	 */
-
-	@Override
-	public void setEngineId(String engineId) {
-		setProjectId(engineId);
-	}
-
-	@Override
-	public String getEngineId() {
-		return getProjectId();
-	}
-
-	@Override
-	public void setEngineName(String engineName) {
-		setProjectName(engineName);
-	}
-
-	@Override
-	public String getEngineName() {
-		return getProjectName();
-	}
-
-	@Override
-	public Properties getOrigSmssProp() {
-		return this.smssProp;
-	}
-
-	@Override
-	public IEngine.CATALOG_TYPE getCatalogType() {
-		return IEngine.CATALOG_TYPE.PROJECT;
-	}
-	
-	@Override
-	public PROJECT_TYPE getProjectType() {
-		return this.projectType;
-	}
-
-	@Override
-	public String getCatalogSubType(Properties smssProp) {
-		return this.projectType.name();
-	}
-
 	@Override
 	public Map<String, Object> buildProjectToolMap() {
 		// Fetch metadata for the engine
@@ -1920,5 +1874,51 @@ public class Project implements IProject {
 		toolMap.put("function", project);
 
 		return toolMap;
+	}
+	
+	//////////////////////////////////////////////////////////////////
+	
+	/*
+	 * METHODS FROM IEngine that redirect to IProject methods
+	 */
+
+	@Override
+	public void setEngineId(String engineId) {
+		setProjectId(engineId);
+	}
+
+	@Override
+	public String getEngineId() {
+		return getProjectId();
+	}
+
+	@Override
+	public void setEngineName(String engineName) {
+		setProjectName(engineName);
+	}
+
+	@Override
+	public String getEngineName() {
+		return getProjectName();
+	}
+
+	@Override
+	public Properties getOrigSmssProp() {
+		return this.smssProp;
+	}
+
+	@Override
+	public IEngine.CATALOG_TYPE getCatalogType() {
+		return IEngine.CATALOG_TYPE.PROJECT;
+	}
+	
+	@Override
+	public PROJECT_TYPE getProjectType() {
+		return this.projectType;
+	}
+
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return this.projectType.name();
 	}
 }
