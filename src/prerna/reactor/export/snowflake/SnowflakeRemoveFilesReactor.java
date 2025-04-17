@@ -15,9 +15,9 @@ import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
-public class SnowflakeListFilesReactor extends AbstractReactor {
+public class SnowflakeRemoveFilesReactor extends AbstractReactor {
 
-	public SnowflakeListFilesReactor() {
+	public SnowflakeRemoveFilesReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), "userStage", "tableStage", "namedStage"};
 		this.keyRequired = new int[] {1, 0, 0, 0};
 	}
@@ -34,7 +34,7 @@ public class SnowflakeListFilesReactor extends AbstractReactor {
 		String tableStage = this.keyValue.get(this.keysToGet[2]);
 		String namedStage = this.keyValue.get(this.keysToGet[3]);
 		
-		String sql = "list ";
+		String sql = "remove ";
 		if(userStage != null && !(userStage=userStage.trim()).isEmpty()) {
 			sql += " @~" + userStage;
 		} else if(tableStage != null && !(tableStage=tableStage.trim()).isEmpty()) {
@@ -61,8 +61,8 @@ public class SnowflakeListFilesReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Utility method to return the 'list @~/<userStage>' or 'list @%<tableStage>' or 'list @<namedStage>' query on snowflake depending on the parameters provided. "
-				+ "'@~' is for user stage, @% is for table stage, and @ is for a named stage. Snowflake docs found here: https://docs.snowflake.com/en/user-guide/data-load-local-file-system-stage";
+		return "Utility method to remove a file from '@~/<userStage>' or '@%<tableStage>' or '@<namedStage>' on snowflake depending on the parameters provided. "
+				+ "'@~' is for user stage, @% is for table stage, and @ is for a named stage. Snowflake docs found here: https://docs.snowflake.com/en/sql-reference/sql/remove";
 	}
 	
 	@Override

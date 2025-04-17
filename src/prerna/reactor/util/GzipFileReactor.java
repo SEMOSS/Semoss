@@ -2,6 +2,8 @@ package prerna.reactor.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -80,7 +82,11 @@ public class GzipFileReactor extends AbstractReactor {
 			}
 		}
 		
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		Map<String, Object> fileDetails = new HashMap<>();
+		fileDetails.put("fileName", gzipFile.getName());
+		fileDetails.put("sourceSize", Utility.getReadableFileSize(fileToGzipF.length()));
+		fileDetails.put("size", Utility.getReadableFileSize(gzipFile.length()));
+		return new NounMetadata(fileDetails, PixelDataType.MAP);
 	}
 	
 	@Override

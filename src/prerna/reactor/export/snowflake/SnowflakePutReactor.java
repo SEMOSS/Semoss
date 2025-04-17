@@ -1,8 +1,10 @@
 package prerna.reactor.export.snowflake;
 
 import java.io.File;
-import java.sql.SQLException;
+import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -10,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -17,7 +20,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class SnowflakePutReactor extends AbstractReactor {
 
@@ -40,7 +45,7 @@ public class SnowflakePutReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
 			throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
 		}
 
@@ -98,18 +103,29 @@ public class SnowflakePutReactor extends AbstractReactor {
 		}
 		
 		IDatabaseEngine snowflake = Utility.getDatabase(databaseId);
+		if(!(snowflake instanceof IRDBMSEngine)) {
+			throw new IllegalArgumentException("Database is not a snowlfake db");
+		}
 		IRDBMSEngine snowflakeRdbms = (IRDBMSEngine) snowflake;
+		if(snowflakeRdbms.getDbType() != RdbmsTypeEnum.SNOWFLAKE) {
+			throw new IllegalArgumentException("Database is not a snowlfake db");
+		}
 		Statement stmt = null;
+		ResultSet rs = null;
 		try {
 			stmt = snowflakeRdbms.getConnection().createStatement();
 			stmt.execute(sql);
-		} catch (SQLException e) {
+			rs = stmt.getResultSet();
+			
+			RawRDBMSSelectWrapper iterator = RawRDBMSSelectWrapper.flushRsToWrapper(rs);
+			List<Map<String, Object>> results = QueryExecutionUtility.flushWrapperToMap(iterator);
+			return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("A SQL exception was thrown. Detailed error = " + e.getMessage());
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(snowflakeRdbms, stmt);
+			ConnectionUtils.closeAllConnectionsIfPooling(snowflakeRdbms, stmt, rs);
 		}
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
 	@Override
