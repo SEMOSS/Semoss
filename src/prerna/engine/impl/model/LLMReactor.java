@@ -39,11 +39,9 @@ public class LLMReactor extends AbstractReactor {
 			context = Utility.decodeURIComponent(context);
 		}
 		
-		String useHistory = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[2]));
-		Boolean useHistoryParam = true;
-		if ("false".equals(useHistory)) {
-			useHistoryParam = false;
-		}
+		String useHistory = this.keyValue.get(this.keysToGet[2]);
+		Boolean useHistoryParam = useHistory == null || "true".equalsIgnoreCase(useHistory);
+
 
 		Map<String, Object> paramMap = getMap();
 		IModelEngine modelEngine = Utility.getModel(engineId);
