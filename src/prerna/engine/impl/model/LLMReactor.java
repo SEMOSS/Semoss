@@ -41,7 +41,7 @@ public class LLMReactor extends AbstractReactor {
 		
 		String useHistory = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[2]));
 		Boolean useHistoryParam = true;
-		if (useHistory == "false") {
+		if ("false".equals(useHistory)) {
 			useHistoryParam = false;
 		}
 
