@@ -731,7 +731,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
+			throw new IllegalArgumentException("Unable to connect to server for vector databse.");
 		}
 
 		// create the py translator
