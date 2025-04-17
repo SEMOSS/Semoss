@@ -18,9 +18,9 @@ import prerna.util.Utility;
 public class LLMReactor extends AbstractReactor {
 	
 	public LLMReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.USE_HISTORY.getKey(),
 				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -34,9 +34,15 @@ public class LLMReactor extends AbstractReactor {
 		}
 
 		String question = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
-		String context = this.keyValue.get(this.keysToGet[2]);
+		String context = this.keyValue.get(this.keysToGet[3]);
 		if (context != null) {
 			context = Utility.decodeURIComponent(context);
+		}
+		
+		String useHistory = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[2]));
+		Boolean useHistoryParam = true;
+		if (useHistory == "false") {
+			useHistoryParam = false;
 		}
 
 		Map<String, Object> paramMap = getMap();
@@ -44,6 +50,9 @@ public class LLMReactor extends AbstractReactor {
 		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
+		
+		paramMap.put("use_history", useHistoryParam);
+		
 
 		Map<String, Object> output = modelEngine.ask(question, context, this.insight, paramMap).toMap();
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
