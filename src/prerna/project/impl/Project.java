@@ -16,9 +16,12 @@ import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -1191,6 +1194,23 @@ public class Project implements IProject {
 		return null;
 	}
 	
+	public Map<String, String> getNotebookVariables() {
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			INotebookHelper helper = NotebookHelperFactory.getNotebookHelper(blocksF);
+			Map<String, String> engineMap = helper.getNotebookVariables();
+			return engineMap;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+	
 	private File getBlocksF() {
 		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
 		File blocksF = new File(blocksFilePath);
@@ -1787,6 +1807,75 @@ public class Project implements IProject {
 		return finalOutput;
 	}
 	
+	@Override
+	public Map<String, Object> buildProjectToolMap() {
+		// Fetch metadata for the engine
+		Map<String, Object> metadata = SecurityProjectUtils.getAggregateProjectMetadata(
+				this.getProjectId(),
+				Arrays.asList("description"),
+				true);
+
+		// Extract the description from metadata
+		String description = (String) metadata.get("description");
+		if (description == null) {
+			description = "No description available.";
+		}
+
+		// // Create the main map
+		Map<String, Object> toolMap = new HashMap<>();
+		toolMap.put("type", "function");
+
+		// Create the project map
+		Map<String, Object> project = new HashMap<>();
+		project.put("name", "project_engine");
+		project.put("description", description);
+
+		// Create the parameters map
+		Map<String, Object> parametersMap = new HashMap<>();
+		parametersMap.put("type", "object");
+
+		// Create the properties map
+		Map<String, Object> propertiesMap = new HashMap<>();
+
+		// Add the id property
+		Map<String, Object> idMap = new HashMap<>();
+		idMap.put("type", "string");
+		idMap.put("description", "The unique identifier for this project");
+		idMap.put("enum", Arrays.asList(this.getProjectId()));
+		propertiesMap.put("id", idMap);
+
+		// Add the map property
+		Map<String, Object> mapMap = new HashMap<>();
+		mapMap.put("type", "object");
+
+		// Create the map properties map
+		Map<String, Object> mapPropertiesMap = new HashMap<>();
+		for (Entry<String, String> entry: this.getNotebookVariables().entrySet()) {
+			Map<String, Object> paramMap = new HashMap<>();
+			paramMap.put("type", "string");
+			paramMap.put("description", "no description");
+			paramMap.put("enum", Arrays.asList(entry.getValue()));
+			mapPropertiesMap.put(entry.getKey(), paramMap);
+		}
+		mapMap.put("properties", mapPropertiesMap);
+		mapMap.put("required", Arrays.asList());
+		mapMap.put("description", "A map containing the parameters to pass into the project_engine call.");
+
+		propertiesMap.put("map", mapMap);
+
+		// Finalize parameters map
+		parametersMap.put("properties", propertiesMap);
+		parametersMap.put("required", Arrays.asList("id", "map"));
+
+		// Add parameters to function map
+		project.put("parameters", parametersMap);
+
+		// Add function map to main map
+		toolMap.put("function", project);
+
+		return toolMap;
+	}
+	
 	//////////////////////////////////////////////////////////////////
 	
 	/*
@@ -1832,5 +1921,4 @@ public class Project implements IProject {
 	public String getCatalogSubType(Properties smssProp) {
 		return this.projectType.name();
 	}
-
 }

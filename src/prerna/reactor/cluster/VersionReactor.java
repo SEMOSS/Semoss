@@ -22,30 +22,29 @@ import java.util.stream.Stream;
 import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.commons.validator.GenericValidator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
 import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
+import prerna.util.Utility;
 
 public class VersionReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(VersionReactor.class);
+
+	private static final String VER_PATH = Utility.getBaseFolder() + "/ver.txt";
+	
 	private static Map<String, String> versionMap;
-	private static final String VER_PATH = DIHelper.getInstance().getProperty("BaseFolder") + java.nio.file.FileSystems.getDefault().getSeparator() + "ver.txt";
 	public static String VERSION_KEY = "version";
 	public static String DATETIME_KEY = "datetime";
 	public static String OS = System.getProperty("os.name");
-	protected static final Logger classLogger = LogManager.getLogger(VersionReactor.class);
-
 
 	public VersionReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.RELOAD.getKey()};
@@ -117,7 +116,6 @@ public class VersionReactor extends AbstractReactor {
 				} catch (ParseException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
-
 					try {
 						if(versionStream != null) {
 							versionStream.close();
@@ -125,7 +123,6 @@ public class VersionReactor extends AbstractReactor {
 					} catch (IOException e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					}
-
 					try {
 						if(dateStream != null) {
 							dateStream.close();
@@ -140,7 +137,6 @@ public class VersionReactor extends AbstractReactor {
 					} catch (IOException e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					}
-
 				}
 			}
 		}
@@ -149,10 +145,15 @@ public class VersionReactor extends AbstractReactor {
 	}
 
 	public static boolean inContainer() {
-		
 		//check the os
 		if(!SystemUtils.IS_OS_LINUX) {
 			return false;
+		}
+		
+		//if we are cluster
+		//assume we are a container
+		if(ClusterUtil.IS_CLUSTER) {
+			return true;
 		}
 		
 		//checking if its in kubernetes
@@ -168,6 +169,4 @@ public class VersionReactor extends AbstractReactor {
 			return false;
 		}
 	}
-
-
 }

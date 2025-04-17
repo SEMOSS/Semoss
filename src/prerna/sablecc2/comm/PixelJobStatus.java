@@ -1,19 +1,21 @@
 package prerna.sablecc2.comm;
 
-public enum JobStatus {
+public enum PixelJobStatus {
 
 	CREATED ("Created"), 
 	SUBMITTED ("Submitted"), 
-	INPROGRESS ("InProgress"), 
+	IN_PROGRESS ("InProgress"),
+	PROGRESS_COMPLETE ("ProgressComplete"), 
 	STREAMING ("Streaming"), 
 	COMPLETE ("Complete"), 
+	
 	PAUSED ("Paused"), 
 	ERROR ("Error"),
 	UNKNOWN_JOB ("UnknownJob");
 
 	private String value = "";
 
-	JobStatus(String value) {
+	PixelJobStatus(String value) {
 		this.value = value;
 	}
 	
