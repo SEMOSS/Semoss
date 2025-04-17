@@ -502,13 +502,18 @@ public abstract class AbstractSqlQueryUtil {
 		InputStream is = null;
 		InputStreamReader isr = null;
 		BufferedReader br = null;
-
 		try {
 			is = blob.getBinaryStream();
 			isr = new InputStreamReader(is);
 			br = new BufferedReader(isr);
+			boolean firstLine = true;
 			while ((aux=br.readLine())!=null) {
+				if (!firstLine) {
+					// append a newline before each line except the first
+					strOut.append("\n");
+				}
 				strOut.append(aux);
+				firstLine = false;
 			}
 		} finally {
 			if(is != null) {
