@@ -66,6 +66,7 @@ class TextGenClient(AbstractTextGenerationClient):
         truncate: Optional[int] = None,
         typical_p: Optional[float] = None,
         watermark: bool = False,
+        use_history: bool = True,  # To control history
         **kwargs,
     ) -> str:
         # start the prompt as an empty string
@@ -84,14 +85,14 @@ class TextGenClient(AbstractTextGenerationClient):
                 context=context,
                 template_name=template_name,
                 fill_arguments=kwargs,
-                history=history,
+                history=history if use_history else [],
             )
 
             content = self._process_history(
                 content=content,
                 sub_occured=sub_occured,
                 question=question,
-                history=history,
+                history=history if use_history else [],
             )
 
             # join all the inputs into a single string
