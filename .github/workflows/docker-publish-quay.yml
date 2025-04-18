@@ -71,6 +71,7 @@ jobs:
         run: |
           echo "${{ secrets.QUAY_ROBOT_PASSWORD }}" | docker login quay.io -u ${{ secrets.QUAY_ROBOT_USERNAME }} --password-stdin
           docker build -t quay.io/semoss/test-quay/docker-python:latest -f ./docker/Dockerfile.python ./docker
+          echo "${{ secrets.QUAY_ROBOT_PASSWORD }}" | docker login quay.io -u ${{ secrets.QUAY_ROBOT_USERNAME }} --password-stdin
           docker push quay.io/semoss/test-quay/docker-python:latest
           
       # - name: Build and push Python Docker image
