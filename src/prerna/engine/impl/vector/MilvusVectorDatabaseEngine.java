@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHeaders;
@@ -92,7 +91,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			throw new IllegalArgumentException("Collection name must be provided");
 		}
 		
-		if (this.databaseName == null ||  (this.databaseName = this.databaseName.trim()).isEmpty() || this.databaseName.equalsIgnoreCase("null")) {
+		if (this.databaseName == null ||  (this.databaseName = this.databaseName.trim()).isEmpty() || "null".equalsIgnoreCase(this.databaseName)) {
 			this.databaseName = DEFAULT_DATABASE;
 		}
 		
@@ -198,20 +197,26 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			classLogger.warn("Failed to delete documents from Milvus vector database: " + response);
 		}
 		// Remove physical files
-		List<String> filesToRemoveFromCloud = fileNames.stream()
-				.map(name -> new File(DOCUMENT_FOLDER, Paths.get(name).getFileName().toString())).filter(File::exists)
-				.peek(file -> {
-					try {
-						FileUtils.forceDelete(file);
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}).map(File::getAbsolutePath).collect(Collectors.toList());
+		List<String> filesToRemoveFromCloud = new ArrayList<>();
+		for (String name : fileNames) {
+		    String documentName = Paths.get(name).getFileName().toString();
+		    File documentFile = new File(DOCUMENT_FOLDER, documentName);
+
+		    if (documentFile.exists()) {
+		        try {
+		            FileUtils.forceDelete(documentFile);
+		        } catch (IOException e) {
+		            classLogger.error(Constants.STACKTRACE, e);
+		        }
+		        filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
+		    }
+		}
 
 		if (ClusterUtil.IS_CLUSTER) {
-			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId,
-					this.getCatalogType(), filesToRemoveFromCloud.toArray(new String[0])));
-			deleteFilesFromCloudThread.start();
+		    Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(
+		        engineId, this.getCatalogType(), filesToRemoveFromCloud.toArray(new String[0])
+		    ));
+		    deleteFilesFromCloudThread.start();
 		}
 	}
 
@@ -323,13 +328,14 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 			if (results != null && !results.isEmpty()) {
 			    Set<String> uniqueFileNames = new HashSet<>();
+			    for (Map<String, JsonElement> record : results) {
+			        JsonElement sourceElement = record.get("Source");
 
-			    filesInMilvus.addAll(results.stream()
-			        .map(record -> record.get("Source"))
-			        .filter(Source -> Source != null)  
-			        .map(JsonElement::getAsString) 
-			        .filter(uniqueFileNames::add)  
-			        .map(fileName -> {
+			        if (sourceElement != null) {
+			            String fileName = sourceElement.getAsString();
+
+			            // Filter out duplicates
+			            if (uniqueFileNames.add(fileName)) {
 			            Map<String, Object> fileInfo = new HashMap<>();
 			            fileInfo.put("fileName", fileName);
 
@@ -345,8 +351,10 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 								fileInfo.put("fileSize", fileSizeInKB);
 								fileInfo.put("lastModified", lastModified);
 							}
-							return fileInfo;
-						}).collect(Collectors.toList()));
+							filesInMilvus.add(fileInfo);
+			            }
+			        }
+			    }
 			}
 
 		} catch (Exception e) {
@@ -411,21 +419,20 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 */
 	private boolean doesDatabaseExist() {
 		JsonObject request = new JsonObject();
-		request.addProperty("dbName", this.databaseName);
 		JsonObject response = sendPostRequest(DATABASE_LIST_ENDPOINT, request);
 
-		if (response == null) {
+		if (response == null || !response.has("data")) {
 			classLogger.warn("Database check failed or returned unexpected response: {}", response);
 			return false;
 		}
 		JsonArray databases = response.getAsJsonArray("data");
-
-		boolean exists = StreamSupport.stream(databases.spliterator(), false).map(JsonElement::getAsString)
-				.anyMatch(db -> db.equalsIgnoreCase(this.databaseName));
-		if (!exists) {
-			classLogger.warn("Database '{}' does not exist.", this.databaseName);
+		for (int i = 0; i < databases.size(); i++) {
+			if (this.databaseName.equalsIgnoreCase(databases.get(i).getAsString())) {
+				return true;
+			}
 		}
-		return exists;
+		classLogger.warn("Database '{}' does not exist.", this.databaseName);
+		return false;
 	}
 	
 	/**
@@ -453,13 +460,17 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		createRequest.addProperty("dbName", this.databaseName);
 		JsonObject responseObject = sendPostRequest(COLLECTION_LIST_ENDPOINT, createRequest);
 
-		if (responseObject != null && responseObject.has("data")) {
-			JsonArray collections = responseObject.getAsJsonArray("data");
-
-			return StreamSupport.stream(collections.spliterator(), false).map(JsonElement::getAsString)
-					.anyMatch(name -> name.equalsIgnoreCase(this.collectionName));
+		if (responseObject == null || !responseObject.has("data")) {
+			classLogger.warn("Collection check failed or returned empty response.");
+			return false;
 		}
-		 classLogger.warn("Collection check failed or returned empty response.");
+			JsonArray collections = responseObject.getAsJsonArray("data");
+			for (int i = 0; i < collections.size(); i++) {
+				if (this.collectionName.equalsIgnoreCase(collections.get(i).getAsString())) {
+					return true;
+				}
+		}
+		 classLogger.warn("Collection '{}' does not exist in database '{}'.", this.collectionName, this.databaseName);
 		  return false;
 	}
 
