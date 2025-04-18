@@ -64,7 +64,7 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.python
           push: true
-          tags: quay.io/Semoss/test-quay/docker-python:latest  #replace tag
+          tags: quay.io/semoss/test-quay/docker-python:latest  #replace tag
   
       - name: Build and push Tomcat Docker image
         if: success()
@@ -73,7 +73,7 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.tomcat
           push: true
-          tags: quay.io/Semoss/test-quay/docker-tomcat:latest   #replace tag
+          tags: quay.io/semoss/test-quay/docker-tomcat:latest   #replace tag
   
       - name: Build and push Ubuntu Docker image
         if: success()
@@ -82,7 +82,7 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.ubuntu22.04
           push: true
-          tags: quay.io/Semoss/test-quay/docker-ubuntu:22.04
+          tags: quay.io/semoss/test-quay/docker-ubuntu:22.04
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
       # - name: Extract Docker metadata
