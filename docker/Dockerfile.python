@@ -1,4 +1,3 @@
-
 # docker build --build-arg CUDA_VERSION=12.4.1  --build-arg PYTHON_VERSION=3.12 -t semoss/pybuilder:ubutunu2204_py3.12  . -f Dockerfile.ubuntu2204
 
 
