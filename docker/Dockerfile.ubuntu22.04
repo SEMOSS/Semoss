@@ -24,7 +24,7 @@ ENV PATH=$PATH:$MAVEN_HOME/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin
 
 # Get tomcat, maven and java from another image called tomcat-builder
 COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} /opt /opt
-COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION}/usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
+COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
 COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
 
 # Get python from python-builder
