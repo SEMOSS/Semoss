@@ -22,13 +22,13 @@ ENV MAVEN_HOME=${MAVEN_HOME}
 ENV PATH=$PATH:$MAVEN_HOME/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin
 
 # Get tomcat, maven and java from another image called tomcat-builder
-COPY --from=tomcat-builder:v1 /opt /opt
-COPY --from=tomcat-builder:v1 /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
-COPY --from=tomcat-builder:v1 /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
+COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /opt /opt
+COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
+COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
 
 # Get python from python-builder
-COPY --from=python-builder:v1 /usr/lib/python /usr/lib/python
-#COPY --from=python-builder:v1 /usr/lib/uv/ /usr/lib/uv/
+COPY --from=quay.io/semoss/python-builder:3.12 /usr/lib/python /usr/lib/python
+#COPY --from=quay.io/semoss/python-builder:3.12 /usr/lib/uv/ /usr/lib/uv/
 
 RUN apt-get update -y \
     # added git curl
@@ -50,8 +50,8 @@ ARG TOMCAT_VERSION=9.0.102
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 ENV TOMCAT_HOME=${TOMCAT_HOME}
 
-COPY --from=tomcat-builder:v1 /opt /opt
-COPY --from=tomcat-builder:v1 /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
+COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /opt /opt
+COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
 
 # from original semoss dockerfile
 ARG LD_LIBRARY_PATH
@@ -89,7 +89,7 @@ COPY --from=mavenpuller /opt/semosshome /opt/semosshome
 COPY --from=mavenpuller $TOMCAT_HOME/webapps/Monolith $TOMCAT_HOME/webapps/Monolith
 COPY --from=mavenpuller $TOMCAT_HOME/webapps/SemossWeb $TOMCAT_HOME/webapps/SemossWeb
 COPY --from=mavenpuller /opt/semoss-artifacts/ver.txt /opt/semoss-artifacts/ver.txt
-COPY --from=python-builder:v1 /usr/lib/python /usr/lib/python
+COPY --from=quay.io/semoss/python-builder:3.12  /usr/lib/python /usr/lib/python
 
 # FROM scratch AS final
 
