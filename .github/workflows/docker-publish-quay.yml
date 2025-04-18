@@ -49,7 +49,7 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.python
           push: true
-          tags: quay.io/semoss/test-quay:docker-python  #replace tag
+          tags: quay.io/semoss/python-builder:3.12  #replace tag
   
       - name: Build and push Tomcat Docker image
         if: success()
@@ -58,7 +58,7 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.tomcat
           push: true
-          tags: quay.io/semoss/test-quay:docker-tomcat   #replace tag
+          tags: quay.io/semoss/tomcat-builder:9.0.102  #replace tag
   
       - name: Build and push Ubuntu Docker image
         if: success()
