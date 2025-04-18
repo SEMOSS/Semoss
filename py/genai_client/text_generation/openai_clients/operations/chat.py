@@ -16,6 +16,7 @@ class Chat:
         question: str = None,
         context: str = None,
         template_name: str = None,
+        use_history: bool = True,  # To control history tracking
         history: List[Dict] = None,
         # We should now expect max_completion_tokens but I can't get rid of this yet..
         max_new_tokens=None,  # Deprecated
@@ -35,7 +36,9 @@ class Chat:
             message_payload = self._process_chat_completion(
                 question=question,
                 context=context,
-                history=history,
+                history=(
+                    history if use_history else None
+                ),  # Only include history if use_history is True
                 template_name=template_name,
                 fill_variables=kwargs,
             )
@@ -60,11 +63,13 @@ class Chat:
         # Add the message payload as a kwargs
         kwargs["messages"] = prompt
 
-        model_engine_response.response, model_engine_response.response_tokens, model_engine_response.messageType = self.client.inference_call(
-            prefix=prefix, **kwargs
-        )
+        (
+            model_engine_response.response,
+            model_engine_response.response_tokens,
+            model_engine_response.messageType,
+        ) = self.client.inference_call(prefix=prefix, **kwargs)
 
-        if(model_engine_response.response_tokens is None):
+        if model_engine_response.response_tokens is None:
             model_engine_response.response_tokens = self.client.tokenizer.count_tokens(
                 model_engine_response.response
             )
