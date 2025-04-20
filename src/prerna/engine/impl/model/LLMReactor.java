@@ -50,7 +50,6 @@ public class LLMReactor extends AbstractReactor {
 		
 		paramMap.put("use_history", useHistoryParam);
 		
-
 		Map<String, Object> output = modelEngine.ask(question, context, this.insight, paramMap).toMap();
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
@@ -86,13 +85,14 @@ public class LLMReactor extends AbstractReactor {
 		} else if(key.equals(ReactorKeysEnum.CONTEXT.getKey())) {
 			return "The system prompt to use for the LLM call";
 		} else if(key.equals(ReactorKeysEnum.USE_HISTORY.getKey())) {
-			return "Boolean true/false to determine if we should incorporate the user's chat history based on the previous chats in this insight id";
+			return "Boolean true/false to determine if we should incorporate the user's chat history based on the previous chats in this insight id. "
+					+ "Default is true. This is the same as passing 'use_history' in the " + ReactorKeysEnum.PARAM_VALUES_MAP.getKey() + " key-value map";
 		} else if(key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return "Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc. "
 					+ "In addition, you can pass in 'full_prompt' to represent a full prompt and history via ChatML format which will ignore inputs for " + 
 					Arrays.asList(ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.USE_HISTORY.getKey());
 		}
-		
+
 		return super.getDescriptionForKey(key);
 	}
 	
