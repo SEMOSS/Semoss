@@ -93,6 +93,11 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 	}
 	
+	@Override
+	protected String getDefaultDistanceMethod() {
+		return "Cosine Similarity";
+	}
+	
 	/**
 	 * 
 	 * @param protocol

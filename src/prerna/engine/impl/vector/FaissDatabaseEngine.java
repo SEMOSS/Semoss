@@ -85,6 +85,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return commands;
 	}
 
+	@Override
+	protected String getDefaultDistanceMethod() {
+		return "Cosine Similarity";
+	}
+	
 	protected void addIndexClass(String indexClass) {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
