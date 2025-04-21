@@ -36,7 +36,7 @@ public class LLMReactor extends AbstractReactor {
 		// default is true
 		Boolean useHistoryParam = Boolean.parseBoolean(this.keyValue.getOrDefault(ReactorKeysEnum.USE_HISTORY.getKey(), "true")+"");
 
-		String question = Utility.decodeURIComponent(ReactorKeysEnum.COMMAND.getKey());
+		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
 		if (context != null) {
 			context = Utility.decodeURIComponent(context);
