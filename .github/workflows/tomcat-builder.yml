@@ -10,6 +10,7 @@ on:
     branches: [ "tomcat-builder" ]
     paths:
       - 'docker/Dockerfile.tomcat'
+  workflow_dispatch:
     # Publish semver tags as releases.
     #tags: [ 'v*.*.*' ]
   # pull_request:
@@ -45,6 +46,6 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.tomcat
           push: false
-          tags: quay.io/semoss/tomcat-builder:"$TOMCAT_VERSION"     #replace tag
+          tags: quay.io/semoss/tomcat-builder:9.0.12     #replace tag
           args: TOMCAT_VERSION="$TOMCAT_VERSION"
   
