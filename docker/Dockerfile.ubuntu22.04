@@ -1,3 +1,4 @@
+
 # based on debian12-py
 #docker build . -t quay.io/semoss/docker:debian12-py
 
@@ -15,6 +16,7 @@ ENV JAVA_HOME=${JAVA_HOME}
 ARG JAVA_HOME=/usr/lib/jvm/zulu8
 ENV JAVA_HOME=${JAVA_HOME}
 ARG TOMCAT_VERSION=9.0.102
+ENV TOMCAT_VERSION=${TOMCAT_VERSION}
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 ENV TOMCAT_HOME=${TOMCAT_HOME}
 ARG MAVEN_HOME=/opt/apache-maven-3.8.5
@@ -22,13 +24,13 @@ ENV MAVEN_HOME=${MAVEN_HOME}
 ENV PATH=$PATH:$MAVEN_HOME/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin
 
 # Get tomcat, maven and java from another image called tomcat-builder
-COPY --from=tomcat-builder:v1 /opt /opt
-COPY --from=tomcat-builder:v1 /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
-COPY --from=tomcat-builder:v1 /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
+COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /opt /opt
+COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
+COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
 
 # Get python from python-builder
-COPY --from=python-builder:v1 /usr/lib/python /usr/lib/python
-#COPY --from=python-builder:v1 /usr/lib/uv/ /usr/lib/uv/
+#COPY --from=quay.io/semoss/python-builder:3.12 /usr/lib/python /usr/lib/python
+#COPY --from=quay.io/semoss/python-builder:3.12 /usr/lib/uv/ /usr/lib/uv/
 
 RUN apt-get update -y \
     # added git curl
@@ -37,7 +39,17 @@ RUN apt-get update -y \
 	&& cd /opt && git clone https://github.com/SEMOSS/semoss-artifacts \
 	&& chmod 777 /opt/semoss-artifacts/artifacts/scripts/*.sh \
 	&& /opt/semoss-artifacts/artifacts/scripts/update_latest_dev.sh \
-	&& chmod 777 /opt/semosshome/config/Chromedriver/*
+	&& chmod 777 /opt/semosshome/config/Chromedriver/* \
+	&& sed -i "s/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=*.jar,/g" $TOMCAT_HOME/conf/catalina.properties;
+
+
+RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
+-c "Default Application User" default &&                \
+chown -R 1001:0 ${HOME}
+
+RUN mkdir /opt/chroot
+
+RUN chown -R 1001:0 /opt
 
 FROM base AS intermediate
 
@@ -47,11 +59,11 @@ LABEL maintainer="semoss@semoss.org"
 ARG JAVA_HOME=/usr/lib/jvm/zulu8
 ENV JAVA_HOME=${JAVA_HOME}
 ARG TOMCAT_VERSION=9.0.102
-ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
+ARG TOMCAT_HOME=/opt/apache-tomcat-9.0.102   #NOTE: hardocoding tomcat version for now
 ENV TOMCAT_HOME=${TOMCAT_HOME}
 
-COPY --from=tomcat-builder:v1 /opt /opt
-COPY --from=tomcat-builder:v1 /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
+COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /opt /opt
+COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
 
 # from original semoss dockerfile
 ARG LD_LIBRARY_PATH
@@ -85,11 +97,13 @@ RUN apt-get update -y \
 	&& cd /opt && git clone https://github.com/SEMOSS/semoss-artifacts \
 	&& chmod 777 /opt/semoss-artifacts/artifacts/scripts/*.sh
 
-COPY --from=mavenpuller /opt/semosshome /opt/semosshome
-COPY --from=mavenpuller $TOMCAT_HOME/webapps/Monolith $TOMCAT_HOME/webapps/Monolith
-COPY --from=mavenpuller $TOMCAT_HOME/webapps/SemossWeb $TOMCAT_HOME/webapps/SemossWeb
-COPY --from=mavenpuller /opt/semoss-artifacts/ver.txt /opt/semoss-artifacts/ver.txt
-COPY --from=python-builder:v1 /usr/lib/python /usr/lib/python
+#COPY --from=mavenpuller /opt/semosshome /opt/semosshome
+#COPY --from=mavenpuller $TOMCAT_HOME/webapps/Monolith $TOMCAT_HOME/webapps/Monolith
+#COPY --from=mavenpuller $TOMCAT_HOME/webapps/SemossWeb $TOMCAT_HOME/webapps/SemossWeb
+#COPY --from=mavenpuller /opt/semoss-artifacts/ver.txt /opt/semoss-artifacts/ver.txt
+
+COPY --from=mavenpuller  --chown=1001:0 /opt /opt
+COPY --from=quay.io/semoss/python-builder:3.12  /usr/lib/python /usr/lib/python
 
 # FROM scratch AS final
 
@@ -107,6 +121,26 @@ COPY --from=python-builder:v1 /usr/lib/python /usr/lib/python
 # ENV R_LIBS_SITE=$R_LIBS_SITE
 # ENV RSTUDIO_PANDOC=$RSTUDIO_PANDOC
 
-ENV PATH=$PATH:/opt/apache-maven-3.8.5/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin::/opt/semoss-artifacts/artifacts/scripts
+#LOCALE
+RUN apt-get update \
+	&& apt-get install -y locales \
+	&& locale-gen en_US.UTF-8 \
+	&& dpkg-reconfigure --frontend=noninteractive locales \
+	&& locale -a
+
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
+
+RUN apt install -y debootstrap fakechroot fakeroot
+
+RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
+	-c "Default Application User" default &&                \
+	chown -R 1001:0 ${HOME}
+
+USER 1001
+
+ENV VIRTUAL_ENV="/usr/lib/python/semossvenv"
+ENV PATH=$VIRTUAL_ENV/bin:$PATH:/opt/apache-maven-3.8.5/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin::/opt/semoss-artifacts/artifacts/scripts
 WORKDIR /opt/semoss-artifacts/artifacts/scripts
 CMD ["bash", "-c", "exec $TOMCAT_HOME/bin/start.sh" ]
