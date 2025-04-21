@@ -142,7 +142,7 @@ RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
 USER 1001
 
 ENV VIRTUAL_ENV="/usr/lib/python/semossvenv"
-ENV PYTHONHOME=$VIRTUAL_ENV
+# ENV PYTHONHOME=$VIRTUAL_ENV
 ENV PATH=$VIRTUAL_ENV/bin:$PATH:/opt/apache-maven-3.8.5/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin::/opt/semoss-artifacts/artifacts/scripts
 WORKDIR /opt/semoss-artifacts/artifacts/scripts
 CMD ["bash", "-c", "exec $TOMCAT_HOME/bin/start.sh" ]
