@@ -6,11 +6,12 @@ name: Tomcat Builder
 # documentation.
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "tomcat-builder" ]
     paths:
       - 'docker/Dockerfile.tomcat'
-  workflow_dispatch:
+
     # Publish semver tags as releases.
     #tags: [ 'v*.*.*' ]
   # pull_request:
