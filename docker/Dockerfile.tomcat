@@ -1,4 +1,3 @@
-
 # Based on docker-tomcat:debian12-py
 #docker build . -t quay.io/semoss/tomcat-builder:ubuntu22
 
