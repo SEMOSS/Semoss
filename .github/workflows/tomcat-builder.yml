@@ -7,14 +7,15 @@ name: Tomcat Builder
 
 on:
   push:
-    branches: [ "26-cloud-Fix_docker_builds" ]
+    branches: [ "tomcat-builder" ]
     paths:
       - 'docker/Dockerfile.tomcat'
     # Publish semver tags as releases.
     #tags: [ 'v*.*.*' ]
   # pull_request:
   #   branches: [ "docker-build-workflows" ]
-
+env:
+  TOMCAT_VERSION: 9.0.102 
 
 jobs:
   build:
@@ -43,6 +44,7 @@ jobs:
         with:
           context: ./docker
           file: ./docker/Dockerfile.tomcat
-          push: true
-          tags: quay.io/semoss/tomcat-builder:9.0.102  #replace tag
+          push: false
+          tags: quay.io/semoss/tomcat-builder:"$TOMCAT_VERSION"     #replace tag
+          args: TOMCAT_VERSION="$TOMCAT_VERSION"
   
