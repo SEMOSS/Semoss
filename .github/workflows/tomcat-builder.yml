@@ -48,5 +48,6 @@ jobs:
           file: ./docker/Dockerfile.tomcat
           push: false
           tags: quay.io/semoss/tomcat-builder:${{ env.TOMCAT_VERSION }}   #replace tag
-          args: TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
+          build-args: |
+            TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
   
