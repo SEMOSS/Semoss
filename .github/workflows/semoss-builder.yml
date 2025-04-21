@@ -7,7 +7,7 @@ name: Semoss Builder
 
 on:
   push:
-    branches: [ "docker-build-workflows" ]      #TODO: When merging to dev, main replace branch names
+    branches: [ "26-cloud-Fix_docker_builds" ]      #TODO: When merging to dev, main replace branch names
     paths:
       - 'docker/Dockerfile.ubuntu22.04'
     # Publish semver tags as releases.
