@@ -3567,6 +3567,9 @@ public final class Utility {
 	}
 
 	public static String encodeURIComponent(String s) {
+		if(s == null) {
+			return null;
+		}
 		try {
 			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20")
 					.replace("!", "\\%21")
@@ -3582,6 +3585,9 @@ public final class Utility {
 	}
 
 	public static String decodeURIComponent(String s) {
+		if(s == null) {
+			return null;
+		}
 		try {
 			String newS = s.replaceAll("\\%20", "+")
 					.replaceAll("\\%21", "!")
@@ -6142,5 +6148,17 @@ public final class Utility {
 
 		return dates;
 	}
+	
+	/**
+	 * 
+	 * @param size
+	 * @return
+	 */
+    public static String getReadableFileSize(long size) {
+        if (size <= 0) return "0 B";
+        final String[] units = new String[]{"B", "KB", "MB", "GB", "TB"};
+        int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
+        return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
+    }
 
 }

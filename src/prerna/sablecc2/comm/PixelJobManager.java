@@ -10,9 +10,9 @@ import java.util.Vector;
 
 import prerna.sablecc2.PixelRunner;
 
-public class JobManager {
+public class PixelJobManager {
 	
-	static JobManager manager = new JobManager();
+	static PixelJobManager manager = new PixelJobManager();
 
 	// obviously I assume the user wont run that many jobs to start with
 	// I will adjust this to a random number generator later
@@ -36,7 +36,7 @@ public class JobManager {
 	private Hashtable <String, Integer> outputOffset = new Hashtable<String, Integer>();
 	
 	// keeps the job to thread
-	private Hashtable <String, JobThread> threadPool = new Hashtable<String, JobThread>();
+	private Hashtable <String, PixelJobThread> threadPool = new Hashtable<String, PixelJobThread>();
 	
 	// hashtable of job id to stdOut messages
 	private Hashtable <String, StringBuilder> jobPartialOut = new Hashtable <String, StringBuilder>();
@@ -44,28 +44,34 @@ public class JobManager {
 	//hashtable of job id to offset
 	private Hashtable <String, Integer> jobPartialOutOffset = new Hashtable<String, Integer>();
 	
-	private JobManager() {
+	private PixelJobManager() {
 		
 	}
 	
-	public static JobManager getManager() {
-		if(manager == null) {
-			manager = new JobManager();
+	public static PixelJobManager getManager() {
+		if(manager != null) {
+			return manager;
+		}
+		
+		synchronized(PixelJobManager.class) {
+			if(manager == null) {
+				manager = new PixelJobManager();
+			}
 		}
 		return manager;
 	}
 	
-	public JobThread makeJob() {
+	public PixelJobThread makeJob() {
 		String jobId = UUID.randomUUID().toString();
-		jobStatus.put(jobId, JobStatus.CREATED+"");
-		JobThread jt = new JobThread(jobId);
+		jobStatus.put(jobId, PixelJobStatus.CREATED+"");
+		PixelJobThread jt = new PixelJobThread(jobId);
 		threadPool.put(jobId, jt);
 		return jt;
 	}
 	
-	public JobThread makeJob(String jobId) {
-		jobStatus.put(jobId, JobStatus.CREATED+"");
-		JobThread jt = new JobThread(jobId);
+	public PixelJobThread makeJob(String jobId) {
+		jobStatus.put(jobId, PixelJobStatus.CREATED+"");
+		PixelJobThread jt = new PixelJobThread(jobId);
 		threadPool.put(jobId, jt);
 		return jt;
 	}
@@ -74,7 +80,7 @@ public class JobManager {
 		threadPool.remove(jobId);
 	}
 	
-	public JobThread getJob(String jobId) {
+	public PixelJobThread getJob(String jobId) {
 		return threadPool.get(jobId);
 	}
 	
@@ -227,7 +233,7 @@ public class JobManager {
 		jobPartialOutOffset.remove(jobId);
 	}
 	
-	public void flagStatus(String jobId, JobStatus status) {
+	public void flagStatus(String jobId, PixelJobStatus status) {
 		threadPool.get(jobId).setStatus(status);
 	}
 	
@@ -236,7 +242,7 @@ public class JobManager {
 	}
 	
 	public PixelRunner getOutput(String jobId) {
-		JobThread jt = threadPool.get(jobId);
+		PixelJobThread jt = threadPool.get(jobId);
 		return jt.getRunner();
 	}
 }

@@ -18,9 +18,9 @@ public class UploadAppReactor extends UploadProjectAppReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 	    if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-	        return "This is a required value containing the absolute file path of the single .smss-app file to be imported";
+	        return "This is a required value containing the relative file path of the single .smss-app file to be imported";
 	    } else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
-	        return "This is an optional field to determine the space to work with assets (user project space, current insight space, project id space).";
+	        return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
 	    } else if(key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
 	    	return "This is a required value to determine if the app is public or private";
 	    }
