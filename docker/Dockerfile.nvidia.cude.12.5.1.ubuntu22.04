@@ -53,8 +53,8 @@ RUN apt-get update -y \
 
 
 RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
--c "Default Application User" default &&                \
-chown -R 1001:0 ${HOME}
+    -c "Default Application User" default &&                \
+    chown -R 1001:0 ${HOME}
 
 RUN mkdir /opt/chroot
 
@@ -99,9 +99,10 @@ ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 #         && apt-get install -y google-chrome-stable
 
 COPY --from=mavenpuller /opt/semosshome /opt/semosshome
-COPY --from=mavenpuller /opt/apache-tomcat-9.0.102/webapps/Monolith /opt/apache-tomcat-9.0.102/webapps/Monolith
-COPY --from=mavenpuller /opt/apache-tomcat-9.0.102/webapps/SemossWeb /opt/apache-tomcat-9.0.102/webapps/SemossWeb
+COPY --from=mavenpuller $TOMCAT_HOME/webapps/Monolith $TOMCAT_HOME/webapps/Monolith
+COPY --from=mavenpuller $TOMCAT_HOME/webapps/SemossWeb $TOMCAT_HOME/webapps/SemossWeb
 COPY --from=mavenpuller /opt/semoss-artifacts/ver.txt /opt/semoss-artifacts/ver.txt
+
 
 # Get python from python-builder
 COPY --from=python-builder:v1 /usr/lib/python /usr/lib/python
