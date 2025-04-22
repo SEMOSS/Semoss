@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      TOMCAT_VERSION: 9.0.102 
+      TOMCAT_VERSION: "9.0.102" 
 
     steps:
       - name: Checkout repository
