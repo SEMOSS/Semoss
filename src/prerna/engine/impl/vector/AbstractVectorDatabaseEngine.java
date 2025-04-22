@@ -93,6 +93,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	
 	protected String defaultChunkUnit;
 	protected String defaultExtractionMethod;
+	protected String defaultChunkingMethod;
 	
     protected boolean customDocumentProcessor = false;
     protected String customDocumentProcessorFunctionID = null;
@@ -161,6 +162,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		
 		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
 		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, getDefaultDistanceMethod());
+		this.defaultChunkingMethod = this.smssProp.getProperty(Constants.DEFAULT_CHUNKING_METHOD, "recursive");
 		
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
@@ -235,7 +237,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 		}
 		
-		String chunkingMethod = "recursive";
+		String chunkingMethod = this.defaultChunkingMethod;
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CHUNKING_METHOD.getKey())) {
 			chunkingMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNKING_METHOD.getKey());
 		}
