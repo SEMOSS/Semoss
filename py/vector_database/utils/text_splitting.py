@@ -85,9 +85,7 @@ def split_text(
     chunk_size: int,
     chunk_overlap: int,
     chunking_strategy: Optional[Union[str, List[int]]] = [],
-    split_method: Optional[
-        str
-    ] = "recursive",  # only recursive for now. I dont think the other are needed
+    chunking_method: Optional[str] = "recursive",
 ) -> None:
     """
     Splits text content in a CSV file into chunks based on specified parameters.
@@ -99,7 +97,7 @@ def split_text(
         chunk_size (`int`): Maximum size of each chunk (in tokens or characters).
         chunk_overlap (`int`): Number of characters/tokens to overlap between chunks.
         chunking_strategy (`Optional[Union[str, List[int]]]`): Optional strategy for customizing chunking (defaults to splitting all text).
-        split_method (`Optional[str]`): Method for splitting text (currently only supports 'recursive').
+        chunking_method (`Optional[str]`): Method for splitting text (currently only supports 'recursive' or 'semantic').
 
     Raises:
         AssertionError: If chunk_unit is not 'characters' or 'tokens'.
@@ -138,7 +136,7 @@ def split_text(
 
     document_name = main_df["Source"][0]
 
-    if split_method == "semantic":
+    if chunking_method.lower() == "semantic":
         text_results_df = split_text_semantically(
             text_results_df=text_results_df,
             document_name=document_name,
@@ -296,12 +294,10 @@ def split_text_semantically(
     full_text = " ".join(text_results_df["Content"].apply(clean_up_string))
 
     # Initialize Chonky's semantic text splitter (uses transformer models under the hood)
-    splitter = TextSplitter(device="cpu")  # or "cuda" if you want to use GPU
+    splitter = TextSplitter(device="cpu")
 
-    # Perform semantic splitting
     chunks = splitter(full_text)
 
-    # Assemble final DataFrame with metadata
     text_results_df = pd.DataFrame(
         [
             [

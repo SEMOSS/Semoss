@@ -212,7 +212,7 @@ def test_split_text(embed_tokenizer, sample_csv):
         chunk_size=10,
         chunk_overlap=0,
         chunking_strategy="PAGE_BY_PAGE",
-        # split_method="semantic",  # enable it if you want to test the split_text_semantically function
+        # chunking_method="semantic",  # enable it if you want to test the split_text_semantically function
     )
 
     # Read back the output file

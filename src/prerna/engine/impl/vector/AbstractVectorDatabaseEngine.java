@@ -234,7 +234,11 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
 			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 		}
-
+		
+		String chunkingMethod = "recursive";
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CHUNKING_METHOD.getKey())) {
+			chunkingMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNKING_METHOD.getKey());
+		}
         
 		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
 		if (insight == null) {
@@ -392,7 +396,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							.append(tokenOverlapBetweenChunks)
 							.append(", chunking_strategy = ")
 							.append(chunkingStrategy)
-							.append(", cfg_tokenizer = cfg_tokenizer)");
+							.append(", chunking_method = '")
+							.append(chunkingMethod)
+							.append("', cfg_tokenizer = cfg_tokenizer)");
 						
 						pyt.runScript(splitTextCommand.toString());
 					}
