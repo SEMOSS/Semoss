@@ -47,7 +47,7 @@ def embed_tokenizer():
     )
 
 
-def etest_nearestNeighbor_with_local_model(embed_tokenizer):
+def test_nearestNeighbor_with_local_model(embed_tokenizer):
     """
     Test the nearestNeighbor function using local model engine using related functions and assertions.
         - Checking the `create_searcher` function by creating `default` searcher.
@@ -100,7 +100,7 @@ def etest_nearestNeighbor_with_local_model(embed_tokenizer):
         print("'default' searcher doesn't exist.")
 
 
-def etest_nearestNeighbor_with_tomcat_via_ai_server(embed_tokenizer):
+def test_nearestNeighbor_with_tomcat_via_ai_server(embed_tokenizer):
     """
     Test the nearestNeighbor function using Tomcat model engine using related functions and assertions.
         - Checking the `create_searcher` function by creating `default` searcher.
@@ -148,7 +148,7 @@ def etest_nearestNeighbor_with_tomcat_via_ai_server(embed_tokenizer):
         assert isinstance(row, dict)
 
 
-def etest_extract_text():
+def test_extract_text():
     """
     Test the extract text function by passing pdf file and using assertions.
         - Make sure you have added the dummy.pdf with some content in the test_files folder.
