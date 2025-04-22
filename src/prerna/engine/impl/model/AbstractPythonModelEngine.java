@@ -136,7 +136,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
+				throw new IllegalArgumentException("Unable to connect to server for python model engine.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
 			cpwToInit.shutdown(false);
@@ -144,7 +144,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " +this.getEngineName());
+				throw new IllegalArgumentException("Failed to start TCP Server for Python Model Engine = " +this.getEngineName());
 			}
 		}
 		

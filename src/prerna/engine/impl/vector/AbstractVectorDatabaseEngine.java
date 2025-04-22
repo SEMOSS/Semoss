@@ -160,7 +160,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 		
 		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
-		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, "Cosine Similarity");
+		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, getDefaultDistanceMethod());
 		
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
@@ -193,6 +193,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
             }
         }
 	}
+	
+	protected abstract String getDefaultDistanceMethod();
 	
 	@Override
 	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
@@ -731,7 +733,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
+			throw new IllegalArgumentException("Unable to connect to server for vector databse.");
 		}
 
 		// create the py translator
