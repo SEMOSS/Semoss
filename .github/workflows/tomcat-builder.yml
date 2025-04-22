@@ -16,13 +16,15 @@ on:
     #tags: [ 'v*.*.*' ]
   # pull_request:
   #   branches: [ "docker-build-workflows" ]
-env:
-  TOMCAT_VERSION: 9.0.102 
+
 
 jobs:
   build:
-
+    
     runs-on: ubuntu-latest
+
+    env:
+      TOMCAT_VERSION: 9.0.102 
 
     steps:
       - name: Checkout repository
