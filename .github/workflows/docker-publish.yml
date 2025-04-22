@@ -6,9 +6,9 @@ name: Tomcat Builder v2
 # documentation.
 
 on:
-  push:
-    branches: [ "tomcat-builder" ]
-    # Publish semver tags as releases.
+  # push:
+  #   branches: [ "tomcat-builder" ]
+  #   # Publish semver tags as releases.
   workflow_dispatch:
     inputs:
       version:
