@@ -1,3 +1,5 @@
 .env
 .venv
 venv
+
+install_config/uv.lock
