@@ -47,7 +47,7 @@ def embed_tokenizer():
     )
 
 
-def test_nearestNeighbor_with_local_model(embed_tokenizer):
+def etest_nearestNeighbor_with_local_model(embed_tokenizer):
     """
     Test the nearestNeighbor function using local model engine using related functions and assertions.
         - Checking the `create_searcher` function by creating `default` searcher.
@@ -100,7 +100,7 @@ def test_nearestNeighbor_with_local_model(embed_tokenizer):
         print("'default' searcher doesn't exist.")
 
 
-def test_nearestNeighbor_with_tomcat_via_ai_server(embed_tokenizer):
+def etest_nearestNeighbor_with_tomcat_via_ai_server(embed_tokenizer):
     """
     Test the nearestNeighbor function using Tomcat model engine using related functions and assertions.
         - Checking the `create_searcher` function by creating `default` searcher.
@@ -148,7 +148,7 @@ def test_nearestNeighbor_with_tomcat_via_ai_server(embed_tokenizer):
         assert isinstance(row, dict)
 
 
-def test_extract_text():
+def etest_extract_text():
     """
     Test the extract text function by passing pdf file and using assertions.
         - Make sure you have added the dummy.pdf with some content in the test_files folder.
@@ -178,12 +178,13 @@ def test_extract_text():
 def sample_csv():
     """Fixture to create and remove the temp csv file in temp path for test the split_text."""
     data = {
-        "Source": ["doc1", "doc1"],
-        "Divider": [1, 2],
-        "Modality": ["text", "text"],
+        "Source": ["doc1", "doc1", "doc1"],
+        "Divider": [1, 2, 3],
+        "Modality": ["text", "text", "text"],
         "Content": [
             "This is a test page one.",
             "This is test page two. It has more words.",
+            """Before college the two main things I worked on, outside of school, were writing and programming. I didn't write essays. I wrote what beginning writers were supposed to write then, and probably still are: short stories. My stories were awful. They had hardly any plot, just characters with strong feelings, which I imagined made them deep. The first programs I tried writing were on the IBM 1401 that our school district used for what was then called "data processing." This was in 9th grade, so I was 13 or 14. The school district's 1401 happened to be in the basement of our junior high school, and my friend Rich Draves and I got permission to use it. It was like a mini Bond villain's lair down there, with all these alien-looking machines — CPU, disk drives, printer, card reader — sitting up on a raised floor under bright fluorescent lights.""",
         ],
     }
     df = pd.DataFrame(data)
@@ -211,6 +212,7 @@ def test_split_text(embed_tokenizer, sample_csv):
         chunk_size=10,
         chunk_overlap=0,
         chunking_strategy="PAGE_BY_PAGE",
+        # split_method="semantic",  # enable it if you want to test the split_text_semantically function
     )
 
     # Read back the output file

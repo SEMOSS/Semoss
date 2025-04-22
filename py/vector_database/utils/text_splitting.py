@@ -138,15 +138,22 @@ def split_text(
 
     document_name = main_df["Source"][0]
 
-    text_results_df = split_text_recursively(
-        text_results_df=text_results_df,
-        chunking_strategy=chunking_strategy,
-        document_name=document_name,
-        cfg_tokenizer=cfg_tokenizer,
-        chunk_unit=chunk_unit,
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-    )
+    if split_method == "semantic":
+        text_results_df = split_text_semantically(
+            text_results_df=text_results_df,
+            document_name=document_name,
+            cfg_tokenizer=cfg_tokenizer,
+        )
+    else:
+        text_results_df = split_text_recursively(
+            text_results_df=text_results_df,
+            chunking_strategy=chunking_strategy,
+            document_name=document_name,
+            cfg_tokenizer=cfg_tokenizer,
+            chunk_unit=chunk_unit,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
 
     # Combine text chunks with other modalities and save to CSV
     result = pd.concat([text_results_df, other_modalities_df], ignore_index=True)
@@ -260,6 +267,52 @@ def split_text_recursively(
                 chunk,
             ]
             for page_number, part, chunk in zip(page_numbers, parts, chunks)
+        ],
+        columns=["Source", "Modality", "Divider", "Part", "Tokens", "Content"],
+    )
+
+    return text_results_df
+
+
+def split_text_semantically(
+    text_results_df: pd.DataFrame,
+    document_name: str,
+    cfg_tokenizer,
+) -> pd.DataFrame:
+    """
+    This function uses Chonky's semantic TextSplitter to break the input text into meaningful chunks.
+
+    Args:
+        text_results_df (`pd.DataFrame`): DataFrame containing text data with columns like 'Divider' and 'Content'.
+        document_name (`str`): Name of the document being processed.
+        cfg_tokenizer: Tokenizer object used to count tokens.
+
+    Returns:
+        A new DataFrame with additional columns like 'Source', 'Modality', 'Part', 'Tokens', and 'Content'.
+    """
+    from chonky import TextSplitter
+
+    # Combine all text into one string, cleaned up
+    full_text = " ".join(text_results_df["Content"].apply(clean_up_string))
+
+    # Initialize Chonky's semantic text splitter (uses transformer models under the hood)
+    splitter = TextSplitter(device="cpu")  # or "cuda" if you want to use GPU
+
+    # Perform semantic splitting
+    chunks = splitter(full_text)
+
+    # Assemble final DataFrame with metadata
+    text_results_df = pd.DataFrame(
+        [
+            [
+                document_name,
+                "text",
+                "semantic",  # No specific page number since it's semantic
+                i,
+                cfg_tokenizer.count_tokens(chunk),
+                chunk,
+            ]
+            for i, chunk in enumerate(chunks)
         ],
         columns=["Source", "Modality", "Divider", "Part", "Tokens", "Content"],
     )
