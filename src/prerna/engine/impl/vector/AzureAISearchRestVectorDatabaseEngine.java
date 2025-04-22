@@ -6,13 +6,18 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
@@ -25,6 +30,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
+import bsh.This;
+import javassist.expr.Instanceof;
 import net.snowflake.client.jdbc.internal.apache.commons.io.FilenameUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
@@ -33,6 +40,12 @@ import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -377,12 +390,22 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			}
 			search.add("vectorQueries", vectorQueries);
 		}
+		if (parameters.containsKey("filters")) {
+			List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
+			search.addProperty("vectorFilterMode", "preFilter");
+			String filterString = "";
+			for(IQueryFilter queryFilter : filters) {
+				filterString = processFilter(queryFilter, filterString);
+			}
+			search.addProperty("filter", filterString);
+
+		}
 
 		String url = this.clusterUrl + "/" + SEARCH_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName) + "?" + this.getMustQueryParamString();
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
-
+		
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
 		JsonArray hits = getHitsFromSearch(responseJson);
@@ -650,5 +673,198 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	
+	
+//	FILTER HELPER FUNCTIONS
+	
+	public String processFilter(IQueryFilter queryFilter, String filterString) {
+		IQueryFilter.QUERY_FILTER_TYPE filterType = queryFilter.getQueryFilterType();
+		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+			return addSimpleQueryFilter((SimpleQueryFilter) queryFilter, filterString);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+			return addAndFilter((AndQueryFilter) queryFilter, filterString);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+			return addOrFilter((OrQueryFilter) queryFilter, filterString);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.FUNCTION) {
+			throw new IllegalArgumentException("Filters with a Query Filter Type of Function are not supported for Elastic Search vector databases");
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.BETWEEN) {
+			throw new IllegalArgumentException("Filters with a Query Filter Type of Between are not supported for Elastic Search vector databases");
+		}
+		return filterString;
+	}
 
+	/**
+	 * 
+	 * @param filter
+	 * @param targetArray
+	 * @param must_not
+	 */
+	private String addSimpleQueryFilter(SimpleQueryFilter filter, String filterString) {
+		return filterString += processSimpleQueryFilter(filter);
+	}
+
+	/**
+	 * 
+	 * @param filter
+	 * @return
+	 */
+	public String processSimpleQueryFilter(SimpleQueryFilter filter) {
+		NounMetadata leftComp = filter.getLComparison();
+		NounMetadata rightComp = filter.getRComparison();
+		String thisComparator = filter.getComparator();
+
+		FILTER_TYPE fType = filter.getSimpleFilterType();
+
+		if(fType == FILTER_TYPE.COL_TO_COL) {
+			throw new IllegalArgumentException("Filter of with a Filter Type of COL_TO_COL are not supported for Elastic/Open Search vector databases");
+		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
+			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
+			// same logic as above, just switch the order and reverse the comparator if it is numeric
+			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+		} else if(fType == FILTER_TYPE.COL_TO_QUERY) {
+			throw new IllegalArgumentException("Filter of with a Filter Type of COL_TO_QUERY are not supported for Elastic/Open Search vector databases");
+		} else if(fType == FILTER_TYPE.QUERY_TO_COL) {
+			throw new IllegalArgumentException("Filter of with a Filter Type of QUERY_TO_COL are not supported for Elastic/Open Search vector databases");
+		} else if(fType == FILTER_TYPE.COL_TO_LAMBDA) {
+			throw new IllegalArgumentException("Filter of with a Filter Type of COL_TO_LAMBDA are not supported for Elastic/Open Search vector databases");
+		} else if(fType == FILTER_TYPE.LAMBDA_TO_COL) {
+			throw new IllegalArgumentException("Filter of with a Filter Type of LAMBDA_TO_COL are not supported for Elastic/Open Search vector databases");
+		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
+			throw new IllegalArgumentException("Filter of with a Filter Type of VALUE_TO_VALUE are not supported for Elastic/Open Search vector databases");
+		}
+		return null;
+	}
+
+	/**
+	 * 
+	 * @param queryFilter
+	 * @param filter
+	 * @param should
+	 * @param must_not
+	 */
+	private String addAndFilter(AndQueryFilter queryFilter, String filterString) {
+		List<IQueryFilter> filterList = queryFilter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i > 0) filterString += " and ";
+			filterString += " ( ";
+			IQueryFilter filter2 = filterList.get(i);
+			if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+					filterString = addSimpleQueryFilter((SimpleQueryFilter) filterList.get(i), filterString);
+			} else if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+				filterString = addAndFilter((AndQueryFilter) filterList.get(i), filterString);
+			} else if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+				filterString = addOrFilter((OrQueryFilter) filterList.get(i), filterString);
+			}
+			filterString += " ) ";
+		}
+		return filterString;
+
+	}
+	
+	/**
+	 * 
+	 * @param queryFilter
+	 * @param filter
+	 * @param should
+	 * @param must_not
+	 */
+	private String addOrFilter(OrQueryFilter queryFilter, String filterString) {
+		List<IQueryFilter> filterList = queryFilter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i > 0) filterString += " or ";
+			filterString += " ( ";
+			IQueryFilter filter2 = filterList.get(i);
+			if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+					filterString = addSimpleQueryFilter((SimpleQueryFilter) filterList.get(i), filterString);
+			} else if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+				filterString = addOrFilter((OrQueryFilter) filterList.get(i), filterString);
+			} else if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+				filterString = addAndFilter((AndQueryFilter) filterList.get(i), filterString);
+			}
+			filterString +=  " )";
+		}
+		return filterString;
+	}
+
+	/**
+	 * 
+	 * @param leftComp
+	 * @param rightComp
+	 * @param thisComparator
+	 * @return
+	 */
+	private String addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		List<Object> normalizedValues = normalizeToList(rightComp.getValue());
+		boolean isNumeric = this.otherPropsToType.get(leftComp.getValue().toString()).equals(INT_DATATYPE);
+		if(!thisComparator.equals("==") && !thisComparator.equals("!=")) {
+			if(!NumberUtils.isNumber(rightComp.getValue().toString())) {
+				throw new IllegalArgumentException("Right hand operand must be a number");
+			}
+		}
+		if (thisComparator.equals("==")) {
+			return normalizedValues.stream()
+					.map(value -> {
+						String val = value.toString().replace("'", "''");
+						return isNumeric
+								? String.format("%s eq %s", leftComp.getValue().toString(), val)
+										: String.format("%s eq '%s'", leftComp.getValue().toString(), val);
+					})
+					.collect(Collectors.joining(" or "));
+		} else if (thisComparator.equals("!=")) {
+			return normalizedValues.stream()
+					.map(value -> {
+						String val = value.toString().replace("'", "''");
+						return isNumeric
+								? String.format("%s ne %s", leftComp.getValue().toString(), val)
+										: String.format("%s ne '%s'", leftComp.getValue().toString(), val);
+					})
+					.collect(Collectors.joining(" or "));
+			
+		}else if (thisComparator.equals("<")) {
+			String expression = "";
+			return expression;
+		} else if (thisComparator.equals(">")) {
+			String expression = "";
+			expression += leftComp.getValue().toString() + " gt " + rightComp.getValue();
+			return expression;
+		}else if (thisComparator.equals("<=")) {
+			String expression = "";
+			expression += leftComp.getValue().toString() + " le " + rightComp.getValue();
+			return expression;
+		}else if (thisComparator.equals(">=")) {
+			String expression = "";
+			expression += leftComp.getValue().toString() + " ge " + rightComp.getValue();
+			return expression;
+		}else if (thisComparator.equals("?like")) {
+			String expression = "";
+			expression += "search.ismatch(" + "'" + rightComp.getValue().toString() + "',"  + " '" + leftComp.getValue().toString() + "')";
+			return expression;
+		} else if (thisComparator.equals("?begins")) {
+			throw new IllegalArgumentException("Filters with a Query Filter Type of Begins with are not supported for Azure AI Search vector databases");
+		} else if (thisComparator.equals("?ends")) {
+			throw new IllegalArgumentException("Filters with a Query Filter Type of Ends with are not supported for Azure AI Search vector databases");
+		}
+
+		return null;
+	}
+	
+	private List<Object> normalizeToList(Object values) {
+		if(values instanceof String || values instanceof Number) {
+			return Collections.singletonList(values);
+		} else if (values instanceof Collection<?>) {
+			return ((Collection<?>) values).stream().filter(Objects::nonNull).collect(Collectors.toList());
+		}else {
+			throw new IllegalArgumentException("Unsupported input type");
+		}
+	}
+
+	@Override
+	protected String getDefaultDistanceMethod() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
