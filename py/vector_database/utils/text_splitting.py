@@ -288,7 +288,7 @@ def split_text_semantically(
         cfg_tokenizer: Tokenizer object used to count tokens.
 
     Returns:
-        A new DataFrame with additional columns like 'Source', 'Modality', 'Part', 'Tokens', and 'Content'.
+        A new DataFrame with additional columns like 'Source', 'Modality', 'Divider', 'Part', 'Tokens', and 'Content'.
     """
     from chonky import TextSplitter
 
@@ -307,7 +307,7 @@ def split_text_semantically(
             [
                 document_name,
                 "text",
-                "semantic",  # No specific page number since it's semantic
+                "semantic",  # No specific page number since it's semantic text splitting
                 i,
                 cfg_tokenizer.count_tokens(chunk),
                 chunk,
