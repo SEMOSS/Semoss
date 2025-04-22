@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
   push:
     branches: [ "tomcat-builder" ]
-    #paths:
-    #  - 'docker/Dockerfile.tomcat'
-
+    paths:
+      - 'docker/Dockerfile.tomcat'
+      - 'tomcat-builder.yml'
     # Publish semver tags as releases.
     #tags: [ 'v*.*.*' ]
   # pull_request:
