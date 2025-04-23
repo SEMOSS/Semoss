@@ -1,12 +1,6 @@
 name: Tomcat Builder v2
 
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Tomcat Version to deploy'
-        required: true
-        default: '9.0.12'
+on: workflow_dispatch
 
 env:
   # Use docker.io for Docker Hub if empty
