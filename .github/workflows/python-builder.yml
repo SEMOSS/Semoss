@@ -75,5 +75,11 @@ jobs:
           file: ./docker/Dockerfile.python
           push: false
           tags: quay.io/semoss/python-builder:${{ env.PYTHON_VERSION }}-${{ env.COMPUTE_TYPE }}
+          build-args: |                    # TODO : Replace environment variables with github input variables before merge to dev and main
+            PYTHON_VERSION=${{ env.PYTHON_VERSION }}
+            COMPUTE_TYPE=${{ env.COMPUTE_TYPE }}
+            BASE_REGISTRY=${{ env.BASE_REGISTRY }}
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
+            BASE_TAG=${{ env.BASE_TAG }}
   
 
