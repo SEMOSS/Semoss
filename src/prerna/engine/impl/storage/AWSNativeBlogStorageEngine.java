@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -21,19 +22,38 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.CRC32;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import prerna.engine.api.StorageTypeEnum;
-import prerna.util.Constants;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.ChecksumAlgorithm;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
+import software.amazon.awssdk.services.s3.model.CompletedPart;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartResponse;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
+
+import prerna.engine.api.StorageTypeEnum;
+import prerna.util.Constants;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
@@ -41,6 +61,7 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
+
 
 public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 
@@ -50,6 +71,7 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 	public static final String S3_BUCKET_KEY = "S3_BUCKET";
 	public static final String S3_ACCESS_KEY = "S3_ACCESS";
 	public static final String S3_SECRET_KEY = "S3_SECRET";
+	public static final String S3_CHECKSUM_TYPE = "s3-chceksum-type";
 
 	private String accessKey;
 	private String secretKey;
@@ -543,22 +565,170 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 				throw e;
 			}
 		}
-
-		// Prepare metadata
-		Map<String, String> metaMap = metadata != null
-				? metadata.entrySet().stream()
-						.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()))
-				: Collections.emptyMap();
+		 //Extract checksum-type from metadata
+	    String checksumType = ((String) metadata.getOrDefault(S3_CHECKSUM_TYPE, "null")).toUpperCase();
+	    ChecksumAlgorithm algorithm = parseChecksumAlgorithm(checksumType);
+		// Add checksum calculation
+    	String checksum = calculateSHA256Checksum(filePath);
+    	Map<String, String> metaMap = (metadata != null)
+    			? metadata.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()))
+    			: new HashMap<>();
+    	metaMap.put("sha256-checksum", checksum);
+    	long fileSize = Files.size(filePath);
+    	if (fileSize > 1 * 1024 * 1024) {
+    		// Multipart upload
+    		classLogger.info("Initiating multipart upload for: " + fileKey);
+    		uploadMultipart(fileKey, filePath, metaMap);
+    	} else {
+    		// Single part upload
 		retryOperation(() -> {
-			PutObjectRequest putRequest = PutObjectRequest.builder().bucket(this.bucket).key(fileKey)
-					.metadata(metaMap).build();
+			PutObjectRequest.Builder putRequest = PutObjectRequest.builder().bucket(this.bucket).key(fileKey).metadata(metaMap);
+			if (algorithm != null) {
+				putRequest.checksumAlgorithm(algorithm);
+	            }
 
-			this.client.putObject(putRequest, filePath);
+			this.client.putObject(putRequest.build(), filePath);
 			classLogger.info("Uploaded/Updated file: " + fileKey);
 			return;
 		}, "Uploading file to S3: " + fileKey);
+    }
 
 		return fileKey;
+	}
+	
+	private String calculateSHA256Checksum(Path path) throws IOException {
+		try (InputStream fis = Files.newInputStream(path)) {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			byte[] buffer = new byte[8192];
+			int bytesRead;
+			while ((bytesRead = fis.read(buffer)) != -1) {
+				digest.update(buffer, 0, bytesRead);
+			}
+			byte[] hashBytes = digest.digest();
+			StringBuilder sb = new StringBuilder();
+			for (byte b : hashBytes) {
+				sb.append(String.format("%02x", b));
+			}
+			return sb.toString();
+		} catch (NoSuchAlgorithmException e) {
+			throw new IOException("SHA-256 not supported", e);
+		}
+	}
+	      
+	private void uploadMultipart(String fileKey, Path filePath, Map<String, String> metadata) throws IOException {
+		long partSize = 5 * 1024 * 1024; // 5 MB
+		long fileSize = Files.size(filePath);
+		int partCount = (int) ((fileSize + partSize - 1) / partSize);
+		  //Extract checksum-type from metadata
+	    String checksumType = metadata.getOrDefault(S3_CHECKSUM_TYPE, "null").toUpperCase();
+	    ChecksumAlgorithm algorithm = parseChecksumAlgorithm(checksumType);
+
+		CreateMultipartUploadRequest.Builder createRequest = CreateMultipartUploadRequest.builder().bucket(this.bucket)
+				.key(fileKey).metadata(metadata);
+
+		  if (algorithm != null) {
+			  createRequest.checksumAlgorithm(algorithm);
+		    }
+		
+		CreateMultipartUploadResponse createResponse = this.client.createMultipartUpload(createRequest.build());
+		String uploadId = createResponse.uploadId();
+
+		List<CompletedPart> completedParts = new ArrayList<>();
+		try (InputStream inputStream = Files.newInputStream(filePath)) {
+			for (int partNumber = 1; partNumber <= partCount; partNumber++) {
+				byte[] partBytes = readNBytes(inputStream, (int) partSize);
+
+				UploadPartRequest.Builder uploadRequest = UploadPartRequest.builder().bucket(this.bucket).key(fileKey)
+						.uploadId(uploadId).partNumber(partNumber).checksumAlgorithm(algorithm);
+				
+				if (algorithm != null) {
+			        String checksum = computeChecksum(partBytes, algorithm);
+			        switch (algorithm) {
+			            case SHA256:
+			                uploadRequest.checksumSHA256(checksum);
+			                break;
+			            case SHA1:
+			                uploadRequest.checksumSHA1(checksum);
+			                break;
+			            case CRC32:
+			                uploadRequest.checksumCRC32(checksum);
+			                break;
+			            case CRC32_C:
+			                uploadRequest.checksumCRC32C(checksum);
+			                break;
+			        }
+			    }
+
+				RequestBody requestBody = RequestBody.fromBytes(partBytes);
+				UploadPartResponse uploadResponse = this.client.uploadPart(uploadRequest.build(), requestBody);
+
+				completedParts.add(CompletedPart.builder().partNumber(partNumber).eTag(uploadResponse.eTag()).build());
+			}
+
+			CompletedMultipartUpload completedUpload = CompletedMultipartUpload.builder().parts(completedParts).build();
+
+			CompleteMultipartUploadRequest completeRequest = CompleteMultipartUploadRequest.builder()
+					.bucket(this.bucket).key(fileKey).uploadId(uploadId).multipartUpload(completedUpload).build();
+
+			this.client.completeMultipartUpload(completeRequest);
+			classLogger.info("Multipart upload complete: " + fileKey);
+		} catch (Exception e) {
+			this.client.abortMultipartUpload(
+					AbortMultipartUploadRequest.builder().bucket(this.bucket).key(fileKey).uploadId(uploadId).build());
+			throw new IOException("Multipart upload failed for: " + fileKey, e);
+		}
+	}
+	
+
+
+	public static byte[] readNBytes(InputStream inputStream, int n) throws IOException {
+		byte[] buffer = new byte[n];
+		int bytesRead = 0;
+		int read;
+		while (bytesRead < n && (read = inputStream.read(buffer, bytesRead, n - bytesRead)) != -1) {
+			bytesRead += read;
+		}
+
+		if (bytesRead < n) {
+			return Arrays.copyOf(buffer, bytesRead); // return only the bytes read
+		}
+		return buffer;
+	}
+	
+	private String computeChecksum(byte[] data, ChecksumAlgorithm algorithm) throws NoSuchAlgorithmException {
+	    switch (algorithm) {
+	        case SHA256:
+	            return Base64.getEncoder()
+	                    .encodeToString(MessageDigest.getInstance("SHA-256").digest(data));
+	        case SHA1:
+	            return Base64.getEncoder()
+	                    .encodeToString(MessageDigest.getInstance("SHA-1").digest(data));
+	        case CRC32:
+	            CRC32 crc32 = new CRC32();
+	            crc32.update(data);
+	            return Base64.getEncoder()
+	                    .encodeToString(ByteBuffer.allocate(4).putInt((int) crc32.getValue()).array());
+	        case CRC32_C:
+	            Hasher hasher = Hashing.crc32c().newHasher();
+	            hasher.putBytes(data);
+	            int crc32cValue = hasher.hash().asInt();
+	            return Base64.getEncoder()
+	                    .encodeToString(ByteBuffer.allocate(4).putInt(crc32cValue).array());
+	        default:
+	            return Base64.getEncoder()
+	                    .encodeToString(MessageDigest.getInstance("SHA-256").digest(data));
+	    }
+	}
+	
+	//Map metadata value to AWS ChecksumAlgorithm enum
+	private ChecksumAlgorithm parseChecksumAlgorithm(String type) {
+	    switch (type) {
+	        case "SHA-256": return ChecksumAlgorithm.SHA256;
+	        case "SHA1":    return ChecksumAlgorithm.SHA1;
+	        case "CRC32":   return ChecksumAlgorithm.CRC32;
+	        case "CRC32C":  return ChecksumAlgorithm.CRC32_C;
+	        default:        return ChecksumAlgorithm.SHA256;
+	    }
 	}
 
 	private void retryOperation(Runnable operation, String actionDescription) {
@@ -719,18 +889,32 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 		String relativePath = rootPath.relativize(file).toString().replace("\\", "/").replaceAll("/+", "/").trim();
 		String fileKey = normalizedPath.isEmpty() ? relativePath
 				: (normalizedPath.endsWith("/") ? normalizedPath + relativePath : normalizedPath + "/" + relativePath);
+		
+		//Extract checksum-type from metadata
+	    String checksumType = ((String) metadata.getOrDefault(S3_CHECKSUM_TYPE, "null")).toUpperCase();
+	    ChecksumAlgorithm algorithm = parseChecksumAlgorithm(checksumType);
+		String checksum = calculateSHA256Checksum(file);
+    	Map<String, String> metaMap = (metadata != null)
+    			? metadata.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()))
+    			: new HashMap<>();
+    	
+    	metaMap.put("sha256-checksum", checksum);
+    	long fileSize = Files.size(file);
+    	if (fileSize > 1 * 1024 * 1024) {
+    		uploadMultipart(fileKey, file, metaMap);
+    	} else {
 
-		PutObjectRequest.Builder putBuilder = PutObjectRequest.builder().bucket(this.bucket).key(fileKey);
-
-		if (metadata != null && !metadata.isEmpty()) {
-			putBuilder.metadata(metadata.entrySet().stream()
-					.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())));
-		}
+		PutObjectRequest.Builder putBuilder = PutObjectRequest.builder().bucket(this.bucket).key(fileKey).metadata(metaMap);
+		
+		if (algorithm != null) {
+			putBuilder.checksumAlgorithm(algorithm);
+	    }
 
 		retryOperation(() -> {
 			this.client.putObject(putBuilder.build(), file);
 			classLogger.info("Uploaded file to S3: " + fileKey);
 		}, "Uploading to S3: " + fileKey);
+    }
 
 		return fileKey;
 	}
