@@ -1,4 +1,3 @@
-
 name: Python Builder
 
 # This workflow uses actions that are not certified by GitHub.
@@ -8,9 +7,10 @@ name: Python Builder
 
 on:
   push:
-    branches: [ "26-cloud-Fix_docker_builds" ]
+    branches: [ "python-builder" ]
     paths:
       - 'docker/Dockerfile.python'
+      - '.github/workflows/python-builder.yml'
     # Publish semver tags as releases.
     #tags: [ 'v*.*.*' ]
   # pull_request:
@@ -44,7 +44,7 @@ jobs:
         with:
           context: ./docker
           file: ./docker/Dockerfile.python
-          push: true
+          push: false
           tags: quay.io/semoss/python-builder:3.12  
   
 
