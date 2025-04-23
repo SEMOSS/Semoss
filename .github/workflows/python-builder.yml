@@ -6,15 +6,21 @@ name: Python Builder
 # documentation.
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Python Version to install'
+        required: true
+        default: '3.12'
+      compute_type:
+        description: 'Install either CPU or GPU packages'
+        required: true
+        default: 'cpu'
   push:
-    branches: [ "26-cloud-Fix_docker_builds" ]
+    branches: [ "dev", "main" ]
     paths:
       - 'docker/Dockerfile.python'
-    # Publish semver tags as releases.
-    #tags: [ 'v*.*.*' ]
-  # pull_request:
-  #   branches: [ "docker-build-workflows" ]
-
+      - '.github/workflows/python-builder.yml'
 
 jobs:
   build:
@@ -44,6 +50,6 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.python
           push: true
-          tags: quay.io/semoss/python-builder:3.12  
+          tags: quay.io/semoss/python-builder:3.12-cpu
   
 
