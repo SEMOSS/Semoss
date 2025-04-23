@@ -43,11 +43,11 @@ public class AbstractModelEngineResponseUnitTests {
         
         Map<String, Object> map = new HashMap<>();
         map.put("response", "response");
-        map.put("getNumberOfTokensInPrompt", 1);
+        map.put("numberOfTokensInPrompt", 1);
         map.put("numberOfTokensInResponse", 1);
         map.put("usageRestriction", new HashMap<>());
         assertEquals(map.get("response"), abs.toMap().get("response"));
-        assertEquals(map.get("numberOfTokensInPrompt"), abs.toMap().get("getNumberOfTokensInPrompt"));
+        assertEquals(map.get("numberOfTokensInPrompt"), abs.toMap().get("numberOfTokensInPrompt"));
         assertEquals(map.get("numberOfTokensInResponse"), abs.toMap().get("numberOfTokensInResponse"));
         assertEquals(map.get("usageRestriction"), abs.toMap().get("usageRestriction"));
     }

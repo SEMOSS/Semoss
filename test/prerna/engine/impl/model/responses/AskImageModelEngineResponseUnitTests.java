@@ -29,6 +29,7 @@ public class AskImageModelEngineResponseUnitTests {
         jsonObj.put("guidance_scale", 1.0);
         jsonObj.put("seed", 1);
 
+        reactor = new AskImageModelEngineResponse(null, 0, 0);
         AskImageModelEngineResponse obj = reactor.getKServeImageResponse(jsonObj);
 
         assertNotNull(obj);
@@ -54,6 +55,7 @@ public class AskImageModelEngineResponseUnitTests {
         JSONObject jsonObj  = new JSONObject();
         jsonObj.put("output", list);
 
+        reactor = new AskImageModelEngineResponse(null, 0, 0);
         AskImageModelEngineResponse obj = reactor.getKServeImageResponse(jsonObj);
 
         assertNotNull(obj);
@@ -69,6 +71,7 @@ public class AskImageModelEngineResponseUnitTests {
         JSONObject jsonObj  = new JSONObject();
         jsonObj.put("output", "[string]");
 
+        reactor = new AskImageModelEngineResponse(null, 0, 0);
         AskImageModelEngineResponse obj = reactor.getKServeImageResponse(jsonObj);
 
         assertNotNull(obj);
@@ -84,6 +87,7 @@ public class AskImageModelEngineResponseUnitTests {
         JSONObject jsonObj  = new JSONObject();
         jsonObj.put("output", "[{json:obj}]");
 
+        reactor = new AskImageModelEngineResponse(null, 0, 0);
         AskImageModelEngineResponse obj = reactor.getKServeImageResponse(jsonObj);
 
         assertNotNull(obj);
@@ -93,6 +97,7 @@ public class AskImageModelEngineResponseUnitTests {
 
     @Test
     void getKserverNullParam() {
+        reactor = new AskImageModelEngineResponse(null, 0, 0);
         AskImageModelEngineResponse obj = reactor.getKServeImageResponse(null);
         
         assertNotNull(obj);

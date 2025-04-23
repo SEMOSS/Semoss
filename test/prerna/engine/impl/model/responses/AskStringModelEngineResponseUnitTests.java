@@ -22,6 +22,7 @@ public class AskStringModelEngineResponseUnitTests {
 
     @Test
     void fromNull() {
+        reactor = new AskStringModelEngineResponse("", 0, 0);
         AskStringModelEngineResponse ans = reactor.fromJson(null);
 
         assertNull(ans);
@@ -34,6 +35,7 @@ public class AskStringModelEngineResponseUnitTests {
         obj.put("input_tokens", 1);
         obj.put("output_tokens", 1);
 
+        reactor = new AskStringModelEngineResponse("", 0, 0);
         AskStringModelEngineResponse ans = reactor.fromJson(obj);
 
         assertNotNull(ans);
@@ -47,6 +49,7 @@ public class AskStringModelEngineResponseUnitTests {
         JSONObject obj = new JSONObject();
         obj.put("output", "output");
 
+        reactor = new AskStringModelEngineResponse("", 0, 0);
         AskStringModelEngineResponse ans = reactor.fromJson(obj);
 
         assertNotNull(ans);
@@ -57,6 +60,7 @@ public class AskStringModelEngineResponseUnitTests {
     void fromJsonNoOutput() {
         JSONObject obj = new JSONObject();
 
+        reactor = new AskStringModelEngineResponse("", 0, 0);
         AskStringModelEngineResponse ans = reactor.fromJson(obj);
 
         assertNotNull(ans);
