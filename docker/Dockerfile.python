@@ -9,7 +9,7 @@ ENV BASE_REGISTRY=${BASE_REGISTRY}
 ENV BASE_IMAGE=${BASE_IMAGE}
 ENV BASE_TAG=${BASE_TAG}
 
-FROM $BASE_REGISTRY/$BASE_IMAGE:$BASE_TAG AS builder
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS builder
 
 # Base image arguments
 #ARG BASE_REGISTRY=docker.io
@@ -73,9 +73,7 @@ RUN cd /tmp && \
     curl -o pyproject.toml https://raw.githubusercontent.com/SEMOSS/Semoss/refs/heads/dev/py/install_config/pyproject.toml && \
     uv pip install -r pyproject.toml  --extra ${COMPUTE_TYPE}
 	
-#FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS final
-
-FROM $BASE_REGISTRY/$BASE_IMAGE:$BASE_TAG AS final
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS final
 
 COPY --from=builder /usr/lib/python /usr/lib/python
 
