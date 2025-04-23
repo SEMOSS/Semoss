@@ -6,8 +6,30 @@ name: Python Builder
 # documentation.
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Python Version to install'
+        required: true
+        default: '3.12'
+      compute_type:
+        description: 'Install either CPU or GPU packages'
+        required: true
+        default: 'cpu'
+      base_registry:
+        description: 'Base registry'
+        required: true
+        default: 'docker.io'
+      base_image:
+        description: 'Base Image'
+        required: true
+        default: 'ubuntu'
+      base_tag:
+        description: 'Base tag'
+        required: true
+        default: '22.04'
   push:
-    branches: [ "python-builder" ]
+    branches: [ "dev", "main" , "python-builder" ]
     paths:
       - 'docker/Dockerfile.python'
       - '.github/workflows/python-builder.yml'
@@ -21,6 +43,13 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+
+    env:
+      PYTHON_VERSION: "3.12"
+      COMPUTE_TYPE: "cpu"
+      BASE_REGISTRY: "docker.io"
+      BASE_IMAGE: "ubuntu"
+      BASE_TAG: "22.04"
 
     steps:
       - name: Checkout repository
@@ -45,6 +74,6 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.python
           push: false
-          tags: quay.io/semoss/python-builder:3.12  
+          tags: quay.io/semoss/python-builder:${{ env.PYTHON_VERSION }}-${{ env.COMPUTE_TYPE }}
   
 
