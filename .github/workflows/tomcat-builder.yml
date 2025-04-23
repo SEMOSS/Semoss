@@ -54,7 +54,7 @@ jobs:
         with:
           context: ./docker
           file: ./docker/Dockerfile.tomcat
-          push: false
+          push: true
           tags: quay.io/semoss/tomcat-builder:${{ env.TOMCAT_VERSION }}   #TODO: update with github input variable before merge to main
           build-args: |
             TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
