@@ -12,6 +12,12 @@
                 <KeyValuePair key="serviceName"  value="${ctx:serviceName}"/>
                 <KeyValuePair key="method"  value="${ctx:method}"/>
                 <KeyValuePair key="endpoint"  value="${ctx:endpoint}"/>
+                <KeyValuePair key="insightId"  value="${ctx:insightId}"/>
+                <KeyValuePair key="projectId"  value="${ctx:projectId}"/>
+                <KeyValuePair key="engineId"  value="${ctx:engineId}"/>
+                <KeyValuePair key="engineType"  value="${ctx:engineType}"/>
+                <KeyValuePair key="projectName"  value="${ctx:projectName}"/>
+                <KeyValuePair key="pixelId"  value="${ctx:pixelId}"/>
             </JsonLayout>
             <loggerClass>prerna.logger.impl.KafkaLogger</loggerClass>
             <loggerConfig>bootstrap.servers=localhost:9092,topic=logs1</loggerConfig>
@@ -29,8 +35,15 @@
                 <KeyValuePair key="serviceName"  value="${ctx:serviceName}"/>
                 <KeyValuePair key="method"  value="${ctx:method}"/>
                 <KeyValuePair key="endpoint"  value="${ctx:endpoint}"/>
+                <KeyValuePair key="insightId"  value="${ctx:insightId}"/>
+                <KeyValuePair key="projectId"  value="${ctx:projectId}"/>
+                <KeyValuePair key="engineId"  value="${ctx:engineId}"/>
+                <KeyValuePair key="engineType"  value="${ctx:engineType}"/>
+                <KeyValuePair key="projectName"  value="${ctx:projectName}"/>
+                <KeyValuePair key="pixelId"  value="${ctx:pixelId}"/>
             </JsonLayout>
         </Console>
+
     </Appenders>
 
     <Loggers>

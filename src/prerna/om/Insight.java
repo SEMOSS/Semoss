@@ -53,12 +53,15 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import org.apache.logging.log4j.ThreadContext;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
+import prerna.logger.ContextKey;
+import prerna.logger.ThreadContextLogger;
 import prerna.project.api.IProject;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -571,6 +574,7 @@ public class Insight implements Serializable {
 
 	public void setInsightId(String insightId) {
 		this.insightId = insightId;
+		ThreadContextLogger.setContext(ContextKey.INSIGHT_ID, insightId);
 	}
 
 	public String getUserId(AuthProvider provider) {
