@@ -4,3 +4,4 @@ venv
 
 /Temp
 
+install_config/uv.lock
