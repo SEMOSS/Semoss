@@ -244,9 +244,25 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         """
         chars_to_remove = char_multiplier * tokens_over_limit
         updated_messages = []
-
         if truncation_strategy.lower() == "standard":
-            for i, message in enumerate(messages):
+            # Determine if the first message is a system prompt
+            maintain_sys_prompt = messages and messages[0].get("role") == "system"
+            # assuming we have [message1, message2, message3, message4]
+            if maintain_sys_prompt:
+                # Process order: message2, message3, message1, message4
+                process_order = list(range(1, len(messages) - 1)) + [
+                    0,
+                    len(messages) - 1,
+                ]
+            else:
+                # Process order: message1, message2, message3, message4
+                process_order = list(range(len(messages)))
+
+            for index, value in enumerate(process_order):
+                # note we use the value in this case
+                # since here we might have array [1,2,0,3]
+                # and we want to grab from the original message value
+                message = messages[value]
                 # Grabbing the content of the message
                 message_content = message.get("content", "")
                 # Measuring the length of the message content
@@ -255,16 +271,30 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                 if message_length < chars_to_remove:
                     # If the message length doesn't cover the character estimation, remove it
                     # We remove the entire ChatML message by not adding it to the updated messages list
+                    chars_to_remove -= message_length
                     continue
                 else:
                     # If the message length is greater than the character estimation we truncate
                     truncated_message = message_content[:-chars_to_remove]
-                    updated_messages.append(
-                        {"role": message["role"], "content": truncated_message}
-                    )
+                    if message.get("role") == "system":
+                        updated_messages.insert(
+                            0, {"role": message["role"], "content": truncated_message}
+                        )
+                    else:
+                        updated_messages.append(
+                            {"role": message["role"], "content": truncated_message}
+                        )
+
                     # Adding the remaining messages to the updated messages list
-                    if i + 1 < len(messages):
-                        updated_messages.extend(messages[i + 1 :])
+                    # note here we only want to continue after this position
+                    # so via index, not value
+                    if index + 1 < len(messages):
+                        for j in range(index + 1, len(messages)):
+                            if messages[j].get("role") == "system":
+                                updated_messages.insert(0, messages[j])
+                            else:
+                                updated_messages.append(messages[j])
+
                     return updated_messages
         else:
             # If the truncation strategy is not standard... we can implement other strategies here
