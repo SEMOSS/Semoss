@@ -6,21 +6,29 @@ name: Tomcat Builder v2
 # documentation.
 
 on:
-  # push:
-  #   branches: [ "tomcat-builder" ]
-  #   # Publish semver tags as releases.
   workflow_dispatch:
-    # inputs:
-    #   version:
-    #     description: 'Tomcat Version to deploy'
-    #     required: true
-    #     default: '9.0.12'
+    inputs:
+      version:
+        description: 'Tomcat Version to deploy'
+        required: true
+        default: '9.0.12'
 
-env:
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
+# on:
+#   # push:
+#   #   branches: [ "tomcat-builder" ]
+#   #   # Publish semver tags as releases.
+#   workflow_dispatch:
+#     # inputs:
+#     #   version:
+#     #     description: 'Tomcat Version to deploy'
+#     #     required: true
+#     #     default: '9.0.12'
+
+# env:
+#   # Use docker.io for Docker Hub if empty
+#   # REGISTRY: ghcr.io
+#   # github.repository as <account>/<repo>
+#   IMAGE_NAME: ${{ github.repository }}
 
 
 jobs:
