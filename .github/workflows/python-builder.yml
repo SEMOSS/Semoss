@@ -16,8 +16,20 @@ on:
         description: 'Install either CPU or GPU packages'
         required: true
         default: 'cpu'
+      base_registry:
+        description: 'Base registry'
+        required: true
+        default: 'docker.io'
+      base_image:
+        description: 'Base Image'
+        required: true
+        default: 'ubuntu'
+      base_tag:
+        description: 'Base tag'
+        required: true
+        default: '22.04'
   push:
-    branches: [ "dev", "main" ]
+    branches: [ "dev", "main" , "tomcat-builder"]
     paths:
       - 'docker/Dockerfile.python'
       - '.github/workflows/python-builder.yml'
@@ -26,6 +38,14 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+
+    env:
+      PYTHON_VERSION: "3.12"
+      COMPUTE_TYPE: "cpu"
+      BASE_REGISTRY: "docker.io"
+      BASE_IMAGE: "ubuntu"
+      BASE_TAG: "22.04"
+      
 
     steps:
       - name: Checkout repository
@@ -49,7 +69,13 @@ jobs:
         with:
           context: ./docker
           file: ./docker/Dockerfile.python
-          push: true
-          tags: quay.io/semoss/python-builder:3.12-cpu
+          push: false
+          tags: quay.io/semoss/python-builder:${{ env.PYTHON_VERSION }}-${{ env.COMPUTE_TYPE }}
+          build-args: |
+            PYTHON_VERSION=${{ env.PYTHON_VERSION }}
+            COMPUTE_TYPE=${{ env.COMPUTE_TYPE }}
+            BASE_REGISTRY=${{ env.BASE_REGISTRY }}
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
+            BASE_TAG=${{ env.BASE_TAG }}
   
 
