@@ -303,12 +303,12 @@ def split_text_semantically(
             [
                 document_name,
                 "text",
-                "semantic",  # No specific page number since it's semantic text splitting
-                i,
+                0,  # No specific page number since it's semantic text splitting [Default - 0]
+                part,
                 cfg_tokenizer.count_tokens(chunk),
                 chunk,
             ]
-            for i, chunk in enumerate(chunks)
+            for part, chunk in enumerate(chunks)
         ],
         columns=["Source", "Modality", "Divider", "Part", "Tokens", "Content"],
     )
