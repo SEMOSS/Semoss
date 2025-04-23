@@ -6,13 +6,14 @@ name: Tomcat Builder v2
 # documentation.
 
 on:
+  push:
+    branches:
+      - tomcat-builder
+  pull_request:
+    branches:
+      - tomcat-builder
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Tomcat Version to deploy'
-        required: true
-        default: '9.0.12'
-
+  
 # on:
 #   # push:
 #   #   branches: [ "tomcat-builder" ]
