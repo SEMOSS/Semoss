@@ -8,8 +8,13 @@ name: Tomcat Builder
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Tomcat Version to deploy'
+        required: true
+        default: '9.0.12'
   push:
-    branches: [ "tomcat-builder" ]
+    branches: [ "dev", "main" ]
     paths:
       - 'docker/Dockerfile.tomcat'
       - '.github/workflows/tomcat-builder.yml'
