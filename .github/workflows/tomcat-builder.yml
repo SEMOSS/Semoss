@@ -1,3 +1,4 @@
+
 name: Tomcat Builder
 
 # This workflow uses actions that are not certified by GitHub.
@@ -6,10 +7,17 @@ name: Tomcat Builder
 # documentation.
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Tomcat Version to deploy'
+        required: true
+        default: '9.0.12'
   push:
-    branches: [ "26-cloud-Fix_docker_builds" ]
+    branches: [ "dev", "main" ]
     paths:
       - 'docker/Dockerfile.tomcat'
+      - '.github/workflows/tomcat-builder.yml'
     # Publish semver tags as releases.
     #tags: [ 'v*.*.*' ]
   # pull_request:
@@ -18,8 +26,11 @@ on:
 
 jobs:
   build:
-
+    
     runs-on: ubuntu-latest
+
+    env:
+      TOMCAT_VERSION: "9.0.102" 
 
     steps:
       - name: Checkout repository
@@ -44,5 +55,7 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.tomcat
           push: true
-          tags: quay.io/semoss/tomcat-builder:9.0.102  #replace tag
+          tags: quay.io/semoss/tomcat-builder:${{ env.TOMCAT_VERSION }}   #TODO: update with github input variable before merge to main
+          build-args: |
+            TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
   
