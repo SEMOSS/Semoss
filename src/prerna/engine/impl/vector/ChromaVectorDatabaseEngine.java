@@ -2,10 +2,7 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.FileTime;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -13,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -237,23 +233,20 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 					headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 
 			//TODO: let us add validation by looking at the response			
-//			String fullDocumentPath = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR
-//					+ "documents" + DIR_SEPARATOR + fileName;
-			Path document = Paths.get(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR
-					+ "documents", fileName);
+			
+			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
-			boolean deleted = Files.deleteIfExists(document);
-			if (deleted) {
-				filesToRemoveFromCloud.add(document.normalize().toAbsolutePath().toString());
+			File documentFile = new File(
+					this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents",
+					documentName);
+			try {
+				if (documentFile.exists()) {
+					FileUtils.forceDelete(documentFile);
+					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
+				}
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
-//			try {
-//				if (documentFile.exists()) {
-//					FileUtils.forceDelete(documentFile);
-//					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
-//				}
-//			} catch (IOException e) {
-//				classLogger.error(Constants.STACKTRACE, e);
-//			}
 
 		}
 
@@ -323,36 +316,24 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		Path documentsDir = Paths.get(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 
 		List<Map<String, Object>> fileList = new ArrayList<>();
 
-		List<Path> files = null;
-		try {
-			files = Files.list(documentsDir).collect(Collectors.toList());
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		File[] files = documentsDir.listFiles();
 		if (files != null) {
-			for (Path file : files) {
-				try {
-					String fileName = file.getFileName().toString();
-					Long fileSizeInBytes = Files.size(file);
-					double fileSizeInMB = (double) fileSizeInBytes / (1024);
-					SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-					FileTime fileTime = Files.getLastModifiedTime(file);
-		            long lastModifiedMillis = fileTime.toMillis();
-		             Date lastModified = new Date(lastModifiedMillis);
+			for (File file : files) {
+				String fileName = file.getName();
+				long fileSizeInBytes = file.length();
+				double fileSizeInMB = (double) fileSizeInBytes / (1024);
+				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				String lastModified = dateFormat.format(new Date(file.lastModified()));
 
-		            Map<String, Object> fileInfo = new HashMap<>();
-					fileInfo.put("fileName", fileName);
-					fileInfo.put("fileSize", fileSizeInMB);
-					fileInfo.put("lastModified", lastModified);
-					fileList.add(fileInfo);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-//					throw e;
-				}
+				Map<String, Object> fileInfo = new HashMap<>();
+				fileInfo.put("fileName", fileName);
+				fileInfo.put("fileSize", fileSizeInMB);
+				fileInfo.put("lastModified", lastModified);
+				fileList.add(fileInfo);
 			}
 		} 
 
