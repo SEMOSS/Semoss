@@ -72,7 +72,9 @@ RUN cd /tmp && \
     curl -o pyproject.toml https://raw.githubusercontent.com/SEMOSS/Semoss/refs/heads/dev/py/install_config/pyproject.toml && \
     uv pip install -r pyproject.toml  --extra ${COMPUTE_TYPE}
 	
-FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS final
+#FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS final
+
+FROM $BASE_REGISTRY/$BASE_IMAGE:$BASE_TAG AS final
 
 COPY --from=builder /usr/lib/python /usr/lib/python
 
