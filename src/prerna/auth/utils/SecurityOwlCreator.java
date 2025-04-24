@@ -106,8 +106,8 @@ public class SecurityOwlCreator {
 		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/MODEL_ATTRIBUTES");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/MODEL_ATTRIBUTES")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SESSION_SHARE/IS_SESSION_SHARE")) {
 				return true;
 			}
 		}
