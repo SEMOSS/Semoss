@@ -131,7 +131,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         use_history_param = str(use_history).lower()
 
-        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>", useHistory={use_history_param} {optionalContext}{optionalParamDict});'
+        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>", useHistory={use_history_param}{optionalContext}{optionalParamDict});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
