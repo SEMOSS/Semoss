@@ -8,7 +8,7 @@ name: Python Builder
 on:
   workflow_dispatch:
     inputs:
-      version:
+      python_version:
         description: 'Python Version to install'
         required: true
         default: '3.12'
