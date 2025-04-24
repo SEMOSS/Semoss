@@ -29,7 +29,7 @@ on:
         required: true
         default: '22.04'
   push:
-    branches: [ "dev", "main"]
+    branches: [ "dev", "main",  "26-cloud-Fix_docker_builds"]
     paths:
       - 'docker/Dockerfile.python'
       - '.github/workflows/python-builder.yml'
