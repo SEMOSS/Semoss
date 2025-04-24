@@ -36,6 +36,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -52,6 +53,7 @@ import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
 
+import prerna.auth.external.ExternalDatabaseMetadataHelper;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -71,6 +73,7 @@ import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.SemossDefaultEngines;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -172,7 +175,10 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 		if(secretStore != null) {
 			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+			if(engineSecrets == null || engineSecrets.isEmpty()) {
+				classLogger.info("No secrets found for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			} else {
+				classLogger.info("Successfully pulled secrets for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
@@ -225,6 +231,24 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 				// it exists, just set it
 				classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
 				setOwlFilePath(owlFile);
+			}
+		}
+		
+		// this section is if we are getting the metadata on load from an external service
+		boolean externalDatabaseMetadata = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.EXTERNAL_DATABASE_MANAGEMENT_ENABLED)+"");
+		if(externalDatabaseMetadata && !SemossDefaultEngines.getDatabasesWithGeneratedOwl().contains(this.engineId)) {
+			try {
+				// store in the OWL
+				// so that the local master can pick up the OWL 
+				if(owlPropStr == null || (owlPropStr=owlPropStr.trim()).isEmpty()) {
+					Map<String, String> mods = new HashMap<>();
+					mods.put(Constants.OWL, Constants.DATABASE_FOLDER+"/@ENGINE@/"+new File(owlFile).getName());
+					Utility.addKeysAtLocationIntoPropertiesFile(this.smssFilePath, null, mods);
+				}
+				ExternalDatabaseMetadataHelper.parseJsonToOwl(this);
+			} catch(Exception e) {
+				classLogger.warn("Could not load metadata externally for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 

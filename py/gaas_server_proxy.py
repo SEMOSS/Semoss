@@ -1,5 +1,7 @@
 from typing import List, Any, Optional
 import threading
+import random
+import string
 
 
 class ServerProxy:
@@ -9,7 +11,6 @@ class ServerProxy:
         """
         Initialize the ServerProxy instance.
         """
-        self.epoc = 0
         self.condition = threading.Condition()
 
         from gaas_tcp_server_handler import TCPServerHandler
@@ -17,9 +18,8 @@ class ServerProxy:
         self.server = TCPServerHandler.da_server
 
     def get_next_epoc(self) -> str:
-        """This method atomically increments the epoc count by one plus the current value."""
-        self.epoc = self.epoc + 1
-        return f"py_{self.epoc}"
+        """This method atomically returns a random value that is unique across all thread operations and instances."""
+        return "py_" + "".join(random.choice(string.digits) for _ in range(17))
 
     def comm(
         self,
@@ -180,4 +180,3 @@ class ServerProxy:
             raise Exception(new_payload_struct["ex"])
         else:
             return new_payload_struct["payload"]
-

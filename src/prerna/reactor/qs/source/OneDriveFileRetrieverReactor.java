@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
@@ -58,7 +57,7 @@ public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor{
 				throwLoginError(retMap);
 			}
 			else if (user != null) {
-				AccessToken msToken = user.getAccessToken(AuthProvider.MS);
+				AccessToken msToken = user.getAccessToken(AuthProvider.MICROSOFT);
 				accessToken=msToken.getAccess_token();
 			}
 		}

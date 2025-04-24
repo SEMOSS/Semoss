@@ -16,7 +16,6 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -43,7 +42,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	public static final String MESSAGE_CONTENT = "content";
 	public static final String ROLE = "role";
-	
+	public static final String TOOL_CALLS = "tool_calls";
+    public static final String TYPE = "type";
+    public static final String ID = "id";
+    public static final String FUNCTION = "function";
+    public static final String ARGUMENTS = "arguments";
+    public static final String NAME = "name";
 	// param keys
 	public static final String FULL_PROMPT = "full_prompt";
 	
@@ -72,7 +76,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 		if(secretStore != null) {
 			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+			if(engineSecrets == null || engineSecrets.isEmpty()) {
+				classLogger.info("No secrets found for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			} else {
+				classLogger.info("Successfully pulled secrets for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
@@ -133,7 +140,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*fullPrompt*/fullPrompt,
 					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
 					/*inputTime*/inputTime, 
-					/*response*/askModelResponse.getResponse(),
+					/*response*/askModelResponse.getStringResponse(),
 					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
 					/*outputTime*/outputTime
 			));
@@ -284,44 +291,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, embeddingsResponse, inputTime, outputTime);
  		
 		return embeddingsResponse;
-	}
-	
-	/**
-	 * This is an abstract method for the implementation class such that tracking occurs
-	 * 
-	 * @param input
-	 * @param insight
-	 * @param parameters
-	 * @return
-	 */
-	protected abstract Object modelCall(Object input, Insight insight, Map <String, Object> parameters);
-	
-	@Override
-	public Object model(Object input, Insight insight, Map <String, Object> parameters) {		
-		ZonedDateTime inputTime = ZonedDateTime.now();
-		Object modelCallResponse = modelCall(input, insight, parameters);
-		ZonedDateTime outputTime = ZonedDateTime.now();
-	
-		if (inferenceLogsEnbaled) {
-			String messageId = UUID.randomUUID().toString();
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/messageId,
-					/*messageMethod*/"model", 
-					/*engine*/this,
-					/*insight*/insight,
-					/*context*/null,
-					/*prompt*/input + "",
-					/*fullPrompt*/null,
-					/*promptTokens*/null,
-					/*inputTime*/inputTime, 
-					/*response*/PyUtils.determineStringType(modelCallResponse),
-					/*responseTokens*/null,
-					/*outputTime*/outputTime
-			));
-			inferenceRecorder.start();
-		}
- 				
-		return modelCallResponse;
 	}
 	
 	/**

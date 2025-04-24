@@ -35,7 +35,7 @@ public class ExcelParsing {
 
 	public static boolean isEmptyCell(Cell thisCell) {
 		if (thisCell == null 
-				|| thisCell.getCellTypeEnum() == CellType.BLANK 
+				|| thisCell.getCellType() == CellType.BLANK 
 				|| thisCell.toString().trim().isEmpty()) {
 			return true;
 		}
@@ -68,7 +68,7 @@ public class ExcelParsing {
 			return thisCell.getBooleanCellValue();
 		} else if (type == CellType.FORMULA) {
 			// do the same for the formula value
-			CellType formulatype = thisCell.getCachedFormulaResultTypeEnum();
+			CellType formulatype = thisCell.getCachedFormulaResultType();
 			if (formulatype == CellType.BLANK) {
 				return "";
 			}

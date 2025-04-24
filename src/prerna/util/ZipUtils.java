@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -341,16 +342,22 @@ public final class ZipUtils {
 		return paths;
 	}
 
-//	public static void main(String[] args) throws FileNotFoundException, IOException {
-//		//		String dest = "C:\\Users\\SEMOSS\\workspace\\Semoss\\db\\Movie__6e41aba8-29da-4616-b2f9-647a8ef01313\\version";
-//		//		dest = "C:\\Users\\SEMOSS\\workspace";
-//		//		dest = dest.replace("\\", "/");
-//		String zip = "C:\\Users\\mahkhalil\\Desktop\\Movie.zip";
-//		zip = zip.replace("\\", "/");
-//		Path zipUri = Paths.get(zip);		
-//		Map<String, List<String>> map = listFilesInZip(zipUri);
-//		Gson gson = GsonUtility.getDefaultGson();
-//		classLogger.info(gson.toJson(map));
-//	}
+	/**
+	 * 
+	 * @param sourceFile
+	 * @param gzipFile
+	 * @throws IOException
+	 */
+	public static void compressGzipFile(String sourceFile, String gzipFile) throws IOException {
+		try (FileOutputStream fos = new FileOutputStream(gzipFile);
+				GZIPOutputStream gzipOS = new GZIPOutputStream(fos);
+				FileInputStream fis = new FileInputStream(sourceFile)) {
+			byte[] buffer = new byte[1024];
+			int len;
+			while ((len = fis.read(buffer)) > 0) {
+				gzipOS.write(buffer, 0, len);
+			}
+		}
+	}
 
 }

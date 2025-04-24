@@ -42,14 +42,11 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.joins.SubqueryRelationship;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
-import prerna.query.querystruct.update.UpdateQueryStruct;
-import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
@@ -955,6 +952,34 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return wrapper;
 	}
+	
+	/**
+	 * See if project exists
+	 * @return
+	 */
+	public static boolean projectExists(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return false;
+	}
 
 	/**
 	 * See if specific project is global
@@ -1224,14 +1249,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getProjectUsers(User user, String projectId, String searchParam, String permission, long limit, long offset) throws IllegalAccessException {
 		if(!userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException("The user does not have access to view this project");
+			throw new IllegalAccessException("The user does not have access to view this project");
 		}
 		return SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission, limit, offset);
 	}
 	
 	public static long getProjectUsersCount(User user, String projectId, String searchParam, String permission) throws IllegalAccessException {
 		if(!userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException("The user does not have access to view this project");
+			throw new IllegalAccessException("The user does not have access to view this project");
 		}
 		boolean hasSearchParam = searchParam != null && !(searchParam=searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
@@ -1348,7 +1373,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// make sure we are trying to edit a permission that exists
 		Integer existingUserPermission = getUserProjectPermission(existingUserId, projectId);
 		if(existingUserPermission == null) {
-			throw new IllegalArgumentException("Attempting to modify project permission for a user who does not currently have access to the project");
+			throw new IllegalAccessException("Attempting to modify project permission for a user who does not currently have access to the project");
 		}
 
 		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
@@ -1707,10 +1732,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param isPublic
 	 * @return
+	 * @throws IllegalAccessException 
 	 */
-	public static boolean setProjectName(User user, String projectId, String newProjectName) {
+	public static boolean setProjectName(User user, String projectId, String newProjectName) throws IllegalAccessException {
 		if(!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
-			throw new IllegalArgumentException("The user doesn't have the permission to change the project name. Only the owner or an admin can perform this action.");
+			throw new IllegalAccessException("The user doesn't have the permission to change the project name. Only the owner or an admin can perform this action.");
 		}
 		PreparedStatement ps = null;
 		try {
@@ -1774,7 +1800,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, projectId);
 					ps.setString(parameterIndex++, depEngineId);
 					ps.setString(parameterIndex++, token.getId());
-					ps.setString(parameterIndex++, token.getName());
+					ps.setString(parameterIndex++, token.getProvider().getLabel());
 					ps.setTimestamp(parameterIndex++, timestamp);
 					ps.addBatch();
 				}
@@ -2104,7 +2130,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		 * Security check to make sure that the user can view the application provided. 
 		 */
 		if(!userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException("The user does not have access to view this project");
+			throw new IllegalAccessException("The user does not have access to view this project");
 		}	
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -2784,22 +2810,30 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
-				UpdateQueryStruct uqs = new UpdateQueryStruct();
-				uqs.setEngine(securityDb);
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIdFilters));
-
-				List<IQuerySelector> selectors = new ArrayList<>();
-				selectors.add(new QueryColumnSelector("PROJECTPERMISSION__VISIBILITY"));
-				List<Object> values = new ArrayList<>();
-				values.add(visibility);
-				uqs.setSelectors(selectors);
-				uqs.setValues(values);
-				
-				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
-				String updateQuery = updateInterp.composeQuery();
-				securityDb.insertData(updateQuery);
-				
+				// need to update
+				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET VISIBILITY=? WHERE USERID=?");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
+				}
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setBoolean(parameterIndex++, visibility);
+						ps.setString(parameterIndex++, userId);
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+				}
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION "
@@ -2870,28 +2904,36 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
-				UpdateQueryStruct uqs = new UpdateQueryStruct();
-				uqs.setEngine(securityDb);
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIdFilters));
-
-				List<IQuerySelector> selectors = new ArrayList<>();
-				selectors.add(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE"));
-				List<Object> values = new ArrayList<>();
-				values.add(isFavorite);
-				uqs.setSelectors(selectors);
-				uqs.setValues(values);
-				
-				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
-				String updateQuery = updateInterp.composeQuery();
-				securityDb.insertData(updateQuery);
-				
+				// need to update
+				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET FAVORITE=? WHERE USERID=?");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
+				}
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setBoolean(parameterIndex++, isFavorite);
+						ps.setString(parameterIndex++, userId);
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+				}
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION "
 						+ "(USERID, PROJECTID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
 				if(ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
+					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
 				}
 				try {
 					// we will set the permission to read only
@@ -2947,7 +2989,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		String query = "UPDATE PROJECT SET HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?";
 		PreparedStatement ps = securityDb.getPreparedStatement(query);
 		if(ps == null) {
-			throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
+			throw new IllegalArgumentException("Error generating prepared statement to set project portal");
 		}
 		try {
 			int parameterIndex = 1;
@@ -3556,7 +3598,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		// only project owners can deny user access requests
 		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			throw new IllegalArgumentException("Insufficient privileges to deny user access requests.");
+			throw new IllegalAccessException("Insufficient privileges to deny user access requests.");
 		}
 				
 		// bulk update to projectaccessrequest table

@@ -1,38 +1,29 @@
 package prerna.reactor.frame.gaas.processors;
 
-import java.io.File;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.UUID;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
-import java.awt.Color;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import javax.imageio.ImageIO;
-import java.util.Base64;
-import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.poi.xslf.usermodel.*;
+import org.apache.poi.xslf.usermodel.XMLSlideShow;
+import org.apache.poi.xslf.usermodel.XSLFShape;
+import org.apache.poi.xslf.usermodel.XSLFSlide;
+import org.apache.poi.xslf.usermodel.XSLFTextShape;
+
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 
-public class ImagePPTProcessor {
+public class ImagePPTProcessor extends AbstractFileImageProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(PPTProcessor.class);
-	private String filePath = null;
-	private VectorDatabaseCSVWriter writer = null;
-	private Map<String, String> imageMap;
 	
-	public ImagePPTProcessor(String filePath, VectorDatabaseCSVWriter writer, boolean embedImages) {
-		this.filePath = filePath;
-		this.writer = writer;
-		this.imageMap = new HashMap<>();
+	public ImagePPTProcessor(String filePath, VectorDatabaseCSVWriter writer) {
+		super(filePath, writer);
 	}
 	
 	public void process() {
@@ -86,7 +77,7 @@ public class ImagePPTProcessor {
 			imageMap.put(imageId, base64Image);
 			
 			// Write to CSV
-			this.writer.writeRow(source,  String.valueOf(slideCount), imageId, "");
+			this.writer.writeRow(source, String.valueOf(slideCount), imageId);
 			
 			slideCount++;
 			graphics.dispose();
@@ -121,34 +112,5 @@ public class ImagePPTProcessor {
 		}
 		graphics.drawString("Slide content may be incomplete due to rendering limitations", 50, pgsize.height - 50);
 	}
-	
-	private String getSource(String filePath) {
-		String source = null;
-		File file = new File(filePath);
-		if (file.exists()) {
-			source = file.getName();
-		}
-		return source;
-	}
-	
-    private String generateUniqueImageId() {
-        return "[[IMG:" + UUID.randomUUID().toString() + "]]";
-    }
-    
-    private String convertToBase64(BufferedImage image) {
-    	try {
-    		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    		ImageIO.write(image,  "png", baos);
-    		byte[] imageBytes = baos.toByteArray();
-    		return Base64.getEncoder().encodeToString(imageBytes);
-    	} catch (IOException e) {
-    		classLogger.error("Error converting image to Base64", e);
-    		return "";
-    	}
-    }
-    
-    public Map<String, String> getImageMap() {
-    	return imageMap;
-    }
 	
 }

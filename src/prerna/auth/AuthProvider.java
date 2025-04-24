@@ -21,7 +21,7 @@ public enum AuthProvider implements Serializable {
 	GITLAB("GITLAB", "GitLab", true, GitLabTokenFiller.class.getName()),
 	//TODO: build out custom endpoint in UserResource
 	KEYCLOAK("KEYCLOAK", "Keycloak", true, GenericTokenFiller.class.getName()),
-	MS("MS", "Microsoft", true, MicrosoftTokenFiller.class.getName()), // this is azure graph
+	MICROSOFT("MICROSOFT", "Microsoft", true, MicrosoftTokenFiller.class.getName()), // this is azure graph
 	SALESFORCE("SALESFORCE", "Salesforce", true, null), 
 	SITEMINDER("SITEMINDER", "SiteMinder", true, null),
 	SURVEYMONKEY("SURVEYMONKEY", "SurveyMonkey", true, null),
@@ -80,13 +80,9 @@ public enum AuthProvider implements Serializable {
 		return tokenFillerClass;
 	}
 	
-	/**
-	 * Really gross looking... you get things like "Ms", "Cac"...
-	 * IF CREATING NEW LOGIC, PLEASE USE AuthProvider.name / getLabel
-	 */
-	@Deprecated
+	@Override
 	public String toString() {
-		return name().charAt(0) + name().substring(1).toLowerCase();
+		return getLabel();
 	}
 	
 	public static AuthProvider getProviderFromString(String authProv) {
@@ -109,7 +105,8 @@ public enum AuthProvider implements Serializable {
 		for(AuthProvider auth : AuthProvider.values()) {
 			vals.add(auth.name().toLowerCase());
 		}
-		
+		// TODO: account for legacy MS
+		vals.add("ms");
 		return vals;
 	}
 	
@@ -118,17 +115,28 @@ public enum AuthProvider implements Serializable {
 		for(AuthProvider auth : AuthProvider.values()) {
 			vals.put(auth.name().toLowerCase(), auth);
 		}
+		// TODO: account for legacy MS
+		vals.put("ms", AuthProvider.MICROSOFT);
 		
 		return vals;
 	}
 	
-	public static Map<String, Boolean> getOAuthLoginProviders() {
-		Map<String, Boolean> vals = new HashMap<>();
+	@Deprecated
+	public static Map<String, String> getLabelToLegacyName() {
+		Map<String, String> vals = new HashMap<>();
 		for(AuthProvider auth : AuthProvider.values()) {
-			vals.put(auth.name().toLowerCase(), auth.isOAuth);
+			vals.put(auth.label, auth.getLegacyName());
 		}
-		
 		return vals;
+	}
+	
+	/**
+	 * Really gross looking... you get things like "Ms", "Cac"...
+	 * IF CREATING NEW LOGIC, PLEASE USE AuthProvider.name / getLabel
+	 */
+	@Deprecated
+	private String getLegacyName() {
+		return name().charAt(0) + name().substring(1).toLowerCase();
 	}
 
 }

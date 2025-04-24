@@ -1,0 +1,22 @@
+#!/bin/bash
+if [[ -z "${JAVA_HOME}" ]]; then
+	java_path=$(whereis java)
+	sub_java="${java_path:6}"
+	echo "here"
+	concat_java="\"${sub_java}\""
+	echo $concat_java
+	echo "here"
+	#java_home_path=$(dirname $sub_java)
+	echo $java_path
+	echo $java_home_path
+	$concat_java mvn test
+fi
+echo "testing..."
+#if mvn clean test; then
+#	echo "Commit allowed. Tests passed."
+#	exit 0
+#else
+#	echo "Commit NOT allowed. Tests failed."
+#	exit 1
+#fi
+exit 1
