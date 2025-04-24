@@ -247,7 +247,6 @@ public class WrapperManager {
 					IQueryInterpreter interpreter = engine.getQueryInterpreter();
 					interpreter.setQueryStruct(qs);
 					query = interpreter.composeQuery();
-					System.out.println(query);
 					returnWrapper.setEngine(engine);
 					returnWrapper.setQuery(query);
 					if(ignoreQueryLogging) {
