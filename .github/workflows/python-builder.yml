@@ -46,7 +46,7 @@ jobs:
 
     env:
       PYTHON_VERSION: "3.12"
-      COMPUTE_TYPE: "cpu"
+      COMPUTE_TYPE: "gpu"
       BASE_REGISTRY: "docker.io"
       BASE_IMAGE: "ubuntu"
       BASE_TAG: "22.04"
