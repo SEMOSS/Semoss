@@ -800,7 +800,8 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	private String addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		List<Object> normalizedValues = normalizeToList(rightComp.getValue());
 		boolean isNumeric = this.otherPropsToType.get(leftComp.getValue().toString()).equals(INT_DATATYPE);
-		if(!thisComparator.equals("==") && !thisComparator.equals("!=")) {
+		if(thisComparator.equals("<") || thisComparator.equals(">")|| thisComparator.equals("<=")
+				|| thisComparator.equals(">=")) {
 			if(!NumberUtils.isNumber(rightComp.getValue().toString())) {
 				throw new IllegalArgumentException("Right hand operand must be a number");
 			}
@@ -826,6 +827,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			
 		}else if (thisComparator.equals("<")) {
 			String expression = "";
+			expression += leftComp.getValue().toString() + " lt " + rightComp.getValue();
 			return expression;
 		} else if (thisComparator.equals(">")) {
 			String expression = "";
