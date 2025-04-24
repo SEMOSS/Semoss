@@ -54,6 +54,11 @@ public class SecurityOwlCreator {
 		
 		// trusted token security
 		conceptsRequired.add("TOKEN");
+		
+		// new model tables
+		conceptsRequired.add("MODEL_ATTRIBUTES");
+		conceptsRequired.add("MODEL_TYPE_MAPPING");
+		conceptsRequired.add("MODEL_TYPES");
 	}
 	
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -101,8 +106,8 @@ public class SecurityOwlCreator {
 		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SESSION_SHARE/IS_SESSION_SHARE")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/MODEL_ATTRIBUTES");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/MODEL_ATTRIBUTES")) {
 				return true;
 			}
 		}
@@ -435,6 +440,7 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHTACCESSREQUEST", "SUBMITTED_BY_USERID", "VARCHAR(255)");
 		owler.addProp("INSIGHTACCESSREQUEST", "SUBMITTED_BY_TYPE", "VARCHAR(255)");
 		
+		
 		// joins
 		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
 		owler.addRelation("ENGINE", "ENGINEPERMISSION", "ENGINE.ENGINEID.ENGINEPERMISSION.ENGINEID");
@@ -518,6 +524,28 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		
+		// MODEL_ATTRIBUTES
+		owler.addConcept("MODEL_ATTRIBUTES", null, null);
+		owler.addProp("MODEL_ATTRIBUTES","ENGINEID", "VARCHAR(255)");
+		owler.addProp("MODEL_ATTRIBUTES","MODELID", "VARCHAR(255)");
+		owler.addProp("MODEL_ATTRIBUTES","SHORTNAME", "VARCHAR(255)");
+		owler.addProp("MODEL_ATTRIBUTES","PROVIDER", "VARCHAR(255)");
+		owler.addProp("MODEL_ATTRIBUTES","HOST", "VARCHAR(255)");
+		
+		// MODEL_TYPE_MAPPING
+		owler.addConcept("MODEL_TYPE_MAPPING", null, null);
+		owler.addProp("MODEL_TYPE_MAPPING", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("MODEL_TYPE_MAPPING", "TYPEID", "VARCHAR(255)");
+		
+		// MODEL_TYPES
+		owler.addConcept("MODEL_TYPES", null, null);
+		owler.addProp("MODEL_TYPES", "TYPEID","VARCHAR(255)");
+		owler.addProp("MODEL_TYPES", "NAME","VARCHAR(255)");
+		owler.addProp("MODEL_TYPES", "CATEGORY","VARCHAR(255)");
+		
+		
+		
+		
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
 		for(String tableName : metaKeyTableNames) {
@@ -546,6 +574,9 @@ public class SecurityOwlCreator {
 		owler.addRelation("INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.PROJECTID.GROUPINSIGHTPERMISSION.PROJECTID");
 		owler.addRelation("INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID");
 		
+		owler.addRelation("ENGINE", "MODEL_ATTRIBUTES", "ENGINE.ENGINEID.MODEL_ATTRIBUTES.ENGINEID");
+		owler.addRelation("MODEL_ATTRIBUTES", "MODEL_TYPE_MAPPING", "MODEL_ATTRIBUTES.ENGINEID.MODEL_TYPE_MAPPING.ENGINEID");
+		owler.addRelation("MODEL_TYPE_MAPPING", "MODEL_TYPES", "MODEL_TYPE_MAPPING.TYPEID.MODEL_TYPES.TYPEID");
 		owler.commit();
 		owler.export();
 	}
