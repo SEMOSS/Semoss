@@ -1,6 +1,7 @@
 package prerna.engine.impl.model.responses;
 
 import java.util.Map;
+
 import org.json.JSONObject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,6 +22,12 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<Map<Strin
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * 
+     * @param response
+     * @param numberOfTokensInPrompt
+     * @param numberOfTokensInResponse
+     */
     public AskToolModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
         
@@ -52,7 +59,12 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<Map<Strin
         
         this.messageType = TOOL;
     }
-
+    
+    /**
+     * 
+     * @param modelResponse
+     * @return
+     */
     public static AskToolModelEngineResponse fromMap(Map<String, Object> modelResponse) {
         Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
