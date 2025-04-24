@@ -58,7 +58,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private static final String EMBEDDINGS_COLUMN = "EMBEDDINGS_COLUMN";
 	private static final String DIMENSION_SIZE = "DIMENSION_SIZE";
 	private static final String METHOD_NAME = "METHOD_NAME";
-	private static final String SPACE_TYPE = "SPACE_TYPE";
 	private static final String INDEX_ENGINE = "INDEX_ENGINE";
 	private static final String EF_CONSTRUCTION = "EF_CONSTRUCTION";
 	private static final String M_VALUE = "M_VALUE";
@@ -73,7 +72,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private String embeddings = "embeddings";
 	private int dimension = 1024;
 	private String methodName = "hnsw";
-	private String spaceType = "l2";
 	private String indexEngine = "lucene";
 	private int efConstruction = 128;
 	private int m = 24;
@@ -105,10 +103,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		String methodNameInput = this.smssProp.getProperty(METHOD_NAME);
 		if(methodNameInput != null && !(methodNameInput=methodNameInput.trim()).isEmpty()) {
 			this.methodName = methodNameInput;
-		}
-		String spaceTypeInput = this.smssProp.getProperty(SPACE_TYPE);
-		if(spaceTypeInput != null && !(spaceTypeInput=spaceTypeInput.trim()).isEmpty()) {
-			this.spaceType = spaceTypeInput;
 		}
 		String indexEngineInput = this.smssProp.getProperty(INDEX_ENGINE);
 		if(indexEngineInput != null && !(indexEngineInput=indexEngineInput.trim()).isEmpty()) {
@@ -146,8 +140,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		this.otherPropsToType.put(VectorDatabaseCSVTable.TOKENS, INT_DATATYPE);
 		this.otherPropsToType.put(VectorDatabaseCSVTable.CONTENT, TEXT_DATATYPE);
 
-		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.spaceType, this.indexEngine, this.efConstruction, this.m);
+		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.distanceMethod, this.indexEngine, this.efConstruction, this.m);
 		updateIndexMapping(this.indexName, this.otherPropsToType);		
+	}
+	
+	@Override
+	protected String getDefaultDistanceMethod() {
+		return "cosinesimil";
 	}
 
 	@Override

@@ -3567,6 +3567,9 @@ public final class Utility {
 	}
 
 	public static String encodeURIComponent(String s) {
+		if(s == null) {
+			return null;
+		}
 		try {
 			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20")
 					.replace("!", "\\%21")
@@ -3582,6 +3585,9 @@ public final class Utility {
 	}
 
 	public static String decodeURIComponent(String s) {
+		if(s == null) {
+			return null;
+		}
 		try {
 			String newS = s.replaceAll("\\%20", "+")
 					.replaceAll("\\%21", "!")

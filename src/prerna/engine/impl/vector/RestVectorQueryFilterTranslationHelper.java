@@ -1,7 +1,11 @@
 package prerna.engine.impl.vector;
 
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -205,17 +209,33 @@ public final class RestVectorQueryFilterTranslationHelper {
 	 * @return
 	 */
 	private static JsonObject addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		List<Object> normalizedValues = normalizeToList(rightComp.getValue());
 		if (thisComparator.equals("==") || thisComparator.equals("!=")) {
-			JsonObject jsonBuilder = new JsonObject();
+			JsonObject bool = new JsonObject();
 			{
-				JsonObject match = new JsonObject();
+				JsonObject jsonBuilder = new JsonObject();
 				{
-					match.addProperty(leftComp.getValue().toString(), rightComp.getValue().toString());
+					JsonArray shouldArray = new JsonArray();
+					{
+						for(int i=0; i<normalizedValues.size(); i++) {
+							JsonObject matchParent = new JsonObject();
+							{
+								JsonObject match = new JsonObject();
+								{
+									match.addProperty(leftComp.getValue().toString(), normalizedValues.get(i).toString());
+								}	
+								matchParent.add("match", match);
+							}
+							shouldArray.add(matchParent);
+						}
+					}
+					jsonBuilder.add("should", shouldArray);
 				}
-				jsonBuilder.add("match", match);
+			
+				bool.add("bool", jsonBuilder);
 			}
-			return jsonBuilder;
-		} else if (thisComparator.equals("<") || thisComparator.equals(">")) {
+			return bool;
+		} else if (thisComparator.equals("<") || thisComparator.equals(">") || thisComparator.equals(">=") || thisComparator.equals("<=")) {
 			JsonObject jsonBuilder = new JsonObject();
 			{
 				JsonObject range = new JsonObject();
@@ -223,11 +243,17 @@ public final class RestVectorQueryFilterTranslationHelper {
 					JsonObject column = new JsonObject();
 					{
 						if (thisComparator.equals("<")) {							
-							column.addProperty("lte", new BigDecimal(rightComp.getValue().toString()));
+							column.addProperty("lt", new BigDecimal(rightComp.getValue().toString()));
 						}
 						if (thisComparator.equals(">")) {							
+							column.addProperty("gt", new BigDecimal(rightComp.getValue().toString()));
+						}
+						if (thisComparator.equals(">=")) {							
 							column.addProperty("gte", new BigDecimal(rightComp.getValue().toString()));
 						}
+						if (thisComparator.equals("<=")) {							
+							column.addProperty("lte", new BigDecimal(rightComp.getValue().toString()));
+						}			
 					}
 					range.add(leftComp.getValue().toString(), column);
 				}
@@ -281,6 +307,15 @@ public final class RestVectorQueryFilterTranslationHelper {
 			}
 		}
 		return false;
+	}
+	private static List<Object> normalizeToList(Object values) {
+		if(values instanceof String || values instanceof Number) {
+			return Collections.singletonList(values);
+		} else if (values instanceof Collection<?>) {
+			return ((Collection<?>) values).stream().filter(Objects::nonNull).collect(Collectors.toList());
+		}else {
+			throw new IllegalArgumentException("Unsupported input type");
+		}
 	}
 
 }

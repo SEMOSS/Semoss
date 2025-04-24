@@ -94,6 +94,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         self,
         question: str,
         context: Optional[str] = None,
+        use_history: Optional[bool] = True,
         param_dict: Optional[Dict] = None,
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
@@ -128,7 +129,9 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             else ""
         )
 
-        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>"{optionalContext}{optionalParamDict});'
+        use_history_param = str(use_history).lower()
+
+        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>", useHistory={use_history_param}{optionalContext}{optionalParamDict});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
