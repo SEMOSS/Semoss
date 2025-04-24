@@ -6,6 +6,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetHTMLReactor extends AbstractReactor {
 
+	private final static String REACTOR_DESCRIPTION = "Get the current HTML of the Browser App rendered on the server.";
+
 	public GetHTMLReactor() {
 		
 	}
@@ -28,6 +30,11 @@ public class GetHTMLReactor extends AbstractReactor {
 		 */
 		
 		return null;
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return REACTOR_DESCRIPTION;
 	}
 
 }
