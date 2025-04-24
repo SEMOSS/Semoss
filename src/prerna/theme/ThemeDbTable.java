@@ -2,7 +2,7 @@ package prerna.theme;
 
 public enum ThemeDbTable {
 	ADMIN_THEME("ADMIN_THEME", "ADMIN_THEME__"),
-	BLOCKS_TEMPLATE("BLOCKS_TEMPLATE", "BLOCKS_TEMPLATE__");
+	BLOCKS_TABLE("BLOCKS_TABLE", "BLOCKS_TABLE__");
 	
 	private final String themeDbTableName;
 	private final String themeDbTablePrefix;

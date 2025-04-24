@@ -13,12 +13,13 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.BlocksThemeUtils;
+import prerna.theme.ThemeDbTable;
 
 public class AddBlockReactor extends AbstractReactor {
 
 	public AddBlockReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATA_TYPE_MAP.getKey(), "tableName" };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.DATA_TYPE_MAP.getKey()};
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
@@ -26,7 +27,7 @@ public class AddBlockReactor extends AbstractReactor {
 
 		User user = this.insight.getUser();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed in to delete a block", PixelDataType.CONST_STRING,
+			NounMetadata noun = new NounMetadata("User must be signed in to add a block", PixelDataType.CONST_STRING,
 					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
@@ -41,7 +42,7 @@ public class AddBlockReactor extends AbstractReactor {
 
 		organizeKeys();
 		Map<String, Object> blockDetails = getBlockDetails();
-		String tableName = this.keyValue.get("tableName");
+		String tableName = ThemeDbTable.BLOCKS_TABLE.toString();
 		String blockId = BlocksThemeUtils.addBlock(blockDetails, tableName);
 		NounMetadata nm = new NounMetadata(blockId, PixelDataType.CONST_STRING);
 		return nm;

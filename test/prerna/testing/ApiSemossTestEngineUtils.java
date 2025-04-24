@@ -46,6 +46,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.testing.utility.TestExcelInputObject;
 import prerna.testing.utility.TestExcelType;
 import prerna.theme.AbstractThemeUtils;
+import prerna.theme.ThemeDbTable;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -226,8 +227,8 @@ public class ApiSemossTestEngineUtils {
 			}
 			ps.close();
 
-			List<String> manualDelete = Arrays.asList("BLOCKS_TEMPLATE");
-			al.removeAll(manualDelete);
+//			List<String> manualDelete = Arrays.asList(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName());
+//			al.removeAll(manualDelete);
 			// delete * from databases
 			st = conn.createStatement();
 			for (String x : al) {
@@ -235,7 +236,7 @@ public class ApiSemossTestEngineUtils {
 			}
 			
 //			manual delete statement
-			st.addBatch("delete from BLOCKS_TEMPLATE where IS_DELETABLE = 1");
+//			st.addBatch("delete from " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName());
 
 			st.executeBatch();
 

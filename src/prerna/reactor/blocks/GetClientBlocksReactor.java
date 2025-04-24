@@ -9,15 +9,16 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.BlocksThemeUtils;
 import prerna.theme.ThemeDbTable;
 
-public class ListThemeDataReactor extends AbstractReactor {
+public class GetClientBlocksReactor extends AbstractReactor {
 
-	public ListThemeDataReactor() {
-		this.keysToGet = new String[] { "tableName", ReactorKeysEnum.FILTERS.getKey() };
-		this.keyRequired = new int[] { 1 };
+	public GetClientBlocksReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.FILTERS.getKey() };
+		this.keyRequired = new int[] { 0 };
 	}
 
 	@Override
@@ -29,13 +30,13 @@ public class ListThemeDataReactor extends AbstractReactor {
 		}
 
 		this.organizeKeys();
-		String tableName = this.keyValue.get("tableName");
+		String tableName = ThemeDbTable.BLOCKS_TABLE.toString();
 		GenRowFilters additionalFilters = getFilters();
 		Object blocks = null;
 		try {
 			blocks = BlocksThemeUtils.getThemeData(tableName, additionalFilters);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			throw new SemossPixelException(e);
 		}
 		return new NounMetadata(blocks, PixelDataType.MAP);
 	}

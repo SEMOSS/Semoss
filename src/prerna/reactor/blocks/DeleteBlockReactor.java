@@ -18,8 +18,8 @@ import prerna.theme.ThemeDbTable;
 public class DeleteBlockReactor extends AbstractReactor {
 
 	public DeleteBlockReactor() {
-		this.keysToGet = new String[] { "blockId", "tableName", "hardDelete" };
-		this.keyRequired = new int[] { 1, 1, 0 };
+		this.keysToGet = new String[] { "blockId", "hardDelete" };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
@@ -51,7 +51,7 @@ public class DeleteBlockReactor extends AbstractReactor {
 			}
 		}
 		String blockId = this.keyValue.get("blockId");
-		String tableName = this.keyValue.get("tableName");
+		String tableName = ThemeDbTable.BLOCKS_TABLE.toString();
 		boolean result = false;
 		try {
 			result = BlocksThemeUtils.deleteBlock(blockId, tableName, hardDelete);

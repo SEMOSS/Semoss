@@ -52,7 +52,7 @@ public abstract class AbstractThemeUtils {
 	private static void initialize() throws SQLException {
 		String[] adminThemeColNames = null;
 		String[] adminThemeTypes = null;
-		String[] blocksTemplateTypes = null;
+		String[] blocksTableTypes = null;
 		/*
 		 * Currently used
 		 */
@@ -70,20 +70,20 @@ public abstract class AbstractThemeUtils {
 			}
 		}
 		
-		// BLOCKS_TEMPLATE
+		// BLOCKS_TABLE
 		
-		blocksTemplateTypes = BlocksThemeUtils.getThemeColTypes(queryUtil);
+		blocksTableTypes = BlocksThemeUtils.getThemeColTypes(queryUtil);
 		if(queryUtil.allowsIfExistsTableSyntax()) {
-			themeDb.insertData(queryUtil.createTableIfNotExists(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTemplateTypes));
+			themeDb.insertData(queryUtil.createTableIfNotExists(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(), BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes));
 		} else {
-			if(!queryUtil.tableExists(themeDb.getConnection(), ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), themeDb.getDatabase(), themeDb.getSchema())) {
-				themeDb.insertData(queryUtil.createTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTemplateTypes));
-				populateBlocksTemplateTable(BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTemplateTypes, queryUtil);
+			if(!queryUtil.tableExists(themeDb.getConnection(), ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(), themeDb.getDatabase(), themeDb.getSchema())) {
+				themeDb.insertData(queryUtil.createTable(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(), BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes));
+				populateBlocksTemplateTable(BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes, queryUtil);
 			}
 		}
-			if (!BlocksThemeUtils.getBlockNames().containsAll(BlocksThemeUtils.BASE_BLOCKS)) {
-				populateBlocksTemplateTable(BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTemplateTypes, queryUtil);
-			}
+//			if (!BlocksThemeUtils.getBlockNames().containsAll(BlocksThemeUtils.BASE_BLOCKS)) {
+//				populateBlocksTemplateTable(BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTemplateTypes, queryUtil);
+//			}
 
 		// commit the changes
 		themeDb.commit();
@@ -92,15 +92,15 @@ public abstract class AbstractThemeUtils {
 	private static void populateBlocksTemplateTable(String[] blocksTemplateColNames, String[] blocksTemplateTypes,
 		AbstractSqlQueryUtil queryUtil) throws SQLException {
 		
-			classLogger.info("Rebuilding BlocksTemplate Table");
+			classLogger.info("Rebuilding Blocks_Table Table");
 		
-			//delete the contents of the table
-			themeDb.removeData("DELETE FROM " + ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName());
+			//delete the contents of the entire table
+			themeDb.removeData("DELETE FROM " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName());
 			
-			for (Object[] entry : BlocksThemeUtils.BLOCKS_DEFAULT_ENTRIES) {
-				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(),
-						blocksTemplateColNames, blocksTemplateTypes, entry));
-			}
+//			for (Object[] entry : BlocksThemeUtils.BLOCKS_DEFAULT_ENTRIES) {
+//				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
+//						blocksTemplateColNames, blocksTemplateTypes, entry));
+//			}
 		}
 	
 	/**
