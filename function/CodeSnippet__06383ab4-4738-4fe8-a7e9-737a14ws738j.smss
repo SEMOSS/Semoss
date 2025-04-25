@@ -1,0 +1,12 @@
+#Base Properties
+ENGINE	06383ab4-4738-4fe8-a7e9-737a14ws738j
+ENGINE_ALIAS	CodeSnippet
+ENGINE_TYPE	prerna.engine.impl.function.LocalPythonFunctionEngine
+
+FUNCTION_NAME	generate_response
+FUNCTION_DESCRIPTION	to establish a connection with an AI engine using SEMOSS, execute a simple function or app idea, and return the response in the specified coding language.
+
+FUNCTION_REQUIRED_PARAMETERS	["description","insight_id","language"]
+FUNCTION_PARAMETERS	[{"parameterName":"description","parameterType":"str"},{"parameterName":"insight_id","parameterType":"str"},{"parameterName":"language","parameterType":"str"}]
+
+PYTHON_FILE_NAME	CodeSnippetFunction.py
