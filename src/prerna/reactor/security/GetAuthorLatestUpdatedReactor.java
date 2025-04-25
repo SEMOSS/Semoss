@@ -28,7 +28,7 @@ import prerna.util.Utility;
 public class GetAuthorLatestUpdatedReactor extends AbstractReactor {
 
     public GetAuthorLatestUpdatedReactor() {
-        this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.META_KEYS.getKey()};
+        this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
     }
 
     @Override
@@ -40,7 +40,6 @@ public class GetAuthorLatestUpdatedReactor extends AbstractReactor {
             throw new IllegalArgumentException("Must input an engine id");
         }
 
-        User user = this.insight.getUser();
         SelectQueryStruct qs = new SelectQueryStruct();
         qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBY"));
         qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED"));
@@ -49,15 +48,7 @@ public class GetAuthorLatestUpdatedReactor extends AbstractReactor {
 
         RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
 
-        // IRawSelectWrapper wrapper = null;
-        // try {
-		// 	wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-        // } catch (Exception e) {
-        //     throw new RuntimeException("Error getting engine metadata", e);
-        // }
-
         List<Map<String, Object>> list = (List<Map<String, Object>>) QueryExecutionUtility.flushRsToMap(securityDb, qs);
-        return NounMetadata.getSuccessNounMessage("CORs were updated Successfully!");
-
+        return new NounMetadata(list.get(0), PixelDataType.CUSTOM_DATA_STRUCTURE);
     }
 }
