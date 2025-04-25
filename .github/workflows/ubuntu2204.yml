@@ -58,4 +58,4 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.ubuntu22.04
           push: true
-          tags: quay.io/$GITHUB_ENV[REPO]:$GITHUB_ENV[TAG]  
+          tags: quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
