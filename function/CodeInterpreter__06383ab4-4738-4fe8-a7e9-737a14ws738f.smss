@@ -1,0 +1,12 @@
+#Base Properties
+ENGINE	06383ab4-4738-4fe8-a7e9-737a14ws738f
+ENGINE_ALIAS	CodeInterpreter
+ENGINE_TYPE	prerna.engine.impl.function.LocalPythonFunctionEngine
+
+FUNCTION_NAME	interpret_code
+FUNCTION_DESCRIPTION	The Function Engine is a sophisticated tool designed to interpret and analyze coding examples. It serves as an educational aid for developers, providing detailed explanations and insights into code snippets.
+
+FUNCTION_REQUIRED_PARAMETERS	["code_example","insight_id"]
+FUNCTION_PARAMETERS	[{"parameterName":"code_example","parameterType":"str"},{"parameterName":"insight_id","parameterType":"str"}]
+
+PYTHON_FILE_NAME	CodeInterpreter.py

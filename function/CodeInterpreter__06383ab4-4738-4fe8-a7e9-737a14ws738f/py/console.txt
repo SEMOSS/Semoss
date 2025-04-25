@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/opt/semosshome/py/gaas_tcp_socket_server.py", line 205, in <module>
+    Server(port=9999, start=True)
+  File "/opt/semosshome/py/gaas_tcp_socket_server.py", line 57, in __init__
+    socketserver.ThreadingTCPServer.__init__(
+  File "/usr/lib/python3.10/socketserver.py", line 452, in __init__
+    self.server_bind()
+  File "/usr/lib/python3.10/socketserver.py", line 466, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use
