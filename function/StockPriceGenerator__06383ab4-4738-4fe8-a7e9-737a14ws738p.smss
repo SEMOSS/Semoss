@@ -1,0 +1,12 @@
+#Base Properties
+ENGINE	06383ab4-4738-4fe8-a7e9-737a14ws738p
+ENGINE_ALIAS	StockPriceGenerator
+ENGINE_TYPE	prerna.engine.impl.function.LocalPythonFunctionEngine
+
+FUNCTION_NAME	get_stock_price
+FUNCTION_DESCRIPTION	A simple API that takes in some stock parameters such as company name and date range, and gives an average stock price during that period of time.
+
+FUNCTION_REQUIRED_PARAMETERS	["api_key","company_name","start_date","end_date","insight_id"]
+FUNCTION_PARAMETERS	[{"parameterName":"api_key","parameterType":"str"},{"parameterName":"company_name","parameterType":"str"},{"parameterName":"start_date","parameterType":"str"},{"parameterName":"end_date","parameterType":"str"},{"parameterName":"company_name","parameterType":"str"}]
+
+PYTHON_FILE_NAME	StockPriceFunction.py

@@ -1,0 +1,9 @@
+Setting timeout to .. 1800
+listening on port 5361
+going into wait mode
+Ready to start server
+Server is <__main__.Server object at 0x000001EEAAFA6450>
+1 <> 0
+Setting timeout to .. 900
+listening on port 9999
+1 <> 0
