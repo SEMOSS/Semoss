@@ -15,7 +15,8 @@ on:
   # pull_request:
   #   branches: [ "docker-build-workflows" ]
   workflow_dispatch:
-
+  schedule:
+    - cron: '30 7 * * *'  # Runs every day at 7:30 AM UTC, which is 2:30 AM EST
 
 jobs:
   build:
