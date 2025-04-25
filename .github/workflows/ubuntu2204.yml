@@ -6,8 +6,18 @@ name: Semoss Ubuntu Builder
 # documentation.
 
 on:
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: 'Python Version to install'
+        required: true
+        default: '3.12'
+      tomcat_version:
+        description: 'Tomcat Version to deploy'
+        required: true
+        default: '9.0.12'
   push:
-    branches: [ "26-cloud-Fix_docker_builds" ]      #TODO: When merging to dev, main replace branch names
+    branches: [ "26-cloud-Fix_docker_builds" , "semoss-builder-dynamic-variables" ]      #TODO: When merging to dev, main replace branch names
     paths:
       - 'docker/Dockerfile.ubuntu22.04'
       - '.github/workflows/ubuntu2204.yml'
@@ -15,13 +25,16 @@ on:
     #tags: [ 'v*.*.*' ]
   # pull_request:
   #   branches: [ "docker-build-workflows" ]
-  workflow_dispatch:
 
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
+
+    env:
+      PYTHON_VERSION: "3.12"
+      TOMCAT_VERSION: "9.0.102" 
 
     steps:
       - name: Checkout repository
@@ -45,6 +58,8 @@ jobs:
         with:
           context: ./docker
           file: ./docker/Dockerfile.ubuntu22.04
-          push: true
+          push: false
           tags: quay.io/semoss/test-quay:docker-ubuntu    #TODO: When merging to dev or main, replace this with docker folder tag
-  
+          build-args: |
+            PYTHON_VERSION=${{ env.PYTHON_VERSION }}
+            TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
