@@ -100,6 +100,8 @@ RUN apt-get update -y \
 	&& cd /opt && git clone https://github.com/SEMOSS/semoss-artifacts \
 	&& chmod 777 /opt/semoss-artifacts/artifacts/scripts/*.sh
 
+ENV PYTHON_VERSION=${PYTHON_VERSION}
+
 #COPY --from=mavenpuller /opt/semosshome /opt/semosshome
 #COPY --from=mavenpuller $TOMCAT_HOME/webapps/Monolith $TOMCAT_HOME/webapps/Monolith
 #COPY --from=mavenpuller $TOMCAT_HOME/webapps/SemossWeb $TOMCAT_HOME/webapps/SemossWeb
