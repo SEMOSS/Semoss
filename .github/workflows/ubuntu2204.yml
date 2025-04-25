@@ -47,7 +47,7 @@ jobs:
             echo "IMAGE_REPO=semoss/semoss" >> $GITHUB_ENV
             echo "IMAGE_TAG=${{ vars.VERSION }}-ubuntu22" >> $GITHUB_ENV
           else
-            DATE=$(date +'%Y%m%d')
+            DATE=$(date +'%Y-%m-%d')
             echo "IMAGE_REPO=semoss/semoss-dev" >> $GITHUB_ENV
             echo "IMAGE_TAG=${{ vars.VERSION }}-SNAPSHOT-ubuntu22-$DATE" >> $GITHUB_ENV
           fi
