@@ -44,8 +44,7 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 		organizeKeys();
 		this.engineId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException(
-					"Vector db " + engineId + " does not exist or user does not have access to this engine");
+			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this engine");
 		}
 
 		List<String> fileNames = getFiles();
@@ -53,8 +52,7 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 			downloadKey = getDownload(engineId, fileNames);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(
-					"Error occurred attempting to delete the files. Detailed message = " + e.getMessage());
+			throw new IllegalArgumentException("Error occurred attempting to download the files. Detailed message = " + e.getMessage());
 		}
 
 		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
@@ -77,44 +75,52 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 		FileOutputStream fileoutStream = null;
 		ZipOutputStream zos = null;
 		try {
-			if (fileNameList.size() == 1) {
-				// Logic for single file download
-				outFilePath = thisEngineDir + DIR_SEPARATOR + fileNameList.get(0);
-				fileoutStream = new FileOutputStream(outFilePath);
-				File fileToDownload = new File(outFilePath);
-				FileInputStream fis = new FileInputStream(fileToDownload);
-				try {
-					byte[] buffer = new byte[1024];
-					int length;
-					while ((length = fis.read(buffer)) > 0) {
-						fileoutStream.write(buffer, 0, length);
-					}
-				} finally {
-					try {
-						if (fis != null) {
-							fis.close();
+
+			if (fileNameList != null && fileNameList.size() > 0) {
+				int fileExistsCount = 0;
+				if (fileNameList.size() == 1) {
+					String filepath = thisEngineDir + DIR_SEPARATOR + fileNameList.get(0);
+					File fileToCheck = new File(filepath);
+					if (fileToCheck.exists()) {
+						fileExistsCount++;
+						FileInputStream fis = new FileInputStream(fileToCheck);
+						outFilePath = outputDir + DIR_SEPARATOR + fileNameList.get(0);
+						fileoutStream = new FileOutputStream(outFilePath);
+						byte[] buffer = new byte[2048];
+						int bytesRead;
+						while ((bytesRead = fis.read(buffer)) >= 0) {
+							fileoutStream.write(buffer, 0, bytesRead);
 						}
-					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
 					}
+				} else {
+					outFilePath = outputDir + DIR_SEPARATOR + engineName + "_files.zip";
+					fileoutStream = new FileOutputStream(outFilePath);
+					zos = new ZipOutputStream(fileoutStream);
+					
+					for (String fileName : fileNameList) {
+						File filetozip = new File(thisEngineDir + DIR_SEPARATOR + fileName);
+						if (filetozip.exists()) {
+							ZipUtils.addToZipFile(filetozip, zos);
+							fileExistsCount++;
+						} else {
+							logger.error("Error occurred while adding file to zip -> File does not exist " + fileName + " skipping the files proceeding with other files");
+						}
+					}
+
 				}
-			} else if (fileNameList.size() > 1) {
-				// Logic for multifile download as Zip
-				outFilePath = outputDir + DIR_SEPARATOR + engineNameAndId + "_engine.zip";
-				fileoutStream = new FileOutputStream(outFilePath);
-				zos = new ZipOutputStream(fileoutStream);
-				for (String filename : fileNameList) {
-					File filetozip = new File(thisEngineDir + DIR_SEPARATOR + filename);
-					ZipUtils.addToZipFile(filetozip, zos);
+				logger.info("File Exists Count = " + fileExistsCount + " File Name List Size = " + fileNameList.size());
+				if (fileExistsCount == 0) {
+					throw new SemossPixelException("File does not exist for Sources " + fileNameList.toString());
 				}
 			} else {
 				logger.error(Constants.STACKTRACE, "Kindly provide a valid filename to download");
 				throw new SemossPixelException("Kindly provide a valid filename to download");
 			}
+
 		} catch (Exception e) {
-			logger.info("Error occurred on download engine");
+			logger.info("Error occurred on download ");
 			logger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("Error occurred while downloding file. Detailed message = " + e.getMessage());
+			throw new SemossPixelException(e.getMessage());
 		} finally {
 			try {
 				if (zos != null) {
