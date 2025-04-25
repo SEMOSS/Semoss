@@ -1852,7 +1852,6 @@ public class Project implements IProject {
 		Map<String, Object> mapPropertiesMap = new HashMap<>();
 		for (Entry<String, String> entry: this.getNotebookVariables().entrySet()) {
 			Map<String, Object> paramMap = new HashMap<>();
-			paramMap.put("type", "string");
 			paramMap.put("description", "no description");
 			paramMap.put("enum", Arrays.asList(entry.getValue()));
 			mapPropertiesMap.put(entry.getKey(), paramMap);
