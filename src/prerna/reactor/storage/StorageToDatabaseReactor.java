@@ -65,7 +65,7 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 				String createQuery = queryUtil.createTable(tableName, colNames, types);
 				rdbms.insertData(createQuery);
 				for (CSVRecord record : csvParser) {
-					Object[] values = new Object[headerMap.keySet().size()];
+					Object[] values = new Object[colNames.length];
 					for (int i = 0; i < colNames.length; i++) {
 						values[i] = record.get(colNames[i]);
 					}
