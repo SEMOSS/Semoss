@@ -40,11 +40,22 @@ jobs:
           username: ${{ secrets.QUAY_ROBOT_USERNAME }}
           password: ${{ secrets.QUAY_ROBOT_PASSWORD }}
           
+      - name: Determine Image Tag and Repository
+        id: vars
+        run: |
+          if [ "${{ env.RELEASE }}" = "true" ]; then
+            echo "REPO=semoss/semoss" >> $GITHUB_ENV
+            echo "TAG=${{ env.VERSION }}-ubuntu22" >> $GITHUB_ENV
+          else
+            DATE=$(date +'%Y%m%d')
+            echo "REPO=semoss/semoss-dev" >> $GITHUB_ENV
+            echo "TAG=${{ env.VERSION }}-SNAPSHOT-ubuntu22-$DATE" >> $GITHUB_ENV
+          fi
+          
       - name: Build and push Ubuntu Docker image
         uses: docker/build-push-action@v2
         with:
           context: ./docker
           file: ./docker/Dockerfile.ubuntu22.04
           push: true
-          tags: quay.io/semoss/test-quay:docker-ubuntu    #TODO: When merging to dev or main, replace this with docker folder tag
-  
+          tags: quay.io/$GITHUB_ENV[REPO]:$GITHUB_ENV[TAG]  
