@@ -127,6 +127,9 @@ public enum AuthProvider implements Serializable {
 		for(AuthProvider auth : AuthProvider.values()) {
 			vals.put(auth.label, auth.getLegacyName());
 		}
+		//TODO: account for legacy MS
+		vals.put("Ms", AuthProvider.MICROSOFT.label);
+
 		return vals;
 	}
 	
