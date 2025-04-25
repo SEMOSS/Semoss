@@ -53,7 +53,6 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 				AbstractSqlQueryUtil queryUtil = rdbms.getQueryUtil();
 				final String tableName = this.keyValue.get(ReactorKeysEnum.TABLE.getKey());
 				String dropQuery = queryUtil.dropTableIfExists(tableName);
-				System.out.println("DROP: " + dropQuery);
 				rdbms.removeData(dropQuery);
 				final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
 				final String VARCHAR = queryUtil.getVarcharDataTypeName();
@@ -64,7 +63,6 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 				String [] types = new String[] { VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, 
 						VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME};
 				String createQuery = queryUtil.createTable(tableName, colNames, types);
-				System.out.println("CREATE: " + createQuery);
 				rdbms.insertData(createQuery);
 				for (CSVRecord record : csvParser) {
 					Object[] values = new Object[headerMap.keySet().size()];
@@ -72,7 +70,6 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 						values[i] = record.get(colNames[i]);
 					}
 					String insertQuery = queryUtil.insertIntoTable(tableName, colNames, types, values);
-					System.out.println("INSERT: " + insertQuery);
 					rdbms.insertData(insertQuery);
 				}
 			} catch (IOException e) {
