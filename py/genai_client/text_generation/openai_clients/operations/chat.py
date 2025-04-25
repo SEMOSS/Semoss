@@ -33,18 +33,25 @@ class Chat:
         # first we determine the type of completion, since this determines how we structure the payload
         message_payload = []
 
-        if FULL_PROMPT not in kwargs:
-            message_payload = self._process_chat_completion(
-                question=question,
-                context=context,
-                history=(
-                    history if use_history else None
-                ),  # Only include history if use_history is True
-                template_name=template_name,
-                fill_variables=kwargs,
+        if prefix.startswith("p_"):
+            # Don't use chat-style prompts for FIM requests — send as raw string
+            message_payload = question  # a raw string like <|fim_prefix|>...<|fim_suffix|><|fim_middle|>
+            kwargs["raw_prompt"] = (
+                True  # flag we can use later to skip wrapping in messages[]
             )
         else:
-            message_payload = self._process_full_prompt(kwargs.pop(FULL_PROMPT))
+            if FULL_PROMPT not in kwargs:
+                message_payload = self._process_chat_completion(
+                    question=question,
+                    context=context,
+                    history=(
+                        history if use_history else None
+                    ),  # Only include history if use_history is True
+                    template_name=template_name,
+                    fill_variables=kwargs,
+                )
+            else:
+                message_payload = self._process_full_prompt(kwargs.pop(FULL_PROMPT))
 
         model_limits = ModelLimits(
             model_name=self.client.model_name,
@@ -58,14 +65,21 @@ class Chat:
         max_tokens = model_limits.max_completion_tokens
         context_window = model_limits.context_window
 
-        # Check to see if we need to truncate the prompt or adjust max_completion_tokens
-        prompt, kwargs["max_tokens"], model_engine_response = (
-            self.client.check_token_limits(
-                messages=message_payload,
-                max_tokens=max_tokens,
-                context_window=context_window,
+        if prefix.startswith("p_"):
+            # Skip truncation logic, just set max_tokens and package response
+            model_engine_response = AskModelEngineResponse()
+
+            kwargs["max_tokens"] = max_completion_tokens or 256  # or some fallback
+            prompt = message_payload  # already a raw string
+        else:
+            # Run normal truncation/token limits
+            prompt, kwargs["max_tokens"], model_engine_response = (
+                self.client.check_token_limits(
+                    messages=message_payload,
+                    max_tokens=max_tokens,
+                    context_window=context_window,
+                )
             )
-        )
 
         # Add the message payload as a kwargs
         kwargs["messages"] = prompt
@@ -88,6 +102,13 @@ class Chat:
             kwargs["frequency_penalty"] = float(kwargs.pop("repetition_penalty"))
         if "stop_sequences" in kwargs:
             kwargs["stop"] = kwargs.pop("stop_sequences")
+        if (
+            "stop" in kwargs
+            and isinstance(kwargs["stop"], list)
+            and len(kwargs["stop"]) > 4
+        ):
+            # Prioritize keeping the most important stop sequences (first 4)
+            kwargs["stop"] = kwargs["stop"][:4]
         return kwargs
 
     def _process_chat_completion(

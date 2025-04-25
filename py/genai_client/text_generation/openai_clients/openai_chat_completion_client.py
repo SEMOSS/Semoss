@@ -183,6 +183,17 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         # Update model specific kwargs
         kwargs = self._update_model_specific_kwargs(**kwargs)
 
+        prompt_is_raw = kwargs.pop("raw_prompt", False)
+
+        if prompt_is_raw:
+            # pass directly as raw text prompt
+            prompt_text = kwargs.pop("messages")
+            kwargs["messages"] = [{"role": "user", "content": prompt_text}]
+        else:
+            kwargs["messages"] = kwargs.get("messages")
+
+        print("\n🚨 CONTINUE.DEV RAW MESSAGES 🚨\n")
+        print(kwargs["messages"])
         response = self.client.chat.completions.create(model=self.model_name, **kwargs)
 
         if "tool_choice" in kwargs:
@@ -213,6 +224,29 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             else:
                 final_query = response.choices[0].message.content
                 response_tokens = response.usage.completion_tokens
+
+        if prefix.startswith("p_"):
+            print("STRIPPING FOR CONTINUE.DEV COMPLETIONS")
+
+            # Remove markdown and format
+            if final_query.strip().startswith("```"):
+                lines = final_query.strip().splitlines()
+                if len(lines) > 1 and lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].strip().startswith("```"):
+                    lines = lines[:-1]
+                final_query = "\n".join(lines).strip()
+
+            # Defensive: strip any quotes or standalone text blocks
+            lines = final_query.strip().splitlines()
+            lines = [
+                line
+                for line in lines
+                if not line.strip().startswith('"') and not line.strip().endswith('"')
+            ]
+            final_query = "\n".join(lines).strip()
+
+            print(f"STRIPPED FINAL:\n{final_query}")
 
         return final_query, response_tokens, messageType
 
