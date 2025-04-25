@@ -43,13 +43,13 @@ jobs:
       - name: Determine Image Tag and Repository
         id: vars
         run: |
-          if [ "${{ env.RELEASE }}" = "true" ]; then
+          if [ "${{ vars.RELEASE }}" = "true" ]; then
             echo "IMAGE_REPO=semoss/semoss" >> $GITHUB_ENV
-            echo "IMAGE_TAG=${{ env.VERSION }}-ubuntu22" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${{ vars.VERSION }}-ubuntu22" >> $GITHUB_ENV
           else
             DATE=$(date +'%Y%m%d')
             echo "IMAGE_REPO=semoss/semoss-dev" >> $GITHUB_ENV
-            echo "IMAGE_TAG=${{ env.VERSION }}-SNAPSHOT-ubuntu22-$DATE" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${{ vars.VERSION }}-SNAPSHOT-ubuntu22-$DATE" >> $GITHUB_ENV
           fi
           
       - name: Build and push Ubuntu Docker image
