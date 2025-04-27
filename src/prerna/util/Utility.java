@@ -3567,6 +3567,9 @@ public final class Utility {
 	}
 
 	public static String encodeURIComponent(String s) {
+		if(s == null) {
+			return null;
+		}
 		try {
 			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20")
 					.replace("!", "\\%21")
@@ -3582,6 +3585,9 @@ public final class Utility {
 	}
 
 	public static String decodeURIComponent(String s) {
+		if(s == null) {
+			return null;
+		}
 		try {
 			String newS = s.replaceAll("\\%20", "+")
 					.replaceAll("\\%21", "!")
@@ -4932,7 +4938,7 @@ public final class Utility {
 	 * @param urls
 	 * @return
 	 */
-	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls) {
+	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls, ClassLoader parentClassLoader) {
 		URLClassLoader cl = null;
 		Map<String, Class<IReactor>> reactorsMap = new HashMap<>();
 		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
@@ -4943,9 +4949,9 @@ public final class Utility {
 			};
 		}
 		try {
-			cl = new URLClassLoader(urls);
+            cl = new URLClassLoader(urls, parentClassLoader);
 			JarClassLoader jcl = new JarClassLoader(cl);
-			
+
 			// scan all abstract reactors
 			ScanResult sr = new ClassGraph()
 					.overrideClasspath((Object[]) urls)
@@ -6142,5 +6148,17 @@ public final class Utility {
 
 		return dates;
 	}
+	
+	/**
+	 * 
+	 * @param size
+	 * @return
+	 */
+    public static String getReadableFileSize(long size) {
+        if (size <= 0) return "0 B";
+        final String[] units = new String[]{"B", "KB", "MB", "GB", "TB"};
+        int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
+        return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
+    }
 
 }
