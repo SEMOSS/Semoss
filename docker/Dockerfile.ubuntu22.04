@@ -68,8 +68,8 @@ ENV JAVA_HOME=${JAVA_HOME}
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}   
 ENV TOMCAT_HOME=${TOMCAT_HOME}
 
-COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} /opt /opt
-COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
+COPY --from=tomcat_base /opt /opt
+COPY --from=tomcat_base /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
 
 # from original semoss dockerfile
 ARG LD_LIBRARY_PATH
