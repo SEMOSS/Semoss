@@ -52,6 +52,10 @@ jobs:
           registry: quay.io
           username: ${{ secrets.QUAY_ROBOT_USERNAME }}
           password: ${{ secrets.QUAY_ROBOT_PASSWORD }}
+
+      - name: Get date
+        id: get_date
+        run: echo "DATE=$(date +'%m-%d-%Y')" >> $GITHUB_ENV
           
       - name: Build and push Ubuntu Docker image
         uses: docker/build-push-action@v2
@@ -59,7 +63,7 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.ubuntu22.04
           push: false
-          tags: quay.io/semoss/test-quay:docker-ubuntu    #TODO: When merging to dev or main, replace this with docker folder tag
+          tags: quay.io/semoss/test-quay:docker-ubuntu-${{ env.DATE }}   #TODO: When merging to dev or main, replace this with docker folder tag
           build-args: |
             PYTHON_VERSION=${{ env.PYTHON_VERSION }}
             TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
