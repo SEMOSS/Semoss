@@ -6,8 +6,18 @@ name: Semoss Ubuntu Builder
 # documentation.
 
 on:
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: 'Python Version to install'
+        required: true
+        default: '3.12'
+      tomcat_version:
+        description: 'Tomcat Version to install'
+        required: true
+        default: '9.0.12'
   push:
-    branches: [ "26-cloud-Fix_docker_builds" ]      #TODO: When merging to dev, main replace branch names
+    branches: ["dev", "main", "26-dynamic-variables-semoss-builder"]      #TODO: When merging to dev, main replace branch names
     paths:
       - 'docker/Dockerfile.ubuntu22.04'
       - '.github/workflows/ubuntu2204.yml'
@@ -15,14 +25,16 @@ on:
     #tags: [ 'v*.*.*' ]
   # pull_request:
   #   branches: [ "docker-build-workflows" ]
-  workflow_dispatch:
-  schedule:
-    - cron: '0 7 * * *'  # Runs every day at 7 AM UTC, which is 2 AM EST
+
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
+
+    env:
+      PYTHON_VERSION: "3.12"
+      TOMCAT_VERSION: "9.0.102" 
 
     steps:
       - name: Checkout repository
@@ -41,22 +53,13 @@ jobs:
           username: ${{ secrets.QUAY_ROBOT_USERNAME }}
           password: ${{ secrets.QUAY_ROBOT_PASSWORD }}
           
-      - name: Determine Image Tag and Repository
-        id: vars
-        run: |
-          if [ "${{ vars.RELEASE }}" = "true" ]; then
-            echo "IMAGE_REPO=semoss/semoss" >> $GITHUB_ENV
-            echo "IMAGE_TAG=${{ vars.VERSION }}-ubuntu22" >> $GITHUB_ENV
-          else
-            DATE=$(date +'%Y-%m-%d')
-            echo "IMAGE_REPO=semoss/semoss-dev" >> $GITHUB_ENV
-            echo "IMAGE_TAG=${{ vars.VERSION }}-SNAPSHOT-ubuntu22-$DATE" >> $GITHUB_ENV
-          fi
-          
       - name: Build and push Ubuntu Docker image
         uses: docker/build-push-action@v2
         with:
           context: ./docker
           file: ./docker/Dockerfile.ubuntu22.04
-          push: true
-          tags: quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
+          push: false
+          tags: quay.io/semoss/test-quay:docker-ubuntu    #TODO: When merging to dev or main, replace this with docker folder tag
+          build-args: |
+            PYTHON_VERSION=${{ env.PYTHON_VERSION }}
+            TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
