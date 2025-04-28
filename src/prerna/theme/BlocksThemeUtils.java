@@ -85,7 +85,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 //		return output;
 //	}
 	
-	public static List<Map<String, Object>> getThemeData(String tableName, GenRowFilters filters) throws SQLException {
+	public static List<Map<String, Object>> getClientBlocks(String tableName, GenRowFilters filters) throws SQLException {
 		ThemeDbTable table = validateThemeDbTable(tableName);
 		final String blocksPrefix = table.getThemeDbTablePrefix();
 		List<Map<String, Object>> retVal = null;

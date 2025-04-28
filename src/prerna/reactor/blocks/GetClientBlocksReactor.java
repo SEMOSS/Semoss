@@ -34,7 +34,7 @@ public class GetClientBlocksReactor extends AbstractReactor {
 		GenRowFilters additionalFilters = getFilters();
 		Object blocks = null;
 		try {
-			blocks = BlocksThemeUtils.getThemeData(tableName, additionalFilters);
+			blocks = BlocksThemeUtils.getClientBlocks(tableName, additionalFilters);
 		} catch (SQLException e) {
 			throw new SemossPixelException(e);
 		}
