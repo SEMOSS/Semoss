@@ -42,7 +42,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     env:
       PYTHON_VERSION: "3.12"
