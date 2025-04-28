@@ -46,6 +46,7 @@ public class GetClientBlocksReactor extends AbstractReactor {
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			NounMetadata filterNoun = inputsGRS.getNoun(0);
 			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
+			System.out.println(qs);
 			GenRowFilters filters = qs.getCombinedFilters();
 			return filters;
 		}

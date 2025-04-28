@@ -25,7 +25,7 @@ public class ThemeOwlCreator {
 	private static List<String> conceptsRequired = new ArrayList<>();
 	static {
 		conceptsRequired.add("ADMIN_THEME");
-		conceptsRequired.add("BLOCKS_TEMPLATE");
+		conceptsRequired.add("BLOCKS_TABLE");
 	}
 	
 	private IRDBMSEngine themesDb;
@@ -50,19 +50,15 @@ public class ThemeOwlCreator {
 				Pair.with("ID","VARCHAR(255)"),
 				Pair.with("NAME","VARCHAR(255)"),
 				Pair.with("SECTION","VARCHAR(255)"),
-				Pair.with("IMAGE","VARCHAR(255)"),
-				Pair.with("HOVER_IMAGE","VARCHAR(255)"),
 				Pair.with("HOVER_TEXT", "VARCHAR(500)"),
 				Pair.with("BLOCK_JSON", CLOB_DATATYPE_NAME),
-				Pair.with("CLASSIFICATION","VARCHAR(255)"),
-				Pair.with("IS_DELETABLE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DATE_ADDED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("IS_LATEST", BOOLEAN_DATATYPE_NAME)
 				);
 		
 		this.allSchemas = Arrays.asList(
 				Pair.with("ADMIN_THEME", this.adminThemeColumns),
-				Pair.with("BLOCKS_TEMPLATE", this.blockThemeColumns)
+				Pair.with("BLOCKS_TABLE", this.blockThemeColumns)
 			);
 	}
 	

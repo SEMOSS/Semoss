@@ -246,7 +246,6 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	
 	// validate the input map for required fields
 	private static void validateBlockDetails(Map<String, Object> blockDetails) {
-		validateString(blockDetails, "id", false, false);
 		validateString(blockDetails, "name", false, false);
 		validateString(blockDetails, "section", false, false);
 		validateString(blockDetails, "block_json", false, false);
@@ -273,7 +272,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	}
 
 	
-	// insert the row into blocks_template table
+	// insert the row into blocks_table table
 	private static void insertBlock(Map<String, Object> blockDetails, boolean allowClob, String blockId) {
 		PreparedStatement blockPS = null;
 		try {
@@ -305,7 +304,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	}
 
 	
-	// update the row in blocks_template associated with the ID to be latest
+	// update the row in blocks_table associated with the ID to be latest
 	// (If not soft delete)
 	private static boolean updateBlock(String blockId) {
 		String[] colToUpdate = { "IS_LATEST" };
