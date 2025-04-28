@@ -5,7 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.io.Reader;
-
+import java.util.List;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -14,13 +14,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IStorageEngine;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -43,9 +44,10 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Database must be an RDBMS native engine");
 			}
 
-			String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
-
-			try (Reader reader = Files.newBufferedReader(Paths.get(fileLocation));
+			IStorageEngine storage = getStorage();
+			String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+			storage.open(storagePath);
+			try (Reader reader = Files.newBufferedReader(Paths.get(storagePath));
 				CSVParser csvParser = new CSVParser(reader, CSVFormat.POSTGRESQL_CSV.withFirstRecordAsHeader().withTrim())) {
 				Map<String, Integer> headerMap = csvParser.getHeaderMap();
 				
@@ -60,6 +62,7 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 				for (int i = 0; i < headerMap.keySet().size(); i++) {
 					colNames[i] = (String)headerMap.keySet().toArray()[i];
 				}
+				// TODO: Create getTypes() method to grab the types for each specific table.
 				String [] types = new String[] { VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, 
 						VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME};
 				String createQuery = queryUtil.createTable(tableName, colNames, types);
@@ -81,5 +84,19 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error occurred downloading storage file to postgres");
 		}
+	}
+
+	private IStorageEngine getStorage() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			return (IStorageEngine) grs.get(0);
+		}
+		
+		List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
+		if(storageInputs != null && !storageInputs.isEmpty()) {
+			return (IStorageEngine) storageInputs.get(0).getValue();
+		}
+		
+		throw new NullPointerException("No storage engine defined");
 	}
 }
