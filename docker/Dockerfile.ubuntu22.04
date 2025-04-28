@@ -109,8 +109,9 @@ RUN apt-get update -y \
 COPY --from=mavenpuller  --chown=1001:0 /opt /opt
 #COPY --from=quay.io/semoss/python-builder:${PYTHON_VERSION}-cpu  /usr/lib/python /usr/lib/python
 
-FROM quay.io/semoss/python-builder:${PYTHON_VERSION}-cpu as python_builder
-COPY --from=python_builder /usr/lib/python /usr/lib/python
+FROM quay.io/semoss/python-builder:${PYTHON_VERSION}-cpu as base
+FROM base as python_builder
+COPY --from=base /usr/lib/python /usr/lib/python
 
 # FROM scratch AS final
 
