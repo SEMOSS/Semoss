@@ -27,7 +27,7 @@ on:
 jobs:
   build:
     
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     env:
       TOMCAT_VERSION: ${{ github.event.inputs.version }}
