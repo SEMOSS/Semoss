@@ -14,7 +14,7 @@ on:
         required: true
         default: '9.0.12'
   push:
-    branches: [ "dev", "main" ]
+    branches: [ "dev", "main" , "26-dynamic-variables-semoss-builder" ]
     paths:
       - 'docker/Dockerfile.tomcat'
       - '.github/workflows/tomcat-builder.yml'
@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      TOMCAT_VERSION: "9.0.102" 
+      TOMCAT_VERSION: ${{ github.event.inputs.version }}
 
     steps:
       - name: Checkout repository
