@@ -30,9 +30,9 @@ FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} as tomcat_base
 FROM tomcat_base as tomcat_builder
 
 # Get tomcat, maven and java from another image called tomcat-builder
-COPY --from=tomcat_builder /opt /opt
-COPY --from=tomcat_builder /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
-COPY --from=tomcat_builder /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
+COPY --from=tomcat_base /opt /opt
+COPY --from=tomcat_base /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
+COPY --from=tomcat_base /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
 
 # Get python from python-builder
 #COPY --from=quay.io/semoss/python-builder:${PYTHON_VERSION} /usr/lib/python /usr/lib/python
@@ -114,7 +114,7 @@ COPY --from=mavenpuller  --chown=1001:0 /opt /opt
 
 FROM quay.io/semoss/python-builder:${PYTHON_VERSION}-cpu as python_base
 FROM python_base as python_builder
-COPY --from=base /usr/lib/python /usr/lib/python
+COPY --from=python_base /usr/lib/python /usr/lib/python
 
 # FROM scratch AS final
 
