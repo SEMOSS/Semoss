@@ -239,7 +239,6 @@ public class ApiSemossTestUtils {
 		return sort;
 	}
 
-//	TODO: Fix this lmao
 	public static String buildFilter(String column, String comparison, int i) {
 		String result = "";
 		result += "[( Filter (" + column + " " + comparison + "\"" + Integer.valueOf(i).toString() + "\"))]";
