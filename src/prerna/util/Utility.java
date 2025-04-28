@@ -4938,7 +4938,7 @@ public final class Utility {
 	 * @param urls
 	 * @return
 	 */
-	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls) {
+	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls, ClassLoader parentClassLoader) {
 		URLClassLoader cl = null;
 		Map<String, Class<IReactor>> reactorsMap = new HashMap<>();
 		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
@@ -4949,9 +4949,9 @@ public final class Utility {
 			};
 		}
 		try {
-			cl = new URLClassLoader(urls);
+            cl = new URLClassLoader(urls, parentClassLoader);
 			JarClassLoader jcl = new JarClassLoader(cl);
-			
+
 			// scan all abstract reactors
 			ScanResult sr = new ClassGraph()
 					.overrideClasspath((Object[]) urls)

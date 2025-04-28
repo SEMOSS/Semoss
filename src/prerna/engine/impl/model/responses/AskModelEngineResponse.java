@@ -2,7 +2,6 @@ package prerna.engine.impl.model.responses;
 
 import java.util.List;
 import java.util.Map;
-import org.json.JSONObject;
 
 public abstract class AskModelEngineResponse<T> extends AbstractModelEngineResponse<T> {
 
@@ -100,6 +99,9 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     
 	@SuppressWarnings("unchecked")
 	public static AskModelEngineResponse fromObject(Object responseObject) {
+		if(!(responseObject instanceof Map)) {
+			throw new IllegalArgumentException("Expected map output. Instead received value: " + responseObject);
+		}
 		Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
 		return fromMap(modelResponse);
     }
