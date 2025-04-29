@@ -56,9 +56,10 @@ jobs:
           fi
           
       - name: Build and push Ubuntu Docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           context: ./docker
+          platforms: 'linux/amd64'
           file: ./docker/Dockerfile.nvidia.cuda.12.5.1.ubuntu22.04
           push: true
           tags: quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}  
