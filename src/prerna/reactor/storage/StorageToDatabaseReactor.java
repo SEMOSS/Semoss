@@ -16,6 +16,9 @@ import org.apache.commons.csv.CSVRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.sablecc2.om.GenRowStruct;
@@ -52,7 +55,7 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 		if(!(new File(fileLocation).isDirectory())) {
 			new File(fileLocation).mkdirs();
 		}
-		
+				 
 		try {
 			storage.copyToLocal(storagePath, fileLocation);
 		} catch (Exception e) {
@@ -61,7 +64,7 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 		}
 		String[] storagePaths = storagePath.split("/");
 		try (Reader reader = Files.newBufferedReader(Paths.get(fileLocation + storagePaths[storagePaths.length-1]));
-			CSVParser csvParser = new CSVParser(reader, CSVFormat.POSTGRESQL_CSV.withFirstRecordAsHeader().withTrim())) {
+			CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim())) {
 			Map<String, Integer> headerMap = csvParser.getHeaderMap();
 			
 			RDBMSNativeEngine rdbms = (RDBMSNativeEngine) database;
@@ -73,7 +76,11 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 			for (int i = 0; i < headerMap.keySet().size(); i++) {
 				colNames[i] = (String)headerMap.keySet().toArray()[i];
 			}
-			String [] types = getTypes(queryUtil, this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
+			final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
+			final String VARCHAR = queryUtil.getVarcharDataTypeName();
+			String [] types = new String[] { VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, 
+					VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME};
+
 			String createQuery = queryUtil.createTable(tableName, colNames, types);
 			rdbms.insertData(createQuery);
 			for (CSVRecord record : csvParser) {
@@ -113,7 +120,7 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
 		final String VARCHAR = queryUtil.getVarcharDataTypeName();
 		String [] types = new String[] {""};
-		if (tableName.compareToIgnoreCase("wfm_csrep_schedule") == 0) {
+		if (tableName.equalsIgnoreCase("wfm_csrep_schedule")) {
 			types = new String[] { VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, 
 				VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME};
 		} else {
@@ -121,4 +128,5 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 		}
 		return types;
 	}
+	
 }
