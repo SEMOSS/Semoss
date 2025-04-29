@@ -24,6 +24,8 @@ COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /opt /opt
 COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
 COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
 
+RUN df -h
+
 RUN apt-get update -y \
     # added git curl
 	&& apt-get install -y git curl unzip lsof \
