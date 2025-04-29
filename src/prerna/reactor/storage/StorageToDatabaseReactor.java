@@ -2,10 +2,12 @@ package prerna.reactor.storage;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.io.Reader;
+import java.io.StringWriter;
 import java.util.List;
 
 import org.apache.commons.csv.CSVFormat;
@@ -39,58 +41,58 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
+		String databaseId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
+		if(!(database instanceof RDBMSNativeEngine)) {
+			throw new IllegalArgumentException("Database must be an RDBMS native engine");
+		}
+		IStorageEngine storage = getStorage();
+		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+		String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+		if(!(new File(fileLocation).isDirectory())) {
+			new File(fileLocation).mkdirs();
+		}
+		
 		try {
-			String databaseId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
-			IDatabaseEngine database = Utility.getDatabase(databaseId);
-			if(!(database instanceof RDBMSNativeEngine)) {
-				throw new IllegalArgumentException("Database must be an RDBMS native engine");
-			}
-			IStorageEngine storage = getStorage();
-			String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
-			String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
-			if(!(new File(fileLocation).isDirectory())) {
-				new File(fileLocation).mkdirs();
-			}
-			
-			try {
-				storage.copyToLocal(storagePath, fileLocation);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Error occurred downloading storage file to local");
-			}
-			try (Reader reader = Files.newBufferedReader(Paths.get(fileLocation));
-				CSVParser csvParser = new CSVParser(reader, CSVFormat.POSTGRESQL_CSV.withFirstRecordAsHeader().withTrim())) {
-				Map<String, Integer> headerMap = csvParser.getHeaderMap();
-				
-				RDBMSNativeEngine rdbms = (RDBMSNativeEngine) database;
-				AbstractSqlQueryUtil queryUtil = rdbms.getQueryUtil();
-				final String tableName = this.keyValue.get(ReactorKeysEnum.TABLE.getKey());
-				String dropQuery = queryUtil.dropTableIfExists(tableName);
-				rdbms.removeData(dropQuery);
-				String [] colNames = new String[headerMap.keySet().size()];
-				for (int i = 0; i < headerMap.keySet().size(); i++) {
-					colNames[i] = (String)headerMap.keySet().toArray()[i];
-				}
-				String [] types = getTypes(queryUtil, this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
-				String createQuery = queryUtil.createTable(tableName, colNames, types);
-				rdbms.insertData(createQuery);
-				for (CSVRecord record : csvParser) {
-					Object[] values = new Object[colNames.length];
-					for (int i = 0; i < colNames.length; i++) {
-						values[i] = record.get(colNames[i]);
-					}
-					String insertQuery = queryUtil.insertIntoTable(tableName, colNames, types, values);
-					rdbms.insertData(insertQuery);
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-			return new NounMetadata(true, PixelDataType.BOOLEAN);
+			storage.copyToLocal(storagePath, fileLocation);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred downloading storage file to postgres");
+			throw new IllegalArgumentException("Error occurred downloading storage file to local");
 		}
+		String[] storagePaths = storagePath.split("/");
+		try (Reader reader = Files.newBufferedReader(Paths.get(fileLocation + storagePaths[storagePaths.length-1]));
+			CSVParser csvParser = new CSVParser(reader, CSVFormat.POSTGRESQL_CSV.withFirstRecordAsHeader().withTrim())) {
+			Map<String, Integer> headerMap = csvParser.getHeaderMap();
+			
+			RDBMSNativeEngine rdbms = (RDBMSNativeEngine) database;
+			AbstractSqlQueryUtil queryUtil = rdbms.getQueryUtil();
+			final String tableName = this.keyValue.get(ReactorKeysEnum.TABLE.getKey());
+			String dropQuery = queryUtil.dropTableIfExists(tableName);
+			rdbms.removeData(dropQuery);
+			String [] colNames = new String[headerMap.keySet().size()];
+			for (int i = 0; i < headerMap.keySet().size(); i++) {
+				colNames[i] = (String)headerMap.keySet().toArray()[i];
+			}
+			String [] types = getTypes(queryUtil, this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
+			String createQuery = queryUtil.createTable(tableName, colNames, types);
+			rdbms.insertData(createQuery);
+			for (CSVRecord record : csvParser) {
+				Object[] values = new Object[colNames.length];
+				for (int i = 0; i < colNames.length; i++) {
+					values[i] = record.get(colNames[i]);
+				}
+				String insertQuery = queryUtil.insertIntoTable(tableName, colNames, types, values);
+				rdbms.insertData(insertQuery);
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			StringWriter sw = new StringWriter();
+	        PrintWriter pw = new PrintWriter(sw);
+	        e.printStackTrace(pw);
+	 
+			throw new IllegalArgumentException(sw.toString());
+		}
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
 	private IStorageEngine getStorage() {
