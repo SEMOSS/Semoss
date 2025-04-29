@@ -1,5 +1,6 @@
 package prerna.reactor.storage;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -22,6 +23,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -29,7 +31,7 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(StorageToDatabaseReactor.class);
 	
 	public StorageToDatabaseReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.TABLE.getKey(), ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
+		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.TABLE.getKey(), ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
 				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
 	}
 
@@ -38,16 +40,25 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 		organizeKeys();
 
 		try {
-			String databaseId = this.keyValue.get(this.keysToGet[0]);
+			String databaseId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
 			IDatabaseEngine database = Utility.getDatabase(databaseId);
 			if(!(database instanceof RDBMSNativeEngine)) {
 				throw new IllegalArgumentException("Database must be an RDBMS native engine");
 			}
-
 			IStorageEngine storage = getStorage();
 			String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
-			storage.open(storagePath);
-			try (Reader reader = Files.newBufferedReader(Paths.get(storagePath));
+			String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+			if(!(new File(fileLocation).isDirectory())) {
+				new File(fileLocation).mkdirs();
+			}
+			
+			try {
+				storage.copyToLocal(storagePath, fileLocation);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Error occurred downloading storage file to local");
+			}
+			try (Reader reader = Files.newBufferedReader(Paths.get(fileLocation));
 				CSVParser csvParser = new CSVParser(reader, CSVFormat.POSTGRESQL_CSV.withFirstRecordAsHeader().withTrim())) {
 				Map<String, Integer> headerMap = csvParser.getHeaderMap();
 				
@@ -56,15 +67,11 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 				final String tableName = this.keyValue.get(ReactorKeysEnum.TABLE.getKey());
 				String dropQuery = queryUtil.dropTableIfExists(tableName);
 				rdbms.removeData(dropQuery);
-				final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
-				final String VARCHAR = queryUtil.getVarcharDataTypeName();
 				String [] colNames = new String[headerMap.keySet().size()];
 				for (int i = 0; i < headerMap.keySet().size(); i++) {
 					colNames[i] = (String)headerMap.keySet().toArray()[i];
 				}
-				// TODO: Create getTypes() method to grab the types for each specific table.
-				String [] types = new String[] { VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, 
-						VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME};
+				String [] types = getTypes(queryUtil, this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
 				String createQuery = queryUtil.createTable(tableName, colNames, types);
 				rdbms.insertData(createQuery);
 				for (CSVRecord record : csvParser) {
@@ -98,5 +105,18 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 		}
 		
 		throw new NullPointerException("No storage engine defined");
+	}
+	
+	private String[] getTypes(AbstractSqlQueryUtil queryUtil, String tableName) {
+		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
+		final String VARCHAR = queryUtil.getVarcharDataTypeName();
+		String [] types = new String[] {""};
+		if (tableName.compareToIgnoreCase("wfm_csrep_schedule") == 0) {
+			types = new String[] { VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, 
+				VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME};
+		} else {
+			throw new NullPointerException("Cannot find matching table.");
+		}
+		return types;
 	}
 }
