@@ -64,7 +64,7 @@ public class RemoteClientServerZK implements IRemoteClientServer {
 
 	public String modelScalerIp;
 
-	private Boolean devPortFowarding = false;
+	private Boolean devPortForwarding = false;
 	
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
@@ -419,98 +419,23 @@ public class RemoteClientServerZK implements IRemoteClientServer {
 	    }
 	}
 
-	// I need this because there is a period of time between when the model is on the active path but the FastAPI service is not quite ready
-	private boolean checkModelHealth(String modelId) {
-	    String clusterIp = modelClusterIps.get(modelId);
-	    String modelName = modelNames.get(modelId);
-	    
-	    if (clusterIp == null || clusterIp.trim().isEmpty()) {
-	        classLogger.error("No valid cluster IP available for health check of model {} ({})", 
-	                modelId, modelName);
-	        return false;
-	    }
-	    
-	    String healthUrl = devPortFowarding ? 
-	        "http://localhost:8888/v2/health/ready" :
-	        String.format("http://%s/v2/health/ready", clusterIp);
-	        
-	    classLogger.info("Attempting health check at URL: {}", healthUrl);
-	    
-		RequestConfig requestConfig = RequestConfig.custom()
-				.setConnectTimeout(1000)
-				.setSocketTimeout(1000)
-				.build();
-
-		try (CloseableHttpClient httpClient = HttpClients.custom()
-				.setDefaultRequestConfig(requestConfig)
-				.build()) {
-
-			HttpGet httpGet = new HttpGet(healthUrl);
-
-			try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
-				int statusCode = response.getStatusLine().getStatusCode();
-				if (statusCode == 200) {
-					HttpEntity entity = response.getEntity();
-					if (entity != null) {
-						String responseString = EntityUtils.toString(entity);
-						JSONObject healthResponse = new JSONObject(responseString);
-						if ("ok".equals(healthResponse.optString("status"))) {
-							return true;
-						}
-					}
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Health check failed for model {} ({}): {}", 
-					modelId, modelName, e.getMessage());
-		}
-		return false;
-	}
-
 	public boolean waitForModelActive(String modelId, long timeoutMs) {
 		try {
 			long startTime = System.currentTimeMillis();
-			boolean foundInActivePath = false;
-			boolean isHealthy = false;
 
 			// Waiting for model to appear in active path
 			while (System.currentTimeMillis() - startTime < timeoutMs) {
 				if (isModelActive(modelId)) {
 					classLogger.info("Model {} was found in the active path", modelId);
-					foundInActivePath = true;
-					break;
+					return true;
 				} else {
 					classLogger.info("Model {} in a warming wait loop..", modelId);
 				}
 				Thread.sleep(3000);
 			}
-
-			if (!foundInActivePath) {
-				classLogger.warn("Timeout waiting for model {} to appear in active path after {}ms", 
-						modelId, timeoutMs);
-				return false;
-			}
-
-			// Wait for container to be healthy
-			long healthCheckStart = System.currentTimeMillis();
-			long remainingTimeout = timeoutMs - (healthCheckStart - startTime);
-
-			while (System.currentTimeMillis() - healthCheckStart < remainingTimeout) {
-				if (checkModelHealth(modelId)) {
-					classLogger.info("Model {} health check passed", modelId);
-					isHealthy = true;
-					break;
-				}
-				Thread.sleep(1000);
-			}
-
-			if (!isHealthy) {
-				classLogger.warn("Timeout waiting for model {} to become healthy after appearing in active path", 
-						modelId);
-				return false;
-			}
-
-			return true;
+			
+			classLogger.warn("Timeout waiting for model {} to appear in active path after {}ms", modelId, timeoutMs);
+			return false;
 
 		} catch (Exception e) {
 			classLogger.error("Error waiting for model {} to become active", modelId, e);
@@ -633,7 +558,7 @@ public class RemoteClientServerZK implements IRemoteClientServer {
 	    }
 	    
 	    String canItRunUrl;
-	    if (devPortFowarding) {
+	    if (devPortForwarding) {
 	        canItRunUrl = "http://localhost:8000/api/can-it-run";
 	    } else {
 	        canItRunUrl = String.format("http://%s/api/can-it-run", modelScalerIp);
