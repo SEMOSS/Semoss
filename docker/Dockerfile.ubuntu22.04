@@ -63,7 +63,7 @@ ENV TOMCAT_VERSION=${TOMCAT_VERSION}
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}   #NOTE: hardocoding tomcat version for now
 ENV TOMCAT_HOME=${TOMCAT_HOME}
 
-#COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} /opt /opt
+COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} /opt /opt
 COPY --from=tomcat_builder /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
 
 # from original semoss dockerfile
