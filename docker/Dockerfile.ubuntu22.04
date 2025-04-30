@@ -17,9 +17,12 @@ ENV JAVA_HOME=${JAVA_HOME}
 # From JAVA/tomcat
 ARG JAVA_HOME=/usr/lib/jvm/zulu8
 ENV JAVA_HOME=${JAVA_HOME}
+
+# Passing in PYTHON_VERSION and TOMCAT_VERSION dynamically through the build pipeline
 #ARG TOMCAT_VERSION=9.0.102
 ENV PYTHON_VERSION=${PYTHON_VERSION}
 ENV TOMCAT_VERSION=${TOMCAT_VERSION}
+
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 ENV TOMCAT_HOME=${TOMCAT_HOME}
 ARG MAVEN_HOME=/opt/apache-maven-3.8.5
@@ -64,7 +67,7 @@ LABEL maintainer="semoss@semoss.org"
 # From JAVA/tomcat
 ARG JAVA_HOME=/usr/lib/jvm/zulu8
 ENV JAVA_HOME=${JAVA_HOME}
-#ARG TOMCAT_VERSION=9.0.102
+
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}   
 ENV TOMCAT_HOME=${TOMCAT_HOME}
 
