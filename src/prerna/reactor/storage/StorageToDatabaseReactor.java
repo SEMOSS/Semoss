@@ -37,7 +37,7 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 	
 	public StorageToDatabaseReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.TABLE.getKey(), ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
-				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
+				ReactorKeysEnum.SPACE.getKey()};
 	}
 
 	@Override
@@ -114,19 +114,5 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 		}
 		
 		throw new NullPointerException("No storage engine defined");
-	}
-	
-	private String[] getTypes(AbstractSqlQueryUtil queryUtil, String tableName) {
-		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
-		final String VARCHAR = queryUtil.getVarcharDataTypeName();
-		String [] types = new String[] {""};
-		if (tableName.equalsIgnoreCase("wfm_csrep_schedule")) {
-			types = new String[] { VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, 
-				VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME};
-		} else {
-			throw new NullPointerException("Cannot find matching table.");
-		}
-		return types;
-	}
-	
+	}	
 }
