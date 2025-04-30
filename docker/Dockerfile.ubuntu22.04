@@ -1,7 +1,3 @@
-
-# based on debian12-py
-#docker build . -t quay.io/semoss/docker:debian12-py
-
 # Base image arguments
 ARG BASE_REGISTRY=docker.io
 ARG BASE_IMAGE=ubuntu
@@ -81,18 +77,16 @@ ENV PATH=$PATH:/opt/semoss-artifacts/artifacts/scripts
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
 
-
 RUN	apt update -y \
     # added git
 	&& apt-get install -y git curl unzip lsof \
 	&& curl https://rclone.org/install.sh | bash \
-	&& chmod 755 /usr/bin/rclone \
-	&& mkdir /opt/semosshome \
-	&& mkdir $TOMCAT_HOME/webapps/Monolith \
-	&& mkdir $TOMCAT_HOME/webapps/SemossWeb \
-	&& echo "export LD_PRELOAD=/usr/lib/python3.11/config-3.11-x86_64-linux-gnu/libpython3.11.so" >> $TOMCAT_HOME/bin/setenv.sh \
-	&& cp $JAVA_HOME/lib/tools.jar $TOMCAT_HOME/lib \
-	&& sed -i "s/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=*.jar,/g" $TOMCAT_HOME/conf/catalina.properties;
+	&& chmod 755 /usr/bin/rclone
+#	&& mkdir /opt/semosshome \
+#	&& mkdir $TOMCAT_HOME/webapps/Monolith \
+#	&& mkdir $TOMCAT_HOME/webapps/SemossWeb \
+#	&& cp $JAVA_HOME/lib/tools.jar $TOMCAT_HOME/lib \
+#	&& sed -i "s/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=*.jar,/g" $TOMCAT_HOME/conf/catalina.properties;
 
 ## TODO - couldnt get the following to work
 # RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
