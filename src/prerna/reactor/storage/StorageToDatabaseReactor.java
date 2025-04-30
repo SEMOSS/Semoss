@@ -19,6 +19,8 @@ import org.apache.logging.log4j.Logger;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
+import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.sablecc2.om.GenRowStruct;
@@ -46,9 +48,16 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 
 		String databaseId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
+		if(!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
+			if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+				throw new IllegalArgumentException("User does not have permission to reload the database");
+			}
+		}
+
 		if(!(database instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("Database must be an RDBMS native engine");
 		}
+
 		IStorageEngine storage = getStorage();
 		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
 		String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
@@ -68,6 +77,7 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 			Map<String, Integer> headerMap = csvParser.getHeaderMap();
 			
 			RDBMSNativeEngine rdbms = (RDBMSNativeEngine) database;
+			rdbms.getEngineId();
 			AbstractSqlQueryUtil queryUtil = rdbms.getQueryUtil();
 			final String tableName = this.keyValue.get(ReactorKeysEnum.TABLE.getKey());
 			String dropQuery = queryUtil.dropTableIfExists(tableName);
@@ -93,11 +103,7 @@ public class StorageToDatabaseReactor extends AbstractReactor {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			StringWriter sw = new StringWriter();
-	        PrintWriter pw = new PrintWriter(sw);
-	        e.printStackTrace(pw);
-	 
-			throw new IllegalArgumentException(sw.toString());
+			throw new IllegalArgumentException("Pull from S3 to database failed"); 
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
