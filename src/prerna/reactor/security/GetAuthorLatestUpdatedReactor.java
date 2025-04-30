@@ -49,12 +49,14 @@ public class GetAuthorLatestUpdatedReactor extends AbstractReactor {
 
         List<Map<String, Object>> list = (List<Map<String, Object>>) QueryExecutionUtility.flushRsToMap(securityDb, qs);
         
-        
         if(list.size() > 0){
             return new NounMetadata(list.get(0), PixelDataType.CUSTOM_DATA_STRUCTURE);
         } else {
-            classLogger.error(Constants.STACKTRACE, new IllegalAccessException("No data found for engine id: " + engineId));   
-            return null;    
+            Map<String, Object> map = new java.util.HashMap<String, Object>();
+            map.put("PERMISSIONGRANTEDBY", "No data found for engine id: " + engineId);
+            map.put("DATEADDED", "No data found for engine id: " + engineId);
+            list.add(map);
+            return new NounMetadata(list.get(0), PixelDataType.CUSTOM_DATA_STRUCTURE);    
         }
     }
 }
