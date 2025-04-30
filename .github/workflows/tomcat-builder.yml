@@ -14,7 +14,7 @@ on:
         required: true
         default: '9.0.104'
   push:
-    branches: [ "dev", "main" , "26-dynamic-variables-semoss-builder" ]
+    branches: [ "dev", "main"  ]
     paths:
       - 'docker/Dockerfile.tomcat'
       - '.github/workflows/tomcat-builder.yml'
