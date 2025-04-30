@@ -29,13 +29,11 @@ FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} as tomcat_base
 FROM tomcat_base as tomcat_builder
 
 # Get tomcat, maven and java from another image called tomcat-builder
+
 COPY --from=tomcat_base /opt /opt
 COPY --from=tomcat_base /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
 COPY --from=tomcat_base /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
 
-# Get python from python-builder
-#COPY --from=quay.io/semoss/python-builder:${PYTHON_VERSION} /usr/lib/python /usr/lib/python
-#COPY --from=quay.io/semoss/python-builder:${PYTHON_VERSION} /usr/lib/uv/ /usr/lib/uv/
 
 RUN apt-get update -y \
     # added git curl
@@ -64,11 +62,13 @@ LABEL maintainer="semoss@semoss.org"
 ARG JAVA_HOME=/usr/lib/jvm/zulu8
 ENV JAVA_HOME=${JAVA_HOME}
 
+
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}   
 ENV TOMCAT_HOME=${TOMCAT_HOME}
 
 COPY --from=tomcat_base /opt /opt
 COPY --from=tomcat_base /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
+
 
 # from original semoss dockerfile
 ARG LD_LIBRARY_PATH
@@ -101,6 +101,7 @@ RUN apt-get update -y \
 	&& chmod 777 /opt/semoss-artifacts/artifacts/scripts/*.sh
 
 
+
 #COPY --from=mavenpuller /opt/semosshome /opt/semosshome
 #COPY --from=mavenpuller $TOMCAT_HOME/webapps/Monolith $TOMCAT_HOME/webapps/Monolith
 #COPY --from=mavenpuller $TOMCAT_HOME/webapps/SemossWeb $TOMCAT_HOME/webapps/SemossWeb
@@ -112,6 +113,7 @@ COPY --from=mavenpuller  --chown=1001:0 /opt /opt
 FROM quay.io/semoss/python-builder:${PYTHON_VERSION}-cpu as python_base
 FROM python_base as python_builder
 COPY --from=python_base /usr/lib/python /usr/lib/python
+
 
 # FROM scratch AS final
 
