@@ -229,16 +229,18 @@ public class RJavaTranslatorFactory {
 			boolean hasRHome = true;
 			// first, check if R is in the path
 			String r_home = System.getenv("R_HOME");
-			if( (r_home == null || r_home.isEmpty())) {
+			if( (r_home == null || (r_home=r_home.trim()).isEmpty())) {
 				hasRHome = false;
 			}
-
+			classLogger.info("Using R_HOME = \""+r_home+"\"");
+			
 			boolean hasRLibs = true;
 			// check for r_libs
 			String r_libs = System.getenv("R_LIBS");
-			if( (r_libs == null || r_libs.isEmpty())) {
+			if( (r_libs == null || (r_libs=r_libs.trim()).isEmpty())) {
 				hasRLibs = false;
 			}
+			classLogger.info("Using R_LIBS = \""+r_libs+"\"");
 
 			String path = System.getenv("Path");
 			List<String> pathSplit = Stream.of(path.split(";")).map(p -> p.replace("\\", "/")).distinct().collect(Collectors.toList());
