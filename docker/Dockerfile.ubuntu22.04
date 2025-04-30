@@ -5,6 +5,11 @@ ARG BASE_TAG=22.04
 ARG TOMCAT_VERSION
 ARG PYTHON_VERSION
 
+#global argument for tomcat
+ARG TOMCAT_VERSION=9.0.104
+#setting up the tomcat builder for later below. this is for env var expansion.
+FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} AS tomcat_builder
+
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS base
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS mavenpuller
 
@@ -17,13 +22,14 @@ ENV JAVA_HOME=${JAVA_HOME}
 # Passing in PYTHON_VERSION and TOMCAT_VERSION dynamically through the build pipeline
 #ARG TOMCAT_VERSION=9.0.102
 ENV PYTHON_VERSION=${PYTHON_VERSION}
-ENV TOMCAT_VERSION=${TOMCAT_VERSION}
+
 
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 ENV TOMCAT_HOME=${TOMCAT_HOME}
 ARG MAVEN_HOME=/opt/apache-maven-3.8.5
 ENV MAVEN_HOME=${MAVEN_HOME}
 ENV PATH=$PATH:$MAVEN_HOME/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin
+
 
 FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} as tomcat_base
 FROM tomcat_base as tomcat_builder
@@ -33,6 +39,7 @@ FROM tomcat_base as tomcat_builder
 COPY --from=tomcat_base /opt /opt
 COPY --from=tomcat_base /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
 COPY --from=tomcat_base /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
+
 
 
 RUN apt-get update -y \
@@ -65,6 +72,7 @@ ENV JAVA_HOME=${JAVA_HOME}
 
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}   
 ENV TOMCAT_HOME=${TOMCAT_HOME}
+
 
 COPY --from=tomcat_base /opt /opt
 COPY --from=tomcat_base /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
@@ -115,21 +123,6 @@ FROM python_base as python_builder
 COPY --from=python_base /usr/lib/python /usr/lib/python
 
 
-# FROM scratch AS final
-
-# COPY --from=intermediate  / /
-
-# ARG JAVA_HOME
-# ARG TOMCAT_HOME
-# ARG R_HOME
-# ARG R_LIBS_SITE
-# ARG RSTUDIO_PANDOC
-
-# ENV JAVA_HOME=$JAVA_HOME
-# ENV TOMCAT_HOME=$TOMCAT_HOME
-# ENV R_HOME=$R_HOME
-# ENV R_LIBS_SITE=$R_LIBS_SITE
-# ENV RSTUDIO_PANDOC=$RSTUDIO_PANDOC
 
 #LOCALE
 RUN apt-get update \
