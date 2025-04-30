@@ -15,7 +15,7 @@ ENV JAVA_HOME=${JAVA_HOME}
 # From JAVA/tomcat
 ARG JAVA_HOME=/usr/lib/jvm/zulu8
 ENV JAVA_HOME=${JAVA_HOME}
-ARG TOMCAT_VERSION=9.0.102
+ARG TOMCAT_VERSION=9.0.104
 ENV TOMCAT_VERSION=${TOMCAT_VERSION}
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 ENV TOMCAT_HOME=${TOMCAT_HOME}
@@ -24,9 +24,9 @@ ENV MAVEN_HOME=${MAVEN_HOME}
 ENV PATH=$PATH:$MAVEN_HOME/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin
 
 # Get tomcat, maven and java from another image called tomcat-builder
-COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /opt /opt
-COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
-COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
+COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} /opt /opt
+COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
+COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
 
 # Get python from python-builder
 #COPY --from=quay.io/semoss/python-builder:3.12 /usr/lib/python /usr/lib/python
@@ -58,12 +58,13 @@ LABEL maintainer="semoss@semoss.org"
 # From JAVA/tomcat
 ARG JAVA_HOME=/usr/lib/jvm/zulu8
 ENV JAVA_HOME=${JAVA_HOME}
-ARG TOMCAT_VERSION=9.0.102
-ARG TOMCAT_HOME=/opt/apache-tomcat-9.0.102   #NOTE: hardocoding tomcat version for now
+ARG TOMCAT_VERSION=9.0.104
+ENV TOMCAT_VERSION=${TOMCAT_VERSION}
+ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}   #NOTE: hardocoding tomcat version for now
 ENV TOMCAT_HOME=${TOMCAT_HOME}
 
-COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /opt /opt
-COPY --from=quay.io/semoss/tomcat-builder:9.0.102 /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
+COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} /opt /opt
+COPY --from=quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
 
 # from original semoss dockerfile
 ARG LD_LIBRARY_PATH
