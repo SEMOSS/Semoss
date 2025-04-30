@@ -17,7 +17,7 @@ on:
         required: true
         default: '9.0.12'
   push:
-    branches: ["dev", "main", "26-dynamic-variables-semoss-builder"]      #TODO: When merging to dev, main replace branch names
+    branches: ["dev", "main"]      #TODO: When merging to dev, main replace branch names
     paths:
       - 'docker/Dockerfile.ubuntu22.04'
       - '.github/workflows/ubuntu2204.yml'
@@ -36,8 +36,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      PYTHON_VERSION: "3.12"
-      TOMCAT_VERSION: "9.0.102" 
+      PYTHON_VERSION: ${{ github.event.inputs.python_version }}
+      TOMCAT_VERSION: ${{ github.event.inputs.tomcat_version }}
 
     steps:
       - name: Checkout repository
