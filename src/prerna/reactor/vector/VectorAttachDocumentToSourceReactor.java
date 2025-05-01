@@ -56,7 +56,7 @@ public class VectorAttachDocumentToSourceReactor extends AbstractReactor {
 		File source = new File(fileLocation);
 		File dest = new File(finalVectorDbFile);
 		try {
-			FileUtils.copyFileToDirectory(source, dest);
+			FileUtils.copyFile(source, dest);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error occurred while copying file. Detailed message = " + e.getMessage());

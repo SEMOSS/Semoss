@@ -47,10 +47,12 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this engine");
 		}
 
-		String downloadKey = UUID.randomUUID().toString();
 		List<String> fileNames = getFiles();
+		if(fileNames == null || fileNames.isEmpty()) {
+			throw new IllegalArgumentException("Must provide the key '" + FILE_NAMES + "' for the files to download");
+		}
 		try {
-			return getDownload(engineId, fileNames, downloadKey);
+			return getDownload(engineId, fileNames);
 		} catch(SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
@@ -62,11 +64,13 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 
 	/**
 	 * 
-	 * @param fileNameList
+	 * @param fileNames
 	 * @return
 	 * @throws IOException 
 	 */
-	private NounMetadata getDownload(String engineId, List<String> fileNameList, String downloadKey) throws IOException {
+	private NounMetadata getDownload(String engineId, List<String> fileNames) throws IOException {
+		String downloadKey = UUID.randomUUID().toString();
+
 		IVectorDatabaseEngine vectorDb = Utility.getVectorDatabase(engineId);
 		String engineName = vectorDb.getEngineName();
 		String engineNameAndId = SmssUtilities.getUniqueName(engineName, engineId);
@@ -77,41 +81,36 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 
 		List<String> warnings = new ArrayList<>();
 		
-		FileOutputStream fileoutStream = null;
+		FileOutputStream fos = null;
 		ZipOutputStream zos = null;
 		try {
-			if (fileNameList != null && fileNameList.size() > 0) {
-				if (fileNameList.size() == 1) {
-					String filepath = vectorDbDocumentFilePath + DIR_SEPARATOR + fileNameList.get(0);
-					File fileToCheck = new File(filepath);
-					if(!fileToCheck.exists()) {
-						throw new SemossPixelException("File " + fileNameList.get(0) + " does not exist in the vector db to download");
-					}
-					Files.copy(fileToCheck, new File(outputDir + DIR_SEPARATOR + fileNameList.get(0)));
-				} else {
-					outFilePath = outputDir + DIR_SEPARATOR + engineNameAndId + "_files.zip";
-					fileoutStream = new FileOutputStream(outFilePath);
-					zos = new ZipOutputStream(fileoutStream);
-					
-					int fileExistsCount = 0;
-					for (String fileName : fileNameList) {
-						File filetozip = new File(vectorDbDocumentFilePath + DIR_SEPARATOR + fileName);
-						if (filetozip.exists()) {
-							ZipUtils.addToZipFile(filetozip, zos);
-							fileExistsCount++;
-						} else {
-							warnings.add(fileName);
-						}
-					}
-					if (fileExistsCount == 0) {
-						throw new SemossPixelException("None of the files selected to download exist in the vector db to download");
+			if (fileNames.size() == 1) {
+				String filepath = vectorDbDocumentFilePath + DIR_SEPARATOR + fileNames.get(0);
+				File fileToCheck = new File(filepath);
+				if(!fileToCheck.exists()) {
+					throw new SemossPixelException("File " + fileNames.get(0) + " does not exist in the vector db to download");
+				}
+				outFilePath = outputDir + DIR_SEPARATOR + fileNames.get(0);
+				Files.copy(fileToCheck, new File(outFilePath));
+			} else {
+				outFilePath = outputDir + DIR_SEPARATOR + engineNameAndId + "_files.zip";
+				fos = new FileOutputStream(outFilePath);
+				zos = new ZipOutputStream(fos);
+				
+				int fileExistsCount = 0;
+				for (String fileName : fileNames) {
+					File filetozip = new File(vectorDbDocumentFilePath + DIR_SEPARATOR + fileName);
+					if (filetozip.exists()) {
+						ZipUtils.addToZipFile(filetozip, zos);
+						fileExistsCount++;
+					} else {
+						warnings.add(fileName);
 					}
 				}
-			} else {
-				classLogger.error(Constants.STACKTRACE, "Kindly provide a valid filename to download");
-				throw new SemossPixelException("Kindly provide a valid filename to download");
+				if (fileExistsCount == 0) {
+					throw new SemossPixelException("None of the files selected to download exist in the vector db to download");
+				}
 			}
-
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
@@ -125,14 +124,14 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 			try {
-				if (fileoutStream != null) {
-					fileoutStream.close();
+				if (fos != null) {
+					fos.close();
 				}
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-
+		
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
 		insightFile.setDeleteOnInsightClose(true);
@@ -141,7 +140,7 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 		if(!warnings.isEmpty()) {
-			retNoun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Could not find files to download: " + warnings));
+			retNoun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Could not find some of the files to download: " + warnings));
 		}
 		return retNoun;
 	}
