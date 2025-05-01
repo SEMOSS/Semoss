@@ -1894,12 +1894,13 @@ public abstract class AbstractSecurityUtils {
 						wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from " + tableName);
 						if(wrapper.hasNext()) {
 							int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-							if(numrows < 6) {
+							if(numrows < 7) {
 								securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
 								int order = 0;
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea", null}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown", null}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "multi-typeahead", null}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[] {"appImage","single",order++, "file", null}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "multi-typeahead", null}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"data classification", "multi", order++, "select-box", "CONFIDENTIAL,FOUO,INTERNAL ONLY,IP,PII,PHI,PUBLIC,RESTRICTED"}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"data restrictions", "multi", order++, "select-box", "CONFIDENTIAL ALLOWED,FOUO ALLOWED,INTERNAL ALLOWED,IP ALLOWED,PII ALLOWED,PHI ALLOWED,RESTRICTED ALLOWED"}));
