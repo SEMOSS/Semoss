@@ -53,7 +53,7 @@ RUN printenv | grep -E '^(JAVA_HOME|TOMCAT_HOME|MAVEN_HOME|PATH)=' | awk '{print
 # Pulling files from the SEMOSS/semoss-artifacts project
 RUN apt-get update -y \
 	&& apt-get install -y lsof git \
-	&& cd tmp/ && git clone --branch 26-cloud-Fix_docker_builds https://github.com/SEMOSS/semoss-artifacts \
+	&& cd tmp/ && git clone https://github.com/SEMOSS/semoss-artifacts \
 	&& cd semoss-artifacts \
 	&& pwd \
 	&& ls -als artifacts/ \
