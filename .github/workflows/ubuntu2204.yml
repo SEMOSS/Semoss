@@ -7,7 +7,7 @@ name: Semoss Ubuntu Builder
 
 on:
   push:
-    branches: [ "26-cloud-Fix_docker_builds" ]      #TODO: When merging to dev, main replace branch names
+    branches: [ "dev,main" ]      #TODO: When merging to dev, main replace branch names
     paths:
       - 'docker/Dockerfile.ubuntu22.04'
       - '.github/workflows/ubuntu2204.yml'
@@ -22,7 +22,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout repository
