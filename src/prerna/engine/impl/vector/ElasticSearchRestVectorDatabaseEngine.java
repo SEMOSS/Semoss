@@ -77,7 +77,6 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	private String embeddings = "embeddings";
 	private int dimension = 1024;
 	private String methodName = "hnsw";
-	private String spaceType = "l2";
 	private String indexEngine = "lucene";
 	private int efConstruction = 128;
 	private int m = 24;
@@ -121,10 +120,6 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		if(methodNameInput != null && !(methodNameInput=methodNameInput.trim()).isEmpty()) {
 			this.methodName = methodNameInput;
 		}
-		String spaceTypeInput = this.smssProp.getProperty(SPACE_TYPE);
-		if(spaceTypeInput != null && !(spaceTypeInput=spaceTypeInput.trim()).isEmpty()) {
-			this.spaceType = spaceTypeInput;
-		}
 		String indexEngineInput = this.smssProp.getProperty(INDEX_ENGINE);
 		if(indexEngineInput != null && !(indexEngineInput=indexEngineInput.trim()).isEmpty()) {
 			this.indexEngine = indexEngineInput;
@@ -161,8 +156,13 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		this.otherPropsToType.put(VectorDatabaseCSVTable.TOKENS, INT_DATATYPE);
 		this.otherPropsToType.put(VectorDatabaseCSVTable.CONTENT, TEXT_DATATYPE);
 
-		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.spaceType, this.indexEngine, this.efConstruction, this.m);
+		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.distanceMethod, this.indexEngine, this.efConstruction, this.m);
 		updateIndexMapping(this.indexName, this.otherPropsToType);  
+	}
+	
+	@Override
+	protected String getDefaultDistanceMethod() {
+		return "cosine";
 	}
 
 	@Override
@@ -586,10 +586,11 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				{
 					JsonObject thisIndex = new JsonObject();
 					thisIndex.addProperty("type", "dense_vector");
-					thisIndex.addProperty("dims", dimension);
+					if(dimension > 0) {
+						thisIndex.addProperty("dims", dimension);
+					}
 					thisIndex.addProperty("index", true);
-
-
+					thisIndex.addProperty("similarity", spaceType);
 					{
 						JsonObject indexOptions = new JsonObject();
 						indexOptions.addProperty("ef_construction", efConstruction);

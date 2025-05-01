@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -340,5 +341,23 @@ public final class ZipUtils {
 		paths.put("FILE", files);
 		return paths;
 	}
-	
+
+	/**
+	 * 
+	 * @param sourceFile
+	 * @param gzipFile
+	 * @throws IOException
+	 */
+	public static void compressGzipFile(String sourceFile, String gzipFile) throws IOException {
+		try (FileOutputStream fos = new FileOutputStream(gzipFile);
+				GZIPOutputStream gzipOS = new GZIPOutputStream(fos);
+				FileInputStream fis = new FileInputStream(sourceFile)) {
+			byte[] buffer = new byte[1024];
+			int len;
+			while ((len = fis.read(buffer)) > 0) {
+				gzipOS.write(buffer, 0, len);
+			}
+		}
+	}
+
 }

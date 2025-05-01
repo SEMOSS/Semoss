@@ -1230,14 +1230,14 @@ public class Insight implements Serializable {
 		String key = InsightCustomReactorCompilator.getKey(this);
 		// see if I need to compile this again
 		if(!InsightCustomReactorCompilator.isCompiled(key)) {
-			int status = Utility.compileJava(insightFolder, getCP());
+			int status = Utility.compileJava(getInsightFolder(), getCP());
 			if(status == 0) {
 				InsightCustomReactorCompilator.setCompiled(key);
 			}
 		}
 		
 		if(insightSpecificHash == null || insightSpecificHash.isEmpty()) {
-			insightSpecificHash = Utility.loadReactors(insightFolder, key);
+			insightSpecificHash = Utility.loadReactors(getInsightFolder(), key);
 		}
 		// creates the insight specific map
 		try {

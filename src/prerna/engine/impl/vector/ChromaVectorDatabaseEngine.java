@@ -37,7 +37,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final Logger classLogger = LogManager.getLogger(ChromaVectorDatabaseEngine.class);
 	
 	public static final String CHROMA_CLASSNAME = "CHROMA_COLLECTION_NAME";
-	public static final String DISTANCE_METHOD = "DISTANCE_METHOD";
 	public static final String COLLECTION_ID = "COLLECTION_ID";
 
 	private final String API_TOKEN_KEY = "X-Chroma-Token";
@@ -109,7 +108,12 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		return (String) responseMap.get("id");
 	}
-
+	
+	@Override
+	protected String getDefaultDistanceMethod() {
+		return "cosine";
+	}
+	
 	@Override
 	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {

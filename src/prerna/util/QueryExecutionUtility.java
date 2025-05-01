@@ -292,12 +292,31 @@ public class QueryExecutionUtility {
 		return ret;
 	}
 	
+	/**
+	 * 
+	 * @param engine
+	 * @param qs
+	 * @return
+	 */
 	public static List<Map<String, Object>> flushRsToMap(IDatabaseEngine engine, SelectQueryStruct qs) {
-		List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
-		
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			return flushWrapperToMap(wrapper);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return new ArrayList<>();
+	}
+	
+	/**
+	 * 
+	 * @param wrapper
+	 * @return
+	 */
+	public static List<Map<String, Object>> flushWrapperToMap(IRawSelectWrapper wrapper) {
+		List<Map<String, Object>> result = new ArrayList<>();
+		try {
 			while(wrapper.hasNext()) {
 				IHeadersDataRow headerRow = wrapper.next();
 				String[] headers = headerRow.getHeaders();

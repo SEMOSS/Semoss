@@ -664,19 +664,53 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             try:
                 # Split the code into lines
                 lines = code.strip().split("\n")
-                last_line = lines[-1] if lines else ""
-                preceding_lines = lines[:-1]
+
+                # loop through and remove trailing white space at the end of each line
+                # and if it is empty
+                # remove from the array entirely
+                new_lines = []
+                for line in lines:
+                    new_line = line.rstrip()
+                    if len(new_line) > 0:
+                        new_lines.append(line.rstrip())
+
+                # now try to grab the last line
+                last_line = new_lines[-1]
+                if last_line.startswith(" ") or last_line.startswith("\t"):
+                    # this is part of a loop or function
+                    # can't get you an output
+                    preceding_lines = new_lines
+                    last_line = None
+                else:
+                    preceding_lines = new_lines[:-1]
 
                 # Create a string to hold preceding lines of code
-                preceding_code = "\n".join(preceding_lines)
+                preceding_code = None
+                if len(preceding_lines) > 0:
+                    preceding_code = "\n".join(preceding_lines)
+
+                # We might be in the situation
+                # That there is string parameter that has line breaks in it
+                # However, we can eval
+                # So if preceding_code is not None and last_line is None
+                # Lets try to just so an eval of the preceding code
+                if preceding_code is not None and last_line is None:
+                    try:
+                        return eval(preceding_code, globals()), False
+                    except:
+                        # ignore
+                        pass
+
+                # We didn't hit the above exception in logic
+                # Will continue the general flow
 
                 # Execute preceding lines
-                if preceding_code:
+                if preceding_code is not None:
                     exec(preceding_code, globals())
 
                 # Evaluate last line (if not empty) and capture the output
                 last_line_output = '""'
-                if last_line:
+                if last_line is not None:
                     try:
                         last_line_output = eval(last_line, globals())
                     except:
