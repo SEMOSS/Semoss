@@ -7,7 +7,7 @@ name: Semoss Ubuntu Builder
 
 on:
   push:
-    branches: [ "dev,main" ]      #TODO: When merging to dev, main replace branch names
+    branches: [ "dev, main" ]      #TODO: When merging to dev, main replace branch names
     paths:
       - 'docker/Dockerfile.ubuntu22.04'
       - '.github/workflows/ubuntu2204.yml'
@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       # Set up BuildKit Docker container builder to be able to build
       # multi-platform images and export cache
