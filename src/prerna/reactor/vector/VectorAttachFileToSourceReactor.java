@@ -19,11 +19,11 @@ import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
-public class VectorAttachDocumentToSourceReactor extends AbstractReactor {
+public class VectorAttachFileToSourceReactor extends AbstractReactor {
 	
-	private static final Logger classLogger = LogManager.getLogger(VectorAttachDocumentToSourceReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(VectorAttachFileToSourceReactor.class);
 
-	public VectorAttachDocumentToSourceReactor() {
+	public VectorAttachFileToSourceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
 				ReactorKeysEnum.SOURCE.getKey()};
 		this.keyRequired = new int[] { 1, 1, 0, 0 };
@@ -66,7 +66,7 @@ public class VectorAttachDocumentToSourceReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Attach a document as being the source for a vector database file";
+		return "Attach a file as being the source for a vector database entry";
 	}
 	
 	@Override
@@ -74,7 +74,7 @@ public class VectorAttachDocumentToSourceReactor extends AbstractReactor {
 		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 	        return "This is a required value for the vector database";
 	    } else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-	        return "This is a required value containing the relative file path of a document";
+	        return "This is a required value containing the relative file path of a file";
 	    } else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
 	        return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
 	    } else if(key.equals(ReactorKeysEnum.SOURCE.getKey())) {
