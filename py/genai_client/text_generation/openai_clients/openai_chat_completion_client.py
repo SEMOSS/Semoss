@@ -1,5 +1,5 @@
 import math
-from typing import List, Optional, Tuple, Any
+from typing import List, Tuple, Any
 import json
 from pydantic import BaseModel
 from .operations.instruct import Instruct
@@ -9,7 +9,6 @@ from ...constants import (
     AskModelEngineResponse,
     InstructModelEngineResponse,
 )
-from ...model_limits import ModelLimits
 
 
 class OpenAiChatCompletion(AbstractOpenAiClient):
@@ -76,7 +75,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             # For vLLM it is the same for both dict and Pydantic model
             return ("extra_body", {"guided_json": schema})
 
-    def _get_structured_output_response(self, params):
+    def _get_structured_output_response(self, params) -> Tuple[str, int, str]:
         """
         Make the structured output call to the correct endpoint based on model type.
         vLLM requires a different endpoint...
@@ -87,11 +86,13 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             else self.client.chat.completions.create(model=self.model_name, **params)
         )
         try:
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            response_tokens = response.usage.completion_tokens
+            return content, response_tokens, "CHAT"
         except Exception as e:
             raise ValueError(f"Failed to extract structured output: {e}")
 
-    def _structured_output_call(self, **kwargs):
+    def _structured_output_call(self, **kwargs) -> Tuple[str, int, str]:
         """
         1. Validate the schema and identify the schema type
         2. Create the structured response format with the correct parameter name
@@ -169,6 +170,13 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             return self._structured_output_call(**kwargs)
 
         kwargs["stream"] = kwargs.get("stream", True)
+
+        # If tools is defined but tool_choice is not
+        # but also check that tools is not None or empty
+        # set tool_choice to auto
+        if "tool_choice" not in kwargs and "tools" in kwargs:
+            if kwargs["tools"] is not None and len(kwargs["tools"]) > 0:
+                kwargs["tool_choice"] = "auto"
 
         # If "tool_choice" is in kwargs, set stream to False
         if "tool_choice" in kwargs:

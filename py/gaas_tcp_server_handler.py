@@ -689,6 +689,21 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 if len(preceding_lines) > 0:
                     preceding_code = "\n".join(preceding_lines)
 
+                # We might be in the situation
+                # That there is string parameter that has line breaks in it
+                # However, we can eval
+                # So if preceding_code is not None and last_line is None
+                # Lets try to just so an eval of the preceding code
+                if preceding_code is not None and last_line is None:
+                    try:
+                        return eval(preceding_code, globals()), False
+                    except:
+                        # ignore
+                        pass
+
+                # We didn't hit the above exception in logic
+                # Will continue the general flow
+
                 # Execute preceding lines
                 if preceding_code is not None:
                     exec(preceding_code, globals())
