@@ -1813,7 +1813,7 @@ public class Project implements IProject {
 	}
 	
 	@Override
-	public Map<String, Object> buildProjectToolMap() {
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
 		// Fetch metadata for the engine
 		Map<String, Object> metadata = SecurityProjectUtils.getAggregateProjectMetadata(
 				this.getProjectId(),
@@ -1879,6 +1879,14 @@ public class Project implements IProject {
 		toolMap.put("function", project);
 
 		return toolMap;
+	}
+
+	@Deprecated
+	/**
+	 * Will be deleted for buildOpenAIFunctionEngineToolMap
+	 */
+	public Map<String, Object> buildProjectToolMap() {
+		return buildOpenAIFunctionEngineToolMap();
 	}
 	
 	//////////////////////////////////////////////////////////////////
