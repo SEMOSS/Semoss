@@ -45,7 +45,7 @@ ENV JAVA_HOME=${JAVA_HOME}
 ENV PATH=$PATH:$MAVEN_HOME/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin
 # Needed for JEP
 
-RUN printenv | grep -E '^(JAVA_HOME|TOMCAT_HOME|MAVEN_HOME|PATH)=' | awk '{print "export " $0}' >> /opt/set_env.env
+#RUN printenv | grep -E '^(JAVA_HOME|TOMCAT_HOME|MAVEN_HOME|PATH)=' | awk '{print "export " $0}' >> /opt/set_env.env
 
 #COPY . /root/
 # Pulling files from the SEMOSS/semoss-artifacts project
