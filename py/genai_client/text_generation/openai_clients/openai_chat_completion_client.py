@@ -171,6 +171,13 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         kwargs["stream"] = kwargs.get("stream", True)
 
+        # If tools is defined but tool_choice is not
+        # but also check that tools is not None or empty
+        # set tool_choice to auto
+        if "tool_choice" not in kwargs and "tools" in kwargs:
+            if kwargs["tools"] is not None and len(kwargs["tools"]) > 0:
+                kwargs["tool_choice"] = "auto"
+
         # If "tool_choice" is in kwargs, set stream to False
         if "tool_choice" in kwargs:
             kwargs["stream"] = False
