@@ -2,6 +2,8 @@ package prerna.engine.impl.function;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -15,6 +17,7 @@ import org.json.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -29,23 +32,23 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractFunctionEngine.class);
 
-	private String engineId;
-	private String engineName;
-	
-	private String smssFilePath;
+	protected String engineId;
+	protected String engineName;
+
+	protected String smssFilePath;
 	protected Properties smssProp;
-	
+
 	protected String functionName;
 	protected String functionDescription;
 	protected List<FunctionParameter> parameters;
 	protected List<String> requiredParameters;
-	
+
 	@Override
 	public void open(String smssFilePath) throws Exception {
 		setSmssFilePath(smssFilePath);
 		open(Utility.loadProperties(smssFilePath));
 	}
-	
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		setSmssProp(smssProp);
@@ -55,11 +58,14 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 		if(secretStore != null) {
 			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+			if(engineSecrets == null || engineSecrets.isEmpty()) {
+				classLogger.info("No secrets found for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			} else {
+				classLogger.info("Successfully pulled secrets for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
-		
+
 		if(!smssProp.containsKey(IFunctionEngine.NAME_KEY)) {
 			throw new IllegalArgumentException("Must have key " + IFunctionEngine.NAME_KEY + " in SMSS");
 		}
@@ -69,11 +75,11 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 
 		this.functionName = smssProp.getProperty(IFunctionEngine.NAME_KEY);
 		this.functionDescription = smssProp.getProperty(IFunctionEngine.DESCRIPTION_KEY);
-		
+
 		if(smssProp.containsKey(IFunctionEngine.PARAMETER_KEY)) {
 			this.parameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.PARAMETER_KEY), new TypeToken<List<FunctionParameter>>() {}.getType());
 		}
-		
+
 		if(smssProp.containsKey(IFunctionEngine.REQUIRED_PARAMETER_KEY)) {
 			this.requiredParameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.REQUIRED_PARAMETER_KEY), new TypeToken<List<String>>() {}.getType());
 		}
@@ -88,10 +94,10 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 			classLogger.warn("Error occurred trying to close service engine");
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(
-									getCatalogType(), this.engineId, this.engineName)
-								);
+				getCatalogType(), this.engineId, this.engineName)
+				);
 		try {
 			FileUtils.deleteDirectory(engineFolder);
 		} catch (IOException e) {
@@ -109,13 +115,13 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 		// remove from DIHelper
 		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
-	
+
 	@Override
 	public JSONObject getFunctionDefintionJson() {
 		JSONObject json = new JSONObject();
 		json.put("name", this.functionName);
 		json.put("description", this.functionDescription);
-		
+
 		JSONObject parameterJSON = new JSONObject();
 		if(this.parameters != null && !this.parameters.isEmpty()) {
 			parameterJSON.put("type", "object");
@@ -129,13 +135,13 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 			parameterJSON.put("properties", propertiesJSON);
 		}
 		json.put("parameters", parameterJSON);
-		
+
 		JSONArray requiredJSON = new JSONArray();
 		if(this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			requiredJSON.put(this.requiredParameters);
 		}
 		json.put("required", requiredJSON);
-		
+
 		return json;
 	}
 
@@ -158,7 +164,7 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	public String getEngineName() {
 		return this.engineName;
 	}
-	
+
 	@Override
 	public String getFunctionName() {
 		return functionName;
@@ -193,12 +199,12 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	public List<String> getRequiredParameters() {
 		return this.requiredParameters;
 	}
-	
+
 	@Override
 	public void setRequiredParameters(List<String> requiredParameters) {
 		this.requiredParameters = requiredParameters;
 	}
-	
+
 	@Override
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;
@@ -230,13 +236,79 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	}
 
 	@Override
-	public String getCatalogSubType(Properties smssProp) {
-		return "REST";
-	}
-
-	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+
+	/**
+	 * 
+	 */
+	public Map<String, Object> buildFunctionEngineToolMap() {
+		// Fetch metadata for the engine
+		Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(
+				this.getEngineId(),
+				Arrays.asList("description"),
+				true
+				);
+
+		// Extract the description from metadata
+		String description = (String) metadata.get("description");
+		if (description == null) {
+			description = "No description available.";
+		}
+
+		// Create the main map
+		Map<String, Object> toolMap = new HashMap<>();
+		toolMap.put("type", "function");
+
+		// Create the function map
+		Map<String, Object> functionMap = new HashMap<>();
+		functionMap.put("name", "function_engine");
+		functionMap.put("description", description);
+
+		// Create the parameters map
+		Map<String, Object> parametersMap = new HashMap<>();
+		parametersMap.put("type", "object");
+
+		// Create the properties map
+		Map<String, Object> propertiesMap = new HashMap<>();
+
+		// Add the id property
+		Map<String, Object> idMap = new HashMap<>();
+		idMap.put("type", "string");
+		idMap.put("description", "The unique identifier for this function_engine used to call this specific engine");
+		idMap.put("enum", Arrays.asList(this.getEngineId()));
+		propertiesMap.put("id", idMap);
+
+		// Add the map property
+		Map<String, Object> mapMap = new HashMap<>();
+		mapMap.put("type", "object");
+
+		// Create the map properties map
+		Map<String, Object> mapPropertiesMap = new HashMap<>();
+		for (FunctionParameter param : this.getParameters()) {
+			Map<String, Object> paramMap = new HashMap<>();
+			paramMap.put("type", param.getParameterType());
+			paramMap.put("description", param.getParameterDescription());
+			mapPropertiesMap.put(param.getParameterName(), paramMap);
+		}
+		mapMap.put("properties", mapPropertiesMap);
+		mapMap.put("required", this.getRequiredParameters());
+		mapMap.put("description", "A map containing the parameters to pass into the function_engine call.");
+
+		propertiesMap.put("map", mapMap);
+
+		// Finalize parameters map
+		parametersMap.put("properties", propertiesMap);
+		parametersMap.put("required", Arrays.asList("id", "map"));
+
+		// Add parameters to function map
+		functionMap.put("parameters", parametersMap);
+
+		// Add function map to main map
+		toolMap.put("function", functionMap);
+
+		return toolMap;
 	}
 
 }

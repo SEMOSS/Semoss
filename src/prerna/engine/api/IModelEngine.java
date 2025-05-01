@@ -70,14 +70,14 @@ public interface IModelEngine extends IEngine {
 	 */
 	EmbeddingsModelEngineResponse embeddings(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters);
 	
-
 	/**
 	 * Passes a list of strings to the model client to be embedded. Each string in the {@code stringsToEmbed} will be returned as its own vector.
 	 * 
-	 * @param input				An input object to be sent to the ModelEngine. The input object should be serializable.
+	 * @param stringsToEmbed	The string that needs to be encoded
 	 * @param insight			The insight from where the call is being made. The insight holds user credentials, project information and conversation history tied to the insightId
-	 * @param parameters		Additional parameters
-	 * @return					The output from the Model Engines model method
+	 * @param parameters		Additional parameters such as temperature, top_k, max_new_tokens etc
+	 * @return					A list of embeddings
 	 */
-	Object model(Object input, Insight insight, Map <String, Object> parameters);
+	EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight, Map <String, Object> parameters);
+
 }

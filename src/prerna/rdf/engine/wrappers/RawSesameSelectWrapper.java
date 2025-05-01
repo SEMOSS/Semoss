@@ -1,12 +1,9 @@
 package prerna.rdf.engine.wrappers;
 
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -38,9 +35,6 @@ import prerna.util.Utility;
 public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	private static final Logger classLogger = LogManager.getLogger(RawSesameSelectWrapper.class.getName());
-	
-	private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSS'Z'");
-	private final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'hh:mm:ss.SSS'Z'");
 	
 	private TupleQueryResult tqr = null;
 
@@ -160,9 +154,10 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 				// if datetime
 				else if(lValDataType.getLocalName().equalsIgnoreCase("dateTime")) {
 					try {
-						LocalDateTime ldt = LocalDateTime.parse(lVal.calendarValue().toString(), DATE_FORMATTER);
-						Date d = Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
-						SemossDate date = new SemossDate(d, "yyyy-MM-dd HH:mm:ss", ZoneId.of(Utility.getApplicationZoneId()));
+						String dateStr = lVal.calendarValue().toString();
+						Instant instant = Instant.parse(dateStr);
+						ZonedDateTime zdt = ZonedDateTime.ofInstant(instant, ZoneId.of("UTC"));
+						SemossDate date = new SemossDate(zdt, "yyyy-MM-dd HH:mm:ss");
 						return date;
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);

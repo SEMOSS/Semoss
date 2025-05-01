@@ -80,10 +80,6 @@ public class UploadEngineReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 		
-		if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-			throwFunctionalityOnlyExposedForAdminsError();
-		}
-
 		// creating a temp folder to unzip the engine folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
 		String randomTempUnzipFolderPath = this.insight.getInsightFolder() + DIR_SEPARATOR + randomIdAsDir;
@@ -144,6 +140,18 @@ public class UploadEngineReactor extends AbstractReactor {
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 		Object[] typeAndSubtypeAndCost = SecurityEngineUtils.getEngineTypeAndSubTypeAndCost(prop);
 		IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndSubtypeAndCost[0];
+		
+		// check if admin only
+		if (AbstractSecurityUtils.adminOnlyEngineAdd(engineType) && !SecurityAdminUtils.userIsAdmin(user)) {
+			throwFunctionalityOnlyExposedForAdminsError();
+		}
+		
+		if (global && 
+				(AbstractSecurityUtils.adminOnlyEngineSetPublic(engineType) && !SecurityAdminUtils.userIsAdmin(user))) {
+			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("User can upload an engine but cannot make the engine global"));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		
 		// do we have any other checks we want to make based on the SMSS
 		// let us do it now
@@ -290,4 +298,21 @@ public class UploadEngineReactor extends AbstractReactor {
 		}
 	}
 
+	@Override
+	public String getReactorDescription() {
+	    return "Import a new engine. The user who uploads will by default be the owner of the engine";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+	        return "This is a required value containing the relative file path of the single zip file to be imported";
+	    } else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
+	        return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
+	    } else if(key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
+	    	return "This is a required value to determine if the engine is public or private";
+	    }
+	    return super.getDescriptionForKey(key);
+	}
+	
 }

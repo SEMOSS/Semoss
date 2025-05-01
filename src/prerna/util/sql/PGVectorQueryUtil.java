@@ -1,6 +1,9 @@
 package prerna.util.sql;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,7 +25,21 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 	public PGVectorQueryUtil(String connectionUrl, String username, String password) {
 		super();
 	}
+	
+	@Override
+	public void enhanceConnection(Connection con) {
+		try (Statement stmt = con.createStatement()) {
+			stmt.execute(addVectorExtension());
+		} catch(SQLException e) {
+			classLogger.warn("Unable to create the vector extension");
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
 
+	public String addVectorExtension() {
+		return "CREATE EXTENSION IF NOT EXISTS vector;";
+	}
+	
 	public String createEmbeddingsTable(String table) {
 		return "CREATE TABLE IF NOT EXISTS "+table+"("
 				+ "ID INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, "
@@ -50,10 +67,6 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 				+ ");";
 	}
 
-	public String addVectorExtension() {
-		return "CREATE EXTENSION IF NOT EXISTS vector;";
-	}
-	
 	public void createOWL(PGVectorDatabaseEngine engine, String embeddingsTable, String metadataTable) {
 		try(WriteOWLEngine writer = engine.getOWLEngineFactory().getWriteOWL()) {
 			writer.createEmptyOWLFile();

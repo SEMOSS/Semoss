@@ -1,0 +1,17 @@
+#!/bin/bash
+COMMIT_MSG=$(cat "$1")
+
+echo "Commit Message: ${COMMIT_MSG}"
+
+if [[ "$COMMIT_MSG" =~ ^Merge\  ]]; then
+	echo "SKIPPING Due to merge commit."
+	exit 0
+fi
+
+if ! [[ $COMMIT_MSG =~ ^((\[#[0-9]+\][[:space:]])?(build|chore|ci|docs|feat|fix|git|perf|refactor|revert|style|test)(\(.*\))?!?: .*) ]]; then
+	echo >&2 "ERROR: Commit aborted for not following the Conventional Commit standard."
+	exit 1
+else
+	echo >&2 "Valid commit message."
+	exit 0
+fi

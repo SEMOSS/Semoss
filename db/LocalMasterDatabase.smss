@@ -11,5 +11,8 @@ USERNAME        sa
 PASSWORD        abcd
 CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/databaseNewMaster;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
 USE_CONNECTION_POOLING	false
+POOL_MIN_SIZE
+POOL_MAX_SIZE
+AUTO_COMMIT
 
 DATABASE_ZONEID UTC

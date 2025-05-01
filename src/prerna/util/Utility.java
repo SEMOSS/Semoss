@@ -68,6 +68,7 @@ import java.text.Normalizer.Form;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -161,7 +162,7 @@ import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.IReactorEngine;
+import prerna.engine.api.IReactorFunctionEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.api.IStorageEngine;
@@ -184,7 +185,6 @@ import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.SocketServerHandler;
-import prerna.tcp.client.SocketClient;
 import prerna.tcp.workers.EngineSocketWrapper;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -272,6 +272,8 @@ public final class Utility {
 	 * @param Query.
 	 * 
 	 * @return Hashtable of queries to be replaced
+	 * @return JSON format of vector 
+	 * 
 	 */
 	public static Hashtable getParamTypeHash(String query) {
 		Hashtable paramHash = new Hashtable();
@@ -288,9 +290,9 @@ public final class Utility {
 			// put something to strip the @
 			paramHash.put(paramName, paramValue);
 		}
-
+		
 		return paramHash;
-	}
+	}  
 	
 	/**
 	 * Get the Base Folder
@@ -2348,6 +2350,13 @@ public final class Utility {
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 		Date rdbmsDate = MasterDatabaseUtility.getEngineDate(engineId);
 		File owlFile = SmssUtilities.getOwlFile(prop);
+		if(owlFile == null) {
+			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
+			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
+			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
+			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
+			return;
+		}
 		String engineDbTime = df.format(new Date(owlFile.lastModified()));
 
 		// 4) perform the necessary additions if the time stamps do not equal
@@ -2802,7 +2811,7 @@ public final class Utility {
 	 * @param engineId
 	 * @return
 	 */
-	public static IReactorEngine getReactorEngine(String engineId) {
+	public static IReactorFunctionEngine getReactorEngine(String engineId) {
 		return getReactorEngine(engineId, true);
 	}
 	
@@ -2812,8 +2821,8 @@ public final class Utility {
 	 * @param pullIfNeeded
 	 * @return
 	 */
-	public static IReactorEngine getReactorEngine(String engineId, boolean pullIfNeeded) {
-		return (IReactorEngine) baseGetEngine(engineId, pullIfNeeded);
+	public static IReactorFunctionEngine getReactorEngine(String engineId, boolean pullIfNeeded) {
+		return (IReactorFunctionEngine) baseGetEngine(engineId, pullIfNeeded);
 	}
 	
 	/**
@@ -3558,6 +3567,9 @@ public final class Utility {
 	}
 
 	public static String encodeURIComponent(String s) {
+		if(s == null) {
+			return null;
+		}
 		try {
 			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20")
 					.replace("!", "\\%21")
@@ -3573,6 +3585,9 @@ public final class Utility {
 	}
 
 	public static String decodeURIComponent(String s) {
+		if(s == null) {
+			return null;
+		}
 		try {
 			String newS = s.replaceAll("\\%20", "+")
 					.replaceAll("\\%21", "!")
@@ -3686,22 +3701,12 @@ public final class Utility {
 	 */
 	public static Properties loadProperties(String filePath) {
 		Properties retProp = new Properties();
-		FileInputStream fis = null;
 		if (filePath != null) {
-			try {
-				fis = new FileInputStream(Utility.normalizePath(filePath));
+			try (FileInputStream fis = new FileInputStream(Utility.normalizePath(filePath))){
 				retProp.load(fis);
 			} catch (IOException ioe) {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
 				classLogger.error(Constants.STACKTRACE, ioe);
-			} finally {
-				if (fis != null) {
-					try {
-						fis.close();
-					} catch (IOException ioe) {
-						classLogger.error(Constants.STACKTRACE, ioe);
-					}
-				}
 			}
 		}
 		return retProp;
@@ -3809,11 +3814,26 @@ public final class Utility {
 	}
 	
 	/**
-	 * Determine if for this instance only the admin can add a database
+	 * Determine if for this instance only the admin can share insight
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyDbAdd() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_ADD);
+	public static boolean getApplicationAdminOnlyInsightShare() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	
+	/**
+	 * Determine if for this instance only the admin can set an insight public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyInsightSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SET_PUBLIC);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3823,11 +3843,11 @@ public final class Utility {
 	}
 	
 	/**
-	 * Determine if for this instance only the admin can share insight
+	 * Determine if for this instance only the admin can add a database
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyInsightShare() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE);
+	public static boolean getApplicationAdminOnlyDbAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_ADD);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3891,13 +3911,279 @@ public final class Utility {
 		
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
-	 * Determine if for this instance only the admin can set an insight public
+	 * Determine if for this instance only the admin can add a model
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyInsightSetPublic() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SET_PUBLIC);
+	public static boolean getApplicationAdminOnlyModelAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a model
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set model access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a model public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a model discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a storage
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a storage
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set storage access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a storage public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a storage discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a vector
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a vector
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set vector access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a vector public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a vector discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a function
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a function
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set function access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a function public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a function function 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -4258,7 +4544,7 @@ public final class Utility {
 	}
 	
 	public static String getApplicationOptionalRoutePath() {
-		String route = (String) DIHelper.getInstance().getLocalProp(Constants.MONOLITH_ROUTE);
+		String route = Utility.getDIHelperProperty(Constants.MONOLITH_ROUTE);
 		if(route == null) {
 			Map<String, String> envMap = System.getenv();
 			if (envMap.containsKey(Constants.MONOLITH_ROUTE)) {
@@ -4642,7 +4928,7 @@ public final class Utility {
 	 * @param urls
 	 * @return
 	 */
-	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls) {
+	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls, ClassLoader parentClassLoader) {
 		URLClassLoader cl = null;
 		Map<String, Class<IReactor>> reactorsMap = new HashMap<>();
 		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
@@ -4653,9 +4939,9 @@ public final class Utility {
 			};
 		}
 		try {
-			cl = new URLClassLoader(urls);
+            cl = new URLClassLoader(urls, parentClassLoader);
 			JarClassLoader jcl = new JarClassLoader(cl);
-			
+
 			// scan all abstract reactors
 			ScanResult sr = new ClassGraph()
 					.overrideClasspath((Object[]) urls)
@@ -4812,7 +5098,14 @@ public final class Utility {
 		return envClassPath.toString();
 	}
 	
-	public static Process startTCPServerChroot(String cp, String chrootDir, String insightFolder, String port) {
+	/**
+	 * 
+	 * @param cp
+	 * @param insightFolder
+	 * @param port
+	 * @return
+	 */
+	public static Process startTCPServer(String cp, String insightFolder, String port) {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		Process thisProcess = null;
@@ -4825,6 +5118,7 @@ public final class Utility {
 			if (java == null) {
 				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
 			}
+			java = java.trim();
 			if(!java.endsWith("bin")) {
 				//seems like for graal
 				java = java + "/bin/java";
@@ -4838,56 +5132,32 @@ public final class Utility {
 			// change the \\
 			java = java.replace("\\", "/");
 
-			String jep = Utility.getDIHelperProperty(Constants.LD_LIBRARY_PATH);
-			if (jep == null) {
-				jep = System.getenv(Constants.LD_LIBRARY_PATH);
-			}
-			// account for spaces in the path to jep
-			if (jep.contains(" ")) {
-				jep = "\"" + jep + "\"";
-			}
-			jep = jep.replace("\\", "/");
-
-			String pyWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
-			if(pyWorker == null || (pyWorker=pyWorker.trim()).isEmpty()) {
-				pyWorker = prerna.tcp.SocketServer.class.getName(); // "prerna.tcp.SocketServer";
+			String tcpWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
+			if(tcpWorker == null || (tcpWorker=tcpWorker.trim()).isEmpty()) {
+				tcpWorker = prerna.tcp.SocketServer.class.getName();
 			}
 			String[] commands = null;
 			if (port == null) {
-				commands = new String[7];
+				commands = new String[6];
 			} else {
-				commands = new String[8];
-				commands[7] = port;
+				commands = new String[7];
+				commands[6] = port;
 			}
 			String finalDir = insightFolder.replace("\\", "/");
 			commands[0] = java;
-			// just append all the environment variables
-			// on the windows machine as well
-			if(SystemUtils.IS_OS_WINDOWS) {
-				// since we will wrap quotes around the entire thing as PATH likely has spaces
-				// remove from jep
-				if(jep.startsWith("\"") && jep.endsWith("\"")) {
-					jep = jep.substring(1, jep.length()-1);
-				}
-				commands[1] = "-Djava.library.path=\"%PATH%;" + jep + "\"";
-			} else {
-				commands[1] = "-Djava.library.path=" + jep;
-			}
+
 			// compose for memory
 			String xms = Utility.getDIHelperProperty("Xms");
 			String xmx = Utility.getDIHelperProperty("Xmx");
-			
 			String memory = "";
-			if(xms != null && xmx != null)
+			if(xms != null && xmx != null) {
 				memory = "-Xms" + xms + " -Xmx" + xmx;
-			
-			commands[2] = memory + " -cp";
-
-			//commands[2] = "-cp";
-			commands[3] = specificPath;
-			commands[4] = pyWorker;
-			commands[5] = finalDir;
-			commands[6] = DIHelper.getInstance().getRDFMapFileLocation();
+			}
+			commands[1] = memory + " -cp";
+			commands[2] = specificPath;
+			commands[3] = tcpWorker;
+			commands[4] = finalDir;
+			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
 			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
@@ -4898,7 +5168,133 @@ public final class Utility {
 					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
-			*/
+			 */
+			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
+			// commands[6] = ">";
+			// commands[7] = finalDir + "/.log";
+
+			classLogger.debug("Trying to create file in .. " + finalDir);
+			File file = new File(finalDir + "/init");
+			file.createNewFile();
+			classLogger.debug("Python start commands ... ");
+			classLogger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
+
+			// run it as a process
+			// ProcessBuilder pb = new ProcessBuilder(commands);
+			// ProcessBuilder pb = new
+			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
+			// pb.command(commands);
+
+			// need to make sure we are not windows cause ulimit will not work
+			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
+				StringBuilder sb = new StringBuilder();
+				for (String str : commands) {
+					sb.append(str).append(" ");
+				}
+				sb.substring(0, sb.length() - 1);
+				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
+			}
+
+			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
+			String[] starterFile = writeStarterFile(commands, finalDir);
+			ProcessBuilder pb = new ProcessBuilder(starterFile);
+			pb.redirectError();
+			Process p = pb.start();
+			try {
+				p.waitFor(500, TimeUnit.MILLISECONDS);
+			} catch (InterruptedException ie) {
+				Thread.currentThread().interrupt();
+				classLogger.error(Constants.STACKTRACE, ie);
+			}
+			classLogger.info("came out of the waiting for process");
+			thisProcess = p;
+
+			// System.out.println("Process started with .. " + p.exitValue());
+			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
+			// + " " + argList);
+			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
+			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
+			// thisProcess = pb.start();
+		} catch (IOException ioe) {
+			classLogger.error(Constants.STACKTRACE, ioe);
+		}
+
+		return thisProcess;
+	}
+	
+	/**
+	 * 
+	 * @param cp
+	 * @param chrootDir
+	 * @param insightFolder
+	 * @param port
+	 * @return
+	 */
+	public static Process startTCPServerChroot(String cp, String chrootDir, String insightFolder, String port) {
+		// this basically starts a java process
+		// the string is an identifier for this process
+		Process thisProcess = null;
+		if (cp == null) {
+			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
+		}
+		String specificPath = getCP(cp, insightFolder);
+		try {
+			String java = System.getenv(Constants.JAVA_HOME);
+			if (java == null) {
+				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
+			}
+			java = java.trim();
+			if(!java.endsWith("bin")) {
+				//seems like for graal
+				java = java + "/bin/java";
+			} else {
+				java = java + "/java";
+			}
+			// account for spaces in the path to java
+			if (java.contains(" ")) {
+				java = "\"" + java + "\"";
+			}
+			// change the \\
+			java = java.replace("\\", "/");
+
+			String tcpWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
+			if(tcpWorker == null || (tcpWorker=tcpWorker.trim()).isEmpty()) {
+				tcpWorker = prerna.tcp.SocketServer.class.getName();
+			}
+			String[] commands = null;
+			if (port == null) {
+				commands = new String[6];
+			} else {
+				commands = new String[7];
+				commands[6] = port;
+			}
+			String finalDir = insightFolder.replace("\\", "/");
+			commands[0] = java;
+			// compose for memory
+			String xms = Utility.getDIHelperProperty("Xms");
+			String xmx = Utility.getDIHelperProperty("Xmx");
+
+			String memory = "";
+			if(xms != null && xmx != null)
+				memory = "-Xms" + xms + " -Xmx" + xmx;
+
+			commands[1] = memory + " -cp";
+			commands[2] = specificPath;
+			commands[3] = tcpWorker;
+			commands[4] = finalDir;
+			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
+			// java = "c:/zulu/zulu-8/bin/java";
+			// StringBuilder argList = new StringBuilder(args[0]);
+			// for(int argIndex = 0;argIndex < args.length;argList.append("
+			// ").append(args[argIndex]), argIndex++);
+			// commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
+			/*commands[3] = "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
+					+ "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;"
+					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
+					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
+					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
+			 */
 			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
 			// commands[6] = ">";
 			// commands[7] = finalDir + "/.log";
@@ -4926,6 +5322,7 @@ public final class Utility {
 				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
 			}
 
+			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
 			String[] starterFile = writeStarterFile(commands, chrootDir, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			pb.redirectError();
@@ -4955,150 +5352,20 @@ public final class Utility {
 		return thisProcess;
 	}
 
-	public static Process startTCPServer(String cp, String insightFolder, String port) {
-		// this basically starts a java process
-		// the string is an identifier for this process
-		Process thisProcess = null;
-		if (cp == null) {
-			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
-		}
-		String specificPath = getCP(cp, insightFolder);
-		try {
-			String java = System.getenv(Constants.JAVA_HOME);
-			if (java == null) {
-				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
-			}
-			if(!java.endsWith("bin")) {
-				//seems like for graal
-				java = java + "/bin/java";
-			} else {
-				java = java + "/java";
-			}
-			// account for spaces in the path to java
-			if (java.contains(" ")) {
-				java = "\"" + java + "\"";
-			}
-			// change the \\
-			java = java.replace("\\", "/");
-
-			String jep = Utility.getDIHelperProperty(Constants.LD_LIBRARY_PATH);
-			if (jep == null) {
-				jep = System.getenv(Constants.LD_LIBRARY_PATH);
-			}
-			// account for spaces in the path to jep
-			if (jep.contains(" ")) {
-				jep = "\"" + jep + "\"";
-			}
-			jep = jep.replace("\\", "/");
-
-			String pyWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
-			if(pyWorker == null || (pyWorker=pyWorker.trim()).isEmpty()) {
-				pyWorker = prerna.tcp.SocketServer.class.getName(); // "prerna.tcp.SocketServer";
-			}
-			String[] commands = null;
-			if (port == null) {
-				commands = new String[7];
-			} else {
-				commands = new String[8];
-				commands[7] = port;
-			}
-			String finalDir = insightFolder.replace("\\", "/");
-			commands[0] = java;
-			// just append all the environment variables
-			// on the windows machine as well
-			if(SystemUtils.IS_OS_WINDOWS) {
-				// since we will wrap quotes around the entire thing as PATH likely has spaces
-				// remove from jep
-				if(jep.startsWith("\"") && jep.endsWith("\"")) {
-					jep = jep.substring(1, jep.length()-1);
-				}
-				commands[1] = "-Djava.library.path=\"%PATH%;" + jep + "\"";
-			} else {
-				commands[1] = "-Djava.library.path=" + jep;
-			}
-			// compose for memory
-			String xms = Utility.getDIHelperProperty("Xms");
-			String xmx = Utility.getDIHelperProperty("Xmx");
-			
-			String memory = "";
-			if(xms != null && xmx != null)
-				memory = "-Xms" + xms + " -Xmx" + xmx;
-			
-			commands[2] = memory + " -cp";
-
-			commands[3] = specificPath;
-			commands[4] = pyWorker;
-			commands[5] = finalDir;
-			commands[6] = DIHelper.getInstance().getRDFMapFileLocation();
-			// java = "c:/zulu/zulu-8/bin/java";
-			// StringBuilder argList = new StringBuilder(args[0]);
-			// for(int argIndex = 0;argIndex < args.length;argList.append("
-			// ").append(args[argIndex]), argIndex++);
-			// commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
-			/*commands[3] = "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
-					+ "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;"
-					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
-					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
-					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
-			*/
-			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
-			// commands[6] = ">";
-			// commands[7] = finalDir + "/.log";
-
-			classLogger.debug("Trying to create file in .. " + finalDir);
-			File file = new File(finalDir + "/init");
-			file.createNewFile();
-			classLogger.debug("Python start commands ... ");
-			classLogger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
-
-			// run it as a process
-			// ProcessBuilder pb = new ProcessBuilder(commands);
-			// ProcessBuilder pb = new
-			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
-			// pb.command(commands);
-
-			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
-				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
-				StringBuilder sb = new StringBuilder();
-				for (String str : commands) {
-					sb.append(str).append(" ");
-				}
-				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
-			}
-
-			String[] starterFile = writeStarterFile(commands, finalDir);
-			ProcessBuilder pb = new ProcessBuilder(starterFile);
-			pb.redirectError();
-			Process p = pb.start();
-			try {
-				p.waitFor(500, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException ie) {
-				Thread.currentThread().interrupt();
-				classLogger.error(Constants.STACKTRACE, ie);
-			}
-			classLogger.info("came out of the waiting for process");
-			thisProcess = p;
-
-			// System.out.println("Process started with .. " + p.exitValue());
-			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
-			// + " " + argList);
-			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
-			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
-			// thisProcess = pb.start();
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
-		}
-
-		return thisProcess;
-	}
-
+	/**
+	 * 
+	 * @param insightFolder
+	 * @param port
+	 * @param py
+	 * @param timeout
+	 * @param loggerLevel
+	 * @return
+	 */
 	public static Object [] startTCPServerNativePy(String insightFolder, String port, String py, String timeout, String loggerLevel) {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		// do I need this insight folder anymore ?
-		
+
 		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
 		// C:/Python/Python310/python.exe C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py 9999 1 . c:/temp
 		String prefix = "";
@@ -5106,73 +5373,50 @@ public final class Utility {
 		String finalDir = insightFolder.replace("\\", "/");
 
 		try {
-			
 			// only try to find the base python if one was not passed in
 			if (py == null || py.isEmpty()) {
-				py = System.getenv(Settings.PYTHONHOME);
-				if(py == null) {
-					py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
-				}
-				if(py == null) {
-					System.getenv(Settings.PY_HOME);
-				}
-				if (py == null) {
-					py = Utility.getDIHelperProperty(Settings.PY_HOME);
-				}
-				if(py == null) {
-					throw new NullPointerException("Must define python home");
-				}
-			}
-			
-			// append the executable
-			if (SystemUtils.IS_OS_WINDOWS) {
-				py = py + "/python.exe";
+				py = getPythonExecutable();
 			} else {
-				py = py + "/bin/python3";
+				classLogger.info("The python executable being used is: \"" + py + "\"");
 			}
-			
-			py = py.replace("\\", "/");
-			
-			classLogger.info("The python executable being used is: " + py);
-
-			// check to see if the py folder is there
-			// if not go into base folder
-			String pyBase = Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER) == null
-					? Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
-						: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);
-			
-			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
-			pyBase = pyBase.replace("\\", "/");
+			String pyBase = Utility.getBaseFolder().replace("\\", "/") + "/" + Constants.PY_BASE_FOLDER;
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
 			prefix = Utility.getRandomString(5);
 			prefix = "p_"+ prefix;
-			
+
 			String outputFile = finalDir + "/console.txt";
-			
+
 			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
-					
-			String[] baseCommand = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
-			
+			String[] baseCommand = new String[] {
+					py, gaasServer, 
+					"--port", port, 
+					"--max_count", "1", 
+					"--py_folder", pyBase, 
+					"--insight_folder", finalDir, 
+					"--prefix", prefix, 
+					"--timeout", timeout, 
+					"--logger_level", loggerLevel
+					};
+
 			String[] commands;
-		
 			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
-			    commands = new String[baseCommand.length + 3];
-			    commands[0] = "sudo";
-			    commands[1] = "-u";
-			    commands[2] = pythonUser;
-			    System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
-			    
-			    File pythonProcessFolder = new File(finalDir);
-			    if(pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
-			    	pythonProcessFolder.setReadable(true, false);  
-			    	pythonProcessFolder.setWritable(true, false); 
-			    	pythonProcessFolder.setExecutable(true, false); 
-			    }	
+				commands = new String[baseCommand.length + 3];
+				commands[0] = "sudo";
+				commands[1] = "-u";
+				commands[2] = pythonUser;
+				System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
+
+				File pythonProcessFolder = new File(finalDir);
+				if(pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
+					pythonProcessFolder.setReadable(true, false);  
+					pythonProcessFolder.setWritable(true, false); 
+					pythonProcessFolder.setExecutable(true, false); 
+				}	
 			} else {
-			    commands = baseCommand;
+				commands = baseCommand;
 			}
-			
+
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
@@ -5183,9 +5427,8 @@ public final class Utility {
 				sb.substring(0, sb.length() - 1);
 				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
 			}
-			
-			// do I need this ?
-			//String[] starterFile = writeStarterFile(commands, finalDir);
+
+			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
 			ProcessBuilder pb = new ProcessBuilder(commands);
 			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
 			pb.redirectError(redirector);
@@ -5201,21 +5444,21 @@ public final class Utility {
 			if (!p.isAlive()) {
 				// if it crashed here, then the outputFile will contain the error. Read file and send error back
 				// it should not contain anything else since we are trying to start the server here
-	        	BufferedReader reader = new BufferedReader(new FileReader(outputFile));
+				BufferedReader reader = new BufferedReader(new FileReader(outputFile));
 				StringBuilder errorMsg = new StringBuilder();
-	            String line;
-	            while ((line = reader.readLine()) != null ) {
-	                // get the runtime error
-	            	if (line.startsWith("Traceback")) {
-	            		errorMsg.append(line).append("\n");
-	            		while ((line = reader.readLine()) != null ) {
-	            			errorMsg.append(line).append("\n");
-	            		}
-	            	}
-	            }
-	            reader.close();
-	            if (!errorMsg.toString().isEmpty())
-	            	throw new IllegalStateException(errorMsg.toString());
+				String line;
+				while ((line = reader.readLine()) != null ) {
+					// get the runtime error
+					if (line.startsWith("Traceback")) {
+						errorMsg.append(line).append("\n");
+						while ((line = reader.readLine()) != null ) {
+							errorMsg.append(line).append("\n");
+						}
+					}
+				}
+				reader.close();
+				if (!errorMsg.toString().isEmpty())
+					throw new IllegalStateException(errorMsg.toString());
 			}
 			thisProcess = p;
 
@@ -5231,13 +5474,22 @@ public final class Utility {
 
 		return new Object[] {thisProcess, prefix};
 	}
-	
+
+	/**
+	 * 
+	 * @param chrootDir
+	 * @param insightFolder
+	 * @param port
+	 * @param timeout
+	 * @param loggerLevel
+	 * @return
+	 */
 	public static Object [] startTCPServerNativePyChroot(String chrootDir, String insightFolder, String port, String timeout, String loggerLevel ) {
 		//chroot dir is usually at /opt/kunal__abc123123 - after which is the full os
 		// this basically starts a java process
 		// the string is an identifier for this process
 		// do I need this insight folder anymore ?
-		
+
 		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
 		// C:/Python/Python310/python.exe C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py 9999 1 . c:/temp
 		String prefix = "";
@@ -5245,48 +5497,33 @@ public final class Utility {
 		String finalDir = insightFolder.replace("\\", "/");
 
 		try {
-			String py = System.getenv(Settings.PYTHONHOME);
-			if(py == null) {
-				py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
-			}
-			if(py == null) {
-				System.getenv(Settings.PY_HOME);
-			}
-			if (py == null) {
-				py = Utility.getDIHelperProperty(Settings.PY_HOME);
-			}
-			if(py == null) {
-				throw new NullPointerException("Must define python home");
-			}
-			
-			if (SystemUtils.IS_OS_WINDOWS) {
-				py = py + "/python.exe";
-			} else {
-				py = py + "/bin/python3";
-			}
-			
-			py = py.replace("\\", "/");
-
-			String pyBase = Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER) == null 
-					? Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
-						: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);			
-			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
-
-			pyBase = pyBase.replace("\\", "/");
+			String py = getPythonExecutable();
+			String pyBase = Utility.getBaseFolder().replace("\\", "/") + "/" + Constants.PY_BASE_FOLDER;
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
 			prefix = Utility.getRandomString(5);
 			prefix = "p_"+ prefix;
-			
-			String outputFile =chrootDir + finalDir + "/console.txt";
-			
-			//String timeout = "15";
-//			if(otherProps!= null && otherProps.length > 0)
-//				timeout = otherProps[0];
-			
-		//	String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
 
-			String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+			String outputFile = chrootDir + finalDir + "/console.txt";
+
+			//	String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
+			// 01.03.2025 - below are old chroot commands that utilized full mount + bindfs + debootstrap
+			// String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+			String[] commands = new String[] {
+					"fakechroot", "fakeroot", 
+					"chroot", 
+					"--userspec=1001:1001", "/", 
+					"env" ,"-i", 
+					py, gaasServer, 
+					"--port", port, 
+					"--max_count", "1", 
+					"--py_folder", pyBase, 
+					"--insight_folder", finalDir, 
+					"--prefix", prefix, 
+					"--timeout", timeout, 
+					"--logger_level", loggerLevel, 
+					"--userChrootFolder", chrootDir
+					};
 
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
@@ -5298,9 +5535,8 @@ public final class Utility {
 				sb.substring(0, sb.length() - 1);
 				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
 			}
-			
-			// do I need this ?
-			//String[] starterFile = writeStarterFile(commands, finalDir);
+
+			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
 			ProcessBuilder pb = new ProcessBuilder(commands);
 			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
 			pb.redirectError(redirector);
@@ -5330,169 +5566,42 @@ public final class Utility {
 	
 	/**
 	 * 
-	 * @param pyClientClass
-	 * @param port
 	 * @return
 	 */
-	public static SocketClient startTCPClient(String pyClient, String port) {
-		SocketClient tcpClient = null;
-		try {
-			tcpClient = (SocketClient) Class.forName(pyClient).newInstance();
-			tcpClient.connect("127.0.0.1", Integer.parseInt(port), false);
-			//nc.run(); - you cannot do this because then the client goes into listener mode
-			Thread t = new Thread(tcpClient);
-			t.start();
-			while(!tcpClient.isReady())
-			{
-				synchronized(tcpClient)
-				{
-					try 
-					{
-						tcpClient.wait();
-						classLogger.info("Setting the socket client ");
-					} catch (InterruptedException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+	private static String getPythonExecutable() {
+		String py = System.getenv(Settings.PYTHONHOME);
+		if(py == null) {
+			py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
 		}
-		
-		return tcpClient;
+		if(py == null) {
+			System.getenv(Settings.PY_HOME);
+		}
+		if (py == null) {
+			py = Utility.getDIHelperProperty(Settings.PY_HOME);
+		}
+		if(py == null) {
+			throw new NullPointerException("Must define python home");
+		}
+		py = py.trim();
+		if (SystemUtils.IS_OS_WINDOWS) {
+			py = py + "/python.exe";
+		} else {
+			py = py + "/bin/python3";
+		}
+		py = py.replace("\\", "/");
+		classLogger.info("The python executable being used is: \"" + py + "\"");
+		return py;
 	}
 	
-	public static Process startRMIServer(String cp, String insightFolder, String port) {
-		// this basically starts a java process
-		// the string is an identifier for this process
-		Process thisProcess = null;
-		if (cp == null) {
-			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
-		}
-		String specificPath = getCP(cp, insightFolder);
-		try {
-			String java = System.getenv("JAVA_HOME");
-			if (java == null) {
-				java = Utility.getDIHelperProperty("JAVA_HOME");
-			}
-			if(!java.endsWith("bin")) //seems like for graal
-				java = java + "/bin/java";
-			else
-				java = java + "/java";
-			// account for spaces in the path to java
-			if (java.contains(" ")) {
-				java = "\"" + java + "\"";
-			}
-			// change the \\
-			java = java.replace("\\", "/");
-
-			String jep = Utility.getDIHelperProperty("LD_LIBRARY_PATH");
-			if (jep == null) {
-				jep = System.getenv("LD_LIBRARY_PATH");
-			}
-			// account for spaces in the path to jep
-			if (jep.contains(" ")) {
-				jep = "\"" + jep + "\"";
-			}
-			jep = jep.replace("\\", "/");
-
-			String pyWorker = Utility.getDIHelperProperty("RMI_WORKER");
-			if(pyWorker == null)
-				pyWorker = "prerna.rmi.Server";
-			String[] commands = null;
-			if (port == null)
-				commands = new String[7];
-			else {
-				commands = new String[8];
-				commands[7] = port;
-			}
-			String finalDir = insightFolder.replace("\\", "/");
-			commands[0] = java;
-			// just append all the environment variables
-			// on the windows machine as well
-			if(SystemUtils.IS_OS_WINDOWS) {
-				// since we will wrap quotes around the entire thing as PATH likely has spaces
-				// remove from jep
-				if(jep.startsWith("\"") && jep.endsWith("\"")) {
-					jep = jep.substring(1, jep.length()-1);
-				}
-				commands[1] = "-Djava.library.path=\"%PATH%;" + jep + "\"";
-			} else {
-				commands[1] = "-Djava.library.path=" + jep;
-			}
-			// compose for memory
-			String xms = Utility.getDIHelperProperty("Xms");
-			String xmx = Utility.getDIHelperProperty("Xmx");
-			
-			String memory = "";
-			if(xms != null && xmx != null)
-				memory = "-Xms" + xms + " -Xmx" + xmx;
-			
-			commands[2] = memory + " -cp";
-			commands[3] = specificPath;
-			commands[4] = pyWorker;
-			commands[5] = finalDir;
-			commands[6] = DIHelper.getInstance().getRDFMapFileLocation();
-			// java = "c:/zulu/zulu-8/bin/java";
-			// StringBuilder argList = new StringBuilder(args[0]);
-			// for(int argIndex = 0;argIndex < args.length;argList.append("
-			// ").append(args[argIndex]), argIndex++);
-			// commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
-			/*commands[3] = "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
-					+ "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;"
-					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
-					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
-					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
-			*/
-			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
-			// commands[6] = ">";
-			// commands[7] = finalDir + "/.log";
-
-			classLogger.debug("Trying to create file in .. " + finalDir);
-			File file = new File(finalDir + "/init");
-			file.createNewFile();
-			classLogger.debug("Python start commands ... ");
-			classLogger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
-
-			// run it as a process
-			// ProcessBuilder pb = new ProcessBuilder(commands);
-			// ProcessBuilder pb = new
-			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
-			// pb.command(commands);
-
-			String[] starterFile = writeStarterFile(commands, finalDir);
-			ProcessBuilder pb = new ProcessBuilder(starterFile);
-			pb.redirectError();
-			classLogger.info("came out of the waiting for process");
-			Process p = pb.start();
-
-			try {
-				// p.waitFor();
-				p.waitFor(500, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException ie) {
-				Thread.currentThread().interrupt();
-				classLogger.error(Constants.STACKTRACE, ie);
-			}
-			classLogger.info("came out of the waiting for process");
-			thisProcess = p;
-
-			// System.out.println("Process started with .. " + p.exitValue());
-			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
-			// + " " + argList);
-			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
-			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
-			// thisProcess = pb.start();
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
-		}
-
-		return thisProcess;
-	}
-
+	/**
+	 * 
+	 * @param commands
+	 * @param dir
+	 * @return
+	 */
 	public static String[] writeStarterFile(String[] commands, String dir) {
 		// check if the os is unix and if so make it .sh
 		String osName = System.getProperty("os.name").toLowerCase();
-
 
 		String starter = ""; 
 		String[] commandsStarter = null;
@@ -5875,7 +5984,7 @@ public final class Utility {
 		return name.matches(regex);
 	}
 	
-    public static void setOwnerAndGroupPermissionsRecursively(File directory) {
+    public static void setOwnerAndGroupPermissionsRecursively2(File directory) {
         String osName = System.getProperty("os.name").toLowerCase();
         if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
         	return;
@@ -5916,6 +6025,103 @@ public final class Utility {
 		}
 
     }
+    
+    public static void setOwnerAndGroupPermissionsRecursively(File directory) throws IOException, InterruptedException {
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+            return;
+        }
 
+        if (directory == null) {
+            throw new IllegalArgumentException("Directory cannot be null");
+        }
+
+        if (!directory.exists()) {
+            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+        }
+
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+        }
+
+        // Construct the chmod command
+        String[] command = {"chmod", "-R", "770", directory.getAbsolutePath()};
+
+        // Use ProcessBuilder to execute the command
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        processBuilder.redirectErrorStream(true); // Merge error stream with input stream
+
+        Process process = processBuilder.start();
+
+        // Capture and log the output
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line); // Replace with your logger
+            }
+        }
+
+        // Wait for the process to complete
+        int exitCode = process.waitFor();
+
+        if (exitCode != 0) {
+            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+        } else {
+            System.out.println("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode); // Replace with your logger
+        }
+    }
+
+/**
+	 * 
+	 * @param utcDateTime
+	 * @return the map containing start and end of the week.
+	 */
+	public static Map<String, ZonedDateTime> getWeekStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> weekDates = new HashMap<>();
+
+		// Find the start of the week (Sunday)
+		ZonedDateTime start = utcDateTime;
+		while (start.getDayOfWeek() != DayOfWeek.SUNDAY) {
+			start = start.minusDays(1);
+		}
+
+		// Find the end of the week (Saturday)
+		ZonedDateTime end = utcDateTime;
+		while (end.getDayOfWeek() != DayOfWeek.SATURDAY) {
+			end = end.plusDays(1);
+		}
+		// Convert ZonedDateTime to LocalDateTime
+		weekDates.put("start", start);
+		weekDates.put("end", end);
+
+		return weekDates;
+	}
+
+	/**
+	 * 
+	 * @param utcDateTime
+	 * @return the map containing start and end of the month.
+	 */
+	public static Map<String, ZonedDateTime> getMonthStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		// Find the start of the month by setting the day to 1.
+		dates.put("start", utcDateTime.withDayOfMonth(1));
+		// Find the end of the month by setting the day to the last day of the month.
+		dates.put("end", utcDateTime.withDayOfMonth(utcDateTime.toLocalDate().lengthOfMonth()));
+
+		return dates;
+	}
+	
+	/**
+	 * 
+	 * @param size
+	 * @return
+	 */
+    public static String getReadableFileSize(long size) {
+        if (size <= 0) return "0 B";
+        final String[] units = new String[]{"B", "KB", "MB", "GB", "TB"};
+        int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
+        return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
+    }
 
 }

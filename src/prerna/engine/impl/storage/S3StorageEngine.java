@@ -30,8 +30,6 @@ public class S3StorageEngine extends AbstractRCloneStorageEngine {
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 		
-		// set this to be the db engine folder
-		this.rcloneConfigFolder = "";
 		this.REGION = smssProp.getProperty(S3_REGION_KEY);
 		this.BUCKET = smssProp.getProperty(S3_BUCKET_KEY);
 		this.ACCESS_KEY = smssProp.getProperty(S3_ACCESS_KEY);

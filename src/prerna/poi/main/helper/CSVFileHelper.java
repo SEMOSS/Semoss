@@ -2,8 +2,6 @@ package prerna.poi.main.helper;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -35,7 +33,6 @@ public class CSVFileHelper {
 	private CsvParserSettings settings = null;
 	private char delimiter = ',';
 
-	private FileReader sourceFile = null;
 	private String fileLocation = null;
 
 	// we need to keep two sets of headers
@@ -103,8 +100,10 @@ public class CSVFileHelper {
 		parser = new CsvParser(settings);
 		try {
 			File file = new File(fileLocation);
-			sourceFile = new FileReader(file);
-			parser.beginParsing(sourceFile);
+			if(!file.exists()) {
+				throw new FileNotFoundException("Cannot find file " + fileLocation);
+			}
+			parser.beginParsing(file, "UTF-8");
 			collectHeaders();
 		} catch (FileNotFoundException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -228,14 +227,9 @@ public class CSVFileHelper {
 	 */
 	public void clear() {
 		try {
-			if(sourceFile != null) {
-				sourceFile.close(); 
-			}
 			if(parser != null) {
 				parser.stopParsing();
 			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}

@@ -3,6 +3,7 @@ package prerna.reactor;
 import java.io.File;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -32,6 +33,7 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
+import prerna.engine.api.IEngine;
 import prerna.forms.UpdateFormReactor;
 import prerna.io.connector.surveymonkey.SurveyMonkeyListSurveysReactor;
 import prerna.poi.main.helper.excel.GetExcelFormReactor;
@@ -552,8 +554,9 @@ public class ReactorFactory {
 				String packageName = classes.get(classIndex).getPackageName();
 				Class actualClass = classes.get(classIndex).loadClass();
 
-				// ignore abstract
-				if(!Modifier.isAbstract( actualClass.getModifiers() )) {
+				// ignore abstract and engines
+				if(	!Modifier.isAbstract( actualClass.getModifiers() )
+						&& !Arrays.asList(actualClass.getInterfaces()).contains(IEngine.class) ) {
 					String [] packagePaths = packageName.split("\\.");
 					//System.out.println("Package name " + packageName);
 					packageName = packagePaths[packagePaths.length - 1];

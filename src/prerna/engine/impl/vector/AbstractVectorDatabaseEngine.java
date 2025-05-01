@@ -2,11 +2,9 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,6 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,8 +26,9 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
@@ -71,6 +71,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	public static final String FILTERS_KEY = "filters";
 	public static final String METADATA_FILTERS_KEY = "metaFilters";
 	
+	public static final String CSVPATH = "csvPath";
+	public static final String DOCUMENT = "document";
+	public static final String PARAMETERS = "parameters";
+	
 	protected String engineId = null;
 	protected String engineName = null;
 	
@@ -107,7 +111,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	protected ClientProcessWrapper cpw = null;
 	// python server
-	protected TCPPyTranslator pyt = null;
+	protected PyTranslator pyt = null;
 	protected File pyDirectoryBasePath = null;
 	
 	protected File schemaFolder;
@@ -130,7 +134,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 		if(secretStore != null) {
 			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+			if(engineSecrets == null || engineSecrets.isEmpty()) {
+				classLogger.info("No secrets found for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			} else {
+				classLogger.info("Successfully pulled secrets for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
@@ -153,17 +160,17 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 		
 		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
-		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, "Cosine Similarity");
+		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, getDefaultDistanceMethod());
+		
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
 			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
 		}
 		
-        // 2 smss properties for custom document processing
+        // smss properties for custom document processing
         if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR)) {
         	this.customDocumentProcessor =  Boolean.parseBoolean(this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR));
         }
-        
         if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID)) {
         	this.customDocumentProcessorFunctionID = this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID);
         }
@@ -187,11 +194,15 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
         }
 	}
 	
+	protected abstract String getDefaultDistanceMethod();
+	
 	@Override
 	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
+		
+		checkSocketStatus();
 		
 		try {
 			this.removeDocument(filePaths, parameters);
@@ -231,20 +242,21 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 		
 		File indexFilesDir = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, INDEXED_FOLDER_NAME);
+		
+		// store the actual files we are extracting from
+		// since we move this into the vector folder
+		// we need to delete them if they fail
+		// TODO: potentially look at loading these from insight and only pushing to the 
+		// vector db catalog on success
+		Set<File> fileToExtractFrom = new HashSet<File>();
 		try {
 			// first we need to extract the text from the document
 			// TODO change this to json so we never have an encoding issue
-			checkSocketStatus();
 
 			File indexDirectory = new File(this.schemaFolder, indexClass);
 			File documentDir = new File(indexDirectory, DOCUMENTS_FOLDER_NAME);
 			if(!documentDir.exists()) {
 				documentDir.mkdirs();
-			}
-
-			boolean filesAppoved = VectorDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
-			if (!filesAppoved) {
-				throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
 			}
 
 			if (!indexFilesDir.exists()) {
@@ -259,7 +271,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
 
 			// move the documents from insight into documents folder
-			Set<File> fileToExtractFrom = new HashSet<File>();
 			for (String fileName : filePaths) {
 				File fileInInsightFolder = new File(Utility.normalizePath(fileName));
 
@@ -290,7 +301,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
-				String documentName = Utility.normalizePath(document.getName().split("\\.")[0]);
+				String documentName = FilenameUtils.getBaseName(document.getName());
 				File extractedFile = new File(indexFilesDir.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
 				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
 				try {
@@ -301,11 +312,32 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 					
 					if(docLower.endsWith(".csv")) {
 						classLogger.info("You are attempting to load in a structured table for " + documentName + ". Hopefully the structure is the right format we expect...");
-						// copy csv over
+						// validate the file is a proper csv
+						boolean validCsv = true;
+						try {
+							validCsv = VectorDatabaseCSVTable.validateCSVTable(document);
+						} catch(Exception e) {
+							classLogger.error(Constants.STACKTRACE, e);
+							validCsv = false;
+						}
+						
+						if(!validCsv) {
+							StringBuilder headerBuilder = new StringBuilder();
+							headerBuilder.append("'").append(VectorDatabaseCSVTable.SOURCE).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.SOURCE).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.MODALITY).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.DIVIDER).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.PART).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.TOKENS).append("', ")
+								.append("'").append(VectorDatabaseCSVTable.CONTENT).append("'")
+								;
+							throw new IllegalArgumentException("The CSV must be the proper format with the following headers: " + headerBuilder.toString());
+						}
 						FileUtils.copyFileToDirectory(document, indexFilesDir);
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
-						int rowsCreated;
+						boolean processed = false;
+						int rowsCreated = -1;
 						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
 							StringBuilder extractTextFromDocScript = new StringBuilder();
 							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
@@ -317,24 +349,30 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 								.append("')");
 							setVectorFolderPermissions();
 							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
-
 							rowsCreated = rows.intValue();
+							processed = true;
 						} else if(this.customDocumentProcessor) {
 							if(this.customDocumentProcessorFunctionID == null || this.customDocumentProcessorFunctionID.isEmpty()) {
 								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
 							}
 							IFunctionEngine functionEngine = Utility.getFunctionEngine(this.customDocumentProcessorFunctionID);
-							Map<String, Object> functionInputs = new HashMap<>();
-							functionInputs.put("csvPath", extractedFile.getAbsolutePath());
-							functionInputs.put("document", document);
-							functionInputs.put("parameters", parameters);
-							rowsCreated = (int) functionEngine.execute(functionInputs);
-						} else {
+							if(!(functionEngine instanceof ICustomEmbeddingsFunctionEngine)) {
+								throw new IllegalArgumentException("Vector Database owner has incorrectly setup a custom embeddings function that is not an ICustomEmbeddingsFunctionEngine");
+							}
+							ICustomEmbeddingsFunctionEngine customEmbeddings = (ICustomEmbeddingsFunctionEngine) functionEngine;
+							if(customEmbeddings.canProcessDocument(document)) {
+								rowsCreated = customEmbeddings.processDocument(extractedFile.getAbsolutePath(), document, parameters);
+								processed = true;
+							}
+						} 
+						
+						// default processing if haven't processed with above logic
+						if(!processed) {
 							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 						}
 
 						// check to see if the file data was extracted
-						if (rowsCreated <= 1) {
+						if (rowsCreated < 1) {
 							// no text was extracted so delete the file
 							FileUtils.forceDelete(extractedFile); // delete the csv
 							FileUtils.forceDelete(document); // delete the input file e.g pdf
@@ -368,15 +406,33 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				}
 			}
 			
-			if (extractedFiles.size() > 0) {
-				addEmbeddingFiles(extractedFiles, insight, parameters);
-				
-				if (ClusterUtil.IS_CLUSTER) {
-					// push the actual documents over to the cloud
-					Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
-					copyFilesToCloudThread.start();
+			if(extractedFiles.size() == 0) {
+				StringBuilder fileNamesAttemptedUpload = new StringBuilder("[");
+				boolean first = true;
+				for (File document : fileToExtractFrom) {
+					if(!first) {
+						fileNamesAttemptedUpload.append(",");
+					}
+					fileNamesAttemptedUpload.append(FilenameUtils.getName(document.getName()));
 				}
+				fileNamesAttemptedUpload.append("]");
+				throw new IllegalArgumentException("Unable to extract any text from " + fileNamesAttemptedUpload);
 			}
+			
+			addEmbeddingFiles(extractedFiles, insight, parameters);
+			
+			if (ClusterUtil.IS_CLUSTER) {
+				// push the actual documents over to the cloud
+				Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
+				copyFilesToCloudThread.start();
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			// delete files moved into vector db documents folder
+			for (File document : fileToExtractFrom) {
+				document.delete();
+			}
+			throw e;
 		} finally {
 			cleanUpAddDocument(indexFilesDir);
 		}
@@ -386,9 +442,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		this.indexClasses.add(indexClass);
 	}
 	
-	protected void cleanUpAddDocument(File indexFilesFolder) {
+	protected void cleanUpAddDocument(File file) {
 		try {
-			FileUtils.forceDelete(indexFilesFolder);
+			FileUtils.forceDelete(file);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -510,37 +566,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		return vectorSearchResponse;
 	}
 	
-	@Override
-	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
-		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey("indexClass")) {
-			indexClass = (String) parameters.get("indexClass");
-		}
-
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
-
-		List<Map<String, Object>> fileList = new ArrayList<>();
-
-		File[] files = documentsDir.listFiles();
-		if (files != null) {
-			for (File file : files) {
-				String fileName = file.getName();
-				long fileSizeInBytes = file.length();
-				double fileSizeInMB = (double) fileSizeInBytes / (1024);
-				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				String lastModified = dateFormat.format(new Date(file.lastModified()));
-
-				Map<String, Object> fileInfo = new HashMap<>();
-				fileInfo.put("fileName", fileName);
-				fileInfo.put("fileSize", fileSizeInMB);
-				fileInfo.put("lastModified", lastModified);
-				fileList.add(fileInfo);
-			}
-		} 
-
-		return fileList;
-	}
-	
 	/**
 	 * 
 	 */
@@ -613,7 +638,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			}
 		}
 		
-		if(this.keywordGeneratorEngineId != null) {
+		if(this.keywordGeneratorEngineId != null && !this.keywordGeneratorEngineId.isEmpty()) {
 			if(!SecurityEngineUtils.userCanViewEngine(user, this.keywordGeneratorEngineId)) {
 				throw new IllegalArgumentException("Keyword model " + this.keywordGeneratorEngineId + " does not exist or user does not have access to this model");
 			}
@@ -665,77 +690,86 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if(!this.pyDirectoryBasePath.exists()) {
 			this.pyDirectoryBasePath.mkdirs();
 		}
+
 		// check if we have already created a process wrapper
-		if(this.cpw == null) {
-			this.cpw = new ClientProcessWrapper();
+		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+		if(this.cpw != null) {
+			this.cpw.shutdown(false);
 		}
 		
 		String timeout = "30";
 		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
 			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
 		}
+	
+		boolean debug = false;
 		
-		if(this.cpw.getSocketClient() == null) {
-			boolean debug = false;
-			
-			// pull the relevant values from the smss
-			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-			
-			if(port < 0) {
-				// port has not been forced
-				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch(NumberFormatException e) {
-						// ignore
-						classLogger.warn("Vector Database " + this.engineName + " has an invalid FORCE_PORT value");
-					}
+		// pull the relevant values from the smss
+		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+		String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+		
+		if(port < 0) {
+			// port has not been forced
+			if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
+				try {
+					port = Integer.parseInt(forcePort);
+					debug = true;
+				} catch(NumberFormatException e) {
+					// ignore
+					classLogger.warn("Vector Database " + this.engineName + " has an invalid FORCE_PORT value");
 				}
 			}
-			
-			//if we have a python specific user, make sure that user can access the schema folder
-			setVectorFolderPermissions();
-			
-			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
-			try {
-				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
-			}
-		} else if (!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
-			try {
-				this.cpw.reconnect();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " + this.engineName);
-			}
+		}
+		
+		//if we have a python specific user, make sure that user can access the schema folder
+		setVectorFolderPermissions();
+		
+		String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
+		boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
+		try {
+			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Unable to connect to server for vector databse.");
 		}
 
 		// create the py translator
-		pyt = new TCPPyTranslator();
-		pyt.setSocketClient(this.cpw.getSocketClient());
+		pyt = new PyTranslator();
+		pyt.setSocketClient(cpwToInit.getSocketClient());
 		
-		// this is engine specific... or can be
-		String[] commands = getServerStartCommands();
-		// replace the vars
-		StringSubstitutor substitutor = new StringSubstitutor(this.vars);
-		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-			String resolvedString = substitutor.replace(commands[commandIndex]);
-			commands[commandIndex] = resolvedString;
+		try {
+			// this is engine specific... or can be
+			String[] commands = getServerStartCommands();
+			// replace the vars
+			StringSubstitutor substitutor = new StringSubstitutor(this.vars);
+			for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+				String resolvedString = substitutor.replace(commands[commandIndex]);
+				commands[commandIndex] = resolvedString;
+			}
+			pyt.runEmptyPy(commands);
+			
+			// for debugging...
+			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+								+ " python process with commands >>> " + String.join("\n", commands));
+			
+			// finally set the cpw in the class
+			this.cpw = cpwToInit;
+		} catch(Exception e) {
+			// set the model props to false
+			// incase those values were incorrect
+			modelPropsLoaded = false;
+			classLogger.error(Constants.STACKTRACE, e);
+			if(cpwToInit != null) {
+				classLogger.warn("Able to start the python process for the vector database " 
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+						+ " but the start script failed.");
+				cpwToInit.shutdown(false);
+			}
+			throw e;
 		}
-		pyt.runEmptyPy(commands);
-		
-		// for debugging...
-		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-							+ " ptyhon process with commands >>> " + String.join("\n", commands));	
 	}
 	
 	/**
@@ -895,11 +929,21 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		return false;
 	}
 	
-	public void setVectorFolderPermissions() {
-	//if we have a python specific user, make sure that user can access the schema folder
-	String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
-	if (pythonUser != null && !pythonUser.trim().isEmpty()) {
-		Utility.setOwnerAndGroupPermissionsRecursively(schemaFolder);
+	/**
+	 * 
+	 */
+	private void setVectorFolderPermissions() {
+		//if we have a python specific user, make sure that user can access the schema folder
+		String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
+		if (pythonUser != null && !pythonUser.trim().isEmpty()) {
+			try {
+				Utility.setOwnerAndGroupPermissionsRecursively(this.schemaFolder);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} catch (InterruptedException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 	}
+	
 }

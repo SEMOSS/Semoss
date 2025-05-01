@@ -1,10 +1,14 @@
 package prerna.cluster.util;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -14,6 +18,8 @@ import org.apache.curator.framework.recipes.cache.CuratorCacheListener;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -32,9 +38,8 @@ import prerna.engine.api.RemoteModelStateEnum;
  * This class handles holding requests until models are in an active state by performing health checks on the FastAPI service running in the container.
  * This is required to give the FastAPI service a grace time between when the model is added to the active path and the time it requires to start up in the container.
  * This is used by engines that extend the AbstractRemoteModelEngine IE: NEREngine..
- * See https://github.com/SEMOSS/remote-client-server for RemoteClientServer implementation.
  */
-public class RemoteClientServerZK {
+public class RemoteClientServerZK implements IRemoteClientServer {
 	
 	private static final Logger classLogger = LogManager.getLogger(RemoteClientServerZK.class);
 	
@@ -59,7 +64,9 @@ public class RemoteClientServerZK {
 
 	public String modelScalerIp;
 
-	private Boolean devPortFowarding = false;
+	private Boolean devPortForwarding = false;
+	
+	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
 	private RemoteClientServerZK() {
 		classLogger.info("RemoteClientServerZK being initialized...");
@@ -119,6 +126,8 @@ public class RemoteClientServerZK {
 			setupCaches();
 
 			loadInitialState();
+			
+			setupCacheRefresher();
 
 		} catch (Exception e) {
 			classLogger.error("Failed to initialize ZooKeeper connection", e);
@@ -127,52 +136,88 @@ public class RemoteClientServerZK {
 	}
 
 	private void loadInitialState() {
-		try {
-			// Loading model scaler IP first
-			if (client.checkExists().forPath(MODEL_SCALER_PATH) != null) {
-				byte[] scalerData = client.getData().forPath(MODEL_SCALER_PATH);
-				if (scalerData != null && scalerData.length > 0) {
-					modelScalerIp = new String(scalerData, "UTF-8");
-					classLogger.info("Discovered model scaler IP: {}", modelScalerIp);
-				} else {
-					classLogger.error("Model scaler path exists but no IP data found");
-				}
-			} else {
-				classLogger.error("Model scaler path {} does not exist in ZooKeeper", MODEL_SCALER_PATH);
-			}
+	    try {
+	        // Loading model scaler IP first
+	        if (client.checkExists().forPath(MODEL_SCALER_PATH) != null) {
+	            byte[] scalerData = client.getData().forPath(MODEL_SCALER_PATH);
+	            if (scalerData != null && scalerData.length > 0) {
+	                modelScalerIp = new String(scalerData, "UTF-8");
+	                classLogger.info("Discovered model scaler IP: {}", modelScalerIp);
+	            } else {
+	                classLogger.error("Model scaler path exists but no IP data found");
+	            }
+	        }
 
-			// Load active models
-			List<String> activeModels = client.getChildren().forPath(ACTIVE_PATH);
-			for (String modelId : activeModels) {
-				String path = ACTIVE_PATH + "/" + modelId;
-				byte[] data = client.getData().forPath(path);
-				if (data != null && data.length > 0) {
-					try {
-						JSONObject jsonData = new JSONObject(new String(data, "UTF-8"));
-						String clusterIp = jsonData.getString("ip");
-						String modelName = jsonData.getString("model_name");
+	        // Load active models
+	        List<String> activeModels = client.getChildren().forPath(ACTIVE_PATH);
+	        for (String modelId : activeModels) {
+	            String path = ACTIVE_PATH + "/" + modelId;
+	            classLogger.info("Loading data for active model at path: {}", path);
+	            
+	            byte[] data = client.getData().forPath(path);
+	            if (data != null && data.length > 0) {
+	                String rawData = new String(data, "UTF-8");
+	                
+	                JSONObject jsonData = new JSONObject(rawData);
+	                String clusterIp = jsonData.getString("ip");
+	                String modelName = jsonData.getString("model_name");
 
-						modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
-						modelClusterIps.put(modelId, clusterIp);
-						modelNames.put(modelId, modelName);
-					} catch (Exception e) {
-						// Fallback for backward compatibility
-						String clusterIp = new String(data, "UTF-8");
-						modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
-						modelClusterIps.put(modelId, clusterIp);
-						classLogger.warn("Model {} data not in JSON format, using legacy format", modelId);
-					}
-				}
-			}
+	                modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
+	                modelClusterIps.put(modelId, clusterIp);
+	                modelNames.put(modelId, modelName);
+	                
+	                classLogger.info("Loaded active model {} ({}) with IP: {} from ZK.", 
+	                    modelId, modelName, clusterIp);
+	            }
+	        }
 
-			// Load warming models
-			List<String> warmingModels = client.getChildren().forPath(WARMING_PATH);
-			for (String modelId : warmingModels) {
-				modelStates.put(modelId, RemoteModelStateEnum.WARMING);
-			}
-		} catch (Exception e) {
-			classLogger.error("Error loading initial state", e);
-		}
+	        // Load warming models
+	        List<String> warmingModels = client.getChildren().forPath(WARMING_PATH);
+	        for (String modelId : warmingModels) {
+	            modelStates.put(modelId, RemoteModelStateEnum.WARMING);
+	            classLogger.info("Loaded warming model: {}", modelId);
+	        }
+	    } catch (Exception e) {
+	        classLogger.error("Error loading initial state", e);
+	    }
+	}
+	
+	private void setupCacheRefresher() {
+		classLogger.info("Setting up cache refresher for remote models...");
+	    scheduler.scheduleAtFixedRate(() -> {
+	        try {
+	            refreshModelStates();
+	        } catch (Exception e) {
+	            classLogger.error("Error refreshing model states", e);
+	        }
+	    }, 30, 30, TimeUnit.SECONDS); // Refresh every 30 seconds
+	}
+
+	private void refreshModelStates() throws Exception {
+		classLogger.debug("Refreshing model states...");
+		
+	    // Refresh active models
+	    List<String> activeModels = client.getChildren().forPath(ACTIVE_PATH);
+	    for (String modelId : activeModels) {
+	        modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
+	    }
+	    
+	    // Refresh warming models
+	    List<String> warmingModels = client.getChildren().forPath(WARMING_PATH);
+	    for (String modelId : warmingModels) {
+	        if (!modelStates.get(modelId).equals(RemoteModelStateEnum.ACTIVE)) {
+	            modelStates.put(modelId, RemoteModelStateEnum.WARMING);
+	        }
+	    }
+	    
+	    // Clean up stale entries
+	    for (String modelId : new HashSet<>(modelStates.keySet())) {
+	        if (!activeModels.contains(modelId) && !warmingModels.contains(modelId)) {
+	            modelStates.put(modelId, RemoteModelStateEnum.COLD);
+	        }
+	    }
+	    
+	    classLogger.debug("Refreshed model states, current map: {}", modelStates);
 	}
 
 
@@ -235,32 +280,42 @@ public class RemoteClientServerZK {
 			// Set up cache for active path
 			activeCache = CuratorCache.build(client, ACTIVE_PATH);
 			CuratorCacheListener activeListener = CuratorCacheListener.builder()
-					.forCreates(node -> {
-						String modelId = getModelIdFromPath(node.getPath());
-						classLogger.info("Model {} became active", modelId);
-						modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
-						// Extract cluster IP and model name from node data
-						try {
-							JSONObject jsonData = new JSONObject(new String(node.getData(), "UTF-8"));
-							String clusterIp = jsonData.getString("ip");
-							String modelName = jsonData.getString("model_name");
-
-							modelClusterIps.put(modelId, clusterIp);
-							modelNames.put(modelId, modelName);
-							classLogger.info("Updated cluster IP for model {} ({}): {}", 
-									modelId, modelName, clusterIp);
-						} catch (Exception e) {
-							// Fallback for backward compatibility
-							try {
-								String clusterIp = new String(node.getData(), "UTF-8");
-								modelClusterIps.put(modelId, clusterIp);
-								classLogger.info("Updated cluster IP for model {} using legacy format: {}", 
-										modelId, clusterIp);
-							} catch (Exception ex) {
-								classLogger.error("Error extracting data for model {}", modelId, ex);
-							}
-						}
-					})
+				    .forCreates(node -> {
+				        String modelId = getModelIdFromPath(node.getPath());
+				        classLogger.info("Model {} became active, processing data from path: {}", modelId, node.getPath());
+				        modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
+				        
+				        try {
+				            // First try immediate read
+				            byte[] data = node.getData();
+				            if (data == null || data.length == 0) {
+				                classLogger.debug("Initial data read empty for {}, starting retry sequence", modelId);
+				                // If empty Retry
+				                data = getNodeDataWithRetry(node.getPath(), 5, 500); // 5 retries, 500ms delay
+				            }
+				            
+				            if (data == null || data.length == 0) {
+				                classLogger.error("No data found for active model {} after retries", modelId);
+				                return;
+				            }
+				            
+				            String rawData = new String(data, "UTF-8");
+				            
+				            classLogger.info("Processing raw data for model {}: {}", modelId, rawData);
+				            
+				            JSONObject jsonData = new JSONObject(rawData);
+				            String clusterIp = jsonData.getString("ip");
+				            String modelName = jsonData.getString("model_name");	      
+				            
+				            modelClusterIps.put(modelId, clusterIp);
+				            modelNames.put(modelId, modelName);
+				            
+				            classLogger.info("Successfully registered model {} ({}) with IP: {}", 
+				                modelId, modelName, clusterIp);
+				        } catch (Exception e) {
+				            classLogger.error("Error processing data for model {}: {}", modelId, e.getMessage(), e);
+				        }
+				    })
 					.forDeletes(node -> {
 						String modelId = getModelIdFromPath(node.getPath());
 						String modelName = modelNames.get(modelId);
@@ -273,13 +328,29 @@ public class RemoteClientServerZK {
 							modelStates.put(modelId, RemoteModelStateEnum.COLD);
 						}
 					})
-					.build();
+				    .build();
 			activeCache.listenable().addListener(activeListener);
 			activeCache.start();
 
 		} catch (Exception e) {
 			classLogger.error("Error setting up ZK caches", e);
 		}
+	}
+	
+	private byte[] getNodeDataWithRetry(String path, int maxRetries, long delayMs) {
+	    for (int i = 0; i < maxRetries; i++) {
+	        try {
+	            byte[] data = client.getData().forPath(path);
+	            if (data != null && data.length > 0) {
+	                return data;
+	            }
+	            Thread.sleep(delayMs);
+	        } catch (Exception e) {
+	            classLogger.debug("Attempt {} to read data from {} failed: {}", 
+	                i + 1, path, e.getMessage());
+	        }
+	    }
+	    return null;
 	}
 
 	public String getModelName(String modelId) {
@@ -293,120 +364,78 @@ public class RemoteClientServerZK {
 	public RemoteModelStateEnum getModelState(String modelId) {
 		return modelStates.getOrDefault(modelId, RemoteModelStateEnum.COLD);
 	}
-
-	public String getModelClusterIp(String modelId) {
-		return modelClusterIps.get(modelId);
+	
+	private String getModelPath(String modelId) {
+	    return modelId;
 	}
 
+	public String getModelClusterIp(String modelId) {
+	    try {
+	        String fullPath = ACTIVE_PATH + "/" + modelId;    
+	        if (client.checkExists().forPath(fullPath) == null) {
+	            classLogger.error("Path does not exist: {}", fullPath);
+	            return null;
+	        }
+	        
+	        byte[] data = client.getData().forPath(fullPath);
+	        
+	        if (data == null || data.length == 0) {
+	            classLogger.error("No data found at path: {}", fullPath);
+	            return null;
+	        }
+	        
+	        String rawData = new String(data, "UTF-8");
+	        
+	        JSONObject jsonData = new JSONObject(rawData);
+	        String ip = jsonData.getString("ip");
+
+	        // Update cache maps
+	        modelClusterIps.put(modelId, ip);
+	        modelNames.put(modelId, jsonData.getString("model_name"));
+	        
+	        return ip;
+	    } catch (Exception e) {
+	        classLogger.error("Error getting cluster IP for model {}: {}", modelId, e.getMessage(), e);
+	        return null;
+	    }
+	}
 	public boolean isModelWarming(String modelId) {
-		try {
-			return client.checkExists().forPath(WARMING_PATH + "/" + modelId) != null;
-		} catch (Exception e) {
-			classLogger.error("Error checking warming state for model {}", modelId, e);
-			return false;
-		}
+	    try {
+	        String modelPath = getModelPath(modelId);
+	        return client.checkExists().forPath(WARMING_PATH + "/" + modelPath) != null;
+	    } catch (Exception e) {
+	        classLogger.error("Error checking warming state for model {}", modelId, e);
+	        return false;
+	    }
 	}
 
 	public boolean isModelActive(String modelId) {
-		try {
-			return client.checkExists().forPath(ACTIVE_PATH + "/" + modelId) != null;
-		} catch (Exception e) {
-			classLogger.error("Error checking active state for model {}", modelId, e);
-			return false;
-		}
-	}
-
-	// I need this because there is a period of time between when the model is on the active path but the FastAPI service is not quite ready
-	private boolean checkModelHealth(String modelId) {
-		String clusterIp = modelClusterIps.get(modelId);
-		String modelName = modelNames.get(modelId);
-		if (clusterIp == null) {
-			classLogger.error("No cluster IP available for health check of model {} ({})", 
-					modelId, modelName);
-			return false;
-		}
-		String healthUrl = "";
-		if (devPortFowarding) {
-			healthUrl = "http://localhost:8888/api/health";
-		} else {
-			healthUrl = String.format("http://%s/api/health", clusterIp);
-		}
-
-		RequestConfig requestConfig = RequestConfig.custom()
-				.setConnectTimeout(1000)
-				.setSocketTimeout(1000)
-				.build();
-
-		try (CloseableHttpClient httpClient = HttpClients.custom()
-				.setDefaultRequestConfig(requestConfig)
-				.build()) {
-
-			HttpGet httpGet = new HttpGet(healthUrl);
-
-			try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
-				int statusCode = response.getStatusLine().getStatusCode();
-				if (statusCode == 200) {
-					HttpEntity entity = response.getEntity();
-					if (entity != null) {
-						String responseString = EntityUtils.toString(entity);
-						JSONObject healthResponse = new JSONObject(responseString);
-						if ("ok".equals(healthResponse.optString("status"))) {
-							return true;
-						}
-					}
-				}
-				classLogger.debug("Health check failed for model {} ({}): status code {}", 
-						modelId, modelName, statusCode);
-			}
-		} catch (Exception e) {
-			classLogger.debug("Health check failed for model {} ({}): {}", 
-					modelId, modelName, e.getMessage());
-		}
-		return false;
+	    try {
+	        String modelPath = getModelPath(modelId);
+	        return client.checkExists().forPath(ACTIVE_PATH + "/" + modelPath) != null;
+	    } catch (Exception e) {
+	        classLogger.error("Error checking active state for model {}", modelId, e);
+	        return false;
+	    }
 	}
 
 	public boolean waitForModelActive(String modelId, long timeoutMs) {
 		try {
 			long startTime = System.currentTimeMillis();
-			boolean foundInActivePath = false;
-			boolean isHealthy = false;
 
-			// First wait for the model to appear in active path
+			// Waiting for model to appear in active path
 			while (System.currentTimeMillis() - startTime < timeoutMs) {
 				if (isModelActive(modelId)) {
 					classLogger.info("Model {} was found in the active path", modelId);
-					foundInActivePath = true;
-					break;
+					return true;
+				} else {
+					classLogger.info("Model {} in a warming wait loop..", modelId);
 				}
-				Thread.sleep(1000);
+				Thread.sleep(3000);
 			}
-
-			if (!foundInActivePath) {
-				classLogger.warn("Timeout waiting for model {} to appear in active path after {}ms", 
-						modelId, timeoutMs);
-				return false;
-			}
-
-			// Then wait for the service to become healthy
-			long healthCheckStart = System.currentTimeMillis();
-			long remainingTimeout = timeoutMs - (healthCheckStart - startTime);
-
-			while (System.currentTimeMillis() - healthCheckStart < remainingTimeout) {
-				if (checkModelHealth(modelId)) {
-					classLogger.info("Model {} health check passed", modelId);
-					isHealthy = true;
-					break;
-				}
-				Thread.sleep(1000);
-			}
-
-			if (!isHealthy) {
-				classLogger.warn("Timeout waiting for model {} to become healthy after appearing in active path", 
-						modelId);
-				return false;
-			}
-
-			return true;
+			
+			classLogger.warn("Timeout waiting for model {} to appear in active path after {}ms", modelId, timeoutMs);
+			return false;
 
 		} catch (Exception e) {
 			classLogger.error("Error waiting for model {} to become active", modelId, e);
@@ -435,7 +464,7 @@ public class RemoteClientServerZK {
 					classLogger.error("Model {} failed while waiting for active state", modelId);
 					return false;
 				}
-				Thread.sleep(1000); // Wait 1 second between checks
+				Thread.sleep(1000); // 1 second
 			}
 			classLogger.warn("Timeout waiting for model {} to reach state {} after {}ms", 
 					modelId, desiredState, timeoutMs);
@@ -447,28 +476,77 @@ public class RemoteClientServerZK {
 	}
 
 	/**
-	 * Gets a list of all active model IDs
-	 * @return List of active model IDs
+	 * Gets a list of all active models with their associated information
+	 * @return List of ModelInfo objects containing model details
 	 */
-	public List<String> getActiveModels() {
-		try {
-			return client.getChildren().forPath(ACTIVE_PATH);
-		} catch (Exception e) {
-			classLogger.error("Error getting active models", e);
-			return new ArrayList<>();
-		}
+	public List<RemoteModelInfo> getActiveModels() {
+	    List<RemoteModelInfo> activeModels = new ArrayList<>();
+	    
+	    try {
+	        List<String> activeModelIds = client.getChildren().forPath(ACTIVE_PATH);
+	        
+	        for (String modelId : activeModelIds) {
+	            String name = modelNames.get(modelId);
+	            RemoteModelStateEnum state = modelStates.getOrDefault(modelId, RemoteModelStateEnum.COLD);
+	            
+	            if (name != null) {
+	                activeModels.add(new RemoteModelInfo(
+	                    modelId,
+	                    name,
+	                    state
+	                ));
+	            } else {
+	                classLogger.warn("Incomplete data for active model {}: name={}", modelId, name);
+	                    
+	                String fullPath = ACTIVE_PATH + "/" + modelId;
+	                byte[] data = client.getData().forPath(fullPath);
+	                if (data != null && data.length > 0) {
+	                    String rawData = new String(data, "UTF-8");
+	                    JSONObject jsonData = new JSONObject(rawData);
+	                    
+	                    name = jsonData.getString("model_name");
+	                    
+	                    activeModels.add(new RemoteModelInfo(
+	                        modelId,
+	                        name,
+	                        state
+	                    ));
+	                    
+	                    modelNames.put(modelId, name);
+	                }
+	            }
+	        }
+	    } catch (Exception e) {
+	        classLogger.error("Error getting active models with details", e);
+	    }
+	    
+	    return activeModels;
 	}
 
 	/**
-	 * Gets a list of all warming model IDs
-	 * @return List of warming model IDs
+	 * Gets a list of all warming models with their associated information
+	 * @return List of RemoteModelInfo objects containing model details
 	 */
-	public List<String> getWarmingModels() {
-		try {
-			return client.getChildren().forPath(WARMING_PATH);
-		} catch (Exception e) {
-			classLogger.error("Error getting warming models", e);
-			return new ArrayList<>();
-		}
+	public List<RemoteModelInfo> getWarmingModels() {
+	    List<RemoteModelInfo> warmingModels = new ArrayList<>();
+	    
+	    try {
+	        List<String> warmingModelIds = client.getChildren().forPath(WARMING_PATH);
+	        
+	        for (String modelId : warmingModelIds) {
+	            String name = modelNames.get(modelId);
+	            RemoteModelStateEnum state = modelStates.getOrDefault(modelId, RemoteModelStateEnum.WARMING);
+	            
+	            warmingModels.add(new RemoteModelInfo(
+	                modelId,
+	                name != null ? name : "Warming...",
+	                state
+	            ));
+	        }
+	    } catch (Exception e) {
+	        classLogger.error("Error getting warming models with details", e);
+	    }
+	    
+	    return warmingModels;
 	}
 }

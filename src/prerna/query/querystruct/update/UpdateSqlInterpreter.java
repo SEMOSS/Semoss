@@ -1,6 +1,5 @@
 package prerna.query.querystruct.update;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -12,13 +11,11 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
+@Deprecated
 public class UpdateSqlInterpreter extends SqlInterpreter {
 	
 	private StringBuilder sets = new StringBuilder();

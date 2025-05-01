@@ -152,7 +152,7 @@ public class InsightUtility {
 	public static String getFolderDirSessionId(String sessionId) {
 		if(sessionId == null) {
 			classLogger.warn("SESSION ID is null");
-			return "null";
+			return "UNKNOWN_SESSION_ID";
 		}
 		if(sessionId.length() > 32) {
 			return sessionId.substring(0, 32);

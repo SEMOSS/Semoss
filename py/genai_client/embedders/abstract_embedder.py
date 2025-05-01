@@ -32,6 +32,15 @@ class AbstractEmbedder(ABC):
     ) -> EmbeddingsModelEngineResponse:
         pass
 
+    def image_embeddings(self, images_to_embed: List[str], **kwargs: Any) -> Dict:
+        return self.image_embeddings_call(images_to_embed, **kwargs).to_dict()
+
+    @abstractmethod
+    def image_embeddings_call(
+        self, images_to_embed, **kwargs: Any
+    ) -> EmbeddingsModelEngineResponse:
+        pass
+
     def ask(self, *args, **kwargs) -> Dict:
         response = "This model does not support text generation."
         model_engine_response = AskModelEngineResponse(

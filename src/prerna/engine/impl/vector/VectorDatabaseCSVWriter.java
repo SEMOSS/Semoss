@@ -1,9 +1,11 @@
 package prerna.engine.impl.vector;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,13 +16,14 @@ public class VectorDatabaseCSVWriter {
 
 	private static final Logger classLogger = LogManager.getLogger(VectorDatabaseCSVWriter.class);
 	
-	private FileWriter fw = null;
+	private FileOutputStream fw = null;
 	private PrintWriter pw = null;
 
 	// takes an input file
 	// starts appending CSV to it
 	private String filePath = null;
-	private int rowsCreated;
+	// this is number of rows not including headers
+	private int rowsCreated = 0;
 	
 	public VectorDatabaseCSVWriter(String filePath) {
 		this.filePath = filePath;
@@ -29,13 +32,13 @@ public class VectorDatabaseCSVWriter {
 			if(file.exists()) {
 				// no need to write headers
 				// open in append mode
-				fw = new FileWriter(file, true);
-				pw = new PrintWriter(fw);
+				fw = new FileOutputStream(file, true);
+				pw = new PrintWriter(new OutputStreamWriter(fw, StandardCharsets.UTF_8));
 			}
 			else
 			{
-				fw = new FileWriter(file, false);
-				pw = new PrintWriter(fw);
+				fw = new FileOutputStream(file, false);
+				pw = new PrintWriter(new OutputStreamWriter(fw, StandardCharsets.UTF_8));
 				writeHeader();
 			}
 		} catch (IOException e) {
@@ -49,6 +52,7 @@ public class VectorDatabaseCSVWriter {
 	}
 
 	protected void writeHeader() {
+		// this should always be the first row
 		StringBuffer row = new StringBuffer()
 				.append("Source").append(",")
 				.append("Modality").append(",")
@@ -57,9 +61,6 @@ public class VectorDatabaseCSVWriter {
 				.append("Content")
 				.append("\r\n");
 		this.pw.print(row + "");
-		
-		// this should always be the first row
-		this.rowsCreated = 1;
 	}
 	
 	/**
@@ -81,9 +82,8 @@ public class VectorDatabaseCSVWriter {
 	 * @param source
 	 * @param divider
 	 * @param content
-	 * @param misc
 	 */
-	public void writeRow(String source, String divider, String content, String misc)
+	public void writeRow(String source, String divider, String content)
 	{
 		StringBuilder row = new StringBuilder()
 				.append("\"").append(cleanString(source)).append("\"").append(",")

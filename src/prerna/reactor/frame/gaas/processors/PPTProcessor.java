@@ -1,11 +1,10 @@
 package prerna.reactor.frame.gaas.processors;
 
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.hslf.usermodel.HSLFNotes;
@@ -23,35 +22,27 @@ import org.apache.poi.xslf.usermodel.XSLFTextShape;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 
-public class PPTProcessor {
+public class PPTProcessor extends AbstractFileProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(PPTProcessor.class);
 
-	// constructor with file name
-	// For every slide get the text shapes
-	// index it into a csv
-	private String filePath = null;
-	private VectorDatabaseCSVWriter writer = null;
-	
 	/**
 	 * 
 	 * @param filePath
 	 * @param writer
 	 */
 	public PPTProcessor(String filePath, VectorDatabaseCSVWriter writer) {
-		this.filePath = filePath;
-		this.writer = writer;
+		super(filePath, writer);
 	}
 	
-	/**
-	 * 
-	 */
-	public void process(String fileType) {
+	@Override
+	public void process() throws IOException {
 		FileInputStream is = null;
 		Object ppt = null; // To hold either HSLFSlideShow or XMLSlideShow
 		try {
-			is = new FileInputStream(this.filePath);
+			String fileType = FilenameUtils.getExtension(this.filePath);
 
+			is = new FileInputStream(this.filePath);
 			if (fileType.equalsIgnoreCase("ppt")) {
 				ppt = new HSLFSlideShow(is);
 				processSlides((HSLFSlideShow) ppt);
@@ -59,10 +50,9 @@ public class PPTProcessor {
 				ppt = new XMLSlideShow(is);
 				processSlides((XMLSlideShow) ppt);
 			}
-		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
 			closeDocument(ppt);
 			closeInputStream(is);
@@ -99,11 +89,9 @@ public class PPTProcessor {
 	private void processSlides(XMLSlideShow ppt) {
 //      CoreProperties props = ppt.getProperties().getCoreProperties();
 //      String title = props.getTitle();
-		
 		String source = getSource(this.filePath);
         int count = 1;
         for (XSLFSlide slide: ppt.getSlides()) {
-        	//System.out.println("Processing Slide..." + count);
         	StringBuilder slideText = new StringBuilder();
         	
         	List<XSLFShape> shapes = slide.getShapes();
@@ -124,15 +112,12 @@ public class PPTProcessor {
 	                    XSLFTextShape txShape = (XSLFTextShape) shape;
 	                    for (XSLFTextParagraph xslfParagraph : txShape.getTextParagraphs()) {
 	                    	String text = xslfParagraph.getText();
-	                        //System.out.println(text);
 	                        slideText.append(text);
 	                    }
 	                }
 	            }
         	}
-        	this.writer.writeRow(source, count+"", slideText.toString(), "");
-        	
-        	//System.out.println("----------------------------");
+        	this.writer.writeRow(source, count+"", slideText.toString());
         	count++;
         }	 
 	}
@@ -166,25 +151,9 @@ public class PPTProcessor {
 				}
 			}
 
-			this.writer.writeRow(source, count + "", slideText.toString(), "");
+			this.writer.writeRow(source, count + "", slideText.toString());
 			count++;
 		}
 	}
 
-
-	/**
-	 * 
-	 * @param filePath
-	 * @return
-	 */
-	private String getSource(String filePath) {
-		String source = null;
-		File file = new File(filePath);
-		if(file.exists()) {
-			source = file.getName();
-		}
-//		source = Utility.cleanString(source, true);
-		return source;
-	}
-	
 }

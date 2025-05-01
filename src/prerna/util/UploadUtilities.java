@@ -111,8 +111,7 @@ public final class UploadUtilities {
 	 * When making new engine and errors or deleting engine
 	 * @param erroredEngineId
 	 */
-	public static void removeEngineFromDIHelper(String erroredEngineId) {
-		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.STORE);
+	public static void removeEngineExcludingSMSSFromDIHelper(String erroredEngineId) {
 		// in case this is a db and there is an OWL file
 		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.OWL);
 		DIHelper.getInstance().removeEngineProperty(erroredEngineId);
@@ -121,6 +120,16 @@ public final class UploadUtilities {
 		engineIds = engineIds.replace(";"+erroredEngineId, "");
 		engineIds = engineIds.replace(erroredEngineId+";", "");
 		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
+	}
+	
+	/**
+	 * Used to update DIHelper
+	 * When making new engine and errors or deleting engine
+	 * @param erroredEngineId
+	 */
+	public static void removeEngineFromDIHelper(String erroredEngineId) {
+		removeEngineExcludingSMSSFromDIHelper(erroredEngineId);
+		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.STORE);
 	}
 	
 	/**
@@ -214,7 +223,13 @@ public final class UploadUtilities {
 	 */
 	public static File generateEmptyRDFXMLFile(String owlLocation) {
 		File owlFile = new File(owlLocation);
-		
+		if(!owlFile.exists()) {
+			try {
+				owlFile.createNewFile();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 
@@ -359,7 +374,6 @@ public final class UploadUtilities {
 	 */
 
 	
-	
 	/**
 	 * Create a temporary smss file for a rdbms engine
 	 * 
@@ -386,20 +400,9 @@ public final class UploadUtilities {
 		final String newLine = "\n";
 		final String tab = "\t";
 		
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-		try {
-			writer = new FileWriter(dbTempSmss);
-			bufferedWriter = new BufferedWriter(writer);
-			
-			String dbClassName = "";
-//			if(rdbmsType == RdbmsTypeEnum.IMPALA) {
-//				dbClassName = ImpalaEngine.class.getName();
-//			} else {
-				dbClassName = RDBMSNativeEngine.class.getName();
-//			}
+		try (FileWriter writer = new FileWriter(dbTempSmss); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
+			String dbClassName = RDBMSNativeEngine.class.getName();
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
-
 			// write the rdbms type
 			bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType + newLine);
 			// write the driver
@@ -414,77 +417,10 @@ public final class UploadUtilities {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for database");
-		} finally {
-			try {
-				if(bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if(writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
 		}
 		
 		return dbTempSmss;
 	}
-	
-//	/**
-//	 * Generate the SMSS for the empty database
-//	 * 
-//	 * @param databaseId
-//	 * @param databaseName
-//	 * @return
-//	 * @throws IOException
-//	 */
-//	public static File createTemporaryDatabaseSmss(String databaseId, String databaseName, boolean isAssetApp) throws IOException {
-//		String appTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
-//		
-//		// i am okay with deleting the .temp if it exists
-//		// we dont leave this around 
-//		// and they should be deleted after loading
-//		// so ideally this would never happen...
-//		File appTempSmss = new File(appTempSmssLoc);
-//		if(appTempSmss.exists()) {
-//			appTempSmss.delete();
-//		}
-//		
-//		final String newLine = "\n";
-//		final String tab = "\t";
-//		
-//		// also write the base properties
-//		FileWriter writer = null;
-//		BufferedWriter bufferedWriter = null;
-//		try {
-//			File newFile = new File(appTempSmssLoc);
-//			writer = new FileWriter(newFile);
-//			bufferedWriter = new BufferedWriter(writer);
-//			bufferedWriter.write("#Base Properties" +  newLine);
-//			bufferedWriter.write(Constants.ENGINE + tab + databaseId + newLine);
-//			bufferedWriter.write(Constants.ENGINE_ALIAS + tab + databaseName + newLine);
-//			bufferedWriter.write(Constants.ENGINE_TYPE + tab + AppEngine.class.getName() + newLine);
-//			if(isAssetApp) {
-//				bufferedWriter.write(Constants.IS_ASSET_APP + tab + true + newLine);
-//			}
-//		} catch (IOException ex) {
-//			classLogger.error(Constants.STACKTRACE, ex);
-//			throw new IOException("Could not generate database smss file");
-//		} finally {
-//			try {
-//				if(bufferedWriter != null) {
-//					bufferedWriter.close();
-//				}
-//				if(writer != null) {
-//					writer.close();
-//				}
-//			} catch (IOException e) {
-//				classLogger.error(Constants.STACKTRACE, e);
-//			}
-//		}
-//		
-//		return appTempSmss;
-//	}
 	
 	/**
 	 * Create a temporary smss file for a tinker database
@@ -512,12 +448,7 @@ public final class UploadUtilities {
 		final String tab = "\t";
 
 		// also write the base properties
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-		try {
-			File newFile = new File(dbTempSmssLoc);
-			writer = new FileWriter(newFile);
-			bufferedWriter = new BufferedWriter(writer);
+		try (FileWriter writer = new FileWriter(dbTempSmssLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, TinkerEngine.class.getName(), newLine, tab);
 
 			// tinker-specific properties
@@ -540,18 +471,7 @@ public final class UploadUtilities {
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
+		} 
 
 		return dbTempSmss;
 	}
@@ -582,16 +502,10 @@ public final class UploadUtilities {
 		final String newLine = "\n";
 		final String tab = "\t";
 
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-
 		FileReader fileRead = null;
 		BufferedReader bufferedReader = null;
 
-		try {
-			writer = new FileWriter(dbTempSmss);
-			bufferedWriter = new BufferedWriter(writer);
-
+		try (FileWriter writer = new FileWriter(dbTempSmssLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
 			String dbClassName = thisEngine.getClass().getName();
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 			bufferedWriter.write(newLine);
@@ -623,12 +537,6 @@ public final class UploadUtilities {
 			throw new IOException("Could not generate temporary smss file for database");
 		} finally {
 			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
 				if (fileRead != null) {
 					fileRead.close();
 				}
@@ -672,12 +580,7 @@ public final class UploadUtilities {
 		final String tab = "\t";
 
 		// also write the base properties
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-		try {
-			File newFile = new File(dbTempSmssLoc);
-			writer = new FileWriter(newFile);
-			bufferedWriter = new BufferedWriter(writer);
+		try (FileWriter writer = new FileWriter(dbTempSmssLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, JanusEngine.class.getName(), newLine, tab);
 
 			// janus conf file location
@@ -711,18 +614,7 @@ public final class UploadUtilities {
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
+		} 
 
 		return dbTempSmss;
 	}
@@ -756,12 +648,7 @@ public final class UploadUtilities {
 		final String tab = "\t";
 		
 		// also write the base properties
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-		try {
-			File newFile = new File(dbTempSmssLoc);
-			writer = new FileWriter(newFile);
-			bufferedWriter = new BufferedWriter(writer);
+		try (FileWriter writer = new FileWriter(dbTempSmssLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, TinkerEngine.class.getName(), newLine, tab);
 			
 			// tinker file location
@@ -795,18 +682,7 @@ public final class UploadUtilities {
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
+		} 
 
 		return dbTempSmss;
 	}
@@ -842,12 +718,7 @@ public final class UploadUtilities {
 		final String tab = "\t";
 		
 		// also write the base properties
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-		try {
-			File newFile = new File(dbTempSmssLoc);
-			writer = new FileWriter(newFile);
-			bufferedWriter = new BufferedWriter(writer);
+		try (FileWriter writer = new FileWriter(dbTempSmssLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, DataStaxGraphEngine.class.getName(), newLine, tab);
 			
 			// host + port
@@ -879,17 +750,6 @@ public final class UploadUtilities {
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
-		} finally {
-			try {
-				if(bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if(writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
 		}
 		
 		return dbTempSmss;
@@ -921,12 +781,7 @@ public final class UploadUtilities {
 		final String tab = "\t";
 
 		// also write the base properties
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-		try {
-			File newFile = new File(dbTempNeo4jLoc);
-			writer = new FileWriter(newFile);
-			bufferedWriter = new BufferedWriter(writer);
+		try (FileWriter writer = new FileWriter(dbTempNeo4jLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
 			// neo4j external properties
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionStringKey + newLine);
@@ -946,18 +801,8 @@ public final class UploadUtilities {
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
 		}
+
 		return dbTempSmss;
 	}
 	
@@ -989,12 +834,7 @@ public final class UploadUtilities {
 		final String tab = "\t";
 
 		// also write the base properties
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-		try {
-			File newFile = new File(dbTempNeo4jLoc);
-			writer = new FileWriter(newFile);
-			bufferedWriter = new BufferedWriter(writer);
+		try (FileWriter writer = new FileWriter(dbTempNeo4jLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
 			bufferedWriter.write(Constants.NEO4J_FILE + tab + filePath + newLine);
 			Gson gson = new GsonBuilder().create();
@@ -1011,18 +851,7 @@ public final class UploadUtilities {
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
+		} 
 
 		return dbTempSmss;
 	}
@@ -1060,11 +889,7 @@ public final class UploadUtilities {
 		final String newLine = "\n";
 		final String tab = "\t";
 
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-		try {
-			writer = new FileWriter(dbTempSmss);
-			bufferedWriter = new BufferedWriter(writer);
+		try (FileWriter writer = new FileWriter(dbTempSmss); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 			// separate for connection details
 			bufferedWriter.write(newLine);
@@ -1109,18 +934,8 @@ public final class UploadUtilities {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for database");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
+		} 
+
 		return dbTempSmss;
 	}
 	
@@ -1151,12 +966,7 @@ public final class UploadUtilities {
 		final String newLine = "\n";
 		final String tab = "\t";
 		
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-		try {
-			writer = new FileWriter(dbTempSmss);
-			bufferedWriter = new BufferedWriter(writer);
-			
+		try (FileWriter writer = new FileWriter(dbTempSmss); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
 			String engineClassName = RNativeEngine.class.getName();
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, engineClassName, newLine, tab);
 			String dataFile = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + fileName;
@@ -1175,31 +985,9 @@ public final class UploadUtilities {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for database");
-		} finally {
-			try {
-				if(bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if(writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
+		} 
 		
 		return dbTempSmss;
-	}
-	
-	/**
-	 * Get the database temporary smss location
-	 * 
-	 * @param engineId
-	 * @param engineName
-	 * @return
-	 */
-	private static String getEngineTempSmssLoc(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) {
-		return EngineUtility.getLocalEngineBaseDirectory(engineType) + "/" + SmssUtilities.getUniqueName(engineName, engineId) + ".temp";
 	}
 	
 	/**
@@ -1212,139 +1000,78 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryStorageSmss(String storageId, String storageName, String storageClassName, Map<String, Object> properties) throws IOException {
-		String storageTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.STORAGE, storageId, storageName);
-
-		// i am okay with deleting the .temp if it exists
-		// we dont leave this around
-		// and they should be deleted after loading
-		// so ideally this would never happen...
-		File storageTempSmss = new File(storageTempSmssLoc);
-		if (storageTempSmss.exists()) {
-			storageTempSmss.delete();
-		}
-
-		final String newLine = "\n";
-		final String tab = "\t";
-
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-
-		FileReader fileRead = null;
-		BufferedReader bufferedReader = null;
-
-		try {
-			writer = new FileWriter(storageTempSmss);
-			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultEngineSettings(bufferedWriter, storageId, storageName, storageClassName, newLine, tab);
-			bufferedWriter.write(newLine);
-			
-			for(String key : properties.keySet()) {
-				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key) + newLine);
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Could not generate temporary smss file for storage");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-				if (fileRead != null) {
-					fileRead.close();
-				}
-				if (bufferedReader != null) {
-					bufferedReader.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		
-		return storageTempSmss;
+	public static File createTemporaryStorageSmss(String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.STORAGE, engineId, engineName, className, properties);
 	}
 	
 	/**
 	 * Create a temporary smss file for model engine
 	 * 
-	 * @param modelId
-	 * @param modelName
-	 * @param modelClassName
+	 * @param engineId
+	 * @param engineName
+	 * @param className
 	 * @param properties
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryModelSmss(String modelId, String modelName, String modelClassName, Map<String, String> properties) throws IOException {
-		String modelTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.MODEL, modelId, modelName);
-
-		// i am okay with deleting the .temp if it exists
-		// we dont leave this around
-		// and they should be deleted after loading
-		// so ideally this would never happen...
-		File modelTempSmss = new File(modelTempSmssLoc);
-		if (modelTempSmss.exists()) {
-			modelTempSmss.delete();
-		}
-
-		final String newLine = "\n";
-		final String tab = "\t";
-
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-
-		FileReader fileRead = null;
-		BufferedReader bufferedReader = null;
-
-		try {
-			writer = new FileWriter(modelTempSmss);
-			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultEngineSettings(bufferedWriter, modelId, modelName, modelClassName, newLine, tab);
-			bufferedWriter.write(newLine);
-			
-			for(String key : properties.keySet()) {
-				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key)+newLine);
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Could not generate temporary smss file for model");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-				if (fileRead != null) {
-					fileRead.close();
-				}
-				if (bufferedReader != null) {
-					bufferedReader.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		
-		return modelTempSmss;
+	public static File createTemporaryModelSmss(String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.MODEL, engineId, engineName, className, properties);
 	}
 	
 	/**
 	 * Create a temporary smss file for a vector engine
 	 * 
-	 * @param databaseId
-	 * @param databaseName
-	 * @param owlFile
-	 * @param rdbmsType
-	 * @param file
+	 * @param engineId
+	 * @param engineName
+	 * @param className
+	 * @param properties
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryVectorDatabaseSmss(String databaseId, String databaseName, String vectorDbClassName, Map<String, Object> properties) throws IOException {
-		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.VECTOR, databaseId, databaseName);
+	public static File createTemporaryVectorDatabaseSmss(String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.VECTOR, engineId, engineName, className, properties);
+	}
+	
+	/**
+	 * Create a temporary smss file for function engine
+	 * 
+	 * @param engineId
+	 * @param engineName
+	 * @param className
+	 * @param properties
+	 * @return
+	 * @throws IOException
+	 */
+	public static File createTemporaryFunctionSmss(String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.FUNCTION, engineId, engineName, className, properties);
+	}
+	
+	/**
+	 * Create a temporary smss file for venv engine
+	 * 
+	 * @param engineId
+	 * @param engineName
+	 * @param className
+	 * @param properties
+	 * @return
+	 * @throws IOException
+	 */
+	public static File createTemporaryVenvSmss(String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.VENV, engineId, engineName, className, properties);
+	}
+	
+	/**
+	 * 
+	 * @param engineType
+	 * @param engineId
+	 * @param engineName
+	 * @param className
+	 * @param properties
+	 * @return
+	 * @throws IOException
+	 */
+	public static File createTemporaryEngineSmss(IEngine.CATALOG_TYPE engineType, String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+		String engineTempSmssLoc = getEngineTempSmssLoc(engineType, engineId, engineName);
 		
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
@@ -1354,182 +1081,42 @@ public final class UploadUtilities {
 		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
-		File vectorDbTempSmss = new File(dbTempSmssLoc);
-		if (vectorDbTempSmss.exists()) {
-			vectorDbTempSmss.delete();
+		File engineTempSmss = new File(engineTempSmssLoc);
+		if (engineTempSmss.exists()) {
+			engineTempSmss.delete();
 		}
 
 		final String newLine = "\n";
 		final String tab = "\t";
 
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-
-		FileReader fileRead = null;
-		BufferedReader bufferedReader = null;
-
-		try {
-			writer = new FileWriter(vectorDbTempSmss);
-			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultEngineSettings(bufferedWriter, databaseId, databaseName, vectorDbClassName, newLine, tab);
+		try (FileWriter writer = new FileWriter(engineTempSmss); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
+			writeDefaultEngineSettings(bufferedWriter, engineId, engineName, className, newLine, tab);
 			bufferedWriter.write(newLine);
 			
-			for(String key : properties.keySet()) {
-				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key)+newLine);
+			if(properties != null) {
+				for(String key : properties.keySet()) {
+					bufferedWriter.write(key.toUpperCase() + tab + properties.get(key)+newLine);
+				}
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for model");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-				if (fileRead != null) {
-					fileRead.close();
-				}
-				if (bufferedReader != null) {
-					bufferedReader.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		return vectorDbTempSmss;
+		} 
+
+		return engineTempSmss;
 	}
 	
 	
 	/**
-	 * Create a temporary smss file for function engine
+	 * Get the engine temporary smss location
 	 * 
-	 * @param functionId
-	 * @param functionName
-	 * @param functionClassName
-	 * @param properties
+	 * @param engineType
+	 * @param engineId
+	 * @param engineName
 	 * @return
-	 * @throws IOException
 	 */
-	public static File createTemporaryFunctionSmss(String functionId, String functionName, String functionClassName, Map<String, String> properties) throws IOException {
-		String functionTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
-
-		// i am okay with deleting the .temp if it exists
-		// we dont leave this around
-		// and they should be deleted after loading
-		// so ideally this would never happen...
-		File functionTempSmss = new File(functionTempSmssLoc);
-		if (functionTempSmss.exists()) {
-			functionTempSmss.delete();
-		}
-
-		final String newLine = "\n";
-		final String tab = "\t";
-
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-
-		FileReader fileRead = null;
-		BufferedReader bufferedReader = null;
-
-		try {
-			writer = new FileWriter(functionTempSmss);
-			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultEngineSettings(bufferedWriter, functionId, functionName, functionClassName, newLine, tab);
-			bufferedWriter.write(newLine);
-			
-			for(String key : properties.keySet()) {
-				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key)+newLine);
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Could not generate temporary smss file for function");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-				if (fileRead != null) {
-					fileRead.close();
-				}
-				if (bufferedReader != null) {
-					bufferedReader.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		
-		return functionTempSmss;
-	}
-	
-	/**
-	 * Create a temporary smss file for venv engine
-	 * 
-	 * @param functionId
-	 * @param functionName
-	 * @param functionClassName
-	 * @param properties
-	 * @return
-	 * @throws IOException
-	 */
-	public static File createTemporaryVenvSmss(String venvId, String venvName, String venvClassName, Map<String, String> properties) throws IOException {
-		String venvTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.VENV, venvId, venvName);
-
-		// i am okay with deleting the .temp if it exists
-		// we dont leave this around
-		// and they should be deleted after loading
-		// so ideally this would never happen...
-		File venvTempSmss = new File(venvTempSmssLoc);
-		if (venvTempSmss.exists()) {
-			venvTempSmss.delete();
-		}
-
-		final String newLine = "\n";
-		final String tab = "\t";
-
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-
-		FileReader fileRead = null;
-		BufferedReader bufferedReader = null;
-
-		try {
-			writer = new FileWriter(venvTempSmss);
-			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultEngineSettings(bufferedWriter, venvId, venvName, venvClassName, newLine, tab);
-			bufferedWriter.write(newLine);
-			
-			for(String key : properties.keySet()) {
-				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key)+newLine);
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Could not generate temporary smss file for function");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-				if (fileRead != null) {
-					fileRead.close();
-				}
-				if (bufferedReader != null) {
-					bufferedReader.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		
-		return venvTempSmss;
+	private static String getEngineTempSmssLoc(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) {
+		return EngineUtility.getLocalEngineBaseDirectory(engineType) + "/" + SmssUtilities.getUniqueName(engineName, engineId) + ".temp";
 	}
 	
 	/**
@@ -2210,9 +1797,9 @@ public final class UploadUtilities {
 			// build data property map for data binding
 			Map<String, Object> propertyMap = new HashMap<>();
 			propertyMap.put("defaultValue", "");
-			propertyMap.put("options", new ArrayList());
+			propertyMap.put("options", new ArrayList<>());
 			propertyMap.put("name", property);
-			propertyMap.put("dependsOn", new ArrayList());
+			propertyMap.put("dependsOn", new ArrayList<>());
 			propertyMap.put("required", true);
 			propertyMap.put("autoPopulate", false);
 			Map<String, Object> configMap = new HashMap<>();

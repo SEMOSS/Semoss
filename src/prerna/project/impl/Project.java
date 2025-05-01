@@ -16,9 +16,12 @@ import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -52,7 +55,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
-import prerna.ds.py.TCPPyTranslator;
+import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -66,8 +69,8 @@ import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookBuilder;
-import prerna.project.impl.notebook.INotebookRunner;
-import prerna.project.impl.notebook.NotebookRunnerFactory;
+import prerna.project.impl.notebook.INotebookHelper;
+import prerna.project.impl.notebook.NotebookHelperFactory;
 import prerna.project.impl.notebook.NotebookWriterFactory;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.IReactor;
@@ -154,9 +157,6 @@ public class Project implements IProject {
 	
 	// project specific analytics thread
 	private transient ClientProcessWrapper cpw = new ClientProcessWrapper();
-	
-	// notebook helper
-	private transient INotebookBuilder notebookBuilder = null;
 	
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -834,7 +834,7 @@ public class Project implements IProject {
 		boolean hasPom = pomFile.exists() && pomFile.isFile();
 		
 		if(loadJars) {
-			compileReactorFromJars(jars);
+			compileReactorFromJars(jars, customLoader);
 		} else if(hasPom) {
 			compileReactorsFromPom(pomFile);
 		}
@@ -936,7 +936,7 @@ public class Project implements IProject {
 			boolean hasPom = pomFile.exists() && pomFile.isFile();
 			
 			if(loadJars) {
-				retReac =  getReactorFromJars(className, jars);
+				retReac =  getReactorFromJars(className, jars, customLoader);
 			} else if(hasPom) {
 				retReac = getReactorsFromPom(className, pomFile);
 			}
@@ -1135,10 +1135,7 @@ public class Project implements IProject {
 	
 	@Override
 	public synchronized List<File> writeNotebooks() {
-		// if not blocks json
-		// then ignore for now
-		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
-		File blocksF = new File(blocksFilePath);
+		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
 			return null;
 		}
@@ -1159,24 +1156,65 @@ public class Project implements IProject {
 		
 		return null;
 	}
+	
 	@Override
 	public NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements) {
 		// if not blocks json
 		// then ignore for now
-		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
-		File blocksF = new File(blocksFilePath);
+		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
 			return null;
 		}
 		
 		try {
-			INotebookRunner runner = NotebookRunnerFactory.getNotebookRunner(blocksF);
-			return runner.executeNotebook(insight, inputReplacements);
+			INotebookHelper helper = NotebookHelperFactory.getNotebookHelper(blocksF);
+			return helper.executeNotebook(insight, inputReplacements);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
+	}
+
+	@Override
+	public Map<String, String> getEngineDependencies() {
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			INotebookHelper helper = NotebookHelperFactory.getNotebookHelper(blocksF);
+			Map<String, String> engineMap = helper.getBlocksEngineDependencies();
+			return engineMap;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+	
+	public Map<String, String> getNotebookVariables() {
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			INotebookHelper helper = NotebookHelperFactory.getNotebookHelper(blocksF);
+			Map<String, String> engineMap = helper.getNotebookVariables();
+			return engineMap;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+	
+	private File getBlocksF() {
+		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
+		File blocksF = new File(blocksFilePath);
+		return blocksF;
 	}
 	
 	private void rewritePortalIndexHtml(String indexHtmlPath) {
@@ -1282,9 +1320,14 @@ public class Project implements IProject {
 	 * 
 	 * @param jars
 	 */
-	private void compileReactorFromJars(File[] jars) {
+	private void compileReactorFromJars(File[] jars, SemossClassloader customLoader) {
 		// have the classes been loaded already?
 		if(ProjectCustomReactorCompilator.needsCompilation(this.projectId)) {
+			SemossClassloader cl = projectClassLoader;
+			if(customLoader != null) {
+				cl = customLoader;
+			}
+			
 			projectClassLoader = new SemossClassloader(this.getClass().getClassLoader());
 			URL[] urls = new URL[jars.length];
 			for(int i = 0; i < jars.length; i++) {
@@ -1295,7 +1338,7 @@ public class Project implements IProject {
 					throw new IllegalArgumentException("Unable to load jar file : " + jars[i].getName());
 				}
 			}
-			projectSpecificHash = Utility.loadReactorsFromJars(urls);
+			projectSpecificHash = Utility.loadReactorsFromJars(urls, cl);
 			ProjectCustomReactorCompilator.setCompiled(this.projectId);
 		}
 	}
@@ -1306,8 +1349,8 @@ public class Project implements IProject {
 	 * @param jars
 	 * @return
 	 */
-	private IReactor getReactorFromJars(String className, File[] jars) {	
-		compileReactorFromJars(jars);
+	private IReactor getReactorFromJars(String className, File[] jars, SemossClassloader customLoader) {	
+		compileReactorFromJars(jars, customLoader);
 		
 		IReactor retReac = null;
 		try {
@@ -1672,7 +1715,7 @@ public class Project implements IProject {
 	 * 
 	 * @return
 	 */
-	public TCPPyTranslator getProjectPyTranslator() {
+	public PyTranslator getProjectPyTranslator(Insight insight) {
 		if(this.cpw.getSocketClient() == null) {
 			createProjectTcpServer(-1);
 		} else if( !this.cpw.getSocketClient().isConnected()) {
@@ -1684,8 +1727,9 @@ public class Project implements IProject {
 				throw new IllegalArgumentException("Failed to start TCP Server for Project = " + SmssUtilities.getUniqueName(this.projectName, this.projectId));
 			}
 		}
-		TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
+		PyTranslator pyJavaTranslator = new PyTranslator();
 		pyJavaTranslator.setSocketClient(this.cpw.getSocketClient());
+		pyJavaTranslator.setInsight(insight);
 		return pyJavaTranslator;
 	}
 	
@@ -1768,6 +1812,75 @@ public class Project implements IProject {
 		return finalOutput;
 	}
 	
+	@Override
+	public Map<String, Object> buildProjectToolMap() {
+		// Fetch metadata for the engine
+		Map<String, Object> metadata = SecurityProjectUtils.getAggregateProjectMetadata(
+				this.getProjectId(),
+				Arrays.asList("description"),
+				true);
+
+		// Extract the description from metadata
+		String description = (String) metadata.get("description");
+		if (description == null) {
+			description = "No description available.";
+		}
+
+		// // Create the main map
+		Map<String, Object> toolMap = new HashMap<>();
+		toolMap.put("type", "function");
+
+		// Create the project map
+		Map<String, Object> project = new HashMap<>();
+		project.put("name", "project_engine");
+		project.put("description", description);
+
+		// Create the parameters map
+		Map<String, Object> parametersMap = new HashMap<>();
+		parametersMap.put("type", "object");
+
+		// Create the properties map
+		Map<String, Object> propertiesMap = new HashMap<>();
+
+		// Add the id property
+		Map<String, Object> idMap = new HashMap<>();
+		idMap.put("type", "string");
+		idMap.put("description", "The unique identifier for this project");
+		idMap.put("enum", Arrays.asList(this.getProjectId()));
+		propertiesMap.put("id", idMap);
+
+		// Add the map property
+		Map<String, Object> mapMap = new HashMap<>();
+		mapMap.put("type", "object");
+
+		// Create the map properties map
+		Map<String, Object> mapPropertiesMap = new HashMap<>();
+		for (Entry<String, String> entry: this.getNotebookVariables().entrySet()) {
+			Map<String, Object> paramMap = new HashMap<>();
+			paramMap.put("type", "string");
+			paramMap.put("description", "no description");
+			paramMap.put("enum", Arrays.asList(entry.getValue()));
+			mapPropertiesMap.put(entry.getKey(), paramMap);
+		}
+		mapMap.put("properties", mapPropertiesMap);
+		mapMap.put("required", Arrays.asList());
+		mapMap.put("description", "A map containing the parameters to pass into the project_engine call.");
+
+		propertiesMap.put("map", mapMap);
+
+		// Finalize parameters map
+		parametersMap.put("properties", propertiesMap);
+		parametersMap.put("required", Arrays.asList("id", "map"));
+
+		// Add parameters to function map
+		project.put("parameters", parametersMap);
+
+		// Add function map to main map
+		toolMap.put("function", project);
+
+		return toolMap;
+	}
+	
 	//////////////////////////////////////////////////////////////////
 	
 	/*
@@ -1813,5 +1926,4 @@ public class Project implements IProject {
 	public String getCatalogSubType(Properties smssProp) {
 		return this.projectType.name();
 	}
-
 }

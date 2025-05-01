@@ -23,7 +23,6 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.sail.SailException;
 
 import prerna.auth.User;
-import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISesameRdfEngine;
@@ -31,7 +30,7 @@ import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdf.RDFDefaultDatabaseTypeFactory;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.poi.main.helper.excel.ExcelParsing;
-import prerna.reactor.database.upload.AbstractUploadFileReactor;
+import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -42,7 +41,7 @@ import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
+public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReactor {
 
 	public RdfLoaderSheetUploadReactor() {
 		this.keysToGet = new String[] { 
@@ -391,8 +390,6 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				Object propValue = ExcelParsing.getCell(nextRow.getCell(colIndex));
 				if(propValue == null || propValue.toString().trim().isEmpty()) {
 					continue;
-				} else if (propValue instanceof SemossDate) {
-					propValue = ((SemossDate) propValue).getZonedDateTime();
 				}
 				propHash.put(propName, propValue);
 			}
