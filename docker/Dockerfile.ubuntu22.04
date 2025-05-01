@@ -5,42 +5,37 @@ ARG BASE_TAG=22.04
 
 #global argument for tomcat
 ARG TOMCAT_VERSION=9.0.104
+ARG JAVA_HOME=/usr/lib/jvm/zulu8
+ARG MAVEN_HOME=/opt/apache-maven-3.8.5
+
 #setting up the tomcat builder for later below. this is for env var expansion.
 FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} AS tomcat_builder
 
-FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS base
+# FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS base
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS mavenpuller
 
-ARG JAVA_HOME=/usr/lib/jvm/zulu8
+# Define environment variables in this stage
+ARG TOMCAT_VERSION
+ARG JAVA_HOME
+ARG MAVEN_HOME
 ENV JAVA_HOME=${JAVA_HOME}
-# From JAVA/tomcat
-ARG JAVA_HOME=/usr/lib/jvm/zulu8
-ENV JAVA_HOME=${JAVA_HOME}
-ENV TOMCAT_VERSION=${TOMCAT_VERSION}
-ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
-ENV TOMCAT_HOME=${TOMCAT_HOME}
-ARG MAVEN_HOME=/opt/apache-maven-3.8.5
+ENV TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 ENV MAVEN_HOME=${MAVEN_HOME}
 ENV PATH=$PATH:$MAVEN_HOME/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin
 
 
-FROM mavenpuller
-
 # Get tomcat, maven and java from another image called tomcat-builder
 COPY --from=tomcat_builder /opt /opt
 COPY --from=tomcat_builder /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
-COPY --from=tomcat_builder /opt/apache-maven-3.8.5/bin /opt/apache-maven-3.8.5/bin
-
 
 RUN apt-get update -y \
-    # added git curl
 	&& apt-get install -y git curl unzip lsof \
 	&& mkdir /opt/semosshome \
 	&& cd /opt && git clone https://github.com/SEMOSS/semoss-artifacts \
 	&& chmod 777 /opt/semoss-artifacts/artifacts/scripts/*.sh \
 	&& /opt/semoss-artifacts/artifacts/scripts/update_latest_dev.sh \
 	&& chmod 777 /opt/semosshome/config/Chromedriver/* \
-	&& sed -i "s/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=*.jar,/g" $TOMCAT_HOME/conf/catalina.properties;
+    && sed -i "s/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=*.jar,/g" $TOMCAT_HOME/conf/catalina.properties;
 
 
 RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
@@ -51,38 +46,29 @@ RUN mkdir /opt/chroot
 
 RUN chown -R 1001:0 /opt
 
-FROM base AS intermediate
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS final
 
 LABEL maintainer="semoss@semoss.org"
 
 # From JAVA/tomcat
-ARG JAVA_HOME=/usr/lib/jvm/zulu8
+ARG TOMCAT_VERSION
+ARG JAVA_HOME
+ARG MAVEN_HOME
 ENV JAVA_HOME=${JAVA_HOME}
-ARG TOMCAT_VERSION=9.0.104
 ENV TOMCAT_VERSION=${TOMCAT_VERSION}
-ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}   #NOTE: hardocoding tomcat version for now
-ENV TOMCAT_HOME=${TOMCAT_HOME}
+ENV TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
+ENV VIRTUAL_ENV="/usr/lib/python/semossvenv"
+ENV PATH=$VIRTUAL_ENV/bin:$PATH:$MAVEN_HOME/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin:/opt/semoss-artifacts/artifacts/scripts
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 
-COPY --from=tomcat_builder /opt /opt
 COPY --from=tomcat_builder /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
 
-# from original semoss dockerfile
-ARG LD_LIBRARY_PATH
-
-ENV PATH=$PATH:/opt/semoss-artifacts/artifacts/scripts
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH
-
-
 RUN	apt update -y \
-    # added git
-	&& apt-get install -y git curl unzip lsof \
+	&& apt-get install -y git curl unzip lsof vim nano \
 	&& curl https://rclone.org/install.sh | bash \
 	&& chmod 755 /usr/bin/rclone
-#	&& mkdir /opt/semosshome \
-#	&& mkdir $TOMCAT_HOME/webapps/Monolith \
-#	&& mkdir $TOMCAT_HOME/webapps/SemossWeb \
-#	&& cp $JAVA_HOME/lib/tools.jar $TOMCAT_HOME/lib \
-#	&& sed -i "s/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=*.jar,/g" $TOMCAT_HOME/conf/catalina.properties;
 
 ## TODO - couldnt get the following to work
 # RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
@@ -90,11 +76,6 @@ RUN	apt update -y \
 # 	&& apt-get update \
 # 	&& apt-get install -y google-chrome-stable bash
 
-
-RUN apt-get update -y \
-	&& apt-get install -y curl lsof \
-	&& cd /opt && git clone https://github.com/SEMOSS/semoss-artifacts \
-	&& chmod 777 /opt/semoss-artifacts/artifacts/scripts/*.sh
 
 COPY --from=mavenpuller --chown=1001:0 /opt /opt
 COPY --from=quay.io/semoss/python-builder:3.12-cpu  /usr/lib/python /usr/lib/python
@@ -107,11 +88,6 @@ RUN apt-get update \
 	&& dpkg-reconfigure --frontend=noninteractive locales \
 	&& locale -a
 
-ENV LANG=en_US.UTF-8
-ENV LANGUAGE=en_US:en
-ENV LC_ALL=en_US.UTF-8
-
-
 RUN apt install -y debootstrap fakechroot fakeroot
 
 RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
@@ -120,8 +96,5 @@ RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
 
 USER 1001
 
-ENV VIRTUAL_ENV="/usr/lib/python/semossvenv"
-# ENV PYTHONHOME=$VIRTUAL_ENV
-ENV PATH=$VIRTUAL_ENV/bin:$PATH:/opt/apache-maven-3.8.5/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin::/opt/semoss-artifacts/artifacts/scripts
 WORKDIR /opt/semoss-artifacts/artifacts/scripts
 CMD ["bash", "-c", "exec $TOMCAT_HOME/bin/start.sh" ]
