@@ -28,7 +28,6 @@ jobs:
     steps:
     
       - name: Set owner of working dir recurively (Linux)
-        if: ${{ inputs.build_platform == 'linux' }}
         run: sudo chown -R $(whoami) .
         
       - name: Checkout repository
