@@ -134,13 +134,11 @@ class PyFrame:
                     continue
                 # print(x + "<<>>" + y)
                 try:
-                    ratio = distance.get_jaro_distance(x, y, scaling=0.1)
-                    # ratio is 1 when values are the same
-                    # so we want to do the inverse
-                    ratio = 1 - ratio
-                    if ratio != 0:
-                        data = [x, y, ratio]
-                        result.append(data)
+                    ratio = distance.get_jaro_winkler_distance(
+                        x, y, scaling=0.1, ignore_case=True
+                    )
+                    data = [x, y, ratio]
+                    result.append(data)
                 except:
                     pass
         result = pd.DataFrame(result, columns=["col1", "col2", "distance"])
