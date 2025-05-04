@@ -169,7 +169,7 @@ public class PyTranslator {
 		// create a teamp to write the script file
 		String pyTemp = null;
 		if (this.insight != null) {
-			pyTemp = this.insight.getInsightFolder().replace('\\', '/') + "/py/Temp/";
+			pyTemp = this.insight.getInsightFolder().replace('\\', '/') + "/Py/Temp/";
 		} else {
 			pyTemp = (Utility.getBaseFolder() + "/Py/Temp/").replace('\\', '/');
 		}
