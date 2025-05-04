@@ -252,10 +252,16 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         keep_flags = [True] * len(messages)
 
         # --- Build truncation order ---------------------------------
-        # oldest->newest, but leave system message till the end
+        # oldest->newest
+        # if keep_system, then we will maintain it up until the last message
         order = list(range(len(messages)))
         if keep_system and messages and messages[0]["role"] == "system":
-            order = order[1:] + [0]
+            # assuming we have [system_prompt, message2, message3, message4]
+            # Process order: message2, message3, system_prompt, message4
+            order = list(range(1, len(messages) - 1)) + [
+                0,
+                len(messages) - 1,
+            ]
 
         # --- Drop or trim -------------------------------------------
         for idx in order:
