@@ -178,17 +178,13 @@ def split_text_recursively(
     Returns:
         A new DataFrame with additional columns like 'Source', 'Modality', 'Part', 'Tokens', and 'Content'.
     """
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-    # Define function to determine chunk length based on unit
-    length_function = cfg_tokenizer.count_tokens if chunk_unit == "tokens" else len
+    from langchain.text_splitter import TokenTextSplitter
 
     # Initialize text splitter with specified parameters
-    text_splitter = RecursiveCharacterTextSplitter(
+    text_splitter = TokenTextSplitter.from_huggingface_tokenizer(
+        cfg_tokenizer.tokenizer,
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
-        length_function=length_function,
-        is_separator_regex=False,
     )
 
     # Handle different chunking strategies
