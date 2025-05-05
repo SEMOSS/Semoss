@@ -90,7 +90,7 @@ public class PlaywrightBrowserUtil {
 	boolean tracePage = false;
 	boolean traceScreenshot = false;
 	
-	Page cur_page = null;
+	private Page cur_page = null;
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
@@ -129,6 +129,13 @@ public class PlaywrightBrowserUtil {
 		navigate(obj);
 	}
 	
+	public void close() {
+		cur_page.close();
+		ctx.close();
+		cur_page = null;
+		ctx = null;
+	}
+	
 	public void initPlaywright()
 	{
 	     //LaunchOptions lp = new LaunchOptions();
@@ -141,7 +148,6 @@ public class PlaywrightBrowserUtil {
 	     ctx = browser.newContext();
 	     //page = ctx.newPage();
 	     cur_page = ctx.newPage();
-	     cur_page.navigate("https://www.w3schools.com/html/html_form_input_types.asp");
 	     
 	     session = java.util.UUID.randomUUID() +"";
 	     
@@ -346,6 +352,12 @@ public class PlaywrightBrowserUtil {
 					handleSleep(action);
 					trace(actionId, actionName);
 				}
+				if(actionName.equalsIgnoreCase("hoverXY"))
+				{
+					mouse_xy(action, actionId);
+					handleSleep(action);
+					trace(actionId, actionName);
+				}
 				if(actionName.equalsIgnoreCase("getInputs"))
 				{
 					System.err.println(getInputs());
@@ -353,6 +365,16 @@ public class PlaywrightBrowserUtil {
 				if(actionName.equalsIgnoreCase("screenshot"))
 				{
 					getScreenShot();
+					
+				}
+				if(actionName.equalsIgnoreCase("getUrl"))
+				{
+					getUrl();
+					
+				}
+				if(actionName.equalsIgnoreCase("getHTML"))
+				{
+					getHTML();
 					
 				}
 				if(actionName.equalsIgnoreCase("get"))
@@ -756,6 +778,32 @@ public class PlaywrightBrowserUtil {
             System.out.println("Error while reading the file: " + e.getMessage());
         }
         return null;
+	}
+	
+	public String getUrl()
+	{		
+		String url = null;
+        try {
+        	url = cur_page.url();
+        } catch (Exception e) {
+            System.out.println("Error while getting URL: " + e.getMessage());
+        }
+        return url;
+	}
+	
+	public String getHTML()
+	{		
+		String html = null;
+        try {
+        	html = cur_page.content();
+        } catch (Exception e) {
+            System.out.println("Error while getting HTML: " + e.getMessage());
+        }
+        return html;
+	}
+	
+	public void enterInput(String input) {
+		cur_page.keyboard().type(input);
 	}
 	
 	public Map getInputs()

@@ -50,7 +50,7 @@ public class BrowserUtils {
 		return Integer.parseInt(val);
 	}
 	
-	public static String mapToJsonString(Map<String, String> input) {
+	public static String mapToJsonString(Map<String, Object> input) {
 		ObjectMapper om = new ObjectMapper();
 		try {
 			return om.writeValueAsString(input);

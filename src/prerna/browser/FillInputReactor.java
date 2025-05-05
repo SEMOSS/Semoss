@@ -1,10 +1,16 @@
 package prerna.browser;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.browser.PlaywrightBrowserUtil;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -35,7 +41,23 @@ public class FillInputReactor extends AbstractReactor {
 		// Be selected. That way, the next action would be. FillInputForm.
 		
 		Map<String, Object> actions = new HashMap<>();
-		return null;
+		
+		actions.put("actor", "system");
+		actions.put("action", "fill");
+		actions.put("event", "fill");
+		actions.put("fill_value", input);
+		
+		String json = BrowserUtils.mapToJsonString(actions);
+		
+		JSONObject jo = new JSONObject(json);
+		PlaywrightBrowserUtil pbu = this.insight.getPlaywrightUtil();
+		if (pbu == null) {
+			throw new IllegalArgumentException("There is no Playwright Browser currently open for this insight.");
+		}	
+		pbu.enterInput(input);
+		// pbu.fill(jo);
+		
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	
 	@Override

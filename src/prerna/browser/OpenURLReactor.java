@@ -9,6 +9,8 @@ import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.browser.PlaywrightBrowserUtil;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -43,7 +45,7 @@ public class OpenURLReactor extends AbstractReactor {
 			throw new IllegalArgumentException("URL is improperly formatted.", e);
 		}
 		
-		Map<String, String> actions = new HashMap<>();
+		Map<String, Object> actions = new HashMap<>();
 		actions.put("actor", "system");
 		actions.put("action", "navigate");
 		actions.put("website", url);
@@ -52,9 +54,16 @@ public class OpenURLReactor extends AbstractReactor {
 		String json = BrowserUtils.mapToJsonString(actions);
 		
 		JSONObject jo = new JSONObject(json);
-		// 
+		
+		PlaywrightBrowserUtil pbu = this.insight.getPlaywrightUtil();
+		if (pbu == null) {
+			pbu = new PlaywrightBrowserUtil();
+			this.insight.setPlaywrightUtil(pbu);
+		}
+		
+		pbu.open(jo);
 
-		return null;
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	
 	@Override

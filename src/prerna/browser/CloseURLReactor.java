@@ -5,6 +5,8 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.browser.PlaywrightBrowserUtil;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -15,7 +17,7 @@ public class CloseURLReactor extends AbstractReactor {
 
 	public CloseURLReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.URL.getKey()};
-		this.keyRequired = new int[] { 1 };
+		this.keyRequired = new int[] { 0 };
 	}
 
 	@Override
@@ -36,9 +38,16 @@ public class CloseURLReactor extends AbstractReactor {
 		 * So in this case, we simply just close the open browser. 
 		 * Edge case may be opening tabs or something like this.
 		 */
-		
+		PlaywrightBrowserUtil pbu = this.insight.getPlaywrightUtil();
+		if (pbu == null) {
+			throw new IllegalArgumentException("There is no Playwright Browser currently open for this insight.");
+		}	
 		Map<String, Object> actions = new HashMap<>();
-		return null;
+		actions.put("actor", "system");
+		actions.put("action", "close");
+		pbu.close();
+
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	
 	@Override
