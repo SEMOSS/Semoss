@@ -97,7 +97,7 @@ def split_text(
         chunk_size (`int`): Maximum size of each chunk (in tokens or characters).
         chunk_overlap (`int`): Number of characters/tokens to overlap between chunks.
         chunking_strategy (`Optional[Union[str, List[int]]]`): Optional strategy for customizing chunking (defaults to splitting all text).
-        chunking_method (`Optional[str]`): Method for splitting text (currently only supports 'recursive' or 'semantic').
+        chunking_method (`Optional[str]`): Method for splitting text (options are 'token' (default), 'semantic' (using Chonky), and 'recursive').
 
     Raises:
         AssertionError: If chunk_unit is not 'characters' or 'tokens'.

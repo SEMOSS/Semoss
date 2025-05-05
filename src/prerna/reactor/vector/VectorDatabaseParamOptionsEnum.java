@@ -16,7 +16,7 @@ public enum VectorDatabaseParamOptionsEnum {
 		COLUMNS_TO_REMOVE("columnsToRemove",		"A list of column names in the data that you dont want to store in the database"),
 		COLUMNS_TO_RETURN("columnsToReturn",		"A list of column names in the data you want returned in the response"),
 		EXTRACTION_METHOD("extractionMethod",		"The name of the extraction method used to pull data from PDF(s). Options are \"fitz\" or \"default\"."),
-		CHUNKING_METHOD("chunkingMethod",            "The chunking method to be used during text splitting. Options are \"recursive\" or \"semantic\"."),
+		CHUNKING_METHOD("chunkingMethod",            "The chunking method to be used during text splitting. Options are \"token\" (default), \"recursive\", or \"semantic\"."),
 		CUSTOM_DOCUMENT_PROCESSOR("customDocumentProcessor",					"Boolean flag to determine whether a custom function is being used to process a document"),
 		CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID("customDocumentProcessorFunctionID",			"Indicates the function ID used to custom process a document"),
 		KEYWORD_SEARCH_PARAM("keywordSearchParam",  "Create keywords from the extracted chunks and use them to when to create embeddings."),
