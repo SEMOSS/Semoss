@@ -70,7 +70,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 		this.useMsi = Boolean.parseBoolean(smssProp.getProperty(AZ_USE_MSI, "false"));
 		
 		// default to using dynamic SAS
-		this.generateDynamicSAS = Boolean.parseBoolean(smssProp.getProperty(AZ_GENERATE_DYNAMIC_SAS, "true"));
+		this.generateDynamicSAS = Boolean.parseBoolean(smssProp.getProperty(AZ_GENERATE_DYNAMIC_SAS, "false"));
 		
 		if(this.generateDynamicSAS) {
 			this.connectionString = smssProp.getProperty(AZ_CONN_STRING);

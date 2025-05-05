@@ -1,14 +1,14 @@
 package prerna.engine.impl.model.responses;
 
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class InstructModelEngineResponse extends AbstractModelEngineResponse<List<Map<String, String>>> {
+
 	private static final Logger classLogger = LogManager.getLogger(InstructModelEngineResponse.class);
-
-
     private static final long serialVersionUID = 1L;
     
 	public static final String MESSAGE_ID = "messageId";
@@ -17,6 +17,12 @@ public class InstructModelEngineResponse extends AbstractModelEngineResponse<Lis
 	private String messageId;
 	private String roomId;
 
+	/**
+	 * 
+	 * @param response
+	 * @param numberOfTokensInPrompt
+	 * @param numberOfTokensInResponse
+	 */
     public InstructModelEngineResponse(List<Map<String,String>> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
@@ -63,12 +69,11 @@ public class InstructModelEngineResponse extends AbstractModelEngineResponse<Lis
 
     @SuppressWarnings("unchecked")
     public static InstructModelEngineResponse fromObject(Object responseObject) {
-        if (responseObject instanceof Map) {
-            Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
-            return fromMap(modelResponse);
-        } else {
-        	classLogger.error("responseObject : {}", responseObject);
-            throw new IllegalArgumentException("Expected a Map<String, Object> but got: " + responseObject.getClass());
-        }
+    	if(!(responseObject instanceof Map)) {
+			throw new IllegalArgumentException("Expected map output. Instead received value: " + responseObject);
+		}
+        Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
+        return fromMap(modelResponse);
     }
+    
 }
