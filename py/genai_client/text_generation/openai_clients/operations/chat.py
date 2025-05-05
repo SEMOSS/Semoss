@@ -26,7 +26,9 @@ class Chat:
         **kwargs,
     ) -> AskModelEngineResponse:
         kwargs = self._normalize_kwargs(kwargs)
-
+        # remove dumb parameters from legacy code
+        kwargs.pop("max_new_tokens", None)
+        
         if template_name is None:
             template_name = self.client.template_name
 
