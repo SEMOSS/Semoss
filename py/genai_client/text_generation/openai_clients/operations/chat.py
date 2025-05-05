@@ -20,8 +20,8 @@ class Chat:
         use_history: bool = True,  # To control history tracking
         history: List[Dict] = None,
         # We should now expect max_completion_tokens but I can't get rid of this yet..
-        max_new_tokens=None,  # Deprecated # We dont use either of these?? I think they are passed in the kwargs
-        max_completion_tokens=None,  # We dont use either of these?? I think they are passed in the kwargs
+        # max_new_tokens=None,  # Deprecated # We dont use either of these?? I think they are passed in the kwargs
+        # max_completion_tokens=None,  # We dont use either of these?? I think they are passed in the kwargs
         prefix="",
         **kwargs,
     ) -> AskModelEngineResponse:
@@ -52,7 +52,7 @@ class Chat:
             max_tokens_call_param=kwargs.pop("max_tokens", None),
             max_completion_tokens_call_param=kwargs.pop("max_completion_tokens", None),
             max_tokens_smss=self.client.tokenizer.max_tokens,
-            max_completion_tokens_smss=self.client.tokenizer.max_tokens,
+            max_completion_tokens_smss=self.client.tokenizer.max_completion_tokens,
         )
 
         max_tokens = model_limits.max_completion_tokens
