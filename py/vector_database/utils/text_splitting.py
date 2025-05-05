@@ -85,7 +85,7 @@ def split_text(
     chunk_size: int,
     chunk_overlap: int,
     chunking_strategy: Optional[Union[str, List[int]]] = [],
-    chunking_method: Optional[str] = "recursive",
+    chunking_method: Optional[str] = "tokens",
 ) -> None:
     """
     Splits text content in a CSV file into chunks based on specified parameters.
@@ -142,7 +142,7 @@ def split_text(
             document_name=document_name,
             cfg_tokenizer=cfg_tokenizer,
         )
-    else:
+    elif chunking_method.lower() == "recursive":
         text_results_df = split_text_recursively(
             text_results_df=text_results_df,
             chunking_strategy=chunking_strategy,
@@ -152,11 +152,114 @@ def split_text(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
         )
+    else:
+        text_results_df = split_by_tokens(
+            text_results_df=text_results_df,
+            chunking_strategy=chunking_strategy,
+            document_name=document_name,
+            cfg_tokenizer=cfg_tokenizer,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
 
     # Combine text chunks with other modalities and save to CSV
     result = pd.concat([text_results_df, other_modalities_df], ignore_index=True)
 
     result.to_csv(csv_file_location, index=False)
+
+
+def split_by_tokens(
+    text_results_df: pd.DataFrame,
+    chunking_strategy: Union[str, List[int]],
+    document_name: str,
+    cfg_tokenizer,
+    # chunk_unit: str,
+    chunk_size: int,
+    chunk_overlap: int,
+) -> pd.DataFrame:
+    from langchain.text_splitter import TokenTextSplitter
+
+    # Initialize text splitter with specified parameters
+    text_splitter = TokenTextSplitter.from_huggingface_tokenizer(
+        cfg_tokenizer.tokenizer,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+    )
+
+    # Handle different chunking strategies
+    if (isinstance(chunking_strategy, List) and len(chunking_strategy) == 0) or (
+        chunking_strategy == "ALL"
+    ):
+        # Create chunks from all text combined but keep track of page numbers for metadata
+        identified_pages = (
+            "<CFG_IDENTIFIED_AS_PAGE_" + text_results_df["Divider"].astype(str) + ">"
+        )
+        chunks = text_splitter.create_documents(
+            [
+                " ".join(
+                    identified_pages + text_results_df["Content"].apply(clean_up_string)
+                )
+            ]
+        )
+
+        page_numbers, chunks = find_keyword_indices(
+            [document.page_content for document in chunks],
+            identified_pages.to_list()[1:],
+        )
+
+        counter = {}  # initialize the counter
+        parts = []  # keep track of the parts list
+        for i in page_numbers:
+            part = counter.get(i, 0)
+            counter[i] = part + 1
+            parts.append(part)
+
+    elif (
+        isinstance(chunking_strategy, List)
+        and len(chunking_strategy) == text_results_df.shape[0]
+    ) or (chunking_strategy == "PAGE_BY_PAGE"):
+        # Create chunks from each page individually
+        chunks = []
+        page_numbers = []
+        parts = []
+        for page_number, page_text in zip(
+            text_results_df["Divider"],
+            text_results_df["Content"].apply(clean_up_string),
+        ):
+
+            page_chunks = text_splitter.create_documents([page_text])
+
+            for part in range(len(page_chunks)):
+                chunk = page_chunks[part].page_content
+                chunks.append(chunk)
+                page_numbers.append(page_number)
+                parts.append(part)
+
+    elif all(isinstance(sublist, list) for sublist in chunking_strategy):
+        # Raise exception for unsupported chunking strategy not implemented
+        # The goal here is to create chunks from specific pages
+        raise Exception("Specific chunking strategy is not implemented yet")
+
+    else:
+        raise Exception("Chunking strategy is not defined")
+
+    # Create new DataFrame with additional information about each chunk
+    text_results_df = pd.DataFrame(
+        [
+            [
+                document_name,
+                "text",
+                page_number,
+                part,
+                cfg_tokenizer.count_tokens(chunk),
+                chunk,
+            ]
+            for page_number, part, chunk in zip(page_numbers, parts, chunks)
+        ],
+        columns=["Source", "Modality", "Divider", "Part", "Tokens", "Content"],
+    )
+
+    return text_results_df
 
 
 def split_text_recursively(
