@@ -48,6 +48,7 @@ import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
@@ -309,6 +310,11 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			classLogger.debug("Closing the audit database engine");
 			auditDatabase.close();
 		}
+	}
+	
+	@Override
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
+		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 	
 	@Override

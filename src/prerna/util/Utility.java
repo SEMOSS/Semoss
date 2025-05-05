@@ -3701,22 +3701,12 @@ public final class Utility {
 	 */
 	public static Properties loadProperties(String filePath) {
 		Properties retProp = new Properties();
-		FileInputStream fis = null;
 		if (filePath != null) {
-			try {
-				fis = new FileInputStream(Utility.normalizePath(filePath));
+			try (FileInputStream fis = new FileInputStream(Utility.normalizePath(filePath))){
 				retProp.load(fis);
 			} catch (IOException ioe) {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
 				classLogger.error(Constants.STACKTRACE, ioe);
-			} finally {
-				if (fis != null) {
-					try {
-						fis.close();
-					} catch (IOException ioe) {
-						classLogger.error(Constants.STACKTRACE, ioe);
-					}
-				}
 			}
 		}
 		return retProp;
@@ -5385,40 +5375,11 @@ public final class Utility {
 		try {
 			// only try to find the base python if one was not passed in
 			if (py == null || py.isEmpty()) {
-				py = System.getenv(Settings.PYTHONHOME);
-				if(py == null) {
-					py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
-				}
-				if(py == null) {
-					System.getenv(Settings.PY_HOME);
-				}
-				if (py == null) {
-					py = Utility.getDIHelperProperty(Settings.PY_HOME);
-				}
-				if(py == null) {
-					throw new NullPointerException("Must define python home");
-				}
-			}
-			py = py.trim();
-			// append the executable
-			if (SystemUtils.IS_OS_WINDOWS) {
-				py = py + "/python.exe";
+				py = getPythonExecutable();
 			} else {
-				py = py + "/bin/python3";
+				classLogger.info("The python executable being used is: \"" + py + "\"");
 			}
-
-			py = py.replace("\\", "/");
-
-			classLogger.info("The python executable being used is: " + py);
-
-			// check to see if the py folder is there
-			// if not go into base folder
-			String pyBase = Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER) == null
-					? Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
-							: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);
-			pyBase = pyBase.trim();
-			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
-			pyBase = pyBase.replace("\\", "/");
+			String pyBase = Utility.getBaseFolder().replace("\\", "/") + "/" + Constants.PY_BASE_FOLDER;
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
 			prefix = Utility.getRandomString(5);
@@ -5536,41 +5497,14 @@ public final class Utility {
 		String finalDir = insightFolder.replace("\\", "/");
 
 		try {
-			String py = System.getenv(Settings.PYTHONHOME);
-			if(py == null) {
-				py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
-			}
-			if(py == null) {
-				System.getenv(Settings.PY_HOME);
-			}
-			if (py == null) {
-				py = Utility.getDIHelperProperty(Settings.PY_HOME);
-			}
-			if(py == null) {
-				throw new NullPointerException("Must define python home");
-			}
-			py = py.trim();
-			if (SystemUtils.IS_OS_WINDOWS) {
-				py = py + "/python.exe";
-			} else {
-				py = py + "/bin/python3";
-			}
-
-			py = py.replace("\\", "/");
-
-			String pyBase = Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER) == null 
-						? Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
-								: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);
-			pyBase = pyBase.trim();
-			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
-
-			pyBase = pyBase.replace("\\", "/");
+			String py = getPythonExecutable();
+			String pyBase = Utility.getBaseFolder().replace("\\", "/") + "/" + Constants.PY_BASE_FOLDER;
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
 			prefix = Utility.getRandomString(5);
 			prefix = "p_"+ prefix;
 
-			String outputFile =chrootDir + finalDir + "/console.txt";
+			String outputFile = chrootDir + finalDir + "/console.txt";
 
 			//	String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
 			// 01.03.2025 - below are old chroot commands that utilized full mount + bindfs + debootstrap
@@ -5629,7 +5563,36 @@ public final class Utility {
 
 		return new Object[] {thisProcess, prefix};
 	}
-
+	
+	/**
+	 * 
+	 * @return
+	 */
+	private static String getPythonExecutable() {
+		String py = System.getenv(Settings.PYTHONHOME);
+		if(py == null) {
+			py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
+		}
+		if(py == null) {
+			System.getenv(Settings.PY_HOME);
+		}
+		if (py == null) {
+			py = Utility.getDIHelperProperty(Settings.PY_HOME);
+		}
+		if(py == null) {
+			throw new NullPointerException("Must define python home");
+		}
+		py = py.trim();
+		if (SystemUtils.IS_OS_WINDOWS) {
+			py = py + "/python.exe";
+		} else {
+			py = py + "/bin/python3";
+		}
+		py = py.replace("\\", "/");
+		classLogger.info("The python executable being used is: \"" + py + "\"");
+		return py;
+	}
+	
 	/**
 	 * 
 	 * @param commands

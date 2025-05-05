@@ -616,14 +616,7 @@ public class RemoteClientServerZKRESTProxy implements IRemoteClientServer {
         return warmingModels;
     }
     
-    @Override
-    public Map<String, Object> canItRun(String hfModelId) throws Exception {
-        // Always assume it can run in dev mode i guess
-        Map<String, Object> result = new HashMap<>();
-        result.put("can_run", true);
-        result.put("message", "Development mode - assuming model can run");
-        
-        classLogger.info("Development mode: Assuming model {} can run", hfModelId);
-        return result;
-    }
+	public String getModelScalerIp() {
+		return System.getenv("KMS_INGRESS");
+	}
 }
