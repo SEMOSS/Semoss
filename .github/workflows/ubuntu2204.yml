@@ -67,3 +67,4 @@ jobs:
           file: ./docker/Dockerfile.ubuntu22.04
           push: true
           tags: quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
+          no-cache: true
