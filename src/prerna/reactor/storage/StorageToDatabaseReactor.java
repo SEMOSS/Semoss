@@ -126,7 +126,6 @@
 		private String[] getTypes(AbstractSqlQueryUtil queryUtil, CSVRecord csvRecord) {
 				final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
 				final String VARCHAR = queryUtil.getVarcharDataTypeName();
-				queryUtil.getDateAddFunctionSyntax(INTEGER_DATATYPE_NAME, 0, VARCHAR);
 		        String pattern = "yyyy-MM-dd HH:mm:ss";
 	
 				String [] types = new String[csvRecord.size()];
@@ -146,7 +145,7 @@
 		
 	    private boolean isValidTimestamp(String timestamp, String pattern) {
 	        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
-	        sdf.setLenient(false); // Ensure strict parsing
+	        sdf.setLenient(false);
 	        try {
 	            sdf.parse(timestamp);
 	            return true;
