@@ -122,8 +122,7 @@
 				return (IStorageEngine) storageInputs.get(0).getValue();
 			}
 			
-			return null;
-			//throw new NullPointerException("No storage engine defined");
+			throw new NullPointerException("No storage engine defined");
 		}	
 	
 		private String[] getTypes(AbstractSqlQueryUtil queryUtil, CSVRecord csvRecord) {
