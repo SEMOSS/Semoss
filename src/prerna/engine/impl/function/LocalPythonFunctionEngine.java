@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -55,6 +56,73 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 			String key = smssKey.toString();
 			this.vars.put(key, this.smssProp.getProperty(key));
 		}
+	}
+	
+	public Map<String, Object> getPythonFilesAndFolders() throws Exception {
+	    this.engineDirectoryPath = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
+	    this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
+	    
+	    Map<String, Object> result = new HashMap<>();
+	    Map<String, String> pythonFiles = new HashMap<>();
+	    Map<String, String> pythonFolders = new HashMap<>();
+	    
+	    File engineDir = new File(this.engineDirectoryPath);
+	    collectPythonFilesAndFolders(engineDir, pythonFiles, pythonFolders);
+	    
+	    result.put("pythonFiles", pythonFiles);
+	    result.put("pythonFolders", pythonFolders);
+	    
+	    return result;
+	}
+
+	private void collectPythonFilesAndFolders(File directory, Map<String, String> pythonFiles, Map<String, String> pythonFolders) throws IOException {
+	    if (!directory.exists() || !directory.isDirectory()) {
+	        return;
+	    }
+	    
+	    boolean folderHasPythonFiles = false;
+	    
+	    File[] files = directory.listFiles();
+	    if (files != null) {
+	        for (File file : files) {
+	            if (file.isDirectory()) {
+	                // Check if this subdirectory contains Python files
+	                Map<String, String> subDirPythonFiles = new HashMap<>();
+	                Map<String, String> subDirPythonFolders = new HashMap<>();
+	                collectPythonFilesAndFolders(file, subDirPythonFiles, subDirPythonFolders);
+	                
+	                // If subdirectory contains Python files or has subdirectories that contain Python files
+	                if (!subDirPythonFiles.isEmpty() || !subDirPythonFolders.isEmpty()) {
+	                    // Add valid subdirectories to our folders map
+	                    pythonFolders.putAll(subDirPythonFolders);
+	                    
+	                    // Add this directory to our folders map
+	                    String relativePath = file.getAbsolutePath().replace(this.engineDirectoryPath + "/", "");
+	                    pythonFolders.put(file.getName(), relativePath);
+	                    
+	                    // Add Python files from subdirectory to our files map
+	                    pythonFiles.putAll(subDirPythonFiles);
+	                    folderHasPythonFiles = true;
+	                }
+	            } else if (file.isFile() && file.getName().endsWith(".py")) {
+	                // This is a Python file
+	                folderHasPythonFiles = true;
+	                
+	                // Read the file content
+	                String content = FileUtils.readFileToString(file);
+	                
+	                // Add file to our files map with its relative path as the value
+	                String relativePath = file.getAbsolutePath().replace(this.engineDirectoryPath + "/", "");
+	                pythonFiles.put(file.getName(), relativePath + ":" + content);
+	            }
+	        }
+	    }
+	    
+	    // If this directory contains Python files, add it to our folders map
+	    if (folderHasPythonFiles && !directory.getAbsolutePath().equals(this.engineDirectoryPath)) {
+	        String relativePath = directory.getAbsolutePath().replace(this.engineDirectoryPath + "/", "");
+	        pythonFolders.put(directory.getName(), relativePath);
+	    }
 	}
 
 	protected synchronized void startServer(int port) {
