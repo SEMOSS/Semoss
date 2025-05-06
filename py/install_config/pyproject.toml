@@ -15,6 +15,7 @@ dependencies = [
     "azure-search-documents>=11.5.2",
     "boto3>=1.37.10",
     "bs4>=0.0.2",
+    "chonky==0.1.4",
     "datasets==2.14.3",
     "deepdiff>=8.3.0",
     "faiss-cpu>=1.10.0",

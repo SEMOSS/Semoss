@@ -26,6 +26,8 @@ class Chat:
         **kwargs,
     ) -> AskModelEngineResponse:
         kwargs = self._normalize_kwargs(kwargs)
+        # remove dumb parameters from legacy code
+        kwargs.pop("max_new_tokens", None)
 
         if template_name is None:
             template_name = self.client.template_name
@@ -150,14 +152,22 @@ class Chat:
 
     def _process_full_prompt(self, full_prompt: List) -> List[Dict]:
         if isinstance(full_prompt, list):
-            listOfDicts = set([isinstance(x, dict) for x in full_prompt]) == {True}
-            if not listOfDicts:
+            list_of_dicts = set([isinstance(x, dict) for x in full_prompt]) == {True}
+            if not list_of_dicts:
                 raise ValueError("The provided payload is not valid")
 
             # now we have to check the key value pairs are valid
-            all_keys_set = {key for d in full_prompt for key in d.keys()}
-            validOpenAiDictKey = sorted(all_keys_set) == ["content", "role"]
-            if not validOpenAiDictKey:
+            valid_key_sets = [
+                {"content", "role"},
+                {"role", "tool_calls"},
+                {"role", "tool_call_id"},
+            ]
+            all_keys_valid = all(
+                # if any in valid_keys are a subset of the full prompt keys
+                any(valid_keys <= d.keys() for valid_keys in valid_key_sets)
+                for d in full_prompt
+            )
+            if not all_keys_valid:
                 raise ValueError("There are invalid OpenAI dictionary keys")
             # add it the message payload
             return full_prompt
