@@ -75,16 +75,9 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         // Adjust logic based on messageType
         if (TOOL.equals(messageType)) {
             if (response instanceof List) {
-            	//TODO: why are we grabbing only 1 tool???
-            	//TODO: why are we grabbing only 1 tool???
-            	//TODO: why are we grabbing only 1 tool???
-            	//TODO: why are we grabbing only 1 tool???
-            	//TODO: why are we grabbing only 1 tool???
-            	//TODO: why are we grabbing only 1 tool???
                 List<?> responseList = (List<?>) response;
-                // Handle one tool object to process
-                if (!responseList.isEmpty() && responseList.get(0) instanceof Map) {
-                    return new AskToolModelEngineResponse((Map<String, Object>) responseList.get(0), tokensInPrompt, tokensInResponse);
+                if (!responseList.isEmpty()) {
+                    return new AskToolModelEngineResponse((List<Map<String, Object>>) responseList, tokensInPrompt, tokensInResponse);
                 } else {
                     throw new IllegalArgumentException("Tool list is empty or not valid");
                 }
