@@ -93,8 +93,7 @@
 						if (types[i].equalsIgnoreCase("TIMESTAMP")) {
 					        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 							Date date = dateFormat.parse(record.get(colNames[i]));
-							Timestamp timestamp = new Timestamp(date.getTime());
-							values[i] = timestamp;
+							values[i] = new Timestamp(date.getTime());
 						} else {
 							values[i] = record.get(colNames[i]);
 						}
