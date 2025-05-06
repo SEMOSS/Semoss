@@ -249,8 +249,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             output = pixelReturn[0]["pixelReturn"][0]
             return output["output"]
 
-        return pixelReturn
-
+        return pixelReturn        
     def embeddings(
         self,
         strings_to_embed: List[str],
@@ -710,7 +709,20 @@ class ModelEngine(AbstractModelEngine):
                     elif msg["MESSAGE_TYPE"] == "RESPONSE":
                         messages.append(AIMessage(content=msg["MESSAGE_DATA"]))
                 return messages
+            def get_chat_summary(
+                    self, insight_id: Optional[str] = None
+            ) -> List[BaseMessage]:
+                """Retrieve chat history and return a summary."""
 
+                from langchain_core.messages import HumanMessage
+                messages = []
+                summaries = []
+                history = self.model_engine.get_conversation_history()
+                for msg in sorted(history, key=lambda x: x["DATE_CREATED"]):
+                    if msg["MESSAGE_TYPE"] == "INPUT":
+                        messages.append(HumanMessage(content=msg["MESSAGE_DATA"]))
+                        summaries.append(HumanMessage(content="Create a summary of the message above"))
+                return summaries
             class Config:
                 """Configuration for this pydantic object."""
 
