@@ -6,10 +6,10 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONObject;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 
 import prerna.util.Constants;
 
@@ -20,6 +20,7 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
     private static final long serialVersionUID = 1L;
     private static final String ID_KEY = "id";
     private static final String NAME_KEY = "name";
+    private static final String TYPE_KEY = "type";
     private static final String ARGUMENTS_KEY = "arguments";
 
     private List<ToolResponse> tools;
@@ -36,6 +37,7 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
         this.tools = new ArrayList<>();
         for(Map<String, Object> toolResponse : response) {
         	String id = null;
+        	String type = null;
         	String name = null;
         	Map<String, Object> arguments = null;
         	
@@ -43,24 +45,28 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
                 id = (String) toolResponse.get(ID_KEY);
             }
         	
+        	if (toolResponse.containsKey(TYPE_KEY) && toolResponse.get(TYPE_KEY) instanceof String) {
+                type = (String) toolResponse.get(TYPE_KEY);
+            }
+        	
         	if (toolResponse.containsKey(NAME_KEY) && toolResponse.get(NAME_KEY) instanceof String) {
                 name = (String) toolResponse.get(NAME_KEY);
             }
         	
-        	// TODO: why is this a string?
-        	// TODO: why is this a string?
-        	// TODO: why is this a string?
-        	// TODO: why is this a string?
         	if (toolResponse.containsKey(ARGUMENTS_KEY) && toolResponse.get(ARGUMENTS_KEY) instanceof String) {
                 String argumentsJson = (String) toolResponse.get(ARGUMENTS_KEY);
                 try {
-                	arguments = new GsonBuilder().disableHtmlEscaping().create().fromJson(argumentsJson, Map.class);
+                	arguments = new GsonBuilder()
+                					.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+                					.disableHtmlEscaping
+                					().create
+                					().fromJson(argumentsJson, Map.class);
                 } catch (Exception e) {
                 	classLogger.error(Constants.STACKTRACE, e);
                 }
             }
         	
-        	ToolResponse tool = new ToolResponse(id, name, arguments);
+        	ToolResponse tool = new ToolResponse(id, type, name, arguments);
         	this.tools.add(tool);
         }
 
@@ -88,8 +94,10 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
     
     @Override
     public String getStringResponse() {    
-        JSONObject jsonObject = new JSONObject(this.getResponse());
-        return jsonObject.toString();
+    	if(this.response != null) {
+    		return new Gson().toJson(this.response);
+    	}
+        return "[]";
     }
     
     /**
@@ -103,14 +111,16 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
     /**
      * 
      */
-    class ToolResponse {
+    public class ToolResponse {
     	
     	private String id;
+        private String type;
         private String name;
         private Map<String, Object> arguments;
         
-        public ToolResponse(String id, String name, Map<String, Object> arguments) {
+        public ToolResponse(String id, String type, String name, Map<String, Object> arguments) {
         	this.id= id;
+        	this.type = type;
         	this.name = name;
         	this.arguments = arguments;
         }
@@ -121,6 +131,10 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
 
 		public String getName() {
 			return name;
+		}
+		
+		public String getType() {
+			return type;
 		}
 
 		public Map<String, Object> getArguments() {
@@ -133,6 +147,10 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
 //		
 //		public void setName(String name) {
 //			this.name = name;
+//		}
+//		
+//		public void setType(String type) {
+//			this.type = type;
 //		}
 //		
 //		public void setArguments(Map<String, Object> arguments) {

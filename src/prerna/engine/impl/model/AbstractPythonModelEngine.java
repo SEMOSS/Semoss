@@ -301,6 +301,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	        outputMap.put(ROLE, "assistant");
 	        
+	        //TODO: handle multiple tools being returned
+	        //TODO: handle multiple tools being returned
+	        //TODO: handle multiple tools being returned
 			if(response.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
 				AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) response;
 	            // Create the tool call structure

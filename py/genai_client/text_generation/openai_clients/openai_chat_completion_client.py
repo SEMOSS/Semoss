@@ -198,9 +198,15 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             toolResult = []
             if tools_call:  # Check if tools_call is not empty
                 for tool_call in tools_call:
+                    # TODO: we should not create our own format
+                    # TODO: we should not create our own format
+                    # TODO: we should not create our own format
+                    # TODO: we should not create our own format
+                    # TODO: we should not create our own format
                     toolResult.append(
                         {
                             "id": tool_call.id,
+                            "type": tool_call.type,
                             "name": tool_call.function.name,
                             "arguments": tool_call.function.arguments,
                         }

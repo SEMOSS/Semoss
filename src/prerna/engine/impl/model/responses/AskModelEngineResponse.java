@@ -13,8 +13,8 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public static final String CHAT = "CHAT";
     public static final String TOOL = "TOOL";
 
-    private String messageId;
-    private String roomId;
+    protected String messageId;
+    protected String roomId;
     protected String messageType = CHAT;
     
     public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
@@ -49,6 +49,8 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         responseMap.put(MESSAGE_TYPE, this.messageType);
         return responseMap;
     }
+    
+	public abstract String getStringResponse();
 
  // Factory method to create the appropriate response type
     @SuppressWarnings("unchecked")
@@ -105,5 +107,4 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		return fromMap(modelResponse);
     }
 
-	public abstract String getStringResponse();
 }
