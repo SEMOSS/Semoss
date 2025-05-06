@@ -1054,6 +1054,24 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 		}
 
 		classLogger.info("File downloaded from S3: " + key + " -> " + destinationPath);
+		
+		 //  Get attributes to determine storage checksum function(algorithm)
+	    GetObjectAttributesRequest attrRequest = GetObjectAttributesRequest.builder()
+	        .bucket(this.bucket)
+	        .key(key)
+	        .objectAttributes(ObjectAttributes.CHECKSUM, ObjectAttributes.OBJECT_PARTS)
+	        .build();
+
+	    GetObjectAttributesResponse attrResponse = this.client.getObjectAttributes(attrRequest);
+		
+		// Check if checksum is available
+		if (attrResponse.checksum() != null && getAvailableChecksum(attrResponse) != null) {
+			ChecksumAlgorithm checksumAlgo = getAvailableChecksum(attrResponse);
+			verifyChecksum(destinationPath, key, checksumAlgo);
+		} else {
+			classLogger.warn("Checksum not available for object: " + key + ". Skipping checksum verification.");
+		}
+	
 	}
 
 	private boolean deleteObject(String objectKey) {
@@ -1200,12 +1218,45 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 		return fileKey;
 	}
 
-	private void downloadFile(String key, Path localFilePath) throws IOException {
+	private void downloadFile(String key, Path localFilePath) throws Exception {
 		GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(this.bucket).key(key).build();
 
 		try (InputStream s3InputStream = this.client.getObject(getObjectRequest)) {
 			Files.copy(s3InputStream, localFilePath, StandardCopyOption.REPLACE_EXISTING);
 		}
+		 //  Get attributes to determine storage checksum function(algorithm)
+	    GetObjectAttributesRequest attrRequest = GetObjectAttributesRequest.builder()
+	        .bucket(this.bucket)
+	        .key(key)
+	        .objectAttributes(ObjectAttributes.CHECKSUM, ObjectAttributes.OBJECT_PARTS)
+	        .build();
+
+	    GetObjectAttributesResponse attrResponse = this.client.getObjectAttributes(attrRequest);
+	    
+		// Check if checksum is available
+		if (attrResponse.checksum() != null && getAvailableChecksum(attrResponse) != null) {
+			ChecksumAlgorithm checksumAlgo = getAvailableChecksum(attrResponse);
+			verifyChecksum(localFilePath, key, checksumAlgo);
+		} else {
+			classLogger.warn("Checksum not available for object: " + key + ". Skipping checksum verification.");
+		}
+	}
+	
+	private ChecksumAlgorithm getAvailableChecksum(GetObjectAttributesResponse response) {
+	    if (response == null) return null;
+
+	    software.amazon.awssdk.services.s3.model.Checksum checksum = response.checksum();
+	    if (checksum == null) return null;
+
+	    if (checksum.checksumSHA256() != null) {
+	        return ChecksumAlgorithm.SHA256;
+	    } else if (checksum.checksumSHA1() != null) {
+	        return ChecksumAlgorithm.SHA1;
+	    } else if (checksum.checksumCRC32() != null) {
+	        return ChecksumAlgorithm.CRC32;
+	    }
+	    
+	    return null;
 	}
 
 	private void retryDelete(List<String> failedFiles) {
