@@ -59,6 +59,9 @@
 	
 			IStorageEngine storage = getStorage();
 			String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+			GenRowStruct curRow = new GenRowStruct();
+			curRow.addColumn("/");
+			this.store.addNoun("filePath", curRow);
 			String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
 			if(!(new File(fileLocation).isDirectory())) {
 				new File(fileLocation).mkdirs();
@@ -119,7 +122,8 @@
 				return (IStorageEngine) storageInputs.get(0).getValue();
 			}
 			
-			throw new NullPointerException("No storage engine defined");
+			return null;
+			//throw new NullPointerException("No storage engine defined");
 		}	
 	
 		private String[] getTypes(AbstractSqlQueryUtil queryUtil, CSVRecord csvRecord) {
