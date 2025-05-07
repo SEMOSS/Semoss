@@ -2197,6 +2197,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "tool_app"));
 		
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
@@ -2652,6 +2653,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "database_tool_app"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
@@ -3103,6 +3105,25 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occurred while updating the user engine permissions in db ");
 		} finally {
 			ConnectionUtils.closeAllDbConnectionsIfPooling(securityDb, deletePs, insertPs);
+		}
+	}
+
+	public static void updateEngineToolApp(String engineId, String projectId) {
+		PreparedStatement ps = null;
+		try {
+			String query = "UPDATE ENGINE SET TOOL_APP = ? WHERE ENGINEID = ?";
+			ps = securityDb.getPreparedStatement(query);
+			ps.setString(1, projectId);
+			ps.setString(2, engineId);
+			ps.executeUpdate();
+
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error("Failed to update engine tool_app", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
