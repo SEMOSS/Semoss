@@ -5,6 +5,7 @@ from ....constants import (
     IMAGE_URL,
     AskModelEngineResponse,
 )
+from ....model_limits import ModelLimits
 
 
 class Chat:
@@ -16,14 +17,17 @@ class Chat:
         question: str = None,
         context: str = None,
         template_name: str = None,
+        use_history: bool = True,  # To control history tracking
         history: List[Dict] = None,
         # We should now expect max_completion_tokens but I can't get rid of this yet..
-        max_new_tokens=None,  # Deprecated
-        max_completion_tokens=None,
+        # max_new_tokens=None,  # Deprecated # We dont use either of these?? I think they are passed in the kwargs
+        # max_completion_tokens=None,  # We dont use either of these?? I think they are passed in the kwargs
         prefix="",
         **kwargs,
     ) -> AskModelEngineResponse:
         kwargs = self._normalize_kwargs(kwargs)
+        # remove dumb parameters from legacy code
+        kwargs.pop("max_new_tokens", None)
 
         if template_name is None:
             template_name = self.client.template_name
@@ -35,37 +39,49 @@ class Chat:
             message_payload = self._process_chat_completion(
                 question=question,
                 context=context,
-                history=history,
+                history=(
+                    history if use_history else None
+                ),  # Only include history if use_history is True
                 template_name=template_name,
                 fill_variables=kwargs,
             )
         else:
             message_payload = self._process_full_prompt(kwargs.pop(FULL_PROMPT))
 
-        # We want to honor the new variable name first, then the old variable name but its okay if both are None
-        # Once everyone is using the new variable name, we can remove this
-        user_max_tokens = (
-            max_completion_tokens
-            if max_completion_tokens is not None
-            else max_new_tokens
+        model_limits = ModelLimits(
+            model_name=self.client.model_name,
+            context_window_smss=self.client.tokenizer.context_window,
+            max_tokens_call_param=kwargs.pop("max_tokens", None),
+            max_completion_tokens_call_param=kwargs.pop("max_completion_tokens", None),
+            max_tokens_smss=self.client.tokenizer.max_tokens,
+            max_completion_tokens_smss=self.client.tokenizer.max_completion_tokens,
         )
+
+        max_tokens = model_limits.max_completion_tokens
+        context_window = model_limits.context_window
 
         # Check to see if we need to truncate the prompt or adjust max_completion_tokens
         prompt, kwargs["max_tokens"], model_engine_response = (
             self.client.check_token_limits(
-                prompt_payload=message_payload, user_max_tokens=user_max_tokens
+                messages=message_payload,
+                max_tokens=max_tokens,
+                context_window=context_window,
             )
         )
 
         # Add the message payload as a kwargs
         kwargs["messages"] = prompt
 
-        model_engine_response.response = self.client.inference_call(
-            prefix=prefix, **kwargs
-        )
-        model_engine_response.response_tokens = self.client.tokenizer.count_tokens(
-            model_engine_response.response
-        )
+        (
+            model_engine_response.response,
+            model_engine_response.response_tokens,
+            model_engine_response.messageType,
+        ) = self.client.inference_call(prefix=prefix, **kwargs)
+
+        if model_engine_response.response_tokens is None:
+            model_engine_response.response_tokens = self.client.tokenizer.count_tokens(
+                model_engine_response.response
+            )
 
         return model_engine_response
 
@@ -136,14 +152,22 @@ class Chat:
 
     def _process_full_prompt(self, full_prompt: List) -> List[Dict]:
         if isinstance(full_prompt, list):
-            listOfDicts = set([isinstance(x, dict) for x in full_prompt]) == {True}
-            if not listOfDicts:
+            list_of_dicts = set([isinstance(x, dict) for x in full_prompt]) == {True}
+            if not list_of_dicts:
                 raise ValueError("The provided payload is not valid")
 
             # now we have to check the key value pairs are valid
-            all_keys_set = {key for d in full_prompt for key in d.keys()}
-            validOpenAiDictKey = sorted(all_keys_set) == ["content", "role"]
-            if not validOpenAiDictKey:
+            valid_key_sets = [
+                {"content", "role"},
+                {"role", "tool_calls"},
+                {"role", "tool_call_id"},
+            ]
+            all_keys_valid = all(
+                # if any in valid_keys are a subset of the full prompt keys
+                any(valid_keys <= d.keys() for valid_keys in valid_key_sets)
+                for d in full_prompt
+            )
+            if not all_keys_valid:
                 raise ValueError("There are invalid OpenAI dictionary keys")
             # add it the message payload
             return full_prompt

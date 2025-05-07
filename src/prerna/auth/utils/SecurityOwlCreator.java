@@ -101,8 +101,8 @@ public class SecurityOwlCreator {
 		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_USER");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SMSS_USER/DEFAULTVALUES")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SESSION_SHARE/IS_SESSION_SHARE")) {
 				return true;
 			}
 		}
@@ -160,6 +160,7 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINE", "CREATEDBY", "VARCHAR(255)");
 		owler.addProp("ENGINE", "CREATEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("ENGINE", "DATECREATED", "TIMESTAMP");
+		owler.addProp("ENGINE", "TOOL_APP", "VARCHAR(255)");
 
 		// ENGINEMETA
 		owler.addConcept("ENGINEMETA", null, null);
@@ -379,6 +380,8 @@ public class SecurityOwlCreator {
 		owler.addProp("SESSION_SHARE", "SESSION_VAL", "VARCHAR(255)");
 		owler.addProp("SESSION_SHARE", "ROUTE_VAL", "VARCHAR(255)");
 		owler.addProp("SESSION_SHARE", "DATE_ADDED", "TIMESTAMP");
+		owler.addProp("SESSION_SHARE", "IS_SESSION_SHARE", "BOOLEAN");
+		owler.addProp("SESSION_SHARE", "IS_AUTH_SHARE", "BOOLEAN");
 		owler.addProp("SESSION_SHARE", "DATE_USED", "TIMESTAMP");
 		owler.addProp("SESSION_SHARE", "USE_VALID", "BOOLEAN");
 		owler.addProp("SESSION_SHARE", "USERID", "VARCHAR(255)");

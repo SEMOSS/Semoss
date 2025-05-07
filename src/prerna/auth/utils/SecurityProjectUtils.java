@@ -42,14 +42,11 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.joins.SubqueryRelationship;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
-import prerna.query.querystruct.update.UpdateQueryStruct;
-import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
@@ -954,6 +951,34 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return wrapper;
+	}
+	
+	/**
+	 * See if project exists
+	 * @return
+	 */
+	public static boolean projectExists(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -2785,22 +2810,30 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
-				UpdateQueryStruct uqs = new UpdateQueryStruct();
-				uqs.setEngine(securityDb);
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIdFilters));
-
-				List<IQuerySelector> selectors = new ArrayList<>();
-				selectors.add(new QueryColumnSelector("PROJECTPERMISSION__VISIBILITY"));
-				List<Object> values = new ArrayList<>();
-				values.add(visibility);
-				uqs.setSelectors(selectors);
-				uqs.setValues(values);
-				
-				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
-				String updateQuery = updateInterp.composeQuery();
-				securityDb.insertData(updateQuery);
-				
+				// need to update
+				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET VISIBILITY=? WHERE USERID=?");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
+				}
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setBoolean(parameterIndex++, visibility);
+						ps.setString(parameterIndex++, userId);
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+				}
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION "
@@ -2871,28 +2904,36 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
-				UpdateQueryStruct uqs = new UpdateQueryStruct();
-				uqs.setEngine(securityDb);
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIdFilters));
-
-				List<IQuerySelector> selectors = new ArrayList<>();
-				selectors.add(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE"));
-				List<Object> values = new ArrayList<>();
-				values.add(isFavorite);
-				uqs.setSelectors(selectors);
-				uqs.setValues(values);
-				
-				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
-				String updateQuery = updateInterp.composeQuery();
-				securityDb.insertData(updateQuery);
-				
+				// need to update
+				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET FAVORITE=? WHERE USERID=?");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
+				}
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setBoolean(parameterIndex++, isFavorite);
+						ps.setString(parameterIndex++, userId);
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+				}
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION "
 						+ "(USERID, PROJECTID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
 				if(ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
+					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
 				}
 				try {
 					// we will set the permission to read only
@@ -2948,7 +2989,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		String query = "UPDATE PROJECT SET HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?";
 		PreparedStatement ps = securityDb.getPreparedStatement(query);
 		if(ps == null) {
-			throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
+			throw new IllegalArgumentException("Error generating prepared statement to set project portal");
 		}
 		try {
 			int parameterIndex = 1;

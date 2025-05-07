@@ -496,4 +496,15 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		return new Object[qs.getSelectors().size()];
 	}
+	
+	public static Map<String, Object> getEnginePermission(String userId, String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		
+		return (results != null && !results.isEmpty()) ? results.get(0) : null;
+	}
 }

@@ -336,7 +336,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	public static boolean adminOnlyEngineAdd(String engineId) {
-		return adminOnlyEngineAdd(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineAdd(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineAdd(IEngine.CATALOG_TYPE type) {
@@ -356,7 +356,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean adminOnlyEngineDelete(String engineId) {
-		return adminOnlyEngineDelete(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineDelete(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineDelete(IEngine.CATALOG_TYPE type) {
@@ -376,7 +376,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean adminOnlyEngineAddAccess(String engineId) {
-		return adminOnlyEngineAddAccess(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineAddAccess(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineAddAccess(IEngine.CATALOG_TYPE type) {
@@ -396,7 +396,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean adminOnlyEngineSetPublic(String engineId) {
-		return adminOnlyEngineSetPublic(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineSetPublic(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineSetPublic(IEngine.CATALOG_TYPE type) {
@@ -416,7 +416,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean adminOnlyEngineSetDiscoverable(String engineId) {
-		return adminOnlyEngineSetDiscoverable(SecurityEngineUtils.getEngineTyp(engineId));
+		return adminOnlyEngineSetDiscoverable(SecurityEngineUtils.getEngineType(engineId));
 	}
 	
 	public static boolean adminOnlyEngineSetDiscoverable(IEngine.CATALOG_TYPE type) {
@@ -526,10 +526,10 @@ public abstract class AbstractSecurityUtils {
 			// ENGINE
 			colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", 
 					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
-					"ENGINETYPE", "ENGINESUBTYPE", "COST" };
+					"ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
 					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
-					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -1820,9 +1820,11 @@ public abstract class AbstractSecurityUtils {
 			
 			// SESSION SHARE
 			colNames = new String[] { "SHARE_VAL", "SESSION_VAL", "ROUTE_VAL", 
+					"IS_SESSION_SHARE", "IS_AUTH_SHARE",
 					"DATE_ADDED", "DATE_USED", "USE_VALID", 
 					"USERID", "TYPE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 					"VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
@@ -1836,6 +1838,19 @@ public abstract class AbstractSecurityUtils {
 					String sql = queryUtil.createTable("SESSION_SHARE", colNames, types);
 					classLogger.info("Running sql " + sql);
 					securityDb.insertData(sql);
+				}
+			}
+			// make sure all the columns are still valid
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "SESSION_SHARE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+						String addColumnSql = queryUtil.alterTableAddColumn("SESSION_SHARE", col, types[i]);
+						classLogger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
 				}
 			}
 	
