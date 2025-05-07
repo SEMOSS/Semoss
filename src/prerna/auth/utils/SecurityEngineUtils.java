@@ -42,6 +42,7 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -2160,6 +2161,18 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToSetString(securityDb, qs, false);
 	}
 	
+	public static List<Map<String, Object>> getUserEngineList(User user, 
+			List<String> engineTypes,
+			List<String> engineIdFilters,
+			Boolean favoritesOnly, 
+			Map<String, Object> engineMetadataFilter, 
+			List<Integer> permissionFilters, 
+			String searchTerm, 
+			String limit, 
+			String offset) {
+		return getUserEngineList(user, engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter, permissionFilters, searchTerm, limit, offset, null);
+	}
+	
 
 	/**
 	 * Get the list of the database information that the user has access to
@@ -2173,6 +2186,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
+	 * @param sortFields
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserEngineList(User user, 
@@ -2183,7 +2197,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			List<Integer> permissionFilters, 
 			String searchTerm, 
 			String limit, 
-			String offset) {
+			String offset,
+			Map<String, String> sortFields) {
 
 		String enginePrefix = "ENGINE__";
 		String groupEnginePermission = "GROUPENGINEPERMISSION__";
@@ -2385,9 +2400,23 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		// add the sort
-		qs1.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
-
+		if (sortFields == null || sortFields.isEmpty()) {
+			// Default Sorting
+			qs1.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));	
+		} else {
+			Set<String> sortKeys = sortFields.keySet();
+			Set<String> validSorts = new HashSet<>(Arrays.asList("ENGINENAME", "DATECREATED"));
+			if (sortFields.containsKey(null) || sortFields.containsValue(null)) {
+				throw new SemossPixelException("Sort parameters cannot contain null keys or values");
+			}
+			if (!validSorts.containsAll(sortKeys)) {
+				throw new SemossPixelException("Invalid Sort Parameters passed: Only \"ENGINENAME\" and \"DATECREATED\" are supported");
+			}
+			for (String s: sortKeys) {
+				qs1.addOrderBy("ENGINE__" + s, sortFields.getOrDefault(s, "ASC"));
+			}
+		}
+		
 		Long long_limit = -1L;
 		Long long_offset = -1L;
 		if(limit != null && !limit.trim().isEmpty()) {
