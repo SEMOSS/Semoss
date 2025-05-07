@@ -46,11 +46,12 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      PYTHON_VERSION: ${{ github.events.input.python_version }}
-      COMPUTE_TYPE: ${{ github.events.input.compute_type }}
-      BASE_REGISTRY: ${{ github.events.input.base_registry }}
-      BASE_IMAGE: ${{ github.events.input.base_image }}
-      BASE_TAG: ${{ github.events.input.base_tag }}
+      PYTHON_VERSION: ${{ github.event.inputs.python_version }}
+      COMPUTE_TYPE: ${{ github.event.inputs.compute_type }}
+      BASE_REGISTRY: ${{ github.event.inputs.base_registry }}
+      BASE_IMAGE: ${{ github.event.inputs.base_image }}
+      BASE_TAG: ${{ github.event.inputs.base_tag }}
+
 
     steps:
       - name: Checkout repository
