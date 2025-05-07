@@ -16,10 +16,10 @@ public class ZKClientFactory {
      * 
      * @return An implementation of IRemoteClientServer
      */
-    public static IRemoteClientServer getZKClient() {
+    public static IRemoteClientServer getZKClient(Boolean devPortForwarding) {
         String zkIngress = System.getenv("ZK_INGRESS");
         
-        if (zkIngress != null && !zkIngress.isEmpty()) {
+        if (zkIngress != null && !zkIngress.isEmpty() && !devPortForwarding) {
             classLogger.info("ZK_INGRESS found, using REST proxy connection for ZooKeeper");
             
             // When using ZK REST proxy, KMS_INGRESS is required
