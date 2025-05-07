@@ -7,7 +7,7 @@ name: Semoss Ubuntu Builder
 
 on:
   push:
-    branches: [ "dev, main", "tag-semoss-image" ]      #TODO: When merging to dev, main replace branch names
+    branches: [ "dev, main" ]      #TODO: When merging to dev, main replace branch names
     paths:
       - 'docker/Dockerfile.ubuntu22.04'
       - '.github/workflows/ubuntu2204.yml'
