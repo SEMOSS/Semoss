@@ -52,6 +52,7 @@ jobs:
       BASE_IMAGE: ${{ github.event.inputs.base_image }}
       BASE_TAG: ${{ github.event.inputs.base_tag }}
 
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
