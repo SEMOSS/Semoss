@@ -1,8 +1,10 @@
 package prerna.zookeeper;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.CuratorFrameworkFactory.Builder;
@@ -97,6 +99,11 @@ public class ZKEngine implements IEngine {
 		this.curator.start();
 	}
 
+	@Override
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
+	
 	@Override
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;

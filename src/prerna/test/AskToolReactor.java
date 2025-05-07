@@ -14,6 +14,7 @@ import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -45,8 +46,8 @@ public class AskToolReactor extends AbstractReactor {
     );
     public AskToolReactor() {
         this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-                ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() ,"engine_tools"};
-        this.keyRequired = new int[] { 1, 1, 0, 0 , 0};
+                ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() ,"engine_tools","project_tools"};
+        this.keyRequired = new int[] { 1, 1, 0, 0 , 0, 0};
     }
 
     @Override
@@ -71,16 +72,20 @@ public class AskToolReactor extends AbstractReactor {
             paramMap = new HashMap<String, Object>();
         }
 
-		List<String> engineIdForTools = getEngineIDs();
-        if (!engineIdForTools.isEmpty()) {
+		List<String> engineToolIDs = getEngineToolIDs();
+		List<String> projectToolIDs = getProjectToolIDs();
+
+        if (!engineToolIDs.isEmpty() || !projectToolIDs.isEmpty()) {
         	
             // Check if the "tools_choice" key exists in the paramMap, else add it
             if (!paramMap.containsKey("tool_choice")) {
             	paramMap.put("tool_choice", "auto");                
             }
+
+            List<Map<String, Object> > toolsList;
             
             // Check if the "tools" key exists in the paramMap
-            List<Map<String, Object> > toolsList;
+            // this is if a user has explicitly adding tools to the param map. 
             if (paramMap.containsKey("tools")) {
                 // Retrieve the existing list of tools
                 toolsList = (List<Map<String, Object> >) paramMap.get("tools");
@@ -90,30 +95,39 @@ public class AskToolReactor extends AbstractReactor {
                 paramMap.put("tools", toolsList);
             }
 
-            // Iterate over each engine ID and add the function tool to the tools list
             
-            //TODO this is hard checked for function engines - will need expand this out. 
-            for (String toolEngineID : engineIdForTools) {
-                IFunctionEngine function = Utility.getFunctionEngine(toolEngineID);
-                Map<String, Object> functionTool = function.buildFunctionEngineToolMap();
-                toolsList.add(functionTool);
+            // Iterate over each engine ID and add the tool to the tools list
+            for (String engineToolID : engineToolIDs) {
+            	//TODO add a safety check here for function engines only
+                IFunctionEngine function = Utility.getFunctionEngine(engineToolID);
+                Map<String, Object> functionToolMap = function.buildFunctionEngineToolMap();
+                toolsList.add(functionToolMap);
             }
+            
+            // Iterate over each project ID and add the tool to the tools list
+            for (String projectToolID : projectToolIDs) {
+            	//TODO add a safety check here for code projects only
+                IProject project = Utility.getProject(projectToolID);
+                Map<String, Object> projectToolMap = project.buildProjectToolMap();
+                toolsList.add(projectToolMap);
+            }
+            
         }
 		
         AskModelEngineResponse modelResponse = modelEngine.ask(question, context, this.insight, paramMap);
 
-        Map<String, Object> output = modelResponse.toMap();
-
+        Map<String, ArrayList<Map<String, Object>>> output = processModelResponse(modelResponse);
+          
+        return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
+    }
+    
+    private Map<String, ArrayList<Map<String, Object>>> processModelResponse(AskModelEngineResponse modelResponse){
+        Map<String, ArrayList<Map<String, Object>>> output = new HashMap<String, ArrayList<Map<String, Object>>>();
+        output.put("response", new ArrayList<Map<String, Object>>());
         if(modelResponse.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {  	
             // the response is for a tool call
             // we need to call the actual tool now. 
             AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) modelResponse;
-            
-            // tool result will be a custom element in the paramMap
-            HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
-            toolExecutionMap.put(AbstractModelEngine.ROLE, "tool");
-            toolExecutionMap.put("tool_call_id",toolResponse.getToolCallId());
-            toolExecutionMap.put("name",toolResponse.getToolCallName());
 
             // {"function_id":"123-3345-567","map":{"lat":"123","lon":"321"}}
             String toolArguments = toolResponse.getToolCallArgumentsAsString();
@@ -127,26 +141,37 @@ public class AskToolReactor extends AbstractReactor {
                 functionParams = null;
             }
 
-            IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("id"));
+            Map<String, Object> outputObject = new HashMap<String, Object>();
+            String toolName;
+            String toolType;
             
-            // object for tool call information for the front end to execute the tool
-            HashMap<String, Object> toolCallInfo = new HashMap<String, Object>();
-            toolCallInfo.put("name", function.getFunctionName());
-            toolCallInfo.put("type", function.getCatalogType());
-            
+            if(toolResponse.getResponse().get("name").equals("project_engine")){
+                IProject project = Utility.getProject((String) functionParams.get("id"));
+                toolName = project.getProjectName();
+                toolType = "PROJECT";
+            } else {
+                IFunctionEngine function = Utility.getFunctionEngine((String) functionParams.get("id"));
+                toolName = function.getEngineName();
+                toolType = "FUNCTION";
+            }
+
             // object to store params needed to call the tool
             List<HashMap<String, Object>> toolCallInfoData = new ArrayList<HashMap<String, Object>>();
             for(Entry<String, Object> functionParam : ((Map<String, Object>)functionParams.get("map")).entrySet()){
                 HashMap<String, Object> paramInfo = new HashMap<String, Object>();
-                paramInfo.put("paramName", functionParam.getKey());
-                paramInfo.put("paramType", functionParam.getValue().getClass().getSimpleName());
-                paramInfo.put("paramValue", functionParam.getValue());
+                paramInfo.put("name", functionParam.getKey());
+                paramInfo.put("type", functionParam.getValue().getClass().getSimpleName());
+                paramInfo.put("value", functionParam.getValue());
                 toolCallInfoData.add(paramInfo);
             }
 
-            toolCallInfo.put("data", toolCallInfoData);
-            output.put("toolCall", toolCallInfo);
-            
+            outputObject.put("type", toolType);
+            outputObject.put("name", toolName);
+            outputObject.put("id", (String) functionParams.get("id"));
+            outputObject.put("parameters", toolCallInfoData);
+
+            output.get("response").add(outputObject);
+
             //remove the execution of the function for now. will add back later with a boolean passed in
 //            Object functionReturn = function.execute((Map<String, Object> )functionParams.get("map"));
 //            String functionReturnString = null;
@@ -171,37 +196,36 @@ public class AskToolReactor extends AbstractReactor {
 
             // Add code blocks to output if any exist
             if (!processedResponse.getCodeBlocks().isEmpty()) {
-                // object for tool call information for the front end to process code blocks
-                HashMap<String, Object> toolCallInfo = new HashMap<String, Object>();
-                toolCallInfo.put("name", "code_engine");
-                toolCallInfo.put("type", "code_engine");
-                
-                // object to store params needed to call the tool
-                List<HashMap<String, Object>> toolCallInfoData = new ArrayList<HashMap<String, Object>>();
-                for(CodeBlock codeBlock : processedResponse.getCodeBlocks().values()){
-                    HashMap<String, Object> paramInfo = new HashMap<String, Object>();
-                    paramInfo.put("language", codeBlock.getLanguage());
-                    paramInfo.put("title", codeBlock.getTitle());
-                    paramInfo.put("code", codeBlock.getCode());
-                    toolCallInfoData.add(paramInfo);
-                }
-    
-                toolCallInfo.put("data", toolCallInfoData);
-                output.put("toolCall", toolCallInfo);
+                String[] splitResponse = processedResponse.getModifiedResponse().split("<CODEBLOCK>.*<\\/CODEBLOCK>");
 
-                output.put(AbstractModelEngineResponse.RESPONSE, processedResponse.getModifiedResponse());
-                output.put("orignalResponse", modelResponse.getStringResponse());
+                for(int i = 0; i < splitResponse.length; i++){
+                    Map<String, Object> outputObject = new HashMap<String, Object>();
+                    outputObject.put("type", "CONTENT");
+                    outputObject.put("content", splitResponse[i]);
+                    output.get("response").add(outputObject);
+                    if(i < processedResponse.getCodeBlocks().values().toArray().length){
+                        CodeBlock codeBlock = (CodeBlock) processedResponse.getCodeBlocks().values().toArray()[i];
+                        HashMap<String, Object> paramInfo = new HashMap<String, Object>();
+                        paramInfo.put("type", "CODE");
+                        paramInfo.put("language", codeBlock.getLanguage());
+                        paramInfo.put("name", codeBlock.getTitle());
+                        paramInfo.put("content", codeBlock.getCode());
+                        output.get("response").add(paramInfo);
+                    }
+                }
+
+                Map<String, Object> outputObject = new HashMap<String, Object>();
+                outputObject.put("originalResponse", modelResponse.getStringResponse());
+                output.get("response").add(outputObject);
+            } else {
+                Map<String, Object> outputObject = new HashMap<String, Object>();
+                outputObject.put("type", "CONTENT");
+                outputObject.put("content", modelResponse.getStringResponse());
+                output.get("response").add(outputObject);
             }
         }
-        
-        Object response = modelResponse.toMap().get(AbstractModelEngineResponse.RESPONSE);
-
-        
-        
-        return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
+        return output;
     }
-    
-    
 
  // Method to parse markdown code blocks
     private ProcessedResponse processMarkdownCodeBlocks(String response) {
@@ -231,11 +255,33 @@ public class AskToolReactor extends AbstractReactor {
 	 * 
 	 * @return list of engines 
 	 */
-	public List<String> getEngineIDs() {
+	public List<String> getEngineToolIDs() {
 		List<String> inputStrings = new ArrayList<>();
 
 		// see if added as key
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++) {
+				inputStrings.add(grs.get(i).toString());
+			}
+			return inputStrings;
+		}
+
+		// no key is added, grab all inputs
+		int size = this.curRow.size();
+		for (int i = 0; i < size; i++) {
+			inputStrings.add(this.curRow.get(i).toString());
+		}
+		
+		return inputStrings;
+	}
+	
+	public List<String> getProjectToolIDs() {
+		List<String> inputStrings = new ArrayList<>();
+
+		// see if added as key
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {

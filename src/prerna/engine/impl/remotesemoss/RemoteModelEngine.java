@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.lang3.NotImplementedException;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
@@ -149,5 +151,10 @@ public class RemoteModelEngine implements IModelEngine {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
+	
+	@Override
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
+	
 }

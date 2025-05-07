@@ -594,6 +594,24 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			}
 		}
 	}
+
+	/**
+	 * 
+	 * @param rs
+	 * @return
+	 * @throws Exception
+	 */
+	public static RawRDBMSSelectWrapper flushRsToWrapper(ResultSet rs) throws Exception {
+		RawRDBMSSelectWrapper wrapper = new RawRDBMSSelectWrapper();
+		try {
+			wrapper.rs = rs;
+			wrapper.setVariables();
+			return wrapper;
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw e;
+		}
+	}
 	
 	@Override
 	public boolean flushable() {
