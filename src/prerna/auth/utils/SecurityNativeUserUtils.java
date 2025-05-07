@@ -520,7 +520,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(USERID_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.toString()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.getLabel()));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -585,7 +585,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(EMAIL_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.toString()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.getLabel()));
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -667,7 +667,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(PHONE_EXTENSION_COL));
 		qs.addSelector(new QueryColumnSelector(COUNTRY_CODE_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.toString()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.getLabel()));
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -820,7 +820,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			ps.execute();
 			
 			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-			storeUserPassword(userId, AuthProvider.NATIVE.toString(), hashPassword, salt, timestamp);
+			storeUserPassword(userId, AuthProvider.NATIVE.getLabel(), hashPassword, salt, timestamp);
 
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();

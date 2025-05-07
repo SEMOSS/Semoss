@@ -153,12 +153,30 @@ public class SocialPropertiesProcessor {
 				}
 			}
 			
+			AuthProvider thisProvider = allProviders.get(provider);
 			Map<String, Object> providerMap = new HashMap<>();
 			providerMap.put("name", name);
 			providerMap.put("provider", provider);
-			providerMap.put("isOauth", allProviders.get(provider).isOAuth());
+			providerMap.put("isOauth", thisProvider.isOAuth());
+			providerMap.put("label", thisProvider.getLabel());
 			this.availableProviders.add(providerMap);
 		}
+	}
+	
+	/**
+	 * 
+	 * @param provider
+	 * @return
+	 */
+	public boolean accessKeyAllowed(AuthProvider provider) {
+		String prefix = provider.toString().toLowerCase();
+		boolean accessKeysAllowed = Boolean.parseBoolean(SocialPropertiesUtil.getInstance().getProperty(prefix + "_access_keys_allowed")+"");
+		// LEGACY 
+		if(!accessKeysAllowed && provider == AuthProvider.MICROSOFT) {
+			accessKeysAllowed = Boolean.parseBoolean(SocialPropertiesUtil.getInstance().getProperty("ms_access_keys_allowed")+"");
+		}
+		
+		return accessKeysAllowed;
 	}
 
 	/**

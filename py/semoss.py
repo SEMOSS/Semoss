@@ -36,3 +36,12 @@ class Insight(ServerProxy):
             return output["output"]
 
         return pixelReturn
+
+    def get_insight_id(self):
+        """
+        This method is responsible for getting the insight id
+
+        Returns:
+            str: The insight id
+        """
+        return self.insight_id

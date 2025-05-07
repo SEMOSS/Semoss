@@ -576,8 +576,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if (type != null) {
 			isNative = type.toLowerCase().equals("native");
 			if (isNative) {
-				if (name != null && !name.isEmpty()) {
-					userName = id;
+				userName = id;
+				if (password != null && !password.isEmpty()) {
 					salt = SecurityQueryUtils.generateSalt();
 					hashedPassword = (SecurityQueryUtils.hash(password, salt));
 				}

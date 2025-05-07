@@ -68,11 +68,32 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					PIXEL, 
 					"How to use in Javascript",
-					"## Generation\r\n" + 
-							"LLM(engine = \""+engineId+"\", command = \"<encode>Sample Question</encode>\", paramValues=[{}]);\r\n" + 
+					"Generation\r\n" + 
+						"```\r\n"+
+						"LLM(engine = \""+engineId+"\", command = \"<encode>Sample Question</encode>\", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}]);\r\n" + 
+						"```\r\n\r\n"+
+
+					"Geneartion with ChatML\r\n" +
+						"```\r\n"+
+						"LLM(engine = \""+engineId+"\", command = \"<encode>ignore</encode>\", paramValues=[\r\n"+
+						"    {\"full_prompt\":[\r\n"+
+						"        {\"role\":\"system\", \"content\": \"You are a helpful assistant.\"},\r\n"+
+						"        {\"role\": \"user\", \"content\": \"Who won the world series in 2020?\"},\r\n"+
+						"        {\"role\": \"assistant\", \"content\": \"The Los Angeles Dodgers won the World Series in 2020.\"},\r\n"+
+						"        {\"role\": \"user\", \"content\": \"Where was it played?\"}\r\n"+ 
+						"    ],\r\n"+
+						"    'max_completion_tokens':2000,\r\n"+
+						"    'temperature':0.3\r\n"+
+						"    }]);\r\n"+
+						"```\r\n\r\n"+
 							
-							"\n## Embeddings\r\n" +
-							"Embeddings(engine = \""+engineId+"\", values = [\"Sample String 1\", \"Sample String 2\"], paramValues=[{}]);"
+					"Embeddings\r\n" +
+						"```\r\n"+
+						"Embeddings(engine = \""+engineId+"\", values = [\"Sample String 1\", \"Sample String 2\"], paramValues=[{}]);\r\n" +
+						"```\r\n\r\n" +
+						
+					"Additional parameters found at: [OpenAI Parameter Spec](https://platform.openai.com/docs/api-reference/chat/create)\r\n\r\n"
+
 					);
 			usage.add(usageMap);
 		}
@@ -80,16 +101,31 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					PYTHON, 
 					"How to use in Python",
-					"from gaas_gpt_model import ModelEngine\r\n" + 
-							"model = ModelEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
-							
-							"\n# Generation\r\n" +
-							"question = 'Sample Question'\r\n" +
-							"output = model.ask(question = question)\r\n" +
-							
-							"\n# Embeddings\r\n" + 
-							"text_arr = ['Sample String 1', 'Sample String 2']\r\n" +
-							"model.embeddings(strings_to_embed = text_arr)"
+					"```python\r\n"+
+						"from gaas_gpt_model import ModelEngine\r\n" + 
+						"model = ModelEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
+						
+						"\n# Generation\r\n" +
+						"question = 'Sample Question'\r\n" +
+						"output = model.ask(question = question, param_dict={'max_completion_tokens':2000,'temperature':0.3})\r\n" +
+
+						"\r\n# Geneartion with ChatML\r\n" +
+						"model.ask(question='ignore', param_dict=\r\n"+
+						"    {\"full_prompt\":[\r\n"+
+						"        {\"role\":\"system\", \"content\": \"You are a helpful assistant.\"},\r\n"+
+						"        {\"role\": \"user\", \"content\": \"Who won the world series in 2020?\"},\r\n"+
+						"        {\"role\": \"assistant\", \"content\": \"The Los Angeles Dodgers won the World Series in 2020.\"},\r\n"+
+						"        {\"role\": \"user\", \"content\": \"Where was it played?\"}\r\n"+
+						"    ],\r\n"+
+						"    'max_completion_tokens':2000,\r\n"+
+						"    'temperature':0.3\r\n"+
+						"    });\r\n"+
+						
+						"\n# Embeddings\r\n" + 
+						"text_arr = ['Sample String 1', 'Sample String 2']\r\n" +
+						"model.embeddings(strings_to_embed = text_arr)\r\n"+
+					"```\r\n\r\n" +
+					"Additional chat parameters found at: [OpenAI Parameter Spec](https://platform.openai.com/docs/api-reference/chat/create)\r\n\r\n"
 					);
 			usage.add(usageMap);
 		}
@@ -97,7 +133,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					"LANGCHAIN", 
 					"How to use with Langchain API",
-					"from gaas_gpt_model import ModelEngine\r\n" + 
+					"```python\r\n"+
+						"from gaas_gpt_model import ModelEngine\r\n" + 
 						"model = ModelEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 						
 						"\n# Generation\r\n" +
@@ -109,7 +146,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						"langhchain_llm = model.to_langchain_embedder()\r\n" +
 						"text_arr = ['Sample String 1', 'Sample String 2']\r\n" +
 						"langhchain_llm.embed_query(text = text_arr[0])\r\n"+
-						"langhchain_llm.embed_documents(texts = text_arr)"
+						"langhchain_llm.embed_documents(texts = text_arr)\r\n" +
+					"```"
 					);
 			usage.add(usageMap);
 		}
@@ -117,13 +155,14 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					"OPENAI", 
 					"How to use externally with OpenAI API",
-					"# import the ai platform package - requires user access/secret, service account, or bearer_token"
+					"```python\r\n"
+					+"# import the ai platform package - requires user access/secret, service account, or bearer_token"
 					+ "\r\n"
 					+ "import ai_server\r\n"
 					+ "server_connection=ai_server.ServerClient(\r\n"
-					+ "    base=\"<the api endpoint>\",			# example: https://{domain}/{direcotry/path segment}/Monolith/api\r\n"
-					+ "    access_key=\"<your access key>\",		# example: \"d0033d40-ea83-4083-96ce-17a01451f831\"\r\n"
-					+ "    secret_key=\"<your secret key>\"		# example: \"c2b3fae8-20d1-458c-8565-30ae935c4dfb\"\r\n"
+					+ "    base=\"<the api endpoint>\",         # example: https://{domain}/{direcotry/path segment}/Monolith/api\r\n"
+					+ "    access_key=\"<your access key>\",    # example: 'd0033d40-ea83-4083-96ce-17a01451f831'\r\n"
+					+ "    secret_key=\"<your secret key>\"     # example: 'c2b3fae8-20d1-458c-8565-30ae935c4dfb'\r\n"
 					+ ")"
 					+ "\r\n"
 					+ "\r\n"
@@ -168,7 +207,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					+ "    model=\""+engineId+"\",\r\n"
 					+ "    input=[\"Your text string goes here\"],\r\n"
 					+ "    extra_body={\"insight_id\":server_connection.cur_insight}\r\n"
-					+ ")"
+					+ ")\r\n"
+					+ "```"
 					);
 			usage.add(usageMap);
 		}
@@ -176,9 +216,11 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					JAVA, 
 					"How to use in Java",
-					"import prerna.util.Utility;\r\n" + 
+					"```java\r\n" +
+							"import prerna.util.Utility;\r\n" + 
 							"import prerna.engine.api.IModelEngine;\r\n" + 
-							"IModelEngine modelEngine = Utility.getModel(\""+engineId+"\");"
+							"IModelEngine modelEngine = Utility.getModel(\""+engineId+"\");\r\n" +
+					"```"
 					);
 			usage.add(usageMap);
 		}
@@ -191,13 +233,15 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					PIXEL, 
 					"How to use in Javascript",
-					"Storage(storage = \""+engineId+"\")|ListStoragePath(storagePath='/your/storage/path');\r\n"
-							+ "Storage(storage = \""+engineId+"\")|ListStoragePathDetails(storagePath='/your/storage/path');\r\n"
-							+ "Storage(storage = \""+engineId+"\")|PullFromStorage(storagePath='/your/storage/path', filePath='/your/local/path');\r\n"
-							+ "Storage(storage = \""+engineId+"\")|PushToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);\r\n"
-							+ "Storage(storage = \""+engineId+"\")|SyncStorageToLocal(storagePath='/your/storage/path', filePath='/your/local/path');\r\n"
-							+ "Storage(storage = \""+engineId+"\")|SyncLocalToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);\r\n"
-							+ "Storage(storage = \""+engineId+"\")|DeleteFromStorage(storagePath='/your/storage/path', leaveFolderStructure=false);"
+					"```\r\n" 
+							+ "Storage(storage = \""+engineId+"\") | ListStoragePath(storagePath='/your/storage/path');\r\n"
+							+ "Storage(storage = \""+engineId+"\") | ListStoragePathDetails(storagePath='/your/storage/path');\r\n"
+							+ "Storage(storage = \""+engineId+"\") | PullFromStorage(storagePath='/your/storage/path', filePath='/your/local/path');\r\n"
+							+ "Storage(storage = \""+engineId+"\") | PushToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);\r\n"
+							+ "Storage(storage = \""+engineId+"\") | SyncStorageToLocal(storagePath='/your/storage/path', filePath='/your/local/path');\r\n"
+							+ "Storage(storage = \""+engineId+"\") | SyncLocalToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);\r\n"
+							+ "Storage(storage = \""+engineId+"\") | DeleteFromStorage(storagePath='/your/storage/path', leaveFolderStructure=false);\r\n"
+					+ "```"
 					);
 			usage.add(usageMap);
 		}
@@ -205,15 +249,17 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					PYTHON, 
 					"How to use in Python",
-					"from gaas_gpt_storage import StorageEngine\r\n" + 
-							"storageEngine = StorageEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
-							"storageEngine.list(storagePath = '/your/path/')\r\n" + 
-							"storageEngine.listDetails(storagePath = '/your/path/')\r\n" + 
-							"storageEngine.syncLocalToStorage(localPath= 'your/local/path', storagePath = 'your/storage/path', metadata={'metaKey':'metaValue'})\r\n" +
-							"storageEngine.syncStorageToLocal(localPath= 'your/local/path', storagePath = 'your/storage/path')\r\n" + 
-							"storageEngine.copyToLocal(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')\r\n" + 
-							"storageEngine.copyToStorage(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path', metadata={'metaKey':'metaValue'})\r\n" + 
-							"storageEngine.deleteFromStorage(storagePath = 'your/storage/file/path', leaveFolderStructure=False)"
+					"```python\r\n"+
+						"from gaas_gpt_storage import StorageEngine\r\n" + 
+						"storageEngine = StorageEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
+						"storageEngine.list(storagePath = '/your/path/')\r\n" + 
+						"storageEngine.listDetails(storagePath = '/your/path/')\r\n" + 
+						"storageEngine.syncLocalToStorage(localPath= 'your/local/path', storagePath = 'your/storage/path', metadata={'metaKey':'metaValue'})\r\n" +
+						"storageEngine.syncStorageToLocal(localPath= 'your/local/path', storagePath = 'your/storage/path')\r\n" + 
+						"storageEngine.copyToLocal(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')\r\n" + 
+						"storageEngine.copyToStorage(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path', metadata={'metaKey':'metaValue'})\r\n" + 
+						"storageEngine.deleteFromStorage(storagePath = 'your/storage/file/path', leaveFolderStructure=False)\r\n" +
+					"```"
 					);
 			usage.add(usageMap);
 		}
@@ -221,7 +267,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					"LANGCHAIN", 
 					"How to use with Langchain API",
-					"from gaas_gpt_storage import StorageEngine\r\n" + 
+					"```python\r\n"+
+						"from gaas_gpt_storage import StorageEngine\r\n" + 
 						"storage = StorageEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 						"langhchain_storage = storage.to_langchain_storage()\r\n" +
 						"langhchain_storage.list(storagePath = '/your/path/')\r\n" + 
@@ -230,8 +277,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						"langhchain_storage.syncStorageToLocal(localPath= 'your/local/path', storagePath = 'your/storage/path')\r\n" + 
 						"langhchain_storage.copyToLocal(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')\r\n" + 
 						"langhchain_storage.copyToStorage(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')\r\n" + 
-						"langhchain_storage.deleteFromStorage(storagePath = 'your/storage/file/path')"
-
+						"langhchain_storage.deleteFromStorage(storagePath = 'your/storage/file/path')\r\n"+
+					"```"
 					);
 			usage.add(usageMap);
 		}
@@ -239,9 +286,11 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					JAVA, 
 					"How to use in Java",
-					"import prerna.util.Utility;\r\n" + 
+					"```java\r\n" +
+							"import prerna.util.Utility;\r\n" + 
 							"import prerna.engine.api.IStorageEngine;\r\n" + 
-							"IStorageEngine storage = Utility.getStorage(\""+engineId+"\");"
+							"IStorageEngine storage = Utility.getStorage(\""+engineId+"\");" + 
+					"```"
 					);
 			usage.add(usageMap);
 		}
@@ -254,8 +303,10 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					PIXEL, 
 					"How to use in Javascript",
-					"Database(database = \""+engineId+"\")|Query(\"<encode> your select query </encode>\")|Collect(500);\r\n"
-							+ "Database(database = \""+engineId+"\")|Query(\"<encode> your insert/update/delete query </encode>\")|ExecQuery();"
+					"```\r\n"+
+						"Database(database = \""+engineId+"\")|Query(\"<encode> your select query </encode>\")|Collect(500);\r\n" + 
+						"Database(database = \""+engineId+"\")|Query(\"<encode> your insert/update/delete query </encode>\")|ExecQuery();\r\n" +
+					"```"
 					);
 			usage.add(usageMap);
 		}
@@ -263,12 +314,14 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					PYTHON, 
 					"How to use in Python",
-					"from gaas_gpt_database import DatabaseEngine\r\n" + 
+					"```python\r\n"+
+							"from gaas_gpt_database import DatabaseEngine\r\n" + 
 							"databaseEngine = DatabaseEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 							"databaseEngine.execQuery(query = 'SELECT * FROM table_name')\r\n" + 
 							"databaseEngine.insertData(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')\r\n" + 
 							"databaseEngine.updateData(query = 'UPDATE table_name set column1=value1 WHERE condition')\r\n" + 
-							"databaseEngine.removeData(query = 'DELETE FROM table_name WHERE condition')"
+							"databaseEngine.removeData(query = 'DELETE FROM table_name WHERE condition')\r\n" +
+					"```"
 					);
 			usage.add(usageMap);
 		}
@@ -276,13 +329,15 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					"LANGCHAIN", 
 					"How to use with Langchain API",
-					"from gaas_gpt_database import DatabaseEngine\r\n" + 
+					"```python\r\n"+
+						"from gaas_gpt_database import DatabaseEngine\r\n" + 
 						"database = DatabaseEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 						"langhchain_db = database.to_langchain_database()\r\n" +
-						"langhchain_llm.executeQuery(query = 'SELECT * FROM table_name')\r\n"+
-						"langhchain_llm.insertQuery(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')\r\n"+
-						"langhchain_llm.updateQuery(query = 'UPDATE table_name set column1=value1 WHERE condition')\r\n"+
-						"langhchain_llm.removeQuery(query = 'DELETE FROM table_name WHERE condition')"
+						"langhchain_db.executeQuery(query = 'SELECT * FROM table_name')\r\n"+
+						"langhchain_db.insertQuery(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')\r\n"+
+						"langhchain_db.updateQuery(query = 'UPDATE table_name set column1=value1 WHERE condition')\r\n"+
+						"langhchain_db.removeQuery(query = 'DELETE FROM table_name WHERE condition')\r\n"+
+					"```"
 					);
 			usage.add(usageMap);
 		}
@@ -290,9 +345,11 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					JAVA, 
 					"How to use in Java",
-					"import prerna.util.Utility;\r\n" + 
+					"```\r\n"+
+							"import prerna.util.Utility;\r\n" + 
 							"import prerna.engine.api.IDatabaseEngine;\r\n" + 
-							"IDatabaseEngine database = Utility.getDatabase(\""+engineId+"\");"
+							"IDatabaseEngine database = Utility.getDatabase(\""+engineId+"\");\r\n" +
+					"```"
 					);
 			usage.add(usageMap);
 		}
@@ -305,22 +362,32 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					PIXEL, 
 					"How to use in Javascript",
-					"## List all the documents the vector database currently comprises of ##\r\n" +
-							"ListDocumentsInVectorDatabase (engine = \""+engineId+"\");\r\n" + 
-							
-							"\n## Add document(s) that have been uploaded to the insight ##\r\n" + 
-							"CreateEmbeddingsFromDocuments (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);\r\n" +
+					"#### List all the documents the vector database currently comprises of ##\r\n" +
+					"```\r\n" +
+						"ListDocumentsInVectorDatabase (engine = \""+engineId+"\");\r\n" + 
+					"```\r\n" +
 
-							"\n## Add the VectorCSVFile Formatted CSVs that have been uploaded to the insight ##\r\n" + 
-							"CreateEmbeddingsFromVectorCSVFile (engine = \""+engineId+"\", filePaths = [\"fileName1.csv\", \"fileName2.csv\", ..., \"fileNameX.csv\"]);\r\n" +
+					"\r\n#### Add document(s) that have been uploaded to the insight ##\r\n" + 
+					"```\r\n" +
+						"CreateEmbeddingsFromDocuments (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);\r\n" +
+					"```\r\n" +
 
-							"\n## Perform a nearest neighbor search on the embedded documents ##\r\n" +
-							"# filters of the form Filter(Source == [\"your document name 1\", \"your document name 2\"])\r\n" +
-							"# metaFilters of the form Filter( MetadataKey == \"Metadata Value\" )\r\n" +
-							"VectorDatabaseQuery (engine = \""+engineId+"\", command = \"Sample Search Statement\", limit = 5, filters=[], metaFilters=[]);\r\n" +
-							
-							"\n## Remove document(s) from the vector database ##\r\n" +
-							"RemoveDocumentFromVectorDatabase (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);"
+					"#### Add the VectorCSVFile Formatted CSVs that have been uploaded to the insight ##\r\n" + 
+					"```\r\n" +
+						"CreateEmbeddingsFromVectorCSVFile (engine = \""+engineId+"\", filePaths = [\"fileName1.csv\", \"fileName2.csv\", ..., \"fileNameX.csv\"]);\r\n" +
+					"```\r\n" +
+
+					"\r\n#### Perform a nearest neighbor search on the embedded documents ##\r\n" +
+					"```\r\n" +
+						"##filters of the form Filter(Source == [\"your document name 1\", \"your document name 2\"])##\r\n" +
+						"##metaFilters of the form Filter( MetadataKey == \"Metadata Value\" )##\r\n" +
+						"VectorDatabaseQuery (engine = \""+engineId+"\", command = \"Sample Search Statement\", limit = 5, filters=[], metaFilters=[]);\r\n" +
+					"```\r\n" +
+
+					"\r\n#### Remove document(s) from the vector database ##\r\n" +
+					"```\r\n" +
+						"RemoveDocumentFromVectorDatabase (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);\r\n" +
+					"```\r\n"
 					);
 			usage.add(usageMap);
 		}
@@ -328,7 +395,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					PYTHON, 
 					"How to use in Python",
-					"# import vector engine class and initialize\r\n" + 
+					"```python\r\n"+
+							"# import vector engine class and initialize\r\n" + 
 							"from gaas_gpt_vector import VectorEngine\r\n" + 
 							"vectorEngine = VectorEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 							
@@ -351,7 +419,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							"vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5, param_dict={}, filters='', metafilters='')\r\n" + 
 							
 							"\n# Remove document(s) from the vector database\r\n" +
-							"vectorEngine.removeDocument(file_names = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])"
+							"vectorEngine.removeDocument(file_names = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])\r\n"+
+						"```"
 					);
 			usage.add(usageMap);
 		}
@@ -359,13 +428,15 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					"LANGCHAIN", 
 					"How to use with Langchain API",
-					"from gaas_gpt_vector import VectorEngine\r\n" + 
+					"```python\r\n"+
+						"from gaas_gpt_vector import VectorEngine\r\n" + 
 						"vector = VectorEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 						"langhchain_vector = vector.to_langchain_vector_store()\r\n" +
-						"langhchain_vector.listDocs()\r\n"+
-						"langhchain_vector.addDocs(file_paths = ['file1.pdf','file2.pdf',...])\r\n"+
-						"langhchain_vector.removeDocs(file_names = ['file1.pdf','file2.pdf',...])\r\n"+
-						"langhchain_vector.similaritySearch(query = 'Sample Search Statement', k=5)"
+						"langhchain_vector.listDocs()\r\n" +
+						"langhchain_vector.addDocs(file_paths = ['file1.pdf','file2.pdf',...])\r\n" +
+						"langhchain_vector.removeDocs(file_names = ['file1.pdf','file2.pdf',...])\r\n" +
+						"langhchain_vector.similaritySearch(query = 'Sample Search Statement', k=5)\r\n" +
+					"```"
 					);
 			usage.add(usageMap);
 		}
@@ -373,9 +444,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					JAVA, 
 					"How to use in Java",
-					"// imports\r\nimport prerna.util.Utility;\r\n" + 
+					"```java\r\n" +
+							"// imports\r\n" + 
+							"import prerna.util.Utility;\r\n" + 
 							"import prerna.engine.api.IVectorDatabaseEngine;\r\n\n" + 
-							"// get the vector engine\r\nIVectorDatabaseEngine vectorEngine = Utility.getVectorDatabase(\""+engineId+"\");\r\n" + 
+							"// get the vector engine\r\n" + 
+							"IVectorDatabaseEngine vectorEngine = Utility.getVectorDatabase(\""+engineId+"\");\r\n" + 
 							
 							"\n// List all the documents the vector database currently comprises of\r\n" +
 							"vectorEngine.listDocuments(Map<String, Object> parameters)\r\n" + 
@@ -390,7 +464,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							"vectorEngine.nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters);\r\n" + 
 							
 							"\n// Remove document(s) from the vector database\r\n" +
-							"vectorEngine.removeDocument(List<String> fileNames, Map <String, Object> parameters);"
+							"vectorEngine.removeDocument(List<String> fileNames, Map <String, Object> parameters);\r\n" + 
+					"```"
 					);
 			usage.add(usageMap);
 		}
@@ -460,8 +535,10 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					PIXEL, 
 					"How to use in Javascript",
-					"ExecuteFunctionEngine(engine = \""+engineId+"\"" + javaString + ")",
-					paramInfo
+					"```\r\n"+
+					"ExecuteFunctionEngine(engine = \""+engineId+"\"" + javaString + ");\r\n" +
+					"```",
+          paramInfo
 					);
 			usage.add(usageMap);
 		}
@@ -469,10 +546,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					PYTHON, 
 					"How to use in Python",
-					"from gaas_gpt_function import FunctionEngine \r\n" + 
+					"```python\r\n" +
+							"from gaas_gpt_function import FunctionEngine \r\n" + 
 							"function = FunctionEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" + 
-							"output = function.execute(" + mapParams + ")",
-					paramInfo
+							"output = function.execute(" + mapParams + ")\r\n" +
+					"```",
+          paramInfo
 					);
 			usage.add(usageMap);
 		}
@@ -480,10 +559,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					JAVA, 
 					"How to use in Java",
-					"import prerna.util.Utility;\r\n" + 
+					"```java\r\n" +
+							"import prerna.util.Utility;\r\n" + 
 							"import prerna.engine.api.IFunctionEngine;\r\n" + 
-							"IFunctionEngine function = Utility.getFunction(\""+engineId+"\");",
-					paramInfo
+							"IFunctionEngine function = Utility.getFunction(\""+engineId+"\");\r\n" +
+					"```",
+          paramInfo
 					);
 			usage.add(usageMap);
 		}

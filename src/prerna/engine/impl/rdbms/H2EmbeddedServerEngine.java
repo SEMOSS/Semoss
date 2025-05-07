@@ -15,7 +15,7 @@ import prerna.util.Utility;
 
 public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 
-	private static final Logger logger = LogManager.getLogger(H2EmbeddedServerEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(H2EmbeddedServerEngine.class);
 	private static final String DATABASE_RUNNING_ON = " DATABASE RUNNING ON ";
 
 	private Server server;
@@ -32,7 +32,7 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 				Server.shutdownTcpServer(this.server.getURL(), "", true, false);
 				server.shutdown();
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			server = null;
 		}
@@ -52,7 +52,7 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 							dbFile.getParentFile().mkdirs();
 							dbFile.createNewFile();
 						} catch (IOException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -64,13 +64,13 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 				serverUrl = "jdbc:h2:" + server.getURL() + "/nio:" + baseConnUrl;
 				server.start();
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
-		logger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
-		logger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
-		logger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
+		classLogger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
+		classLogger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
+		classLogger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
 		
 		return serverUrl;
 	}
@@ -81,7 +81,7 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 			Server.shutdownTcpServer(this.server.getURL(), "", true, false);
 			this.server.shutdown();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		super.close();
 	}

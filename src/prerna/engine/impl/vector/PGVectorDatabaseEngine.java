@@ -212,7 +212,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	 * @throws SQLException
 	 */
 	private void execCreateStatement(String createQuery) throws SQLException {
-		//creating the default embeddings table
 		Connection conn = null;
 		Statement stmt = null;
 		try {
@@ -224,7 +223,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		} catch(SQLException e) {
 			classLogger.warn("Unable to create the table " + createQuery);;
 			classLogger.error(Constants.STACKTRACE, e);
-//			throw new SQLException("Unable to create the table " + createQuery);
 		} finally {
 			if(this.dataSource != null) {
 				ConnectionUtils.closeAllConnections(conn, stmt);
@@ -852,7 +850,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
+			throw new IllegalArgumentException("Unable to connect to server for pgvector databse.");
 		}
 
 		// create the py translator
@@ -1039,7 +1037,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 						}
 						
 						// check to see if the file data was extracted
-						if (rowsCreated <= 1) {
+						if (rowsCreated < 1) {
 							// no text was extracted so delete the file
 							FileUtils.forceDelete(extractedFile); // delete the csv
 							FileUtils.forceDelete(document); // delete the input file e.g pdf
