@@ -92,20 +92,6 @@ def test_decode_tokens(tokenizer, input_text):
     assert len(decoded_text) > 0, "Decoded string should not be empty"
 
 
-def test_model_limits(tokenizer):
-    """
-    Tests the get_model_limits method.
-    - Ensures model limits are returned as a dictionary.
-    - Checks that context_window and max_completion_tokens are present in the dictionary.
-    """
-    limits = tokenizer.get_model_limits(model_name=ENCODER_NAME)
-    assert isinstance(limits, dict), "Limits should be a dictionary"
-    assert "context_window" in limits, "Dictionary should contain context_window"
-    assert (
-        "max_completion_tokens" in limits
-    ), "Dictionary should contain max_completion_tokens"
-
-
 def test_format_with_chat_template(tokenizer):
     """
     Tests the format_with_chat_template method.

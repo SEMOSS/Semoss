@@ -51,7 +51,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	protected String modelType;
 	private IRemoteClientServer zkClient;
 	// Use this to simulate the cluster environment
-	private Boolean devPortFowarding = false;
+	private Boolean devPortForwarding = false;
 	// For normal development
 	private String kmsIngressUrl = null;
 	private String modelIngressUrl = null;
@@ -88,7 +88,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 
 		// Get the appropriate ZK client implementation based on environment
-		this.zkClient = ZKClientFactory.getZKClient();
+		this.zkClient = ZKClientFactory.getZKClient(this.devPortForwarding);
 		
 		// Check if we're using the REST proxy (for KMS_INGRESS validation)
 		boolean usingRestProxy = this.zkClient instanceof RemoteClientServerZKRESTProxy;
@@ -99,7 +99,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			if (!this.kmsIngressUrl.endsWith("/")) {
 				this.kmsIngressUrl += "/";
 			}
-		} else if (this.devPortFowarding) {
+		} else if (this.devPortForwarding) {
 			classLogger.info("Using devPortforwarding for KMS URL with localhost:8000/");
 		} else {
 			classLogger.info("KMS_INGRESS environment variable not found and devPortforwarding not set, using ZooKeeper for KMS IP resolution. This is correct for production deployments.");
@@ -111,7 +111,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			if (!this.modelIngressUrl.endsWith("/")) {
 				this.modelIngressUrl += "/";
 			}
-		} else if (this.devPortFowarding) {
+		} else if (this.devPortForwarding) {
 			classLogger.info("Using devPortForwarding for model URLs with localhost:8888/");
 		} else {
 			classLogger.info("MODEL_INGRESS environment variable not found and devPortforwarding not set, using ZooKeeper for Model IP resolution. This is correct for production deployments.");
@@ -145,7 +145,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		
 		// KMS SHUTDOWN
 		if (service == Services.KMS_SHUTDOWN) {
-		    if (devPortFowarding) {
+		    if (devPortForwarding) {
 		    	serviceUrl = String.format("http://localhost:8000/api/v2/stop?model_id=%s&model=%s", 
 		            this.engineId, this.model);
 		    } else if (kmsIngressUrl != null) {
@@ -167,7 +167,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		    }
 		// KMS START
 		} else if (service == Services.KMS_START) {
-		    if (devPortFowarding) {
+		    if (devPortForwarding) {
 		    	serviceUrl = "http://localhost:8000/api/v2/start";
 		    } else if (kmsIngressUrl != null) {
 		    	serviceUrl = kmsIngressUrl + "api/v2/start";
@@ -194,7 +194,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 				throw new IllegalStateException("Unable to get cluster ip for model.");
 			}
 			// LOCAL DEV W/ PF
-			if (devPortFowarding) {
+			if (devPortForwarding) {
 				if (isModelTypeOpenAI) {
 					serviceUrl = "http://localhost:8080/openai/v1";
 				} else {
