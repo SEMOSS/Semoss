@@ -58,13 +58,27 @@ jobs:
             DATE=$(date +'%Y-%m-%d')
             echo "IMAGE_REPO=semoss/semoss-dev" >> $GITHUB_ENV
             echo "IMAGE_TAG=${{ vars.VERSION }}-SNAPSHOT--ubuntu22-cuda-$DATE" >> $GITHUB_ENV
+            echo "IMAGE_TAG_LATEST=${{ vars.VERSION }}-SNAPSHOT--ubuntu22-cuda-latest" >> $GITHUB_ENV
           fi
           
-      - name: Build and push Ubuntu Docker image
+      - name: Build and push Ubuntu Docker image - Release Build
+        if: ${{ vars.RELEASE == 'true' }}
         uses: docker/build-push-action@v2
         with:
           context: ./docker
           file: ./docker/Dockerfile.nvidia.cuda.12.5.1.ubuntu22.04
           push: true
           tags: quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}  
+          no-cache: true
+      
+      - name: Build and push Ubuntu Docker image - Non-Release Build
+        if: ${{ vars.RELEASE == 'false' }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile.nvidia.cuda.12.5.1.ubuntu22.04
+          push: true
+          tags: | 
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}  
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}  
           no-cache: true
