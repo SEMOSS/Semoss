@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Union, Any
 from abc import ABC, abstractmethod
 
 import os
-
+import json
 from gaas_server_proxy import ServerProxy
 
 
@@ -94,6 +94,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         self,
         question: str,
         context: Optional[str] = None,
+        use_history: Optional[bool] = True,
         param_dict: Optional[Dict] = None,
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
@@ -123,10 +124,14 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             f',context=["<encode>{context}</encode>"]' if (context is not None) else ""
         )
         optionalParamDict = (
-            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+            f",paramValues=[{json.dumps(param_dict)}]"
+            if (param_dict is not None)
+            else ""
         )
 
-        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>"{optionalContext}{optionalParamDict});'
+        use_history_param = str(use_history).lower()
+
+        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>", useHistory={use_history_param}{optionalContext}{optionalParamDict});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -268,7 +273,9 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+            f",paramValues=[{json.dumps(param_dict)}]"
+            if (param_dict is not None)
+            else ""
         )
 
         pixel = f'Embeddings(engine="{self.engine_id}", values={strings_to_embed}{optionalParamDict});'
@@ -304,7 +311,9 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+            f",paramValues=[{json.dumps(param_dict)}]"
+            if (param_dict is not None)
+            else ""
         )
 
         pixel = f'ImageEmbeddings(engine="{self.engine_id}", values={images_to_embed}{optionalParamDict});'

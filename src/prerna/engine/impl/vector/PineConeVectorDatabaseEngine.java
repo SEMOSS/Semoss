@@ -71,6 +71,13 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	@Override
+	protected String getDefaultDistanceMethod() {
+		// this is stored on the index itself
+		// since we dont create it for this engine - this doesn't matter ...
+		return "cosine";
+	}
+	
+	@Override
 	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
@@ -104,12 +111,12 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			VectorDatabaseCSVRow row = vectorCsvTable.getRows().get(rowIndex);
 
 			JsonObject metadataJson = new JsonObject();
-			metadataJson.addProperty("Source", row.getSource());
-			metadataJson.addProperty("Modality", row.getModality());
-			metadataJson.addProperty("Divider", row.getDivider());
-			metadataJson.addProperty("Part", row.getPart());
-			metadataJson.addProperty("Tokens", row.getTokens());
-			metadataJson.addProperty("Content", row.getContent());
+			metadataJson.addProperty(VectorDatabaseCSVTable.SOURCE, row.getSource());
+			metadataJson.addProperty(VectorDatabaseCSVTable.MODALITY, row.getModality());
+			metadataJson.addProperty(VectorDatabaseCSVTable.DIVIDER, row.getDivider());
+			metadataJson.addProperty(VectorDatabaseCSVTable.PART, row.getPart());
+			metadataJson.addProperty(VectorDatabaseCSVTable.TOKENS, row.getTokens());
+			metadataJson.addProperty(VectorDatabaseCSVTable.CONTENT, row.getContent());
 
 			List<Double> vector = getEmbeddingsDouble(row.getContent(), insight);
 			if (row.getSource().equals(previousFileName)) {
@@ -274,12 +281,12 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			Map<String,Object> resultMap = new HashMap<>();
 			resultMap.put("Id", matches.get(i).get("id"));
 			resultMap.put("Score", matches.get(i).get("score"));
-			resultMap.put("Content", metadataMap.get("Content"));
-			resultMap.put("Divider", metadataMap.get("Divider"));
-			resultMap.put("Modality", metadataMap.get("Modality"));
-			resultMap.put("Part", metadataMap.get("Part"));
-			resultMap.put("Source", metadataMap.get("Source"));
-			resultMap.put("Tokens", metadataMap.get("Tokens"));
+			resultMap.put(VectorDatabaseCSVTable.SOURCE, metadataMap.get(VectorDatabaseCSVTable.SOURCE));
+			resultMap.put(VectorDatabaseCSVTable.CONTENT, metadataMap.get(VectorDatabaseCSVTable.CONTENT));
+			resultMap.put(VectorDatabaseCSVTable.DIVIDER, metadataMap.get(VectorDatabaseCSVTable.DIVIDER));
+			resultMap.put(VectorDatabaseCSVTable.MODALITY, metadataMap.get(VectorDatabaseCSVTable.MODALITY));
+			resultMap.put(VectorDatabaseCSVTable.PART, metadataMap.get(VectorDatabaseCSVTable.PART));
+			resultMap.put(VectorDatabaseCSVTable.TOKENS, metadataMap.get(VectorDatabaseCSVTable.TOKENS));
 			retOut.add(resultMap);
 		}
 

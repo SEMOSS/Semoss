@@ -47,6 +47,7 @@ def test_aws_bedrock_claude(aws_bedrock_client):
         - Checking the type of response
         - Checking the required key parameters of response
     """
+    # Add use_history=False parameter in this ask call if you want to turn off the history for this specific call
     ask_response = aws_bedrock_client.ask_call(question=SAMPLE_QUESTION)
     print("\n bedrock ask_response - ", ask_response)
 

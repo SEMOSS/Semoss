@@ -26,6 +26,12 @@ public interface IRemoteClientServer {
     String getModelClusterIp(String modelId);
     
     /**
+     * Gets the cluster IP address for the KMS server
+     * @return The cluster IP address, or null if not found
+     */
+    String getModelScalerIp();
+    
+    /**
      * Gets the friendly name of the model
      * @param modelId The model ID
      * @return The model name, or null if not found
@@ -74,12 +80,4 @@ public interface IRemoteClientServer {
      * @return List of RemoteModelInfo objects for warming models
      */
     List<RemoteModelInfo> getWarmingModels();
-    
-    /**
-     * Checks if a model can run in the cluster
-     * @param hfModelId The HuggingFace model ID
-     * @return Map containing the result of the check
-     * @throws Exception if an error occurs
-     */
-    Map<String, Object> canItRun(String hfModelId) throws Exception;
 }

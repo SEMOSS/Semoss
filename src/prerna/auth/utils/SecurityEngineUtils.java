@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -36,14 +35,11 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.joins.SubqueryRelationship;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
-import prerna.query.querystruct.update.UpdateQueryStruct;
-import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -140,7 +136,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @return
 	 */
-	public static IEngine.CATALOG_TYPE getEngineTyp(String engineId) {
+	public static IEngine.CATALOG_TYPE getEngineType(String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
@@ -251,7 +247,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	public static void addEngineOwner(String engineId, String userId) {
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES (?,?,?,?)";
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY, DATEADDED) VALUES (?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -261,6 +257,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
 			ps.setString(parameterIndex++, engineId);
 			ps.setBoolean(parameterIndex++, true);
+			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -1410,22 +1407,30 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
-				UpdateQueryStruct uqs = new UpdateQueryStruct();
-				uqs.setEngine(securityDb);
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
-
-				List<IQuerySelector> selectors = new Vector<>();
-				selectors.add(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
-				List<Object> values = new Vector<>();
-				values.add(visibility);
-				uqs.setSelectors(selectors);
-				uqs.setValues(values);
-				
-				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
-				String updateQuery = updateInterp.composeQuery();
-				securityDb.insertData(updateQuery);
-				
+				// need to update
+				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET VISIBILITY=? WHERE USERID=?");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set engine visibility");
+				}
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setBoolean(parameterIndex++, visibility);
+						ps.setString(parameterIndex++, userId);
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+				}
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION "
@@ -1495,28 +1500,36 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
-				UpdateQueryStruct uqs = new UpdateQueryStruct();
-				uqs.setEngine(securityDb);
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
-
-				List<IQuerySelector> selectors = new Vector<>();
-				selectors.add(new QueryColumnSelector("ENGINEPERMISSION__FAVORITE"));
-				List<Object> values = new Vector<>();
-				values.add(isFavorite);
-				uqs.setSelectors(selectors);
-				uqs.setValues(values);
-				
-				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
-				String updateQuery = updateInterp.composeQuery();
-				securityDb.insertData(updateQuery);
-				
+				// need to update
+				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET FAVORITE=? WHERE USERID=?");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set engine favorites");
+				}
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setBoolean(parameterIndex++, isFavorite);
+						ps.setString(parameterIndex++, userId);
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+				}
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION "
 						+ "(USERID, ENGINEID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
 				if(ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set engine visibility");
+					throw new IllegalArgumentException("Error generating prepared statement to set engine favorites");
 				}
 				try {
 					// we will set the permission to read only
@@ -2199,6 +2212,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "tool_app"));
 		
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
@@ -2668,6 +2682,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "database_tool_app"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
@@ -3119,6 +3134,25 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occurred while updating the user engine permissions in db ");
 		} finally {
 			ConnectionUtils.closeAllDbConnectionsIfPooling(securityDb, deletePs, insertPs);
+		}
+	}
+
+	public static void updateEngineToolApp(String engineId, String projectId) {
+		PreparedStatement ps = null;
+		try {
+			String query = "UPDATE ENGINE SET TOOL_APP = ? WHERE ENGINEID = ?";
+			ps = securityDb.getPreparedStatement(query);
+			ps.setString(1, projectId);
+			ps.setString(2, engineId);
+			ps.executeUpdate();
+
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error("Failed to update engine tool_app", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
