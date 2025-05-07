@@ -77,6 +77,12 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         // Adjust logic based on messageType
         if (TOOL.equals(messageType)) {
             if (response instanceof List) {
+            	//TODO: why are we grabbing only 1 tool???
+            	//TODO: why are we grabbing only 1 tool???
+            	//TODO: why are we grabbing only 1 tool???
+            	//TODO: why are we grabbing only 1 tool???
+            	//TODO: why are we grabbing only 1 tool???
+            	//TODO: why are we grabbing only 1 tool???
                 List<?> responseList = (List<?>) response;
                 if (!responseList.isEmpty()) {
                     return new AskToolModelEngineResponse((List<Map<String, Object>>) responseList, tokensInPrompt, tokensInResponse);
