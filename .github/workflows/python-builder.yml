@@ -29,9 +29,10 @@ on:
         required: true
         default: '22.04'
   push:
-    branches: [ "dev", "main",  "26-cloud-Fix_docker_builds"]
+    branches: [ "dev", "main"]
     paths:
       - 'docker/Dockerfile.python'
+      - 'py/install_config/pyproject.toml'
       - '.github/workflows/python-builder.yml'
     # Publish semver tags as releases.
     #tags: [ 'v*.*.*' ]
@@ -45,11 +46,11 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      PYTHON_VERSION: "3.12"
-      COMPUTE_TYPE: "gpu"
-      BASE_REGISTRY: "docker.io"
-      BASE_IMAGE: "ubuntu"
-      BASE_TAG: "22.04"
+      PYTHON_VERSION: ${{ github.events.input.python_version }}
+      COMPUTE_TYPE: ${{ github.events.input.compute_type }}
+      BASE_REGISTRY: ${{ github.events.input.base_registry }}
+      BASE_IMAGE: ${{ github.events.input.base_image }}
+      BASE_TAG: ${{ github.events.input.base_tag }}
 
     steps:
       - name: Checkout repository
