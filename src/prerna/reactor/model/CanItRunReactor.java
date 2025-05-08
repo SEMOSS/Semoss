@@ -5,12 +5,12 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.cluster.util.RemoteClientServerZK;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.engine.impl.model.KubernetesModelScaler;
 
 public class CanItRunReactor extends AbstractReactor {
 	
@@ -26,11 +26,11 @@ public class CanItRunReactor extends AbstractReactor {
 		organizeKeys();
 		String hfModelId = this.keyValue.get(this.keysToGet[0]);
 		
-		final RemoteClientServerZK zkClient;
-		zkClient = RemoteClientServerZK.getInstance();
+		final KubernetesModelScaler kmsServer;
+		kmsServer = KubernetesModelScaler.getInstance();
 		
 		try {
-			Map<String, Object> canRun = zkClient.canItRun(hfModelId);
+			Map<String, Object> canRun = kmsServer.canItRun(hfModelId);
 			return new NounMetadata(canRun, PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Error checking if model can run: " + hfModelId, e);

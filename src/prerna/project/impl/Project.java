@@ -834,7 +834,7 @@ public class Project implements IProject {
 		boolean hasPom = pomFile.exists() && pomFile.isFile();
 		
 		if(loadJars) {
-			compileReactorFromJars(jars);
+			compileReactorFromJars(jars, customLoader);
 		} else if(hasPom) {
 			compileReactorsFromPom(pomFile);
 		}
@@ -936,7 +936,7 @@ public class Project implements IProject {
 			boolean hasPom = pomFile.exists() && pomFile.isFile();
 			
 			if(loadJars) {
-				retReac =  getReactorFromJars(className, jars);
+				retReac =  getReactorFromJars(className, jars, customLoader);
 			} else if(hasPom) {
 				retReac = getReactorsFromPom(className, pomFile);
 			}
@@ -1320,9 +1320,14 @@ public class Project implements IProject {
 	 * 
 	 * @param jars
 	 */
-	private void compileReactorFromJars(File[] jars) {
+	private void compileReactorFromJars(File[] jars, SemossClassloader customLoader) {
 		// have the classes been loaded already?
 		if(ProjectCustomReactorCompilator.needsCompilation(this.projectId)) {
+			SemossClassloader cl = projectClassLoader;
+			if(customLoader != null) {
+				cl = customLoader;
+			}
+			
 			projectClassLoader = new SemossClassloader(this.getClass().getClassLoader());
 			URL[] urls = new URL[jars.length];
 			for(int i = 0; i < jars.length; i++) {
@@ -1333,7 +1338,7 @@ public class Project implements IProject {
 					throw new IllegalArgumentException("Unable to load jar file : " + jars[i].getName());
 				}
 			}
-			projectSpecificHash = Utility.loadReactorsFromJars(urls);
+			projectSpecificHash = Utility.loadReactorsFromJars(urls, cl);
 			ProjectCustomReactorCompilator.setCompiled(this.projectId);
 		}
 	}
@@ -1344,8 +1349,8 @@ public class Project implements IProject {
 	 * @param jars
 	 * @return
 	 */
-	private IReactor getReactorFromJars(String className, File[] jars) {	
-		compileReactorFromJars(jars);
+	private IReactor getReactorFromJars(String className, File[] jars, SemossClassloader customLoader) {	
+		compileReactorFromJars(jars, customLoader);
 		
 		IReactor retReac = null;
 		try {
@@ -1808,7 +1813,7 @@ public class Project implements IProject {
 	}
 	
 	@Override
-	public Map<String, Object> buildProjectToolMap() {
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
 		// Fetch metadata for the engine
 		Map<String, Object> metadata = SecurityProjectUtils.getAggregateProjectMetadata(
 				this.getProjectId(),
@@ -1874,6 +1879,14 @@ public class Project implements IProject {
 		toolMap.put("function", project);
 
 		return toolMap;
+	}
+
+	@Deprecated
+	/**
+	 * Will be deleted for buildOpenAIFunctionEngineToolMap
+	 */
+	public Map<String, Object> buildProjectToolMap() {
+		return buildOpenAIFunctionEngineToolMap();
 	}
 	
 	//////////////////////////////////////////////////////////////////
