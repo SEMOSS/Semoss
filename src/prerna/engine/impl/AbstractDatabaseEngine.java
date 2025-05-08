@@ -36,6 +36,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -47,11 +48,13 @@ import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
 
+import prerna.auth.external.ExternalDatabaseMetadataHelper;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -71,6 +74,7 @@ import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.SemossDefaultEngines;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -230,6 +234,24 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 				setOwlFilePath(owlFile);
 			}
 		}
+		
+		// this section is if we are getting the metadata on load from an external service
+		boolean externalDatabaseMetadata = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.EXTERNAL_DATABASE_MANAGEMENT_ENABLED)+"");
+		if(externalDatabaseMetadata && !SemossDefaultEngines.getDatabasesWithGeneratedOwl().contains(this.engineId)) {
+			try {
+				// store in the OWL
+				// so that the local master can pick up the OWL 
+				if(owlPropStr == null || (owlPropStr=owlPropStr.trim()).isEmpty()) {
+					Map<String, String> mods = new HashMap<>();
+					mods.put(Constants.OWL, Constants.DATABASE_FOLDER+"/@ENGINE@/"+new File(owlFile).getName());
+					Utility.addKeysAtLocationIntoPropertiesFile(this.smssFilePath, null, mods);
+				}
+				ExternalDatabaseMetadataHelper.parseJsonToOwl(this);
+			} catch(Exception e) {
+				classLogger.warn("Could not load metadata externally for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 
 		// load properties object for db
 		File engineProps = SmssUtilities.getEngineProperties(this.smssProp);
@@ -288,6 +310,11 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			classLogger.debug("Closing the audit database engine");
 			auditDatabase.close();
 		}
+	}
+	
+	@Override
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
+		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 	
 	@Override

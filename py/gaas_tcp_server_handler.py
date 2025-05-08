@@ -10,6 +10,7 @@ import os
 import gc as gc
 import sys
 import re
+import ast
 
 # IMPORTANT
 # Your python support extention might tell you that these packages arent being used
@@ -80,6 +81,42 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     # Class attribute to hold a singleton instance
     da_server = None
 
+    def log_level_mapper(self, log_level_name):
+        log_mapper = {
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+            "CRITICAL": logging.CRITICAL,
+        }
+        return log_mapper.get(log_level_name)
+
+    def logging_setup(self):
+        """Configures logging with environment-based log levels."""
+        try:
+            log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()  # (default: INFO)
+
+            logging.basicConfig(
+                filename=f"{self.insight_folder}/log.txt",
+                level=self.log_level_mapper(log_level_name),
+                format="%(asctime)s - %(levelname)s - %(message)s",
+                filemode="a",
+                force=True,
+            )
+
+            # Create a logger and apply a filter to log only the exact level
+            self.logger = logging.getLogger("TCPServerHandler")
+            log_level = getattr(
+                logging, log_level_name, self.log_level_mapper(log_level_name)
+            )
+            self.logger.addFilter(
+                lambda record: record.levelno == log_level
+            )  # Logs only the selected level
+            self.logger.info("Logging Setup Completed")
+        except Exception as e:
+            self.log_file.write("\n ERROR - Unexpected Error While Logging Setup.")
+            self.log_file.flush()
+
     def setup(self):
         """
         This method is responsible for initializing the server before it starts to serve client requests.
@@ -108,6 +145,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.prefix = self.server.prefix
         self.insight_folder = self.server.insight_folder
         self.log_file = None
+        self.logger = None
 
         # need to set timeout here also
         if self.server.timeout_val > 0:
@@ -164,6 +202,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # define_root_logger_script = "import sys\nroot_logger = logging.getLogger()\nroot_logger.setLevel(logging.WARNING)\nhandler = logging.StreamHandler(sys.stdout)\nformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')\nhandler.setFormatter(formatter)\nroot_logger.addHandler(handler)"
         # with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(self.console):
         #     exec(define_root_logger_script, globals())
+        self.logging_setup()  # setting up to log
 
     def custom_dev_logger(self, message):
         """
@@ -171,20 +210,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         Write to the log txt file. Ensures file exists, creates new line, adds message and flushes log.
         This is very useful when the python debugger cannot handle troubleshooting a threading issue.
         """
-        if self.log_file is not None and self.dev_log_switch:
-            self.log_file.write("\n")
-            self.log_file.write(message)
-            self.log_file.flush()
+        if self.logger and self.dev_log_switch:
+            self.logger.info(message)
 
     def prod_logger(self, message):
         """
         These messages will be logged to the log file in container environments.
         Write to the log txt file. Ensures file exists, creates new line, adds message and flushes log.
         """
-        if self.log_file is not None:
-            self.log_file.write("\n")
-            self.log_file.write(message)
-            self.log_file.flush()
+        if self.logger:
+            self.logger.info(message)
 
     def handle(self):
         while not self.stop:
@@ -238,8 +273,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     break
                     self.request.sendall(data)
             except Exception as e:
-                print(e)
-                print("connection closed.. closing this socket")
+                self.logger.warning(e)
+                self.logger.warning("connection closed.. closing this socket")
                 self.stop_request()
                 # self.server.stop_it()
             # print("all processing has finished !!")
@@ -257,15 +292,19 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 data = {}
 
             payload = data.get("payload", [])
-            trimmed_payload = (
-                payload[0][:50] if isinstance(payload, list) and payload else "N/A"
-            )
 
-            log_message = f"Final Output: epoc={data.get('epoc', 'N/A')}, payload={trimmed_payload}, operation={data.get('operation', 'N/A')}"
+            log = {
+                "epoc": data.get("epoc", "N/A"),
+                "payload": payload,
+                "operation": data.get("operation", "N/A"),
+            }
 
+            log_message = f"Final Output: {json.dumps(log, indent=4)}"
+            self.prod_logger("------------- OUTPUT LOG - START ----------------\n")
             self.prod_logger(log_message)
+            self.prod_logger("------------- OUTPUT LOG - END ----------------\n")
         except Exception as e:
-            self.prod_logger(f"Error in get_final_output: {str(e)}")
+            self.logger.warning(f"Error in get_final_output: {str(e)}")
 
     def get_final_output(self, data=None, epoc=None):
         self.log_data(data)
@@ -289,9 +328,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # SETTING THE PAYLOAD HERE... NO NEED TO PASS IT AROUND WITH PARAMS
             self.thread_local.payload = payload
 
+            payload_set_log = {
+                threading.current_thread().name: self.thread_local.payload
+            }
+            self.custom_dev_logger("---------- PAYLOAD SET LOG - START -----------\n")
             self.custom_dev_logger(
-                f"Payload set for thread {threading.current_thread().name}: {self.thread_local.payload}"
+                f"Payload Set For Thread - {json.dumps(payload_set_log, indent=4)}"
             )
+            self.custom_dev_logger("---------- PAYLOAD SET LOG - END -------------\n")
 
             command_list = payload["payload"]
             command = ""
@@ -372,6 +416,51 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     output, operation="PYTHON", response=True, exception=True
                 )
 
+    def log_payload_details(self, payload, operation, response, interim):
+        """
+        Logs payload details for debugging purposes.
+        This helps prevent excessive logging when streaming responses.
+        """
+        # When streaming responses, this will cause the log files to become very heavy, so we only want to do this during development. Switch dev_log_switch to True to enable this.
+        if not self.logger or not self.dev_log_switch:
+            return
+
+        try:
+            orig_payload_value = self.thread_local.payload.get(
+                "payload", ["There is no original payload."]
+            )[0]
+            new_payload = payload.get("payload", ["There is no new payload."])[0]
+            orig_payload_insight_id = self.thread_local.payload.get(
+                "insightId", "There is no insightId in the original payload."
+            )
+            new_payload_insight_id = payload.get("insightId", "There is no insightId.")
+            prefix_mssg = (
+                self.prefix if self.prefix is not None else "There is no prefix."
+            )
+
+            log_data = {
+                "Prefix": prefix_mssg,
+                "Operation": operation,
+                "Original Payload": orig_payload_value,
+                "Original Payload Insight ID": orig_payload_insight_id,
+                "New Payload": new_payload,
+                "New Payload Insight ID": new_payload_insight_id,
+            }
+
+            formatted_log = json.dumps(
+                log_data, indent=4
+            )  # formatting log data to pretty format
+
+            self.logger.info(
+                "--------------------- SENDING OUTPUT -------------------------\n"
+            )
+            self.logger.info(formatted_log)
+            self.logger.info("--------------------- END ---------------------------\n")
+
+        except Exception:
+            # Ensure logging errors do not crash the application
+            self.logger.warning("There was an error during logging")
+
     def send_output(
         self,
         output,
@@ -451,62 +540,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # pack the message next
         ret_array[4:] = output.encode("utf-8")
 
-        # When streaming responses, this will cause the log files to become very heavy, so we only want to do this during development. Switch dev_log_switch to True to enable this.
-        if self.log_file is not None and self.dev_log_switch:
-            try:
-                orig_payload_value = (
-                    self.thread_local.payload["payload"][0]
-                    if "payload" in self.thread_local.payload
-                    else "There is no original payload."
-                )
-                new_payload = (
-                    payload["payload"][0]
-                    if "payload" in payload
-                    else "There is no new payload."
-                )
-                orig_payload_insight_id = (
-                    self.thread_local.payload["insightId"]
-                    if "insightId" in self.thread_local.payload
-                    else "There is no insightId in the original payload."
-                )
-                new_payload_insight_id = (
-                    payload["insightId"]
-                    if "insightId" in payload
-                    else "There is no insightId."
-                )
-                prefix_mssg = (
-                    self.prefix if self.prefix is not None else "There is no prefix."
-                )
-
-                self.log_file.write("\n")
-                self.log_file.write(
-                    "---------------------000000-------------------------"
-                )
-                self.log_file.write("\n")
-                self.log_file.write(f"The Prefix is: {prefix_mssg}")
-                self.log_file.write("\n")
-                self.log_file.write(f"The Operation is {operation}")
-                self.log_file.write("\n")
-                # self.log_file.write(f"Original Payload: {orig_payload_value}")
-                self.log_file.write("\n")
-                self.log_file.write(
-                    f"Original Payload Insight ID: {orig_payload_insight_id}"
-                )
-                self.log_file.write("\n")
-                self.log_file.write(f"New Payload: {new_payload}")
-                self.log_file.write("\n")
-                self.log_file.write(f"New Payload Insight ID: {new_payload_insight_id}")
-                self.log_file.write("\n")
-                self.log_file.write("\n")
-                self.log_file.write(
-                    "----------------------END_OF_MESSAGE-------------------------"
-                )
-                self.log_file.flush()
-                if response and not interim:
-                    self.log_file.write("\n")
-            except:
-                # I don't want to ever stop if there is an error in this block
-                self.custom_dev_logger("There was an error during logging")
+        self.log_payload_details(payload, operation, response, interim)
 
         # send it out
         self.request.sendall(ret_array)
@@ -535,7 +569,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # pack the message next
         ret_array[4:] = output.encode("utf-8")
 
-        self.custom_dev_logger(f"send_request(): REQUEST === {payload}")
+        self.custom_dev_logger("---------- SEND REQUEST LOG - START ---------\n")
+        self.custom_dev_logger(
+            f"send_request(): REQUEST === {json.dumps(payload, indent=4)}"
+        )
+        self.custom_dev_logger("---------- SEND REQUEST LOG - END -----------\n")
 
         # send it out
         self.request.sendall(ret_array)
@@ -546,6 +584,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.server.stop_it()
             self.request.close()
             import sys
+
+            self.custom_dev_logger("---------- STOP REQUEST LOG - START ---------\n")
+            self.custom_dev_logger("Connection has been closed")
+            self.custom_dev_logger("---------- STOP REQUEST LOG - END -----------\n")
 
             sys.exit("Connection has been closed")
             self.stop = True
@@ -616,40 +658,64 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             code (`str`): The Python code to be executed.
 
         Returns:
-            `Tuple[str, Any]`: A tuple containing the captured print statements and the result of the last expression. The first element is a string capturing any output from print statements, and the second element can be of any type, representing the result of the last expression executed. If the last line is not an expression or doesn't produce a result, the second element will be None.
+            `Tuple[str, bool]`: A tuple containing the output of the last expression in the code input and a boolean if it was successfully able to execute the code.
+                                The first element is the eval output of the last expression. If last expression is not evaluable, then it will exec and return an empty string.
+                                The second element is a boolean indicating if the code was executed successfully (False) or if an exception occurred (True).
         """
-
         try:
+            parsed_code = ast.parse(code)
+            # we will loop through the parsed_code up until the last expression
+            # and combine into a single string
+            preceding_code = ""
+            for node in parsed_code.body[:-1]:
+                preceding_code += ast.unparse(node) + "\n"
+
+            # if new_code is not ""
+            # we will exec all of these lines
+            if preceding_code != "":
+                exec(preceding_code, globals())
+
+            # now we will eval the last expression if we can
+            last_expression = parsed_code.body[len(parsed_code.body) - 1]
+            can_eval = isinstance(last_expression, ast.Expr) and isinstance(
+                last_expression.value,
+                (
+                    ast.Attribute,
+                    ast.BinOp,
+                    ast.BoolOp,
+                    ast.Call,
+                    ast.Compare,
+                    ast.Constant,
+                    ast.Dict,
+                    ast.DictComp,
+                    ast.Expression,
+                    ast.GeneratorExp,
+                    ast.IfExp,
+                    ast.Lambda,
+                    ast.List,
+                    ast.ListComp,
+                    ast.Name,
+                    ast.Num,
+                    ast.Set,
+                    ast.SetComp,
+                    ast.Str,
+                    ast.Subscript,
+                    ast.Tuple,
+                    ast.UnaryOp,
+                ),
+            )
+
+            # if we can eval then we will do that and return the result
             try:
-                # Split the code into lines
-                lines = code.strip().split("\n")
-                last_line = lines[-1] if lines else ""
-                preceding_lines = lines[:-1]
-
-                # Create a string to hold preceding lines of code
-                preceding_code = "\n".join(preceding_lines)
-
-                # Execute preceding lines
-                if preceding_code:
-                    exec(preceding_code, globals())
-
-                # Evaluate last line (if not empty) and capture the output
-                last_line_output = '""'
-                if last_line:
-                    try:
-                        last_line_output = eval(last_line, globals())
-                    except:
-                        # Fallback to exec if eval fails, indicating it's not an expression
-                        exec(last_line, globals())
-
-                return last_line_output, False
-            except Exception:
-                # we failed so try run all the code as is
-                try:
-                    return eval(code, globals()), False
-                except:
-                    exec(code, globals())
+                if can_eval:
+                    return eval(ast.unparse(last_expression), globals()), False
+                else:
+                    exec(ast.unparse(last_expression), globals())
                     return '""', False
+            except:
+                # couldn't eval / exec ... just try to run everything
+                exec(code, globals())
+                return '""', False
         except Exception as e:
             # if we fail all attempts then send back the traceback
             traceback = sys.exc_info()[2]
@@ -666,17 +732,21 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         payload = self.thread_local.payload
         # print("In the response block")
         # this is a response coming back from a request from the java container
+        self.custom_dev_logger("---------- HANDLE RESPONSE LOG - START ---------\n")
         self.custom_dev_logger(
             f"handle_response() -- Handling response which is going to check the monitors for epoc {payload.get('epoc', 'EPOC NOT FOUND')}. Here are the monitors: {self.monitors}"
         )
         if payload["epoc"] in self.monitors:
-            self.prod_logger(f"handle_response() -- Payload Response: {payload}")
+            self.prod_logger(
+                f"\nhandle_response() -- Payload Response: {json.dumps(payload, indent=4)}"
+            )
 
             condition = self.monitors[payload["epoc"]]
             self.monitors.update({payload["epoc"]: payload})
             condition.acquire()
             condition.notifyAll()
             condition.release()
+        self.custom_dev_logger("---------- HANDLE RESPONSE LOG - END ---------\n")
 
     def handle_shell(self):
         payload = self.thread_local.payload
@@ -793,6 +863,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             return cur_dir
         else:
             # raise exception
+            self.logger.warning(f"There is no mount point for {mount_name}")
             raise Exception(f"There is no mount point for {mount_name}")
 
     def exec_cd(self, mount_name=None, payload=None, check=True):

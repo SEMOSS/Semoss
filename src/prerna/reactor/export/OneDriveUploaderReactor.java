@@ -57,7 +57,7 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 				throwLoginError(retMap);
 			}
 			else {
-				AccessToken msToken = user.getAccessToken(AuthProvider.MS);
+				AccessToken msToken = user.getAccessToken(AuthProvider.MICROSOFT);
 				accessToken=msToken.getAccess_token();
 			}
 		}

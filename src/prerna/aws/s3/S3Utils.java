@@ -18,7 +18,10 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
 import prerna.util.Utility;
 
-
+/**
+ * Deprecated on March 21st 2025. All calling classes have been deprecated
+ */
+@Deprecated
 public class S3Utils {
 
 	// shared reactor keys

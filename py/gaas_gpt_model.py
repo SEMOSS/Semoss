@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Union, Any
 from abc import ABC, abstractmethod
 
 import os
-
+import json
 from gaas_server_proxy import ServerProxy
 
 
@@ -94,6 +94,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         self,
         question: str,
         context: Optional[str] = None,
+        use_history: Optional[bool] = True,
         param_dict: Optional[Dict] = None,
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
@@ -123,10 +124,14 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             f',context=["<encode>{context}</encode>"]' if (context is not None) else ""
         )
         optionalParamDict = (
-            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+            f",paramValues=[{json.dumps(param_dict)}]"
+            if (param_dict is not None)
+            else ""
         )
 
-        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>"{optionalContext}{optionalParamDict});'
+        use_history_param = str(use_history).lower()
+
+        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>", useHistory={use_history_param}{optionalContext}{optionalParamDict});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -268,7 +273,9 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+            f",paramValues=[{json.dumps(param_dict)}]"
+            if (param_dict is not None)
+            else ""
         )
 
         pixel = f'Embeddings(engine="{self.engine_id}", values={strings_to_embed}{optionalParamDict});'
@@ -304,7 +311,9 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+            f",paramValues=[{json.dumps(param_dict)}]"
+            if (param_dict is not None)
+            else ""
         )
 
         pixel = f'ImageEmbeddings(engine="{self.engine_id}", values={images_to_embed}{optionalParamDict});'
@@ -681,10 +690,7 @@ class ModelEngine(AbstractModelEngine):
             ChatGeneration,
             ChatResult,
         )
-        from langchain_core.messages import (
-            AIMessage,
-            BaseMessage,
-        )
+        from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
         class SemossLangchainChatModel(BaseChatModel):
             engine_id: str
@@ -697,8 +703,22 @@ class ModelEngine(AbstractModelEngine):
                     "model_engine": model_engine,
                     "model_type": model_engine.get_model_type(),
                 }
-
                 super().__init__(**data)
+
+            def get_chat_history(
+                self, insight_id: Optional[str] = None
+            ) -> List[BaseMessage]:
+                """Retrieve past conversation history and format it for Langchain."""
+
+                # Fetch chat history from ModelEngine
+                history = self.model_engine.get_conversation_history()
+                messages = []
+                for msg in sorted(history, key=lambda x: x["DATE_CREATED"]):
+                    if msg["MESSAGE_TYPE"] == "INPUT":
+                        messages.append(HumanMessage(content=msg["MESSAGE_DATA"]))
+                    elif msg["MESSAGE_TYPE"] == "RESPONSE":
+                        messages.append(AIMessage(content=msg["MESSAGE_DATA"]))
+                return messages
 
             class Config:
                 """Configuration for this pydantic object."""
@@ -712,7 +732,15 @@ class ModelEngine(AbstractModelEngine):
                 **kwargs: Any,
             ) -> ChatResult:
                 """Top Level call"""
-                full_prompt = self.convert_messages_to_full_prompt(messages)
+                history = self.get_chat_history()
+
+                # Combine history with new messages (if history exists)
+                full_messages = history + messages if history else messages
+
+                # Convert to appropriate prompt format
+                full_prompt = self.convert_messages_to_full_prompt(full_messages)
+
+                # Send the combined prompt to the model
                 response = self.model_engine.ask(
                     question="", param_dict={**kwargs, **{"full_prompt": full_prompt}}
                 )
