@@ -29,10 +29,11 @@ class VertexGenerativeModelClient(AbstractVertextAiTextGeneration):
         stop_sequences: Optional[List[str]] = None,
         prefix="",
         stream: Optional[bool] = True,
-        **kwargs
+        use_history: Optional[bool] = True,
+        **kwargs,
     ):
         assert self.client != None
-        
+
         if self.max_tokens != None:
             max_new_tokens = self.max_tokens
 
@@ -53,6 +54,9 @@ class VertexGenerativeModelClient(AbstractVertextAiTextGeneration):
                 history = []
             else:
                 raise TypeError("Unable to extract the question from full prompt list")
+
+        # Conditionally control the history
+        history = history if use_history else []
 
         # convert history to Content class
         historyChat = []
@@ -97,20 +101,27 @@ class VertexGenerativeModelClient(AbstractVertextAiTextGeneration):
         for category, threshold in self.safety_settings.items():
             try:
                 # Convert the category to an uppercase attribute of HarmCategory to match with the enum
-                harm_category = getattr(gapic_content_types.HarmCategory, category.upper())
+                harm_category = getattr(
+                    gapic_content_types.HarmCategory, category.upper()
+                )
                 # Convert the threshold to an uppercase attribute of HarmBlockThreshold to match with the enum
-                harm_block_threshold = getattr(gapic_content_types.SafetySetting.HarmBlockThreshold, threshold.upper())
+                harm_block_threshold = getattr(
+                    gapic_content_types.SafetySetting.HarmBlockThreshold,
+                    threshold.upper(),
+                )
                 mapped_safety_settings[harm_category] = harm_block_threshold
             except AttributeError as e:
                 # Log the error if the category or threshold is invalid
-                print(f"Invalid category or threshold: {category}, {threshold}. Error: {e}")
-        
+                print(
+                    f"Invalid category or threshold: {category}, {threshold}. Error: {e}"
+                )
+
         if stream:
             responses = chat.send_message(
                 content=question,
                 generation_config=generation_config,
                 stream=stream,
-                safety_settings=mapped_safety_settings
+                safety_settings=mapped_safety_settings,
             )
 
             model_engine_response = AskModelEngineResponse(response="")
@@ -133,7 +144,7 @@ class VertexGenerativeModelClient(AbstractVertextAiTextGeneration):
                 content=question,
                 generation_config=generation_config,
                 stream=stream,
-                safety_settings=mapped_safety_settings
+                safety_settings=mapped_safety_settings,
             )
 
             model_engine_response = AskModelEngineResponse(
