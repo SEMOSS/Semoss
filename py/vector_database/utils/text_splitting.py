@@ -85,9 +85,7 @@ def split_text(
     chunk_size: int,
     chunk_overlap: int,
     chunking_strategy: Optional[Union[str, List[int]]] = [],
-    split_method: Optional[
-        str
-    ] = "recursive",  # only recursive for now. I dont think the other are needed
+    chunking_method: Optional[str] = "tokens",
 ) -> None:
     """
     Splits text content in a CSV file into chunks based on specified parameters.
@@ -99,7 +97,7 @@ def split_text(
         chunk_size (`int`): Maximum size of each chunk (in tokens or characters).
         chunk_overlap (`int`): Number of characters/tokens to overlap between chunks.
         chunking_strategy (`Optional[Union[str, List[int]]]`): Optional strategy for customizing chunking (defaults to splitting all text).
-        split_method (`Optional[str]`): Method for splitting text (currently only supports 'recursive').
+        chunking_method (`Optional[str]`): Method for splitting text (options are 'token' (default), 'semantic' (using Chonky), and 'recursive').
 
     Raises:
         AssertionError: If chunk_unit is not 'characters' or 'tokens'.
@@ -138,20 +136,130 @@ def split_text(
 
     document_name = main_df["Source"][0]
 
-    text_results_df = split_text_recursively(
-        text_results_df=text_results_df,
-        chunking_strategy=chunking_strategy,
-        document_name=document_name,
-        cfg_tokenizer=cfg_tokenizer,
-        chunk_unit=chunk_unit,
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-    )
+    if chunking_method.lower() == "semantic":
+        text_results_df = split_text_semantically(
+            text_results_df=text_results_df,
+            document_name=document_name,
+            cfg_tokenizer=cfg_tokenizer,
+        )
+    elif chunking_method.lower() == "recursive":
+        text_results_df = split_text_recursively(
+            text_results_df=text_results_df,
+            chunking_strategy=chunking_strategy,
+            document_name=document_name,
+            cfg_tokenizer=cfg_tokenizer,
+            chunk_unit=chunk_unit,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
+    else:
+        text_results_df = split_by_tokens(
+            text_results_df=text_results_df,
+            chunking_strategy=chunking_strategy,
+            document_name=document_name,
+            cfg_tokenizer=cfg_tokenizer,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
 
     # Combine text chunks with other modalities and save to CSV
     result = pd.concat([text_results_df, other_modalities_df], ignore_index=True)
 
     result.to_csv(csv_file_location, index=False)
+
+
+def split_by_tokens(
+    text_results_df: pd.DataFrame,
+    chunking_strategy: Union[str, List[int]],
+    document_name: str,
+    cfg_tokenizer,
+    # chunk_unit: str,
+    chunk_size: int,
+    chunk_overlap: int,
+) -> pd.DataFrame:
+    from langchain.text_splitter import TokenTextSplitter
+
+    # Initialize text splitter with specified parameters
+    text_splitter = TokenTextSplitter.from_huggingface_tokenizer(
+        cfg_tokenizer.tokenizer,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+    )
+
+    # Handle different chunking strategies
+    if (isinstance(chunking_strategy, List) and len(chunking_strategy) == 0) or (
+        chunking_strategy == "ALL"
+    ):
+        # Create chunks from all text combined but keep track of page numbers for metadata
+        identified_pages = (
+            "<CFG_IDENTIFIED_AS_PAGE_" + text_results_df["Divider"].astype(str) + ">"
+        )
+        chunks = text_splitter.create_documents(
+            [
+                " ".join(
+                    identified_pages + text_results_df["Content"].apply(clean_up_string)
+                )
+            ]
+        )
+
+        page_numbers, chunks = find_keyword_indices(
+            [document.page_content for document in chunks],
+            identified_pages.to_list()[1:],
+        )
+
+        counter = {}  # initialize the counter
+        parts = []  # keep track of the parts list
+        for i in page_numbers:
+            part = counter.get(i, 0)
+            counter[i] = part + 1
+            parts.append(part)
+
+    elif (
+        isinstance(chunking_strategy, List)
+        and len(chunking_strategy) == text_results_df.shape[0]
+    ) or (chunking_strategy == "PAGE_BY_PAGE"):
+        # Create chunks from each page individually
+        chunks = []
+        page_numbers = []
+        parts = []
+        for page_number, page_text in zip(
+            text_results_df["Divider"],
+            text_results_df["Content"].apply(clean_up_string),
+        ):
+
+            page_chunks = text_splitter.create_documents([page_text])
+
+            for part in range(len(page_chunks)):
+                chunk = page_chunks[part].page_content
+                chunks.append(chunk)
+                page_numbers.append(page_number)
+                parts.append(part)
+
+    elif all(isinstance(sublist, list) for sublist in chunking_strategy):
+        # Raise exception for unsupported chunking strategy not implemented
+        # The goal here is to create chunks from specific pages
+        raise Exception("Specific chunking strategy is not implemented yet")
+
+    else:
+        raise Exception("Chunking strategy is not defined")
+
+    # Create new DataFrame with additional information about each chunk
+    text_results_df = pd.DataFrame(
+        [
+            [
+                document_name,
+                "text",
+                page_number,
+                part,
+                cfg_tokenizer.count_tokens(chunk),
+                chunk,
+            ]
+            for page_number, part, chunk in zip(page_numbers, parts, chunks)
+        ],
+        columns=["Source", "Modality", "Divider", "Part", "Tokens", "Content"],
+    )
+
+    return text_results_df
 
 
 def split_text_recursively(
@@ -260,6 +368,50 @@ def split_text_recursively(
                 chunk,
             ]
             for page_number, part, chunk in zip(page_numbers, parts, chunks)
+        ],
+        columns=["Source", "Modality", "Divider", "Part", "Tokens", "Content"],
+    )
+
+    return text_results_df
+
+
+def split_text_semantically(
+    text_results_df: pd.DataFrame,
+    document_name: str,
+    cfg_tokenizer,
+) -> pd.DataFrame:
+    """
+    This function uses Chonky's semantic TextSplitter to break the input text into meaningful chunks.
+
+    Args:
+        text_results_df (`pd.DataFrame`): DataFrame containing text data with columns like 'Divider' and 'Content'.
+        document_name (`str`): Name of the document being processed.
+        cfg_tokenizer: Tokenizer object used to count tokens.
+
+    Returns:
+        A new DataFrame with additional columns like 'Source', 'Modality', 'Divider', 'Part', 'Tokens', and 'Content'.
+    """
+    from chonky import TextSplitter
+
+    # Combine all text into one string, cleaned up
+    full_text = " ".join(text_results_df["Content"].apply(clean_up_string))
+
+    # Initialize Chonky's semantic text splitter (uses transformer models under the hood)
+    splitter = TextSplitter(device="cpu")
+
+    chunks = splitter(full_text)
+
+    text_results_df = pd.DataFrame(
+        [
+            [
+                document_name,
+                "text",
+                0,  # No specific page number since it's semantic text splitting [Default - 0]
+                part,
+                cfg_tokenizer.count_tokens(chunk),
+                chunk,
+            ]
+            for part, chunk in enumerate(chunks)
         ],
         columns=["Source", "Modality", "Divider", "Part", "Tokens", "Content"],
     )

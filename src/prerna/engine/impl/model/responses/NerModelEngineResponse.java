@@ -4,14 +4,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONObject;
 import org.json.JSONArray;
-
+import org.json.JSONObject;
 
 public class NerModelEngineResponse extends AbstractModelEngineResponse<Map<String, Object>> {
-    private static final Logger classLogger = LogManager.getLogger(NerModelEngineResponse.class);
+    
+	private static final Logger classLogger = LogManager.getLogger(NerModelEngineResponse.class);
     private static final long serialVersionUID = 1L;
     
     public static final String MESSAGE_ID = "messageId";
@@ -20,6 +21,12 @@ public class NerModelEngineResponse extends AbstractModelEngineResponse<Map<Stri
     private String messageId;
     private String roomId;
 
+    /**
+     * 
+     * @param response
+     * @param numberOfTokensInPrompt
+     * @param numberOfTokensInResponse
+     */
     public NerModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
@@ -40,6 +47,11 @@ public class NerModelEngineResponse extends AbstractModelEngineResponse<Map<Stri
 		return this.roomId;
 	}
 	
+	/**
+	 * 
+	 * @param response
+	 * @return
+	 */
 	public static NerModelEngineResponse fromJson(JSONObject response) {
 	    Logger classLogger = LogManager.getLogger(NerModelEngineResponse.class);
 	    
