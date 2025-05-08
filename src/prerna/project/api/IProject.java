@@ -300,6 +300,12 @@ public interface IProject extends IEngine, Closeable {
 	 * @return
 	 */
 	String getCompileOutput();
-	
+
+	/**
+	 * Switch to using buildOpenAIFunctionEngineToolMap
+	 * @return json representation of project
+	 */
+	@Deprecated
+	Map<String, Object> buildProjectToolMap();
 }
 

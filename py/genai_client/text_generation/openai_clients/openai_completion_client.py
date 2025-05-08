@@ -1,5 +1,4 @@
 from typing import List, Dict, Tuple
-
 from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import AskModelEngineResponse
 
@@ -11,22 +10,18 @@ class OpenAiCompletion(AbstractOpenAiClient):
         question: str = None,
         context: str = None,
         template_name: str = None,
+        use_history: bool = True,  # To control history tracking
         history: List[Dict] = None,
-        page_size=100,
         max_new_tokens=1000,
         prefix="",
         **kwargs,
     ) -> AskModelEngineResponse:
 
-        if "repetition_penalty" in kwargs.keys():
-            kwargs["frequency_penalty"] = float(kwargs.pop("repetition_penalty"))
-        if "stop_sequences" in kwargs.keys():
-            kwargs["stop"] = kwargs.pop("stop_sequences")
+        self._normalize_kwargs(kwargs)
 
         if template_name == None:
             template_name = self.template_name
 
-        prompt = None
         mapping = {"question": question}
 
         # default the template name based on model
@@ -46,8 +41,8 @@ class OpenAiCompletion(AbstractOpenAiClient):
         if prompt is None:
             prompt = question
 
-        # Add history if one is provided
-        if history is not None:
+        # Add history if one is provided and useHistory is True
+        if history is not None and use_history:
             prompt = f"{prompt} {history}"
 
         # check to see if we need to adjust the prompt or max_new_tokens
@@ -65,9 +60,15 @@ class OpenAiCompletion(AbstractOpenAiClient):
 
         return model_engine_response
 
+    def _normalize_kwargs(self, kwargs):
+        if "repetition_penalty" in kwargs:
+            kwargs["frequency_penalty"] = float(kwargs.pop("repetition_penalty"))
+        if "stop_sequences" in kwargs:
+            kwargs["stop"] = kwargs.pop("stop_sequences")
+
     def _inference_call(self, prompt, prefix: str, kwargs) -> str:
+        """Handles the inference call with OpenAI's API and streams responses."""
         final_query = ""
-        finish = False
 
         kwargs["stream"] = kwargs.get("stream", True)
         stream = self.client.completions.create(
@@ -153,7 +154,7 @@ class OpenAiCompletion(AbstractOpenAiClient):
                 warnings.append(f"max_new_tokens was changed to: {max_new_tokens}")
 
         model_engine_response.prompt_tokens = num_token_in_prompt
-        if len(warnings) > 0:
+        if warnings:
             model_engine_response.warning = "\\n\\n".join(warnings)
 
         return prompt_payload, int(max_new_tokens), model_engine_response

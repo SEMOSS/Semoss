@@ -56,12 +56,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 
 	private static List<String> ignoreSmssList = new ArrayList<>();
 	static {
-		ignoreSmssList.add(Constants.LOCAL_MASTER_DB);
-		ignoreSmssList.add(Constants.SECURITY_DB);
-		ignoreSmssList.add(Constants.THEMING_DB);
-		ignoreSmssList.add(Constants.SCHEDULER_DB);
-		ignoreSmssList.add(Constants.USER_TRACKING_DB);
-//		ignoreSmssList.add(Constants.MODEL_INFERENCE_LOGS_DB);
+		ignoreSmssList.addAll(SemossDefaultEngines.getIgnoreDatabaseOwlList());
 	}
 	
 	private static final Logger classLogger = LogManager.getLogger(SMSSWebWatcher.class);

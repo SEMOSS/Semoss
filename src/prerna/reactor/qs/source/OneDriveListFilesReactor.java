@@ -48,7 +48,7 @@ public class OneDriveListFilesReactor extends AbstractReactor{
 				throwLoginError(retMap);
 			}
 			else if (user != null) {
-				AccessToken msToken = user.getAccessToken(AuthProvider.MS);
+				AccessToken msToken = user.getAccessToken(AuthProvider.MICROSOFT);
 				accessToken=msToken.getAccess_token();
 			}
 		}

@@ -762,9 +762,10 @@ public class Constants {
 
 	//cookie name of a load load balancing routing
 	public static final String CONTEXT_PATH_KEY = "CONTEXT_PATH_KEY";
-	public static final String MONOLITH_ROUTE = "MONOLITH_ROUTE";
+	public static final String LOAD_BALANCER_COOKIE_NAME = "LOAD_BALANCER_COOKIE_NAME";
 	public static final String MONOLITH_PREFIX = "MONOLITH_PREFIX";
 	public static final String ENDPOINT_REDIRECT_KEY = "ENDPOINT_REDIRECT_KEY";
+	public static final String MONOLITH_ROUTE = "MONOLITH_ROUTE";
 	
 	//Graph engines
 	public static final String TYPE_MAP = "TYPE_MAP";
@@ -926,11 +927,13 @@ public class Constants {
 	
 	//vector
 	public static final String API_KEY = "API_KEY";
+	public static final String API_KEY_ID="API_KEY_ID";
 	public static final String INDEX_CLASSES = "INDEX_CLASSES";
 	public static final String CONTENT_LENGTH = "CONTENT_LENGTH";
 	public static final String CONTENT_OVERLAP = "CONTENT_OVERLAP";
 	public static final String DISTANCE_METHOD = "DISTANCE_METHOD";
 	public static final String DEFAULT_CHUNK_UNIT = "DEFAULT_CHUNK_UNIT";
+	public static final String DEFAULT_CHUNKING_METHOD = "DEFAULT_CHUNKING_METHOD";
 	public static final String EMBEDDER_ENGINE_ID = "EMBEDDER_ENGINE_ID";
 	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
 	public static final String EMBEDDER_ENGINE_NAME = "EMBEDDER_ENGINE_NAME";
@@ -1009,4 +1012,15 @@ public class Constants {
     public static final String EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_ENGINE_TYPE = "EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_ENGINE_TYPE";
     public static final String EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION = "EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION";
 
+    //External Database OWL Metadata
+    public static final String EXTERNAL_DATABASE_MANAGEMENT_ENABLED = "EXTERNAL_DATABASE_MANAGEMENT_ENABLED";
+    public static final String EXTERNAL_DATABASE_MANAGEMENT_URL = "EXTERNAL_DATABASE_MANAGEMENT_URL";
+    public static final String EXTERNAL_DATABASE_MANAGEMENT_AUTH_USERNAME= "EXTERNAL_DATABASE_MANAGEMENT_AUTH_USERNAME";
+    public static final String EXTERNAL_DATABASE_MANAGEMENT_AUTH_PASSWORD = "EXTERNAL_DATABASE_MANAGEMENT_AUTH_PASSWORD";
+    public static final String EXTERNAL_DATABASE_MANAGEMENT_REQUEST_KEY = "EXTERNAL_DATABASE_MANAGEMENT_REQUEST_KEY";
+    public static final String EXTERNAL_DATABASE_MANAGEMENT_RESPONSE_JMES_PATH = "EXTERNAL_DATABASE_MANAGEMENT_RESPONSE_JMES_PATH";
+    public static final String EXTERNAL_DATABASE_MANAGEMENT_TABLENAME = "EXTERNAL_DATABASE_MANAGEMENT_TABLENAME";
+    public static final String EXTERNAL_DATABASE_MANAGEMENT_COLUMNNAME = "EXTERNAL_DATABASE_MANAGEMENT_COLUMNNAME";
+    public static final String EXTERNAL_DATABASE_MANAGEMENT_DATATYPE = "EXTERNAL_DATABASE_MANAGEMENT_DATATYPE";
+    
 }

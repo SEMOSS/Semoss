@@ -2,6 +2,13 @@ package prerna.testing;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import org.apache.commons.io.FileUtils;
+
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -41,6 +48,20 @@ public class ApiSemossTestUserUtils {
 		USER.setAccessToken(at);
 		USER.setPrimaryLogin(AuthProvider.NATIVE);
 		ApiSemossTestInsightUtils.getInsight().setUser(USER);
+	}
+	
+	public static void clearUserDirectory() throws IOException {
+		Path p = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "user");
+		if (Files.exists(p)) {
+			FileUtils.cleanDirectory(p.toFile());
+		}
+	}
+	
+	public static Path getAssetsPath() {
+		String id = USER.getAssetProjectId(USER.getPrimaryLogin());
+		String assetId = "Asset__" + id;
+		Path p = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "user", assetId, "app_root", "version", "assets");
+		return p;
 	}
 	
 }

@@ -10,6 +10,7 @@ import java.util.Properties;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -42,7 +43,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	public static final String MESSAGE_CONTENT = "content";
 	public static final String ROLE = "role";
-	
+	public static final String TOOL_CALLS = "tool_calls";
+    public static final String TYPE = "type";
+    public static final String ID = "id";
+    public static final String FUNCTION = "function";
+    public static final String ARGUMENTS = "arguments";
+    public static final String NAME = "name";
 	// param keys
 	public static final String FULL_PROMPT = "full_prompt";
 	
@@ -135,7 +141,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*fullPrompt*/fullPrompt,
 					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
 					/*inputTime*/inputTime, 
-					/*response*/askModelResponse.getResponse(),
+					/*response*/askModelResponse.getStringResponse(),
 					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
 					/*outputTime*/outputTime
 			));
@@ -286,6 +292,11 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, embeddingsResponse, inputTime, outputTime);
  		
 		return embeddingsResponse;
+	}
+	
+	@Override
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
+		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 	
 	/**

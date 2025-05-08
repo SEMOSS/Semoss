@@ -3,6 +3,7 @@ package prerna.engine.impl.model;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -19,6 +20,7 @@ import prerna.ds.py.PyUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
@@ -29,7 +31,6 @@ import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
-
 /**
  * This class is responsible for creating a {@code IModelEngine} class that is directly linked to 
  * a python process. The corresponding python class should handle all method implementations. This java class is 
@@ -38,7 +39,7 @@ import prerna.util.Utility;
 public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
-
+	
 	// python server
 	protected String prefix = null;
 	protected String workingDirectory;
@@ -133,7 +134,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
+				throw new IllegalArgumentException("Unable to connect to server for python model engine.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
 			cpwToInit.shutdown(false);
@@ -141,7 +142,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " +this.getEngineName());
+				throw new IllegalArgumentException("Failed to start TCP Server for Python Model Engine = " +this.getEngineName());
 			}
 		}
 		
@@ -240,6 +241,14 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 					.append(context)
 					.append(TRIPLE_QUOTE);	
 			}
+			
+			if (parameters.containsKey("toolExecution")) {
+	            Map<String, Object> toolExecutionMap = (Map<String, Object>) parameters.get("toolExecution");
+		        if (chatHistory.containsKey(insight.getInsightId())) {
+		            chatHistory.get(insight.getInsightId()).add(toolExecutionMap);
+		        }
+		        parameters.remove("toolExecution");
+	        }
 
 			String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
 			if(history != null) {
@@ -273,21 +282,51 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
 		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		
-		AskModelEngineResponse response = AskModelEngineResponse.fromObject(output);
+		AskModelEngineResponse response = null;
+		try {
+			response = AskModelEngineResponse.fromObject(output);
+		} catch(Exception e) {
+			classLogger.warn("Could not create response object from output = " + output);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e.getMessage());
+		}
 		
 		if (keepConvoHisotry) {
-			Map<String, Object> inputMap = new HashMap<String, Object>();
-			Map<String, Object> outputMap = new HashMap<String, Object>();
-			inputMap.put(ROLE, "user");
-			inputMap.put(MESSAGE_CONTENT, question);
-			outputMap.put(ROLE, "assistant");
-			outputMap.put(MESSAGE_CONTENT, response.getResponse());
+			//IF ITS A tool call - then append adjust history
+	        Map<String, Object> inputMap = new HashMap<>();
+	        Map<String, Object> outputMap = new HashMap<>();
 	        
-			if (chatHistory.containsKey(insight.getInsightId())) {
-		        chatHistory.get(insight.getInsightId()).add(inputMap);
-		        chatHistory.get(insight.getInsightId()).add(outputMap);
+	        inputMap.put(ROLE, "user");
+	        inputMap.put(MESSAGE_CONTENT, question);
+
+	        outputMap.put(ROLE, "assistant");
+	        
+			if(response.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
+				AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) response;
+	            // Create the tool call structure
+	            Map<String, Object> toolCall = new HashMap<>();
+	            toolCall.put(TYPE, "function");
+	            toolCall.put(ID, toolResponse.getToolCallId());
+
+	            Map<String, String> functionMap = new HashMap<>();
+	            functionMap.put(ARGUMENTS, toolResponse.getToolCallArgumentsAsString());
+	            functionMap.put(NAME, toolResponse.getToolCallName());
+
+	            toolCall.put(FUNCTION, functionMap);
+
+	            // Add tool call to output map
+	            outputMap.put(TOOL_CALLS, Arrays.asList(toolCall));
+	            outputMap.put(MESSAGE_CONTENT, ""); // Empty content for tool 
 			}
+			else {
+	            // Regular response
+	            outputMap.put(MESSAGE_CONTENT, response.getStringResponse());
+	        }
+	        // Update chat history
+	        if (chatHistory.containsKey(insight.getInsightId())) {
+	            chatHistory.get(insight.getInsightId()).add(inputMap);
+	            chatHistory.get(insight.getInsightId()).add(outputMap);
+	        }
 		}
 
 		return response;
@@ -345,13 +384,17 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		
 		callMaker.append(")");
-		
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
 		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		
-		InstructModelEngineResponse response = InstructModelEngineResponse.fromObject(output);
-		
+		InstructModelEngineResponse response = null;
+		try {
+			response = InstructModelEngineResponse.fromObject(output);
+		} catch(Exception e) {
+			classLogger.warn("Could not create response object from output = " + output);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e.getMessage());
+		}
 		return response;
 	}
 	
@@ -385,9 +428,16 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			
 		callMaker.append(")");
 		
-		Object responseObject = pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		EmbeddingsModelEngineResponse embeddingsResponse = EmbeddingsModelEngineResponse.fromObject(responseObject);
-		return embeddingsResponse;
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		EmbeddingsModelEngineResponse response = null;
+		try {
+			response = EmbeddingsModelEngineResponse.fromObject(output);
+		} catch(Exception e) {
+			classLogger.warn("Could not create response object from output = " + output);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e.getMessage());
+		}
+		return response;
 	}
 	
 	
@@ -420,9 +470,16 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			
 		callMaker.append(")");
 		
-		Object responseObject = pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		EmbeddingsModelEngineResponse embeddingsResponse = EmbeddingsModelEngineResponse.fromObject(responseObject);
-		return embeddingsResponse;
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		EmbeddingsModelEngineResponse response = null;
+		try {
+			response = EmbeddingsModelEngineResponse.fromObject(output);
+		} catch(Exception e) {
+			classLogger.warn("Could not create response object from output = " + output);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e.getMessage());
+		}
+		return response;
 	}
 
 	@Override
