@@ -188,7 +188,7 @@ class PDFUtil:
 
         return extracted_content
 
-    def extract_text(self, page: fitz.fitz.Page) -> str:
+    def extract_text(self, page: fitz.Page) -> str:
         """
         Extracts the text content from a single page of the PDF document.
 
@@ -200,7 +200,7 @@ class PDFUtil:
         """
         return page.get_text("text")
 
-    def extract_images(self, page: fitz.fitz.Page) -> None:
+    def extract_images(self, page: fitz.Page) -> None:
         """
         Extracts images from a single page of the PDF document.
 
@@ -270,7 +270,7 @@ class PDFUtil:
         else:
             return self.detector.is_table(png_file)
 
-    def extract_tables(self, page: fitz.fitz.Page) -> None:
+    def extract_tables(self, page: fitz.Page) -> None:
         """
         Extracts tables directly from a single page of the PDF document.
 

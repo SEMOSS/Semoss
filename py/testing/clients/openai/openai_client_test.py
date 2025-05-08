@@ -85,6 +85,7 @@ def test_openai_chat_completions_json_structured_response(
     """
     SAMPLE_QUESTION = "Name a few Manchester United players you know with their positions, countries, and skill ratings."
     # Add "stream=True" or "stream=False" in the ask call if required
+    # Add use_history=False parameter in the ask call if you want to turn off the history for this specific call
     ask_response = openai_chat_completion_client.ask(
         question=SAMPLE_QUESTION,
         response_format={
@@ -132,6 +133,7 @@ def test_openai_chat_completions_text_response(openai_chat_completion_client):
         - Checking the token limit of prompt and response against model token limit
     """
     # Add "stream=True" or "stream=False" in the ask call if required
+    # Add use_history=False parameter in the ask call if you want to turn off the history for this specific call
     ask_response = openai_chat_completion_client.ask(question=SAMPLE_QUESTION)
     print("\n openai_chat_completions_text_response ask_response - ", ask_response)
 
@@ -182,6 +184,7 @@ def test_openai_completions_for_ask(openai_completion_client):
         - Checking the token limit of prompt and response against model token limit
     """
     # Add "stream=True" or "stream=False" in the ask call if required
+    # Add use_history=False parameter in the ask call if you want to turn off the history for this specific call
     ask_response = openai_completion_client.ask(question=SAMPLE_QUESTION)
     print("\n openai completion ask_response - ", ask_response)
 
