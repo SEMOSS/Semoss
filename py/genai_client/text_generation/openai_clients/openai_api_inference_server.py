@@ -17,6 +17,8 @@ class OpenAiChatCompletionServer(OpenAiChatCompletion):
             encoder_name=self.model_name,
             max_tokens=init_args.pop(MAX_TOKENS, None),
             max_input_tokens=init_args.pop(MAX_INPUT_TOKENS, None),
+            max_completion_tokens=init_args.pop("max_completion_tokens", None),
+            context_window=init_args.pop("context_window", None),
         )
 
 

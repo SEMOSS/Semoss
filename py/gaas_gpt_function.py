@@ -1,6 +1,8 @@
 from gaas_server_proxy import ServerProxy
 from typing import Optional
+
 import logging
+import json
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -23,9 +25,7 @@ class FunctionEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
-        pixel = (
-            f'ExecuteFunctionEngine(engine = "{self.engine_id}", map=[{parameterMap}]);'
-        )
+        pixel = f'ExecuteFunctionEngine(engine = "{self.engine_id}", map=[{json.dumps(parameterMap)}]);'
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(

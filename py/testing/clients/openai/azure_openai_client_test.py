@@ -60,6 +60,7 @@ def test_azure_openai_gpt_4o_chat_completion_for_ask(azure_openai_gpt_4o_client)
         - Checking the token limit of prompt and response against model token limit
     """
     # Add "stream=True" or "stream=False" in the ask call if required
+    # Add use_history=False parameter in the ask call if you want to turn off the history for this specific call
     ask_response = azure_openai_gpt_4o_client.ask(question=SAMPLE_QUESTION)
     print("\n gpt-4o ask_response -", ask_response)
 
@@ -107,6 +108,7 @@ def test_azure_openai_o1_mini_chat_completion_for_ask(azure_openai_o1_mini_clien
         - Checking the token limit of prompt and response against model token limit
     """
     # Add "stream=True" or "stream=False" in the ask call if required
+    # Add use_history=False parameter in the ask call if you want to turn off the history for this specific call
     ask_response = azure_openai_o1_mini_client.ask(question=SAMPLE_QUESTION)
     print("\n o1-mini ask_response -", ask_response)
 
