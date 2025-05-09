@@ -126,15 +126,13 @@ public class DocProcessor extends AbstractFileProcessor {
 	                if (brList != null && !brList.isEmpty()) {
 	                    for (CTBr br : brList) {
 	                        if (br.getType() == STBrType.PAGE) {
-	                            //page break detected
-	                             pageNo++;
+	                            pageNo++;
 	                        }
 	                    }
 	                } else {
 	                    List<CTEmpty> lastRenderedPageBreakList = run.getCTR().getLastRenderedPageBreakList();
 	                    if (lastRenderedPageBreakList != null) {
 	                        for (CTEmpty lastRenderedPageBreak : lastRenderedPageBreakList) {
-	                            //page break detected
 	                             pageNo++;
 	                        }
 	                    }
@@ -144,7 +142,7 @@ public class DocProcessor extends AbstractFileProcessor {
 		}
      // Print last paragraph if no break at the end
         if (lastParaOnPage != null) {
-        	classLogger.info("Last paragraph on Page " + pageNo + ":"+ lastParaOnPage.getText());
+        	classLogger.info("Last paragraph on Page " + pageNo);
         }
 	}
 	/**
