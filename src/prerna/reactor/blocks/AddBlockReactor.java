@@ -18,7 +18,7 @@ import prerna.theme.ThemeDbTable;
 public class AddBlockReactor extends AbstractReactor {
 
 	public AddBlockReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATA_TYPE_MAP.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.SECTION.getKey(), ReactorKeysEnum.JSON.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -48,21 +48,13 @@ public class AddBlockReactor extends AbstractReactor {
 		return nm;
 	}
 
+    // prepares map from inputs fields for use in block creation logic 
 	private Map<String, Object> getBlockDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DATA_TYPE_MAP.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
-			if (mapNouns != null && !mapNouns.isEmpty()) {
-				return (Map<String, Object>) mapNouns.get(0).getValue();
-			}
-		}
-
-		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapNouns != null && !mapNouns.isEmpty()) {
-			return (Map<String, Object>) mapNouns.get(0).getValue();
-		}
-
-		throw new NullPointerException("Must define the prompt to store it correctly");
+	    Map<String, Object> blockMap = new HashMap<>();
+	        blockMap.put("name", keyValue.get(ReactorKeysEnum.NAME.getKey()));
+	        blockMap.put("section",keyValue.get(ReactorKeysEnum.SECTION.getKey()));
+	        blockMap.put("json",keyValue.get(ReactorKeysEnum.JSON.getKey()));
+	       return blockMap;
 	}
 
 }

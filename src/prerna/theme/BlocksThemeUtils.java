@@ -119,12 +119,14 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		return actualRetVal;
 	}
 	
+	//Convert block_json into json
 	private static void convertBlockJsonStringToJSONObject(Map<String, Object> map) {
 		try {
 			String blockJson = (String) map.get("BLOCK_JSON");
 			Gson gson = new Gson();
 			Type type = new TypeToken<Map<String, Object>>(){}.getType();
-			map.put("BLOCK_JSON", gson.fromJson(blockJson, type));
+			map.put("JSON", gson.fromJson(blockJson, type));
+			map.remove("BLOCK_JSON");
 		} catch (Exception e) {
 			throw new SemossPixelException(e);
 		}
@@ -212,8 +214,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	
 	// add block function
-	public static String addBlock(Map<String, Object> blockDetails, String tableName) {
-		ThemeDbTable table = validateThemeDbTable(tableName);
+	public static String addBlock(Map<String, Object> blockDetails) {
 		
 		boolean allowClob = themeDb.getQueryUtil().allowClobJavaObject();
 		String blockId = UUID.randomUUID().toString();
@@ -248,7 +249,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	private static void validateBlockDetails(Map<String, Object> blockDetails) {
 		validateString(blockDetails, "name", false, false);
 		validateString(blockDetails, "section", false, false);
-		validateString(blockDetails, "block_json", false, false);
+		validateString(blockDetails, "json", false, false);
 	}
 
 	
@@ -284,10 +285,10 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("hover_text")));
 			if (allowClob) {
 				Clob toclob = themeDb.getConnection().createClob();
-				toclob.setString(1, String.valueOf(blockDetails.get("block_json")));
+				toclob.setString(1, String.valueOf(blockDetails.get("json")));
 				blockPS.setClob(parameterIndex++, toclob);
 			} else {
-				blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("block_json")));
+				blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("json")));
 			}
 			blockPS.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			blockPS.setBoolean(parameterIndex++, true); 
