@@ -20,6 +20,10 @@ MODEL_LIMITS_CONFIG = {
         "context_window": 128000,
         "max_completion_tokens": 4096,
     },
+    "meta-llama/Llama-3.1-8B-Instruct": {
+        "context_window": 128000,
+        "max_completion_tokens": 4096,
+    },
 }
 
 FALLBACK_CONFIG = {"context_window": 8192, "max_completion_tokens": 2048}

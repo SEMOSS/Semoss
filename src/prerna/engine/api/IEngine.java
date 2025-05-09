@@ -2,6 +2,7 @@ package prerna.engine.api;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Properties;
 
 public interface IEngine extends Closeable {
@@ -119,5 +120,11 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	boolean holdsFileLocks();
+	
+	/**
+	 * Return a Map for the open ai tool for execution of the engine
+	 * @return
+	 */
+	Map<String, Object> buildOpenAIFunctionEngineToolMap();
 	
 }
