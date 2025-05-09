@@ -24,7 +24,7 @@ public class MyRemoteModelsStatus extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		final IRemoteClientServer zkClient = ZKClientFactory.getZKClient();
+		final IRemoteClientServer zkClient = ZKClientFactory.getZKClient(false);
 		
 		List<RemoteModelInfo> activeModels = zkClient.getActiveModels();
 	    List<RemoteModelInfo> warmingModels = zkClient.getWarmingModels();
