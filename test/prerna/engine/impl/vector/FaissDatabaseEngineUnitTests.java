@@ -83,21 +83,19 @@ public class FaissDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.CONTENT_OVERLAP, contentOverlap);
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
 		
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path shemaDirPath = Paths.get(schemaDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaPath = engineFolder.resolve("schema");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder);
+						testEngineAlias)).thenReturn(engineFolder.toString());
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(shemaDirPath));
+				assertTrue(Files.exists(schemaPath));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));
@@ -147,14 +145,9 @@ public class FaissDatabaseEngineUnitTests {
 
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		String indexDir = schemaDir + "/" + indexClass;
-		String indexFilesDir = indexDir + "/" + "indexed_files";
-		Path indexFilesDirPath = Paths.get(indexFilesDir);
-		String documentsDir = indexDir + "/" + "documents";
-		Path docDirPath = Paths.get(documentsDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path indexFilesDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "indexed_files");
+		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
 
 		SocketClient scMock = mock(SocketClient.class);
 		when(scMock.isConnected()).thenReturn(true);
@@ -202,13 +195,8 @@ public class FaissDatabaseEngineUnitTests {
 		// run this part first to create an index class in the schema directory
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path schemaDirPath = Paths.get(schemaDir);
-		Files.createDirectories(schemaDirPath);
-		String indexDir = schemaDir + "/" + indexClass;
-		Path indexDirPath = Paths.get(indexDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 
 		String testEmbedderId = "123-456-789";
@@ -229,8 +217,7 @@ public class FaissDatabaseEngineUnitTests {
 		String fileName4 = "newFile4.csv";
 
 		// create the "index_files"
-		String indexFilesDir = indexDir + "/" + "indexed_files";
-		Path indexFilesDirPath = Paths.get(indexFilesDir);
+		Path indexFilesDirPath = Paths.get(indexDirPath.toString(), "indexed_files");
 		Files.createDirectories(indexFilesDirPath);
 		Path file1 = indexFilesDirPath.resolve(fileName1);
 		Path file2 = indexFilesDirPath.resolve(fileName2);
@@ -238,8 +225,7 @@ public class FaissDatabaseEngineUnitTests {
 		Files.createFile(file2);
 
 		// this portion will create the files to be removed from "documents"
-		String documentsDir = indexDir + "/" + "documents";
-		Path docDirPath = Paths.get(documentsDir);
+		Path docDirPath = Paths.get(indexDirPath.toString(), "documents");
 		Files.createDirectories(docDirPath);
 		Path file3 = docDirPath.resolve(fileName3);
 		Path file4 = docDirPath.resolve(fileName4);
@@ -307,12 +293,8 @@ public class FaissDatabaseEngineUnitTests {
 		embedderProps.setProperty(Constants.MODEL, embedderModel);
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 		
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir =  engineFolder + "/schema";
-		String indexDir = schemaDir + "/" + indexClass;
-		String documentsDir = indexDir + "/" + "documents";
-		Path docDirPath = Paths.get(documentsDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 				
 		String key1 = "key1";
@@ -392,11 +374,8 @@ public class FaissDatabaseEngineUnitTests {
 		embedderProps.setProperty(Constants.MODEL, embedderModel);
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		String indexDir = schemaDir + "/" + indexClass;
-		Path indexDirPath = Paths.get(indexDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 
 		String key1 = "key1";
@@ -461,12 +440,8 @@ public class FaissDatabaseEngineUnitTests {
 		embedderProps.setProperty(Constants.MODEL, embedderModel);
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 		
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir =  engineFolder + "/schema";
-		String indexDir = schemaDir + "/" + indexClass;
-		String documentsDir = indexDir + "/" + "documents";
-		Path docDirPath = Paths.get(documentsDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 		// create 4 new files: newFile1 ... newFile4.txt
 		List<String> fileNames = new Vector<>();
@@ -731,21 +706,19 @@ public class FaissDatabaseEngineUnitTests {
 			}
 		}
 		
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path shemaDirPath = Paths.get(schemaDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaPath = engineFolder.resolve("schema");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder);
+						testEngineAlias)).thenReturn(engineFolder.toString());
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(shemaDirPath));
+				assertTrue(Files.exists(schemaPath));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));

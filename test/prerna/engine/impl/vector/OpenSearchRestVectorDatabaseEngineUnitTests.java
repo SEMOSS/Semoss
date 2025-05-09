@@ -83,19 +83,17 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 		testProps.setProperty("EF_CONSTRUCTION", efConstructionInput);
 		testProps.setProperty("METHOD_NAME", testMethodName);
 		
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path shemaDirPath = Paths.get(schemaDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaPath = engineFolder.resolve("schema");
 				
 		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
 			DIHelper diMock = mock(DIHelper.class);			
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 				MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
 				
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias)).thenReturn(engineFolder);
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias)).thenReturn(engineFolder.toString());
 				
 				// will assure doesIndexExist returns false and enters createIndex
 				hhu.when(() -> HttpHelperUtility.headRequest(any(String.class), any(Map.class), nullable(String.class),
@@ -112,7 +110,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 				
 				engine.open(testProps);
 				Properties engineProperties = engine.getSmssProp();
-				assertTrue(Files.exists(shemaDirPath));
+				assertTrue(Files.exists(schemaPath));
 				assertNotNull(engineProperties);
 				assertFalse(engineProperties.isEmpty());
 				assertFalse(testProps.isEmpty());
@@ -251,12 +249,8 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 	
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir =  engineFolder + "/schema";
-		String indexDir = schemaDir + "/" + indexClass;
-		String documentsDir = indexDir + "/" + "documents";
-		Path docDirPath = Paths.get(documentsDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);	
 		String fileName1 = "newFile1.txt";
 		String fileName2 = "newFile2.txt";
@@ -400,13 +394,9 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 		Map<String, Object> parameters = new HashMap<>();
 		String indexClass = "TEST_INDEX_CLASS";
 		parameters.put("indexClass", indexClass);
-	
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir =  engineFolder + "/schema";
-		String indexDir = schemaDir + "/" + indexClass;
-		String documentsDir = indexDir + "/" + "documents";
-		Path docDirPath = Paths.get(documentsDir);
+
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 		// create 4 new files: newFile1 ... newFile4.txt
 		List<String> fileNames = new Vector<>();
@@ -555,19 +545,17 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 			}
 		}
 		
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path shemaDirPath = Paths.get(schemaDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaPath = engineFolder.resolve("schema");
 				
 		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
 			DIHelper diMock = mock(DIHelper.class);			
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 				MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
 				
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias)).thenReturn(engineFolder);
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias)).thenReturn(engineFolder.toString());
 				
 				// will assure doesIndexExist returns false and enters createIndex
 				hhu.when(() -> HttpHelperUtility.headRequest(any(String.class), any(Map.class), nullable(String.class),
@@ -584,7 +572,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 				
 				engine.open(testProps);
 				Properties engineProperties = engine.getSmssProp();
-				assertTrue(Files.exists(shemaDirPath));
+				assertTrue(Files.exists(schemaPath));
 				assertNotNull(engineProperties);
 				assertFalse(engineProperties.isEmpty());
 				assertFalse(testProps.isEmpty());

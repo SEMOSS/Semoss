@@ -107,10 +107,8 @@ public class PGVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.DATABASE_ZONEID, databaseZone);
 		testProps.setProperty(Constants.OWL, owl);
 		
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path shemaDirPath = Paths.get(schemaDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaPath = engineFolder.resolve("schema");
 		
 		try (MockedStatic<SmssUtilities> su = Mockito.mockStatic(SmssUtilities.class);
 				MockedStatic<SqlQueryUtilFactory> squf = Mockito.mockStatic(SqlQueryUtilFactory.class);
@@ -144,15 +142,15 @@ public class PGVectorDatabaseEngineUnitTests {
 			try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 				DIHelper diMock = mock(DIHelper.class);
 				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
 					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-							testEngineAlias)).thenReturn(engineFolder);
+							testEngineAlias)).thenReturn(engineFolder.toString());
 
 					engine.open(testProps);
-					assertTrue(Files.exists(shemaDirPath));
+					assertTrue(Files.exists(schemaPath));
 					Properties engineProperties = engine.getSmssProp();
 					assertNotNull(engineProperties);
 					assertFalse(engineProperties.isEmpty());
@@ -189,10 +187,8 @@ public class PGVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.DATABASE_ZONEID, databaseZone);
 		testProps.setProperty(Constants.OWL, owl);
 		
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path shemaDirPath = Paths.get(schemaDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaPath = engineFolder.resolve("schema");
 		
 		try (MockedStatic<SmssUtilities> su = Mockito.mockStatic(SmssUtilities.class);
 				MockedStatic<SqlQueryUtilFactory> squf = Mockito.mockStatic(SqlQueryUtilFactory.class);
@@ -226,12 +222,12 @@ public class PGVectorDatabaseEngineUnitTests {
 			try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 				DIHelper diMock = mock(DIHelper.class);
 				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
 					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-							testEngineAlias)).thenReturn(engineFolder);
+							testEngineAlias)).thenReturn(engineFolder.toString());
 
 					NullPointerException e = assertThrows(
 							NullPointerException.class,
@@ -264,10 +260,8 @@ public class PGVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.OWL, owl);
 		testProps.setProperty(Constants.DEFAULT_CHUNK_UNIT, "bad_unit");
 		
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path shemaDirPath = Paths.get(schemaDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaPath = engineFolder.resolve("schema");
 		
 		try (MockedStatic<SmssUtilities> su = Mockito.mockStatic(SmssUtilities.class);
 				MockedStatic<SqlQueryUtilFactory> squf = Mockito.mockStatic(SqlQueryUtilFactory.class);
@@ -301,12 +295,12 @@ public class PGVectorDatabaseEngineUnitTests {
 			try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 				DIHelper diMock = mock(DIHelper.class);
 				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
 					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-							testEngineAlias)).thenReturn(engineFolder);
+							testEngineAlias)).thenReturn(engineFolder.toString());
 
 					IllegalArgumentException e = assertThrows(
 							IllegalArgumentException.class,
@@ -547,11 +541,8 @@ public class PGVectorDatabaseEngineUnitTests {
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
 
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		String indexDir = schemaDir + "/" + indexClass;
-		Path indexDirPath = Paths.get(indexDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 		// create schema/index_class/documents
 		Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
@@ -730,11 +721,8 @@ public class PGVectorDatabaseEngineUnitTests {
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
 
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		String indexDir = schemaDir + "/" + indexClass;
-		Path indexDirPath = Paths.get(indexDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 		// create schema/index_class/documents
 		Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
@@ -839,11 +827,8 @@ public class PGVectorDatabaseEngineUnitTests {
 
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ENGINE_ALIAS";
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		String indexDir = schemaDir + "/" + indexClass;
-		Path indexDirPath = Paths.get(indexDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 		// create schema/index_class/documents
 		Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
@@ -853,8 +838,7 @@ public class PGVectorDatabaseEngineUnitTests {
 		Files.createDirectories(indexFileDirPath);
 
 		// we need to create a few files in the "insight" folder
-		String insightDir = tempDir.toString() + "/insight";
-		Path insightDirPath = Paths.get(insightDir);
+		Path insightDirPath = Paths.get(tempDir.toString(), "insight");
 		Files.createDirectories(insightDirPath);
 		// create 2 files for our insight folder
 		String fileName1 = "newFile1.txt";
@@ -905,11 +889,11 @@ public class PGVectorDatabaseEngineUnitTests {
 				when(mockConn.prepareStatement(any())).thenReturn(psMock);
 				when(psMock.executeBatch()).thenReturn(new int[0]);
 
-				printDirContents(tempDir);
+//				printDirContents(tempDir);
 				assertTrue(Files.exists(file1));
 				assertTrue(Files.exists(file2));
 				engine.addDocument(fileNames, parameters);
-				printDirContents(tempDir);
+//				printDirContents(tempDir);
 				assertFalse(Files.exists(file1)); // deleted from insight folder
 				assertFalse(Files.exists(file2)); // deleted from insight folder
 				assertTrue(Files.exists(docDirPath.resolve(fileName1))); // moved to doc folder
@@ -918,6 +902,9 @@ public class PGVectorDatabaseEngineUnitTests {
 		}
 	}
 		
+	/*
+	 * Used for debugging file directory contents
+	 */
 	private void printDirContents(Path path) {
 		System.out.println(path.toAbsolutePath());
 		if (Files.isDirectory(path)) {
@@ -965,14 +952,8 @@ public class PGVectorDatabaseEngineUnitTests {
 		String testEngineAlias = "TEST_ENGINE_ALIAS";
 		String indexClass = "TEST_INDEX_CLASS";
 		
-	 // run this part first to create an index class in the schema directory
- 		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
- 				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
- 		String schemaDir = engineFolder + "/schema";
- 		Path schemaDirPath = Paths.get(schemaDir);
- 		Files.createDirectories(schemaDirPath);
- 		String indexDir = schemaDir + "/" + indexClass;
- 		Path indexDirPath = Paths.get(indexDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
  		Files.createDirectories(indexDirPath);
 	    Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 	    
@@ -1035,7 +1016,6 @@ public class PGVectorDatabaseEngineUnitTests {
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties
-
 		
 		try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);){
 			// used in verifyModelProps
@@ -1103,11 +1083,9 @@ public class PGVectorDatabaseEngineUnitTests {
 				testProps.setProperty(key, prop);
 			}
 		}
-
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path shemaDirPath = Paths.get(schemaDir);
+		
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaPath = engineFolder.resolve("schema");
 		
 		try (MockedStatic<SmssUtilities> su = Mockito.mockStatic(SmssUtilities.class);
 				MockedStatic<SqlQueryUtilFactory> squf = Mockito.mockStatic(SqlQueryUtilFactory.class);
@@ -1141,15 +1119,15 @@ public class PGVectorDatabaseEngineUnitTests {
 			try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 				DIHelper diMock = mock(DIHelper.class);
 				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
 					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-							testEngineAlias)).thenReturn(engineFolder);
+							testEngineAlias)).thenReturn(engineFolder.toString());
 
 					engine.open(testProps);
-					assertTrue(Files.exists(shemaDirPath));
+					assertTrue(Files.exists(schemaPath));
 					Properties engineProperties = engine.getSmssProp();
 					assertNotNull(engineProperties);
 					assertFalse(engineProperties.isEmpty());

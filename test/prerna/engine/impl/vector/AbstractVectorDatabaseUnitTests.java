@@ -268,13 +268,10 @@ public class AbstractVectorDatabaseUnitTests {
 		parameters.put("indexClass", indexClass);
 		parameters.put(AbstractVectorDatabaseEngine.INSIGHT, insight);
 		
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		String indexDir = schemaDir + "/" + indexClass;
-		Path indexDirPath = Paths.get(indexDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine)); 
+		Path schemaDir = engineFolder.resolve("schema");
+		Path indexDirPath = schemaDir.resolve(indexClass);
 		Files.createDirectories(indexDirPath);
-		// create schema/index_class/documents
 		Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 		Files.createDirectories(docDirPath);
 		// create schem/index_class/indexed_files
@@ -282,8 +279,7 @@ public class AbstractVectorDatabaseUnitTests {
 		Files.createDirectories(indexFileDirPath);
 
 		// we need to create a few files in the "insight" folder
-		String insightDir = tempDir.toString() + "/insight";
-		Path insightDirPath = Paths.get(insightDir);
+		Path insightDirPath = tempDir.resolve("insight");
 		Files.createDirectories(insightDirPath);
 		// create 2 files for our insight folder
 		String fileName1 = "newFile1.txt";
@@ -362,13 +358,10 @@ public class AbstractVectorDatabaseUnitTests {
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
 		
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		String indexDir = schemaDir + "/" + indexClass;
-		Path indexDirPath = Paths.get(indexDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine)); 
+		Path schemaDir = engineFolder.resolve("schema");
+		Path indexDirPath = schemaDir.resolve(indexClass);
 		Files.createDirectories(indexDirPath);
-		// create schema/index_class/documents
 		Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 		Files.createDirectories(docDirPath);
 		// create schem/index_class/indexed_files
@@ -376,8 +369,7 @@ public class AbstractVectorDatabaseUnitTests {
 		Files.createDirectories(indexFileDirPath);
 
 		// we need to create a few files in the "insight" folder
-		String insightDir = tempDir.toString() + "/insight";
-		Path insightDirPath = Paths.get(insightDir);
+		Path insightDirPath = tempDir.resolve("insight");
 		Files.createDirectories(insightDirPath);
 		// create 2 files for our insight folder
 		String fileName1 = "newFile1.txt";
@@ -439,8 +431,7 @@ public class AbstractVectorDatabaseUnitTests {
 	@Test
 	void testCleanUpDocument(@TempDir Path tempDir) throws Exception {
 		// we need to create a file in the "insight" folder
-		String insightDir = tempDir.toString() + "/insight";
-		Path insightDirPath = Paths.get(insightDir);
+		Path insightDirPath = tempDir.resolve("insight");
 		Files.createDirectories(insightDirPath);
 		// create file for our insight folder
 		String fileName1 = "newFile1.txt";
@@ -458,10 +449,9 @@ public class AbstractVectorDatabaseUnitTests {
 	    String indexClass = "index_class";
 		
 	    openEngine(tempDir, engine, null);
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
- 				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
- 		String schemaDir = engineFolder + "/schema"; 		
- 		String indexDir = schemaDir + "/" + indexClass + "/indexed_files";
+	    Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+ 		Path schemaDir = engineFolder.resolve("schema"); 		
+ 		String indexDir = schemaDir.resolve(indexClass).resolve("indexed_files").toString();
 	    
 	    engine.addIndexClass(indexClass);
 	    assertEquals(Utility.normalizePath(indexDir), engine.getIndexFilesPath(indexClass)); 
@@ -474,10 +464,9 @@ public class AbstractVectorDatabaseUnitTests {
 	    String indexClass = "index_class";
 		
 	    openEngine(tempDir, engine, null);
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
- 				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
- 		String schemaDir = engineFolder + "/schema"; 		
- 		String indexDir = schemaDir + "/" + indexClass + "/indexed_files";
+	    Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+	    Path schemaDir = engineFolder.resolve("schema"); 		
+ 		String indexDir = schemaDir.resolve(indexClass).resolve("indexed_files").toString();
 	    
  		IllegalArgumentException e = assertThrows(
  				IllegalArgumentException.class, 
@@ -494,10 +483,9 @@ public class AbstractVectorDatabaseUnitTests {
 	    openEngine(tempDir, engine, null);
 		
 	 // run this part first to create an index class in the schema directory
- 		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
- 				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
- 		String schemaDir = engineFolder + "/schema";
- 		String docDir = schemaDir + "/" + indexClass + "/" + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+	    Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+	    Path schemaDir = engineFolder.resolve("schema"); 
+ 		String docDir = schemaDir.resolve(indexClass).resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME).toString();
  		
 	    engine.addIndexClass(indexClass);
 	    assertEquals(Utility.normalizePath(docDir), engine.getDocumentsFilesPath(indexClass));
@@ -749,12 +737,9 @@ public class AbstractVectorDatabaseUnitTests {
 		parameters.put("indexClass", indexClass);
 		parameters.put(AbstractVectorDatabaseEngine.INSIGHT, insight);
 		
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path schemPath = Paths.get(schemaDir);
-		String indexDir = schemaDir + "/" + indexClass;
-		Path indexDirPath = Paths.get(indexDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaPath = engineFolder.resolve("schema");
+		Path indexDirPath = schemaPath.resolve(indexClass);
 		Files.createDirectories(indexDirPath);
 		// create schema/index_class/documents
 		Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
@@ -766,19 +751,19 @@ public class AbstractVectorDatabaseUnitTests {
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 					MockedStatic<UploadUtilities> uu = Mockito.mockStatic(UploadUtilities.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder);
-				assertTrue(Files.exists(schemPath)); // created by open()
+						testEngineAlias)).thenReturn(engineFolder.toString());
+				assertTrue(Files.exists(schemaPath)); // created by open()
 				assertTrue(Files.exists(indexDirPath));
 				assertTrue(Files.exists(docDirPath));
 				assertTrue(Files.exists(indexFileDirPath));
 				engine.setSmssFilePath("no/file"); // to avoid null pointer exception
 				engine.delete();
-				assertFalse(Files.exists(schemPath)); // created by open()
+				assertFalse(Files.exists(schemaPath)); // created by open()
 				assertFalse(Files.exists(indexDirPath));
 				assertFalse(Files.exists(docDirPath));
 				assertFalse(Files.exists(indexFileDirPath));
@@ -812,22 +797,20 @@ public class AbstractVectorDatabaseUnitTests {
 			}
 		}
 
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path shemaDirPath = Paths.get(schemaDir);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaPath = engineFolder.resolve("schema");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder);
+						testEngineAlias)).thenReturn(engineFolder.toString());
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(shemaDirPath));
+				assertTrue(Files.exists(schemaPath));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));
