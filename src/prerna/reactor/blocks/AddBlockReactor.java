@@ -42,8 +42,7 @@ public class AddBlockReactor extends AbstractReactor {
 
 		organizeKeys();
 		Map<String, Object> blockDetails = getBlockDetails();
-		String tableName = ThemeDbTable.BLOCKS_TABLE.toString();
-		String blockId = BlocksThemeUtils.addBlock(blockDetails, tableName);
+		String blockId = BlocksThemeUtils.addBlock(blockDetails);
 		NounMetadata nm = new NounMetadata(blockId, PixelDataType.CONST_STRING);
 		return nm;
 	}
