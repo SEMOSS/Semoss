@@ -2,10 +2,14 @@ package prerna.reactor.security;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.User;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -38,6 +42,19 @@ public class GetAuthorLatestUpdatedReactor extends AbstractReactor {
             classLogger.error(Constants.STACKTRACE, new IllegalArgumentException("Must input an engine id"));
         }
 
+        User user = this.insight.getUser();
+		
+		List<Map<String, Object>> baseInfo = null;
+		// make sure valid id for user
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
+		if(SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+			// user has access!
+			baseInfo = SecurityEngineUtils.getUserEngineList(user, engineId, null);
+		} else {
+			// you dont have access
+			throw new IllegalArgumentException("Engine does not exist or user does not have access to the database");
+		}
+		
         SelectQueryStruct qs = new SelectQueryStruct();
         qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBY"));
         qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED"));
@@ -52,11 +69,7 @@ public class GetAuthorLatestUpdatedReactor extends AbstractReactor {
         if(list.size() > 0){
             return new NounMetadata(list.get(0), PixelDataType.CUSTOM_DATA_STRUCTURE);
         } else {
-            Map<String, Object> map = new java.util.HashMap<String, Object>();
-            map.put("PERMISSIONGRANTEDBY", "No data found for engine id: " + engineId);
-            map.put("DATEADDED", "No data found for engine id: " + engineId);
-            list.add(map);
-            return new NounMetadata(list.get(0), PixelDataType.CUSTOM_DATA_STRUCTURE);    
+            throw new NoSuchElementException("No author found for the engine id: " + engineId); 
         }
     }
 }
