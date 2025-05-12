@@ -850,7 +850,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
+			throw new IllegalArgumentException("Unable to connect to server for pgvector databse.");
 		}
 
 		// create the py translator

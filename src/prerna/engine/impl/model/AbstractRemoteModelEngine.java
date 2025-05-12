@@ -51,7 +51,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	protected String modelType;
 	private IRemoteClientServer zkClient;
 	// Use this to simulate the cluster environment
-	private Boolean devPortFowarding = false;
+	private Boolean devPortForwarding = false;
 	// For normal development
 	private String kmsIngressUrl = null;
 	private String modelIngressUrl = null;
@@ -88,7 +88,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 
 		// Get the appropriate ZK client implementation based on environment
-		this.zkClient = ZKClientFactory.getZKClient();
+		this.zkClient = ZKClientFactory.getZKClient(this.devPortForwarding);
 		
 		// Check if we're using the REST proxy (for KMS_INGRESS validation)
 		boolean usingRestProxy = this.zkClient instanceof RemoteClientServerZKRESTProxy;
@@ -99,7 +99,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			if (!this.kmsIngressUrl.endsWith("/")) {
 				this.kmsIngressUrl += "/";
 			}
-		} else if (this.devPortFowarding) {
+		} else if (this.devPortForwarding) {
 			classLogger.info("Using devPortforwarding for KMS URL with localhost:8000/");
 		} else {
 			classLogger.info("KMS_INGRESS environment variable not found and devPortforwarding not set, using ZooKeeper for KMS IP resolution. This is correct for production deployments.");
@@ -111,7 +111,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			if (!this.modelIngressUrl.endsWith("/")) {
 				this.modelIngressUrl += "/";
 			}
-		} else if (this.devPortFowarding) {
+		} else if (this.devPortForwarding) {
 			classLogger.info("Using devPortForwarding for model URLs with localhost:8888/");
 		} else {
 			classLogger.info("MODEL_INGRESS environment variable not found and devPortforwarding not set, using ZooKeeper for Model IP resolution. This is correct for production deployments.");
@@ -145,7 +145,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		
 		// KMS SHUTDOWN
 		if (service == Services.KMS_SHUTDOWN) {
-		    if (devPortFowarding) {
+		    if (devPortForwarding) {
 		    	serviceUrl = String.format("http://localhost:8000/api/v2/stop?model_id=%s&model=%s", 
 		            this.engineId, this.model);
 		    } else if (kmsIngressUrl != null) {
@@ -167,7 +167,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		    }
 		// KMS START
 		} else if (service == Services.KMS_START) {
-		    if (devPortFowarding) {
+		    if (devPortForwarding) {
 		    	serviceUrl = "http://localhost:8000/api/v2/start";
 		    } else if (kmsIngressUrl != null) {
 		    	serviceUrl = kmsIngressUrl + "api/v2/start";
@@ -188,18 +188,33 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		} else if (service == Services.MODEL) {
 			// Grabbing the cluster IP in all situations since it should always have one
 			String clusterIp = zkClient.getModelClusterIp(this.engineId);
+			Boolean isModelTypeOpenAI = this.modelType.equals("OPEN_AI");
 			if (clusterIp == null) {
 				classLogger.error("No cluster IP available for model {}", this.engineId);
 				throw new IllegalStateException("Unable to get cluster ip for model.");
 			}
-			
-			if (devPortFowarding) {
-				serviceUrl = String.format("http://localhost:8080/v2/models/%s/infer", this.model);
+			// LOCAL DEV W/ PF
+			if (devPortForwarding) {
+				if (isModelTypeOpenAI) {
+					serviceUrl = "http://localhost:8080/openai/v1";
+				} else {
+					serviceUrl = String.format("http://localhost:8080/v2/models/%s/infer", this.model);
+				}
+			// LOCAL DEV W/ INGRESS	
 			} else if (this.modelIngressUrl != null) {
+				if (isModelTypeOpenAI) {
+					serviceUrl = this.modelIngressUrl + this.model + "/openai/v1";
+				} else {
 				serviceUrl = this.modelIngressUrl + this.model + "/v2/models/" + this.model + "/infer";
+				}
 			}
+			// DEPLOYMENT
 			else {
-				serviceUrl = String.format("http://%s/v2/models/%s/infer", clusterIp, this.model);
+				if (isModelTypeOpenAI) {
+					serviceUrl = String.format("http://%s/openai/v1", clusterIp);
+				} else {
+					serviceUrl = String.format("http://%s/v2/models/%s/infer", clusterIp, this.model);
+				}
 			}
 		} else {
 		    throw new IllegalArgumentException("Unsupported service: " + service);
@@ -438,67 +453,66 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 	}
 	
-	// I don't have a solution for this yet since the KServe models use the infer endpoint
-	private String getModelUrl() {
-		String clusterAddress = zkClient.getModelClusterIp(this.engineId);
-		if (this.devPortFowarding) {
-			return "http://localhost:8888/api";
-		}
-		return String.format("http://%s/api", clusterAddress);
+	private String getModelUrl() throws Exception {
+		return this.createServiceUrl(Services.MODEL);
+
 	}
 
 	@Override
 	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> hyperParameters)  {
-		try {
-			checkModelUp();
-		} catch(Exception e) {
-			classLogger.error("Error deploying model", e);
-		}
-		String modelUrl = getModelUrl();
-		classLogger.info("Adding cluster address to parameters: {}", modelUrl);
-		if (hyperParameters != null) {
-			hyperParameters.put("base_url", modelUrl);
-		} else {
-			hyperParameters = new HashMap<>();
-			hyperParameters.put("base_url", modelUrl);
-		}
-		return implementingEngineClass.askCall(question, fullPrompt, context, insight, hyperParameters);
+	    try {
+	        checkModelUp();
+	        String modelUrl = getModelUrl();
+	        classLogger.info("Adding cluster address to parameters: {}", modelUrl);
+	        if (hyperParameters != null) {
+	            hyperParameters.put("base_url", modelUrl);
+	        } else {
+	            hyperParameters = new HashMap<>();
+	            hyperParameters.put("base_url", modelUrl);
+	        }
+	        return implementingEngineClass.askCall(question, fullPrompt, context, insight, hyperParameters);
+	    } catch (Exception e) {
+	        classLogger.error("Error getting model URL or deploying model", e);
+	        return null;
+	    }
 	}
 
 	@Override
 	protected EmbeddingsModelEngineResponse embeddingsCall(List<String> stringsToEmbed, Insight insight, Map<String, Object> parameters) {
-		try {
-			checkModelUp();
-		} catch(Exception e) {
-			classLogger.error("Error deploying model", e);
-		}
-		String modelUrl = getModelUrl();
-		classLogger.info("Adding cluster address to parameters: {}", modelUrl);
-		if (parameters != null) {
-		    parameters.put("base_url", modelUrl);
-		} else {
-		    parameters = new HashMap<>();
-		    parameters.put("base_url", modelUrl);
-		}
-		return implementingEngineClass.embeddingsCall(stringsToEmbed, insight, parameters);
+	    try {
+	        checkModelUp();
+	        String modelUrl = getModelUrl();
+	        classLogger.info("Adding cluster address to parameters: {}", modelUrl);
+	        if (parameters != null) {
+	        	parameters.put("base_url", modelUrl);
+	        } else {
+	        	parameters = new HashMap<>();
+	        	parameters.put("base_url", modelUrl);
+	        }
+	        return implementingEngineClass.embeddingsCall(stringsToEmbed, insight, parameters);
+	    } catch (Exception e) {
+	        classLogger.error("Error getting model URL or deploying model", e);
+	        return null;
+	    }
 	}
 	
 	@Override
 	protected EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters) {
-		try {
-			checkModelUp();
-		} catch(Exception e) {
-			classLogger.error("Error deploying model", e);
-		}
-		String modelUrl = getModelUrl();
-		classLogger.info("Adding cluster address to parameters: {}", modelUrl);
-		if (parameters != null) {
-		    parameters.put("base_url", modelUrl);
-		} else {
-		    parameters = new HashMap<>();
-		    parameters.put("base_url", modelUrl);
-		}
-		return implementingEngineClass.imageEmbeddingsCall(imagesToEmbed, insight, parameters);
+	    try {
+	        checkModelUp();
+	        String modelUrl = getModelUrl();
+	        classLogger.info("Adding cluster address to parameters: {}", modelUrl);
+	        if (parameters != null) {
+	        	parameters.put("base_url", modelUrl);
+	        } else {
+	        	parameters = new HashMap<>();
+	        	parameters.put("base_url", modelUrl);
+	        }
+	        return implementingEngineClass.imageEmbeddingsCall(imagesToEmbed, insight, parameters);
+	    } catch (Exception e) {
+	        classLogger.error("Error getting model URL or deploying model", e);
+	        return null;
+	    }
 	}
 
 	@Override

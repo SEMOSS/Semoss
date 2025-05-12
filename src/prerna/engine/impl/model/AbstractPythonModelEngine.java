@@ -31,7 +31,6 @@ import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
-
 /**
  * This class is responsible for creating a {@code IModelEngine} class that is directly linked to 
  * a python process. The corresponding python class should handle all method implementations. This java class is 
@@ -40,7 +39,6 @@ import prerna.util.Utility;
 public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
-
 	
 	// python server
 	protected String prefix = null;
@@ -136,7 +134,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
+				throw new IllegalArgumentException("Unable to connect to server for python model engine.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
 			cpwToInit.shutdown(false);
@@ -144,7 +142,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " +this.getEngineName());
+				throw new IllegalArgumentException("Failed to start TCP Server for Python Model Engine = " +this.getEngineName());
 			}
 		}
 		
