@@ -336,6 +336,17 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 	}
 	
+	/**
+	 * Edit an existing group across all the tables
+	 * 
+	 * @param curGroupId
+	 * @param curGroupType
+	 * @param newGroupId
+	 * @param newGroupType
+	 * @param newDescription
+	 * @param newIsCustomGroup
+	 * @throws Exception
+	 */
 	public void editGroupDetailsAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId, String newGroupType, String newDescription, boolean newIsCustomGroup) throws Exception {
 		curGroupType = curGroupType == null ? curGroupType : curGroupType.toUpperCase();
 		newGroupType = newGroupType == null ? newGroupType : newGroupType.toUpperCase();
