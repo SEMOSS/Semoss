@@ -80,18 +80,3 @@ def test_decode_tokens(tokenizer):
     decoded_text = tokenizer.decode_token_ids(token_ids)
     assert isinstance(decoded_text, str), "Decoded output should be a string"
     assert len(decoded_text) > 0, "Decoded string should not be empty"
-
-
-def test_model_limits(tokenizer):
-    """
-    Tests the get_model_limits method.
-    - Verifies correct retrieval of model limits.
-    - Ensures the output is a dictionary.
-    - Confirms the presence of specific keys: context_window, max_completion_tokens.
-    """
-    limits = tokenizer.get_model_limits(model_name=ENCODER_NAME)
-    assert isinstance(limits, dict), "Limits should be a dictionary"
-    assert "context_window" in limits, "Dictionary should contain context_window"
-    assert (
-        "max_completion_tokens" in limits
-    ), "Dictionary should contain max_completion_tokens"

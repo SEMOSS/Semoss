@@ -144,6 +144,75 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 
 		return json;
 	}
+	
+	@Override
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
+		// Fetch metadata for the engine
+		Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(
+				this.getEngineId(),
+				Arrays.asList("description"),
+				true
+				);
+
+		// Extract the description from metadata
+		String description = (String) metadata.get("description");
+		if (description == null) {
+			description = "No description available.";
+		}
+
+		// Create the main map
+		Map<String, Object> toolMap = new HashMap<>();
+		toolMap.put("type", "function");
+
+		// Create the function map
+		Map<String, Object> functionMap = new HashMap<>();
+		functionMap.put("name", "function_engine");
+		functionMap.put("description", description);
+
+		// Create the parameters map
+		Map<String, Object> parametersMap = new HashMap<>();
+		parametersMap.put("type", "object");
+
+		// Create the properties map
+		Map<String, Object> propertiesMap = new HashMap<>();
+
+		// Add the id property
+		Map<String, Object> idMap = new HashMap<>();
+		idMap.put("type", "string");
+		idMap.put("description", "The unique identifier for this function_engine used to call this specific engine");
+		idMap.put("enum", Arrays.asList(this.getEngineId()));
+		propertiesMap.put("id", idMap);
+
+		// Add the map property
+		Map<String, Object> mapMap = new HashMap<>();
+		mapMap.put("type", "object");
+
+		// Create the map properties map
+		Map<String, Object> mapPropertiesMap = new HashMap<>();
+		for (FunctionParameter param : this.getParameters()) {
+			Map<String, Object> paramMap = new HashMap<>();
+			paramMap.put("type", param.getParameterType().toLowerCase());
+			paramMap.put("description", param.getParameterDescription());
+			mapPropertiesMap.put(param.getParameterName(), paramMap);
+		}
+		mapMap.put("properties", mapPropertiesMap);
+		mapMap.put("required", this.getRequiredParameters());
+		mapMap.put("description", "A map containing the parameters to pass into the function_engine call.");
+
+		propertiesMap.put("map", mapMap);
+
+		// Finalize parameters map
+		parametersMap.put("properties", propertiesMap);
+		parametersMap.put("required", Arrays.asList("id", "map"));
+
+		// Add parameters to function map
+		functionMap.put("parameters", parametersMap);
+
+		// Add function map to main map
+		toolMap.put("function", functionMap);
+
+		return toolMap;
+	}
 
 	@Override
 	public void setEngineId(String engineId) {
@@ -240,75 +309,12 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 		return false;
 	}
 
+	@Deprecated
 	/**
-	 * 
+	 * Will be deleted for buildOpenAIFunctionEngineToolMap
 	 */
 	public Map<String, Object> buildFunctionEngineToolMap() {
-		// Fetch metadata for the engine
-		Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(
-				this.getEngineId(),
-				Arrays.asList("description"),
-				true
-				);
-
-		// Extract the description from metadata
-		String description = (String) metadata.get("description");
-		if (description == null) {
-			description = "No description available.";
-		}
-
-		// Create the main map
-		Map<String, Object> toolMap = new HashMap<>();
-		toolMap.put("type", "function");
-
-		// Create the function map
-		Map<String, Object> functionMap = new HashMap<>();
-		functionMap.put("name", "function_engine");
-		functionMap.put("description", description);
-
-		// Create the parameters map
-		Map<String, Object> parametersMap = new HashMap<>();
-		parametersMap.put("type", "object");
-
-		// Create the properties map
-		Map<String, Object> propertiesMap = new HashMap<>();
-
-		// Add the id property
-		Map<String, Object> idMap = new HashMap<>();
-		idMap.put("type", "string");
-		idMap.put("description", "The unique identifier for this function_engine used to call this specific engine");
-		idMap.put("enum", Arrays.asList(this.getEngineId()));
-		propertiesMap.put("id", idMap);
-
-		// Add the map property
-		Map<String, Object> mapMap = new HashMap<>();
-		mapMap.put("type", "object");
-
-		// Create the map properties map
-		Map<String, Object> mapPropertiesMap = new HashMap<>();
-		for (FunctionParameter param : this.getParameters()) {
-			Map<String, Object> paramMap = new HashMap<>();
-			paramMap.put("type", param.getParameterType());
-			paramMap.put("description", param.getParameterDescription());
-			mapPropertiesMap.put(param.getParameterName(), paramMap);
-		}
-		mapMap.put("properties", mapPropertiesMap);
-		mapMap.put("required", this.getRequiredParameters());
-		mapMap.put("description", "A map containing the parameters to pass into the function_engine call.");
-
-		propertiesMap.put("map", mapMap);
-
-		// Finalize parameters map
-		parametersMap.put("properties", propertiesMap);
-		parametersMap.put("required", Arrays.asList("id", "map"));
-
-		// Add parameters to function map
-		functionMap.put("parameters", parametersMap);
-
-		// Add function map to main map
-		toolMap.put("function", functionMap);
-
-		return toolMap;
+		return buildOpenAIFunctionEngineToolMap();
 	}
 
 }

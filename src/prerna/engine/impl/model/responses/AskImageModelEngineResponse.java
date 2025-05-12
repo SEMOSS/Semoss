@@ -10,13 +10,25 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<String, Object>> {
+	
 	private static final Logger classLogger = LogManager.getLogger(AskImageModelEngineResponse.class);
 	private static final long serialVersionUID = 1L;
 	
+	/**
+	 * 
+	 * @param response
+	 * @param numberOfTokensInPrompt
+	 * @param numberOfTokensInResponse
+	 */
     public AskImageModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
 
+    /**
+     * 
+     * @param response
+     * @return
+     */
     public static AskImageModelEngineResponse getKServeImageResponse(JSONObject response) {
         if (response != null) {
             Map<String, Object> responseMap = new HashMap<>();

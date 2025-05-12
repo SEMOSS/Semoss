@@ -199,10 +199,10 @@ public class ClientProcessWrapper {
 		        				if(serverDir.exists()) {
 			        				FileUtils.deleteDirectory(this.serverDirectory);
 					        		classLogger.info("Sucessfully cleaned up the directory");
-			        				result = true;
 		        				} else {
 		        					classLogger.info("Server directory does not exist");
 		        				}
+	        					result = true;
 		        			} catch (Exception ignored) {
 		        				classLogger.info("Failed attempt # " + attempt + " to delete the folder " + this.serverDirectory);
 		        				attempt++;

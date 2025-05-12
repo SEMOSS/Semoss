@@ -42,6 +42,7 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -246,7 +247,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	public static void addEngineOwner(String engineId, String userId) {
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES (?,?,?,?)";
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY, DATEADDED) VALUES (?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -256,6 +257,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
 			ps.setString(parameterIndex++, engineId);
 			ps.setBoolean(parameterIndex++, true);
+			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -2159,6 +2161,18 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToSetString(securityDb, qs, false);
 	}
 	
+	public static List<Map<String, Object>> getUserEngineList(User user, 
+			List<String> engineTypes,
+			List<String> engineIdFilters,
+			Boolean favoritesOnly, 
+			Map<String, Object> engineMetadataFilter, 
+			List<Integer> permissionFilters, 
+			String searchTerm, 
+			String limit, 
+			String offset) {
+		return getUserEngineList(user, engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter, permissionFilters, searchTerm, limit, offset, null);
+	}
+	
 
 	/**
 	 * Get the list of the database information that the user has access to
@@ -2172,6 +2186,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
+	 * @param sortFields
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserEngineList(User user, 
@@ -2182,7 +2197,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			List<Integer> permissionFilters, 
 			String searchTerm, 
 			String limit, 
-			String offset) {
+			String offset,
+			Map<String, String> sortFields) {
 
 		String enginePrefix = "ENGINE__";
 		String groupEnginePermission = "GROUPENGINEPERMISSION__";
@@ -2196,6 +2212,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "tool_app"));
 		
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
@@ -2383,9 +2400,23 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		// add the sort
-		qs1.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
-
+		if (sortFields == null || sortFields.isEmpty()) {
+			// Default Sorting
+			qs1.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));	
+		} else {
+			Set<String> sortKeys = sortFields.keySet();
+			Set<String> validSorts = new HashSet<>(Arrays.asList("ENGINENAME", "DATECREATED"));
+			if (sortFields.containsKey(null) || sortFields.containsValue(null)) {
+				throw new SemossPixelException("Sort parameters cannot contain null keys or values");
+			}
+			if (!validSorts.containsAll(sortKeys)) {
+				throw new SemossPixelException("Invalid Sort Parameters passed: Only \"ENGINENAME\" and \"DATECREATED\" are supported");
+			}
+			for (String s: sortKeys) {
+				qs1.addOrderBy("ENGINE__" + s, sortFields.getOrDefault(s, "ASC"));
+			}
+		}
+		
 		Long long_limit = -1L;
 		Long long_offset = -1L;
 		if(limit != null && !limit.trim().isEmpty()) {
@@ -2651,6 +2682,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "database_tool_app"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
@@ -3102,6 +3134,25 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occurred while updating the user engine permissions in db ");
 		} finally {
 			ConnectionUtils.closeAllDbConnectionsIfPooling(securityDb, deletePs, insertPs);
+		}
+	}
+
+	public static void updateEngineToolApp(String engineId, String projectId) {
+		PreparedStatement ps = null;
+		try {
+			String query = "UPDATE ENGINE SET TOOL_APP = ? WHERE ENGINEID = ?";
+			ps = securityDb.getPreparedStatement(query);
+			ps.setString(1, projectId);
+			ps.setString(2, engineId);
+			ps.executeUpdate();
+
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error("Failed to update engine tool_app", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
