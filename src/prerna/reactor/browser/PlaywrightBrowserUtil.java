@@ -30,6 +30,7 @@ import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Download;
+import com.microsoft.playwright.Keyboard;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Locator.FilterOptions;
 import com.microsoft.playwright.Mouse;
@@ -47,7 +48,7 @@ import prerna.util.Utility;
 
 public class PlaywrightBrowserUtil {
 	
-	Playwright playwright = Playwright.create();
+	Playwright playwright = null;
 	public static final String css_id = "pw_id";
 	Map formInputs = new HashMap<String, List>();
 	Map formButton = new HashMap<String, Element>();
@@ -85,6 +86,8 @@ public class PlaywrightBrowserUtil {
 	public static final String OPTIONS = "options";
 	public static final String OPTION_VALUES = "option_values";
 	public static final String OPTION_EXACT = "option_exact";
+	public static final String SHIFT = "SHIFT";
+	public static final String CTRL = "CTRL";
 	
 	
 	boolean tracePage = false;
@@ -141,6 +144,9 @@ public class PlaywrightBrowserUtil {
 	     //LaunchOptions lp = new LaunchOptions();
 	     //lp.setChannel(BrowserChannel.CHROME);
 	     //lp.setHeadless(false);
+		
+		if(this.playwright == null)
+			this.playwright = Playwright.create();
 	     
 	     BrowserType firefox = playwright.chromium();
 	     //BrowserType firefox = playwright.webkit();
@@ -226,6 +232,7 @@ public class PlaywrightBrowserUtil {
 						} catch (NumberFormatException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
+							paramList.add(data);
 						}
 					}
 					if(type.equalsIgnoreCase("string"))
@@ -253,6 +260,9 @@ public class PlaywrightBrowserUtil {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		// forcing shift
+		kv.put(SHIFT, true);
 		
 		JSONObject obj = new JSONObject(kv);
 		System.out.println(obj);
@@ -380,6 +390,10 @@ public class PlaywrightBrowserUtil {
 				if(actionName.equalsIgnoreCase("get"))
 				{
 					System.err.println(getChoices(actionId));
+				}
+				if(actionName.equalsIgnoreCase("keypress"))
+				{
+					keyboard(action, actionId);
 				}
 		// other cases follow} 
 			}
@@ -580,6 +594,31 @@ public class PlaywrightBrowserUtil {
 		{	
 			// introduce options later
 			cur_page.mouse().move(x, y);
+		}
+	}
+	
+	public void keyboard(JSONObject payload, String actionName)
+	{
+		JSONArray params = payload.getJSONArray("params");
+		
+		
+		// phew this is going to be a deadly if then else
+		String shift = payload.has(SHIFT) && payload.getBoolean(SHIFT) ? "Shift+":""; 
+		String ctrl = payload.has(CTRL) && payload.getBoolean(CTRL) ? "ControlOrMeta+":"";
+		
+		// need to accomodate for this 
+		// F1 - F12, Digit0- Digit9, KeyA- KeyZ, Backquote, Minus, Equal, Backslash, Backspace, Tab, Delete, Escape, ArrowDown, End, Enter, Home, Insert, PageDown, PageUp, ArrowRight, ArrowUp, etc.
+		
+		if(params.length() > 0)
+		{
+			this.cur_page.keyboard().down(shift);
+			for (int paramIndex = 0;paramIndex < params.length();paramIndex++)
+			{
+				String keypress = params.getString(paramIndex);
+				//keypress = shift + ctrl + keypress;
+				this.cur_page.keyboard().press(keypress);
+			}
+			this.cur_page.keyboard().up(shift);
 		}
 	}
 	
