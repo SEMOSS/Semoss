@@ -335,6 +335,84 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
+	
+	public void editGroupDetailsAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId, String newGroupType, String newDescription, boolean newIsCustomGroup) throws Exception {
+		curGroupType = curGroupType == null ? curGroupType : curGroupType.toUpperCase();
+		newGroupType = newGroupType == null ? newGroupType : newGroupType.toUpperCase();
+
+		if(!groupExists(curGroupId, curGroupType)) {
+			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
+		}
+		String groupQuery = null;
+		String[] propagateQueries = null;
+
+		groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=? WHERE ID=?";
+		propagateQueries = new String[] {
+				"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=?",
+				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=?",
+				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=?", 
+		};
+		
+		Connection conn = null;
+		try {
+			conn = securityDb.makeConnection();
+
+			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
+			Gson gson = new Gson();
+			try {
+				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, newGroupId);
+					// handle null type for custom groups
+					if(newGroupType == null || newGroupType.isEmpty()) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newGroupType);
+					}
+					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, gson);
+					ps.setBoolean(parameterIndex++, newIsCustomGroup);
+					ps.setString(parameterIndex++, curGroupId);
+					ps.execute();
+				}
+
+				// propagation
+				for (String query : propagateQueries) {
+					try (PreparedStatement ps = conn.prepareStatement(query)) {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newGroupId);
+						// handle null type for custom groups
+						if(newGroupType == null || newGroupType.isEmpty()) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newGroupType);
+						}
+						ps.setString(parameterIndex++, curGroupId);
+						ps.execute();
+					}
+				}
+				if(!conn.getAutoCommit()) {
+					conn.commit();
+				}
+			} catch (SQLException e) {
+				if(!conn.getAutoCommit()) {
+					conn.rollback();
+				}
+				throw e;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			if(securityDb.isConnectionPooling() && conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
 
 	/**
 	 * 
@@ -1051,9 +1129,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void addGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission, String endDate) {
 		groupType = groupType == null ? groupType : groupType.toUpperCase();
+		
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
+//		if(!groupExists(groupId, engineType)) {
+//			throw new IllegalArgumentException("Group " + groupId + " with type " + engineType + " does not exist");
+//		}
 		
 		int curPermission = groupEnginePermission(groupId, groupType, engineId);
 		if(curPermission!= -1) {
@@ -1105,11 +1187,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @param endDate
 	 */
-	public void editGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission, String endDate) {
-		groupType = groupType == null ? groupType : groupType.toUpperCase();
-		int curPermission = groupEnginePermission(groupId, groupType, engineId);
+	public void editGroupEnginePermission(User user, String groupId, String engineType, String engineId, int permission, String endDate) {
+//		groupType = groupType == null ? groupType : groupType.toUpperCase();
+		engineType = engineType == null ? engineType : engineType.toUpperCase();
+//		int curPermission = groupEnginePermission(groupId, groupType, engineId);
+		int curPermission = groupEnginePermission(groupId, engineType, engineId);
 		if(curPermission == -1) {
-			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to engine " + engineId + " to edit");
+			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to engine " + engineId + " to edit " + " engine type " + engineType );
 		}
 		if(curPermission == permission) {
 			throw new IllegalArgumentException("Group " + groupId + " already has permission level " 
@@ -1125,11 +1209,17 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		
 		String updateQuery = null;
-		if(groupType == null || groupType.isEmpty()) {
+		if(engineType == null || engineType.isEmpty()) {
 			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE IS NULL";
 		} else {
-			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
+//			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
+			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=?";
 		}
+//		if(groupType == null || groupType.isEmpty()) {
+//			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE IS NULL";
+//		} else {
+//			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
+//		}
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQuery);
@@ -1145,9 +1235,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, engineId);
-			if(groupType != null) {
-				ps.setString(parameterIndex++, groupType);
-			}
+//			if(engineType != null) {
+//				ps.setString(parameterIndex++, engineType);
+//			}
+//			if(groupType != null) {
+//				ps.setString(parameterIndex++, groupType);
+//			}
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -1595,12 +1688,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @return
 	 */
-	public int groupEnginePermission(String groupId, String groupType, String engineId) {
-		groupType = groupType == null ? groupType : groupType.toUpperCase();
+	public int groupEnginePermission(String groupId, String engineType, String engineId) {
+//		groupType = groupType == null ? groupType : groupType.toUpperCase();
+		engineType = engineType == null ? engineType : engineType.toUpperCase();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", groupType));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", engineType));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		IRawSelectWrapper wrapper = null;
 		try {
