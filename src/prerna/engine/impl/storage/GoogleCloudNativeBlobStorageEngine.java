@@ -33,6 +33,7 @@ import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import prerna.engine.api.StorageTypeEnum;
+import prerna.util.Utility;
 
 public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 	
@@ -94,10 +95,14 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 	@Override
 	public List<String> list(String containerPrefix) throws Exception {
 		 List<String> fileList = new ArrayList<>();
-		 containerPrefix = containerPrefix.replace("\\", "/")
-		           .replaceAll("/+", "/")
-		           .replaceFirst("^/", "")
-		           .replaceAll("/+$", "");
+		 containerPrefix = Utility.normalizePath(containerPrefix);
+		 
+		   if (containerPrefix.startsWith("/")) {
+			   containerPrefix = containerPrefix.substring(1);
+		    }
+		    if (containerPrefix.endsWith("/")) {
+		    	containerPrefix = containerPrefix.substring(0, containerPrefix.length() - 1);
+		    }
 	        for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
 	            fileList.add(blob.getName());
 	        }
@@ -107,10 +112,13 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 	@Override
 	public List<Map<String, Object>> listDetails(String containerPrefix) throws Exception {
 		 List<Map<String, Object>> detailsList = new ArrayList<>();
-		 containerPrefix = containerPrefix.replace("\\", "/")
-		           .replaceAll("/+", "/")
-		           .replaceFirst("^/", "")
-		           .replaceAll("/+$", "");
+		 containerPrefix = Utility.normalizePath(containerPrefix);
+		 if (containerPrefix.startsWith("/")) {
+			   containerPrefix = containerPrefix.substring(1);
+		    }
+		    if (containerPrefix.endsWith("/")) {
+		    	containerPrefix = containerPrefix.substring(0, containerPrefix.length() - 1);
+		    }
 	        for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
 	            Map<String, Object> details = new HashMap<>();
 	            details.put("name", blob.getName());
@@ -342,7 +350,14 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
     public void deleteFromStorage(String storagePath) throws Exception {
         List<String> deletedFiles = new ArrayList<>();
         List<String> failedFiles = new ArrayList<>();
-        storagePath = storagePath.replace("\\", "/").replaceAll("//+", "/").replaceAll("^/+", "").replaceAll("/+$", "");
+        storagePath = Utility.normalizePath(storagePath);
+        // Remove leading and trailing slashes if present
+        if (storagePath.startsWith("/")) {
+            storagePath = storagePath.substring(1);
+        }
+        if (storagePath.endsWith("/")) {
+            storagePath = storagePath.substring(0, storagePath.length() - 1);
+        }
         boolean hasFilesToDelete = false;
 
         // List all files based on the path
@@ -384,7 +399,14 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
 		List<String> deletedFiles = new ArrayList<>();
         List<String> failedFiles = new ArrayList<>();
-        storagePath = storagePath.replace("\\", "/").replaceAll("//+", "/").replaceAll("^/+", "").replaceAll("/+$", "");
+        storagePath = Utility.normalizePath(storagePath);
+        // Remove leading and trailing slashes if present
+        if (storagePath.startsWith("/")) {
+            storagePath = storagePath.substring(1);
+        }
+        if (storagePath.endsWith("/")) {
+            storagePath = storagePath.substring(0, storagePath.length() - 1);
+        }
         boolean hasFilesToDelete = false;
 
         // List all files based on the path
@@ -436,7 +458,12 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
         List<String> deletedFiles = new ArrayList<>();
         List<String> failedFiles = new ArrayList<>();
         
-        storageFolderPath = storageFolderPath.replace("\\", "/").replaceFirst("^/", "");
+        storageFolderPath = Utility.normalizePath(storageFolderPath);
+
+        // Remove the leading slash if present
+        if (storageFolderPath.startsWith("/")) {
+            storageFolderPath = storageFolderPath.substring(1);
+        }
         
         boolean folderExists = false;
 
@@ -474,9 +501,17 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 	}
 	
 	private String uploadingFileToGCS(Path file, Path basePath, String storagePath, Map<String, Object> metadata) {
-        String relativePath = basePath.relativize(file).toString().replace("\\", "/").replaceAll("/+", "/").trim();
-        String normalizedStoragePath = storagePath.replace("\\", "/").replaceAll("/+", "/").replaceAll("^/|/$", "");
-        String blobName = storagePath.isEmpty() ? relativePath : normalizedStoragePath + (normalizedStoragePath.endsWith("/") ? "" : "/") + relativePath;
+        String relativePath = Utility.normalizePath(basePath.relativize(file).toString()).trim();
+        String normalizedStoragePath = Utility.normalizePath(storagePath);
+        // Remove leading and trailing slashes if present
+        if (normalizedStoragePath.startsWith("/")) {
+            normalizedStoragePath = normalizedStoragePath.substring(1);
+        }
+        if (normalizedStoragePath.endsWith("/")) {
+            normalizedStoragePath = normalizedStoragePath.substring(0, normalizedStoragePath.length() - 1);
+        }
+        String blobName = normalizedStoragePath.isEmpty() ? relativePath : normalizedStoragePath + "/" + relativePath;
+        
         BlobId blobId = BlobId.of(this.BUCKET, blobName);
         BlobInfo.Builder blobInfoBuilder = BlobInfo.newBuilder(blobId);
         
@@ -671,14 +706,13 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
     }
 
     private String uploadFileToGCS(Path rootPath, Path file, String storageFolderPath, Map<String, Object> metadata) throws IOException {
-        String normalizedPath = storageFolderPath.replace("\\", "/").replaceAll("/+", "/").trim();
+        String normalizedPath = Utility.normalizePath(storageFolderPath).trim();
         if (normalizedPath.startsWith("/")) {
             normalizedPath = normalizedPath.substring(1);
         }
-
-        String relativePath = rootPath.relativize(file).toString().replace("\\", "/").replaceAll("/+", "/").trim();
+        String relativePath = Utility.normalizePath(rootPath.relativize(file).toString()).trim();
         String blobName = normalizedPath.isEmpty() ? relativePath : (normalizedPath.endsWith("/") ? normalizedPath + relativePath : normalizedPath + "/" + relativePath);
-
+        
         BlobId blobId = BlobId.of(this.BUCKET, blobName);
         BlobInfo.Builder blobInfoBuilder = BlobInfo.newBuilder(blobId);
 

@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.ResponseInputStream;
@@ -97,7 +98,16 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 	@Override
 	public List<String> list(String path) throws Exception {
 		List<String> fileList = new ArrayList<String>();
-		path = path.replace("\\", "/").replaceAll("/+", "/").replaceFirst("^/", "").replaceAll("/+$", "");
+		 // Normalize the path using the utility method
+	    path = Utility.normalizePath(path);
+
+	    // Remove leading and trailing slashes, if any
+	    if (path.startsWith("/")) {
+	        path = path.substring(1);
+	    }
+	    if (path.endsWith("/")) {
+	        path = path.substring(0, path.length() - 1);
+	    }
 		try {
 			ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(path);
 			for (S3Object object : listObjectsV2Response.contents()) {
@@ -114,7 +124,16 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 	@Override
 	public List<Map<String, Object>> listDetails(String path) throws Exception {
 		List<Map<String, Object>> objectDetails = new ArrayList<>();
-		path = path.replace("\\", "/").replaceAll("/+", "/").replaceFirst("^/", "").replaceAll("/+$", "");
+		 // Normalize the path using the utility method
+	    path = Utility.normalizePath(path);
+
+	    // Remove leading and trailing slashes, if any
+	    if (path.startsWith("/")) {
+	        path = path.substring(1);
+	    }
+	    if (path.endsWith("/")) {
+	        path = path.substring(0, path.length() - 1);
+	    }
 
 		try {
 			ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(path);
@@ -334,10 +353,10 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 		for (String s3FolderPath : paths) {
 			// Delete empty folder blobs
 			deleteEmptyBlobsFromS3(s3FolderPath);
-
-			// Normalize prefix
-			String prefix = s3FolderPath.replace("\\", "/").replaceAll("/+", "/").trim();
-			if (!prefix.endsWith("/")) {
+			
+			// Normalize prefix using the utility method
+			String prefix = Utility.normalizePath(s3FolderPath);
+			if (!prefix.endsWith("/") && !prefix.isEmpty()) {
 				prefix += "/";
 			}
 
@@ -400,7 +419,15 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public void deleteFromStorage(String storagePath) throws Exception {
-		storagePath = storagePath.replace("\\", "/").replaceAll("//+", "/").replaceAll("^/+", "").replaceAll("/+$", "");
+		storagePath = Utility.normalizePath(storagePath);
+		
+	    // Remove leading and trailing slashes if present
+	    if (storagePath.startsWith("/")) {
+	        storagePath = storagePath.substring(1);
+	    }
+	    if (storagePath.endsWith("/")) {
+	        storagePath = storagePath.substring(0, storagePath.length() - 1);
+	    }
 
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
@@ -442,7 +469,15 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
-		storagePath = storagePath.replace("\\", "/").replaceFirst("^/", "").replaceAll("/+$", "");
+		storagePath = Utility.normalizePath(storagePath);
+		
+	    // Remove leading and trailing slashes if present
+	    if (storagePath.startsWith("/")) {
+	        storagePath = storagePath.substring(1);
+	    }
+	    if (storagePath.endsWith("/")) {
+	        storagePath = storagePath.substring(0, storagePath.length() - 1);
+	    }
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
 		ListObjectsV2Response responseListObjects = s3ListObjectResponse(storagePath);
@@ -481,7 +516,15 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
 
-		storageFolderPath = storageFolderPath.replace("\\", "/").replaceFirst("^/", "").replaceAll("/+$", "");
+		storageFolderPath = Utility.normalizePath(storageFolderPath);
+		
+	    // Remove leading and trailing slashes if present
+	    if (storageFolderPath.startsWith("/")) {
+	    	storageFolderPath = storageFolderPath.substring(1);
+	    }
+	    if (storageFolderPath.endsWith("/")) {
+	    	storageFolderPath = storageFolderPath.substring(0, storageFolderPath.length() - 1);
+	    }
 		boolean folderExists = false;
 
 		classLogger.info(
@@ -519,8 +562,9 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 
 	private String uploadFileToS3(String storagePath, Path filePath, Path basePath, Map<String, Object> metadata)
 			throws Exception {
-		String relativePath = basePath.relativize(filePath).toString().replace("\\", "/");
-		String fileKey = storagePath + (storagePath.endsWith("/") ? "" : "/") + relativePath;
+		String relativePath = Utility.normalizePath(basePath.relativize(filePath).toString());
+		String normalizedStoragePath = Utility.normalizePath(storagePath);
+		String fileKey = normalizedStoragePath + (normalizedStoragePath.endsWith("/") ? "" : "/") + relativePath;
 
 		try {
 			HeadObjectRequest headRequest = HeadObjectRequest.builder().bucket(this.bucket).key(fileKey).build();
@@ -711,12 +755,12 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 
 	private String uploadFile(Path rootPath, Path file, String storageFolderPath, Map<String, Object> metadata)
 			throws IOException {
-		String normalizedPath = storageFolderPath.replace("\\", "/").replaceAll("/+", "/").trim();
+		String normalizedPath = Utility.normalizePath(storageFolderPath).trim();
 		if (normalizedPath.startsWith("/")) {
 			normalizedPath = normalizedPath.substring(1);
 		}
 
-		String relativePath = rootPath.relativize(file).toString().replace("\\", "/").replaceAll("/+", "/").trim();
+		String relativePath = Utility.normalizePath(rootPath.relativize(file).toString()).trim();
 		String fileKey = normalizedPath.isEmpty() ? relativePath
 				: (normalizedPath.endsWith("/") ? normalizedPath + relativePath : normalizedPath + "/" + relativePath);
 

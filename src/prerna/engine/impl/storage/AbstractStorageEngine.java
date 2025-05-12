@@ -91,7 +91,12 @@ public abstract class AbstractStorageEngine implements IStorageEngine {
 	    for (String part : parts) {
 	        String trimmed = part.trim();
 	        if (!trimmed.isEmpty()) {
-	            String normalized = trimmed.replace("\\", "/").replaceFirst("^/", "");
+	        	// Normalize the path using the utility method
+	            String normalized = Utility.normalizePath(trimmed);
+	         // Remove the leading slash if present
+	            if (normalized.startsWith("/")) {
+	                normalized = normalized.substring(1);
+	            }
 	            result.add(normalized);
 	        }
 	    }
