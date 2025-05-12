@@ -1,4 +1,4 @@
-package prerna.browser;
+package prerna.reactor.browser;
 
 import java.util.ArrayList;
 import java.util.HashMap;

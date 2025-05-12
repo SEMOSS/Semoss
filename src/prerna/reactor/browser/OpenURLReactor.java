@@ -1,8 +1,8 @@
-package prerna.browser;
+package prerna.reactor.browser;
 
-import java.util.ArrayList;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
@@ -14,13 +14,13 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class FillInputReactor extends AbstractReactor {
+public class OpenURLReactor extends AbstractReactor {
 	
-	private final static String REACTOR_DESCRIPTION = "Fill the currently selected input of the Browser App rendered on the server.";
-	private final static String INPUT_KEY_DESCRIPTION = "The text to fill the currently selected input of the browser app rendered on the server.";
+	private final static String REACTOR_DESCRIPTION = "Open the URL of the Browser App rendered on the server.";
+	private final static String URL_KEY_DESCRIPTION = "A URL address to open on the Browser App rendered on the server.";
 	
-	public FillInputReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.INPUT.getKey()};
+	public OpenURLReactor() {
+		this.keysToGet = new String[] {ReactorKeysEnum.URL.getKey()};
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -35,28 +35,34 @@ public class FillInputReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 		
-		String input = this.keyValue.get(this.keysToGet[0]);
+		String url = this.keyValue.get(this.keysToGet[0]);
 		
-		// Ideally, previous call would have been ClickXY and the form to be input would already
-		// Be selected. That way, the next action would be. FillInputForm.
+		String domain = null;
+		try {
+			URI uri = new URI(url);
+			domain = uri.getHost();
+		} catch (URISyntaxException e) {
+			throw new IllegalArgumentException("URL is improperly formatted.", e);
+		}
 		
 		Map<String, Object> actions = new HashMap<>();
-		
 		actions.put("actor", "system");
-		actions.put("action", "fill");
-		actions.put("event", "fill");
-		actions.put("fill_value", input);
+		actions.put("action", "navigate");
+		actions.put("website", url);
+		
 		
 		String json = BrowserUtils.mapToJsonString(actions);
 		
 		JSONObject jo = new JSONObject(json);
+		
 		PlaywrightBrowserUtil pbu = this.insight.getPlaywrightUtil();
 		if (pbu == null) {
-			throw new IllegalArgumentException("There is no Playwright Browser currently open for this insight.");
-		}	
-		pbu.enterInput(input);
-		// pbu.fill(jo);
+			pbu = new PlaywrightBrowserUtil();
+			this.insight.setPlaywrightUtil(pbu);
+		}
 		
+		pbu.open(jo);
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	
@@ -67,10 +73,11 @@ public class FillInputReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.INPUT.getKey())) {
-			return INPUT_KEY_DESCRIPTION;
+		if (key.equals(ReactorKeysEnum.URL.getKey())) {
+			return URL_KEY_DESCRIPTION;
 		} else {
 			return super.getDescriptionForKey(key);
 		}
 	}
+
 }
