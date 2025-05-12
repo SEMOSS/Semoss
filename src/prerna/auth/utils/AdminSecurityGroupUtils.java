@@ -1129,13 +1129,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void addGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission, String endDate) {
 		groupType = groupType == null ? groupType : groupType.toUpperCase();
-		
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
-//		if(!groupExists(groupId, engineType)) {
-//			throw new IllegalArgumentException("Group " + groupId + " with type " + engineType + " does not exist");
-//		}
 		
 		int curPermission = groupEnginePermission(groupId, groupType, engineId);
 		if(curPermission!= -1) {
@@ -1187,13 +1183,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @param endDate
 	 */
-	public void editGroupEnginePermission(User user, String groupId, String engineType, String engineId, int permission, String endDate) {
-//		groupType = groupType == null ? groupType : groupType.toUpperCase();
-		engineType = engineType == null ? engineType : engineType.toUpperCase();
-//		int curPermission = groupEnginePermission(groupId, groupType, engineId);
-		int curPermission = groupEnginePermission(groupId, engineType, engineId);
+	public void editGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission, String endDate) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
+		int curPermission = groupEnginePermission(groupId, groupType, engineId);
 		if(curPermission == -1) {
-			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to engine " + engineId + " to edit " + " engine type " + engineType );
+			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to engine " + engineId + " to edit");
 		}
 		if(curPermission == permission) {
 			throw new IllegalArgumentException("Group " + groupId + " already has permission level " 
@@ -1209,17 +1203,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		
 		String updateQuery = null;
-		if(engineType == null || engineType.isEmpty()) {
+		if(groupType == null || groupType.isEmpty()) {
 			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE IS NULL";
 		} else {
-//			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
-			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=?";
+			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
 		}
-//		if(groupType == null || groupType.isEmpty()) {
-//			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE IS NULL";
-//		} else {
-//			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
-//		}
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQuery);
@@ -1235,12 +1223,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, engineId);
-//			if(engineType != null) {
-//				ps.setString(parameterIndex++, engineType);
-//			}
-//			if(groupType != null) {
-//				ps.setString(parameterIndex++, groupType);
-//			}
+			if(groupType != null) {
+				ps.setString(parameterIndex++, groupType);
+			}
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -1688,13 +1673,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @return
 	 */
-	public int groupEnginePermission(String groupId, String engineType, String engineId) {
-//		groupType = groupType == null ? groupType : groupType.toUpperCase();
-		engineType = engineType == null ? engineType : engineType.toUpperCase();
+	public int groupEnginePermission(String groupId, String groupType, String engineId) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", engineType));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", groupType));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		IRawSelectWrapper wrapper = null;
 		try {
