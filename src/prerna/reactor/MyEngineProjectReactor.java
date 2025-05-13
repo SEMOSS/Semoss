@@ -27,8 +27,8 @@ public class MyEngineProjectReactor extends AbstractReactor{
 	public MyEngineProjectReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), 
-				ReactorKeysEnum.ENGINE_TYPE.getKey(), ReactorKeysEnum.ENGINE.getKey(),
+				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.TYPE.getKey(),
+				ReactorKeysEnum.SUB_TYPE.getKey(), ReactorKeysEnum.ENGINE.getKey(),
 				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
 				ReactorKeysEnum.PERMISSION_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey(), 
 				ReactorKeysEnum.ONLY_PORTALS.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()
@@ -42,7 +42,8 @@ public class MyEngineProjectReactor extends AbstractReactor{
 		String searchTerm = this.keyValue.get(ReactorKeysEnum.FILTER_WORD.getKey());
 		String limit = this.keyValue.get( ReactorKeysEnum.LIMIT.getKey());
 		String offset = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
-		String engineType = this.keyValue.get(ReactorKeysEnum.ENGINE_TYPE.getKey());
+		String type = this.keyValue.get(ReactorKeysEnum.TYPE.getKey());
+		String engineType = this.keyValue.get(ReactorKeysEnum.SUB_TYPE.getKey());
 		// Flags for filtering and metadata
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_FAVORITES.getKey())+"");
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey())+"");
@@ -52,7 +53,7 @@ public class MyEngineProjectReactor extends AbstractReactor{
 		Map<String, Object> engineProjectMetadataFilter = getMetaMap();
 		
 		 // If engineType is provided, fetch engine information
-		if(engineType != null) { 
+		if(type != null && type.equalsIgnoreCase(Constants.ENGINE)) { 
 			// Fetch filtered engine types and engine IDs
 			List<String> engineTypes = getEngineTypeFilters();
 			List<String> engineIdFilters = getEngineIdFilters();
@@ -238,7 +239,7 @@ public class MyEngineProjectReactor extends AbstractReactor{
 	 * @return
 	 */
 	private List<String> getEngineTypeFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE_TYPE.getKey());
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.SUB_TYPE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
