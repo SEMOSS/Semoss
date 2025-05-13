@@ -1,8 +1,7 @@
 package prerna.engine.impl.model;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -93,14 +92,17 @@ public class LLMReactorUnitTests {
                 IModelEngine modelEngine = mock(IModelEngine.class);
                 AskModelEngineResponse ask = mock(AskModelEngineResponse.class);
                 utility.when(() -> Utility.getModel(engineId)).thenReturn(modelEngine);
-                when(modelEngine.ask(command, null, insight, new HashMap())).thenReturn(ask);
+                when(modelEngine.ask(eq(command), isNull(), eq(insight), anyMap())).thenReturn(ask);
+
+                Map<String, Object> output = new HashMap<>();
+                when(ask.toMap()).thenReturn(output);
                 
                 NounMetadata nm = reactor.execute();
 
                 assertNotNull(nm);
                 assertEquals(PixelDataType.MAP, nm.getNounType());
                 assertEquals(PixelOperationType.OPERATION, nm.getOpType().get(0));
-                assertEquals(ask.toMap(), nm.getValue());
+                assertEquals(output, nm.getValue());
         }
     }
 
@@ -116,28 +118,32 @@ public class LLMReactorUnitTests {
 
         try (MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class); 
             MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class)) {
-                seu.when(() -> SecurityEngineUtils.userCanViewEngine(user, engineId)).thenReturn(true);
-                utility.when(() -> Utility.decodeURIComponent(command)).thenReturn(command);
-                utility.when(() -> Utility.decodeURIComponent(context)).thenReturn(context);
-                
-                List<NounMetadata> list = new ArrayList<>();
-                NounMetadata meta = new NounMetadata(new HashMap<>(), PixelDataType.MAP);
-                list.add(meta);
-                
-                when(ns.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())).thenReturn(grs);
-                when(grs.getNounsOfType(PixelDataType.MAP)).thenReturn(list);
 
-                IModelEngine modelEngine = mock(IModelEngine.class);
-                AskModelEngineResponse ask = mock(AskModelEngineResponse.class);
-                utility.when(() -> Utility.getModel(engineId)).thenReturn(modelEngine);
-                when(modelEngine.ask(command, context, insight, new HashMap())).thenReturn(ask);
+            seu.when(() -> SecurityEngineUtils.userCanViewEngine(user, engineId)).thenReturn(true);
+            utility.when(() -> Utility.decodeURIComponent(command)).thenReturn(command);
+            utility.when(() -> Utility.decodeURIComponent(context)).thenReturn(context);
                 
-                NounMetadata nm = reactor.execute();
+            List<NounMetadata> list = new ArrayList<>();
+            NounMetadata meta = new NounMetadata(new HashMap<>(), PixelDataType.MAP);
+            list.add(meta);
 
-                assertNotNull(nm);
-                assertEquals(PixelDataType.MAP, nm.getNounType());
-                assertEquals(PixelOperationType.OPERATION, nm.getOpType().get(0));
-                assertEquals(ask.toMap(), nm.getValue());
+            when(ns.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())).thenReturn(grs);
+            when(grs.getNounsOfType(PixelDataType.MAP)).thenReturn(list);
+
+            IModelEngine modelEngine = mock(IModelEngine.class);
+            AskModelEngineResponse ask = mock(AskModelEngineResponse.class);
+            utility.when(() -> Utility.getModel(engineId)).thenReturn(modelEngine);
+            when(modelEngine.ask(eq(command), eq(context), eq(insight), anyMap())).thenReturn(ask);
+
+            Map<String, Object> output = new HashMap<>();
+            when(ask.toMap()).thenReturn(output);
+
+            NounMetadata nm = reactor.execute();
+
+            assertNotNull(nm);
+            assertEquals(PixelDataType.MAP, nm.getNounType());
+            assertEquals(PixelOperationType.OPERATION, nm.getOpType().get(0));
+            assertEquals(output, nm.getValue());
         }
     }
 
@@ -167,14 +173,17 @@ public class LLMReactorUnitTests {
                 IModelEngine modelEngine = mock(IModelEngine.class);
                 AskModelEngineResponse ask = mock(AskModelEngineResponse.class);
                 utility.when(() -> Utility.getModel(engineId)).thenReturn(modelEngine);
-                when(modelEngine.ask(command, context, insight, new HashMap())).thenReturn(ask);
-                
+                when(modelEngine.ask(eq(command), eq(context), eq(insight), anyMap())).thenReturn(ask);
+
+                Map<String, Object> output = new HashMap<>();
+                when(ask.toMap()).thenReturn(output);
+
                 NounMetadata nm = reactor.execute();
 
                 assertNotNull(nm);
                 assertEquals(PixelDataType.MAP, nm.getNounType());
                 assertEquals(PixelOperationType.OPERATION, nm.getOpType().get(0));
-                assertEquals(ask.toMap(), nm.getValue());
+                assertEquals(output, nm.getValue());
         }
     }
 
@@ -212,14 +221,18 @@ public class LLMReactorUnitTests {
                 IModelEngine modelEngine = mock(IModelEngine.class);
                 AskModelEngineResponse ask = mock(AskModelEngineResponse.class);
                 utility.when(() -> Utility.getModel(engineId)).thenReturn(modelEngine);
-                when(modelEngine.ask(command, context, insight, new HashMap())).thenReturn(ask);
-                
+
+                when(modelEngine.ask(eq(command), eq(context), eq(insight), anyMap())).thenReturn(ask);
+
+                Map<String, Object> output = new HashMap<>();
+                when(ask.toMap()).thenReturn(output);
+
                 NounMetadata nm = reactor.execute();
 
                 assertNotNull(nm);
                 assertEquals(PixelDataType.MAP, nm.getNounType());
                 assertEquals(PixelOperationType.OPERATION, nm.getOpType().get(0));
-                assertEquals(ask.toMap(), nm.getValue());
+                assertEquals(output, nm.getValue());
         }
     }
 
