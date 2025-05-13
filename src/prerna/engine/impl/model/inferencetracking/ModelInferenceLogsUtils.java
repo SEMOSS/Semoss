@@ -503,13 +503,16 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
 		
 		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("Total Tokens");
-		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
-		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		//sumTokenSelector.setAlias("Total Tokens");
+		sumTokenSelector.setAlias("Number of Tokens");
+		//sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		//sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(sumTokenSelector);
 		
 		QueryFunctionSelector countNumberRequestSelector = new QueryFunctionSelector();
-		countNumberRequestSelector.setAlias("Total Requests");
+		//countNumberRequestSelector.setAlias("Total Requests");
+		countNumberRequestSelector.setAlias("Number of Requests");
 		countNumberRequestSelector.setFunction(QueryFunctionHelper.COUNT);
 		countNumberRequestSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(countNumberRequestSelector);
@@ -559,8 +562,9 @@ public class ModelInferenceLogsUtils {
 		
 		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
 		sumTokenSelector.setAlias("Total Tokens");
-		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
-		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		//sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		//sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+	
 		qs.addSelector(sumTokenSelector);
 		
 		QueryFunctionSelector totalMessages = new QueryFunctionSelector();
