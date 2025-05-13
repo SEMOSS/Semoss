@@ -2504,6 +2504,27 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToListString(securityDb, qs1);
 	}
 	
+	/**
+     * Get the latest updated author for the engine
+     * @param engineId
+     * @return a map with the author and date added
+     */
+    public static Map<String, Object> getLatestUpdatedAuthor(String engineId) {
+        SelectQueryStruct qs = new SelectQueryStruct();
+        qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBY"));
+        qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED"));
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+        qs.addOrderBy(new QueryColumnOrderBySelector("ENGINEPERMISSION__DATEADDED","DESC"));
+        qs.setLimit(1);
+ 
+        List<Map<String, Object>> list = (List<Map<String, Object>>) QueryExecutionUtility.flushRsToMap(securityDb, qs);
+        if (list.isEmpty()) {
+            throw new IllegalArgumentException("No author found for the engine id: " + engineId);
+        }
+ 
+        return list.get(0);
+    }
+	
     /**
      * Get all the available engine metadata and their counts for given keys
      * @param engineFilters
