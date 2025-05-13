@@ -110,7 +110,7 @@ public class DocProcessor extends AbstractFileProcessor {
 
 		XWPFParagraph lastParaOnPage = null;
 		int pageCount = document.getProperties().getExtendedProperties().getUnderlyingProperties().getPages();
-		classLogger.debug("Total page count in the document -->"+pageCount);
+		classLogger.debug("Total page count -->"+pageCount);
 	    
 	    List<XWPFParagraph> paragraphs = document.getParagraphs();
 	    
