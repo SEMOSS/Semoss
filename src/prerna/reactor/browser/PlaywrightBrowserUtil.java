@@ -622,6 +622,14 @@ public class PlaywrightBrowserUtil {
 		}
 	}
 	
+	public void keyboardPress(String input) {
+		try {
+			this.cur_page.keyboard().press(input);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Could not press " + input, e);
+		}
+	}
+	
 
 	public void getByLabel(JSONObject payload, String actionName)
 	{
