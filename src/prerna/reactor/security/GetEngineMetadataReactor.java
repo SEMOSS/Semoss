@@ -65,6 +65,8 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 		if(pendingRequest > 0) {
 			databaseInfo.put("pending_access_request", pendingRequest);
 		}
+
+		databaseInfo.putAll(SecurityEngineUtils.getLatestUpdatedAuthor(engineId));
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENGINE_INFO);
 	}
 	
