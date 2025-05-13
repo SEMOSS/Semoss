@@ -31,7 +31,7 @@ public class MyEngineProjectReactor extends AbstractReactor{
 				ReactorKeysEnum.SUB_TYPE.getKey(), ReactorKeysEnum.ENGINE.getKey(),
 				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
 				ReactorKeysEnum.PERMISSION_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey(), 
-				ReactorKeysEnum.ONLY_PORTALS.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()
+				ReactorKeysEnum.ONLY_PORTALS.getKey()
 		};
 	}
 
@@ -47,7 +47,6 @@ public class MyEngineProjectReactor extends AbstractReactor{
 		// Flags for filtering and metadata
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_FAVORITES.getKey())+"");
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey())+"");
-		Boolean includeUserT = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()));
 		// Getting permission filters and metadata map
 		List<Integer> permissionFilters = getPermissionFilters();
 		Map<String, Object> engineProjectMetadataFilter = getMetaMap();
@@ -60,7 +59,7 @@ public class MyEngineProjectReactor extends AbstractReactor{
 			// Retrieve user-specific engine list
 			List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, engineIdFilters, favoritesOnly, engineProjectMetadataFilter, permissionFilters, searchTerm, limit, offset);
 
-			if(!engineInfo.isEmpty() && (!noMeta || includeUserT)) {
+			if(!engineInfo.isEmpty() && !noMeta) {
 				Map<String, Integer> index = new HashMap<>(engineInfo.size());
 				int size = engineInfo.size();
 				for(int i = 0; i < size; i++) {
@@ -113,7 +112,7 @@ public class MyEngineProjectReactor extends AbstractReactor{
 						}
 					}
 				} 
-				if(includeUserT && Utility.isUserTrackingEnabled()) {
+				if(Utility.isUserTrackingEnabled()) {
 					IRawSelectWrapper wrapper = null;
 					try {
 						wrapper = UserCatalogVoteUtils.getAllVotesWrapper(index.keySet());
@@ -159,7 +158,7 @@ public class MyEngineProjectReactor extends AbstractReactor{
 			List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectIdFilters, 
 					favoritesOnly, portalsOnly, engineProjectMetadataFilter, permissionFilters, searchTerm, limit, offset);
 			
-			if(!projectInfo.isEmpty() && (!noMeta || includeUserT)) {
+			if(!projectInfo.isEmpty() && !noMeta) {
 				Map<String, Integer> index = new HashMap<>(projectInfo.size());
 				int size = projectInfo.size();
 				// now we want to add most executed insights
