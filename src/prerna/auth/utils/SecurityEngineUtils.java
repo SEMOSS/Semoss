@@ -2504,6 +2504,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToListString(securityDb, qs1);
 	}
 	
+	/**
+	 * Get the latest updated author for the engine
+	 * @param engineId
+	 * @return a map with the author and date added
+	 */
 	public static Map<String, Object> getLatestUpdatedAuthor(String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
         qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBY"));
@@ -2512,17 +2517,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
         qs.addOrderBy(new QueryColumnOrderBySelector("ENGINEPERMISSION__DATEADDED","DESC"));
         qs.setLimit(1);
 
-        //RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
-
         List<Map<String, Object>> list = (List<Map<String, Object>>) QueryExecutionUtility.flushRsToMap(securityDb, qs);
-		Map<String, Object> map = list.get(0);
-        
-		if(list.size() > 0){
-            return map;
-        } else {
-            throw new IllegalArgumentException("No author found for the engine id: " + engineId); 
-        }
+		if (list.isEmpty()) {
+    		throw new IllegalArgumentException("No author found for the engine id: " + engineId);
+		}
+
+        return list.get(0);
 	}
+
     /**
      * Get all the available engine metadata and their counts for given keys
      * @param engineFilters
