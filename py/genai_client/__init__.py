@@ -58,8 +58,9 @@ def __getattr__(name: str) -> Any:
         return HuggingfaceTokenizer
 
     elif name == "BedrockEmbedder":
-            from .embedders.bedrock_embedder import BedrockEmbedder
-            return BedrockEmbedder
+        from .embedders.bedrock_embedder import BedrockEmbedder
+
+        return BedrockEmbedder
     else:
         raise AttributeError(f"Could not find: {name}")
 
@@ -124,6 +125,7 @@ def get_embedder(embedder_type, **kwargs):
         return VertexAiEmbedder(**kwargs)
     elif embedder_type == "BEDROCK":
         from .embedders.bedrock_embedder import BedrockEmbedder
+
         return BedrockEmbedder(**kwargs)
     else:
         raise ValueError("Embedder type has not been defined.")
@@ -141,8 +143,8 @@ def get_tokenizer(tokenizer_type: str, tokenizer_name, max_tokens):
         from .tokenizers.openai_tokenizer import OpenAiTokenizer
 
         return OpenAiTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
-    # putting this for now, need to implement vertex tokenizer. this will fall back to cl100k_base
-    elif (tokenizer_type == 'VERTEX') or (tokenizer_type == 'BEDROCK'):
+    # putting this for now, need to implement vertex tokenizer. this will fall back to WordCountTokenizer
+    elif (tokenizer_type == "VERTEX") or (tokenizer_type == "BEDROCK"):
         from .tokenizers.openai_tokenizer import OpenAiTokenizer
 
         return OpenAiTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
@@ -166,5 +168,5 @@ __all__ = [
     "get_text_gen_client",
     "get_embedder",
     "get_tokenizer",
-    'BedrockEmbedder',
+    "BedrockEmbedder",
 ]
