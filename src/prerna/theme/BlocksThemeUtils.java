@@ -5,7 +5,6 @@ import java.sql.Clob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,21 +13,16 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONObject;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.MalformedJsonException;
 
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -84,7 +78,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 //
 //		return output;
 //	}
-	
+	// get all blocks
 	public static List<Map<String, Object>> getClientBlocks(String tableName, GenRowFilters filters) throws SQLException {
 		ThemeDbTable table = validateThemeDbTable(tableName);
 		final String blocksPrefix = table.getThemeDbTablePrefix();
@@ -109,30 +103,31 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			return new ArrayList<>();
 		}
 		
-		List<Map<String, Object>> actualRetVal = retVal.stream()
-			    .map((map) -> {
-			        convertBlockJsonStringToJSONObject(map);
-			        return map;
-			    })
-			    .collect(Collectors.toList());
-		
-		return actualRetVal;
+		return retVal.stream()
+		        .map(record -> {
+		            convertBlockJsonStringToJSONObject(record);
+		            return record.entrySet().stream()
+		                    .collect(Collectors.toMap(
+		                        entry -> entry.getKey().toLowerCase(),
+		                        Map.Entry::getValue
+		                    ));
+		        })
+		        .collect(Collectors.toList());
 	}
-	
-	//Convert block_json into json
+	// convert block_json field into json for output
 	private static void convertBlockJsonStringToJSONObject(Map<String, Object> map) {
-		try {
-			String blockJson = (String) map.get("BLOCK_JSON");
-			Gson gson = new Gson();
-			Type type = new TypeToken<Map<String, Object>>(){}.getType();
-			map.put("JSON", gson.fromJson(blockJson, type));
-			map.remove("BLOCK_JSON");
-		} catch (Exception e) {
-			throw new SemossPixelException(e);
-		}
+	    try {
+	        String blockJson = (String) map.get("BLOCK_JSON");
+	        Gson gson = new Gson();
+	        Type type = new TypeToken<Map<String, Object>>() {}.getType();
+	        map.put("json", gson.fromJson(blockJson, type));
+	        map.remove("BLOCK_JSON");
+	    } catch (Exception e) {
+	        throw new SemossPixelException("Error converting BLOCK_JSON to json object", e);
+	    }
 	}
+	 
 
-	
 	public static Map<String, Object> getBlock(String blockId, String tableName) throws SQLException {
 		ThemeDbTable table = validateThemeDbTable(tableName);
 
@@ -251,7 +246,6 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		validateString(blockDetails, "section", false, false);
 		validateString(blockDetails, "json", false, false);
 	}
-
 	
 	// validate the individual fields
 	private static void validateString(Map<String, Object> blockDetails, String mapKey, boolean nullable,
@@ -271,7 +265,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			throw new IllegalArgumentException(e.getMessage());
 		}
 	}
-
+	
 	
 	// insert the row into blocks_table table
 	private static void insertBlock(Map<String, Object> blockDetails, boolean allowClob, String blockId) {

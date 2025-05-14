@@ -1,5 +1,8 @@
 package prerna.reactor.blocks;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -13,7 +16,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.BlocksThemeUtils;
-import prerna.theme.ThemeDbTable;
+import prerna.util.Utility;
 
 public class AddBlockReactor extends AbstractReactor {
 
@@ -52,8 +55,17 @@ public class AddBlockReactor extends AbstractReactor {
 	    Map<String, Object> blockMap = new HashMap<>();
 	        blockMap.put("name", keyValue.get(ReactorKeysEnum.NAME.getKey()));
 	        blockMap.put("section",keyValue.get(ReactorKeysEnum.SECTION.getKey()));
-	        blockMap.put("json",keyValue.get(ReactorKeysEnum.JSON.getKey()));
-	       return blockMap;
-	}
-
+	        
+	        String rawJson = keyValue.get(ReactorKeysEnum.JSON.getKey());
+	        // Remove <encode> wrapper for json field
+	        if (rawJson != null) {
+	            try {
+					rawJson = URLDecoder.decode(rawJson, "UTF-8");
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}
+	        }
+	        blockMap.put("json", rawJson);
+		       return blockMap;
+		}		 
 }
