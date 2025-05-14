@@ -1,11 +1,14 @@
 package prerna.engine.impl.model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -13,6 +16,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.cluster.util.IRemoteClientServer;
@@ -74,6 +78,92 @@ public class KubernetesModelScaler {
 			this.kmsUrl = zkClient.getModelScalerIp();
 		}
 		
+	}
+	
+	public Map<String, Object> getNodePoolsInfo() throws Exception {
+	    String serviceUrl = this.kmsUrl + "/api/resources/node-pools-info";
+	    
+	    RequestConfig requestConfig = RequestConfig.custom()
+	            .setConnectTimeout(5000)
+	            .setSocketTimeout(5000)
+	            .build();
+
+	    try (CloseableHttpClient httpClient = HttpClients.custom()
+	            .setDefaultRequestConfig(requestConfig)
+	            .build()) {
+
+	        HttpGet httpGet = new HttpGet(serviceUrl);
+	        httpGet.setHeader("Accept", "application/json");
+
+	        try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+	            int statusCode = response.getStatusLine().getStatusCode();
+	            HttpEntity responseEntity = response.getEntity();
+	            String responseString = EntityUtils.toString(responseEntity);
+
+	            if (statusCode == 200) {
+	                JSONObject jsonResponse = new JSONObject(responseString);
+	                
+	                Map<String, Object> result = new HashMap<>();
+	                
+	                if (jsonResponse.has("message")) {
+	                    result.put("message", jsonResponse.getString("message"));
+	                }
+	                
+	                if (jsonResponse.has("pools")) {
+	                    JSONArray poolsArray = jsonResponse.getJSONArray("pools");
+	                    List<Map<String, Object>> poolsList = new ArrayList<>();
+	                    
+	                    for (int i = 0; i < poolsArray.length(); i++) {
+	                        JSONObject poolObject = poolsArray.getJSONObject(i);
+	                        Map<String, Object> poolMap = jsonToMap(poolObject);
+	                        poolsList.add(poolMap);
+	                    }
+	                    
+	                    result.put("pools", poolsList);
+	                }
+	                
+	                classLogger.info("Successfully retrieved node pool information");
+	                return result;
+	            } else {
+	                classLogger.error("Error retrieving node pool information: {} (Status: {})", 
+	                    responseString, statusCode);
+	                throw new RuntimeException("Failed to retrieve node pool information: " + responseString);
+	            }
+	        }
+	    } catch (Exception e) {
+	        classLogger.error("Error making request to model scaler for node pool info: {}", e.getMessage(), e);
+	        throw new RuntimeException("Failed to retrieve node pool information", e);
+	    }
+	}
+
+	private Map<String, Object> jsonToMap(JSONObject json) {
+	    Map<String, Object> map = new HashMap<>();
+	    
+	    for (String key : json.keySet()) {
+	        Object value = json.get(key);
+	        
+	        if (value instanceof JSONObject) {
+	            map.put(key, jsonToMap((JSONObject) value));
+	        } else if (value instanceof JSONArray) {
+	            JSONArray array = (JSONArray) value;
+	            List<Object> list = new ArrayList<>();
+	            
+	            for (int i = 0; i < array.length(); i++) {
+	                Object item = array.get(i);
+	                if (item instanceof JSONObject) {
+	                    list.add(jsonToMap((JSONObject) item));
+	                } else {
+	                    list.add(item);
+	                }
+	            }
+	            
+	            map.put(key, list);
+	        } else {
+	            map.put(key, value);
+	        }
+	    }
+	    
+	    return map;
 	}
 	
 	public Map<String, Object> canItRun(String hfModelId) throws Exception {
