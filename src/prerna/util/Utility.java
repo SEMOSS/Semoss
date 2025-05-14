@@ -6111,7 +6111,20 @@ public final class Utility {
 
 		return dates;
 	}
-	
+
+	/**
+	 * Determine if We need to enable the AIcore Application 
+	 * @return
+	 */
+	public static boolean getAICoreAppFlag() {
+		String coreFlag = Utility.getDIHelperProperty(Constants.AI_CORE_ADMIN_FLAG);
+		if(coreFlag == null) {
+			// default option is true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(coreFlag);
+	}
 	/**
 	 * 
 	 * @param size
