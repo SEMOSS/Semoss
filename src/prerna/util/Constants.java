@@ -702,6 +702,8 @@ public class Constants {
 	public static final String H2_IN_MEM_SIZE = "H2_IN_MEM_SIZE";
 	// how much R memory to allocate
 	public static final String R_MEM_LIMIT = "R_MEM_LIMIT";
+	// default AdminFlag
+        public static final String AI_CORE_ADMIN_FLAG = "CORE_ADMIN_FLAG_ENABLED";
 	
 	// max file transfer size
 	public static final String FILE_TRANSFER_LIMIT = "FILE_TRANSFER_LIMIT";
