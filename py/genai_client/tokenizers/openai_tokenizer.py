@@ -47,8 +47,10 @@ class OpenAiTokenizer(AbstractTokenizer):
             try:
                 return tiktoken.encoding_for_model(encoder_name)
             except KeyError:
-                logger.warning("Warning: model not found. Using cl100k_base encoding.")
-                return tiktoken.get_encoding("cl100k_base")
+                logger.warning("Warning: model not found. Using WordCountTokenizer.")
+                from .word_count_tokenizer import WordCountTokenizer
+
+                return WordCountTokenizer()
 
     def format_with_chat_template(self, messages: List[Dict]) -> str:
         """
