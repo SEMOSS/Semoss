@@ -233,7 +233,7 @@ USER_TRACKING_METHOD	GEOIP2
 
 MODEL_INFERENCE_LOGS_ENABLED true
 PROMPT_DB_ENABLED true
-
+CORE_ADMIN_FLAG_ENABLED true
 ##################################################
 ##################################################
 ##################################################
