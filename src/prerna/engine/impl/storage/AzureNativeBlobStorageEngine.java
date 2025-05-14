@@ -2,15 +2,26 @@ package prerna.engine.impl.storage;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
+import java.util.Base64;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
+import java.util.zip.CRC32;
+import com.azure.core.util.Context;
+import com.azure.storage.blob.models.AccessTier;
+import com.azure.storage.blob.models.BlobHttpHeaders;
+import com.azure.storage.blob.specialized.BlockBlobClient;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -29,8 +40,10 @@ import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.models.BlobRequestConditions;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
+
 import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Utility;
 
@@ -38,8 +51,19 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 	private static final Logger classLogger = LogManager.getLogger(AzureNativeBlobStorageEngine.class);
 
 	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
+	public static final String AZURE_CHECKSUM_FUNCTION = "AZURE_CHECKSUM_FUNCTION";
+	public static final String AZURE_CHECKSUM_ENABLE = "AZURE_CHECKSUM_ENABLE";
+	public static final String SHA256 = "SHA256";
+	public static final String SHA1 = "SHA1";
+	public static final String CRC32 = "CRC32";
+	public static final String MD5 = "MD5";
+	// for checksum this  must be greater than or equal to 5MB.
+	//You can change the threshold to a different size accordingly
+    private static int CHUNK_SIZE = 5 * 1024 * 1024;
 	private transient String connectionString = null;
 	private transient BlobServiceClient blobServiceClient;
+	private static final Set<String> SUPPORTED_CHECKSUMS = new HashSet<>(
+		    Arrays.asList(SHA256, SHA1, CRC32));
 
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -185,6 +209,19 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 					boolean isUpdated = Files.exists(localFilePath); // Check if file already exists
 					retryOperation(() -> blobClient.downloadToFile(localFilePath.toString(), true),
 							"Syncing file to local: " + blobItem.getName());
+					String blobName = blobItem.getName();
+					// Retrieve Metadata for Checksum Verification
+					Map<String, String> metadata = properties.getMetadata();
+
+					if (metadata != null && !metadata.isEmpty()) {
+						String enableChecksum = metadata.get(AZURE_CHECKSUM_ENABLE);
+						String checksumType = metadata.get(AZURE_CHECKSUM_FUNCTION);
+
+						if ("true".equalsIgnoreCase(enableChecksum) && checksumType != null) {
+							 //verify checksum after download
+							verifyChecksum(blobName, blobClient, enableChecksum, checksumType, metadata, localFilePath);
+						}
+					}
 					downloadedFiles.add(blobItem.getName());
 					classLogger.info(
 							isUpdated ? "Updated file: " + localFilePath : "Downloaded new file: " + localFilePath);
@@ -218,7 +255,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		classLogger.info(found ? "Sync completed successfully for: " + storagePath
 				: "No files found to sync for: " + storagePath);
 	}
-
+		
 	@Override
 	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
 			throws Exception {
@@ -304,6 +341,19 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 				Files.createDirectories(localFilePath.getParent());
 				retryOperation(() -> blobClient.downloadToFile(localFilePath.toString(), true),
 						"Downloading file: " + blobName);
+				// Retrieve Metadata for Checksum Verification
+				BlobProperties properties = blobClient.getProperties();
+				Map<String, String> metadata = properties.getMetadata();
+
+				if (metadata != null && !metadata.isEmpty()) {
+					String enableChecksum = metadata.get(AZURE_CHECKSUM_ENABLE);
+					String checksumType = metadata.get(AZURE_CHECKSUM_FUNCTION);
+
+					if ("true".equalsIgnoreCase(enableChecksum) && checksumType != null) {
+                        //verify checksum after download
+						verifyChecksum(blobName, blobClient, enableChecksum, checksumType, metadata, localFilePath);
+					}
+				}
 				downloadedFiles.add(blobName);
 				classLogger.info("Downloaded file: " + localFilePath);
 				found = true;
@@ -460,16 +510,55 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 				: "No files found in directory: " + blobDirectory);
 	}
 
+	@SuppressWarnings("deprecation")
 	private String uploadFileToBlob(Path file, Path basePath, BlobContainerClient containerClient, String blobDirectory,
-			Map<String, Object> metadata) {
+			Map<String, Object> metadata) throws IOException, NoSuchAlgorithmException {
 		// Generate relative path for blob
 		String relativePath = Utility.normalizePath(basePath.relativize(file).toString()).trim();
 		String blobName = blobDirectory.isEmpty() ? relativePath
 				: Utility.normalizePath(blobDirectory + "/" + relativePath);
+		metadata = metadata != null ? metadata : Collections.emptyMap();
+
+	    Map<String, String> metaMap = new HashMap<>();
+	    for (Map.Entry<String, Object> entry : metadata.entrySet()) {
+	        if (entry.getKey() != null && entry.getValue() != null) {
+	            metaMap.put(entry.getKey(), entry.getValue().toString());
+	        }
+	    }
+
+	boolean enableChecksum = Boolean.parseBoolean(
+	        String.valueOf(metadata.getOrDefault(AZURE_CHECKSUM_ENABLE, "false"))
+	    );
+
+	    String checksumType = null;
+	    String checksum = null;
+
+	    if (enableChecksum) {
+	        Object rawType = metadata.get(AZURE_CHECKSUM_FUNCTION);
+	        String raw = rawType != null ? rawType.toString().trim() : "";
+	        String checksumStr = (!raw.isEmpty() && !"null".equalsIgnoreCase(raw))
+	                ? raw.toUpperCase()
+	                : SHA256;
+
+	        if (!SUPPORTED_CHECKSUMS.contains(checksumStr)) {
+	            throw new IllegalArgumentException("Unsupported checksum function: '" + checksumStr +
+	                    "'. Supported types are: " + SUPPORTED_CHECKSUMS);
+	        }
+	    
+	        checksumType = String.valueOf(checksumStr);
+	        checksum = calculateChecksum(file, checksumType);
+	        metaMap.put(checksumType.toLowerCase(), checksum);
+	    }
+
+	    long fileSize = Files.size(file);
+
+	    if (fileSize > CHUNK_SIZE) {
+	        uploadMultipartAzure(containerClient, blobName, file, metaMap, enableChecksum);
+	    } else {
 
 		BlobClient blobClient = containerClient.getBlobClient(blobName);
 
-		try {
+		
 			long localFileSize = Files.size(file);
 			long localLastModified = Files.getLastModifiedTime(file).toMillis();
 
@@ -480,8 +569,42 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 					long blobLastModified = properties.getLastModified().toInstant().toEpochMilli();
 					// Sync conditions: If file size or modified time differs
 					if (localFileSize != blobFileSize || localLastModified > blobLastModified) {
-						blobClient.uploadFromFile(file.toString(), true);
-						classLogger.info("Updated file: " + blobName);
+						if (enableChecksum) {
+		                    // If checksum is enabled, calculate MD5 and set headers
+		                    classLogger.info("MD5 checksum verification enabled for: " + blobName);
+
+		                    String md5Checksum = null;
+							try {
+								md5Checksum = calculateChecksum(file, MD5);
+							} catch (IOException e) {
+								classLogger.error("IO Exception during upload: " + e.getMessage());
+							}
+		                    byte[] md5Bytes = Base64.getDecoder().decode(md5Checksum);
+
+		                    BlobHttpHeaders headers = new BlobHttpHeaders().setContentMd5(md5Bytes);
+
+		                    try (InputStream fileStream = Files.newInputStream(file)) {
+		                        blobClient.uploadWithResponse(
+		                                fileStream,
+		                                localFileSize,
+		                                null,
+		                                headers,
+		                                metaMap,
+		                                AccessTier.HOT,
+		                                new BlobRequestConditions(),
+		                                Duration.ofMinutes(5),
+		                                Context.NONE
+		                        );
+		                        classLogger.info("Successfully uploaded and verified MD5 for file: " + blobName);
+		                    } catch (IOException e) {
+		                        classLogger.error("IO Exception during upload: " + e.getMessage());
+		                        throw new RuntimeException("Upload failed due to IO Exception.");
+		                    }
+		                } else {
+		                    // Normal upload without checksum
+		                    blobClient.uploadFromFile(file.toString(), true);
+		                    classLogger.info("Successfully uploaded (without checksum): " + blobName);
+		                }
 					} else {
 						classLogger.info("Skipping file (No changes detected): " + blobName);
 					}
@@ -495,14 +618,10 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 					}
 				}
 				// Apply metadata if provided
-				applyMetadata(blobClient, metadata);
+				blobClient.setMetadata(metaMap);
 
 			}, "Uploading file: " + blobName);
-
-		} catch (IOException e) {
-			classLogger.error("Failed to read file properties: " + file, e);
-			return null;
-		}
+	    }
 		return blobName;
 	}
 
@@ -543,33 +662,104 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	private String uploadFile(BlobContainerClient containerClient, Path rootPath, Path file, String blobDirectory,
-			Map<String, Object> metadata) throws IOException {
+			Map<String, Object> metadata) throws IOException, NoSuchAlgorithmException {
 
 		String relativePath = Utility.normalizePath(rootPath.relativize(file).toString()).trim();
 		
 		String blobName = blobDirectory.isEmpty() ? relativePath
 				: Utility.normalizePath(blobDirectory + "/" + relativePath);
+		metadata = metadata != null ? metadata : Collections.emptyMap();
+
+	    Map<String, String> metaMap = new HashMap<>();
+	    for (Map.Entry<String, Object> entry : metadata.entrySet()) {
+	        if (entry.getKey() != null && entry.getValue() != null) {
+	            metaMap.put(entry.getKey(), entry.getValue().toString());
+	        }
+	    }
+	
+	boolean enableChecksum = Boolean.parseBoolean(
+	        String.valueOf(metadata.getOrDefault(AZURE_CHECKSUM_ENABLE, "false"))
+	    );
+
+	    String checksumType = null;
+	    String checksum = null;
+
+	    if (enableChecksum) {
+	        Object rawType = metadata.get(AZURE_CHECKSUM_FUNCTION);
+	        String raw = rawType != null ? rawType.toString().trim() : "";
+	        String checksumStr = (!raw.isEmpty() && !"null".equalsIgnoreCase(raw))
+	                ? raw.toUpperCase()
+	                : SHA256;
+
+	        if (!SUPPORTED_CHECKSUMS.contains(checksumStr)) {
+	            throw new IllegalArgumentException("Unsupported checksum function: '" + checksumStr +
+	                    "'. Supported types are: " + SUPPORTED_CHECKSUMS);
+	        }
+	    
+	        checksumType = String.valueOf(checksumStr);
+	        checksum = calculateChecksum(file, checksumType);
+	        metaMap.put(checksumType.toLowerCase(), checksum);
+	    }
+
+	    long fileSize = Files.size(file);
+
+	    if (fileSize > CHUNK_SIZE) {
+	        uploadMultipartAzure(containerClient, blobName, file, metaMap, enableChecksum);
+	    } else {
 		BlobClient blobClient = containerClient.getBlobClient(blobName);
 
 		retryOperation(() -> {
-			blobClient.uploadFromFile(file.toString(), true);
-			classLogger.info("Uploaded file: " + blobName);
-			applyMetadata(blobClient, metadata);
+			if (enableChecksum) {
+                // If checksum is enabled, calculate MD5 and set headers
+                classLogger.info("MD5 checksum verification enabled for: " + blobName);
+			 // Calculate MD5 for Azure native verification
+            String md5Checksum = null;
+            try {
+                md5Checksum = calculateChecksum(file, MD5);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // Decode the Base64 string back to raw bytes
+            byte[] md5Bytes = Base64.getDecoder().decode(md5Checksum);
+
+            // Set the Content-MD5 header for Azure's native verification
+            BlobHttpHeaders headers = new BlobHttpHeaders().setContentMd5(md5Bytes);
+                     
+            	BlobRequestConditions requestConditions = new BlobRequestConditions();
+            	 classLogger.info("Uploading and verifying MD5 for: " + blobName);
+            	 try (InputStream fileStream = Files.newInputStream(file)) {
+            	blobClient.uploadWithResponse(
+            	   fileStream,
+            	   fileSize,
+            	   null,  
+            	   headers,
+            	   metaMap,
+            	   AccessTier.HOT,
+            	   requestConditions,   
+            	   Duration.ofMinutes(5), 
+            	   Context.NONE
+            	);
+            	classLogger.info("Successfully uploaded and verified MD5 for file: " + blobName);
+            } catch (IOException e) {
+            	classLogger.error("IO Exception during upload: " + e.getMessage());
+            	throw new RuntimeException("Upload failed due to IO Exception.");
+			}
+	   } else {
+            // Normal upload without checksum
+            blobClient.uploadFromFile(file.toString(), true);
+            classLogger.info("Successfully uploaded (without checksum): " + blobName);
+            }
+			blobClient.setMetadata(metaMap);
+
 		}, "Uploading: " + blobName);
+	    }
 
 		return blobName;
 	}
-
-	private void applyMetadata(BlobClient blobClient, Map<String, Object> metadata) {
-		if (metadata != null && !metadata.isEmpty()) {
-			Map<String, String> metadataMap = metadata.entrySet().stream()
-					.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
-			blobClient.setMetadata(metadataMap);
-			classLogger.info("Metadata applied to: " + blobClient.getBlobName());
-		}
-	}
-
+			
 	private void syncStorageDeletion(BlobContainerClient containerClient, String blobDirectory, Path localBasePath) {
 		PagedIterable<BlobItem> blobItems = containerClient.listBlobs(new ListBlobsOptions().setPrefix(blobDirectory),
 				null);
@@ -740,6 +930,166 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		return new String[] { containerName, blobDirectory };
+	}
+	
+	private void uploadMultipartAzure(BlobContainerClient containerClient, String blobName, Path file,
+			Map<String, String> metadata, boolean enableChecksum) throws IOException, NoSuchAlgorithmException {
+
+		BlockBlobClient blobClient = containerClient.getBlobClient(blobName).getBlockBlobClient();
+
+		// Ensure the blob is overwritten by deleting the existing blob if necessary
+		if (blobClient.exists()) {
+			blobClient.delete();
+			classLogger.info("Deleted existing blob: " + blobName);
+		}
+
+		List<String> blockIds = new ArrayList<>();
+		byte[] buffer = new byte[(int) CHUNK_SIZE];
+		MessageDigest fullFileMd5Digest = enableChecksum ? MessageDigest.getInstance(MD5) : null;
+
+		try (InputStream is = Files.newInputStream(file)) {
+			int read;
+			int index = 0;
+
+			while ((read = is.read(buffer)) != -1) {
+				// Compute the MD5 checksum for this block
+				byte[] chunkData = Arrays.copyOf(buffer, read);
+				if (enableChecksum) {
+					fullFileMd5Digest.update(chunkData);
+					byte[] chunkMd5 = MessageDigest.getInstance(MD5).digest(chunkData);
+
+					String blockId = Base64.getEncoder()
+							.encodeToString(String.format("%06d", index++).getBytes(StandardCharsets.UTF_8));
+					ByteArrayInputStream chunkStream = new ByteArrayInputStream(chunkData);
+
+					// Upload with native MD5 validation for this chunk
+					blobClient.stageBlockWithResponse(blockId, chunkStream, chunkData.length, chunkMd5, null, null,
+							Context.NONE);
+
+					blockIds.add(blockId);
+				} else {
+					// Normal upload without MD5 checksum
+					String blockId = Base64.getEncoder()
+							.encodeToString(String.format("%06d", index++).getBytes(StandardCharsets.UTF_8));
+					ByteArrayInputStream chunkStream = new ByteArrayInputStream(chunkData);
+
+					blobClient.stageBlock(blockId, chunkStream, chunkData.length);
+					blockIds.add(blockId);
+				}
+			}
+		}
+		if (enableChecksum) {
+			// Calculate the full file MD5 and set it
+			String localMd5 = Base64.getEncoder().encodeToString(fullFileMd5Digest.digest());
+
+			// Committing all the blocks to finalize the upload
+			BlobHttpHeaders headers = new BlobHttpHeaders().setContentMd5(Base64.getDecoder().decode(localMd5)); 
+			blobClient.commitBlockListWithResponse(blockIds, headers, metadata, null, null, Duration.ofMinutes(5),
+					Context.NONE);
+			if (metadata != null && !metadata.isEmpty()) {
+				blobClient.setMetadata(metadata);
+			}
+
+			// Verify the MD5 after upload
+			byte[] remoteMd5Bytes = blobClient.getProperties().getContentMd5();
+			if (remoteMd5Bytes != null) {
+				String remoteMd5 = Base64.getEncoder().encodeToString(remoteMd5Bytes);
+				if (localMd5.equals(remoteMd5)) {
+					classLogger.info("Multipart upload completed successfully with MD5 verification: " + blobName);
+				} else {
+					classLogger.error("MD5 verification failed for: " + blobName);
+					throw new RuntimeException("MD5 verification failed after multipart upload.");
+				}
+			} else {
+				classLogger.warn("Warning: Azure did not return Content-MD5 for validation.");
+			}
+		} else {
+			// Normal commit without MD5
+			blobClient.commitBlockList(blockIds);
+			if (metadata != null && !metadata.isEmpty()) {
+				blobClient.setMetadata(metadata);
+			}
+			classLogger.info("Multipart upload completed: " + blobName);
+		}
+	}
+
+	public String calculateChecksum(Path path, String algorithm) throws IOException {
+		try (InputStream fis = Files.newInputStream(path)) {
+			// Handling different checksum algorithms
+			switch (algorithm) {
+			case SHA256:
+			case SHA1:
+				return calculateChecksumWithMessageDigest(fis, algorithm);
+
+			case CRC32:
+				return calculateCRC32(fis);
+
+			case MD5:
+				return calculateChecksumWithMessageDigest(fis, MD5);
+
+			default:
+				throw new UnsupportedOperationException("Unsupported checksum algorithm: " + algorithm);
+			}
+		}
+	}
+
+	// Method to calculate SHA-256 and SHA-1 using MessageDigest
+	private String calculateChecksumWithMessageDigest(InputStream fis, String algorithm) throws IOException {
+		try {
+			MessageDigest digest = MessageDigest.getInstance(algorithm);
+			byte[] buffer = new byte[8192];
+			int bytesRead;
+			while ((bytesRead = fis.read(buffer)) != -1) {
+				digest.update(buffer, 0, bytesRead);
+			}
+			byte[] hashBytes = digest.digest();
+			return Base64.getEncoder().encodeToString(hashBytes);
+		} catch (Exception e) {
+			throw new IOException("Failed to calculate checksum with " + algorithm, e);
+		}
+	}
+
+	private String calculateCRC32(InputStream fis) throws IOException {
+		try {
+			CRC32 crc32 = new CRC32();
+			byte[] buffer = new byte[8192];
+			int bytesRead;
+			while ((bytesRead = fis.read(buffer)) != -1) {
+				crc32.update(buffer, 0, bytesRead);
+			}
+			long crcValue = crc32.getValue();
+			return Long.toHexString(crcValue).toUpperCase(); // return as hex string
+		} catch (Exception e) {
+			throw new IOException("Failed to calculate CRC32", e);
+		}
+	}
+
+	private void verifyChecksum(String blobName, BlobClient blobClient, String enableChecksum, String checksumType,
+			Map<String, String> metadata, Path localFilePath) throws IOException, RuntimeException {
+
+		boolean checksumVerified = false;
+		String expectedChecksum = metadata.get(checksumType.toLowerCase());
+
+		if (expectedChecksum == null) {
+			classLogger.warn("No checksum found in metadata for type: " + checksumType);
+			return;
+		}
+
+		// Compute the local checksum
+		String localChecksum = calculateChecksum(localFilePath, checksumType.toUpperCase());
+
+		if (localChecksum.equals(expectedChecksum)) {
+			classLogger.info("Checksum verified successfully for: " + blobName);
+			checksumVerified = true;
+		} else {
+			classLogger.error("Checksum verification failed for: " + blobName + ". Expected: " + expectedChecksum
+					+ ", Found: " + localChecksum);
+			throw new RuntimeException("Checksum verification failed for: " + blobName);
+		}
+
+		if (!checksumVerified) {
+			classLogger.warn("No valid checksum metadata found for: " + blobName + ". Skipping verification.");
+		}
 	}
 
 	@Override
