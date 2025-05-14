@@ -2519,8 +2519,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
  
         List<Map<String, Object>> list = (List<Map<String, Object>>) QueryExecutionUtility.flushRsToMap(securityDb, qs);
         if (list.isEmpty()) {
-            throw new IllegalArgumentException("No author found for the engine id: " + engineId);
-        }
+			Map<String, Object> map = new HashMap<>();
+			map.put("PERMISSIONGRANTEDBY", null);
+			map.put("DATEADDED", null);
+			return map;
+		}
  
         return list.get(0);
     }
