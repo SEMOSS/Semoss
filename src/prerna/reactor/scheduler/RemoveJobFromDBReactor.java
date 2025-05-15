@@ -37,39 +37,71 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 		 */
 		organizeKeys();
 		// Get inputs
-		String jobId = this.keyValue.get(this.keysToGet[0]);
-		String jobGroup = this.keyValue.get(this.keysToGet[1]);
-		boolean deleteJob = false;
+		String jobIdsString = this.keyValue.get(this.keysToGet[0]);
+		String jobGroupsString = this.keyValue.get(this.keysToGet[1]);
+		
+		//Splitting strings and storing in arrays
+		String [] jobIds = jobIdsString.split(",");
+		String [] jobGroups = jobGroupsString.split(",");
+		
+		//Validating if no. of jobIds are same as no. of jobGroups
+		if(jobIds.length != jobGroups.length) {
+			throw new IllegalArgumentException("Number of job Ids and job groups must match");
+		}
+		
+		boolean allJobsDeleted = true;
 		
 		// the job group is the app the user is in
-		// user must be an admin or editor of the app
-		// to add a scheduled job
+	    // user must be an admin or editor of the app
+	    // to add a scheduled job
 		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
-			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
+		
+		//Using for loop to loop over over each job ID + job group pair, and:
+		//check permissions
+		//delete the job from Quartz Scheduler
+		//delete the job from the database
+		//track whether all deletions succeeded
+		for(int i=0; i<jobIds.length; i++) {
+			String jobId = jobIds[i].trim();
+			String jobGroup = jobGroups[i].trim();
+			
+			boolean deleteJob = false;
+			
+			// Check user permissions
+
+			if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+				//throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
+				throw new IllegalArgumentException("User lacks permission to delete job: "+jobId);
+				
+			}
+			
+			// delete job from quartz
+			try {
+				JobKey job = JobKey.jobKey(jobId, jobGroup);
+				Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+				
+				// start up scheduler
+				SchedulerDatabaseUtility.startScheduler(scheduler);
+
+				if (scheduler.checkExists(job)) {
+					deleteJob = scheduler.deleteJob(job);
+				}
+			} catch (SchedulerException se) {
+				logger.error(Constants.STACKTRACE, se);
+				allJobsDeleted = false;
+			}
+
+			// delete record from SMSS_JOB_RECIPES table in H2
+			boolean recordExists = SchedulerDatabaseUtility.existsInJobRecipesTable(jobId, jobGroup);
+			if (recordExists) {
+				SchedulerDatabaseUtility.removeFromJobRecipesTable(jobId, jobGroup);
+			}
+			
+			// update overall success
+			allJobsDeleted &= deleteJob;
 		}
 		
-		// delete job from quartz
-		try {
-			JobKey job = JobKey.jobKey(jobId, jobGroup);
-			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
-			
-			// start up scheduler
-			SchedulerDatabaseUtility.startScheduler(scheduler);
 
-			if (scheduler.checkExists(job)) {
-				deleteJob = scheduler.deleteJob(job);
-			}
-		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
-		}
-
-		// delete record from SMSS_JOB_RECIPES table in H2
-		boolean recordExists = SchedulerDatabaseUtility.existsInJobRecipesTable(jobId, jobGroup);
-		if (recordExists) {
-			SchedulerDatabaseUtility.removeFromJobRecipesTable(jobId, jobGroup);
-		}
-
-		return new NounMetadata(deleteJob, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
+		return new NounMetadata(allJobsDeleted, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
 	}
 }
