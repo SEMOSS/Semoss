@@ -195,7 +195,6 @@ class OpenAIResponses(AbstractOpenAiClient):
 
         # Update model specific kwargs
         kwargs = self._update_model_specific_kwargs(**kwargs)
-        print("kwargs - ", kwargs)
 
         response = self.client.responses.create(model=self.model_name, **kwargs)
 
