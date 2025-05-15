@@ -109,6 +109,12 @@ public class KubernetesModelScaler {
 	                    result.put("message", jsonResponse.getString("message"));
 	                }
 	                
+	                if (jsonResponse.has("zk_info")) {
+	                    JSONObject zkInfoObj = jsonResponse.getJSONObject("zk_info");
+	                    Map<String, Object> zkInfoMap = jsonToMap(zkInfoObj);
+	                    result.put("zk_info", zkInfoMap);
+	                }
+	                
 	                if (jsonResponse.has("pools")) {
 	                    JSONArray poolsArray = jsonResponse.getJSONArray("pools");
 	                    List<Map<String, Object>> poolsList = new ArrayList<>();
@@ -120,6 +126,12 @@ public class KubernetesModelScaler {
 	                    }
 	                    
 	                    result.put("pools", poolsList);
+	                }
+	                
+	                if (jsonResponse.has("active_models_actual")) {
+	                    JSONObject activeModelsObj = jsonResponse.getJSONObject("active_models_actual");
+	                    Map<String, Object> activeModelsMap = jsonToMap(activeModelsObj);
+	                    result.put("active_models_actual", activeModelsMap);
 	                }
 	                
 	                classLogger.info("Successfully retrieved node pool information");
