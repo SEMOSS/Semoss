@@ -40,6 +40,9 @@ public class OpenURLReactor extends AbstractReactor {
 		String domain = null;
 		try {
 			URI uri = new URI(url);
+			if (!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme())) {
+				throw new IllegalArgumentException("URL is not http or https.");
+			}
 			domain = uri.getHost();
 		} catch (URISyntaxException e) {
 			throw new IllegalArgumentException("URL is improperly formatted.", e);

@@ -56,7 +56,7 @@ public class PlaywrightBrowserUtil {
 	Map inputLinks = new Hashtable();
 	Map <String, Locator> locators = new HashMap();
 	Map <String, String> variables = new HashMap();
-	String outputDir = "c:/temp/playwright";
+	String outputDir = null; 
 	String session = null;
 	String baseUrl = null;
 	int sleep = 400;
@@ -144,6 +144,9 @@ public class PlaywrightBrowserUtil {
 	     //LaunchOptions lp = new LaunchOptions();
 	     //lp.setChannel(BrowserChannel.CHROME);
 	     //lp.setHeadless(false);
+		String tempString = System.getProperty("java.io.tmpdir");
+		Path p = Paths.get(tempString);
+		this.outputDir = p.toAbsolutePath().toString();
 		
 		if(this.playwright == null)
 			this.playwright = Playwright.create();
