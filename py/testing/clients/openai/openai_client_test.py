@@ -330,14 +330,7 @@ def test_openai_responses_json_structured_response(
     # Add "stream=True" or "stream=False" in the ask call if required
     ask_response = openai_response_client.ask(
         input=SAMPLE_QUESTION,
-        text={
-            "format": {
-                "type": "json_schema",
-                "name": "calendar_event",
-                "schema": _get_schema_for_responses(),
-                "strict": True,
-            }
-        },
+        schema=_get_schema_for_responses(),
     )
     print(
         "\n openai_responses_json_structured_response ask_response - ",

@@ -66,7 +66,7 @@ class OpenAIResponses(AbstractOpenAiClient):
                     {
                         "format": {
                             "type": "json_schema",
-                            "name": "calender_event",
+                            "name": "calendar_event",
                             "schema": schema,
                             "strict": True,
                         }
@@ -84,6 +84,9 @@ class OpenAIResponses(AbstractOpenAiClient):
         Make the structured output call to the correct endpoint based on model type.
         vLLM requires a different endpoint...
         """
+        # Removing the unexpected arguments for client.responses.parse call
+        params.pop("max_tokens")
+        params.pop("messages")
         response = (
             self.client.responses.parse(model=self.model_name, **params)
             if self.model_type == "OPEN_AI"
