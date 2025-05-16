@@ -233,7 +233,8 @@ USER_TRACKING_METHOD	GEOIP2
 
 MODEL_INFERENCE_LOGS_ENABLED true
 PROMPT_DB_ENABLED true
-CORE_ADMIN_FLAG_ENABLED true
+DT_COREAI_ISADMIN_CHECK true
+DT_COREAI_NONAPPROVED_CATALOGITEMS true
 ##################################################
 ##################################################
 ##################################################
