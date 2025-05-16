@@ -146,6 +146,17 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if (this.smssProp.containsKey(Constants.CONTENT_OVERLAP)) {
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
 		}
+		if (this.smssProp.containsKey(Constants.TAGS)) {
+			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.TAGS));
+		}
+		if (this.smssProp.containsKey(Constants.DESCR)) {
+			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.DESCR));
+		}
+		if (this.smssProp.containsKey(Constants.METADATA)) {
+			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.METADATA));
+		}
+		
+		
 		
 		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
 		

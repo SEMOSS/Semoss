@@ -88,6 +88,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected int contentLength = 512;
 	protected int contentOverlap = 0;
 	
+	protected String description = null;
+	protected String tags = null;
+	protected String metaData = null;
+	
 	protected boolean modelPropsLoaded = false;
 	protected String embedderEngineId = null;
 	protected String keywordGeneratorEngineId = null;
@@ -149,6 +153,16 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 		if (this.smssProp.containsKey(Constants.CONTENT_OVERLAP)) {
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
+		}
+		
+		if (this.smssProp.containsKey(Constants.TAGS)) {
+			this.tags = this.smssProp.getProperty(Constants.TAGS);
+		}
+		if (this.smssProp.containsKey(Constants.METADATA)) {
+			this.metaData = this.smssProp.getProperty(Constants.METADATA);
+		}
+		if (this.smssProp.containsKey(Constants.DESCR)) {
+			this.description = this.smssProp.getProperty(Constants.DESCR);
 		}
 
 		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
@@ -222,6 +236,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey())) {
 			chunkMaxTokenLength = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey());
 		}
+		
 
 		int tokenOverlapBetweenChunks = this.contentOverlap;
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey())) {
