@@ -6117,7 +6117,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getAICoreAppFlag() {
-		String coreFlag = Utility.getDIHelperProperty(Constants.AI_CORE_ADMIN_FLAG);
+		String coreFlag = Utility.getDIHelperProperty(Constants.DT_COREAI_ISADMIN_CHECK);
 		if(coreFlag == null) {
 			// default option is true
 			return true;
@@ -6125,6 +6125,22 @@ public final class Utility {
 		
 		return Boolean.parseBoolean(coreFlag);
 	}
+	
+	
+	/**
+	 * Determine if We need to enable the AIcore CATALOG ITEMApplication 
+	 * @return
+	 */
+	public static boolean getCoreAINonApprovedFlag() {
+		String coreFlag = Utility.getDIHelperProperty(Constants.DT_COREAI_NONAPPROVED_CATALOGITEMS);
+		if(coreFlag == null) {
+			// default option is true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(coreFlag);
+	}
+	
 	/**
 	 * 
 	 * @param size
