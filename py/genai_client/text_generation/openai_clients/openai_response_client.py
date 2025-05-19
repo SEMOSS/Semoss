@@ -95,7 +95,7 @@ class OpenAIResponses(AbstractOpenAiClient):
         try:
             content = response.output_text
             response_tokens = response.usage.output_tokens
-            return content, response_tokens, "RESPONSES"
+            return content, response_tokens, "CHAT"
         except Exception as e:
             raise ValueError(f"Failed to extract structured output: {e}")
 
@@ -124,7 +124,10 @@ class OpenAIResponses(AbstractOpenAiClient):
             dict: Updated kwargs
         """
         updated_kwargs = kwargs.copy()
-        updated_kwargs.pop("messages", None)
+        if updated_kwargs.get("messages"):
+            updated_kwargs["input"] = updated_kwargs.pop("messages")
+        else:
+            updated_kwargs.pop("messages", None)
 
         # Handle o1-mini (doesn't support system/developer roles)
         if self.model_name.startswith("o1-mini"):
@@ -134,17 +137,15 @@ class OpenAIResponses(AbstractOpenAiClient):
 
             updated_kwargs["stream"] = False
 
-            # Convert system/developer messages to user messages
-            if "messages" in updated_kwargs:
-                messages = updated_kwargs["messages"]
-                for i, msg in enumerate(messages):
+            # Convert system/developer messages to user inputs
+            if "input" in updated_kwargs:
+                input = updated_kwargs["input"]
+                for i, msg in enumerate(input):
                     if msg.get("role") in ["system", "developer"]:
                         original_role = msg.get("role").upper()
-                        messages[i]["role"] = "user"
-                        messages[i][
-                            "content"
-                        ] = f"{original_role}: {messages[i]['content']}"
-                updated_kwargs["messages"] = messages
+                        input[i]["role"] = "user"
+                        input[i]["content"] = f"{original_role}: {input[i]['content']}"
+                updated_kwargs["input"] = input
 
         # Handle regular o1 models
         elif self.model_name == "o1" or self.model_name.startswith("o1-preview"):
@@ -167,7 +168,7 @@ class OpenAIResponses(AbstractOpenAiClient):
     def inference_call(self, prefix: str, **kwargs) -> Tuple[str, int, str]:
         final_query = ""
         response_tokens = None
-        messageType = "RESPONSES"
+        messageType = "CHAT"
         # For Remote Client Server Models
         if "base_url" in kwargs:
             self.client.base_url, self.client.api_key = kwargs.pop("base_url"), "EMPTY"

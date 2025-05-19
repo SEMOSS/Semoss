@@ -14,6 +14,7 @@ from .openai_api_inference_server import (
 
 class OpenAiClientController:
     def __init__(self, **kwargs):
+        # TODO: chat_type is considering the below mentioned value, Instead it should read from smss file
         self.chat_type = kwargs.pop("chat_type", "chat-completion")
         endpoint = kwargs.pop("endpoint", None)
 
