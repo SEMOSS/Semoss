@@ -14,7 +14,7 @@ import prerna.engine.impl.model.KubernetesModelScaler;
 
 public class CanItRunReactor extends AbstractReactor {
 	
-	private static final Logger classLogger = LogManager.getLogger(MyRemoteModelsStatus.class);
+	private static final Logger classLogger = LogManager.getLogger(CanItRunReactor.class);
 	
 	public CanItRunReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.HF_MODEL_ID.getKey()};

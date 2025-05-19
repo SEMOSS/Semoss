@@ -69,6 +69,6 @@ public class InstructModelEngineResponseUnitTests {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
             reactor.fromObject(1);
         });
-        assertEquals("Expected a Map<String, Object> but got: class java.lang.Integer", e.getMessage());
+        assertEquals("Expected map output. Instead received value: 1", e.getMessage());
     }
 }
