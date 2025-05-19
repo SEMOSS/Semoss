@@ -1022,5 +1022,9 @@ public class Constants {
     public static final String EXTERNAL_DATABASE_MANAGEMENT_TABLENAME = "EXTERNAL_DATABASE_MANAGEMENT_TABLENAME";
     public static final String EXTERNAL_DATABASE_MANAGEMENT_COLUMNNAME = "EXTERNAL_DATABASE_MANAGEMENT_COLUMNNAME";
     public static final String EXTERNAL_DATABASE_MANAGEMENT_DATATYPE = "EXTERNAL_DATABASE_MANAGEMENT_DATATYPE";
-    
+    // default AdminFlag
+    public static final String ADMIN_ONLY_VIEW_MENU_BAR = "ADMIN_ONLY_VIEW_MENU_BAR";
+ // default AdminFlag nonapproved catalog
+    public static final String ADMIN_ONLY_NON_APPROVED_PRODITEM = "ADMIN_ONLY_NON_APPROVED_PRODITEM";
+
 }

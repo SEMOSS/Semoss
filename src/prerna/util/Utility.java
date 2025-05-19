@@ -6137,5 +6137,33 @@ public final class Utility {
         int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
         return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
     }
+	/**
+	 * Determine if We need to enable the AIcore Application 
+	 * @return
+	 */
+	public static boolean getAdminOnlyViewMenuBarFlag() {
+		String coreFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VIEW_MENU_BAR);
+		if(coreFlag == null) {
+			// default option is true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(coreFlag);
+	}
+	
+	
+	/**
+	 * Determine if We need to enable the AIcore CATALOG ITEMApplication 
+	 * @return
+	 */
+	public static boolean getAdminOnlyNonAprrovedFlag() {
+		String nonApprovedFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_NON_APPROVED_PRODITEM);
+		if(nonApprovedFlag == null) {
+			// default option is true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(nonApprovedFlag);
+	}
 
 }
