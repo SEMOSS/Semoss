@@ -109,6 +109,12 @@ public class KubernetesModelScaler {
 	                    result.put("message", jsonResponse.getString("message"));
 	                }
 	                
+	                if (jsonResponse.has("zk_info")) {
+	                    JSONObject zkInfoObj = jsonResponse.getJSONObject("zk_info");
+	                    Map<String, Object> zkInfoMap = jsonToMap(zkInfoObj);
+	                    result.put("zk_info", zkInfoMap);
+	                }
+	                
 	                if (jsonResponse.has("pools")) {
 	                    JSONArray poolsArray = jsonResponse.getJSONArray("pools");
 	                    List<Map<String, Object>> poolsList = new ArrayList<>();
@@ -120,6 +126,12 @@ public class KubernetesModelScaler {
 	                    }
 	                    
 	                    result.put("pools", poolsList);
+	                }
+	                
+	                if (jsonResponse.has("active_models_actual")) {
+	                    JSONObject activeModelsObj = jsonResponse.getJSONObject("active_models_actual");
+	                    Map<String, Object> activeModelsMap = jsonToMap(activeModelsObj);
+	                    result.put("active_models_actual", activeModelsMap);
 	                }
 	                
 	                classLogger.info("Successfully retrieved node pool information");
@@ -165,6 +177,61 @@ public class KubernetesModelScaler {
 	    
 	    return map;
 	}
+	
+	/**
+	 * Retrieve the cached (or freshly re-loaded) KServe deployment configs
+	 * from the model-scaler service.
+	 *
+	 * @param refresh if {@code true}, tells the micro-service to reload the
+	 *                configs from GCS before returning the response.
+	 * @return a Map keyed by model-name, where each value is a nested Map
+	 *         representing the InferenceService spec for that model.
+	 * @throws Exception on any HTTP or parse failure.
+	 */
+	public Map<String, Object> getModelDeploymentConfigs(boolean refresh) throws Exception {
+	    // Build the URL – keep the same /api/resources prefix you use elsewhere
+	    String endpoint = "/api/resources/model-deploy-configs";
+	    String serviceUrl = this.kmsUrl + endpoint + (refresh ? "?refresh=true" : "");
+
+	    RequestConfig requestConfig = RequestConfig.custom()
+	            .setConnectTimeout(5000)
+	            .setSocketTimeout(5000)
+	            .build();
+
+	    try (CloseableHttpClient httpClient = HttpClients.custom()
+	            .setDefaultRequestConfig(requestConfig)
+	            .build()) {
+
+	        HttpGet httpGet = new HttpGet(serviceUrl);
+	        httpGet.setHeader("Accept", "application/json");
+
+	        try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+	            int statusCode = response.getStatusLine().getStatusCode();
+	            String responseBody = EntityUtils.toString(response.getEntity());
+
+	            if (statusCode == 200) {
+	                JSONObject jsonResponse = new JSONObject(responseBody);
+	                Map<String, Object> configs = jsonToMap(jsonResponse);
+
+	                classLogger.info(
+	                        "Retrieved {} model deployment configs (refresh={})",
+	                        configs.size(), refresh);
+	                return configs;
+	            } else {
+	                classLogger.error(
+	                        "Failed to fetch model deployment configs: {} (status {})",
+	                        responseBody, statusCode);
+	                throw new RuntimeException(
+	                        "Failed to retrieve model deployment configs: " + responseBody);
+	            }
+	        }
+	    } catch (Exception e) {
+	        classLogger.error(
+	                "Error contacting model-scaler for deployment configs: {}", e.getMessage(), e);
+	        throw new RuntimeException("Failed to retrieve model deployment configs", e);
+	    }
+	}
+
 	
 	public Map<String, Object> canItRun(String hfModelId) throws Exception {
 	
