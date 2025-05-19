@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -93,6 +94,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	
 	protected String defaultChunkUnit;
 	protected String defaultExtractionMethod;
+	protected String defaultChunkingMethod;
 	
     protected boolean customDocumentProcessor = false;
     protected String customDocumentProcessorFunctionID = null;
@@ -160,7 +162,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 		
 		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
-		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, "Cosine Similarity");
+		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, getDefaultDistanceMethod());
+		this.defaultChunkingMethod = this.smssProp.getProperty(Constants.DEFAULT_CHUNKING_METHOD, "recursive");
 		
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
@@ -193,6 +196,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
             }
         }
 	}
+	
+	protected abstract String getDefaultDistanceMethod();
 	
 	@Override
 	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
@@ -232,7 +237,11 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
 			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 		}
-
+		
+		String chunkingMethod = this.defaultChunkingMethod;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CHUNKING_METHOD.getKey())) {
+			chunkingMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNKING_METHOD.getKey());
+		}
         
 		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
 		if (insight == null) {
@@ -390,7 +399,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							.append(tokenOverlapBetweenChunks)
 							.append(", chunking_strategy = ")
 							.append(chunkingStrategy)
-							.append(", cfg_tokenizer = cfg_tokenizer)");
+							.append(", chunking_method = '")
+							.append(chunkingMethod)
+							.append("', cfg_tokenizer = cfg_tokenizer)");
 						
 						pyt.runScript(splitTextCommand.toString());
 					}
@@ -731,7 +742,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
+			throw new IllegalArgumentException("Unable to connect to server for vector databse.");
 		}
 
 		// create the py translator
@@ -747,11 +758,14 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				String resolvedString = substitutor.replace(commands[commandIndex]);
 				commands[commandIndex] = resolvedString;
 			}
-			pyt.runEmptyPy(commands);
 			
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", commands));
+			
+			pyt.runEmptyPy(commands);
+			
+
 			
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;
@@ -768,6 +782,11 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			}
 			throw e;
 		}
+	}
+	
+	@Override
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
+		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 	
 	/**

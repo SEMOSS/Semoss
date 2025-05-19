@@ -131,8 +131,8 @@ class FAISSDatabase:
         Args:
             indexClasses(`List[str]`):
                 A list of string defining the index classes to search in the database
-                    question(`str`):
-            The string you are trying to match against the embedded documents
+            question(`str`):
+                The string you are trying to match against the embedded documents
             filter(`str`):
                 A SQL filter to find the appropriate indexes before executing the semantic search
             results(`Optional[int]`, *optional*):

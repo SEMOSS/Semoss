@@ -199,7 +199,12 @@ class FAISSSearcher:
             strings_to_embed=[question], insight_id=insight_id
         )
 
-        query_vector = np.array(search_vector[0]["response"], dtype=np.float32)
+        # If model_engine_class is 'LOCAL' -> Type of search_vector is List
+        # If model_engine_class is 'TOMCAT' -> Type of search_vector is Dict
+        if isinstance(search_vector, List):
+            query_vector = np.array(search_vector[0]["response"], dtype=np.float32)
+        else:
+            query_vector = np.array(search_vector["response"], dtype=np.float32)
         assert query_vector.shape[0] == 1
 
         # check to see if need to normalize the vector
@@ -387,7 +392,12 @@ class FAISSSearcher:
                 # This catch is required due to a version change in the datasets package
                 # Previously, there was no attribute called _batches which is required with the new `cast` method. This is missing from the pickle file
                 # The solution is to reconstruct the dataset from a pandas frame
-                loaded_dataset = Dataset.from_pandas(loaded_dataset.to_pandas())
+                try:
+                    loaded_dataset = Dataset.from_pandas(loaded_dataset.to_pandas())
+                except AttributeError:
+                    loaded_dataset = Dataset.from_pandas(
+                        loaded_dataset.data.to_pandas()
+                    )
                 loaded_dataset = loaded_dataset.cast(new_features, keep_in_memory=True)
 
         elif isinstance(loaded_dataset, pd.DataFrame) and extracted_with_cfg:

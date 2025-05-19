@@ -36,7 +36,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 	 */
 
 	public CreateAppFromTemplateReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), "projectTemplate", 
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TEMPLATE.getKey(), 
 				ReactorKeysEnum.GLOBAL.getKey(), 
 				ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey()};
 	}

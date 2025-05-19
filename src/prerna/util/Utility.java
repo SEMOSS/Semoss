@@ -2071,6 +2071,14 @@ public final class Utility {
 	 * @return
 	 */
 	private static IEngine loadEngine(String smssFilePath, Properties smssProp) {
+		
+		for (String name : smssProp.stringPropertyNames()) {
+		    String value = smssProp.getProperty(name);
+		    if (value != null) {
+		        smssProp.setProperty(name, value.trim());
+		    }
+		}
+		
 		IEngine engine = null;
 		try {
 			String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
@@ -3567,6 +3575,9 @@ public final class Utility {
 	}
 
 	public static String encodeURIComponent(String s) {
+		if(s == null) {
+			return null;
+		}
 		try {
 			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20")
 					.replace("!", "\\%21")
@@ -3582,6 +3593,9 @@ public final class Utility {
 	}
 
 	public static String decodeURIComponent(String s) {
+		if(s == null) {
+			return null;
+		}
 		try {
 			String newS = s.replaceAll("\\%20", "+")
 					.replaceAll("\\%21", "!")
@@ -3695,23 +3709,19 @@ public final class Utility {
 	 */
 	public static Properties loadProperties(String filePath) {
 		Properties retProp = new Properties();
-		FileInputStream fis = null;
 		if (filePath != null) {
-			try {
-				fis = new FileInputStream(Utility.normalizePath(filePath));
+			try (FileInputStream fis = new FileInputStream(Utility.normalizePath(filePath))){
 				retProp.load(fis);
 			} catch (IOException ioe) {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
 				classLogger.error(Constants.STACKTRACE, ioe);
-			} finally {
-				if (fis != null) {
-					try {
-						fis.close();
-					} catch (IOException ioe) {
-						classLogger.error(Constants.STACKTRACE, ioe);
-					}
-				}
 			}
+		}
+		for (String name : retProp.stringPropertyNames()) {
+		    String value = retProp.getProperty(name);
+		    if (value != null) {
+		    	retProp.setProperty(name, value.trim());
+		    }
 		}
 		return retProp;
 	}
@@ -4932,7 +4942,7 @@ public final class Utility {
 	 * @param urls
 	 * @return
 	 */
-	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls) {
+	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls, ClassLoader parentClassLoader) {
 		URLClassLoader cl = null;
 		Map<String, Class<IReactor>> reactorsMap = new HashMap<>();
 		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
@@ -4943,9 +4953,9 @@ public final class Utility {
 			};
 		}
 		try {
-			cl = new URLClassLoader(urls);
+            cl = new URLClassLoader(urls, parentClassLoader);
 			JarClassLoader jcl = new JarClassLoader(cl);
-			
+
 			// scan all abstract reactors
 			ScanResult sr = new ClassGraph()
 					.overrideClasspath((Object[]) urls)
@@ -5379,40 +5389,11 @@ public final class Utility {
 		try {
 			// only try to find the base python if one was not passed in
 			if (py == null || py.isEmpty()) {
-				py = System.getenv(Settings.PYTHONHOME);
-				if(py == null) {
-					py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
-				}
-				if(py == null) {
-					System.getenv(Settings.PY_HOME);
-				}
-				if (py == null) {
-					py = Utility.getDIHelperProperty(Settings.PY_HOME);
-				}
-				if(py == null) {
-					throw new NullPointerException("Must define python home");
-				}
-			}
-			py = py.trim();
-			// append the executable
-			if (SystemUtils.IS_OS_WINDOWS) {
-				py = py + "/python.exe";
+				py = getPythonExecutable();
 			} else {
-				py = py + "/bin/python3";
+				classLogger.info("The python executable being used is: \"" + py + "\"");
 			}
-
-			py = py.replace("\\", "/");
-
-			classLogger.info("The python executable being used is: " + py);
-
-			// check to see if the py folder is there
-			// if not go into base folder
-			String pyBase = Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER) == null
-					? Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
-							: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);
-			pyBase = pyBase.trim();
-			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
-			pyBase = pyBase.replace("\\", "/");
+			String pyBase = Utility.getBaseFolder().replace("\\", "/") + "/" + Constants.PY_BASE_FOLDER;
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
 			prefix = Utility.getRandomString(5);
@@ -5530,41 +5511,14 @@ public final class Utility {
 		String finalDir = insightFolder.replace("\\", "/");
 
 		try {
-			String py = System.getenv(Settings.PYTHONHOME);
-			if(py == null) {
-				py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
-			}
-			if(py == null) {
-				System.getenv(Settings.PY_HOME);
-			}
-			if (py == null) {
-				py = Utility.getDIHelperProperty(Settings.PY_HOME);
-			}
-			if(py == null) {
-				throw new NullPointerException("Must define python home");
-			}
-			py = py.trim();
-			if (SystemUtils.IS_OS_WINDOWS) {
-				py = py + "/python.exe";
-			} else {
-				py = py + "/bin/python3";
-			}
-
-			py = py.replace("\\", "/");
-
-			String pyBase = Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER) == null 
-						? Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
-								: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);
-			pyBase = pyBase.trim();
-			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
-
-			pyBase = pyBase.replace("\\", "/");
+			String py = getPythonExecutable();
+			String pyBase = Utility.getBaseFolder().replace("\\", "/") + "/" + Constants.PY_BASE_FOLDER;
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
 			prefix = Utility.getRandomString(5);
 			prefix = "p_"+ prefix;
 
-			String outputFile =chrootDir + finalDir + "/console.txt";
+			String outputFile = chrootDir + finalDir + "/console.txt";
 
 			//	String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
 			// 01.03.2025 - below are old chroot commands that utilized full mount + bindfs + debootstrap
@@ -5623,7 +5577,36 @@ public final class Utility {
 
 		return new Object[] {thisProcess, prefix};
 	}
-
+	
+	/**
+	 * 
+	 * @return
+	 */
+	private static String getPythonExecutable() {
+		String py = System.getenv(Settings.PYTHONHOME);
+		if(py == null) {
+			py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
+		}
+		if(py == null) {
+			System.getenv(Settings.PY_HOME);
+		}
+		if (py == null) {
+			py = Utility.getDIHelperProperty(Settings.PY_HOME);
+		}
+		if(py == null) {
+			throw new NullPointerException("Must define python home");
+		}
+		py = py.trim();
+		if (SystemUtils.IS_OS_WINDOWS) {
+			py = py + "/python.exe";
+		} else {
+			py = py + "/bin/python3";
+		}
+		py = py.replace("\\", "/");
+		classLogger.info("The python executable being used is: \"" + py + "\"");
+		return py;
+	}
+	
 	/**
 	 * 
 	 * @param commands
@@ -6142,5 +6125,17 @@ public final class Utility {
 
 		return dates;
 	}
+	
+	/**
+	 * 
+	 * @param size
+	 * @return
+	 */
+    public static String getReadableFileSize(long size) {
+        if (size <= 0) return "0 B";
+        final String[] units = new String[]{"B", "KB", "MB", "GB", "TB"};
+        int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
+        return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
+    }
 
 }
