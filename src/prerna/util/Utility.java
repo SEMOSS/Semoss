@@ -2071,6 +2071,14 @@ public final class Utility {
 	 * @return
 	 */
 	private static IEngine loadEngine(String smssFilePath, Properties smssProp) {
+		
+		for (String name : smssProp.stringPropertyNames()) {
+		    String value = smssProp.getProperty(name);
+		    if (value != null) {
+		        smssProp.setProperty(name, value.trim());
+		    }
+		}
+		
 		IEngine engine = null;
 		try {
 			String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
@@ -3708,6 +3716,12 @@ public final class Utility {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
 				classLogger.error(Constants.STACKTRACE, ioe);
 			}
+		}
+		for (String name : retProp.stringPropertyNames()) {
+		    String value = retProp.getProperty(name);
+		    if (value != null) {
+		    	retProp.setProperty(name, value.trim());
+		    }
 		}
 		return retProp;
 	}
