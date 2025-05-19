@@ -163,7 +163,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		
 		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
 		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, getDefaultDistanceMethod());
-		this.defaultChunkingMethod = this.smssProp.getProperty(Constants.DEFAULT_CHUNKING_METHOD, "tokens");
+		this.defaultChunkingMethod = this.smssProp.getProperty(Constants.DEFAULT_CHUNKING_METHOD, "recursive");
 		
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
@@ -758,11 +758,14 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				String resolvedString = substitutor.replace(commands[commandIndex]);
 				commands[commandIndex] = resolvedString;
 			}
-			pyt.runEmptyPy(commands);
 			
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", commands));
+			
+			pyt.runEmptyPy(commands);
+			
+
 			
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;
