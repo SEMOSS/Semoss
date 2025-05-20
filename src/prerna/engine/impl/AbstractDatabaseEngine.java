@@ -48,6 +48,7 @@ import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
@@ -273,7 +274,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} else {
-			classLogger.warn("Please consider adding a default database zome id for engine " + 
+			classLogger.warn("Please consider adding a default database zone id for engine " +
 					SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		}
 	}
@@ -309,6 +310,11 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			classLogger.debug("Closing the audit database engine");
 			auditDatabase.close();
 		}
+	}
+	
+	@Override
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
+		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 	
 	@Override
@@ -610,18 +616,11 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		try {
 			method = this.getClass().getMethod(methodName, args.getClass());
 			ret = method.invoke(this, params);
-		} catch (SecurityException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (NoSuchMethodException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IllegalArgumentException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IllegalAccessException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (InvocationTargetException e) {
+		} catch (SecurityException | NoSuchMethodException | IllegalArgumentException | IllegalAccessException |
+                 InvocationTargetException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		return ret;
+        return ret;
 	}
 
 	@Override
