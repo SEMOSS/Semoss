@@ -6138,7 +6138,7 @@ public final class Utility {
         return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
     }
 	/**
-	* Determine if We need to enable the AIcore Application 
+	* Determine if admins only are able to view left hand menu
 	* @return
 	*/
     public static boolean getAdminOnlyViewMenuBarFlag() {
@@ -6152,7 +6152,7 @@ public final class Utility {
     }
 		
 	/**
-	 * Determine if We need to enable the AIcore CATALOG ITEMApplication 
+	 * Determine if admins only are able to create non approved engines
 	 * @return
 	 */
     public static boolean getAdminOnlyNonApprovedFlag() {
