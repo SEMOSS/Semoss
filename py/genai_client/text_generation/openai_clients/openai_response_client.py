@@ -8,6 +8,8 @@ from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import (
     AskModelEngineResponse,
     InstructModelEngineResponse,
+    IMAGE_ENCODED,
+    IMAGE_URL,
 )
 
 
@@ -348,3 +350,35 @@ class OpenAIResponses(AbstractOpenAiClient):
             model_engine_response.warning = "\n\n".join(warnings)
 
         return updated_messages, final_max_tokens, model_engine_response
+
+    def _handle_image_params(
+        self, question: str, fill_variables: dict, message_payload
+    ):
+        """
+        Handle image parameters in the payload.
+        """
+        image_payload = [{"type": "input_text", "text": question}]
+
+        key_to_pop = IMAGE_ENCODED if IMAGE_ENCODED in fill_variables else IMAGE_URL
+        images = fill_variables.pop(key_to_pop)
+        if isinstance(images, str):
+            if key_to_pop == IMAGE_ENCODED:
+                image_url = f"data:image/png;base64,{images}"
+            else:
+                image_url = images
+            image_payload.append({"type": "input_image", "image_url": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload, fill_variables
+        elif isinstance(images, list):
+            for image in images:
+                if key_to_pop == IMAGE_ENCODED:
+                    image_url = f"data:image/png;base64,{image}"
+                else:
+                    image_url = image
+                image_payload.append({"type": "input_image", "image_url": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload, fill_variables
+        else:
+            raise ValueError(
+                f"Invalid type for {key_to_pop}. Expected str or list, got {type(images)}"
+            )
