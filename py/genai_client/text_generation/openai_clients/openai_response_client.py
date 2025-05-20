@@ -84,9 +84,10 @@ class OpenAIResponses(AbstractOpenAiClient):
         Make the structured output call to the correct endpoint based on model type.
         vLLM requires a different endpoint...
         """
-        # Removing the unexpected arguments for client.responses.parse call
-        params.pop("max_tokens")
-        params.pop("messages")
+        # Removing and adding the arguments for client.responses.parse call
+        params.pop("max_tokens", None)
+        params["input"] = params.pop("messages")
+
         response = (
             self.client.responses.parse(model=self.model_name, **params)
             if self.model_type == "OPEN_AI"
@@ -124,10 +125,8 @@ class OpenAIResponses(AbstractOpenAiClient):
             dict: Updated kwargs
         """
         updated_kwargs = kwargs.copy()
-        if updated_kwargs.get("messages"):
+        if "messages" in updated_kwargs:
             updated_kwargs["input"] = updated_kwargs.pop("messages")
-        else:
-            updated_kwargs.pop("messages", None)
 
         # Handle o1-mini (doesn't support system/developer roles)
         if self.model_name.startswith("o1-mini"):

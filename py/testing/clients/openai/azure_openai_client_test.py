@@ -170,7 +170,7 @@ def test_azure_openai_gpt_4o_responses_for_ask(azure_openai_gpt_4o_responses_cli
         - Checking the token limit of prompt and response against model token limit
     """
     # Add "stream=True" or "stream=False" in the ask call if required
-    ask_response = azure_openai_gpt_4o_responses_client.ask(input=SAMPLE_QUESTION)
+    ask_response = azure_openai_gpt_4o_responses_client.ask(question=SAMPLE_QUESTION)
     print("\n gpt_4o_responses ask_response -", ask_response)
 
     # Assertions for response type, paramaters and token limits

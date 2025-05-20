@@ -242,7 +242,7 @@ def test_openai_responses_text_response_without_stream(openai_response_client):
         - Checking the required keys of response
         - Checking the token limit of prompt and response against model token limit
     """
-    ask_response = openai_response_client.ask(input=SAMPLE_QUESTION, stream=False)
+    ask_response = openai_response_client.ask(question=SAMPLE_QUESTION, stream=False)
     print(
         "\n openai_response_text_response_without_stream ask_response - ", ask_response
     )
@@ -270,7 +270,7 @@ def test_openai_responses_text_response_with_stream(openai_response_client):
         - Checking the required keys of response
         - Checking the token limit of prompt and response against model token limit
     """
-    ask_response = openai_response_client.ask(input=SAMPLE_QUESTION)
+    ask_response = openai_response_client.ask(question=SAMPLE_QUESTION)
     print("\n openai_responses_text_response_with_stream ask_response - ", ask_response)
 
     # Assertions for the text response
@@ -329,7 +329,7 @@ def test_openai_responses_json_structured_response(
     SAMPLE_QUESTION = "Name a few Manchester United players you know with their positions, countries, and skill ratings."
     # Add "stream=True" or "stream=False" in the ask call if required
     ask_response = openai_response_client.ask(
-        input=SAMPLE_QUESTION,
+        question=SAMPLE_QUESTION,
         schema=_get_schema_for_responses(),
     )
     print(
@@ -374,7 +374,7 @@ def test_openai_responses_text_response_with_tool_choice(openai_response_client)
     ask_response = openai_response_client.ask(
         tool_choice="required",
         tools=[{"type": "web_search_preview"}],
-        input="What was a positive news story from today?",
+        question="What was a positive news story from today?",
     )
     print(
         "\n openai_responses_text_response_with_tool_choice ask_response - ",
