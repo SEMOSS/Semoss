@@ -29,7 +29,7 @@ on:
         required: true
         default: '22.04'
   push:
-    branches: [ "dev", "main"]
+    branches: [ "dev", "main" , "test-runner"]
     paths:
       - 'docker/Dockerfile.python'
       - 'py/install_config/pyproject.toml'
@@ -43,7 +43,10 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: CICD-GitHubRunner-private
+    container:
+      image: quay.io/semoss/test-quay:ubuntu-dind
+    #runs-on: ubuntu-latest
 
     env:
       PYTHON_VERSION: ${{ github.event.inputs.python_version }}
