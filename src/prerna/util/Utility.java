@@ -6138,10 +6138,10 @@ public final class Utility {
         return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
     }
 	/**
-	 * Determine if We need to enable the AIcore Application 
-	 * @return
-	 */
-	public static boolean getAdminOnlyViewMenuBarFlag() {
+	* Determine if We need to enable the AIcore Application 
+	* @return
+	*/
+    public static boolean getAdminOnlyViewMenuBarFlag() {
 		String coreFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VIEW_MENU_BAR);
 		if(coreFlag == null) {
 			// default option is true
@@ -6149,15 +6149,14 @@ public final class Utility {
 		}
 		
 		return Boolean.parseBoolean(coreFlag);
-	}
-	
-	
+    }
+		
 	/**
 	 * Determine if We need to enable the AIcore CATALOG ITEMApplication 
 	 * @return
 	 */
-	public static boolean getAdminOnlyNonAprrovedFlag() {
-		String nonApprovedFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_NON_APPROVED_PRODITEM);
+    public static boolean getAdminOnlyNonApprovedFlag() {
+		String nonApprovedFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_NON_APPROVED_PROD_ITEM);
 		if(nonApprovedFlag == null) {
 			// default option is true
 			return true;
@@ -6166,4 +6165,4 @@ public final class Utility {
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
 
-}
+    } 
