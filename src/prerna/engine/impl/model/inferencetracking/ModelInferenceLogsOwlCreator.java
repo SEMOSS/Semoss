@@ -75,7 +75,8 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("PROJECT_ID", "VARCHAR(50)"),
 				Pair.with("PROJECT_NAME", "VARCHAR(255)"),
-				Pair.with("AGENT_ID", "VARCHAR(50)")
+				Pair.with("AGENT_ID", "VARCHAR(50)"),
+				Pair.with("USER_EMAIL_ID", "VARCHAR(50)")
 			);
 		
 		this.messageColumns = Arrays.asList(
@@ -91,7 +92,8 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
 				Pair.with("SESSIONID", "VARCHAR(255)"),
 				Pair.with("USER_ID", "VARCHAR(255)"),
-				Pair.with("USER_NAME", "VARCHAR(255)")
+				Pair.with("USER_NAME", "VARCHAR(255)"),
+				Pair.with("USER_EMAIL_ID", "VARCHAR(50)")
 			);
 		
 		this.feedbackColumns = Arrays.asList(
