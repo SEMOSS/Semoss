@@ -658,7 +658,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static String doCreateNewConversation(String roomName, String roomContext,
 												 String userId, String userName, String agentType, 
-												 Boolean isActive, String projectId, String projectName, String agentId, String userEmail)) {
+												 Boolean isActive, String projectId, String projectName, String agentId, String userEmail) {
 		String convoId = UUID.randomUUID().toString();
 		doCreateNewConversation(convoId, roomName, roomContext, userId, userName, agentType, isActive, projectId, projectName, agentId,userEmail);
 		return convoId;
