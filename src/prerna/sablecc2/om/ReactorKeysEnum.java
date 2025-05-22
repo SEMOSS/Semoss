@@ -281,7 +281,8 @@ public enum ReactorKeysEnum {
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
 	WIDTH("width", 											    "The width to use for screenshot capture"),
-	SECTION("section", 											"The section to use as input from addBlockReactor");
+	SECTION("section", 											"The section to use as input from addBlockReactor"),
+	ALL_BLOCKS_VISIBLE("allBlocksVisible", 						"Boolean if we want all userIds blocks");
 
 	private String key;
 	private String description;

@@ -35,10 +35,10 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	private static BlocksThemeUtils instance = new BlocksThemeUtils();
 
-	private static final String BLOCK_QUERY = "INSERT INTO " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName() + " (ID, NAME, SECTION, HOVER_TEXT, BLOCK_JSON, DATE_ADDED, IS_LATEST) "
-			+ "VALUES (?, ?, ?, ?, ?, ?, ?)";
+	private static final String BLOCK_QUERY = "INSERT INTO " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName() + " (ID, NAME, SECTION, HOVER_TEXT, BLOCK_JSON, DATE_ADDED, IS_LATEST, CREATED_BY) "
+			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-	public static String[] BLOCK_COLUMN_NAMES = new String[] { "ID", "NAME", "SECTION", "HOVER_TEXT", "BLOCK_JSON" , "DATE_ADDED", "IS_LATEST"};
+	public static String[] BLOCK_COLUMN_NAMES = new String[] { "ID", "NAME", "SECTION", "HOVER_TEXT", "BLOCK_JSON" , "DATE_ADDED", "IS_LATEST" , "CREATED_BY" };
 
 	
 	private BlocksThemeUtils() {
@@ -53,31 +53,6 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		return table;
 	}
 
-	
-//	public static List<String> getBlockNames() throws SQLException {
-//
-//		SelectQueryStruct qs = new SelectQueryStruct();
-//		qs.addSelector(new QueryColumnSelector(ThemeDbTable.BLOCKS_TABLE.getThemeDbTablePrefix() + "NAME"));
-//		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-//				ThemeDbTable.BLOCKS_TABLE.getThemeDbTablePrefix() + "IS_DELETABLE", "==", false,
-//				PixelDataType.BOOLEAN));
-//
-//		List<Map<String, Object>> queryRes = null;
-//		try {
-//			queryRes = QueryExecutionUtility.flushRsToMap(themeDb, qs);
-//		} catch (Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//		}
-//
-//		if (queryRes == null || queryRes.isEmpty()) {
-//			return new ArrayList<>();
-//		}
-//
-//		List<String> output = queryRes.parallelStream().map(mapObj -> (String) mapObj.get("NAME"))
-//				.collect(Collectors.toList());
-//
-//		return output;
-//	}
 	// get all blocks
 	public static List<Map<String, Object>> getClientBlocks(String tableName, GenRowFilters filters) throws SQLException {
 		ThemeDbTable table = validateThemeDbTable(tableName);
@@ -132,7 +107,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		ThemeDbTable table = validateThemeDbTable(tableName);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-
+		
 		for (String colName : BlocksThemeUtils.BLOCK_COLUMN_NAMES) {
 			qs.addSelector(new QueryColumnSelector(table.getThemeDbTablePrefix() + colName));
 		}
@@ -158,15 +133,6 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	public static boolean deleteBlock(String blockId, String tableName, boolean hardDelete) throws SQLException {
 		ThemeDbTable table = validateThemeDbTable(tableName);
 
-//		try {
-//			if (!isDeletable(blockId, table)) {
-//				throw new SecurityException("Not allowed to delete this block");
-//			}
-//		} catch (Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//			return false;
-//		}
-
 		if (hardDelete) {
 			String query = "DELETE FROM " + table.getThemeDbTableName() + " WHERE ID = ?";
 			PreparedStatement ps = null;
@@ -187,26 +153,6 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		}
 	}
 	
-//	private static boolean isDeletable(String blockId, ThemeDbTable table) {
-//		SelectQueryStruct qs = new SelectQueryStruct();
-//		qs.addSelector(new QueryColumnSelector(table.getThemeDbTablePrefix() + "IS_DELETABLE"));
-//		qs.addExplicitFilter(
-//				SimpleQueryFilter.makeColToValFilter(ThemeDbTable.BLOCKS_TABLE.getThemeDbTablePrefix() + "ID", "==",
-//						blockId, PixelDataType.CONST_STRING));
-//		List<Map<String, Object>> retVal = null;
-//		try {
-//			retVal = QueryExecutionUtility.flushRsToMap(themeDb, qs);
-//		} catch (Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//		}
-//
-//		if (retVal == null || retVal.isEmpty()) {
-//			throw new IllegalArgumentException("Block Id does not exist");
-//		}
-//
-//		return (boolean) retVal.get(0).get("IS_DELETABLE");
-//	}
-
 	
 	// add block function
 	public static String addBlock(Map<String, Object> blockDetails) {
@@ -219,27 +165,6 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		return blockId;
 	}
 
-	
-	// edit block function 
-//	public static boolean editBlock(Map<String, Object> editDetails, String tableName) {
-//		ThemeDbTable table = validateThemeDbTable(tableName);
-//
-//		boolean allowClob = themeDb.getQueryUtil().allowClobJavaObject();
-//		String blockId = (String) editDetails.get("id");
-//		try {
-//			if (!isDeletable(blockId, table)) {
-//				throw new SecurityException("Not allowed to modify this block");
-//			}
-//		} catch (Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//			return false;
-//		}
-//		updateBlock(blockId);
-//		insertBlock(editDetails, allowClob, blockId);
-//		return true;
-//	}
-
-	
 	// validate the input map for required fields
 	private static void validateBlockDetails(Map<String, Object> blockDetails) {
 		validateString(blockDetails, "name", false, false);
@@ -285,7 +210,9 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 				blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("json")));
 			}
 			blockPS.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-			blockPS.setBoolean(parameterIndex++, true); 
+			blockPS.setBoolean(parameterIndex++, true);
+			//blockPS.setBoolean(parameterIndex++, true); // IS_LATEST
+			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("created_by"))); // CREATED_BY
 			blockPS.executeUpdate();
 			if (!blockPS.getConnection().getAutoCommit()) {
 				blockPS.getConnection().commit();
@@ -327,7 +254,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	}
 
 	public static String[] getThemeColTypes(AbstractSqlQueryUtil queryUtil) {
-		return new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(500)", queryUtil.getClobDataTypeName(), queryUtil.getDateWithTimeDataType(), queryUtil.getBooleanDataTypeName() };
+		return new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(500)", queryUtil.getClobDataTypeName(), queryUtil.getDateWithTimeDataType(), queryUtil.getBooleanDataTypeName(),"varchar(255)" };
 	}
 
 }

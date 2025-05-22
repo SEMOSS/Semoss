@@ -3,20 +3,17 @@ package prerna.reactor.blocks;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.BlocksThemeUtils;
-import prerna.util.Utility;
 
 public class AddBlockReactor extends AbstractReactor {
 
@@ -29,6 +26,7 @@ public class AddBlockReactor extends AbstractReactor {
 	public NounMetadata execute() {
 
 		User user = this.insight.getUser();
+		
 		if (user == null) {
 			NounMetadata noun = new NounMetadata("User must be signed in to add a block", PixelDataType.CONST_STRING,
 					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
@@ -57,7 +55,7 @@ public class AddBlockReactor extends AbstractReactor {
 	        blockMap.put("section",keyValue.get(ReactorKeysEnum.SECTION.getKey()));
 	        
 	        String rawJson = keyValue.get(ReactorKeysEnum.JSON.getKey());
-	        // Remove <encode> wrapper for json field
+	        // Removes <encode> wrapper for json field
 	        if (rawJson != null) {
 	            try {
 					rawJson = URLDecoder.decode(rawJson, "UTF-8");
@@ -66,6 +64,7 @@ public class AddBlockReactor extends AbstractReactor {
 				}
 	        }
 	        blockMap.put("json", rawJson);
+	        blockMap.put("created_by",this.insight.getUserId());
 		       return blockMap;
 		}		 
 }
