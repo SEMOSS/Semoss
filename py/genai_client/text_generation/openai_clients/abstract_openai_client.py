@@ -23,6 +23,8 @@ class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
 
         self.model_name = model_name
         self.model_type = model_type
+        self.use_max_tokens_param = kwargs.pop("use_max_tokens", False)
+
         self.tokenizer = self._get_tokenizer(kwargs)
         self.client = self._get_client(api_key=api_key, **kwargs)
         if self.model_type == None:
