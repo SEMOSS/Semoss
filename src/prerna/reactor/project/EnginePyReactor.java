@@ -38,7 +38,7 @@ public class EnginePyReactor extends AbstractReactor  {
 		
 		User user = this.insight.getUser();
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
+			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have editor access to this model");
 		}
 		
 		String code = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
