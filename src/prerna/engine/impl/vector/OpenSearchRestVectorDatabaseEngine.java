@@ -545,7 +545,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	 * @param m
 	 */
 	private void getIndex(String specificIndexName, String embeddings, int dimension, String methodName, String spaceType, String engine, int efConstruction, int m) {
-		Boolean exisits = doesIndexExsist(specificIndexName);
+		Boolean exisits = doesIndexExist(specificIndexName);
 		if(!exisits) {
 			createIndex(specificIndexName, embeddings, dimension, methodName, spaceType, engine, efConstruction, m);
 		}
@@ -553,22 +553,33 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 	/**
 	 * 
-	 * @param specificIndexName
+	 * @param doesIndexExist
 	 * @return
 	 */
-	private Boolean doesIndexExsist(String specificIndexName) {
-		String url = this.clusterUrl + "/" + specificIndexName;
-		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
-		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
-		try {
-			HttpHelperUtility.headRequest(url, headersMap, null, null, null);
-			return true;
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		return false;
+	private Boolean doesIndexExist(String specificIndexName) {
+	    String url = this.clusterUrl + "/" + specificIndexName;
+	    Map<String, String> headersMap = new HashMap<>();
+	    headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
+	    headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
+	    try {
+	        int status = HttpHelperUtility.headRequest2(url, headersMap, null, null, null);
+	        switch (status) {
+	            case 200: return true;   // Exists
+	            case 404: return false;  // Not exist
+	            case 401:
+	            case 403:
+	                classLogger.error("Auth error checking index existence: HTTP {}", status);
+	                throw new IllegalStateException("Not authorized to access: " + url);
+	            default:
+	                classLogger.warn("Unexpected HTTP status code {} for HEAD {}", status, url);
+	                return false;
+	        }
+	    } catch (Exception e) {
+	        classLogger.error("Failed HEAD request to {}: {}", url, e.getMessage());
+	        throw new RuntimeException("Failed to check index existence; see above log.", e);
+	    }
 	}
+
 
 	/**
 	 * https://opensearch.org/docs/latest/search-plugins/knn/knn-index/
