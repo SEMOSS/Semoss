@@ -564,8 +564,12 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	    try {
 	        int status = HttpHelperUtility.headRequest2(url, headersMap, null, null, null);
 	        switch (status) {
-	            case 200: return true;   // Exists
-	            case 404: return false;  // Not exist
+	            case 200: 
+	            	classLogger.info("Recieved 200, indicating that index does exist.");
+	            	return true;   // Exists
+	            case 404: 
+	            	classLogger.info("Recieved 404, indicating that index does not exist.");
+	            	return false;  // Not exist
 	            case 401:
 	            case 403:
 	                classLogger.error("Auth error checking index existence: HTTP {}", status);
