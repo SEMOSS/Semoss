@@ -12,6 +12,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -21,6 +22,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -61,6 +63,12 @@ import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import org.apache.http.HttpHost;
+import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.conn.routing.HttpRoutePlanner;
+import org.apache.http.protocol.HttpContext;
+import java.net.URI;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -153,6 +161,38 @@ public final class HttpHelperUtility {
 		}
 		
 		builder.setSSLSocketFactory(connFactory);
+		
+		  // --- PROXY SUPPORT START ---
+	    final HttpHost httpProxy = getProxyFromEnv("HTTP_PROXY");
+	    final HttpHost httpsProxy = getProxyFromEnv("HTTPS_PROXY");
+	    final List<String> noProxyList = getNoProxyList();
+
+	    if (httpProxy != null || httpsProxy != null) {
+	        HttpRoutePlanner routePlanner = new HttpRoutePlanner() {
+	            @Override
+	            public HttpRoute determineRoute(
+	                    final HttpHost target,
+	                    final org.apache.http.HttpRequest request,
+	                    final HttpContext context) throws org.apache.http.HttpException {
+	                if (target == null) return null;
+	                String hostName = target.getHostName();
+	                if (isNoProxyHost(hostName, noProxyList)) {
+	                    // direct connection
+	                    return new HttpRoute(target);
+	                }
+	                String scheme = target.getSchemeName();
+	                if ("https".equalsIgnoreCase(scheme) && httpsProxy != null) {
+	                    return new HttpRoute(target, null, httpsProxy, true);
+	                } else if ("http".equalsIgnoreCase(scheme) && httpProxy != null) {
+	                    return new HttpRoute(target, null, httpProxy, false);
+	                } else {
+	                    return new HttpRoute(target);
+	                }
+	            }
+	        };
+	        builder.setRoutePlanner(routePlanner);
+	        classLogger.info("HTTP_PROXY: " + httpProxy + ", HTTPS_PROXY: " + httpsProxy + ", NO_PROXY: " + noProxyList);
+	    }
 		return builder.build();
 	}
 	
@@ -1226,6 +1266,100 @@ public final class HttpHelperUtility {
 		}
 		
 		return retString;
+	}
+	
+	
+	// proxy utility methods //
+	
+	// Parse proxy env var, as before
+	private static HttpHost getProxyFromEnv(String envVar) {
+	    String proxyUrl = System.getenv(envVar);
+	    if (proxyUrl == null) proxyUrl = System.getenv(envVar.toLowerCase());
+	    if (proxyUrl == null) return null;
+	    try {
+	        if (!proxyUrl.startsWith("http")) proxyUrl = "http://" + proxyUrl;
+	        java.net.URI uri = new java.net.URI(proxyUrl);
+	        String host = uri.getHost();
+	        int port = uri.getPort();
+	        String scheme = uri.getScheme();
+	        if (host != null && port > 0) {
+	            return new HttpHost(host, port, scheme);
+	        } else if (host != null) {
+	            return new HttpHost(host, "https".equalsIgnoreCase(scheme) ? 443 : 80, scheme);
+	        }
+	    } catch (Exception ex) {
+	       classLogger.warn("Could not parse proxy env variable " + envVar + ": " + proxyUrl, ex);
+	    }
+	    return null;
+	}
+
+	// --- NO_PROXY section ---
+	// Parse the no_proxy env var into a list of glob-patterns
+	private static List<String> getNoProxyList() {
+	    String noProxy = System.getenv("NO_PROXY");
+	    if (noProxy == null) noProxy = System.getenv("no_proxy");
+	    if (noProxy == null) return Collections.emptyList();
+	    String[] parts = noProxy.split(",");
+	    List<String> out = new ArrayList<>();
+	    for (String s : parts) {
+	        if (!s.trim().isEmpty()) out.add(s.trim());
+	    }
+	    return out;
+	}
+
+	// Check if hostname matches any NO_PROXY entry (supports wildcards and subnets)
+	private static boolean isNoProxyHost(String host, List<String> noProxyList) {
+	    if (host == null || noProxyList == null || noProxyList.isEmpty()) return false;
+	    for (String pattern : noProxyList) {
+	        // Support wildcards: .example.com, *.example.com, 10.*, etc
+	        if (pattern.startsWith("*.")) pattern = pattern.substring(1); // Treat "*.domain.com" as ".domain.com"
+	        if (pattern.startsWith(".")) { // Match all subdomains
+	            if (host.endsWith(pattern)) return true;
+	        } else if (pattern.contains("*")) { // Match wildcard, e.g. "10.*"
+	            String regex = pattern.replace(".", "\\.").replace("*", ".*");
+	            if (host.matches(regex)) return true;
+	        } else if (pattern.equals(host)) { // Exact
+	            return true;
+	        } else if (isSubnet(pattern, host)) { // IP subnet
+	            return true;
+	        }
+	    }
+	    return false;
+	}
+
+	// Basic subnet checking for NO_PROXY entries like 10.0.0.0/8
+	private static boolean isSubnet(String cidr, String host) {
+	    if (!cidr.contains("/")) return false;
+	    try {
+	        java.net.InetAddress addr = java.net.InetAddress.getByName(host);
+	        return isIpInCidr(addr, cidr);
+	    } catch (Exception e) {
+	        // Not an IP; skip
+	        return false;
+	    }
+	}
+
+	private static boolean isIpInCidr(java.net.InetAddress ip, String cidr) {
+	    String[] parts = cidr.split("/");
+	    if (parts.length != 2) return false;
+	    byte[] addr = ip.getAddress();
+	    byte[] net = null;
+		try {
+			net = java.net.InetAddress.getByName(parts[0]).getAddress();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	    int prefix;
+	    try {
+	        prefix = Integer.parseInt(parts[1]);
+	    } catch (Exception e) {
+	        return false;
+	    }
+	    int mask = ~((1 << (32 - prefix)) - 1);
+	    int ipAddr = java.nio.ByteBuffer.wrap(addr).getInt();
+	    int netAddr = java.nio.ByteBuffer.wrap(net).getInt();
+	    return (ipAddr & mask) == (netAddr & mask);
 	}
 	
 	//////////////////////////////////////////////////////////////////
