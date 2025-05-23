@@ -826,9 +826,6 @@ public abstract class AbstractSecurityUtils {
 					classLogger.info("Running sql " + sql);
 					securityDb.insertData(sql);
 				}
-				//change (Done above)
-				
-				
 			}
 	
 			List<String> newProjectsAutoAdded = new ArrayList<>();

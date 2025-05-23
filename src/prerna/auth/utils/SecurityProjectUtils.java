@@ -1095,11 +1095,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	public static void setPortalPublish(User user, String projectId) {
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String updateQ = "UPDATE PROJECT SET DATELASTEDITED=?, PORTALPUBLISHED=?, PORTALPUBLISHEDUSER=?, PORTALPUBLISHEDTYPE=? WHERE PROJECTID=?";
-		PreparedStatement ps = null;                             //4
+		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
 			int i = 1;
-			ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC()); //5
+			ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
 			ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
 			ps.setString(i++, token.getId());
 			ps.setString(i++, token.getProvider().toString());
