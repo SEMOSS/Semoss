@@ -2905,7 +2905,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
 				// need to update
-				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET FAVORITE=? WHERE USERID=?");
+				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET FAVORITE=? WHERE USERID=? AND PROJECTID=?");
 				if(ps == null) {
 					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
 				}
@@ -2916,6 +2916,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						int parameterIndex = 1;
 						ps.setBoolean(parameterIndex++, isFavorite);
 						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, projectId);
 						ps.addBatch();
 					}
 					ps.executeBatch();
