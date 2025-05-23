@@ -1,12 +1,17 @@
 import boto3
 import botocore.exceptions
 import logging
+import urllib.request
+import base64
 from .abstract_text_generation_client import AbstractTextGenerationClient
 from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..constants import (
     MAX_TOKENS,
     MAX_INPUT_TOKENS,
     FULL_PROMPT,
+    IMAGE_ENCODED,
+    IMAGE_URL,
+    IMAGE_EXTENSION,
     AskModelEngineResponse,
 )
 
@@ -206,6 +211,82 @@ class BedrockClient(AbstractTextGenerationClient):
                     for msg in message_payload
                 ]
 
+    # def _get_image_extension_from_url(self, image_url):
+    #     """Get the image extension from image url."""
+    #     if (
+    #         "jpg" in image_url
+    #         or "jpeg" in image_url
+    #         or "JPG" in image_url
+    #         or "JPEG" in image_url
+    #     ):
+    #         return "jpeg"
+    #     elif "png" in image_url or "PNG" in image_url:
+    #         return "png"
+    #     elif "gif" in image_url or "GIF" in image_url:
+    #         return "gif"
+    #     elif "webp" in image_url or "WEBP" in image_url:
+    #         return "webp"
+    #     else:
+    #         raise ValueError(
+    #             "Invalid Image Extension - Expected 'jpeg', 'png', 'gif' or 'webp'"
+    #         )
+
+    def _get_bytes_from_encoded(self, base64_str):
+        """Convert the encoded base64 string to raw bytes."""
+        return base64.b64decode(base64_str)
+
+    def _get_bytes_from_url(self, image_url):
+        """Convert the bytes of image."""
+        with urllib.request.urlopen(image_url) as response:
+            image_data = response.read()
+
+        return image_data
+
+    def _handle_image_params(self, question: str, kwargs: dict, message_payload):
+        """
+        Handle image parameters in the payload.
+        """
+        message_payload = []
+        image_payload = [{"text": question}]
+
+        key_to_pop = IMAGE_ENCODED if IMAGE_ENCODED in kwargs else IMAGE_URL
+        images = kwargs.pop(key_to_pop)
+        if isinstance(images, str):
+            if key_to_pop == IMAGE_ENCODED:
+                image_url = {
+                    "format": IMAGE_EXTENSION,
+                    "source": {"bytes": self._get_bytes_from_encoded(images)},
+                }
+            else:
+                # image_extension = self._get_image_extension_from_url(images)
+                image_url = {
+                    "format": IMAGE_EXTENSION,
+                    "source": {"bytes": self._get_bytes_from_url(images)},
+                }
+            image_payload.append({"image": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload
+        elif isinstance(images, list):
+            for image in images:
+                if key_to_pop == IMAGE_ENCODED:
+                    image_url = {
+                        "format": IMAGE_EXTENSION,
+                        "source": {"bytes": self._get_bytes_from_encoded(image)},
+                    }
+                else:
+                    # image_extension = self._get_image_extension_from_url(image)
+                    image_url = {
+                        "format": IMAGE_EXTENSION,
+                        "source": {"bytes": self._get_bytes_from_url(image)},
+                    }
+                image_payload.append({"image": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload
+        else:
+            raise ValueError(
+                f"Invalid type for {key_to_pop}. Expected str or list, got {type(images)}"
+            )
+
     def ask_call(
         self,
         question=None,
@@ -254,6 +335,9 @@ class BedrockClient(AbstractTextGenerationClient):
 
             should_stream = stream if stream is not None else self.response_stream
             should_stream = should_stream in (True, "true")
+
+            if IMAGE_ENCODED in kwargs or IMAGE_URL in kwargs:
+                messages = self._handle_image_params(question, kwargs, message_payload)
 
             request_params = self._create_request_params(
                 messages, inference_config, guardrail_config, system_prompt
