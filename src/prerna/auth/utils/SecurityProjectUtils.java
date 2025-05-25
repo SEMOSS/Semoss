@@ -518,7 +518,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
     
 	public static void updateProject(String projectID, String projectName, String projectType, String projectCost, boolean hasPortal, String portalName, boolean global) {
 		String query = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=?, HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?";
-        
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -562,7 +561,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
-		
 	}
 	
 	/**
