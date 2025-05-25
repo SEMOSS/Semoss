@@ -72,7 +72,6 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 			if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
 				//throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 				throw new IllegalArgumentException("User lacks permission to delete job: "+jobId);
-				
 			}
 			
 			// delete job from quartz
