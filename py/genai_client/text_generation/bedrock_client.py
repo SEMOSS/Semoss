@@ -211,36 +211,42 @@ class BedrockClient(AbstractTextGenerationClient):
                     for msg in message_payload
                 ]
 
-    # def _get_image_extension_from_url(self, image_url):
-    #     """Get the image extension from image url."""
-    #     if (
-    #         "jpg" in image_url
-    #         or "jpeg" in image_url
-    #         or "JPG" in image_url
-    #         or "JPEG" in image_url
-    #     ):
-    #         return "jpeg"
-    #     elif "png" in image_url or "PNG" in image_url:
-    #         return "png"
-    #     elif "gif" in image_url or "GIF" in image_url:
-    #         return "gif"
-    #     elif "webp" in image_url or "WEBP" in image_url:
-    #         return "webp"
-    #     else:
-    #         raise ValueError(
-    #             "Invalid Image Extension - Expected 'jpeg', 'png', 'gif' or 'webp'"
-    #         )
+    def _get_image_extension_from_url(self, image_url):
+        """Get the image extension from image url."""
+        if (
+            "jpg" in image_url
+            or "jpeg" in image_url
+            or "JPG" in image_url
+            or "JPEG" in image_url
+        ):
+            return "jpeg"
+        elif "png" in image_url or "PNG" in image_url:
+            return "png"
+        elif "gif" in image_url or "GIF" in image_url:
+            return "gif"
+        elif "webp" in image_url or "WEBP" in image_url:
+            return "webp"
+        else:
+            raise ValueError(
+                "Invalid Image Extension - Expected 'jpeg', 'png', 'gif' or 'webp'"
+            )
 
     def _get_bytes_from_encoded(self, base64_str):
         """Convert the encoded base64 string to raw bytes."""
-        return base64.b64decode(base64_str)
+        try:
+            return base64.b64decode(base64_str)
+        except Exception as e:
+            logger.error(f"Failed to get bytes from encoded image - {e}")
 
     def _get_bytes_from_url(self, image_url):
         """Convert the bytes of image."""
-        with urllib.request.urlopen(image_url) as response:
-            image_data = response.read()
+        try:
+            with urllib.request.urlopen(image_url) as response:
+                image_data = response.read()
 
-        return image_data
+            return image_data
+        except Exception as e:
+            logger.error(f"Failed to get bytes from image - {e}")
 
     def _handle_image_params(self, question: str, kwargs: dict, message_payload):
         """
@@ -253,12 +259,13 @@ class BedrockClient(AbstractTextGenerationClient):
         images = kwargs.pop(key_to_pop)
         if isinstance(images, str):
             if key_to_pop == IMAGE_ENCODED:
+                image_extension = IMAGE_EXTENSION
                 image_bytes = self._get_bytes_from_encoded(images)
             else:
+                image_extension = self._get_image_extension_from_url(images)
                 image_bytes = self._get_bytes_from_url(images)
-                # image_extension = self._get_image_extension_from_url(images)
             image_url = {
-                "format": IMAGE_EXTENSION,
+                "format": image_extension,
                 "source": {"bytes": image_bytes},
             }
             image_payload.append({"image": image_url})
@@ -267,12 +274,13 @@ class BedrockClient(AbstractTextGenerationClient):
         elif isinstance(images, list):
             for image in images:
                 if key_to_pop == IMAGE_ENCODED:
+                    image_extension = IMAGE_EXTENSION
                     image_bytes = self._get_bytes_from_encoded(image)
                 else:
-                    # image_extension = self._get_image_extension_from_url(image)
+                    image_extension = self._get_image_extension_from_url(image)
                     image_bytes = self._get_bytes_from_url(image)
                 image_url = {
-                    "format": IMAGE_EXTENSION,
+                    "format": image_extension,
                     "source": {"bytes": image_bytes},
                 }
                 image_payload.append({"image": image_url})
