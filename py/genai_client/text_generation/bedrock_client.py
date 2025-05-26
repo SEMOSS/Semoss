@@ -1,6 +1,8 @@
 import boto3
 import botocore.exceptions
 import logging
+import re
+import base64
 from .abstract_text_generation_client import AbstractTextGenerationClient
 from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..constants import (
@@ -188,7 +190,8 @@ class BedrockClient(AbstractTextGenerationClient):
         """Format messages according to model and API requirements."""
         if self.modelId == "anthropic.claude-instant-v1":
             if full_prompt:
-                formatted_text = f"\n\nHuman:{full_prompt}\n\nAssistant:"
+                # formatted_text = f"\n\nHuman:{full_prompt}\n\nAssistant:"
+                return self.decode_image_bytes_in_messages(full_prompt)
             else:
                 formatted_parts = []
                 for msg in message_payload:
@@ -199,7 +202,8 @@ class BedrockClient(AbstractTextGenerationClient):
             return [{"role": "user", "content": [{"text": formatted_text}]}]
         else:
             if full_prompt:
-                return [{"role": "user", "content": [{"text": full_prompt}]}]
+                # return [{"role": "user", "content": [{"text": full_prompt}]}]
+                return self.decode_image_bytes_in_messages(full_prompt)
             else:
                 return [
                     {"role": msg["role"], "content": [{"text": msg["content"]}]}
@@ -254,6 +258,7 @@ class BedrockClient(AbstractTextGenerationClient):
 
             should_stream = stream if stream is not None else self.response_stream
             should_stream = should_stream in (True, "true")
+            should_stream=False
 
             request_params = self._create_request_params(
                 messages, inference_config, guardrail_config, system_prompt
@@ -276,11 +281,7 @@ class BedrockClient(AbstractTextGenerationClient):
                     final_response
                 )
             else:
-                response = client.converse(
-                    **self._create_request_params(
-                        messages, inference_config, guardrail_config, system_prompt
-                    )
-                )
+                response = client.converse(**request_params)
 
                 final_response = (
                     response["output"]["message"]["content"][0]["text"]
@@ -297,3 +298,38 @@ class BedrockClient(AbstractTextGenerationClient):
         except Exception as e:
             logger.error(f"Error while making request to Bedrock: {e}")
             raise
+
+    def is_base64(self, s):
+        if not isinstance(s, str) or len(s) == 0:
+            return False
+        s_clean = s.strip().replace('\n', '').replace(' ', '')
+        if len(s_clean) % 4 != 0:
+            return False
+        if not re.fullmatch(r'[A-Za-z0-9+/]*={0,2}', s_clean):
+            return False
+        try:
+            base64.b64decode(s_clean, validate=True)
+            return True
+        except Exception as e:
+            logger.error(f"Base64 decode failed: {e} — Value: {s[:40]}...")  # log first 40 chars
+            return False
+
+    def decode_image_bytes_in_messages(self, messages):
+        if isinstance(messages, dict):
+            messages = [messages]
+        for msg in messages:
+            if isinstance(msg, dict) and msg.get('role') == 'user':
+                content = msg.get('content', [])
+                for part in content:
+                    if isinstance(part, dict) and 'image' in part:
+                        image_block = part['image']
+                        if (
+                            isinstance(image_block, dict) and
+                            'source' in image_block and
+                            isinstance(image_block['source'], dict)
+                        ):
+                            src = image_block['source']
+                            if 'bytes' in src and isinstance(src['bytes'], str):
+                                if self.is_base64(src['bytes']):
+                                    src['bytes'] = base64.b64decode(src['bytes'])
+        return messages
