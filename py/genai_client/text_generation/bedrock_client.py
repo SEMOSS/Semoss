@@ -253,32 +253,28 @@ class BedrockClient(AbstractTextGenerationClient):
         images = kwargs.pop(key_to_pop)
         if isinstance(images, str):
             if key_to_pop == IMAGE_ENCODED:
-                image_url = {
-                    "format": IMAGE_EXTENSION,
-                    "source": {"bytes": self._get_bytes_from_encoded(images)},
-                }
+                image_bytes = self._get_bytes_from_encoded(images)
             else:
+                image_bytes = self._get_bytes_from_url(images)
                 # image_extension = self._get_image_extension_from_url(images)
-                image_url = {
-                    "format": IMAGE_EXTENSION,
-                    "source": {"bytes": self._get_bytes_from_url(images)},
-                }
+            image_url = {
+                "format": IMAGE_EXTENSION,
+                "source": {"bytes": image_bytes},
+            }
             image_payload.append({"image": image_url})
             message_payload.append({"role": "user", "content": image_payload})
             return message_payload
         elif isinstance(images, list):
             for image in images:
                 if key_to_pop == IMAGE_ENCODED:
-                    image_url = {
-                        "format": IMAGE_EXTENSION,
-                        "source": {"bytes": self._get_bytes_from_encoded(image)},
-                    }
+                    image_bytes = self._get_bytes_from_encoded(image)
                 else:
                     # image_extension = self._get_image_extension_from_url(image)
-                    image_url = {
-                        "format": IMAGE_EXTENSION,
-                        "source": {"bytes": self._get_bytes_from_url(image)},
-                    }
+                    image_bytes = self._get_bytes_from_url(image)
+                image_url = {
+                    "format": IMAGE_EXTENSION,
+                    "source": {"bytes": image_bytes},
+                }
                 image_payload.append({"image": image_url})
             message_payload.append({"role": "user", "content": image_payload})
             return message_payload
