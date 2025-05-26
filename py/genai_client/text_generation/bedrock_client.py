@@ -258,7 +258,6 @@ class BedrockClient(AbstractTextGenerationClient):
 
             should_stream = stream if stream is not None else self.response_stream
             should_stream = should_stream in (True, "true")
-            should_stream=False
 
             request_params = self._create_request_params(
                 messages, inference_config, guardrail_config, system_prompt
