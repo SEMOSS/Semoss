@@ -52,6 +52,8 @@ public class User implements Serializable {
 	// storing the timezone the user is in
 	private ZoneId zoneId;
 	
+	public Map<String,Object> roomHash = new HashMap<>();
+	
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
 	
