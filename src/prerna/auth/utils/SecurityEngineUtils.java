@@ -178,8 +178,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param user
 	 */
 	public static void addEngine(String engineId, String engineName, IEngine.CATALOG_TYPE engineType, String engineSubType, String engineCost, boolean global, User user) {
-		String query = "INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
+		String query = "INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED,DESCRIPTION,TAGS,METADATA) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		
+		String smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE) + "";
+		Properties prop = Utility.loadProperties(smssFile);
+
+		String description = prop.getProperty(Constants.DESCR);
+		String tags = prop.getProperty(Constants.TAGS);
+		String metadata = prop.getProperty(Constants.METADATA);
 
 		PreparedStatement ps = null;
 		try {
@@ -214,6 +221,21 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			}
 			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+			if(description == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);			
+			} else {
+				ps.setString(parameterIndex++, description);
+			}
+			if(tags == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);			
+			} else {
+				ps.setString(parameterIndex++, tags);
+			}
+			if(metadata == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);			
+			} else {
+				ps.setString(parameterIndex++, metadata);
+			}
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -2224,6 +2246,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__DESCRIPTION", "description"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__TAGS", "tags"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__METADATA", "metadata"));
+		
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
 		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "group_permission"));

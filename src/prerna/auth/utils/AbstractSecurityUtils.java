@@ -526,10 +526,10 @@ public abstract class AbstractSecurityUtils {
 			// ENGINE
 			colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", 
 					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
-					"ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP" };
+					"ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP","DESCRIPTION","TAGS","METADATA" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
 					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
-					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)","VARCHAR(255)","VARCHAR(255)","VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
 				classLogger.info("Running sql " + sql);
