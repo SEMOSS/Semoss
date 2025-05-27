@@ -138,7 +138,7 @@ jobs:
       - name: Refresh keys
         run: |
           echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
-          gpg2 --refresh-key
+          #gpg2 --refresh-key
           gpg --list-keys
       - name: Deploy with Maven
         shell: bash
