@@ -432,7 +432,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			}
 			// add to parent
 			search.add("aggs", aggs);
-			search.addProperty("size", 9999);
+			search.addProperty("size", 0);
 		}
 
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;// + "?search_type=count";
