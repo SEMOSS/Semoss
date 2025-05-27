@@ -401,7 +401,7 @@ public class InsightUtility {
 	}
 	
 	/**
-	 * User to register an insight within an insight to the insight store
+	 * Used to register an insight within an insight to the insight store
 	 * @param parentInsight
 	 * @param newInsight
 	 */
