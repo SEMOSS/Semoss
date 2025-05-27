@@ -169,7 +169,6 @@ class BedrockClient(AbstractTextGenerationClient):
             if 'metadata' in event:
                 metadata = event['metadata']
                 if 'usage' in metadata:
-                    print("\nToken usage")
                     prompt_tokens = metadata['usage']['inputTokens']
                     output_tokens = metadata['usage']['outputTokens']
         return final_response,prompt_tokens,output_tokens
