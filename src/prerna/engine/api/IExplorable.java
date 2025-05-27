@@ -218,6 +218,9 @@ public interface IExplorable {
 	 */
 	List<String[]> getPhysicalRelationships();
 	
+	
+	List<String[]> getCompositeKeys();
+	
 	/**
 	 * Get the property URIs for a physical concept URI
 	 * @param physicalUri
@@ -299,5 +302,7 @@ public interface IExplorable {
 	 */
 	@Deprecated
 	String getLegacyPrimKey4Table(String physicalUri);
+	
+	
 	
 }

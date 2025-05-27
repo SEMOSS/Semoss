@@ -543,7 +543,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Brings the email from database.
+	 * Brings the email from database. 
 	 * 
 	 * @param username
 	 * @return email if it exists otherwise null

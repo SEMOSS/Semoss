@@ -1521,32 +1521,33 @@ public abstract class AbstractSecurityUtils {
 			}	
 			
 			// MODEL_TYPE_MAPPING
-			colNames = new String[] { "ENGINEID", "TYPEID"};
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)"};
-			if (allowIfExistsTable) {
-				securityDb.insertData(queryUtil.createTableIfNotExists("MODEL_TYPE_MAPPING", colNames, types));
-			} else {
-				// see if table exists
-				if (!queryUtil.tableExists(conn, "MODEL_TYPE_MAPPING", database, schema)) {
-					// make the table
-					securityDb.insertData(queryUtil.createTable("MODEL_TYPE_MAPPING", colNames, types));
-				}
-			}
+						colNames = new String[] { "ENGINEID", "TYPEID"};
+						types = new String[] { "VARCHAR(255)", "VARCHAR(255)"};
+						if (allowIfExistsTable) {
+							securityDb.insertData(queryUtil.createTableIfNotExists("MODEL_TYPE_MAPPING", colNames, types));
+						} else {
+							// see if table exists
+							if (!queryUtil.tableExists(conn, "MODEL_TYPE_MAPPING", database, schema)) {
+								// make the table
+								securityDb.insertData(queryUtil.createTable("MODEL_TYPE_MAPPING", colNames, types));
+							}
+						}
 
-			// TEMPORARY CHECK! - ADDED 23/04/2025
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "MODEL_TYPE_MAPPING", database, schema);
-				for (int i = 0; i < colNames.length; i++) {
-					String col = colNames[i];
-					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						classLogger.info("Column '" + col + "' is not present in current list of columns: "
-								+ allCols.toString());
-						String addColumnSql = queryUtil.alterTableAddColumn("MODEL_TYPE_MAPPING", col, types[i]);
-						classLogger.info("Running sql " + addColumnSql);
-						securityDb.insertData(addColumnSql);
-					}
-				}
-			}
+						// TEMPORARY CHECK! - ADDED 23/04/2025
+						{
+							List<String> allCols = queryUtil.getTableColumns(conn, "MODEL_TYPE_MAPPING", database, schema);
+							for (int i = 0; i < colNames.length; i++) {
+								String col = colNames[i];
+								if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+									classLogger.info("Column '" + col + "' is not present in current list of columns: "
+											+ allCols.toString());
+									String addColumnSql = queryUtil.alterTableAddColumn("MODEL_TYPE_MAPPING", col, types[i]);
+									classLogger.info("Running sql " + addColumnSql);
+									securityDb.insertData(addColumnSql);
+								}
+							}
+						}
+
 			
 			// MODEL_TYPES
 			colNames = new String[] { "TYPEID", "NAME", "CATEGORY" };

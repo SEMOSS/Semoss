@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.common.collect.Lists;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Constants;
@@ -578,6 +580,10 @@ public class SecurityOwlCreator {
 		owler.addRelation("ENGINE", "MODEL_ATTRIBUTES", "ENGINE.ENGINEID.MODEL_ATTRIBUTES.ENGINEID");
 		owler.addRelation("MODEL_ATTRIBUTES", "MODEL_TYPE_MAPPING", "MODEL_ATTRIBUTES.ENGINEID.MODEL_TYPE_MAPPING.ENGINEID");
 		owler.addRelation("MODEL_TYPE_MAPPING", "MODEL_TYPES", "MODEL_TYPE_MAPPING.TYPEID.MODEL_TYPES.TYPEID");
+		
+		//comosite key
+		owler.addCompositeKey("MODEL_TYPE_MAPPING", Arrays.asList("MODEL_TYPE_MAPPING.ENGINEID", "MODEL_TYPE_MAPPING.TYPEID"));
+
 		owler.commit();
 		owler.export();
 	}

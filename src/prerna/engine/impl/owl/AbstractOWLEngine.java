@@ -591,6 +591,15 @@ public abstract class AbstractOWLEngine implements IExplorable {
 	}
 	
 	@Override
+	public List<String[]> getCompositeKeys() {
+		String query = "SELECT DISTINCT ?table ?key ?column WHERE { "
+				+ "?table <http://semoss.org/ontologies/hasCompositeKey> ?key . "
+				+ "?key <http://semoss.org/ontologies/includesColumn> ?column . " + "}";
+
+		return Utility.getVectorArrayOfReturn(query, baseDataEngine, true);
+	}
+	
+	@Override
 	public List<String> getPropertyUris4PhysicalUri(String physicalUri) {
 		String query = "SELECT DISTINCT ?property WHERE { "
 					+ "BIND(<" + physicalUri + "> AS ?concept) "
