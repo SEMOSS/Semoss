@@ -53,8 +53,6 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	// set of conceptual names
 	protected Set<String> pixelNames = new HashSet<String>();
 	
-	protected Hashtable<String, String> compositeKeyHash = new Hashtable<String, String>();
-	
 	private final Semaphore writeSemaphore;
 	private IDatabaseEngine.DATABASE_TYPE dbType = IDatabaseEngine.DATABASE_TYPE.RDBMS;
 
@@ -84,7 +82,6 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		Hashtable<String, String> conceptHash = new Hashtable<>();
 		Hashtable<String, String> propHash = new Hashtable<>();
 		Hashtable<String, String> relationHash = new Hashtable<>();
-		Hashtable<String, String> compositeKeyHash = new Hashtable<>();
 
 		boolean isRdbms = (this.dbType == IDatabaseEngine.DATABASE_TYPE.RDBMS
 				|| this.dbType == IDatabaseEngine.DATABASE_TYPE.IMPALA);
@@ -128,42 +125,10 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 
 			relationHash.put(startT + startC + endT + endC + pred, r[2]);
 		}
-		
-		
-		List<String[]> results = this.getCompositeKeys();
 
-	    // Temporary map to group columns per key
-	    Map<String, List<String>> keyColumnsMap = new HashMap<>();
-	    Map<String, String> keyUriMap = new HashMap<>();
-
-	    for (String[] row : results) {
-	        String tableUri = row[0];
-	        String keyUri = row[1];
-	        String columnUri = row[2];
-
-	        String tableName = Utility.getInstanceName(tableUri);
-	        String columnName = Utility.getInstanceName(columnUri);
-
-	        String keyId = tableName + ":" + keyUri;  // Unique identifier
-
-	        keyUriMap.put(keyId, keyUri);
-
-	        keyColumnsMap.computeIfAbsent(keyId, k -> new ArrayList<>()).add(columnName);
-	    }
-
-	    // Build the compositeKeyHash entries
-	    for (String keyId : keyColumnsMap.keySet()) {
-	        List<String> cols = keyColumnsMap.get(keyId);
-	        String tableName = keyId.split(":")[0];
-	        String compositeKeyId = tableName + ":" + String.join("_", cols);
-	        compositeKeyHash.put(compositeKeyId, keyUriMap.get(keyId));
-	    }
-	
-
-	    setConceptHash(conceptHash);
+		setConceptHash(conceptHash);
 		setPropHash(propHash);
 		setRelationHash(relationHash);
-		setCompositeKeyHash(compositeKeyHash);
 	}
 	
 	/**
@@ -244,31 +209,6 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 			conceptHash.put(tableName, subject);
 		}
 		return conceptHash.get(tableName);
-	}
-	
-	public String addCompositeKey(String tableName, List<String> keyColumns) { 
-
-	    // Create a unique string representation of the composite key
-	    String compositeKeyId = tableName + ":" + String.join("_", keyColumns);
-
-	    // Check if it already exists in the compositeKeyHash
-	    if (compositeKeyHash.containsKey(compositeKeyId)) {
-	        return compositeKeyHash.get(compositeKeyId);
-	    }
-
-	    // Ensure the concept for the table exists
-	    String conceptURI = addConcept(tableName, null, null);
-
-	    // Generate the composite key URI
-	    String compositeKeyURI = BASE_NODE_URI + "/" + tableName + "/Concept/PRIMARY_KEY/" + String.join("/", keyColumns);
-
-	    //Add the composite key relationship
-	    this.addToBaseEngine(conceptURI,  RDFS.DATATYPE.stringValue(), compositeKeyURI);
-
-	    // Store in the composite key hash
-	    compositeKeyHash.put(compositeKeyId, compositeKeyURI);
-
-	    return compositeKeyURI;
 	}
 
 	public String addConcept(String tableName, String dataType) {
@@ -1512,13 +1452,6 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		return pixelNames;
 	}
 	
-	public Hashtable<String, String> getCompositeKeyHash() {
-		return compositeKeyHash;
-		
-	}
-	
-	
-	
 	///////////////// END GETTERS ///////////////////////
 
 	///////////////// SETTERS ///////////////////////
@@ -1533,11 +1466,6 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	
 	public void setPropHash(Hashtable<String, String> propHash) {
 		this.propHash = propHash;
-	}
-	
-	public void setCompositeKeyHash(Hashtable<String, String> compositeKeyHash) {
-		this.compositeKeyHash = compositeKeyHash;
-		
 	}
 	
 	///////////////// END SETTERS ///////////////////////
@@ -1555,5 +1483,4 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		// TODO Auto-generated method stub
 		
 	}
-	
 }
