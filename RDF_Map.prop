@@ -4,36 +4,36 @@ ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher;SMSSStorageWatcher;SMSSModelWatcher;SMSSVectorWatcher;SMSSFunctionWatcher;SMSSGuardrailWatcher
 PROJECT_WATCHER	ProjectWatcher
 
-INSIGHT_CACHE_DIR C:\\workspace\\Semoss\\InsightCache
+INSIGHT_CACHE_DIR c:/users/pkapaleeswaran/workspacegit/semoss/InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
-SMSSWebWatcher_DIR	C:\\workspace\\Semoss\\db
+SMSSWebWatcher_DIR	c:/users/pkapaleeswaran/workspacej3/semossdev/db
 SMSSWebWatcher_EXT	.smss
 SMSSWebWatcher_ETYPE	DATABASE
 
 SMSSStorageWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSStorageWatcher_DIR	C:\\workspace\\Semoss\\storage
+SMSSStorageWatcher_DIR	c:/users/pkapaleeswaran/workspacej3/semossdev/storage
 SMSSStorageWatcher_EXT	.smss
 SMSSStorageWatcher_ETYPE	STORAGE
 
 SMSSModelWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSModelWatcher_DIR	C:\\workspace\\Semoss\\model
+SMSSModelWatcher_DIR	c:/users/pkapaleeswaran/workspacej3/semossdev/model
 SMSSModelWatcher_EXT	.smss
 SMSSModelWatcher_ETYPE	MODEL
 
 SMSSVectorWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSVectorWatcher_DIR	C:\\workspace\\Semoss\\vector
+SMSSVectorWatcher_DIR	c:/users/pkapaleeswaran/workspacej3/semossdev/vector
 SMSSVectorWatcher_EXT	.smss
 SMSSVectorWatcher_ETYPE	VECTOR
 
 SMSSFunctionWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSFunctionWatcher_DIR	C:\\workspace\\Semoss\\function
+SMSSFunctionWatcher_DIR	c:/users/pkapaleeswaran/workspacej3/semossdev/function
 SMSSFunctionWatcher_EXT	.smss
 SMSSFunctionWatcher_ETYPE	FUNCTION
 
 SMSSGuardrailWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSGuardrailWatcher_DIR	C:\\workspace\\Semoss\\guardrail
+SMSSGuardrailWatcher_DIR	c:/users/pkapaleeswaran/workspacej3/semossdev/guardrail
 SMSSGuardrailWatcher_EXT	.smss
 SMSSGuardrailWatcher_ETYPE	GUARDRAIL
 
@@ -43,7 +43,7 @@ SMSSGuardrailWatcher_ETYPE	GUARDRAIL
 #SMSSVenvWatcher_ETYPE	VENV
 
 ProjectWatcher	prerna.util.ProjectWatcher
-ProjectWatcher_DIR		C:\\workspace\\Semoss\\project
+ProjectWatcher_DIR		c:/users/pkapaleeswaran/workspacej3/semossdev/project
 ProjectWatcher_EXT	.smss
 
 #JobSchedulerWatcher prerna.rpa.JobSchedulerWatcher
@@ -54,8 +54,8 @@ ProjectWatcher_EXT	.smss
 BaseFolder	C:\\workspace\\Semoss
 ADDITIONAL_REACTORS C:\\workspace\\Semoss\\reactors.json
 ADDITIONAL_REACTOR_PACKAGES
-SOCIAL	C:\\workspace\\Semoss\\social.properties
-EMAIL_TEMPLATES	C:\\workspace\\Semoss\\emailTemplates\\
+SOCIAL	c:/users/pkapaleeswaran/workspacej3/semossdev/social.properties
+EMAIL_TEMPLATES	c:/users/pkapaleeswaran/workspacegit/semoss/emailTemplates\\
 
 #Caching for tasks
 X_CACHE false
