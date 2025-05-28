@@ -43,7 +43,7 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this engine");
 		}
 
