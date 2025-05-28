@@ -424,6 +424,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 					JsonObject terms = new JsonObject();
 					terms.addProperty("field", VectorDatabaseCSVTable.SOURCE);
 					terms.addProperty("min_doc_count", 1);
+					// Pull upto 9999 unique terms for the aggregation.
+					terms.addProperty("size", 9999);
 					// add to parent
 					uniqueScores.add("terms", terms);
 				}
