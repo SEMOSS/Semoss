@@ -85,10 +85,6 @@ public class KubernetesModelScaler {
 	            zkModelScalerIp = "http://" + zkModelScalerIp;
 	        }
 	        
-	        if (!zkModelScalerIp.endsWith("/")) {
-	            zkModelScalerIp += "/";
-	        }
-	        
 	        this.kmsUrl = zkModelScalerIp;
 		}
 	}
