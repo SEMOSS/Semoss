@@ -1548,6 +1548,16 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 			
+			//Make columns NOT NULL (if table/columns already existed)
+			securityDb.insertData("ALTER TABLE MODEL_TYPE_MAPPING ALTER COLUMN ENGINEID SET NOT NULL");
+			securityDb.insertData("ALTER TABLE MODEL_TYPE_MAPPING ALTER COLUMN TYPEID SET NOT NULL");
+ 
+			//Finally, add the composite primary key
+			List<String> pkCols = Arrays.asList("ENGINEID", "TYPEID");
+			String pkSql = queryUtil.addCompositePrimaryKey("MODEL_TYPE_MAPPING", pkCols);
+			securityDb.execUpdateAndRetrieveStatement(pkSql, true);
+			
+			
 			// MODEL_TYPES
 			colNames = new String[] { "TYPEID", "NAME", "CATEGORY" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
@@ -1570,6 +1580,34 @@ public abstract class AbstractSecurityUtils {
 						classLogger.info("Column '" + col + "' is not present in current list of columns: "
 								+ allCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("MODEL_TYPES", col, types[i]);
+						classLogger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			
+			// MODEL_REQUEST
+			colNames = new String[] { "ID", "EMAIL", "MODEL", "HOST", "PROVIDER", "USAGE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "CLOB" };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("MODEL_REQUEST", colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "MODEL_REQUEST", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("MODEL_REQUEST", colNames, types));
+				}
+			}
+
+			// TEMPORARY CHECK! - ADDED 23/04/2025
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "MODEL_REQUEST", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: "
+								+ allCols.toString());
+						String addColumnSql = queryUtil.alterTableAddColumn("MODEL_REQUEST", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
 					}

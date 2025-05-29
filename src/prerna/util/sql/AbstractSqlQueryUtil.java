@@ -2113,6 +2113,15 @@ public abstract class AbstractSqlQueryUtil {
 //			logger.debug(wrapper.next());
 //		}
 //	}
+	
+	//composite key
+	public String addCompositePrimaryKey(String tableName, List<String> columnNames) {
+	    String constraintName = "PK_" + tableName;
+	    String cols = String.join(", ", columnNames);
+	    return "ALTER TABLE " + tableName + " ADD CONSTRAINT " + constraintName +
+	           " PRIMARY KEY (" + cols + ")";
+	
+}
 
 
 }

@@ -59,6 +59,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("MODEL_ATTRIBUTES");
 		conceptsRequired.add("MODEL_TYPE_MAPPING");
 		conceptsRequired.add("MODEL_TYPES");
+		conceptsRequired.add("MODEL_REQUEST");
 	}
 	
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -543,6 +544,16 @@ public class SecurityOwlCreator {
 		owler.addProp("MODEL_TYPES", "TYPEID","VARCHAR(255)");
 		owler.addProp("MODEL_TYPES", "NAME","VARCHAR(255)");
 		owler.addProp("MODEL_TYPES", "CATEGORY","VARCHAR(255)");
+		
+		// MODEL_REQUEST
+		owler.addConcept("MODEL_REQUEST", null, null);
+		owler.addProp("MODEL_REQUEST", "ID", "VARCHAR(255)");
+		owler.addProp("MODEL_REQUEST", "EMAIL", "VARCHAR(255)");
+		owler.addProp("MODEL_REQUEST", "MODEL", "VARCHAR(255)");
+		owler.addProp("MODEL_REQUEST", "HOST", "VARCHAR(255)");
+		owler.addProp("MODEL_REQUEST", "PROVIDER", "VARCHAR(255)");
+		owler.addProp("MODEL_REQUEST", "USAGE", "CLOB");
+		
 		
 		
 		
