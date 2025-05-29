@@ -2071,6 +2071,14 @@ public final class Utility {
 	 * @return
 	 */
 	private static IEngine loadEngine(String smssFilePath, Properties smssProp) {
+		
+		for (String name : smssProp.stringPropertyNames()) {
+		    String value = smssProp.getProperty(name);
+		    if (value != null) {
+		        smssProp.setProperty(name, value.trim());
+		    }
+		}
+		
 		IEngine engine = null;
 		try {
 			String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
@@ -3708,6 +3716,12 @@ public final class Utility {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
 				classLogger.error(Constants.STACKTRACE, ioe);
 			}
+		}
+		for (String name : retProp.stringPropertyNames()) {
+		    String value = retProp.getProperty(name);
+		    if (value != null) {
+		    	retProp.setProperty(name, value.trim());
+		    }
 		}
 		return retProp;
 	}
@@ -6123,5 +6137,32 @@ public final class Utility {
         int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
         return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
     }
+	/**
+	* Determine if admins only are able to view left hand menu
+	* @return
+	*/
+    public static boolean getAdminOnlyViewMenuBarFlag() {
+		String coreFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VIEW_MENU_BAR);
+		if(coreFlag == null) {
+			// default option is true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(coreFlag);
+    }
+		
+	/**
+	 * Determine if admins only are able to create non approved engines
+	 * @return
+	 */
+    public static boolean getAdminOnlyNonApprovedFlag() {
+		String nonApprovedFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_NON_APPROVED_PROD_ITEM);
+		if(nonApprovedFlag == null) {
+			// default option is true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(nonApprovedFlag);
+	}
 
-}
+    } 
