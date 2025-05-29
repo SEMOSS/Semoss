@@ -75,9 +75,22 @@ public class KubernetesModelScaler {
 			this.kmsUrl = "http://localhost:8000/";
 		} else {
 			classLogger.info("KMS_INGRESS environment variable not found and devPortforwarding not set, using ZooKeeper for KMS IP resolution. This is correct for production deployments.");
-			this.kmsUrl = zkClient.getModelScalerIp();
+	        String zkModelScalerIp = zkClient.getModelScalerIp();
+	        
+	        if (zkModelScalerIp == null || zkModelScalerIp.trim().isEmpty()) {
+	            throw new RuntimeException("Unable to determine KMS URL: ZooKeeper returned null or empty model scaler IP");
+	        }
+	        
+	        if (!zkModelScalerIp.startsWith("http://") && !zkModelScalerIp.startsWith("https://")) {
+	            zkModelScalerIp = "http://" + zkModelScalerIp;
+	        }
+	        
+	        if (!zkModelScalerIp.endsWith("/")) {
+	            zkModelScalerIp += "/";
+	        }
+	        
+	        this.kmsUrl = zkModelScalerIp;
 		}
-		
 	}
 	
 	public Map<String, Object> getNodePoolsInfo() throws Exception {
