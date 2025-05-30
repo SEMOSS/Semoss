@@ -281,7 +281,8 @@ public enum ReactorKeysEnum {
 	VOTE("vote",												"Either upvote or downvote"),		
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
-	WIDTH("width", 											    "The width to use for screenshot capture");
+	WIDTH("width", 											    "The width to use for screenshot capture"), 
+	FUNCTION_ENGINE_NAME("functionEngineName", 					"The Name of python function engine"), ;
 
 	private String key;
 	private String description;
