@@ -42,11 +42,11 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
     public static final String GCS_SERVICE_ACCOUNT_FILE_KEY = "GCS_SERVICE_ACCOUNT_FILE";
     public static final String GCS_BUCKET_KEY = "GCS_BUCKET";
     public static final String GCS_PROJECT_ID = "GCS_PROJECT_ID";
-    private transient String GCP_SERVICE_ACCOUNT_FILE = null;
-    private transient String BUCKET;
-	private String PROJECT_ID = null;
-    private Storage storage;
-    private Bucket bucket;
+    protected transient String GCP_SERVICE_ACCOUNT_FILE = null;
+    protected transient String BUCKET;
+    protected String PROJECT_ID = null;
+    protected Storage storage;
+    protected Bucket bucket;
     
     @Override
     public void open(Properties smssProp) throws Exception {

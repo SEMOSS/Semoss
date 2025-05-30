@@ -16,7 +16,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.cluster.util.IRemoteClientServer;
 import prerna.cluster.util.RemoteModelInfo;
 import prerna.cluster.util.ZKClientFactory;
-
+import prerna.auth.User;
 
 public class MyRemoteModelsStatus extends AbstractReactor {
 	
@@ -31,6 +31,8 @@ public class MyRemoteModelsStatus extends AbstractReactor {
 	    
 	    List<RemoteModelInfo> myActiveModels = new ArrayList<>();
 	    List<RemoteModelInfo> myWarmingModels = new ArrayList<>();
+	    
+	    User user = this.insight.getUser();
 	    
 		for (RemoteModelInfo model : activeModels) {
 			if (SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), model.getId())) {
