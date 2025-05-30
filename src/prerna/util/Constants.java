@@ -1026,5 +1026,11 @@ public class Constants {
     public static final String ADMIN_ONLY_VIEW_MENU_BAR = "ADMIN_ONLY_VIEW_MENU_BAR";
     // default AdminOnlyNonApproveProdCatalogItem
     public static final String ADMIN_ONLY_NON_APPROVED_PROD_ITEM = "ADMIN_ONLY_NON_APPROVED_PROD_ITEM";
+   //NONApprovedProdLIST
+    public static final String NON_APPROVED_FUNCTION_LIST = "NON_APPROVED_FUNCTION_LIST";
+    public static final String NON_APPROVED_CONNECTION_LIST = "NON_APPROVED_CONNECTION_LIST";
+    public static final String NON_APPROVED_STROAGE_LIST = "NON_APPROVED_STROAGE_LIST";
+    public static final String NNON_APPROVED_DATABASE_FILE_LIST = "NON_APPROVED_DATABASE_FILE_LIST";    
+    public static final String NON_APPROVED_DATABSE_LIST = "NON_APPROVED_DATABSE_LIST";
 
 }

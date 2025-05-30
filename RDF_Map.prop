@@ -791,3 +791,11 @@ SQLITE_KEYWORDS ABORT,ACTION,ADD,AFTER,ALL,ALTER,ANALYZE,AND,AS,ASC,ATTACH,AUTOI
 MYSQL_KEYWORDS KEY,VALUES
 
 SQL_SERVER_KEYWORDS GROUP
+#NONAPPROVEDCATALOGITEMFOR AICORE
+NON_APPROVED_FUNCTION_LIST AWS Polly,AWS Transcribe,AWS Comprehend,Azure Speech To Text,Google Speech To Text,Google OCR;
+NON_APPROVED_CONNECTION_LIST Elastic Search,Milvus,Open Search,PGVector
+NON_APPROVED_STROAGE_LIST Amazon S3,Google Cloud,Local File System,Microsoft Azure Blob Storage,Microsoft OneDrive,Network File System,SFTP
+NON_APPROVED_DATABASE_FILE_LIST ZIP,CSV,Excel,TSV,Neo4J
+NON_APPROVED_DATABSE_LIST Athena,BigQuery,Cassandra,DATABRICKS,DB2,Elastic Search,Impala,MariaDB,MySQL,Open Search,Oracle,Postgres,Redshift,SAP Hana,SEMOSS,Snowflake,SQL Server,SQLITE,Teradata
+      
+

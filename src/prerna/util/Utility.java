@@ -6165,4 +6165,20 @@ public final class Utility {
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
 
+	 /*
+     * @Param String nonApproveprod
+     * 
+     * return nonApproveProdArray
+     */
+	public static String[] getNonApprovedProdList(String nonApproveProduct) {
+		 String nonApproveStr = Utility.getDIHelperProperty(nonApproveProduct);
+	     String[] nonApproveStrArr = nonApproveStr.split(",");
+		if(nonApproveStrArr.length == 0 ) {
+			// default option is true
+			return null;
+		}
+		
+		return nonApproveStrArr;
+	}
+
     } 
