@@ -18,9 +18,13 @@ import org.apache.poi.openxml4j.opc.PackagePart;
 import org.apache.poi.xwpf.usermodel.ICell;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTEmpty;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STBrType;
 
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
@@ -104,20 +108,43 @@ public class DocProcessor extends AbstractFileProcessor {
 		int pageNo = 1;
 		String source = getSource(this.filePath);
 
-		for (XWPFParagraph paragraph : document.getParagraphs()) {
+		XWPFParagraph lastParaOnPage = null;
+		int pageCount = document.getProperties().getExtendedProperties().getUnderlyingProperties().getPages();
+		classLogger.debug("Total page count -->"+pageCount);
+	    
+	    List<XWPFParagraph> paragraphs = document.getParagraphs();
+	    
+		for (XWPFParagraph paragraph : paragraphs) {
 			String text = paragraph.getText();
 			if (text != null) {
 				this.writer.writeRow(source, pageNo + "", text);
-				//System.err.println(text);
+				
 			}
-			if (paragraph.isPageBreak()) {
-				pageNo++;
-			}
+			lastParaOnPage = paragraph; // Assume this is the last, until a page break proves it
+			for (XWPFRun run : paragraph.getRuns()) {
+	                List<CTBr> brList = run.getCTR().getBrList();
+	                if (brList != null && !brList.isEmpty()) {
+	                    for (CTBr br : brList) {
+	                        if (br.getType() == STBrType.PAGE) {
+	                            pageNo++;
+	                        }
+	                    }
+	                } else {
+	                    List<CTEmpty> lastRenderedPageBreakList = run.getCTR().getLastRenderedPageBreakList();
+	                    if (lastRenderedPageBreakList != null) {
+	                        for (CTEmpty lastRenderedPageBreak : lastRenderedPageBreakList) {
+	                             pageNo++;
+	                        }
+	                    }
+	                }
+	            }
 			count++;
 		}
-		
+     // Print last paragraph if no break at the end
+        if (lastParaOnPage != null) {
+        	classLogger.info("Last paragraph on Page " + pageNo);
+        }
 	}
-
 	/**
 	 * 
 	 * @param document
