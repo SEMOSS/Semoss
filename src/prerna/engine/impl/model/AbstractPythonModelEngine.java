@@ -269,6 +269,20 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			callMaker.append(FULL_PROMPT)
 					.append("=")
 					.append(PyUtils.determineStringType(fullPrompt));
+			if(context != null) {
+				if(context.startsWith("\"")) {
+					context = " " + context;
+				}
+				if(context.endsWith("\"")) {
+					context = context + " ";
+				}
+				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+				callMaker.append(",")
+					.append("context=")
+					.append(TRIPLE_QUOTE)
+					.append(context)
+					.append(TRIPLE_QUOTE);	
+			}
 		} else {
 			if(question.startsWith("\"")) {
 				question = " " + question;
