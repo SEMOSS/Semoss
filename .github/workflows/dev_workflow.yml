@@ -134,11 +134,13 @@ jobs:
           apt-get install -y openjfx
           apt-get install -y gnupg2
       - name: Import GPG key
-        run: echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg2 --batch --import
+        run: echo "${{ secrets.GPG_PRIVATE_KEY_2 }}" | gpg2 --batch --import
+      - name: List secret keys
+        run: gpg --list-secret-keys --keyid-format=long
       - name: Refresh keys
         run: |
           echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
-          gpg2 --refresh-key
+          #gpg2 --refresh-key
           gpg --list-keys
       - name: Deploy with Maven
         shell: bash
@@ -185,11 +187,11 @@ jobs:
           apt-get install -y openjfx
           apt-get install -y gnupg2
       - name: Import GPG key
-        run: echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg2 --batch --import
+        run: echo "${{ secrets.GPG_PRIVATE_KEY_2 }}" | gpg2 --batch --import
       - name: Refresh keys
         run: |
           echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
-          gpg2 --refresh-key
+          #gpg2 --refresh-key
           gpg --list-keys
       - name: Deploy with Maven
         run: mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}
