@@ -163,11 +163,18 @@ class Chat:
 
         # check if images are in the fill args
         if IMAGE_ENCODED in fill_variables or IMAGE_URL in fill_variables:
-            message_payload, fill_variables = self._handle_image_params(
-                question=question,
-                fill_variables=fill_variables,
-                message_payload=message_payload,
-            )
+            try:
+                message_payload, fill_variables = self.client._handle_image_params(
+                    question=question,
+                    fill_variables=fill_variables,
+                    message_payload=message_payload,
+                )
+            except Exception as e:
+                message_payload, fill_variables = self._handle_image_params(
+                    question=question,
+                    fill_variables=fill_variables,
+                    message_payload=message_payload,
+                )
         else:
             # add the new question to the payload
             if question:
