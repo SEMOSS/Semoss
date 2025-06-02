@@ -444,5 +444,105 @@ public class ClusterUtilUnitTests {
 			assertEquals("Failed to delete engine 'engineId' from cloud storage" ,e2.getMessage());
 		}
 	}
+	
+	@Test
+	public void testCopyLocalFilesToEngineCloudFolder() throws IOException, InterruptedException {
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doNothing().when(mockedCCS).copyLocalFileToEngineCloudFolder(anyString(), any(IEngine.CATALOG_TYPE.class), anyString());
+			assertDoesNotThrow(() -> ClusterUtil.copyLocalFileToEngineCloudFolder("engineId", IEngine.CATALOG_TYPE.DATABASE, "filePath"));
+		}
+	}
+	
+	@Test
+	public void testCopyLocalFilesToEngineCloudFolderFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doThrow(IOException.class).when(mockedCCS).copyLocalFileToEngineCloudFolder(anyString(), any(IEngine.CATALOG_TYPE.class), anyString());
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.copyLocalFileToEngineCloudFolder("engineId", IEngine.CATALOG_TYPE.DATABASE, "filePath"));
+			assertEquals("Failed to copy local file to engine 'engineId' storage" ,e2.getMessage());
+		}
+	}
+	
+	@Test
+	public void testCopyEngineCloudFileToLocalFile() throws IOException, InterruptedException {
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doNothing().when(mockedCCS).copyEngineCloudFileToLocalFile(anyString(), any(IEngine.CATALOG_TYPE.class), anyString());
+			assertDoesNotThrow(() -> ClusterUtil.copyEngineCloudFileToLocalFile("engineId", IEngine.CATALOG_TYPE.DATABASE, "filePath"));
+		}
+	}
+	
+	@Test
+	public void testCopyEngineCloudFileToLocalFileFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doThrow(IOException.class).when(mockedCCS).copyEngineCloudFileToLocalFile(anyString(), any(IEngine.CATALOG_TYPE.class), anyString());
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.copyEngineCloudFileToLocalFile("engineId", IEngine.CATALOG_TYPE.DATABASE, "filePath"));
+			assertEquals("Failed to copy storage file from engine 'engineId' to local instance" ,e2.getMessage());
+		}
+	}
+	
+	@Test
+	public void testDeleteEngineCloudFile() throws IOException, InterruptedException {
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doNothing().when(mockedCCS).deleteEngineCloudFile(anyString(), any(IEngine.CATALOG_TYPE.class), anyString());
+			assertDoesNotThrow(() -> ClusterUtil.deleteEngineCloudFile("engineId", IEngine.CATALOG_TYPE.DATABASE, "filePath"));
+		}
+	}
+	
+	@Test
+	public void testDeleteEngineCloudFileFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doThrow(IOException.class).when(mockedCCS).deleteEngineCloudFile(anyString(), any(IEngine.CATALOG_TYPE.class), anyString());
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.deleteEngineCloudFile("engineId", IEngine.CATALOG_TYPE.DATABASE, "filePath"));
+			assertEquals("Failed to delete storage file in engine 'engineId'",e2.getMessage());
+		}
+	}
+	
+	@Test
+	public void testPullEngineAndProjectImageFolder() throws IOException, InterruptedException {
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doNothing().when(mockedCCS).pullEngineAndProjectImageFolder(any(IEngine.CATALOG_TYPE.class));
+			assertDoesNotThrow(() -> ClusterUtil.pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE.DATABASE));
+		}
+	}
+	
+	@Test
+	public void testPullEngineAndProjectImageFolderFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doThrow(IOException.class).when(mockedCCS).pullEngineAndProjectImageFolder(any(IEngine.CATALOG_TYPE.class));
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE.DATABASE));
+			assertEquals("Failed to pull database image folder to cloud storage",e2.getMessage());
+		}
+	}
 
 }
