@@ -168,7 +168,7 @@ public class DefaultStorageGCP extends GoogleCloudNativeBlobStorageEngine {
 		return null;
 	}
 	
-	private byte[] convertBase64(String base64String) throws Exception {
+	private byte[] decodeBase64(String base64String) throws Exception {
         // Remove data URL prefix if present (e.g., "data:image/png;base64,")
         String cleanBase64 = base64String;
         if (base64String.contains(",")) {
@@ -199,7 +199,7 @@ public class DefaultStorageGCP extends GoogleCloudNativeBlobStorageEngine {
 	}
 	
 	private String getImageFormat(String base64String) throws Exception {
-        String imageFormat = "jpg"; // default
+        String imageFormat = "jpg";
         if (base64String.startsWith("data:image/")) {
             String prefix = base64String.substring(0, base64String.indexOf(","));
             if (prefix.contains("png")) {
@@ -219,31 +219,41 @@ public class DefaultStorageGCP extends GoogleCloudNativeBlobStorageEngine {
 	}
 	
 	
-//	public boolean uploadImage(String base64String, User user) throws Exception {
-//		
-//        if (base64String == null || base64String.isEmpty()) {
-//            classLogger.error("Base64 string is null or empty");
-//            return false;
-//        }
-//        
-//        if (user == null) {
-//            classLogger.error("User is null");
-//            return false;
-//        }
-//        
-//        try {
-//        	// Converting image from base64 
-//	        byte[] imageBytes = convertBase64(base64String);
-//	        if (imageBytes == null) return false;
-//	        
-//	        String fileName = UUID.randomUUID().toString();
-//
-//	        
-//        }catch(Exception e){
-//        	classLogger.error("DefaultStorageEngine failed to convert image from base64.", e);
-//        	throw e;
-//        }
-//		
-//	}
+	public boolean uploadImage(String base64String, User user) throws Exception {
+		
+        if (base64String == null || base64String.isEmpty()) {
+            classLogger.error("Base64 string is null or empty");
+            return false;
+        }
+        
+        if (user == null) {
+            classLogger.error("User is null");
+            return false;
+        }
+        
+        try {
+        	String userId = getUserId(user);
+        	
+        	// Converting image from base64 
+	        byte[] imageBytes = decodeBase64(base64String);
+	        if (imageBytes == null) return false;
+	        
+	        String fileName = UUID.randomUUID().toString();
+	        String imageFormat = getImageFormat(base64String);
+	        
+	        String blobPath = userId + "/images/" + fileName + "." + imageFormat;
+	        BlobId blobId = BlobId.of(this.BUCKET, blobPath);
+            BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
+                    .setContentType("image/" + imageFormat)
+                    .build();
+            
+            this.storage.create(blobInfo, imageBytes);
+            classLogger.info("Successfully uploaded image: " + blobPath);
+            return true;
+        }catch(Exception e){
+        	classLogger.error("DefaultStorageEngine failed to convert image from base64.", e);
+        	return false;
+        }
+	}
 
 }

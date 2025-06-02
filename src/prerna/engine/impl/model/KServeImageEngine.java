@@ -62,8 +62,14 @@ public class KServeImageEngine extends AbstractRemoteModelEngine {
 		
 		try {
             JSONObject modelResponse = makeModelRequest(payload);
+            classLogger.info(modelResponse);
             if (modelResponse != null) {
-                return AskImageModelEngineResponse.getKServeImageResponse(modelResponse);
+            	AskImageModelEngineResponse finalResponse = AskImageModelEngineResponse.getKServeImageResponse(modelResponse);
+            	List<String> imageData = finalResponse.getImagesResponse();
+            	classLogger.info(imageData);
+
+            	
+            	return finalResponse;
             } else {
                 classLogger.error("Received null response from model");
                 Map<String, Object> responseMap = new HashMap<>();

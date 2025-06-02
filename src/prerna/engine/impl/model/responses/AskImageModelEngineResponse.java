@@ -2,7 +2,9 @@ package prerna.engine.impl.model.responses;
 
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.List; 
+import java.util.Arrays;  
+import java.util.ArrayList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -105,6 +107,35 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
             
             return new AskImageModelEngineResponse(errorMap, 0, 0);
         }
+    }
+    
+    /**
+     * Retrieves the list of images from the response.
+     * The images are expected to be stored as a String[] or a single String
+     * under the key "images" in the response map.
+     * @return A List<String> containing image strings (e.g., URLs or base64 data),
+     * or an empty List<String> if no images are found or the format is unexpected.
+     */
+    public List<String> getImagesResponse() {
+        List<String> imageList = new ArrayList<>(); // Use ArrayList<String>
+        Map<String, Object> responseData = this.getResponse();
+
+        if (responseData != null && responseData.containsKey("images")) {
+            Object imagesValue = responseData.get("images");
+
+            if (imagesValue instanceof String[]) {
+                // If it's an array of strings, add them all to the list
+                String[] imagesArray = (String[]) imagesValue;
+                imageList.addAll(Arrays.asList(imagesArray)); // Efficient way to add all elements
+            } else if (imagesValue instanceof String) {
+                // If it's a single string, add that to the list
+                imageList.add((String) imagesValue);
+            } else if (imagesValue != null) {
+                // Optional: Log if it's an unexpected type but not null
+                classLogger.warn("Unexpected type for 'images' in responseData: " + imagesValue.getClass().getName());
+            }
+        }
+        return imageList;
     }
 	
     @Override
