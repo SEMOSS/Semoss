@@ -7,6 +7,7 @@ public enum ReactorKeysEnum {
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",				"Additional data types defining specific formats"),
 	ADDITIONAL_PIXELS("additionalPixels",						"Additional pixels to be executed in addition to the pixel steps saved within the insight"),
 	ALL("all",                                              	"Boolean to use all the values"),
+  ALL_BLOCKS_VISIBLE("allBlocksVisible", 						"Boolean if we want all userIds blocks"),
 	ALL_NUMERIC_KEY("allNumeric", 								"Indicates if only numeric headers should be returned"),
 	ALIAS("alias", 												"An alias to assign for an operation or output - use .as([\"aliasName\"])"), 
 //	APP("app", 													"Name of the app on the local SEMOSS instance"),
@@ -16,6 +17,7 @@ public enum ReactorKeysEnum {
 	ATTRIBUTES("attributes", 									"List of columns used as properties/characteristics to describe an instance/object"),
 	BASE_URL("baseUrl",                                     	"The base SEMOSS url"),
 	BREAKS("breaks", 											"Number of divisions"),
+	BLOCK_ENTRY("block_enrty",  								"Block entry input map from frontend"),	
 	CLEAN("clean", 												"Boolean if we should clean up the strings before insertion. (default is true)"),
 	CLEAN_UP_CLOUD_STORAGE("cleanUpCloudStorage",				"Boolean whether to clean up the cloud storage account used to persist databases in the cluster (defaults to false)"),
 	CLONE_PANEL_KEY("cloneId", 									"Id to assign the new clone panel"),
@@ -223,6 +225,7 @@ public enum ReactorKeysEnum {
 	SCALE("scale", 												"How much to scale the graph, default value is set at 20 based on screen size"),
 	SCHEMA("schema",                	                        "The database schema."),
 	SEARCH("search",											"The search term."),
+  SECTION("section", 											"The section to use as input from addBlockReactor"),
 	SEPARATOR("separator",										"Separator for file processing to be used. Defaults to \\r\\n\\r\\n"),
 	SESSION_ID("sessionId", 									"Id of the session"),
 	SHAPE_INDEX("shapeIndex",                 		            "Which particular shape to replace on the powerpoint"),
@@ -281,7 +284,9 @@ public enum ReactorKeysEnum {
 	VOTE("vote",												"Either upvote or downvote"),		
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
-	WIDTH("width", 											    "The width to use for screenshot capture");
+	WIDTH("width", 											    "The width to use for screenshot capture"),
+	X("x",		 											    "The X coordiante."),
+	Y("y",		 											    "The Y coordiante.");
 
 	private String key;
 	private String description;
