@@ -36,6 +36,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.NounStore;
@@ -283,7 +284,115 @@ public class ClusterUtilUnitTests {
 			}
 		}
 
-			assertDoesNotThrow(()->ClusterUtil.pullEngine("engineId", IEngine.CATALOG_TYPE.DATABASE, true));
+		@Test
+		public void testPushEngineSmssFail() throws Exception {
+			//first condition in method
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			try(MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);
+					MockedStatic<ClusterSynchronizer> mockedStaticCS = Mockito.mockStatic(ClusterSynchronizer.class);){
+
+				mockedStaticCCS.when(()-> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+				doThrow(IOException.class).when(mockedCCS).pushEngineSmss(anyString());
+
+				SemossPixelException e = assertThrows(SemossPixelException.class, ()->ClusterUtil.pushEngineSmss("engineId"));
+				assertEquals("Failed to push engine 'engineId'smss to cloud storage" ,e.getMessage());
+
+				//----------------------------------------------------------------------------
+
+				// second condition in method
+				Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
+				field.setAccessible(true);
+
+				// remove final modifier
+				Field modifiersField = Field.class.getDeclaredField("modifiers");
+				modifiersField.setAccessible(true);
+				modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+
+				// set new value
+				field.set(ClusterUtil.IS_CLUSTER_ZK, true);
+
+				doNothing().when(mockedCCS).pushEngineSmss(anyString());
+
+				ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
+				mockedStaticCS.when(()-> ClusterSynchronizer.getInstance()).thenReturn(mockedCS);
+
+				doThrow(IOException.class).when(mockedCS).publishEngineChange(anyString(), anyString(), any(Object.class));
+
+				SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.pushEngineSmss("engineId"));
+				assertEquals("Failed to publish engine 'engineId' to sync with ZK cluster" ,e2.getMessage());
+			}
+
+		}
+
+		@Test
+		public void testPushEngineSmssSuccessTwoArg() throws Exception {
+			//first condition in method
+			try(MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);
+					MockedStatic<ClusterSynchronizer> mockedStaticCS = Mockito.mockStatic(ClusterSynchronizer.class);
+					){
+				CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+				mockedStaticCCS.when(()-> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+				doNothing().when(mockedCCS).pushEngineSmss(anyString(), any(IEngine.CATALOG_TYPE.class));
+				assertDoesNotThrow(()->ClusterUtil.pushEngineSmss("engineId", IEngine.CATALOG_TYPE.DATABASE));
+
+				//----------------------------------------------------------------------------
+				// second condition in method
+				Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
+				field.setAccessible(true);
+
+				// remove final modifier
+				Field modifiersField = Field.class.getDeclaredField("modifiers");
+				modifiersField.setAccessible(true);
+				modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+
+				// set new value
+				field.set(ClusterUtil.IS_CLUSTER_ZK, true);
+
+				ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
+
+				mockedStaticCS.when(()-> ClusterSynchronizer.getInstance()).thenReturn(mockedCS);
+				doNothing().when(mockedCS).publishEngineChange(anyString(), anyString(), any(Object.class));
+
+				assertDoesNotThrow(()->ClusterUtil.pushEngineSmss("engineId", IEngine.CATALOG_TYPE.DATABASE));
+			}
+		}
+
+		@Test
+		public void testPushEngineSmssFailTwoArg() throws Exception {
+			//first condition in method
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			try(MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);
+					MockedStatic<ClusterSynchronizer> mockedStaticCS = Mockito.mockStatic(ClusterSynchronizer.class);){
+
+				mockedStaticCCS.when(()-> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+				doThrow(IOException.class).when(mockedCCS).pushEngineSmss(anyString(),  any(IEngine.CATALOG_TYPE.class));
+
+				SemossPixelException e = assertThrows(SemossPixelException.class, ()->ClusterUtil.pushEngineSmss("engineId", IEngine.CATALOG_TYPE.DATABASE));
+				assertEquals("Failed to push engine 'engineId'smss to cloud storage" ,e.getMessage());
+
+				//----------------------------------------------------------------------------
+
+				// second condition in method
+				Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
+				field.setAccessible(true);
+
+				// remove final modifier
+				Field modifiersField = Field.class.getDeclaredField("modifiers");
+				modifiersField.setAccessible(true);
+				modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+
+				// set new value
+				field.set(ClusterUtil.IS_CLUSTER_ZK, true);
+
+				doNothing().when(mockedCCS).pushEngineSmss(anyString(), any(IEngine.CATALOG_TYPE.class));
+
+				ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
+				mockedStaticCS.when(()-> ClusterSynchronizer.getInstance()).thenReturn(mockedCS);
+
+				doThrow(IOException.class).when(mockedCS).publishEngineChange(anyString(), anyString(), any(Object.class));
+
+				SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.pushEngineSmss("engineId", IEngine.CATALOG_TYPE.DATABASE));
+				assertEquals("Failed to publish engine 'engineId' to sync with ZK cluster" ,e2.getMessage());
 		}
 	}
 
@@ -295,3 +404,4 @@ public class ClusterUtilUnitTests {
 
 }
 
+}
