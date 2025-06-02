@@ -393,15 +393,56 @@ public class ClusterUtilUnitTests {
 
 				SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.pushEngineSmss("engineId", IEngine.CATALOG_TYPE.DATABASE));
 				assertEquals("Failed to publish engine 'engineId' to sync with ZK cluster" ,e2.getMessage());
+			}
 		}
 	}
 
 	@Test
-	public void testPullEngineFailThreeArg() throws IOException, InterruptedException {
-		SemossPixelException e = assertThrows(SemossPixelException.class, ()->ClusterUtil.pullEngine("engineId", IEngine.CATALOG_TYPE.DATABASE, true));
-		assertEquals("Failed to pull engine 'engineId' from cloud storage" ,e.getMessage());	
+	public void testDeleteEngine() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			doNothing().when(mockedCCS).deleteEngine(anyString());
+			assertDoesNotThrow(() -> ClusterUtil.deleteEngine("engineId"));
+		}
 	}
+	
+	@Test
+	public void testDeleteEngineFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			doThrow(IOException.class).when(mockedCCS).deleteEngine(anyString());
 
-}
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.deleteEngine("engineId"));
+			assertEquals("Failed to delete engine 'engineId' from cloud storage" ,e2.getMessage());
+		}
+	}
+	
+	@Test
+	public void testDeleteEngineTwoArgs() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			doNothing().when(mockedCCS).deleteEngine(anyString(), any(IEngine.CATALOG_TYPE.class));
+			assertDoesNotThrow(() -> ClusterUtil.deleteEngine("engineId", IEngine.CATALOG_TYPE.DATABASE));
+		}
+	}
+	
+	@Test
+	public void testDeleteEngineTwoArgsFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			doThrow(IOException.class).when(mockedCCS).deleteEngine(anyString(), any(IEngine.CATALOG_TYPE.class));
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.deleteEngine("engineId", IEngine.CATALOG_TYPE.DATABASE));
+			assertEquals("Failed to delete engine 'engineId' from cloud storage" ,e2.getMessage());
+		}
+	}
 
 }
