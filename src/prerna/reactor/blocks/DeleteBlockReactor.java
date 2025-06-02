@@ -2,10 +2,10 @@ package prerna.reactor.blocks;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -39,6 +39,11 @@ public class DeleteBlockReactor extends AbstractReactor {
 			if (this.insight.getUser().isAnonymous()) {
 				throwAnonymousUserError();
 			}
+		}
+		
+		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+		if (!isAdmin) {
+			throwFunctionalityOnlyExposedForAdminsError();
 		}
 		
 		this.organizeKeys();

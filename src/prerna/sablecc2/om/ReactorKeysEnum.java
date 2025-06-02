@@ -7,7 +7,6 @@ public enum ReactorKeysEnum {
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",				"Additional data types defining specific formats"),
 	ADDITIONAL_PIXELS("additionalPixels",						"Additional pixels to be executed in addition to the pixel steps saved within the insight"),
 	ALL("all",                                              	"Boolean to use all the values"),
-  ALL_BLOCKS_VISIBLE("allBlocksVisible", 						"Boolean if we want all userIds blocks"),
 	ALL_NUMERIC_KEY("allNumeric", 								"Indicates if only numeric headers should be returned"),
 	ALIAS("alias", 												"An alias to assign for an operation or output - use .as([\"aliasName\"])"), 
 //	APP("app", 													"Name of the app on the local SEMOSS instance"),
