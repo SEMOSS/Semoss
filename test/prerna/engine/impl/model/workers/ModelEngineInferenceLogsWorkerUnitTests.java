@@ -102,6 +102,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             
             String engineId = "engineId";
             String engineName = "engineName";
+			String userEmail="userEmail";
             when(engine.getEngineId()).thenReturn(engineId);
             when(engine.getEngineName()).thenReturn(engineName);
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
@@ -118,7 +119,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 true,
                 projectId,
                 "porjectName",
-                engineId
+                engineId,
+				userEmail
             )).thenAnswer((Answer<Void>) invocation -> null);
             
             milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername")).thenAnswer((Answer<Void>) invocation -> null);
@@ -177,7 +179,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     true,
                     projectId,
                     "porjectName",
-                    engineId
+                    engineId,
+					userEmail
                 );
 
                 ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
@@ -263,6 +266,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             
             String engineId = "engineId";
             String engineName = "engineName";
+			String userEmail="userEmail";
             when(engine.getEngineId()).thenReturn(engineId);
             when(engine.getEngineName()).thenReturn(engineName);
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
@@ -279,7 +283,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 true,
                 projectId,
                 "porjectName",
-                engineId
+                engineId,
+				userEmail
             )).thenAnswer((Answer<Void>) invocation -> null);
             
             milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername")).thenAnswer((Answer<Void>) invocation -> null);
@@ -338,7 +343,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     true,
                     projectId,
                     "porjectName",
-                    engineId
+                    engineId,
+					userEmail
                 );
 
                 ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
@@ -424,6 +430,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             
             String engineId = "engineId";
             String engineName = "engineName";
+			String userEmail="userEmail";
             when(engine.getEngineId()).thenReturn(engineId);
             when(engine.getEngineName()).thenReturn(engineName);
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
@@ -440,7 +447,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 true,
                 projectId,
                 "porjectName",
-                engineId
+                engineId,
+				userEmail
             )).thenAnswer((Answer<Void>) invocation -> null);
             
             milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername")).thenAnswer((Answer<Void>) invocation -> null);
@@ -499,7 +507,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     true,
                     projectId,
                     "porjectName",
-                    engineId
+                    engineId,
+					userEmail
                 );
 
                 ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
