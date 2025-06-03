@@ -7,6 +7,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -24,9 +25,7 @@ public class AddBlockReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-
 		User user = this.insight.getUser();
-		
 		if (user == null) {
 			NounMetadata noun = new NounMetadata("User must be signed in to add a block", PixelDataType.CONST_STRING,
 					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
@@ -34,11 +33,16 @@ public class AddBlockReactor extends AbstractReactor {
 			err.setContinueThreadOfExecution(false);
 			throw err;
 		}
-
+		
 		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
 			if (this.insight.getUser().isAnonymous()) {
 				throwAnonymousUserError();
 			}
+		}
+		
+		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+		if (!isAdmin) {
+			throwFunctionalityOnlyExposedForAdminsError();
 		}
 
 		organizeKeys();
