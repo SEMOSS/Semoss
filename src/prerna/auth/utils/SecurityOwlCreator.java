@@ -473,7 +473,7 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_GROUP", "ID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "TYPE", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "DESCRIPTION", "CLOB");
-		owler.addProp("SMSS_GROUP", "IS_CUSTOM_GROUP", "BOOLEAN");
+//		owler.addProp("SMSS_GROUP", "IS_CUSTOM_GROUP", "BOOLEAN
 		owler.addProp("SMSS_GROUP", "DATEADDED", "TIMESTAMP");
 		owler.addProp("SMSS_GROUP", "USERID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "USERIDTYPE", "VARCHAR(255)");
