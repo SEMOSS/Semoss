@@ -544,5 +544,277 @@ public class ClusterUtilUnitTests {
 			assertEquals("Failed to pull database image folder to cloud storage",e2.getMessage());
 		}
 	}
+	
+	@Test
+	public void testPushEngineAndProjectImage() throws IOException, InterruptedException {
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doNothing().when(mockedCCS).pushEngineAndProjectImage(any(IEngine.CATALOG_TYPE.class), anyString());
+			assertDoesNotThrow(() -> ClusterUtil.pushEngineAndProjectImage(IEngine.CATALOG_TYPE.DATABASE, "fileName"));
+		}
+	}
+	
+	@Test
+	public void testPushEngineAndProjectImageFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doThrow(IOException.class).when(mockedCCS).pushEngineAndProjectImage(any(IEngine.CATALOG_TYPE.class), anyString());
 
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.pushEngineAndProjectImage(IEngine.CATALOG_TYPE.DATABASE, "fileName"));
+			assertEquals("Failed to push database image to cloud storage",e2.getMessage());
+		}
+	}
+	
+	@Test
+	public void testDeleteEngineAndProjectImage() throws IOException, InterruptedException {
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doNothing().when(mockedCCS).deleteEngineAndProjectImage(any(IEngine.CATALOG_TYPE.class), anyString());
+			assertDoesNotThrow(() -> ClusterUtil.deleteEngineAndProjectImage(IEngine.CATALOG_TYPE.DATABASE, "fileName"));
+		}
+	}
+	
+	@Test
+	public void testDeleteEngineAndProjectImageFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doThrow(IOException.class).when(mockedCCS).deleteEngineAndProjectImage(any(IEngine.CATALOG_TYPE.class), anyString());
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.deleteEngineAndProjectImage(IEngine.CATALOG_TYPE.DATABASE, "fileName"));
+			assertEquals("Failed to delete database image from the cloud storage",e2.getMessage());
+		}
+	}
+	
+	@Test
+	public void testDeleteEngineAndProjectImageById() throws IOException, InterruptedException {
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doNothing().when(mockedCCS).deleteEngineAndProjectImageById(any(IEngine.CATALOG_TYPE.class), anyString());
+			assertDoesNotThrow(() -> ClusterUtil.deleteEngineAndProjectImageById(IEngine.CATALOG_TYPE.DATABASE, "engineId"));
+		}
+	}
+	
+	@Test
+	public void testDeleteEngineAndProjectImageByIdFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doThrow(IOException.class).when(mockedCCS).deleteEngineAndProjectImageById(any(IEngine.CATALOG_TYPE.class), anyString());
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.deleteEngineAndProjectImageById(IEngine.CATALOG_TYPE.DATABASE, "engineId"));
+			assertEquals("Failed to delete engine/project image from the cloud storage",e2.getMessage());
+		}
+	}
+	
+	@Test
+	public void testPullProject() throws IOException, InterruptedException {
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doNothing().when(mockedCCS).pullProject(anyString());
+			assertDoesNotThrow(() -> ClusterUtil.pullProject("projectId"));
+		}
+	}
+	
+	@Test
+	public void testPullProjectFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doThrow(IOException.class).when(mockedCCS).pullProject(anyString());
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.pullProject("projectId"));
+			assertEquals("Failed to pull project 'projectId' from cloud storage",e2.getMessage());
+		}
+	}
+	
+	@Test
+	public void testPullProjectTwoArgs() throws IOException, InterruptedException {
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doNothing().when(mockedCCS).pullProject(anyString(), anyBoolean());
+			assertDoesNotThrow(() -> ClusterUtil.pullProject("projectId", false));
+		}
+	}
+	
+	@Test
+	public void testPullProjectTwoArgsFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doThrow(IOException.class).when(mockedCCS).pullProject(anyString(), anyBoolean());
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.pullProject("projectId", false));
+			assertEquals("Failed to pull project 'projectId' from cloud storage",e2.getMessage());
+		}
+	}
+	
+	@Test
+	public void testDeleteProject() throws IOException, InterruptedException {
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doNothing().when(mockedCCS).deleteProject(anyString());
+			assertDoesNotThrow(() -> ClusterUtil.deleteProject("projectId"));
+		}
+	}
+	
+	@Test
+	public void testDeleteProjectFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doThrow(IOException.class).when(mockedCCS).deleteProject(anyString());
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.deleteProject("projectId"));
+			assertEquals("Failed to delete project 'projectId' from cloud storage",e2.getMessage());
+		}
+	}
+	
+	@Test
+	public void testPullInsightsDB() throws IOException, InterruptedException {
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doNothing().when(mockedCCS).pullInsightsDB(anyString());
+			assertDoesNotThrow(() -> ClusterUtil.pullInsightsDB("projectId"));
+		}
+	}
+	
+	@Test
+	public void testPullInsightsDBFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doThrow(IOException.class).when(mockedCCS).pullInsightsDB(anyString());
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.pullInsightsDB("projectId"));
+			assertEquals("Failed to pull project 'projectId' insight database from cloud storage",e2.getMessage());
+		}
+	}
+	
+	@Test
+	public void testPushInsightDB() throws Exception {
+		//first condition in method
+		try(MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);
+				MockedStatic<ClusterSynchronizer> mockedStaticCS = Mockito.mockStatic(ClusterSynchronizer.class);
+				){
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(()-> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			doNothing().when(mockedCCS).pushInsightDB(anyString());
+			assertDoesNotThrow(()->ClusterUtil.pushInsightDB("engineId"));
+
+			//----------------------------------------------------------------------------
+			// second condition in method
+			Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
+			field.setAccessible(true);
+
+			// remove final modifier
+			Field modifiersField = Field.class.getDeclaredField("modifiers");
+			modifiersField.setAccessible(true);
+			modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+
+			// set new value
+			field.set(ClusterUtil.IS_CLUSTER_ZK, true);
+
+			ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
+
+			mockedStaticCS.when(()-> ClusterSynchronizer.getInstance()).thenReturn(mockedCS);
+			doNothing().when(mockedCS).publishProjectChange(anyString(), anyString(), anyString());
+
+			assertDoesNotThrow(()->ClusterUtil.pushInsightDB("projectId"));
+		}
+	}
+	
+	@Test
+	public void testPushInsightDBFail() throws Exception{
+		//first condition in method
+		CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+		try(MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);
+				MockedStatic<ClusterSynchronizer> mockedStaticCS = Mockito.mockStatic(ClusterSynchronizer.class);){
+
+			mockedStaticCCS.when(()-> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			doThrow(IOException.class).when(mockedCCS).pushInsightDB(anyString());
+
+			SemossPixelException e = assertThrows(SemossPixelException.class, ()->ClusterUtil.pushInsightDB("projectId"));
+			assertEquals("Failed to push project 'projectId' insight database to cloud storage",e.getMessage());
+
+			//----------------------------------------------------------------------------
+
+			// second condition in method
+			Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
+			field.setAccessible(true);
+
+			// remove final modifier
+			Field modifiersField = Field.class.getDeclaredField("modifiers");
+			modifiersField.setAccessible(true);
+
+			modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+			// set new value
+			field.set(ClusterUtil.IS_CLUSTER_ZK, true);
+
+			doNothing().when(mockedCCS).pushInsightDB(anyString());
+
+			ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
+
+			mockedStaticCS.when(()-> ClusterSynchronizer.getInstance()).thenReturn(mockedCS);
+			doThrow(IOException.class).when(mockedCS).publishProjectChange(anyString(), anyString(), any(Object.class));
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.pushInsightDB("projectId"));
+			assertEquals("Failed to publish project 'projectId' to sync with ZK cluster to pull insight db" ,e2.getMessage());
+		}
+	}
+	
+	@Test
+	public void testPullOwl() throws IOException, InterruptedException {
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doNothing().when(mockedCCS).pullOwl(anyString(), any(WriteOWLEngine.class));
+
+			assertDoesNotThrow(() -> ClusterUtil.pullOwl("projectId", null));
+		}
+	}
+	
+	@Test
+	public void testPullOwlFail() throws Exception {
+		// first condition in method
+		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
+			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
+			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
+			
+			doThrow(IOException.class).when(mockedCCS).pullOwl(anyString(), any(WriteOWLEngine.class));
+
+			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.pullOwl("projectId", null));
+			assertEquals("Failed to pull project 'projectId' insight database from cloud storage",e2.getMessage());
+		}
+	}
 }
