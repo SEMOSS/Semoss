@@ -1385,9 +1385,9 @@ public abstract class AbstractSecurityUtils {
 			 */
 	
 			// GROUP TABLE
-			colNames = new String[] { "ID", "TYPE", "DESCRIPTION", "IS_CUSTOM_GROUP", 
+			colNames = new String[] { "ID", "TYPE", "DESCRIPTION", 
 					"DATEADDED", "USERID", "USERIDTYPE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME,
 					 TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_GROUP", colNames, types));

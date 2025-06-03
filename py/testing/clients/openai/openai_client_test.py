@@ -37,6 +37,17 @@ def openai_chat_completion_client():
 
 
 @pytest.fixture
+def openai_response_client():
+    """Fixture to create an OpenAI responses client instance."""
+    return OpenAiClient(
+        model_name="gpt-4o",
+        api_key=OPENAI_API_KEY,
+        max_tokens=MAX_TOKENS,
+        chat_type="responses",
+    )
+
+
+@pytest.fixture
 def openai_completion_client():
     """Fixture to create an OpenAI completion client instance."""
     return OpenAiClient(
@@ -222,3 +233,165 @@ def test_openai_completions_for_embeddings(openai_completion_client):
         "numberOfTokensInPrompt",
         "numberOfTokensInResponse",
     }
+
+
+def test_openai_responses_text_response_without_stream(openai_response_client):
+    """
+    Test the ask response of OpenAI responses client for the normal text response using assertions.
+        - Checking the type of response
+        - Checking the required keys of response
+        - Checking the token limit of prompt and response against model token limit
+    """
+    ask_response = openai_response_client.ask(question=SAMPLE_QUESTION, stream=False)
+    print(
+        "\n openai_response_text_response_without_stream ask_response - ", ask_response
+    )
+
+    # Assertions for the text response
+    assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
+    assert set(ask_response.keys()) == {
+        "response",
+        "numberOfTokensInPrompt",
+        "numberOfTokensInResponse",
+        "messageType",
+    }, "Response Keys Mismatch"
+
+    total_tokens = (
+        ask_response["numberOfTokensInPrompt"]
+        + ask_response["numberOfTokensInResponse"]
+    )
+    assert total_tokens <= MAX_TOKENS, "Exceeds token limit"
+
+
+def test_openai_responses_text_response_with_stream(openai_response_client):
+    """
+    Test the ask response of OpenAI responses client for the normal text streaming response using assertions.
+        - Checking the type of response
+        - Checking the required keys of response
+        - Checking the token limit of prompt and response against model token limit
+    """
+    ask_response = openai_response_client.ask(question=SAMPLE_QUESTION)
+    print("\n openai_responses_text_response_with_stream ask_response - ", ask_response)
+
+    # Assertions for the text response
+    assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
+    assert set(ask_response.keys()) == {
+        "response",
+        "numberOfTokensInPrompt",
+        "numberOfTokensInResponse",
+        "messageType",
+    }, "Response Keys Mismatch"
+
+    total_tokens = (
+        ask_response["numberOfTokensInPrompt"]
+        + ask_response["numberOfTokensInResponse"]
+    )
+    assert total_tokens <= MAX_TOKENS, "Exceeds token limit"
+
+
+def _get_schema_for_responses():
+    """Defining the json schema as we want in the JSON structured response."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "players": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "position": {"type": "string"},
+                        "country": {"type": "string"},
+                        "skill": {"type": "integer"},
+                    },
+                    "required": ["name", "position", "country", "skill"],
+                    "additionalProperties": False,
+                },
+            }
+        },
+        "required": ["players"],
+        "additionalProperties": False,
+    }
+
+    return schema
+
+
+def test_openai_responses_json_structured_response(
+    openai_response_client,
+):
+    """
+    Test the ask response of OpenAI responses client for the JSON structured response using assertions.
+        - Checking the type of response
+        - Checking the required keys of response
+        - Checking the JSON structures for the required keys in response
+        - Checking the token limit of prompt and response against model token limit
+    """
+    SAMPLE_QUESTION = "Name a few Manchester United players you know with their positions, countries, and skill ratings."
+    # Add "stream=True" or "stream=False" in the ask call if required
+    ask_response = openai_response_client.ask(
+        question=SAMPLE_QUESTION,
+        schema=_get_schema_for_responses(),
+    )
+    print(
+        "\n openai_responses_json_structured_response ask_response - ",
+        ask_response,
+    )
+
+    # Assertions for the structure of the ask response
+    assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
+    assert set(ask_response.keys()) == {
+        "response",
+        "numberOfTokensInPrompt",
+        "numberOfTokensInResponse",
+        "messageType",
+    }, "Response Keys Mismatch"
+
+    structured_response = json.loads(
+        ask_response["response"]
+    )  # converting into json format
+
+    assert "players" in structured_response
+    for player in structured_response["players"]:
+        assert "name" in player
+        assert "position" in player
+        assert "country" in player
+        assert "skill" in player
+
+    total_tokens = (
+        ask_response["numberOfTokensInPrompt"]
+        + ask_response["numberOfTokensInResponse"]
+    )
+    assert total_tokens <= MAX_TOKENS, "Exceeds token limit"
+
+
+def test_openai_responses_text_response_with_tool_choice(openai_response_client):
+    """
+    Test the ask response of OpenAI responses client for the normal text response using assertions.
+        - Checking the type of response
+        - Checking the required keys of response
+        - Checking the token limit of prompt and response against model token limit
+    """
+    ask_response = openai_response_client.ask(
+        tool_choice="required",
+        tools=[{"type": "web_search_preview"}],
+        question="What was a positive news story from today?",
+    )
+    print(
+        "\n openai_responses_text_response_with_tool_choice ask_response - ",
+        ask_response,
+    )
+
+    # Assertions for the text response
+    assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
+    assert set(ask_response.keys()) == {
+        "response",
+        "numberOfTokensInPrompt",
+        "numberOfTokensInResponse",
+        "messageType",
+    }, "Response Keys Mismatch"
+
+    total_tokens = (
+        ask_response["numberOfTokensInPrompt"]
+        + ask_response["numberOfTokensInResponse"]
+    )
+    assert total_tokens <= MAX_TOKENS, "Exceeds token limit"
