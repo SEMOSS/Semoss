@@ -20,30 +20,44 @@ import prerna.usertracking.UserCatalogVoteUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class MyEngineProjectReactor extends AbstractReactor{
-	
+public class MyEngineProjectReactor extends AbstractReactor {
+
 	private static final Logger classLogger = LogManager.getLogger(MyEngineProjectReactor.class);
 
 	public MyEngineProjectReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.TYPE.getKey(),
-				ReactorKeysEnum.SUB_TYPE.getKey(), ReactorKeysEnum.ENGINE.getKey(),
-				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
-				ReactorKeysEnum.PERMISSION_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey(), 
-				ReactorKeysEnum.ONLY_PORTALS.getKey()
-		};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(),
+				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.TYPE.getKey(),
+				ReactorKeysEnum.SUB_TYPE.getKey(), ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.META_KEYS.getKey(),
+				ReactorKeysEnum.META_FILTERS.getKey(), ReactorKeysEnum.PERMISSION_FILTERS.getKey(),
+				ReactorKeysEnum.NO_META.getKey(), ReactorKeysEnum.ONLY_PORTALS.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		String searchTerm = this.keyValue.get(ReactorKeysEnum.FILTER_WORD.getKey());
-		String limit = this.keyValue.get( ReactorKeysEnum.LIMIT.getKey());
-		String offset = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
+		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
+		String offsetStr = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
 		String type = this.keyValue.get(ReactorKeysEnum.TYPE.getKey());
 		String engineType = this.keyValue.get(ReactorKeysEnum.SUB_TYPE.getKey());
+		
+		
+	    int limit = 20; 
+	    int offset = 0;
+	    try {
+	        if (limitStr != null) {
+	            limit = Math.min(Integer.parseInt(limitStr), 20); 
+	        }
+	        if (offsetStr != null) {
+	            offset = Integer.parseInt(offsetStr);
+	            if (offset < 0) offset = 0;
+	        }
+	    } catch (NumberFormatException e) {
+	        // fallback to default limit/offset
+	        classLogger.warn("Invalid limit or offset passed, using defaults", e);
+	    }
+
 		// Flags for filtering and metadata
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_FAVORITES.getKey())+"");
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey())+"");
@@ -51,44 +65,82 @@ public class MyEngineProjectReactor extends AbstractReactor{
 		List<Integer> permissionFilters = getPermissionFilters();
 		Map<String, Object> engineProjectMetadataFilter = getMetaMap();
 		
-		 // If engineType is provided, fetch engine information
-		if(type != null && type.equalsIgnoreCase(Constants.ENGINE)) { 
+		
+
+		if (type == null || (!Constants.ENGINE.equalsIgnoreCase(type) && !Constants.PROJECT.equalsIgnoreCase(type))) {
+			// Fetch engine info
+			List<String> engineTypes = getEngineTypeFilters();
+			List<String> engineIdFilters = getEngineIdFilters();
+
+			List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(),
+					engineTypes, engineIdFilters, noMeta, engineProjectMetadataFilter, permissionFilters, searchTerm,
+					Integer.toString(limit), Integer.toString(offset));
+
+			// Fetch project info
+			List<String> projectIdFilters = getProjectIdFilters();
+			Boolean portalsOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_PORTALS.getKey()) + "");
+
+			List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(),
+					projectIdFilters, favoritesOnly, portalsOnly, engineProjectMetadataFilter, permissionFilters,
+					searchTerm, Integer.toString(limit), Integer.toString(offset));
+
+			// Optionally you can merge or return a combined structure:
+			List<Map<String, Object>> combined = new ArrayList<>();
+			if (engineInfo != null)
+				combined.addAll(engineInfo);
+			if (projectInfo != null)
+				combined.addAll(projectInfo);
+
+			// Consider trimming combined to max 20 if sum exceeds limit
+			if (combined.size() > 20) {
+				combined = combined.subList(0, 20);
+			}
+
+			return new NounMetadata(combined, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+
+		}
+
+		// If engineType is provided, fetch engine information
+		else if (type != null && type.equalsIgnoreCase(Constants.ENGINE)) {
 			// Fetch filtered engine types and engine IDs
 			List<String> engineTypes = getEngineTypeFilters();
 			List<String> engineIdFilters = getEngineIdFilters();
 			// Retrieve user-specific engine list
-			List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, engineIdFilters, favoritesOnly, engineProjectMetadataFilter, permissionFilters, searchTerm, limit, offset);
+			List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(),
+					engineTypes, engineIdFilters, favoritesOnly, engineProjectMetadataFilter, permissionFilters,
+					searchTerm, Integer.toString(limit), Integer.toString(offset));
 
-			if(!engineInfo.isEmpty() && !noMeta) {
+			if (!engineInfo.isEmpty() && !noMeta) {
 				Map<String, Integer> index = new HashMap<>(engineInfo.size());
 				int size = engineInfo.size();
-				for(int i = 0; i < size; i++) {
+				for (int i = 0; i < size; i++) {
 					Map<String, Object> engine = engineInfo.get(i);
 					String engineId = engine.get("database_id").toString();
 					// keep list of database ids to get the index
 					index.put(engineId, Integer.valueOf(i));
 				}
-				
-				if(!noMeta) {
+
+				if (!noMeta) {
 					IRawSelectWrapper wrapper = null;
 					try {
 						wrapper = SecurityEngineUtils.getEngineMetadataWrapper(index.keySet(), getMetaKeys(), true);
-						while(wrapper.hasNext()) {
+						while (wrapper.hasNext()) {
 							Object[] data = wrapper.next().getValues();
 							String databaseId = (String) data[0];
-			
+
 							String metaKey = (String) data[1];
 							String metaValue = (String) data[2];
-							if(metaValue == null) {
+							if (metaValue == null) {
 								continue;
 							}
-			
+
 							int indexToFind = index.get(databaseId);
 							Map<String, Object> res = engineInfo.get(indexToFind);
-							// whatever it is, if it is single send a single value, if it is multi send as array
-							if(res.containsKey(metaKey)) {
+							// whatever it is, if it is single send a single value, if it is multi send as
+							// array
+							if (res.containsKey(metaKey)) {
 								Object obj = res.get(metaKey);
-								if(obj instanceof List) {
+								if (obj instanceof List) {
 									((List) obj).add(metaValue);
 								} else {
 									List<Object> newList = new ArrayList<>();
@@ -103,7 +155,7 @@ public class MyEngineProjectReactor extends AbstractReactor{
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
-						if(wrapper!=null) {
+						if (wrapper != null) {
 							try {
 								wrapper.close();
 							} catch (IOException e) {
@@ -111,16 +163,16 @@ public class MyEngineProjectReactor extends AbstractReactor{
 							}
 						}
 					}
-				} 
-				if(Utility.isUserTrackingEnabled()) {
+				}
+				if (Utility.isUserTrackingEnabled()) {
 					IRawSelectWrapper wrapper = null;
 					try {
 						wrapper = UserCatalogVoteUtils.getAllVotesWrapper(index.keySet());
-						while(wrapper.hasNext()) {
+						while (wrapper.hasNext()) {
 							Object[] data = wrapper.next().getValues();
 							String databaseId = (String) data[0];
 							int upvotes = ((Number) data[1]).intValue();
-			
+
 							int indexToFind = index.get(databaseId);
 							Map<String, Object> res = engineInfo.get(indexToFind);
 							res.put("upvotes", upvotes);
@@ -128,7 +180,7 @@ public class MyEngineProjectReactor extends AbstractReactor{
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
-						if(wrapper!=null) {
+						if (wrapper != null) {
 							try {
 								wrapper.close();
 							} catch (IOException e) {
@@ -136,8 +188,9 @@ public class MyEngineProjectReactor extends AbstractReactor{
 							}
 						}
 					}
-					
-					Map<String, Boolean> voted = UserCatalogVoteUtils.userEngineVotes(User.getUserIdAndType(this.insight.getUser()), index.keySet());
+
+					Map<String, Boolean> voted = UserCatalogVoteUtils
+							.userEngineVotes(User.getUserIdAndType(this.insight.getUser()), index.keySet());
 					for (String ks : index.keySet()) {
 						int indexToFind = index.get(ks);
 						Boolean hasUpvoted = voted.get(ks);
@@ -149,46 +202,48 @@ public class MyEngineProjectReactor extends AbstractReactor{
 				}
 			}
 			return new NounMetadata(engineInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
-			
-		}else {
+
+		} else {
 			// If engineType is not provided, fetch project information instead
 			List<String> projectIdFilters = getProjectIdFilters();
-			Boolean portalsOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_PORTALS.getKey())+"");
+			Boolean portalsOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_PORTALS.getKey()) + "");
 			// Retrieve user-specific project list
-			List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectIdFilters, 
-					favoritesOnly, portalsOnly, engineProjectMetadataFilter, permissionFilters, searchTerm, limit, offset);
-			
-			if(!projectInfo.isEmpty() && !noMeta) {
+			List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(),
+					projectIdFilters, favoritesOnly, portalsOnly, engineProjectMetadataFilter, permissionFilters,
+					searchTerm, Integer.toString(limit), Integer.toString(offset));
+
+			if (!projectInfo.isEmpty() && !noMeta) {
 				Map<String, Integer> index = new HashMap<>(projectInfo.size());
 				int size = projectInfo.size();
 				// now we want to add most executed insights
-				for(int i = 0; i < size; i++) {
+				for (int i = 0; i < size; i++) {
 					Map<String, Object> project = projectInfo.get(i);
 					String projectId = project.get("project_id").toString();
 					// keep list of project ids to get the index
 					index.put(projectId, Integer.valueOf(i));
 				}
-		
-				if(!noMeta) {
+
+				if (!noMeta) {
 					IRawSelectWrapper wrapper = null;
 					try {
 						wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(), getMetaKeys(), true);
-						while(wrapper.hasNext()) {
+						while (wrapper.hasNext()) {
 							Object[] data = wrapper.next().getValues();
 							String projectId = (String) data[0];
-			
+
 							String metaKey = (String) data[1];
 							String metaValue = (String) data[2];
-							if(metaValue == null) {
+							if (metaValue == null) {
 								continue;
 							}
-			
+
 							int indexToFind = index.get(projectId);
 							Map<String, Object> res = projectInfo.get(indexToFind);
-							// whatever it is, if it is single send a single value, if it is multi send as array
-							if(res.containsKey(metaKey)) {
+							// whatever it is, if it is single send a single value, if it is multi send as
+							// array
+							if (res.containsKey(metaKey)) {
 								Object obj = res.get(metaKey);
-								if(obj instanceof List) {
+								if (obj instanceof List) {
 									((List) obj).add(metaValue);
 								} else {
 									List<Object> newList = new ArrayList<>();
@@ -203,7 +258,7 @@ public class MyEngineProjectReactor extends AbstractReactor{
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
-						if(wrapper != null) {
+						if (wrapper != null) {
 							try {
 								wrapper.close();
 							} catch (IOException e) {
@@ -215,10 +270,8 @@ public class MyEngineProjectReactor extends AbstractReactor{
 			}
 			return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
 		}
-		
-		
+
 	}
-	
 
 	/**
 	 * 
@@ -226,94 +279,92 @@ public class MyEngineProjectReactor extends AbstractReactor{
 	 */
 	private List<String> getEngineIdFilters() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private List<String> getEngineTypeFilters() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.SUB_TYPE.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private List<String> getProjectIdFilters() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PROJECT.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private List<String> getMetaKeys() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private List<Integer> getPermissionFilters() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllNumericColumnsAsInteger();
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private Map<String, Object> getMetaMap() {
 		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
-		if(mapGrs != null && !mapGrs.isEmpty()) {
+		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if(mapInputs != null && !mapInputs.isEmpty()) {
+			if (mapInputs != null && !mapInputs.isEmpty()) {
 				return (Map<String, Object>) mapInputs.get(0).getValue();
 			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapInputs != null && !mapInputs.isEmpty()) {
+		if (mapInputs != null && !mapInputs.isEmpty()) {
 			return (Map<String, Object>) mapInputs.get(0).getValue();
 		}
 		return null;
 	}
 
-	
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.SORT.getKey())) {
+		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
 			return "The sort is a string value containing either 'name' or 'date' for how to sort";
-		} else if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "This is an optional engine filter";
 		}
 		return super.getDescriptionForKey(key);
 	}
 
 }
-
