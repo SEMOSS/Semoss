@@ -92,6 +92,38 @@ class Chat:
             kwargs["stop"] = kwargs.pop("stop_sequences")
         return kwargs
 
+    def _handle_image_params(
+        self, question: str, fill_variables: dict, message_payload
+    ):
+        """
+        Handle image parameters in the payload.
+        """
+        image_payload = [{"type": "text", "text": question}]
+
+        key_to_pop = IMAGE_ENCODED if IMAGE_ENCODED in fill_variables else IMAGE_URL
+        images = fill_variables.pop(key_to_pop)
+        if isinstance(images, str):
+            if key_to_pop == IMAGE_ENCODED:
+                image_url = {"url": f"data:image/png;base64,{images}"}
+            else:
+                image_url = {"url": images}
+            image_payload.append({"type": "image_url", "image_url": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload, fill_variables
+        elif isinstance(images, list):
+            for image in images:
+                if key_to_pop == IMAGE_ENCODED:
+                    image_url = {"url": f"data:image/png;base64,{image}"}
+                else:
+                    image_url = {"url": image}
+                image_payload.append({"type": "image_url", "image_url": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload, fill_variables
+        else:
+            raise ValueError(
+                f"Invalid type for {key_to_pop}. Expected str or list, got {type(images)}"
+            )
+
     def _process_chat_completion(
         self,
         question: str,
@@ -131,18 +163,18 @@ class Chat:
 
         # check if images are in the fill args
         if IMAGE_ENCODED in fill_variables or IMAGE_URL in fill_variables:
-            # add the new question to the payload
-            if question:
-                image_payload = [{"type": "text", "text": question}]
-                image_url = {
-                    "url": (
-                        f"data:image/png;base64,{fill_variables.pop(IMAGE_ENCODED)}"
-                        if IMAGE_ENCODED in fill_variables
-                        else fill_variables.pop(IMAGE_URL)
-                    )
-                }
-                image_payload.append({"type": "image_url", "image_url": image_url})
-                message_payload.append({"role": "user", "content": image_payload})
+            try:
+                message_payload, fill_variables = self.client._handle_image_params(
+                    question=question,
+                    fill_variables=fill_variables,
+                    message_payload=message_payload,
+                )
+            except Exception as e:
+                message_payload, fill_variables = self._handle_image_params(
+                    question=question,
+                    fill_variables=fill_variables,
+                    message_payload=message_payload,
+                )
         else:
             # add the new question to the payload
             if question:

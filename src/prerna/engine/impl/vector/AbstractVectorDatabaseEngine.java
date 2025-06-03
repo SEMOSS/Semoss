@@ -758,11 +758,14 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				String resolvedString = substitutor.replace(commands[commandIndex]);
 				commands[commandIndex] = resolvedString;
 			}
-			pyt.runEmptyPy(commands);
 			
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", commands));
+			
+			pyt.runEmptyPy(commands);
+			
+
 			
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;
