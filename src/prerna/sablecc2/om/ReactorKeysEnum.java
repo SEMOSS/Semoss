@@ -282,8 +282,8 @@ public enum ReactorKeysEnum {
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
 	WIDTH("width", 											    "The width to use for screenshot capture"), 
-	FUNCTION_ENGINE_NAME("functionEngineName", 					"The Name of python function engine"), ;
-
+	X("x",		 											    "The X coordiante."),
+	Y("y",		 											    "The Y coordiante.");
 	private String key;
 	private String description;
 	

@@ -102,7 +102,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					PYTHON, 
 					"How to use in Python",
 					"```python\r\n"+
-						"from gaas_gpt_model import ModelEngine\r\n" + 
+						"from ai_server import ModelEngine\r\n" + 
 						"model = ModelEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 						
 						"\n# Generation\r\n" +
@@ -134,7 +134,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"LANGCHAIN", 
 					"How to use with Langchain API",
 					"```python\r\n"+
-						"from gaas_gpt_model import ModelEngine\r\n" + 
+						"from ai_server import ModelEngine\r\n" + 
 						"model = ModelEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 						
 						"\n# Generation\r\n" +
@@ -154,7 +154,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		{
 			Map<String, Object> usageMap = fillMap(
 					"OPENAI", 
-					"How to use externally with OpenAI API",
+					"How to use externally with OpenAI API and our Python SDK",
 					"```python\r\n"
 					+"# import the ai platform package - requires user access/secret, service account, or bearer_token"
 					+ "\r\n"
@@ -250,7 +250,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					PYTHON, 
 					"How to use in Python",
 					"```python\r\n"+
-						"from gaas_gpt_storage import StorageEngine\r\n" + 
+						"from ai_server import StorageEngine\r\n" + 
 						"storageEngine = StorageEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 						"storageEngine.list(storagePath = '/your/path/')\r\n" + 
 						"storageEngine.listDetails(storagePath = '/your/path/')\r\n" + 
@@ -268,7 +268,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"LANGCHAIN", 
 					"How to use with Langchain API",
 					"```python\r\n"+
-						"from gaas_gpt_storage import StorageEngine\r\n" + 
+						"from ai_server import StorageEngine\r\n" + 
 						"storage = StorageEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 						"langhchain_storage = storage.to_langchain_storage()\r\n" +
 						"langhchain_storage.list(storagePath = '/your/path/')\r\n" + 
@@ -315,7 +315,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					PYTHON, 
 					"How to use in Python",
 					"```python\r\n"+
-							"from gaas_gpt_database import DatabaseEngine\r\n" + 
+							"from ai_server import DatabaseEngine\r\n" + 
 							"databaseEngine = DatabaseEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 							"databaseEngine.execQuery(query = 'SELECT * FROM table_name')\r\n" + 
 							"databaseEngine.insertData(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')\r\n" + 
@@ -330,7 +330,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"LANGCHAIN", 
 					"How to use with Langchain API",
 					"```python\r\n"+
-						"from gaas_gpt_database import DatabaseEngine\r\n" + 
+						"from ai_server import DatabaseEngine\r\n" + 
 						"database = DatabaseEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 						"langhchain_db = database.to_langchain_database()\r\n" +
 						"langhchain_db.executeQuery(query = 'SELECT * FROM table_name')\r\n"+
@@ -397,7 +397,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"How to use in Python",
 					"```python\r\n"+
 							"# import vector engine class and initialize\r\n" + 
-							"from gaas_gpt_vector import VectorEngine\r\n" + 
+							"from ai_server import VectorEngine\r\n" + 
 							"vectorEngine = VectorEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 							
 							"\n# List all the documents the vector database currently comprises of\r\n" +
@@ -429,7 +429,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"LANGCHAIN", 
 					"How to use with Langchain API",
 					"```python\r\n"+
-						"from gaas_gpt_vector import VectorEngine\r\n" + 
+						"from ai_server import VectorEngine\r\n" + 
 						"vector = VectorEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 						"langhchain_vector = vector.to_langchain_vector_store()\r\n" +
 						"langhchain_vector.listDocs()\r\n" +
@@ -547,7 +547,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					PYTHON, 
 					"How to use in Python",
 					"```python\r\n" +
-							"from gaas_gpt_function import FunctionEngine \r\n" + 
+							"from ai_server import FunctionEngine \r\n" + 
 							"function = FunctionEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" + 
 							"output = function.execute(" + mapParams + ")\r\n" +
 					"```",
