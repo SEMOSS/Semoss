@@ -13,7 +13,7 @@ class AnthropicVertexClient(AbstractAnthropicClient):
         self,
         question: str = None,
         context: Optional[str] = None,
-        history: Optional[List] = [],
+        history: Optional[List] = None,
         max_new_tokens: Optional[int] = 500,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
@@ -57,7 +57,7 @@ class AnthropicVertexClient(AbstractAnthropicClient):
             message_payload.append({"role": "user", "content": question})
 
         responses = self.client.messages.create(
-            model=self.model_name, messages=question, max_tokens=self.max_tokens
+            model=self.model_name, messages=message_payload, max_tokens=self.max_tokens
         )
 
         final_response = ""
