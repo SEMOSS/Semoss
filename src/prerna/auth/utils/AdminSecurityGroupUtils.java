@@ -376,6 +376,95 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
+	
+	/**
+	 * Edit an existing group across all the tables
+	 * 
+	 * @param curGroupId
+	 * @param curGroupType
+	 * @param newGroupId
+	 * @param newGroupType
+	 * @param newDescription
+	 * @param newIsCustomGroup
+	 * @throws Exception
+	 */
+	public void editGroupDetailsAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId, String newGroupType, String newDescription, boolean newIsCustomGroup) throws Exception {
+		curGroupType = curGroupType == null ? curGroupType : curGroupType.toUpperCase();
+		newGroupType = newGroupType == null ? newGroupType : newGroupType.toUpperCase();
+
+		if(!groupExists(curGroupId, curGroupType)) {
+			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
+		}
+		String groupQuery = null;
+		String[] propagateQueries = null;
+
+		groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=? WHERE ID=?";
+		propagateQueries = new String[] {
+				"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=?",
+				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=?",
+				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=?", 
+		};
+		
+		Connection conn = null;
+		try {
+			conn = securityDb.makeConnection();
+
+			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
+			Gson gson = new Gson();
+			try {
+				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, newGroupId);
+					// handle null type for custom groups
+					if(newGroupType == null || newGroupType.isEmpty()) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newGroupType);
+					}
+					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, gson);
+					ps.setBoolean(parameterIndex++, newIsCustomGroup);
+					ps.setString(parameterIndex++, curGroupId);
+					ps.execute();
+				}
+
+				// propagation
+				for (String query : propagateQueries) {
+					try (PreparedStatement ps = conn.prepareStatement(query)) {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newGroupId);
+						// handle null type for custom groups
+						if(newGroupType == null || newGroupType.isEmpty()) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newGroupType);
+						}
+						ps.setString(parameterIndex++, curGroupId);
+						ps.execute();
+					}
+				}
+				if(!conn.getAutoCommit()) {
+					conn.commit();
+				}
+			} catch (SQLException e) {
+				if(!conn.getAutoCommit()) {
+					conn.rollback();
+				}
+				throw e;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			if(securityDb.isConnectionPooling() && conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
 
 	/**
 	 * 
