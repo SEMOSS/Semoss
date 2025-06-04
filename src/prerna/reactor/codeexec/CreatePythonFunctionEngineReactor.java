@@ -1,7 +1,10 @@
 package prerna.reactor.codeexec;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -107,7 +110,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractReactor {
 			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.FUNCTION, user, functionName, functionId);
 			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
 			//create empty main.py file
-			createPythonFile(specificEngineFolder, pythonFileName);
+			createPythonFile(specificEngineFolder, pythonFileName, functionDetails);
 			String functionClass = functionType.getFunctionClass();
 			function = (IFunctionEngine) Class.forName(functionClass).newInstance();
 			tempSmss = UploadUtilities.createTemporaryFunctionSmss(functionId, functionName, functionClass, functionDetails);
@@ -227,22 +230,53 @@ public class CreatePythonFunctionEngineReactor extends AbstractReactor {
 		throw new NullPointerException("Must define the properties for the new function engine");
 	}
 	
-	private void createPythonFile(File specificEngineFolder, String pythonFileName) throws IOException {
+	private void createPythonFile(File specificEngineFolder, String pythonFileName, Map<String, Object> functionDetails) throws IOException {
 	    File mainPy = new File(specificEngineFolder, pythonFileName);
 
 	    if (mainPy.exists()) {
-	        classLogger.warn("main.py already exists in " + specificEngineFolder.getAbsolutePath());
+	        classLogger.warn(pythonFileName + " already exists in " + specificEngineFolder.getAbsolutePath());
 	        return;
 	    }
 
-	    try {
-	        boolean created = mainPy.createNewFile();
-	        if (created) {
-	            classLogger.info("Empty main.py file created at " + mainPy.getAbsolutePath());
-	        }
+	    List<String> requiredParams = (List<String>) functionDetails.get("FUNCTION_REQUIRED_PARAMETERS");
+	    List<Map<String, String>> allParams = (List<Map<String, String>>) functionDetails.get("FUNCTION_PARAMETERS");
+
+	    Map<String, String> paramDescriptions = new HashMap<>();
+	    for (Map<String, String> param : allParams) {
+	        paramDescriptions.put(param.get("parameterName"), param.get("parameterDescription"));
+	    }
+
+	    StringBuilder builder = new StringBuilder();
+
+	    // Function signature
+	    builder.append("def main(\n");
+	    for (String param : requiredParams) {
+	        builder.append("    ").append(param).append(": str,\n");
+	    }
+	    builder.append("):\n");
+
+	    builder.append("    \"\"\"\n");
+	    builder.append("    Args:\n");
+	    for (String param : requiredParams) {
+	        builder.append("        ")
+	               .append(param)
+	               .append(" (str): ")
+	               .append(paramDescriptions.getOrDefault(param, ""))
+	               .append("\n");
+	    }
+	    builder.append("    \"\"\"\n");
+
+	    // Print statements
+	    for (String param : requiredParams) {
+	        builder.append("    print(\"").append(param).append(" - \", ").append(param).append(")\n");
+	    }
+
+	    try (BufferedWriter writer = new BufferedWriter(new FileWriter(mainPy))) {
+	        writer.write(builder.toString());
+	        classLogger.info("main.py file created  " + mainPy.getAbsolutePath());
 	    } catch (IOException e) {
 	        classLogger.error(Constants.STACKTRACE, e);
+	        throw e;
 	    }
 	}
-		
 }

@@ -721,7 +721,6 @@ public class Constants {
 	public static final String TCP_WORKER_CP = "TCP_WORKER_CP";
 	public static final String NETTY_PYTHON = "NETTY_PYTHON";
 	public static final String PYTHONHOME = "PYTHONHOME";
-	public static final String PY_FUNCTION = "PY_FUNCTION";
 	
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
