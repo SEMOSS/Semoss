@@ -10,6 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "accelerate>=1.4.0",
     "annoy>=1.17.3",
+    "anthropic>=0.52.2",
     "azure-ai-formrecognizer>=3.3.3",
     "azure-common>=1.1.28",
     "azure-search-documents>=11.5.2",
@@ -23,6 +24,7 @@ dependencies = [
     "fuzzywuzzy>=0.18.0",
     "google-auth>=2.38.0",
     "google-cloud-aiplatform>=1.83.0",
+    "google-genai>=1.18.0",
     "guidance>=0.2.0",
     "gunicorn>=23.0.0",
     "huggingface-hub>=0.29.3",
