@@ -80,6 +80,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private int contentLength = 512;
 	private int contentOverlap = 0;
 	
+	protected String description = null;
+	protected String tags = null;
+	protected String metaData = null;
+	
 	private String defaultChunkUnit;
 //	protected String defaultExtractionMethod;
 	
@@ -147,13 +151,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
 		}
 		if (this.smssProp.containsKey(Constants.TAGS)) {
-			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.TAGS));
+			this.tags = this.smssProp.getProperty(Constants.TAGS);
 		}
 		if (this.smssProp.containsKey(Constants.DESCR)) {
-			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.DESCR));
+			this.description = this.smssProp.getProperty(Constants.DESCR);
 		}
 		if (this.smssProp.containsKey(Constants.METADATA)) {
-			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.METADATA));
+			this.metaData = this.smssProp.getProperty(Constants.METADATA);
 		}
 		
 		

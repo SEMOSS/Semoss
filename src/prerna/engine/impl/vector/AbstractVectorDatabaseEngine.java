@@ -154,15 +154,14 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (this.smssProp.containsKey(Constants.CONTENT_OVERLAP)) {
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
 		}
-		
 		if (this.smssProp.containsKey(Constants.TAGS)) {
 			this.tags = this.smssProp.getProperty(Constants.TAGS);
 		}
-		if (this.smssProp.containsKey(Constants.METADATA)) {
-			this.metaData = this.smssProp.getProperty(Constants.METADATA);
-		}
 		if (this.smssProp.containsKey(Constants.DESCR)) {
 			this.description = this.smssProp.getProperty(Constants.DESCR);
+		}
+		if (this.smssProp.containsKey(Constants.METADATA)) {
+			this.metaData = this.smssProp.getProperty(Constants.METADATA);
 		}
 
 		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
@@ -241,6 +240,21 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		int tokenOverlapBetweenChunks = this.contentOverlap;
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey())) {
 			tokenOverlapBetweenChunks = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey());
+		}
+		
+		String engineTags=this.tags;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.TAGS.getKey())) {
+			engineTags = (String) parameters.get(VectorDatabaseParamOptionsEnum.TAGS.getKey());
+		}
+		
+		String engineDescription=this.description;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.DESCRIPTION.getKey())) {
+			engineDescription = (String) parameters.get(VectorDatabaseParamOptionsEnum.DESCRIPTION.getKey());
+		}
+		
+		String engineMetaData=this.metaData;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.METADATA.getKey())) {
+			engineMetaData = (String) parameters.get(VectorDatabaseParamOptionsEnum.METADATA.getKey());
 		}
 
 		String chunkUnit = this.defaultChunkUnit;
@@ -413,6 +427,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							.append(", chunk_overlap = ")
 							.append(tokenOverlapBetweenChunks)
 							.append(", chunking_strategy = ")
+							.append(engineTags)
+							.append(", tags=")
+							.append(engineDescription)
+							.append(", description=")
+							.append(engineMetaData)
+							.append(", metaData=")
 							.append(chunkingStrategy)
 							.append(", chunking_method = '")
 							.append(chunkingMethod)

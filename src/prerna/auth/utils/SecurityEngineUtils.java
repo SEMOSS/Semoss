@@ -2247,7 +2247,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__DESCRIPTION", "description"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__TAGS", "tags"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__METADATA", "metadata"));
 		
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
@@ -2563,6 +2562,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
     public static List<Map<String, Object>> getAvailableMetaValues(List<String> engineFilters, List<String> metaKeys) {
         SelectQueryStruct qs = new SelectQueryStruct();
         // selectors
+        
         qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAKEY"));
         qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
         QueryFunctionSelector fSelector = new QueryFunctionSelector();
@@ -2739,6 +2739,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DESCRIPTION", "description"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__METADATA", "metadata"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
@@ -3204,6 +3206,29 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+	}
+
+	public static void addTags(String engineId, String metaKey, String metaValue) {
+		String query = "INSERT INTO ENGINEMETA (ENGINEID, METAKEY, METAVALUE, METAORDER) VALUES (?,?,?,?)";
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, metaKey);
+			ps.setString(parameterIndex++, metaValue);
+			ps.setInt(parameterIndex++, 0);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+		
 	}
 
 }

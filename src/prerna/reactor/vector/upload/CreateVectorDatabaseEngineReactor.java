@@ -167,6 +167,10 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 		}
 		
+		if(vectorDbDetails.get(Constants.TAGS)!=null && !vectorDbDetails.get(Constants.TAGS).toString().equals("")) {
+			SecurityEngineUtils.addTags(vectorDbId,"tag",vectorDbDetails.get(Constants.TAGS).toString());
+		}
+		
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), vectorDbId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}

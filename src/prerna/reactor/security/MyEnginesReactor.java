@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.*;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -22,8 +23,6 @@ import prerna.security.TypeReference;
 import prerna.usertracking.UserCatalogVoteUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
-
-
 
 public class MyEnginesReactor extends AbstractReactor {
 
@@ -87,7 +86,18 @@ public class MyEnginesReactor extends AbstractReactor {
 						Map<String, Object> res = engineInfo.get(indexToFind);
 						// whatever it is, if it is single send a single value, if it is multi send as
 						// array
-						if (res.containsKey(metaKey)) {
+						if (res.containsKey(metaKey) && metaKey.equals("tag")) {
+							Object obj = res.get(metaKey);
+							if (obj instanceof List) {
+								((List) obj).add(metaValue);
+							} else {
+								Set<Object> newSet = new HashSet<>();
+								newSet.add(obj);
+								newSet.add(metaValue);
+								List<Object> newList = new ArrayList<>(newSet);
+								res.put(metaKey, newList);
+							}
+						} else if (res.containsKey(metaKey) && !metaKey.equals("description")) {
 							Object obj = res.get(metaKey);
 							if (obj instanceof List) {
 								((List) obj).add(metaValue);
