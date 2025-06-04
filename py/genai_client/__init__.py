@@ -26,6 +26,12 @@ def __getattr__(name: str) -> Any:
         )
 
         return VertexClient
+    elif name == "AnthropicClient":
+        from .text_generation.anthropic_client.anthropic_controller import (
+            AnthropicClientController as AnthropicClient,
+        )
+
+        return AnthropicClient
 
     elif name == "LocalEmbedder":
         from .embedders.local_embedder import LocalEmbedder
@@ -158,6 +164,7 @@ __all__ = [
     "TextGenClient",
     "BedrockClient",
     "VertexClient",
+    "AnthropicClient",
     "LocalEmbedder",
     "OpenAiEmbedder",
     "AzureOpenAiEmbedder",
