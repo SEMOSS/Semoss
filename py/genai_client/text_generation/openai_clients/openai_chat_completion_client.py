@@ -164,7 +164,8 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         # Process structured output
         has_schema = kwargs.get("schema", False)
         if has_schema:
-            return self._structured_output_call(**kwargs)
+            response = self._structured_output_call(**kwargs)
+            return response, response_tokens, messageType
 
         kwargs["stream"] = kwargs.get("stream", True)
 
