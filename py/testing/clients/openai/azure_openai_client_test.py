@@ -42,6 +42,18 @@ def azure_openai_gpt_4o_client():
 
 
 @pytest.fixture
+def azure_openai_gpt_4o_responses_client():
+    """Fixture to create an Azure OpenAI client for "gpt-4o" Responses model."""
+    return AzureOpenAiClient(
+        model_name="gpt-4o",
+        api_key=AZURE_OPENAI_API_KEY,
+        endpoint=AZURE_OPENAI_GPT_4O_ENDPOINT,
+        max_tokens=MAX_TOKENS,
+        chat_type="responses",
+    )
+
+
+@pytest.fixture
 def azure_openai_o1_mini_client():
     """Fixture to create an Azure OpenAI client for "o1-mini" Chat Completion model."""
     return AzureOpenAiClient(
@@ -60,6 +72,7 @@ def test_azure_openai_gpt_4o_chat_completion_for_ask(azure_openai_gpt_4o_client)
         - Checking the token limit of prompt and response against model token limit
     """
     # Add "stream=True" or "stream=False" in the ask call if required
+    # Add use_history=False parameter in the ask call if you want to turn off the history for this specific call
     ask_response = azure_openai_gpt_4o_client.ask(question=SAMPLE_QUESTION)
     print("\n gpt-4o ask_response -", ask_response)
 
@@ -107,6 +120,7 @@ def test_azure_openai_o1_mini_chat_completion_for_ask(azure_openai_o1_mini_clien
         - Checking the token limit of prompt and response against model token limit
     """
     # Add "stream=True" or "stream=False" in the ask call if required
+    # Add use_history=False parameter in the ask call if you want to turn off the history for this specific call
     ask_response = azure_openai_o1_mini_client.ask(question=SAMPLE_QUESTION)
     print("\n o1-mini ask_response -", ask_response)
 
@@ -146,3 +160,30 @@ def test_azure_openai_o1_mini_chat_completion_for_embeddings(
         "numberOfTokensInPrompt",
         "numberOfTokensInResponse",
     }, "Response Keys Mismatch"
+
+
+def test_azure_openai_gpt_4o_responses_for_ask(azure_openai_gpt_4o_responses_client):
+    """
+    Test the Azure OpenAI client's ask method for "gpt-4o" responses model using assertions.
+        - Checking the type of response
+        - Checking the required key parameters of response
+        - Checking the token limit of prompt and response against model token limit
+    """
+    # Add "stream=True" or "stream=False" in the ask call if required
+    ask_response = azure_openai_gpt_4o_responses_client.ask(question=SAMPLE_QUESTION)
+    print("\n gpt_4o_responses ask_response -", ask_response)
+
+    # Assertions for response type, paramaters and token limits
+    assert isinstance(ask_response, Dict), "Response Should be a Dictionary"
+    assert set(ask_response.keys()) == {
+        "response",
+        "numberOfTokensInPrompt",
+        "numberOfTokensInResponse",
+        "messageType",
+    }, "Response Keys Mismatch"
+
+    total_tokens = (
+        ask_response["numberOfTokensInPrompt"]
+        + ask_response["numberOfTokensInResponse"]
+    )
+    assert total_tokens <= MAX_TOKENS, "Exceeds token limit"

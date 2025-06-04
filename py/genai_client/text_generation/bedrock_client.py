@@ -1,12 +1,18 @@
 import boto3
 import botocore.exceptions
 import logging
+import re
+import base64
+import urllib.request
 from .abstract_text_generation_client import AbstractTextGenerationClient
 from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..constants import (
     MAX_TOKENS,
     MAX_INPUT_TOKENS,
     FULL_PROMPT,
+    IMAGE_ENCODED,
+    IMAGE_URL,
+    IMAGE_EXTENSION,
     AskModelEngineResponse,
 )
 
@@ -92,7 +98,7 @@ class BedrockClient(AbstractTextGenerationClient):
         return inference_config
 
     def _prepare_message_payload(
-        self, question, context, template_name, history, **kwargs
+        self, question, context, template_name, history, use_history, **kwargs
     ):
         """Prepare the message payload for the Bedrock API request."""
         if FULL_PROMPT in kwargs:
@@ -118,7 +124,7 @@ class BedrockClient(AbstractTextGenerationClient):
         #             self._format_message_content({"role": "system", "content": content})
         #         )
 
-        if history is not None:
+        if use_history and history is not None:
             message_payload.extend(
                 [self._format_message_content(msg) for msg in history]
             )
@@ -164,7 +170,12 @@ class BedrockClient(AbstractTextGenerationClient):
                 if text != None:
                     final_response += text
                     print(prefix + text, end="")
-        return final_response
+            if "metadata" in event:
+                metadata = event["metadata"]
+                if "usage" in metadata:
+                    prompt_tokens = metadata["usage"]["inputTokens"]
+                    output_tokens = metadata["usage"]["outputTokens"]
+        return final_response, prompt_tokens, output_tokens
 
     def _get_guardrail_config(self):
         """Create guardrail configuration if enabled."""
@@ -188,7 +199,8 @@ class BedrockClient(AbstractTextGenerationClient):
         """Format messages according to model and API requirements."""
         if self.modelId == "anthropic.claude-instant-v1":
             if full_prompt:
-                formatted_text = f"\n\nHuman:{full_prompt}\n\nAssistant:"
+                # formatted_text = f"\n\nHuman:{full_prompt}\n\nAssistant:"
+                return self.decode_image_bytes_in_messages(full_prompt)
             else:
                 formatted_parts = []
                 for msg in message_payload:
@@ -199,12 +211,93 @@ class BedrockClient(AbstractTextGenerationClient):
             return [{"role": "user", "content": [{"text": formatted_text}]}]
         else:
             if full_prompt:
-                return [{"role": "user", "content": [{"text": full_prompt}]}]
+                # return [{"role": "user", "content": [{"text": full_prompt}]}]
+                return self.decode_image_bytes_in_messages(full_prompt)
             else:
                 return [
                     {"role": msg["role"], "content": [{"text": msg["content"]}]}
                     for msg in message_payload
                 ]
+
+    def _get_image_extension_from_url(self, image_url):
+        """Get the image extension from image url."""
+        if (
+            "jpg" in image_url
+            or "jpeg" in image_url
+            or "JPG" in image_url
+            or "JPEG" in image_url
+        ):
+            return "jpeg"
+        elif "png" in image_url or "PNG" in image_url:
+            return "png"
+        elif "gif" in image_url or "GIF" in image_url:
+            return "gif"
+        elif "webp" in image_url or "WEBP" in image_url:
+            return "webp"
+        else:
+            raise ValueError(
+                "Invalid Image Extension - Expected 'jpeg', 'png', 'gif' or 'webp'"
+            )
+
+    def _get_bytes_from_encoded(self, base64_str):
+        """Convert the encoded base64 string to raw bytes."""
+        try:
+            return base64.b64decode(base64_str)
+        except Exception as e:
+            logger.error(f"Failed to get bytes from encoded image - {e}")
+
+    def _get_bytes_from_url(self, image_url):
+        """Convert the bytes of image."""
+        try:
+            with urllib.request.urlopen(image_url) as response:
+                image_data = response.read()
+
+            return image_data
+        except Exception as e:
+            logger.error(f"Failed to get bytes from image - {e}")
+
+    def _handle_image_params(self, question: str, kwargs: dict, message_payload):
+        """
+        Handle image parameters in the payload.
+        """
+        message_payload = []
+        image_payload = [{"text": question}]
+
+        key_to_pop = IMAGE_ENCODED if IMAGE_ENCODED in kwargs else IMAGE_URL
+        images = kwargs.pop(key_to_pop)
+        if isinstance(images, str):
+            if key_to_pop == IMAGE_ENCODED:
+                image_extension = IMAGE_EXTENSION
+                image_bytes = self._get_bytes_from_encoded(images)
+            else:
+                image_extension = self._get_image_extension_from_url(images)
+                image_bytes = self._get_bytes_from_url(images)
+            image_url = {
+                "format": image_extension,
+                "source": {"bytes": image_bytes},
+            }
+            image_payload.append({"image": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload
+        elif isinstance(images, list):
+            for image in images:
+                if key_to_pop == IMAGE_ENCODED:
+                    image_extension = IMAGE_EXTENSION
+                    image_bytes = self._get_bytes_from_encoded(image)
+                else:
+                    image_extension = self._get_image_extension_from_url(image)
+                    image_bytes = self._get_bytes_from_url(image)
+                image_url = {
+                    "format": image_extension,
+                    "source": {"bytes": image_bytes},
+                }
+                image_payload.append({"image": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload
+        else:
+            raise ValueError(
+                f"Invalid type for {key_to_pop}. Expected str or list, got {type(images)}"
+            )
 
     def ask_call(
         self,
@@ -218,6 +311,7 @@ class BedrockClient(AbstractTextGenerationClient):
         stop_sequences=None,
         prefix="",
         stream=True,
+        use_history=True,  # To control history
         **kwargs,
     ) -> AskModelEngineResponse:
         try:
@@ -225,7 +319,7 @@ class BedrockClient(AbstractTextGenerationClient):
             model_engine_response = AskModelEngineResponse()
 
             message_payload = self._prepare_message_payload(
-                question, context, template_name, history, **kwargs
+                question, context, template_name, history, use_history, **kwargs
             )
             system_prompt = (
                 [{"text": context}]
@@ -254,6 +348,9 @@ class BedrockClient(AbstractTextGenerationClient):
             should_stream = stream if stream is not None else self.response_stream
             should_stream = should_stream in (True, "true")
 
+            if IMAGE_ENCODED in kwargs or IMAGE_URL in kwargs:
+                messages = self._handle_image_params(question, kwargs, message_payload)
+
             request_params = self._create_request_params(
                 messages, inference_config, guardrail_config, system_prompt
             )
@@ -268,18 +365,16 @@ class BedrockClient(AbstractTextGenerationClient):
                     )  # convert to valid format
                     response = client.converse_stream(**request_params)
 
-                final_response = self._handle_stream_response(
-                    prefix, response.get("stream", [])
-                )
+                (
+                    final_response,
+                    model_engine_response.prompt_tokens,
+                    model_engine_response.response_tokens,
+                ) = self._handle_stream_response(prefix, response.get("stream", []))
                 model_engine_response.response_tokens = self.tokenizer.count_tokens(
                     final_response
                 )
             else:
-                response = client.converse(
-                    **self._create_request_params(
-                        messages, inference_config, guardrail_config, system_prompt
-                    )
-                )
+                response = client.converse(**request_params)
 
                 final_response = (
                     response["output"]["message"]["content"][0]["text"]
@@ -296,3 +391,40 @@ class BedrockClient(AbstractTextGenerationClient):
         except Exception as e:
             logger.error(f"Error while making request to Bedrock: {e}")
             raise
+
+    def is_base64(self, s):
+        if not isinstance(s, str) or len(s) == 0:
+            return False
+        s_clean = s.strip().replace("\n", "").replace(" ", "")
+        if len(s_clean) % 4 != 0:
+            return False
+        if not re.fullmatch(r"[A-Za-z0-9+/]*={0,2}", s_clean):
+            return False
+        try:
+            base64.b64decode(s_clean, validate=True)
+            return True
+        except Exception as e:
+            logger.error(
+                f"Base64 decode failed: {e} — Value: {s[:40]}..."
+            )  # log first 40 chars
+            return False
+
+    def decode_image_bytes_in_messages(self, messages):
+        if isinstance(messages, dict):
+            messages = [messages]
+        for msg in messages:
+            if isinstance(msg, dict) and msg.get("role") == "user":
+                content = msg.get("content", [])
+                for part in content:
+                    if isinstance(part, dict) and "image" in part:
+                        image_block = part["image"]
+                        if (
+                            isinstance(image_block, dict)
+                            and "source" in image_block
+                            and isinstance(image_block["source"], dict)
+                        ):
+                            src = image_block["source"]
+                            if "bytes" in src and isinstance(src["bytes"], str):
+                                if self.is_base64(src["bytes"]):
+                                    src["bytes"] = base64.b64decode(src["bytes"])
+        return messages

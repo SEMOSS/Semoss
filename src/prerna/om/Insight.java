@@ -64,6 +64,7 @@ import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.IReactor;
 import prerna.reactor.InsightCustomReactorCompilator;
+import prerna.reactor.browser.PlaywrightBrowserUtil;
 import prerna.reactor.export.IFormatter;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.reactor.frame.r.util.RJavaTranslatorFactory;
@@ -216,6 +217,9 @@ public class Insight implements Serializable {
 	Map <String, GenExpressionWrapper> sqlWrapperMap = new HashMap<String, GenExpressionWrapper>();
 	Map <String, String> id2SQLMapper = new HashMap<String, String>();
 	int idCount = 0;
+	
+	// Playwright Browser Util
+	private PlaywrightBrowserUtil playwrightUtil = null;
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -1230,14 +1234,14 @@ public class Insight implements Serializable {
 		String key = InsightCustomReactorCompilator.getKey(this);
 		// see if I need to compile this again
 		if(!InsightCustomReactorCompilator.isCompiled(key)) {
-			int status = Utility.compileJava(insightFolder, getCP());
+			int status = Utility.compileJava(getInsightFolder(), getCP());
 			if(status == 0) {
 				InsightCustomReactorCompilator.setCompiled(key);
 			}
 		}
 		
 		if(insightSpecificHash == null || insightSpecificHash.isEmpty()) {
-			insightSpecificHash = Utility.loadReactors(insightFolder, key);
+			insightSpecificHash = Utility.loadReactors(getInsightFolder(), key);
 		}
 		// creates the insight specific map
 		try {
@@ -1701,5 +1705,13 @@ public class Insight implements Serializable {
 		this.sqlWrapperMap.put(sql, wrapper);
 		this.sqlWrapperMap.remove(origSql);
 		
+	}
+	
+	public PlaywrightBrowserUtil getPlaywrightUtil() {
+		return this.playwrightUtil;
+	}
+	
+	public void setPlaywrightUtil(PlaywrightBrowserUtil pbu) {
+		this.playwrightUtil = pbu;
 	}
 }

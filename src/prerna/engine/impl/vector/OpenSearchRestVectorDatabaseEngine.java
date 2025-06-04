@@ -58,7 +58,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private static final String EMBEDDINGS_COLUMN = "EMBEDDINGS_COLUMN";
 	private static final String DIMENSION_SIZE = "DIMENSION_SIZE";
 	private static final String METHOD_NAME = "METHOD_NAME";
-	private static final String SPACE_TYPE = "SPACE_TYPE";
 	private static final String INDEX_ENGINE = "INDEX_ENGINE";
 	private static final String EF_CONSTRUCTION = "EF_CONSTRUCTION";
 	private static final String M_VALUE = "M_VALUE";
@@ -73,7 +72,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private String embeddings = "embeddings";
 	private int dimension = 1024;
 	private String methodName = "hnsw";
-	private String spaceType = "l2";
 	private String indexEngine = "lucene";
 	private int efConstruction = 128;
 	private int m = 24;
@@ -105,10 +103,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		String methodNameInput = this.smssProp.getProperty(METHOD_NAME);
 		if(methodNameInput != null && !(methodNameInput=methodNameInput.trim()).isEmpty()) {
 			this.methodName = methodNameInput;
-		}
-		String spaceTypeInput = this.smssProp.getProperty(SPACE_TYPE);
-		if(spaceTypeInput != null && !(spaceTypeInput=spaceTypeInput.trim()).isEmpty()) {
-			this.spaceType = spaceTypeInput;
 		}
 		String indexEngineInput = this.smssProp.getProperty(INDEX_ENGINE);
 		if(indexEngineInput != null && !(indexEngineInput=indexEngineInput.trim()).isEmpty()) {
@@ -146,8 +140,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		this.otherPropsToType.put(VectorDatabaseCSVTable.TOKENS, INT_DATATYPE);
 		this.otherPropsToType.put(VectorDatabaseCSVTable.CONTENT, TEXT_DATATYPE);
 
-		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.spaceType, this.indexEngine, this.efConstruction, this.m);
+		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.distanceMethod, this.indexEngine, this.efConstruction, this.m);
 		updateIndexMapping(this.indexName, this.otherPropsToType);		
+	}
+	
+	@Override
+	protected String getDefaultDistanceMethod() {
+		return "cosinesimil";
 	}
 
 	@Override
@@ -425,6 +424,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 					JsonObject terms = new JsonObject();
 					terms.addProperty("field", VectorDatabaseCSVTable.SOURCE);
 					terms.addProperty("min_doc_count", 1);
+					// Pull upto 9999 unique terms for the aggregation.
+					terms.addProperty("size", 9999);
 					// add to parent
 					uniqueScores.add("terms", terms);
 				}
@@ -546,7 +547,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	 * @param m
 	 */
 	private void getIndex(String specificIndexName, String embeddings, int dimension, String methodName, String spaceType, String engine, int efConstruction, int m) {
-		Boolean exisits = doesIndexExsist(specificIndexName);
+		Boolean exisits = doesIndexExist(specificIndexName);
 		if(!exisits) {
 			createIndex(specificIndexName, embeddings, dimension, methodName, spaceType, engine, efConstruction, m);
 		}
@@ -554,22 +555,37 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 	/**
 	 * 
-	 * @param specificIndexName
+	 * @param doesIndexExist
 	 * @return
 	 */
-	private Boolean doesIndexExsist(String specificIndexName) {
-		String url = this.clusterUrl + "/" + specificIndexName;
-		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
-		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
-		try {
-			HttpHelperUtility.headRequest(url, headersMap, null, null, null);
-			return true;
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		return false;
+	private Boolean doesIndexExist(String specificIndexName) {
+	    String url = this.clusterUrl + "/" + specificIndexName;
+	    Map<String, String> headersMap = new HashMap<>();
+	    headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
+	    headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
+	    try {
+	        int status = HttpHelperUtility.headRequest2(url, headersMap, null, null, null);
+	        switch (status) {
+	            case 200: 
+	            	classLogger.info("Recieved 200, indicating that index does exist.");
+	            	return true;   // Exists
+	            case 404: 
+	            	classLogger.info("Recieved 404, indicating that index does not exist.");
+	            	return false;  // Not exist
+	            case 401:
+	            case 403:
+	                classLogger.error("Auth error checking index existence: HTTP {}", status);
+	                throw new IllegalStateException("Not authorized to access: " + url);
+	            default:
+	                classLogger.warn("Unexpected HTTP status code {} for HEAD {}", status, url);
+	                return false;
+	        }
+	    } catch (Exception e) {
+	        classLogger.error("Failed HEAD request to {}: {}", url, e.getMessage());
+	        throw new RuntimeException("Failed to check index existence; see above log.", e);
+	    }
 	}
+
 
 	/**
 	 * https://opensearch.org/docs/latest/search-plugins/knn/knn-index/

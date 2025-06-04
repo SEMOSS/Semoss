@@ -16,6 +16,7 @@ public enum ReactorKeysEnum {
 	ATTRIBUTES("attributes", 									"List of columns used as properties/characteristics to describe an instance/object"),
 	BASE_URL("baseUrl",                                     	"The base SEMOSS url"),
 	BREAKS("breaks", 											"Number of divisions"),
+	BLOCK_ENTRY("block_enrty",  								"Block entry input map from frontend"),	
 	CLEAN("clean", 												"Boolean if we should clean up the strings before insertion. (default is true)"),
 	CLEAN_UP_CLOUD_STORAGE("cleanUpCloudStorage",				"Boolean whether to clean up the cloud storage account used to persist databases in the cluster (defaults to false)"),
 	CLONE_PANEL_KEY("cloneId", 									"Id to assign the new clone panel"),
@@ -196,6 +197,7 @@ public enum ReactorKeysEnum {
 	PROMPT_TITLE("promptTitle",									"String title of prompt title that is about to be created"),
 	PREDEFINED_PARAM_STRUCT("preDefinedParamStruct",			"Map containing the details for a predefined paramter"),	
 	PROJECT("project", 											"Name of the project"),
+	PROJECT_TEMPLATE("projectTemplate",                         "project template to facilitate application cloning"),
 	PROJECT_TYPE("projectType", 								"The type of the project being created"),
 	PROJECT_PROPERTIES_MAP("propMap", 							"Map containing the values for the project properties"),
 	PROMPT("prompt",                                            "Prompt to use in request"),
@@ -222,6 +224,7 @@ public enum ReactorKeysEnum {
 	SCALE("scale", 												"How much to scale the graph, default value is set at 20 based on screen size"),
 	SCHEMA("schema",                	                        "The database schema."),
 	SEARCH("search",											"The search term."),
+  SECTION("section", 											"The section to use as input from addBlockReactor"),
 	SEPARATOR("separator",										"Separator for file processing to be used. Defaults to \\r\\n\\r\\n"),
 	SESSION_ID("sessionId", 									"Id of the session"),
 	SHAPE_INDEX("shapeIndex",                 		            "Which particular shape to replace on the powerpoint"),
@@ -242,6 +245,7 @@ public enum ReactorKeysEnum {
 	STORAGE_PATH("storagePath", 								"File path location on storage engine"),
 	SUBTOTALS("subtotals",										"All the columns in a pivot that you need subtotal for. Default is all. "),	
 	SUM_RANGE("sumRange", 										"Range that values to sum over"),
+	SUB_TYPE("subType", 										"Sub Type of each type Project or Engine"),
 	SYNC_PULL("dual", 											"True/False value to determine if the sync should also pull the latest updates from the repository"),
 	SYNC_DATABASE("syncDatabase", 								"True/False value to detetermine if the database should be published with the app"),
 	SPLOT("splot", 								                "Seaborn plot expression"),
@@ -258,7 +262,8 @@ public enum ReactorKeysEnum {
     TEMPLATE_FILE("template_file",								"File Name of the template to be used for export"),
     TEMPLATE("template",										"Template folder name"),
     THRESHOLD("threshold", 										"Threshold to be used for search"),
-    TOKEN_COUNT("tokenCount",                                   "Number of tokens to create in GPT based generators"),					
+    TOKEN_COUNT("tokenCount",                                   "Number of tokens to create in GPT based generators"),	
+    TYPE("type", 											    "Type Project or Engine"),
 	UNIQUE_COLUMN("uniqueColumn", 								"Unique column identifier for csv/excel table uploads"),
 	USE_FRAME_FILTERS("useFrameFilters", 						"A boolean indication (true or false) to use frame filters"), 	
 	USERNAME("username", 										"Unique identifier for the user to access a service"),
@@ -266,6 +271,7 @@ public enum ReactorKeysEnum {
 	QUERY_STRUCT("qs", 											"QueryStruct object that contains selectors, filters, and joins"),
 	URL("url",													"The url"),
 	USE_APPLICATION_CERT("useApplicationCert",					"Boolean if we should use the default application certificate when making the request"),
+	USE_HISTORY("useHistory",                                   "Boolean to determine whether to include the conversation history in the model ask call"),
 	USE_PANEL("usePanel",                   	                "Boolean to export each panel as a separate sheet on exports instead of the entire dashboard"),
 	USE_LABEL("useLabel",										"Boolean to use the label to query a graph database"),
 	VALUE("value", 												"The instance value in a column, or the numeric or string value used in a operation"),
@@ -277,7 +283,9 @@ public enum ReactorKeysEnum {
 	VOTE("vote",												"Either upvote or downvote"),		
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
-	WIDTH("width", 											    "The width to use for screenshot capture");
+	WIDTH("width", 											    "The width to use for screenshot capture"),
+	X("x",		 											    "The X coordiante."),
+	Y("y",		 											    "The Y coordiante.");
 
 	private String key;
 	private String description;

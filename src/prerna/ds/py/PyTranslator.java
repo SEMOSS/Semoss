@@ -14,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.cache.ICache;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
@@ -170,7 +169,7 @@ public class PyTranslator {
 		// create a teamp to write the script file
 		String pyTemp = null;
 		if (this.insight != null) {
-			pyTemp = this.insight.getInsightFolder().replace('\\', '/') + "/py/Temp/";
+			pyTemp = this.insight.getInsightFolder().replace('\\', '/') + "/Py/Temp/";
 		} else {
 			pyTemp = (Utility.getBaseFolder() + "/Py/Temp/").replace('\\', '/');
 		}
@@ -390,7 +389,7 @@ public class PyTranslator {
 		}
 	}
 
-	public synchronized String runSingle(String inscript, Insight in) {
+	public synchronized String runSingle(String inscript, Insight inputInsight) {
 		// Clean the script
 		String script = convertArrayToString(inscript);
 		script = script.trim();
@@ -406,25 +405,25 @@ public class PyTranslator {
 		String userRootPath = null;
 
 		String pyTemp = null;
-		if (in != null) {
-			insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
+		if (inputInsight != null) {
+			insightRootPath = inputInsight.getInsightFolder().replace('\\', '/');
 			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
 			removePathVariables = " ROOT";
 
 			// context project takes precedence
-			if (in.getContextProjectId() != null) {
-				appRootPath = AssetUtility.getProjectAssetFolder(in.getContextProjectName(), in.getContextProjectId());
+			if (inputInsight.getContextProjectId() != null) {
+				appRootPath = AssetUtility.getProjectAssetFolder(inputInsight.getContextProjectName(), inputInsight.getContextProjectId());
 				appRootPath = appRootPath.replace('\\', '/');
 				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
 				removePathVariables += ", APP_ROOT";
-			} else if (in.isSavedInsight()) {
-				appRootPath = this.insight.getAppFolder();
+			} else if (inputInsight.isSavedInsight()) {
+				appRootPath = inputInsight.getAppFolder();
 				appRootPath = appRootPath.replace('\\', '/');
 				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
 				removePathVariables += ", APP_ROOT";
 			}
 			try {
-				userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
+				userRootPath = AssetUtility.getAssetBasePath(inputInsight, AssetUtility.USER_SPACE_KEY, false);
 				userRootPath = userRootPath.replace('\\', '/');
 				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
 				removePathVariables += ", USER_ROOT";
@@ -449,9 +448,9 @@ public class PyTranslator {
 			pyTempF.setReadable(true);
 		}
 
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if (this.insight.getUser() != null) {
-				this.insight.getUser().getUserSymlinkHelper().symlinkFolder(insightRootPath);
+		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			if(inputInsight.getUser() != null) {
+				inputInsight.getUser().getUserSymlinkHelper().symlinkFolder(insightRootPath);
 			}
 		}
 
@@ -467,7 +466,7 @@ public class PyTranslator {
 		String output = null;
 		try {
 			FileUtils.writeStringToFile(preScriptFile, preScript, Charset.forName("UTF-8"));
-			executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())", in);
+			executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())", inputInsight);
 			FileUtils.writeStringToFile(scriptFile, script, Charset.forName("UTF-8"));
 
 			// Try running the script, which saves the output to a file
@@ -476,7 +475,7 @@ public class PyTranslator {
 			RuntimeException error = null;
 			try {
 				// Start the error sender thread
-				Object pythonReturnObject = runSmssWrapperEval(script, insight);
+				Object pythonReturnObject = runSmssWrapperEval(script, inputInsight);
 
 				if (pythonReturnObject instanceof String) {
 					output = (String) pythonReturnObject;
@@ -540,10 +539,10 @@ public class PyTranslator {
 	/**
 	 * 
 	 * @param script
-	 * @param in
+	 * @param inputInsight
 	 * @return
 	 */
-	public String runScript(String script, Insight in) {
+	public String runScript(String script, Insight inputInsight) {
 		String removePathVariables = "";
 		String insightRootAssignment = "";
 		String appRootAssignment = "";
@@ -553,25 +552,25 @@ public class PyTranslator {
 		String appRootPath = null;
 		String userRootPath = null;
 
-		if (in != null) {
-			insightRootPath = in.getInsightFolder().replace('\\', '/');
+		if (inputInsight != null) {
+			insightRootPath = inputInsight.getInsightFolder().replace('\\', '/');
 			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
 			removePathVariables = ", ROOT";
 
 			// context project takes precedence
-			if (in.getContextProjectId() != null) {
-				appRootPath = AssetUtility.getProjectAssetFolder(in.getContextProjectName(), in.getContextProjectId());
+			if (inputInsight.getContextProjectId() != null) {
+				appRootPath = AssetUtility.getProjectAssetFolder(inputInsight.getContextProjectName(), inputInsight.getContextProjectId());
 				appRootPath = appRootPath.replace('\\', '/');
 				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
 				removePathVariables += ", APP_ROOT";
-			} else if (in.isSavedInsight()) {
-				appRootPath = this.insight.getAppFolder();
+			} else if (inputInsight.isSavedInsight()) {
+				appRootPath = inputInsight.getAppFolder();
 				appRootPath = appRootPath.replace('\\', '/');
 				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
 				removePathVariables += ", APP_ROOT";
 			}
 			try {
-				userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
+				userRootPath = AssetUtility.getAssetBasePath(inputInsight, AssetUtility.USER_SPACE_KEY, false);
 				userRootPath = userRootPath.replace('\\', '/');
 				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
 				removePathVariables += ", USER_ROOT";
@@ -581,7 +580,7 @@ public class PyTranslator {
 		}
 
 		String assignmentString = insightRootAssignment + appRootAssignment + userRootAssignment;
-		executeEmptyPyDirect(assignmentString, in);
+		executeEmptyPyDirect(assignmentString, inputInsight);
 		String output = runScript(script) + "";
 
 		// clean up the output
