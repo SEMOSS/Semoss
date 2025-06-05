@@ -959,6 +959,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBYTYPE", "project_created_by_type"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"DATECREATED", "project_date_created"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"DATELASTEDITED", "project_date_last_edited"));
 		// dont forget reactors/portal information
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"HASPORTAL", "project_has_portal"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALNAME", "project_portal_name"));
