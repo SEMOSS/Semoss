@@ -8,6 +8,11 @@ from ...clients.client_initializer import google_initializer
 
 
 class AskSettings(BaseModel):
+    """
+    Represents all of the conditional settings that affect the model call but are not passed
+    as parameters to the model call itself.
+    """
+
     full_prompt: Dict | None = None
     structured_response: Dict | None = None
     streaming: bool = False
@@ -32,26 +37,24 @@ class GoogleGenAiClient(AbstractTextGenerationClient):
             template_name=kwargs.pop(TEMPLATE_NAME, None),
         )
 
-        google_initializer(
-            region=region,
-            service_account_credentials=service_account_credentials,
-            service_account_key_file=service_account_key_file,
-            project=project,
-        )
+        # google_initializer(
+        #     region=region,
+        #     service_account_credentials=service_account_credentials,
+        #     service_account_key_file=service_account_key_file,
+        #     project=project,
+        # )
 
         self.service_account_credentials = self._load_credentials(
             service_account_credentials, service_account_key_file
         )
 
         self.model_name = model_name
-        self.client = self._get_client(
-            service_account_credentials, project, region, api_key=api_key
-        )
+        self.client = self._get_client(project, region, api_key=api_key)
         self.max_tokens = max_tokens
         self.safety_settings = safety_settings
 
     def _load_credentials(self, service_account_credentials, service_account_key_file):
-        """Load service account credentials"""
+        """Load service account credentials with required scopes"""
         from google.oauth2 import service_account
 
         service_account_info = service_account_credentials or service_account_key_file
@@ -61,24 +64,32 @@ class GoogleGenAiClient(AbstractTextGenerationClient):
             with open(service_account_info) as credentials_file:
                 service_account_info = json.load(credentials_file)
 
-        return service_account.Credentials.from_service_account_info(
+        credentials = service_account.Credentials.from_service_account_info(
             service_account_info
         )
 
+        scoped_credentials = credentials.with_scopes(
+            [
+                "https://www.googleapis.com/auth/cloud-platform",
+                "https://www.googleapis.com/auth/generative-language",
+            ]
+        )
+
+        return scoped_credentials
+
     def _get_client(
         self,
-        service_account_credentials: Dict = None,
         project: str = None,
         location: str = None,
         api_key: str = None,
-    ):
+    ) -> genai.Client:
         """Initialize the Google Gen AI client with credentials from SMSS."""
         try:
             if api_key:
                 return genai.Client(api_key=api_key)
             elif project is not None and location is not None:
                 return genai.Client(
-                    credentials=service_account_credentials,
+                    credentials=self.service_account_credentials,  # Use the processed credentials object
                     vertexai=True,
                     location=location,
                     project=project,
@@ -90,11 +101,11 @@ class GoogleGenAiClient(AbstractTextGenerationClient):
         except Exception as e:
             raise RuntimeError(f"Failed to initialize Google Gen AI client: {e}")
 
-    def _convert_args_to_google_config(
+    def _convert_args_to_provider_config(
         self, context: str = None, **kwargs
     ) -> types.GenerateContentConfig:
         """
-        Convert our SEMOSS arguments to a GenerateContentConfig object.
+        Convert our CFG arguments to a GenerateContentConfig object.
         """
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
@@ -156,7 +167,6 @@ class GoogleGenAiClient(AbstractTextGenerationClient):
         self,
         question: str = None,
         context: str = None,
-        # template_name: str = None,
         use_history: bool = True,
         history: List[Dict] = None,
         prefix="",
@@ -166,9 +176,8 @@ class GoogleGenAiClient(AbstractTextGenerationClient):
             raise ValueError("Google Gen AI client is not initialized.")
 
         ask_settings = self._get_ask_settings(history, use_history, **kwargs)
-        config = self._convert_args_to_google_config(context=context, **kwargs)
+        config = self._convert_args_to_provider_config(context=context, **kwargs)
 
-        # TODO: Manually create metadata?
         if ask_settings.streaming:
             streaming_response = self._handle_streaming(
                 prefix=prefix,
@@ -181,9 +190,13 @@ class GoogleGenAiClient(AbstractTextGenerationClient):
             model=self.model_name, contents=question, config=config
         )
 
+        model_engine_response = AskModelEngineResponse(
+            response=response.text,
+        )
+
         print(response)
 
-        return response.text
+        return model_engine_response
 
 
 types.GenerateContentResponse()
