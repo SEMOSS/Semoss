@@ -1,17 +1,11 @@
 package prerna.engine.impl.rdf;
 
 import org.apache.jena.dboe.transaction.txn.TransactionException;
-import org.apache.jena.query.QuerySolution;
-import org.apache.jena.query.ReadWrite;
 import org.apache.jena.query.ResultSet;
-import org.apache.jena.query.ResultSetFormatter;
 import org.apache.jena.tdb2.TDB2;
-import org.apache.jena.tdb2.TDB2Factory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.openrdf.query.TupleQueryResult;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.util.Constants;
 

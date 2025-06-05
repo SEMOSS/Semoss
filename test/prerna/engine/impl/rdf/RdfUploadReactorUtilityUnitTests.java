@@ -16,12 +16,14 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Semaphore;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class RdfUploadReactorUtilityUnitTests {
+
+    // Have a good start here. Need to get API tests in for this to understand real data
 
     private RDFFileSesameEngine setupRdfFileSesameEngine(Path tempDir) throws Exception {
         RDFFileSesameEngine engine = new RDFFileSesameEngine();
@@ -30,10 +32,9 @@ public class RdfUploadReactorUtilityUnitTests {
         URI uri = rdf.toUri();
         String baseUri = uri.toString();
         String rdfPath = rdf.toAbsolutePath().toString();
-        RdfUploadReactorUtility.class.g
         URL url = RdfUploadReactorUtility.class.getResource("movie-book-title.owl");
         Path p = Paths.get(url.toURI());
-        Files.move(p, rdf);
+        Files.copy(p, rdf);
 
         Properties props = new Properties();
         props.setProperty(Constants.ENGINE, "engine-01");
@@ -43,9 +44,8 @@ public class RdfUploadReactorUtilityUnitTests {
         props.setProperty(Constants.RDF_FILE_BASE_URI, baseUri);
         props.setProperty(Constants.RDF_FILE_TYPE, "RDF/XML");
 
-        // not exactly sure what to put here
-        String typeQuery = "";
-        props.setProperty(Constants.TYPE_QUERY, "");
+        String typeQuery = "SELECT ?entity WHERE {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <@entity@>;}";
+        props.setProperty(Constants.TYPE_QUERY, typeQuery);
 
         engine.setBasic(true);
 
@@ -79,9 +79,27 @@ public class RdfUploadReactorUtilityUnitTests {
 
     @Test
     void testLoadMetadataIntoEngine(@TempDir Path tempDir) throws Exception {
+        IDatabaseEngine engine = setupDatabaseEngine();
         try (WriteOWLEngine woe = setupWriteOwlEngine(tempDir)) {
-            IDatabaseEngine engine = setupDatabaseEngine();
             RdfUploadReactorUtility.loadMetadataIntoEngine(engine, woe);
         }
+        String query = "ASK WHERE { \n" +
+                "<http://semoss.org/ontologies/Relation/Contains/BOOK/TITLE> ?p ?o .\n" +
+                "}";
+        Boolean bool = (Boolean) engine.execQuery(query);
+        assertTrue(bool);
+    }
+
+    @Test
+    void testCreateRelationship(@TempDir Path tempDir) throws Exception {
+        IDatabaseEngine engine = setupDatabaseEngine();
+        try (WriteOWLEngine woe = setupWriteOwlEngine(tempDir)) {
+            RdfUploadReactorUtility.loadMetadataIntoEngine(engine, woe);
+        }
+        String query = "ASK WHERE { \n" +
+                "<http://semoss.org/ontologies/Relation/Contains/BOOK/TITLE> ?p ?o .\n" +
+                "}";
+        Boolean bool = (Boolean) engine.execQuery(query);
+        assertTrue(bool);
     }
 }
