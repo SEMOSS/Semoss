@@ -178,7 +178,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param user
 	 */
 	public static void addEngine(String engineId, String engineName, IEngine.CATALOG_TYPE engineType, String engineSubType, String engineCost, boolean global, User user) {
-		String query = "INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED,DESCRIPTION,TAGS,METADATA) "
+		String query = "INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DESCRIPTION, TAGS, METADATA) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		
 		String smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE) + "";
