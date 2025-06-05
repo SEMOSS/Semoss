@@ -230,11 +230,11 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	}
 
 	/**
-	 * 
+	 * not private for testing
 	 * @param rdfFileType
 	 * @return
 	 */
-	private Lang determineLang(String rdfFileType) {
+	Lang determineLang(String rdfFileType) {
 		if(rdfFileType.equalsIgnoreCase("RDF/XML")) return Lang.RDFXML;
 		else if(rdfFileType.equalsIgnoreCase("TURTLE")) return Lang.TURTLE;
 		else if(rdfFileType.equalsIgnoreCase("N3")) return Lang.N3;
