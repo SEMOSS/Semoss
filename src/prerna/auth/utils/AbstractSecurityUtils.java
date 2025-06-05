@@ -751,16 +751,16 @@ public abstract class AbstractSecurityUtils {
 			// Type and cost are the main questions - 
 			boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
 			colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "DISCOVERABLE", 
-					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
+					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "DATELASTEDITED",
 					"TYPE", "COST", "CATALOGNAME", 
 					"HASPORTAL", "PORTALNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE",
 					"REACTORSCOMPILED", "REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE"
 			};
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
-					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
+					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
 					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
 					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
-					TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+					TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("PROJECT", colNames, types);
 				classLogger.info("Running sql " + sql);

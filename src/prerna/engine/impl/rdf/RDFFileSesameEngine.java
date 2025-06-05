@@ -210,14 +210,10 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 				Boolean bool = ((BooleanQuery) fullQuery).evaluate();
 				return bool;
 			}
-		} catch (RepositoryException e) {
+		} catch (RepositoryException | MalformedQueryException | QueryEvaluationException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} catch (MalformedQueryException mqe) {
-			classLogger.error(Constants.STACKTRACE, mqe);
-		} catch (QueryEvaluationException qee) {
-			classLogger.error(Constants.STACKTRACE, qee);
 		}
-		return null;
+        return null;
 	}
 
 	@Override
@@ -266,14 +262,10 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 				retVec.add(next);
 			}
 			return retVec;
-		} catch (RepositoryException e) {
+		} catch (RepositoryException | MalformedQueryException | QueryEvaluationException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} catch (MalformedQueryException mqe) {
-			classLogger.error(Constants.STACKTRACE, mqe);
-		} catch (QueryEvaluationException qee) {
-			classLogger.error(Constants.STACKTRACE, qee);
 		}
-		return null;
+        return null;
 	}
 
 	/**
@@ -372,12 +364,10 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 				sc.addStatement(newSub, newPred, newObj);
 			}
 			rc.commit();
-		} catch (SailException e) {
+		} catch (SailException | RepositoryException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} catch (RepositoryException re) {
-			classLogger.error(Constants.STACKTRACE, re);
 		}
-	}
+    }
 
 	/**
 	 * Method removeStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
@@ -474,16 +464,10 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 			up.execute();
 			//rc.commit();
 			sc.commit();
-		} catch (RepositoryException e) {
+		} catch (RepositoryException | MalformedQueryException | SailException | UpdateExecutionException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} catch (MalformedQueryException mqe) {
-			classLogger.error(Constants.STACKTRACE, mqe);
-		} catch (SailException se) {
-			classLogger.error(Constants.STACKTRACE, se);
-		} catch (UpdateExecutionException uee) {
-			classLogger.error(Constants.STACKTRACE, uee);
 		}
-	}
+    }
 
 	/**
 	 * Method exportDB.  Exports the repository connection to the RDF database.
