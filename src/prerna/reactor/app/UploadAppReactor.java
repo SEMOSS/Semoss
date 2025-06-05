@@ -2,12 +2,18 @@ package prerna.reactor.app;
 
 import prerna.reactor.project.UploadProjectAppReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UploadAppReactor extends UploadProjectAppReactor {
 	
 	@Override
 	protected boolean deleteIfExisting() {
 		return true;
+	}
+	
+	@Override
+	public NounMetadata execute() {
+		return super.execute();
 	}
 	
 	@Override

@@ -85,7 +85,7 @@ def split_text(
     chunk_size: int,
     chunk_overlap: int,
     chunking_strategy: Optional[Union[str, List[int]]] = [],
-    chunking_method: Optional[str] = "tokens",
+    chunking_method: Optional[str] = "recursive",
 ) -> None:
     """
     Splits text content in a CSV file into chunks based on specified parameters.
