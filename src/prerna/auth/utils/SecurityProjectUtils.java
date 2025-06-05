@@ -552,7 +552,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			int parameterIndex = 1;
 			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			ps.setString(parameterIndex++, projectID);
-			ps.execute();
+	        ps.executeUpdate();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
