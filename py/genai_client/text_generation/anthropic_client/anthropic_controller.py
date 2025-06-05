@@ -17,6 +17,3 @@ class AnthropicClientController:
 
     def ask(self, **kwargs) -> Dict:
         return self.anthropic_class.ask(**kwargs)
-
-    def embeddings(self, **kwargs) -> List[float]:
-        return self.anthropic_class.embeddings(**kwargs)
