@@ -29,7 +29,7 @@ class AnthropicVertexClient(AbstractAnthropicClient):
 
     def _process_full_prompt(self, full_prompt, message_payload):
         """Extract question and history from FULL_PROMPT and create message payload."""
-        # make sure the full prompt param is an even list
+        # make sure the full prompt param is not an even list
         assert len(full_prompt) % 2 != 0
 
         # pull out the last message
@@ -67,6 +67,7 @@ class AnthropicVertexClient(AbstractAnthropicClient):
 
         # the list to construct the payload from
         message_payload = []
+        final_response = ""
 
         if FULL_PROMPT in kwargs:
             message_payload = self._process_full_prompt(
@@ -90,7 +91,6 @@ class AnthropicVertexClient(AbstractAnthropicClient):
         responses = self.client.messages.create(**request_params)
 
         if stream:
-            final_response = ""
             for response in responses:
                 if "content_block_delta" in response.type:
                     content = response.delta.text
