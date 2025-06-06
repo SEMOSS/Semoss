@@ -12,6 +12,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public static final String MESSAGE_TYPE = "messageType";
     public static final String CHAT = "CHAT";
     public static final String TOOL = "TOOL";
+    public static final String IMAGE = "IMAGE";
 
     private String messageId;
     private String roomId;
@@ -96,6 +97,27 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
                 return new AskStringModelEngineResponse((String) response, tokensInPrompt, tokensInResponse);
             } else {
                 throw new IllegalArgumentException("Expected a String response for Chat messageType");
+            }
+        }  else if (IMAGE.equals(messageType)) {
+            if (response instanceof List) {
+                List<?> responseList = (List<?>) response;
+                
+                // Validate that all items in the list are strings (base64 or URLs)
+                for (Object item : responseList) {
+                    if (!(item instanceof String)) {
+                        throw new IllegalArgumentException("Expected List<String> for Image messageType, but found non-String item: " + item.getClass().getSimpleName());
+                    }
+                }
+                
+                // Cast to List<String> since we've validated all items are strings
+                @SuppressWarnings("unchecked")
+                List<String> imageList = (List<String>) responseList;
+                
+                // Use the OpenAI factory method
+                return AskImageModelEngineResponse.getOpenAIImageResponse(imageList, tokensInPrompt, tokensInResponse);
+                
+            } else {
+                throw new IllegalArgumentException("Expected a List<String> response for Image messageType, but received: " + response.getClass().getSimpleName());
             }
         } else {
             throw new IllegalArgumentException("Unsupported message type: " + messageType);

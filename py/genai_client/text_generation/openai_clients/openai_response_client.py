@@ -1,9 +1,11 @@
 import math
 from typing import List, Tuple, Any
 import json
+from enum import Enum
 from pydantic import BaseModel
 from .operations.instruct import Instruct
 from .operations.chat import Chat
+from .operations.image import Image
 from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import (
     AskModelEngineResponse,
@@ -11,6 +13,12 @@ from ...constants import (
     IMAGE_ENCODED,
     IMAGE_URL,
 )
+from ...utils import StringEnum
+
+
+class ModelType(StringEnum):
+    CHAT: str = "chat"
+    IMAGE: str = "image"
 
 
 class OpenAIResponses(AbstractOpenAiClient):
@@ -18,11 +26,15 @@ class OpenAIResponses(AbstractOpenAiClient):
         super().__init__(**kwargs)
         self.instruct_operation = Instruct(client=self)
         self.chat_operation = Chat(client=self)
+        self.image_client = Image(client=self)
 
     def instruct(self, **kwargs) -> InstructModelEngineResponse:
         return self.instruct_operation.instruct(**kwargs)
 
     def ask_call(self, **kwargs) -> AskModelEngineResponse:
+
+        if self.model_type == ModelType.IMAGE:
+            return self.image_client.ask(**kwargs)
         return self.chat_operation.ask(**kwargs)
 
     def _validate_structured_input(self, schema) -> Tuple[str, Any]:
