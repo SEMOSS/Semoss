@@ -20,7 +20,10 @@ public enum VectorDatabaseParamOptionsEnum {
 		CUSTOM_DOCUMENT_PROCESSOR("customDocumentProcessor",					"Boolean flag to determine whether a custom function is being used to process a document"),
 		CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID("customDocumentProcessorFunctionID",			"Indicates the function ID used to custom process a document"),
 		KEYWORD_SEARCH_PARAM("keywordSearchParam",  "Create keywords from the extracted chunks and use them to when to create embeddings."),
-		RETURN_THRESHOLD("returnThreshold", 		"The minimun threshold every response should be under")
+		RETURN_THRESHOLD("returnThreshold", 		"The minimun threshold every response should be under"),
+		DESCRIPTION("description",                  "It represents the description of an engine"),
+		TAGS("tags",                                "It represents the tag of an engine"),
+		METADATA("metaData",                        "It represents the metadata of an engine")
 		;
 	
 	    private final String key;

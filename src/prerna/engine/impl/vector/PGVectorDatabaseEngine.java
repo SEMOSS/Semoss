@@ -80,6 +80,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private int contentLength = 512;
 	private int contentOverlap = 0;
 	
+	protected String description = null;
+	protected String tags = null;
+	protected String metaData = null;
+	
 	private String defaultChunkUnit;
 //	protected String defaultExtractionMethod;
 	
@@ -146,6 +150,16 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if (this.smssProp.containsKey(Constants.CONTENT_OVERLAP)) {
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
 		}
+		if (this.smssProp.containsKey(Constants.DESCR)) {
+			this.description = this.smssProp.getProperty(Constants.DESCR);
+		}
+		if (this.smssProp.containsKey(Constants.TAGS)) {
+			this.tags = this.smssProp.getProperty(Constants.TAGS);
+		}
+		if (this.smssProp.containsKey(Constants.METADATA)) {
+			this.metaData = this.smssProp.getProperty(Constants.METADATA);
+		}
+
 		
 		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
 		
@@ -920,6 +934,21 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey())) {
 			tokenOverlapBetweenChunks = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey());
 		}
+		
+		String engineDescription=this.description;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.DESCRIPTION.getKey())) {
+			engineDescription = (String) parameters.get(VectorDatabaseParamOptionsEnum.DESCRIPTION.getKey());
+		}
+		
+		String engineTags=this.tags;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.TAGS.getKey())) {
+			engineTags = (String) parameters.get(VectorDatabaseParamOptionsEnum.TAGS.getKey());
+		}
+
+		String engineMetaData=this.metaData;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.METADATA.getKey())) {
+			engineMetaData = (String) parameters.get(VectorDatabaseParamOptionsEnum.METADATA.getKey());
+		}
 
 		String chunkUnit = this.defaultChunkUnit;
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey())) {
@@ -1054,6 +1083,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 							.append("', chunk_size = ")
 							.append(chunkMaxTokenLength)
 							.append(", chunk_overlap = ")
+							.append(engineDescription)
+							.append(", description = ")
+							.append(engineTags)
+							.append(", tags = ")
+							.append(engineMetaData)
+							.append(", metaData = ")
 							.append(tokenOverlapBetweenChunks)
 							.append(", chunking_strategy = ")
 							.append(chunkingStrategy)
