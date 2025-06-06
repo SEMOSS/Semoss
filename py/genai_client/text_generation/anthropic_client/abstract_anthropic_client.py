@@ -3,7 +3,7 @@ from abc import abstractmethod
 
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...clients.client_initializer import google_initializer
-from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME, FULL_PROMPT
+from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
 
 
 class AbstractAnthropicClient(AbstractTextGenerationClient):

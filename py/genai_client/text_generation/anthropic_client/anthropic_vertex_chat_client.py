@@ -18,10 +18,12 @@ class AnthropicVertexClient(AbstractAnthropicClient):
             "messages": message_payload,
             "max_tokens": self.max_tokens,
             "temperature": temperature,
-            "top_p": top_p,
             "stop_sequences": stop_sequences,
             "stream": stream,
         }
+
+        if top_p:
+            params["top_p"] = top_p
 
         return params
 
@@ -57,6 +59,7 @@ class AnthropicVertexClient(AbstractAnthropicClient):
         stop_sequences: Optional[List[str]] = None,
         use_history: Optional[bool] = True,
         stream: Optional[bool] = True,
+        prefix="",
         **kwargs
     ) -> AskModelEngineResponse:
 
@@ -86,8 +89,17 @@ class AnthropicVertexClient(AbstractAnthropicClient):
 
         responses = self.client.messages.create(**request_params)
 
-        model_engine_response = AskModelEngineResponse(
-            response=responses.content[0].text
-        )
+        if stream:
+            final_response = ""
+            for response in responses:
+                if "content_block_delta" in response.type:
+                    content = response.delta.text
+                    if content != None:
+                        final_response += content
+                        print(prefix + content, end="")
+        else:
+            final_response = responses.content[0].text
+
+        model_engine_response = AskModelEngineResponse(response=final_response)
 
         return model_engine_response
