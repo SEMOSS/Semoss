@@ -3181,7 +3181,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	public static void addTags(String engineId, String metaKey, String metaValue) {
+	public static void addMetaValues(String engineId, String metaKey, String metaValue) {
 		String query = "INSERT INTO ENGINEMETA (ENGINEID, METAKEY, METAVALUE, METAORDER) VALUES (?,?,?,?)";
 
 		PreparedStatement ps = null;

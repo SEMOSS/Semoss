@@ -168,11 +168,11 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 		}
 		
 		if(vectorDbDetails.get(Constants.TAGS)!=null && !vectorDbDetails.get(Constants.TAGS).toString().equals("")) {
-			SecurityEngineUtils.addTags(vectorDbId,"tag",vectorDbDetails.get(Constants.TAGS).toString());
+			SecurityEngineUtils.addMetaValues(vectorDbId,"tag",vectorDbDetails.get(Constants.TAGS).toString());
 		}
 		
 		if(vectorDbDetails.get(Constants.DESCR)!=null && !vectorDbDetails.get(Constants.DESCR).toString().equals("")) {
-			SecurityEngineUtils.addTags(vectorDbId,"description",vectorDbDetails.get(Constants.DESCR).toString());
+			SecurityEngineUtils.addMetaValues(vectorDbId,"description",vectorDbDetails.get(Constants.DESCR).toString());
 		}
 
 		
