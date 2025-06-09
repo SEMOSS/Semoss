@@ -136,12 +136,12 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				null, 
 				userId,
 				userName,
-				agentType, 
+				userEmail,
+				agentType,
+				engine.getEngineId(),
 				true, 
 				projectId, 
-				projectName, 
-				engine.getEngineId(),
-				userEmail
+				projectName
 			);
 		}
 		

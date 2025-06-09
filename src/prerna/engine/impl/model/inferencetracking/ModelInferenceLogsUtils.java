@@ -645,40 +645,46 @@ public class ModelInferenceLogsUtils {
 	}
 	
 	/**
+	 * 
 	 * @param roomName
 	 * @param roomContext
 	 * @param userId
 	 * @param userName
+	 * @param userEmail
 	 * @param agentType
+	 * @param agentId
 	 * @param isActive
 	 * @param projectId
 	 * @param projectName
-	 * @param agentId
 	 * @return
 	 */
 	public static String doCreateNewConversation(String roomName, String roomContext,
-												 String userId, String userName, String agentType, 
-												 Boolean isActive, String projectId, String projectName, String agentId, String userEmail) {
+												 String userId, String userName, String userEmail,
+												 String agentType, String agentId,
+												 Boolean isActive, String projectId, String projectName) {
 		String convoId = UUID.randomUUID().toString();
-		doCreateNewConversation(convoId, roomName, roomContext, userId, userName, agentType, isActive, projectId, projectName, agentId,userEmail);
+		doCreateNewConversation(convoId, roomName, roomContext, userId, userName, userEmail, agentType, agentId, isActive, projectId, projectName);
 		return convoId;
 	}
 	
 	/**
+	 * 
 	 * @param insightId
 	 * @param roomName
 	 * @param roomContext
 	 * @param userId
 	 * @param userName
+	 * @param userEmail
 	 * @param agentType
+	 * @param agentId
 	 * @param isActive
 	 * @param projectId
 	 * @param projectName
-	 * @param agentId
 	 */
 	public static void doCreateNewConversation(String insightId, String roomName, String roomContext, 
-											   String userId, String userName, String agentType, 
-											   Boolean isActive, String projectId, String projectName, String agentId, String userEmail) {
+											   String userId, String userName, String userEmail, 
+											   String agentType, String agentId, 
+											   Boolean isActive, String projectId, String projectName) {
 		String query = "INSERT INTO ROOM (INSIGHT_ID, ROOM_NAME, "
 				+ "ROOM_CONTEXT, USER_ID, USER_NAME, AGENT_TYPE, IS_ACTIVE, "
 				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, AGENT_ID, USER_EMAIL_ID) "
@@ -870,7 +876,8 @@ public class ModelInferenceLogsUtils {
 									   String insightId,
 									   String sessionId,
 									   String userId,
-									   String userName, String userEmail) {
+									   String userName, 
+									   String userEmail) {
 		ZonedDateTime dateCreated = ZonedDateTime.now();
 		doRecordMessage(messageId, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated, agentId, insightId, sessionId, userId, userName, userEmail);
 	}
@@ -889,6 +896,7 @@ public class ModelInferenceLogsUtils {
 	 * @param sessionId
 	 * @param userId
 	 * @param userName
+	 * @param userEmail
 	 */
 	public static void doRecordMessage(String messageId,
 									   String messageType,
@@ -901,8 +909,8 @@ public class ModelInferenceLogsUtils {
 									   String insightId,
 									   String sessionId,
 									   String userId,
-									   String userName, String userEmail) {
-		
+									   String userName, 
+									   String userEmail) {
 		// convert the time to UTC 
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
 		

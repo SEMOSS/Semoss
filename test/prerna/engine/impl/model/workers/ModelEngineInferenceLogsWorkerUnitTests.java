@@ -102,7 +102,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             
             String engineId = "engineId";
             String engineName = "engineName";
-			String userEmail="userEmail";
+			String userEmail= "userEmail";
             when(engine.getEngineId()).thenReturn(engineId);
             when(engine.getEngineName()).thenReturn(engineName);
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
@@ -114,13 +114,13 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 "full prompt",
                 null,
                 "userId",
+                userEmail,
                 "tokenUsername",
                 "",
+                engineId,
                 true,
                 projectId,
-                "porjectName",
-                engineId,
-				userEmail
+                "porjectName"
             )).thenAnswer((Answer<Void>) invocation -> null);
             
             milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername")).thenAnswer((Answer<Void>) invocation -> null);
@@ -139,7 +139,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(insightId),
                 eq(sessionId),
                 eq("userId"),
-                eq("userUserName")
+                eq("userUserName"),
+                eq(userEmail)
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
@@ -153,7 +154,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(insightId),
                 eq(sessionId),
                 eq("userId"),
-                eq("userUserName")
+                eq("userUserName"),
+                eq(userEmail)
             )).thenAnswer((Answer<Void>) invocation -> null);
             
             /////////////////////
@@ -174,13 +176,13 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     "full prompt",
                     null,
                     "userId",
+                    userEmail,
                     "tokenUsername",
                     "",
+                    engineId,
                     true,
                     projectId,
-                    "porjectName",
-                    engineId,
-					userEmail
+                    "porjectName"
                 );
 
                 ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
@@ -197,7 +199,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(insightId),
                 eq(sessionId),
                 eq("userId"),
-                eq("userUserName")
+                eq("userUserName"),
+                eq(userEmail)
             );
 
                 ModelInferenceLogsUtils.doRecordMessage(
@@ -212,7 +215,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     eq(insightId),
                     eq(sessionId),
                     eq("userId"),
-                    eq("userUserName")
+                    eq("userUserName"),
+                    eq(userEmail)
                 );
             });
         }
@@ -278,13 +282,13 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 "full prompt",
                 null,
                 "userId",
+                userEmail,
                 "tokenUsername",
                 "",
+                engineId,
                 true,
                 projectId,
-                "porjectName",
-                engineId,
-				userEmail
+                "porjectName"
             )).thenAnswer((Answer<Void>) invocation -> null);
             
             milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername")).thenAnswer((Answer<Void>) invocation -> null);
@@ -303,7 +307,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(insightId),
                 eq(sessionId),
                 eq("userId"),
-                eq("userUserName")
+                eq("userUserName"),
+                eq(userEmail)
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
@@ -317,7 +322,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(insightId),
                 eq(sessionId),
                 eq("userId"),
-                eq("userUserName")
+                eq("userUserName"),
+                eq(userEmail)
             )).thenAnswer((Answer<Void>) invocation -> null);
             
             /////////////////////
@@ -339,12 +345,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     null,
                     "userId",
                     "tokenUsername",
+                    userEmail,
                     "",
+                    engineId,
                     true,
                     projectId,
-                    "porjectName",
-                    engineId,
-					userEmail
+                    "porjectName"
                 );
 
                 ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
@@ -361,7 +367,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(insightId),
                 eq(sessionId),
                 eq("userId"),
-                eq("userUserName")
+                eq("userUserName"),
+                eq(userEmail)
             );
 
                 ModelInferenceLogsUtils.doRecordMessage(
@@ -376,7 +383,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     eq(insightId),
                     eq(sessionId),
                     eq("userId"),
-                    eq("userUserName")
+                    eq("userUserName"),
+                    eq(userEmail)
                 );
             });
         }
@@ -442,13 +450,13 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 "full prompt",
                 null,
                 "userId",
+                userEmail,
                 "tokenUsername",
                 "",
+                engineId,
                 true,
                 projectId,
-                "porjectName",
-                engineId,
-				userEmail
+                "porjectName"
             )).thenAnswer((Answer<Void>) invocation -> null);
             
             milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername")).thenAnswer((Answer<Void>) invocation -> null);
@@ -467,7 +475,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(insightId),
                 eq(sessionId),
                 eq("userId"),
-                eq("userUserName")
+                eq("userUserName"),
+                eq(userEmail)
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
@@ -481,7 +490,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(insightId),
                 eq(sessionId),
                 eq("userId"),
-                eq("userUserName")
+                eq("userUserName"),
+                eq(userEmail)
             )).thenAnswer((Answer<Void>) invocation -> null);
             
             /////////////////////
@@ -502,13 +512,13 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     "full prompt",
                     null,
                     "userId",
+                    userEmail,
                     "tokenUsername",
                     "",
+                    engineId,
                     true,
                     projectId,
-                    "porjectName",
-                    engineId,
-					userEmail
+                    "porjectName"
                 );
 
                 ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
@@ -525,7 +535,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(insightId),
                 eq(sessionId),
                 eq("userId"),
-                eq("userUserName")
+                eq("userUserName"),
+                eq(userEmail)
             );
 
                 ModelInferenceLogsUtils.doRecordMessage(
@@ -540,7 +551,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     eq(insightId),
                     eq(sessionId),
                     eq("userId"),
-                    eq("userUserName")
+                    eq("userUserName"),
+                    eq(userEmail)
                 );
             });
         }
