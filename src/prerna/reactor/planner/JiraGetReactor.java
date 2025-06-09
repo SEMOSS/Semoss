@@ -31,7 +31,6 @@ public class JiraGetReactor extends AbstractReactor{
 			if (string instanceof ResultSet) {
 				ResultSet rs = (ResultSet) string;
 				while (rs.next()) {
-					jiraDetails.setApiKey(rs.getString("APIKEY"));
 					jiraDetails.setUserId(rs.getString("USERID"));
 					jiraDetails.setJiraPrimaryId(rs.getString("JIRAPROFILE_UNIQUE_ROW_ID"));
 					jiraDetails.setUrl(rs.getString("URL"));
