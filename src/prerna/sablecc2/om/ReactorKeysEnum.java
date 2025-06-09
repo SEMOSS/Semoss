@@ -285,7 +285,12 @@ public enum ReactorKeysEnum {
 	VERSION("version", 											"The version"),
 	WIDTH("width", 											    "The width to use for screenshot capture"),
 	X("x",		 											    "The X coordiante."),
-	Y("y",		 											    "The Y coordiante.");
+	Y("y",		 											    "The Y coordiante."),
+	SUMMARY("summary", 											"Summary for JIRA"),
+	ISSUETYPE("issuetype", 										"Issuetype for JIRA"),
+	JIRAID("jiraid", 											"Jira id for JIRA"),
+	DATE_CREATED("datecreated",									"Date created passed in for JIRA"),
+	LAST_USED("lastused",										"last used passed in for filter");
 
 	private String key;
 	private String description;
