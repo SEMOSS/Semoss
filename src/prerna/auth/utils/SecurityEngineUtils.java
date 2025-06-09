@@ -1501,7 +1501,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
 				// need to update
-				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET FAVORITE=? WHERE USERID=?");
+				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET FAVORITE=? WHERE USERID=? AND ENGINEID=?");
 				if(ps == null) {
 					throw new IllegalArgumentException("Error generating prepared statement to set engine favorites");
 				}
@@ -1512,6 +1512,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						int parameterIndex = 1;
 						ps.setBoolean(parameterIndex++, isFavorite);
 						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, engineId);
 						ps.addBatch();
 					}
 					ps.executeBatch();

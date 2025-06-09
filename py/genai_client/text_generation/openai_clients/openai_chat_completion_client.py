@@ -8,6 +8,8 @@ from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import (
     AskModelEngineResponse,
     InstructModelEngineResponse,
+    IMAGE_ENCODED,
+    IMAGE_URL,
 )
 from utils.util import string_to_bool
 
@@ -223,9 +225,15 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             toolResult = []
             if tools_call:  # Check if tools_call is not empty
                 for tool_call in tools_call:
+                    # TODO: we should not create our own format
+                    # TODO: we should not create our own format
+                    # TODO: we should not create our own format
+                    # TODO: we should not create our own format
+                    # TODO: we should not create our own format
                     toolResult.append(
                         {
                             "id": tool_call.id,
+                            "type": tool_call.type,
                             "name": tool_call.function.name,
                             "arguments": tool_call.function.arguments,
                         }
@@ -365,3 +373,35 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             model_engine_response.warning = "\n\n".join(warnings)
 
         return updated_messages, final_max_tokens, model_engine_response
+
+    def _handle_image_params(
+        self, question: str, fill_variables: dict, message_payload
+    ):
+        """
+        Handle image parameters in the payload.
+        """
+        image_payload = [{"type": "text", "text": question}]
+
+        key_to_pop = IMAGE_ENCODED if IMAGE_ENCODED in fill_variables else IMAGE_URL
+        images = fill_variables.pop(key_to_pop)
+        if isinstance(images, str):
+            if key_to_pop == IMAGE_ENCODED:
+                image_url = {"url": f"data:image/png;base64,{images}"}
+            else:
+                image_url = {"url": images}
+            image_payload.append({"type": "image_url", "image_url": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload, fill_variables
+        elif isinstance(images, list):
+            for image in images:
+                if key_to_pop == IMAGE_ENCODED:
+                    image_url = {"url": f"data:image/png;base64,{image}"}
+                else:
+                    image_url = {"url": image}
+                image_payload.append({"type": "image_url", "image_url": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload, fill_variables
+        else:
+            raise ValueError(
+                f"Invalid type for {key_to_pop}. Expected str or list, got {type(images)}"
+            )
