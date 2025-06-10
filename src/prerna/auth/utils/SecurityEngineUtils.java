@@ -3180,29 +3180,5 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
-	public static void addMetaValues(String engineId, String metaKey, String metaValue) {
-		String query = "INSERT INTO ENGINEMETA (ENGINEID, METAKEY, METAVALUE, METAORDER) VALUES (?,?,?,?)";
-
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(query);
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, engineId);
-			ps.setString(parameterIndex++, metaKey);
-			ps.setString(parameterIndex++, metaValue);
-			ps.setInt(parameterIndex++, 0);
-			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-
-	}
-
 
 }

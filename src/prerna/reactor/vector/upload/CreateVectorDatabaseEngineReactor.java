@@ -1,6 +1,7 @@
 package prerna.reactor.vector.upload;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -167,12 +168,18 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 		}
 		
+		Map<String,Object> meta=new HashMap<>();
+		
 		if(vectorDbDetails.get(Constants.TAGS)!=null && !vectorDbDetails.get(Constants.TAGS).toString().equals("")) {
-			SecurityEngineUtils.addMetaValues(vectorDbId,"tag",vectorDbDetails.get(Constants.TAGS).toString());
+			meta.put("tag", vectorDbDetails.get(Constants.TAGS));
 		}
 		
 		if(vectorDbDetails.get(Constants.DESCR)!=null && !vectorDbDetails.get(Constants.DESCR).toString().equals("")) {
-			SecurityEngineUtils.addMetaValues(vectorDbId,"description",vectorDbDetails.get(Constants.DESCR).toString());
+			meta.put("description", vectorDbDetails.get(Constants.DESCR));
+		}
+		
+		if(meta.size()!=0) {
+			SecurityEngineUtils.updateEngineMetadata(vectorDbId, meta);
 		}
 
 		
