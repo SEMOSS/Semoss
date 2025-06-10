@@ -19,9 +19,8 @@ public class JiraInsertReactor extends AbstractReactor {
 
 	public JiraInsertReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.API_KEY.getKey(),
-				ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.DATE_CREATED.getKey(),
-				ReactorKeysEnum.LAST_USED.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 1, 1 };
+				ReactorKeysEnum.URL.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1};
 	}
 
 	@Override
@@ -30,11 +29,11 @@ public class JiraInsertReactor extends AbstractReactor {
 		String userId = this.keyValue.get(this.keysToGet[0]);
 		String apiToken = this.keyValue.get(this.keysToGet[1]);
 		String url = this.keyValue.get(this.keysToGet[2]);
-		String dateCreated = this.keyValue.get(this.keysToGet[3]);
-		String lastUsed = this.keyValue.get(this.keysToGet[4]);
+		long dateCreated = System.currentTimeMillis();
+		long lastUsed = System.currentTimeMillis();
 		Boolean insertData = false;
-		Timestamp date=Timestamp.valueOf(dateCreated);
-		Timestamp lused=Timestamp.valueOf(lastUsed);
+		Timestamp date=new Timestamp(dateCreated);
+		Timestamp lused=new Timestamp(lastUsed);
 		HashMap<Object, Object> map = new HashMap<Object, Object>();
 		int profileId = 0;
 		try {
