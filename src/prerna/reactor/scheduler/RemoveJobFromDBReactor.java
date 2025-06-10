@@ -1,7 +1,9 @@
 package prerna.reactor.scheduler;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,8 +53,12 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 	    if (jobIdsList.size() != jobGroupList.size()) {
 	        throw new IllegalArgumentException("Number of job Ids and job groups must match");
 	    }
-
-	    boolean allJobsDeleted = true;
+	    
+	    // Map of jobIds of successful and failed jobs
+	    Map<String, List<String>> jobDeletionResult = new HashMap<>();
+	    jobDeletionResult.put("success", new ArrayList<>());
+	    jobDeletionResult.put("failed", new ArrayList<>());
+	    
 	    User user = this.insight.getUser();
 
 	    // Get the Scheduler instance and start only once
@@ -81,22 +87,26 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 	            }
 	        } catch (SchedulerException se) {
 	            logger.error(Constants.STACKTRACE, se);
-	            allJobsDeleted = false;
+	            deleteJob = false;
 	        }
 
 	        // Remove from SMSS_JOB_RECIPES table if it exists
 	        if (SchedulerDatabaseUtility.existsInJobRecipesTable(jobId, jobGroup)) {
 	            SchedulerDatabaseUtility.removeFromJobRecipesTable(jobId, jobGroup);
 	        }
-
-	        // Update overall success indicator
-	        allJobsDeleted &= deleteJob;
+	        
+	        // Add jobId in the map based on deletion outcome
+	        if(deleteJob) {
+	        	jobDeletionResult.get("success").add(jobId);
+	        }else {
+	        	jobDeletionResult.get("failed").add(jobId);
+	        }
 	    }
 
-	    // Report whether ALL requested jobs were deleted (in both Quartz and DB)
+	    // Return a map containing jobIds of successfully and unsuccessfully deleted (in both Quartz and DB) jobs
 	    return new NounMetadata(
-	        allJobsDeleted,
-	        PixelDataType.BOOLEAN,
+	        jobDeletionResult,
+	        PixelDataType.MAP,
 	        PixelOperationType.UNSCHEDULE_JOB
 	    );
 	}
@@ -151,5 +161,19 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 		return engineIds;
 	}
 
+	@Override
+	public String getReactorDescription() {
+	    return "This reactor deletes multiple jobs from both Quartz Scheduler and SMSS_JOB_RECIPES table, ensuring proper permission before deletion.";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if(key.equals(ReactorKeysEnum.JOB_ID.getKey())) {
+	    	return "Job IDs to delete";
+	    }else if(key.equals(ReactorKeysEnum.JOB_GROUP.getKey())) {
+	    	return "Job Groups corresponding to each job ID";
+	    }
+	    return super.getDescriptionForKey(key);
+	}
 
 }
