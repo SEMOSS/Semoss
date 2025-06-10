@@ -68,6 +68,8 @@ class AnthropicVertexClient(AbstractAnthropicClient):
         # the list to construct the payload from
         message_payload = []
         final_response = ""
+        prompt_tokens = 0
+        response_tokens = 0
 
         if FULL_PROMPT in kwargs:
             message_payload = self._process_full_prompt(
@@ -99,7 +101,13 @@ class AnthropicVertexClient(AbstractAnthropicClient):
                         print(prefix + content, end="")
         else:
             final_response = responses.content[0].text
+            prompt_tokens = responses.usage.input_tokens
+            response_tokens = responses.usage.output_tokens
 
-        model_engine_response = AskModelEngineResponse(response=final_response)
+        model_engine_response = AskModelEngineResponse(
+            response=final_response,
+            prompt_tokens=prompt_tokens,
+            response_tokens=response_tokens,
+        )
 
         return model_engine_response
