@@ -12,6 +12,7 @@ TEMPLATE_NAME = "template_name"
 FULL_PROMPT = "full_prompt"
 IMAGE_ENCODED = "image_encoded"
 IMAGE_URL = "image_url"
+IMAGE_EXTENSION = "jpeg"
 
 
 @dataclasses.dataclass
@@ -43,6 +44,7 @@ class AbstractModelEngineResponse:
     def __str__(self):
         return str(self.to_dict())
 
+
 @dataclasses.dataclass
 class AskModelEngineResponse(AbstractModelEngineResponse):
     """
@@ -58,7 +60,7 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
         logprobs: logprob for a given token
     """
 
-    response: str = ""
+    response: Any = ""
     response_tokens: int = 0
     prompt_tokens: int = 0
     messageType: str = "CHAT"

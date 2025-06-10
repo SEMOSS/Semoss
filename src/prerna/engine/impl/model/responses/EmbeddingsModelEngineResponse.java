@@ -7,11 +7,14 @@ import org.json.JSONObject;
 
 public class EmbeddingsModelEngineResponse extends AbstractModelEngineResponse<List<List<Double>>> {
 	
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 4408956306133085964L;
 
+	/**
+	 * 
+	 * @param response
+	 * @param numberOfTokensInPrompt
+	 * @param numberOfTokensInResponse
+	 */
 	public EmbeddingsModelEngineResponse(List<List<Double>> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
@@ -31,10 +34,18 @@ public class EmbeddingsModelEngineResponse extends AbstractModelEngineResponse<L
 	
 	@SuppressWarnings("unchecked")
 	public static EmbeddingsModelEngineResponse fromObject(Object responseObject) {
+		if(!(responseObject instanceof Map)) {
+			throw new IllegalArgumentException("Expected map output. Instead received value: " + responseObject);
+		}
 		Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
 		return fromMap(modelResponse);
     }
 	
+	/**
+	 * 
+	 * @param jsonResponse
+	 * @return
+	 */
 	public static EmbeddingsModelEngineResponse fromJson(JSONObject jsonResponse) {
 	    if (jsonResponse == null) {
 	        return null;

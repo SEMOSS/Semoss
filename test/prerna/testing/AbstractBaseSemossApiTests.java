@@ -38,7 +38,7 @@ public abstract class AbstractBaseSemossApiTests {
 			ApiSemossTestInsightUtils.initializeInsight();
 			ApiSemossTestUserUtils.clearUserDirectory();
 
-			ApiSemossTestSetupUtils.setup(true);
+			ApiSemossTestSetupUtils.setup(false);
 
 			ApiSemossTestEngineUtils.createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL,
 					"Native", true);

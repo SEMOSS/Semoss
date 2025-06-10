@@ -937,6 +937,7 @@ public class Constants {
 	public static final String CONTENT_OVERLAP = "CONTENT_OVERLAP";
 	public static final String DISTANCE_METHOD = "DISTANCE_METHOD";
 	public static final String DEFAULT_CHUNK_UNIT = "DEFAULT_CHUNK_UNIT";
+	public static final String DEFAULT_CHUNKING_METHOD = "DEFAULT_CHUNKING_METHOD";
 	public static final String EMBEDDER_ENGINE_ID = "EMBEDDER_ENGINE_ID";
 	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
 	public static final String EMBEDDER_ENGINE_NAME = "EMBEDDER_ENGINE_NAME";
@@ -1025,5 +1026,9 @@ public class Constants {
     public static final String EXTERNAL_DATABASE_MANAGEMENT_TABLENAME = "EXTERNAL_DATABASE_MANAGEMENT_TABLENAME";
     public static final String EXTERNAL_DATABASE_MANAGEMENT_COLUMNNAME = "EXTERNAL_DATABASE_MANAGEMENT_COLUMNNAME";
     public static final String EXTERNAL_DATABASE_MANAGEMENT_DATATYPE = "EXTERNAL_DATABASE_MANAGEMENT_DATATYPE";
-    
+    // default AdminOnlyViewMenuBar
+    public static final String ADMIN_ONLY_VIEW_MENU_BAR = "ADMIN_ONLY_VIEW_MENU_BAR";
+    // default AdminOnlyNonApproveProdCatalogItem
+    public static final String ADMIN_ONLY_NON_APPROVED_PROD_ITEM = "ADMIN_ONLY_NON_APPROVED_PROD_ITEM";
+
 }

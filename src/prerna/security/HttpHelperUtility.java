@@ -571,6 +571,29 @@ public final class HttpHelperUtility {
 		}
 	}
 
+	
+	public static int headRequest2(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
+	    CloseableHttpClient httpClient = null;
+	    CloseableHttpResponse response = null;
+	    try {
+	        httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+	        HttpHead httpHead = new HttpHead(url);
+	        if (headersMap != null && !headersMap.isEmpty()) {
+	            for (String key : headersMap.keySet()) {
+	                httpHead.addHeader(key, headersMap.get(key));
+	            }
+	        }
+	        response = httpClient.execute(httpHead);
+	        int statusCode = response.getStatusLine().getStatusCode();
+	        return statusCode;
+	    } catch (IOException e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	        throw new IllegalArgumentException("Could not connect to URL at " + url, e);
+	    } finally {
+	        if (response != null) { try { response.close(); } catch (Exception ignore) {} }
+	        if (httpClient != null) { try { httpClient.close(); } catch (Exception ignore) {} }
+	    }
+	}
 	/**
 	 * 
 	 * @param url

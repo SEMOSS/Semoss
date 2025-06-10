@@ -20,12 +20,14 @@ class Chat:
         use_history: bool = True,  # To control history tracking
         history: List[Dict] = None,
         # We should now expect max_completion_tokens but I can't get rid of this yet..
-        max_new_tokens=None,  # Deprecated # We dont use either of these?? I think they are passed in the kwargs
-        max_completion_tokens=None,  # We dont use either of these?? I think they are passed in the kwargs
+        # max_new_tokens=None,  # Deprecated # We dont use either of these?? I think they are passed in the kwargs
+        # max_completion_tokens=None,  # We dont use either of these?? I think they are passed in the kwargs
         prefix="",
         **kwargs,
     ) -> AskModelEngineResponse:
         kwargs = self._normalize_kwargs(kwargs)
+        # remove dumb parameters from legacy code
+        kwargs.pop("max_new_tokens", None)
 
         if template_name is None:
             template_name = self.client.template_name
@@ -52,7 +54,7 @@ class Chat:
             max_tokens_call_param=kwargs.pop("max_tokens", None),
             max_completion_tokens_call_param=kwargs.pop("max_completion_tokens", None),
             max_tokens_smss=self.client.tokenizer.max_tokens,
-            max_completion_tokens_smss=self.client.tokenizer.max_tokens,
+            max_completion_tokens_smss=self.client.tokenizer.max_completion_tokens,
         )
 
         max_tokens = model_limits.max_completion_tokens
@@ -89,6 +91,38 @@ class Chat:
         if "stop_sequences" in kwargs:
             kwargs["stop"] = kwargs.pop("stop_sequences")
         return kwargs
+
+    def _handle_image_params(
+        self, question: str, fill_variables: dict, message_payload
+    ):
+        """
+        Handle image parameters in the payload.
+        """
+        image_payload = [{"type": "text", "text": question}]
+
+        key_to_pop = IMAGE_ENCODED if IMAGE_ENCODED in fill_variables else IMAGE_URL
+        images = fill_variables.pop(key_to_pop)
+        if isinstance(images, str):
+            if key_to_pop == IMAGE_ENCODED:
+                image_url = {"url": f"data:image/png;base64,{images}"}
+            else:
+                image_url = {"url": images}
+            image_payload.append({"type": "image_url", "image_url": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload, fill_variables
+        elif isinstance(images, list):
+            for image in images:
+                if key_to_pop == IMAGE_ENCODED:
+                    image_url = {"url": f"data:image/png;base64,{image}"}
+                else:
+                    image_url = {"url": image}
+                image_payload.append({"type": "image_url", "image_url": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload, fill_variables
+        else:
+            raise ValueError(
+                f"Invalid type for {key_to_pop}. Expected str or list, got {type(images)}"
+            )
 
     def _process_chat_completion(
         self,
@@ -129,18 +163,18 @@ class Chat:
 
         # check if images are in the fill args
         if IMAGE_ENCODED in fill_variables or IMAGE_URL in fill_variables:
-            # add the new question to the payload
-            if question:
-                image_payload = [{"type": "text", "text": question}]
-                image_url = {
-                    "url": (
-                        f"data:image/png;base64,{fill_variables.pop(IMAGE_ENCODED)}"
-                        if IMAGE_ENCODED in fill_variables
-                        else fill_variables.pop(IMAGE_URL)
-                    )
-                }
-                image_payload.append({"type": "image_url", "image_url": image_url})
-                message_payload.append({"role": "user", "content": image_payload})
+            try:
+                message_payload, fill_variables = self.client._handle_image_params(
+                    question=question,
+                    fill_variables=fill_variables,
+                    message_payload=message_payload,
+                )
+            except Exception as e:
+                message_payload, fill_variables = self._handle_image_params(
+                    question=question,
+                    fill_variables=fill_variables,
+                    message_payload=message_payload,
+                )
         else:
             # add the new question to the payload
             if question:
@@ -150,14 +184,22 @@ class Chat:
 
     def _process_full_prompt(self, full_prompt: List) -> List[Dict]:
         if isinstance(full_prompt, list):
-            listOfDicts = set([isinstance(x, dict) for x in full_prompt]) == {True}
-            if not listOfDicts:
+            list_of_dicts = set([isinstance(x, dict) for x in full_prompt]) == {True}
+            if not list_of_dicts:
                 raise ValueError("The provided payload is not valid")
 
             # now we have to check the key value pairs are valid
-            all_keys_set = {key for d in full_prompt for key in d.keys()}
-            validOpenAiDictKey = sorted(all_keys_set) == ["content", "role"]
-            if not validOpenAiDictKey:
+            valid_key_sets = [
+                {"content", "role"},
+                {"role", "tool_calls"},
+                {"role", "tool_call_id"},
+            ]
+            all_keys_valid = all(
+                # if any in valid_keys are a subset of the full prompt keys
+                any(valid_keys <= d.keys() for valid_keys in valid_key_sets)
+                for d in full_prompt
+            )
+            if not all_keys_valid:
                 raise ValueError("There are invalid OpenAI dictionary keys")
             # add it the message payload
             return full_prompt
