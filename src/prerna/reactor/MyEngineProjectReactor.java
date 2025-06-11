@@ -71,7 +71,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 		
 		for (String toGet : typesToGet) {
 			List<Map<String, Object>> toAdd = null;
-			if (toGet == "PROJECT") {
+			if (toGet.equals("PROJECT")) {
 				toAdd = getProjects(favoritesOnly, portalsOnly, engineProjectMetadataFilter, permissionFilters, searchTerm);
 			} else {
 				toAdd = getEngines(toGet, noMeta, engineProjectMetadataFilter, permissionFilters, searchTerm);
