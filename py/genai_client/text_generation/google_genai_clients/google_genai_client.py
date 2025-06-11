@@ -14,7 +14,6 @@ class AskSettings(BaseModel):
     """
 
     full_prompt: Dict | None = None
-    structured_response: Dict | None = None
     streaming: bool = False
     use_history: bool = True
     history: Optional[List[Dict]] = None
@@ -168,6 +167,11 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         """
         Convert our CFG arguments to a GenerateContentConfig object.
         """
+        response_schema = kwargs.pop("schema", None)
+        response_mime_type = kwargs.pop("response_mime_type", None)
+        if response_schema is not None and response_mime_type is None:
+            response_mime_type = "application/json"
+
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
             system_instruction=context,
@@ -181,7 +185,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             presence_penalty=kwargs.pop("presence_penalty", None),
             frequency_penalty=kwargs.pop("frequency_penalty", None),
             safety_settings=self.safety_settings,
-            response_schema=kwargs.pop("schema", None),
+            response_schema=response_schema,
+            response_mime_type=response_mime_type,
         )
         return config
 
@@ -192,7 +197,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         Get the ask settings from the provided keyword arguments.
         """
         full_prompt = kwargs.pop(FULL_PROMPT, None)
-        structured_response = kwargs.pop("schema", None)
         streaming = kwargs.pop("streaming", False)
         image_url = kwargs.pop("image_url", None)
         # So we can send multiple images
@@ -206,7 +210,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         return AskSettings(
             full_prompt=full_prompt,
-            structured_response=structured_response,
             streaming=streaming,
             history=history,
             image_url=image_url,
