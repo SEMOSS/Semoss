@@ -2,15 +2,15 @@ package prerna.reactor.scheduler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -25,7 +25,7 @@ import prerna.util.Utility;
 
 public class RemoveJobFromDBReactor extends AbstractReactor {
 	
-	private static final Logger logger = LogManager.getLogger(RemoveJobFromDBReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(RemoveJobFromDBReactor.class);
 
 	public RemoveJobFromDBReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
@@ -48,7 +48,10 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 	    // Fetch job IDs and groups
 	    List<String> jobIdsList = getJobIds();
 	    List<String> jobGroupList = getJobGroups();
-
+	    
+	    if (jobIdsList.size() == 0) {
+	        throw new IllegalArgumentException("Must pass in at least one jobId to remove");
+	    }
 	    // Ensure job IDs and groups are paired up
 	    if (jobIdsList.size() != jobGroupList.size()) {
 	        throw new IllegalArgumentException("Number of job Ids and job groups must match");
@@ -59,8 +62,11 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 	    jobDeletionResult.put("success", new ArrayList<>());
 	    jobDeletionResult.put("failed", new ArrayList<>());
 	    
+	    // Return a map containing jobIds of successfully and unsuccessfully deleted (in both Quartz and DB) jobs
+	    NounMetadata retNoun = new NounMetadata(jobDeletionResult, PixelDataType.MAP, PixelOperationType.UNSCHEDULE_JOB);
+        Set<String> permissionErrorIds = new HashSet<>();
 	    User user = this.insight.getUser();
-
+	    
 	    // Get the Scheduler instance and start only once
 	    Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 		SchedulerDatabaseUtility.startScheduler(scheduler);
@@ -69,25 +75,25 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 	    for (int i = 0; i < jobIdsList.size(); i++) {
 	        String jobId = jobIdsList.get(i).trim();
 	        String jobGroup = jobGroupList.get(i).trim();
-	        boolean deleteJob = false;
+	        boolean jobDeleted = false;
 
 	        // Permission check: must be admin or app editor
 	        if (!SecurityAdminUtils.userIsAdmin(user)
 	            && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
-	            throw new IllegalArgumentException(
-	                "User lacks permission to delete job: " + jobId
-	            );
+	             jobDeletionResult.get("failed").add(jobId);
+	             permissionErrorIds.add(jobId);
+	             continue;
 	        }
 
 	        // Quartz job deletion
 	        try {
 	            JobKey job = JobKey.jobKey(jobId, jobGroup);
 	            if (scheduler.checkExists(job)) {
-	                deleteJob = scheduler.deleteJob(job);
+	                jobDeleted = scheduler.deleteJob(job);
 	            }
 	        } catch (SchedulerException se) {
-	            logger.error(Constants.STACKTRACE, se);
-	            deleteJob = false;
+	            classLogger.error(Constants.STACKTRACE, se);
+	            jobDeleted = false;
 	        }
 
 	        // Remove from SMSS_JOB_RECIPES table if it exists
@@ -96,19 +102,19 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 	        }
 	        
 	        // Add jobId in the map based on deletion outcome
-	        if(deleteJob) {
+	        if(jobDeleted) {
 	        	jobDeletionResult.get("success").add(jobId);
-	        }else {
+	        } else {
 	        	jobDeletionResult.get("failed").add(jobId);
 	        }
 	    }
+	    
+	    // Add any permission errors so user can investigate
+	    for(String error : permissionErrorIds) {
+	        retNoun.addAdditionalReturn(NounMetadata.getWarningNounMessage("User does not have the necesssary permission to remove jobs from group " + error));
+	    }
 
-	    // Return a map containing jobIds of successfully and unsuccessfully deleted (in both Quartz and DB) jobs
-	    return new NounMetadata(
-	        jobDeletionResult,
-	        PixelDataType.MAP,
-	        PixelOperationType.UNSCHEDULE_JOB
-	    );
+	    return retNoun;
 	}
 	
 	/**
@@ -116,24 +122,24 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 	 * @return list of jobIds to remove
 	 */
 	public List<String> getJobIds() {
-		List<String> engineIds = new ArrayList<>();
+		List<String> jobIds = new ArrayList<>();
 
 		// see if added as key
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
-				engineIds.add(grs.get(i).toString());
+				jobIds.add(grs.get(i).toString());
 			}
-			return engineIds;
+			return jobIds;
 		}
 
 		// no key is added, grab all inputs
 		int size = this.curRow.size();
 		for (int i = 0; i < size; i++) {
-			engineIds.add(this.curRow.get(i).toString());
+			jobIds.add(this.curRow.get(i).toString());
 		}
-		return engineIds;
+		return jobIds;
 	}
 	
 	/**
@@ -141,24 +147,24 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 	 * @return list of job groups
 	 */
 	public List<String> getJobGroups() {
-		List<String> engineIds = new ArrayList<>();
+		List<String> jobGroups = new ArrayList<>();
 
 		// see if added as key
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
-				engineIds.add(grs.get(i).toString());
+				jobGroups.add(grs.get(i).toString());
 			}
-			return engineIds;
+			return jobGroups;
 		}
 
 		// no key is added, grab all inputs
 		int size = this.curRow.size();
 		for (int i = 0; i < size; i++) {
-			engineIds.add(this.curRow.get(i).toString());
+			jobGroups.add(this.curRow.get(i).toString());
 		}
-		return engineIds;
+		return jobGroups;
 	}
 
 	@Override
@@ -169,9 +175,9 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 	    if(key.equals(ReactorKeysEnum.JOB_ID.getKey())) {
-	    	return "Job IDs to delete";
-	    }else if(key.equals(ReactorKeysEnum.JOB_GROUP.getKey())) {
-	    	return "Job Groups corresponding to each job ID";
+	    	return "Job IDs to delete. This list should have a corresponding entry in " + ReactorKeysEnum.JOB_GROUP.getKey();
+	    } else if(key.equals(ReactorKeysEnum.JOB_GROUP.getKey())) {
+	    	return "Job Groups where each entry matches the corresponding index in " + ReactorKeysEnum.JOB_ID.getKey();
 	    }
 	    return super.getDescriptionForKey(key);
 	}
