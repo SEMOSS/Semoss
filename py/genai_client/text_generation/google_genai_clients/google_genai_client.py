@@ -13,7 +13,7 @@ class AskSettings(BaseModel):
     as parameters to the model call itself.
     """
 
-    full_prompt: Dict | None = None
+    full_prompt: Optional[List[Dict]] = None
     streaming: bool = False
     use_history: bool = True
     history: Optional[List[Dict]] = None
@@ -91,11 +91,17 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         ask_settings = self._get_ask_settings(history, use_history, **kwargs)
 
-        converted_history = self._convert_history(
-            history=ask_settings.history,
-            question=question,
-            image_url=ask_settings.image_url,
-        )
+        if ask_settings.full_prompt is not None:
+            converted_history = self._convert_history(
+                history=ask_settings.full_prompt,
+            )
+        else:
+            converted_history = self._convert_history(
+                history=ask_settings.history,
+                question=question,
+                image_url=ask_settings.image_url,
+            )
+
         contents = converted_history.contents
         if converted_history.system_instructions is not None and context is not None:
             print(
@@ -122,6 +128,14 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         response_tokens = response.usage_metadata.candidates_token_count
         prompt_tokens = response.usage_metadata.prompt_token_count
 
+        # Returning a diff type of AskModelEngineResponse if there are function calls
+        if len(getattr(response, "function_calls", None) or []) > 0:
+            return self._parse_tools_call_response(
+                response=response,
+                response_tokens=response_tokens,
+                prompt_tokens=prompt_tokens,
+            )
+
         model_engine_response = AskModelEngineResponse(
             response=response.text,
             prompt_tokens=prompt_tokens,
@@ -130,6 +144,32 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         )
 
         return model_engine_response
+
+    def _parse_tools_call_response(
+        self,
+        response: types.GenerateContentResponse,
+        response_tokens: int,
+        prompt_tokens: int,
+    ) -> AskModelEngineResponse:
+        tools_result = []
+        for i, function_call in enumerate(response.function_calls):
+            tools_result.append(
+                {
+                    # idk why google is not giving me an id here..
+                    # They have a palce holder field for it, but it's always None
+                    # I also don't need to pass it to the model in the history..
+                    "id": i,
+                    "type": "function",
+                    "name": function_call.name,
+                    "arguments": getattr(function_call, "args", {}),
+                }
+            )
+        return AskModelEngineResponse(
+            response=tools_result,
+            prompt_tokens=prompt_tokens,
+            response_tokens=response_tokens,
+            messageType="TOOL",
+        )
 
     def _handle_streaming(
         self,
@@ -161,6 +201,45 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         return StreamingResponse(text=final_response, usage_metadata=usage_metadata)
 
+    def _handle_tools_conversion(self, tools: List[Dict]) -> List[types.Tool]:
+        """
+        Converting from the OpenAI tools format I recieve to the Google Gen AI tools format.
+        """
+        google_tools = []
+
+        for tool in tools:
+            if tool["type"] == "function":
+                func_def = tool["function"]
+
+                parameters_schema = None
+                if "parameters" in func_def:
+                    params = func_def["parameters"]
+
+                    properties = {}
+                    for prop_name, prop_def in params.get("properties", {}).items():
+                        properties[prop_name] = types.Schema(
+                            type=prop_def["type"].upper(),
+                            description=prop_def.get("description", ""),
+                        )
+
+                    parameters_schema = types.Schema(
+                        type="OBJECT",
+                        properties=properties,
+                        required=params.get("required", []),
+                    )
+
+                function_declaration = types.FunctionDeclaration(
+                    name=func_def["name"],
+                    description=func_def["description"],
+                    parameters=parameters_schema,
+                )
+
+                google_tools.append(
+                    types.Tool(function_declarations=[function_declaration])
+                )
+
+        return google_tools
+
     def _convert_args_to_provider_config(
         self, context: str = None, **kwargs
     ) -> types.GenerateContentConfig:
@@ -171,6 +250,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         response_mime_type = kwargs.pop("response_mime_type", None)
         if response_schema is not None and response_mime_type is None:
             response_mime_type = "application/json"
+
+        tools = kwargs.pop("tools", None)
+        if tools is not None:
+            tools = self._handle_tools_conversion(tools)
 
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
@@ -187,6 +270,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             safety_settings=self.safety_settings,
             response_schema=response_schema,
             response_mime_type=response_mime_type,
+            tools=tools,
         )
         return config
 
@@ -238,14 +322,29 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             for message in history:
                 role = message.get("role", "user")
                 content = message.get("content", "")
+                tool_calls = message.get("tool_calls", None)
                 if role == "system":
                     system_instructions = content
                     continue
                 if role != "user":
                     role = Roles.MODEL
-                message = types.Content(
-                    role=role, parts=[types.Part.from_text(text=content)]
-                )
+
+                parts = [types.Part.from_text(text=content)]
+
+                if tool_calls:
+                    tool_call_parts = []
+                    for tool in tool_calls:
+                        if tool.get("type") == "function":
+                            tool_name = tool["function"].get("name")
+                            tool_args = tool["function"].get("arguments", {})
+                            tool_call_parts.append(
+                                types.Part.from_function_call(
+                                    name=tool_name, args=tool_args
+                                )
+                            )
+                    parts.extend(tool_call_parts)
+
+                message = types.Content(role=role, parts=parts)
                 google_history.append(message)
 
         # If there is a question (not full prompt), add it as the last message
