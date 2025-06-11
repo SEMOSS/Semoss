@@ -70,13 +70,13 @@ public class ModelInferenceLogsOwlCreator {
 				//Pair.with("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
 				Pair.with("USER_ID", "VARCHAR(255)"),
 				Pair.with("USER_NAME", "VARCHAR(255)"),
+                Pair.with("USER_EMAIL_ID", "VARCHAR(50)"),
 				Pair.with("AGENT_TYPE", "VARCHAR(50)"),
+                Pair.with("AGENT_ID", "VARCHAR(50)"),
 				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("PROJECT_ID", "VARCHAR(50)"),
-				Pair.with("PROJECT_NAME", "VARCHAR(255)"),
-				Pair.with("AGENT_ID", "VARCHAR(50)"),
-				Pair.with("USER_EMAIL_ID", "VARCHAR(50)")
+				Pair.with("PROJECT_NAME", "VARCHAR(255)")
 			);
 		
 		this.messageColumns = Arrays.asList(

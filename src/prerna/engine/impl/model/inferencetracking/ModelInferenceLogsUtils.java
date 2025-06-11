@@ -686,8 +686,9 @@ public class ModelInferenceLogsUtils {
 											   String agentType, String agentId, 
 											   Boolean isActive, String projectId, String projectName) {
 		String query = "INSERT INTO ROOM (INSIGHT_ID, ROOM_NAME, "
-				+ "ROOM_CONTEXT, USER_ID, USER_NAME, AGENT_TYPE, IS_ACTIVE, "
-				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, AGENT_ID, USER_EMAIL_ID) "
+				+ "ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, "
+				+ "AGENT_TYPE, AGENT_ID, IS_ACTIVE, "
+				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME) "
 				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		// boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		PreparedStatement ps = null;
@@ -698,7 +699,7 @@ public class ModelInferenceLogsUtils {
 			if (roomName != null) {
 				ps.setString(index++, roomName);
 			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
+				ps.setNull(index++, java.sql.Types.VARCHAR);
 			}
 			if (roomContext != null) {
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, roomContext, index++, new Gson());
@@ -706,14 +707,22 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			ps.setString(index++, userId);
-			ps.setString(index++, userName);
+            if (userName != null) {
+                ps.setString(index++, userName);
+            } else {
+                ps.setNull(index++, java.sql.Types.VARCHAR);
+            }
+            if (userEmail != null) {
+                ps.setString(index++, userEmail);
+            } else {
+                ps.setNull(index++, java.sql.Types.VARCHAR);                
+            }
 			ps.setString(index++, agentType);
+	        ps.setString(index++, agentId);
 			ps.setBoolean(index++, isActive);
 			ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
 			ps.setString(index++, projectId);
 			ps.setString(index++, projectName);
-			ps.setString(index++, agentId);
-			ps.setString(index++, userEmail);
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -933,7 +942,7 @@ public class ModelInferenceLogsUtils {
 			if (tokenSize != null) {
 				ps.setInt(index++, tokenSize);
 			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
+				ps.setNull(index++, java.sql.Types.INTEGER);
 			}
 			ps.setDouble(index++, reponseTime);
 			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(dateCreatedUTC.toLocalDateTime()));
@@ -941,8 +950,16 @@ public class ModelInferenceLogsUtils {
 			ps.setString(index++, insightId);
 			ps.setString(index++, sessionId);
 			ps.setString(index++, userId);
-			ps.setString(index++, userName);
-			ps.setString(index++, userEmail);
+			if (userName != null) {
+			    ps.setString(index++, userName);
+			} else {
+			    ps.setNull(index++, java.sql.Types.VARCHAR);
+			}
+			if (userEmail != null) {
+			    ps.setString(index++, userEmail);
+			} else {
+                ps.setNull(index++, java.sql.Types.VARCHAR);			    
+			}
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
