@@ -176,4 +176,21 @@ public class DeleteAssetReactor extends AbstractReactor {
 
         return NounMetadata.getSuccessNounMessage("Success!");
     }
+	
+	@Override
+	public String getReactorDescription() {
+		return "This reactor deletes single or multiple files under Files tab in notebook";
+    }
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+	    	return "File paths to delete";
+	    }else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+	    	return "Comment to add for deletion operation";
+	    }else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
+	    	return "Application ID";
+	    }
+		return super.getDescriptionForKey(key);
+	} 
 }
