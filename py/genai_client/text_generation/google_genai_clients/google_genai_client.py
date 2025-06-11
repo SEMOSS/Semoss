@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict
-from google import genai
 from pydantic import BaseModel
 from google.genai import types
+from ...clients.google_genai_client import GoogleGenAIClient, GoogleGenAIClientConfig
 from ...utils import StringEnum, classify_url
 from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME, FULL_PROMPT
 from ..abstract_text_generation_client import AbstractTextGenerationClient
@@ -51,31 +51,31 @@ class Roles(StringEnum):
     MODEL = "model"
 
 
-class GoogleGenAiClient(AbstractTextGenerationClient):
+class GoogleGenAiTextClient(AbstractTextGenerationClient):
     def __init__(
         self,
-        model_name: str,
         service_account_credentials: Dict = None,
         service_account_key_file: str = None,
         region: str = None,
         project: str = None,
         api_key: str = None,
-        max_tokens: int = None,
         safety_settings: dict = None,
         **kwargs,
     ):
         super().__init__(
             template=kwargs.pop(TEMPLATE, None),
             template_name=kwargs.pop(TEMPLATE_NAME, None),
+            **kwargs,
         )
-
-        self.service_account_credentials = self._load_credentials(
-            service_account_credentials, service_account_key_file
+        self.client_config = GoogleGenAIClientConfig(
+            service_account_credentials=service_account_credentials,
+            service_account_key_file=service_account_key_file,
+            region=region,
+            project=project,
+            api_key=api_key,
         )
+        self.client = GoogleGenAIClient(config=self.client_config).client
 
-        self.model_name = model_name
-        self.client = self._get_client(project, region, api_key=api_key)
-        self.max_tokens = max_tokens
         self.safety_settings = safety_settings
 
     def ask_call(
@@ -162,54 +162,6 @@ class GoogleGenAiClient(AbstractTextGenerationClient):
 
         return StreamingResponse(text=final_response, usage_metadata=usage_metadata)
 
-    def _load_credentials(self, service_account_credentials, service_account_key_file):
-        """Load service account credentials with required scopes"""
-        from google.oauth2 import service_account
-
-        service_account_info = service_account_credentials or service_account_key_file
-        if not isinstance(service_account_info, dict):
-            import json
-
-            with open(service_account_info) as credentials_file:
-                service_account_info = json.load(credentials_file)
-
-        credentials = service_account.Credentials.from_service_account_info(
-            service_account_info
-        )
-
-        scoped_credentials = credentials.with_scopes(
-            [
-                "https://www.googleapis.com/auth/cloud-platform",
-                "https://www.googleapis.com/auth/generative-language",
-            ]
-        )
-
-        return scoped_credentials
-
-    def _get_client(
-        self,
-        project: str = None,
-        location: str = None,
-        api_key: str = None,
-    ) -> genai.Client:
-        """Initialize the Google Gen AI client with credentials from SMSS."""
-        try:
-            if api_key:
-                return genai.Client(api_key=api_key)
-            elif project is not None and location is not None:
-                return genai.Client(
-                    credentials=self.service_account_credentials,  # Use the processed credentials object
-                    vertexai=True,
-                    location=location,
-                    project=project,
-                )
-            else:
-                raise ValueError(
-                    "Either api_key or both project and location must be provided."
-                )
-        except Exception as e:
-            raise RuntimeError(f"Failed to initialize Google Gen AI client: {e}")
-
     def _convert_args_to_provider_config(
         self, context: str = None, **kwargs
     ) -> types.GenerateContentConfig:
@@ -219,7 +171,9 @@ class GoogleGenAiClient(AbstractTextGenerationClient):
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
             system_instruction=context,
-            max_output_tokens=kwargs.get("max_new_tokens", self.max_tokens),
+            max_output_tokens=kwargs.get(
+                "max_new_tokens", self.model_limits.max_completion_tokens
+            ),
             temperature=kwargs.pop("temperature", None),
             top_p=kwargs.pop("top_p", None),
             top_k=kwargs.pop("top_k", None),

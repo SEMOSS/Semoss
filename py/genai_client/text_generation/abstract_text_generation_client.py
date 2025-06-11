@@ -1,9 +1,16 @@
-from typing import Union, Dict, Any
+from typing import Union, Dict, Any, Optional
 import json
 import os
 from string import Template
 from abc import ABC, abstractmethod
+from pydantic import BaseModel
 from ..constants import AskModelEngineResponse, EmbeddingsModelEngineResponse
+
+
+class ModelLimits(BaseModel):
+    context_window: Optional[int] = None
+    max_input_tokens: Optional[int] = None
+    max_completion_tokens: Optional[int] = None
 
 
 class AbstractTextGenerationClient(ABC):
@@ -13,7 +20,11 @@ class AbstractTextGenerationClient(ABC):
         self,
         template: Union[Dict, str] = None,
         template_name: str = None,
+        **kwargs: Any,
     ):
+        self.model_name = kwargs.get("model_name", None)
+        self.model_limits = self._get_model_limits(kwargs)
+
         self.template_name = template_name
         self.templates = {}
 
@@ -36,6 +47,25 @@ class AbstractTextGenerationClient(ABC):
         elif isinstance(template, dict):
             self.template_file = None
             self.templates = template
+
+    def _get_model_limits(self, smss_args) -> ModelLimits:
+        """
+        Returns the model limits for the given  model.
+        These only set limits that are preset in the SMSS file.
+        If a model does not have these limits set, they should be resolved in the given client class.
+        Only piloting this for google genai for now..
+        """
+        context_window = smss_args.get("context_window", None)
+        max_input_tokens = smss_args.get("max_input_tokens", None)
+        max_completion_tokens = smss_args.get("max_completion_tokens", None)
+        if max_completion_tokens is None:
+            max_completion_tokens = smss_args.get("max_tokens", None)
+
+        return ModelLimits(
+            context_window=context_window,
+            max_input_tokens=max_input_tokens,
+            max_completion_tokens=max_completion_tokens,
+        )
 
     def get_template(self, template_name=None, **kwargs):
         if template_name in self.templates.keys():
