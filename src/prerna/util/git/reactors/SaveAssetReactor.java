@@ -97,5 +97,24 @@ public class SaveAssetReactor extends AbstractReactor {
 
         return NounMetadata.getSuccessNounMessage("Success!");
     }
+	
+	@Override
+	public String getReactorDescription() {
+		return "This reactor saves single or multiple files for Files tab in notebook";
+    }
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
+	    	return "Names of the files to save";
+	    }else if(key.equals(ReactorKeysEnum.CONTENT.getKey())) {
+	    	return "Contents of the files to save";
+	    }else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+	    	return "Comment to add while saving the file";
+	    }else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
+	    	return "Application ID";
+	    }
+		return super.getDescriptionForKey(key);
+	}
 
 }
