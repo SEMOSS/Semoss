@@ -28,9 +28,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.net.ssl.HostnameVerifier;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hc.client5.http.ClientProtocolException;
@@ -65,11 +63,9 @@ import org.apache.http.client.ResponseHandler;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
-
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
@@ -585,7 +581,7 @@ public final class HttpHelperUtility {
 	            }
 	        }
 	        response = httpClient.execute(httpHead);
-	        int statusCode = response.getStatusLine().getStatusCode();
+	        int statusCode = response.getCode();
 	        return statusCode;
 	    } catch (IOException e) {
 	        classLogger.error(Constants.STACKTRACE, e);

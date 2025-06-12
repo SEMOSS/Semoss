@@ -64,7 +64,7 @@ public class InMemoryJenaEngine extends AbstractDatabaseEngine implements IRDFDa
 
 	private static final Logger classLogger = LogManager.getLogger(InMemoryJenaEngine.class);
 
-	private Model jenaModel = null;
+	Model jenaModel = null;
 
 	@Override
 	public void open(String propFile) {

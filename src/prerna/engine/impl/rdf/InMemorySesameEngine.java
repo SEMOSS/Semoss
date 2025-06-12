@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.Literal;
@@ -56,13 +55,11 @@ import org.openrdf.query.Update;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.UnknownTransactionStateException;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
-
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDFDatabase;
 import prerna.engine.impl.AbstractDatabaseEngine;
