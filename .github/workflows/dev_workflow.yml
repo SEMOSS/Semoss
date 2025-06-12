@@ -94,6 +94,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need this so there is a .git during the code since the githook in pom.xml will fail without it
       # - name: Setup Java
       #   uses: actions/setup-java@v2
       #   with:
