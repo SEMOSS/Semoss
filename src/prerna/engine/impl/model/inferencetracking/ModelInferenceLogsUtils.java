@@ -504,7 +504,7 @@ public class ModelInferenceLogsUtils {
 		
 		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
 		//sumTokenSelector.setAlias("Total Tokens");
-		sumTokenSelector.setAlias("Number of Tokens");
+		sumTokenSelector.setAlias("Number_of_Tokens");
 		//sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
 		//sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
