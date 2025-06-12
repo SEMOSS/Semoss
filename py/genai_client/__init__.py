@@ -32,6 +32,12 @@ def __getattr__(name: str) -> Any:
         )
 
         return AnthropicClient
+    elif name == "GoogleGenAiTextClient":
+        from .text_generation.google_genai_clients.google_genai_client import (
+            GoogleGenAiTextClient,
+        )
+
+        return GoogleGenAiTextClient
 
     elif name == "LocalEmbedder":
         from .embedders.local_embedder import LocalEmbedder
@@ -165,6 +171,7 @@ __all__ = [
     "BedrockClient",
     "VertexClient",
     "AnthropicClient",
+    "GoogleGenAiTextClient",
     "LocalEmbedder",
     "OpenAiEmbedder",
     "AzureOpenAiEmbedder",
