@@ -18,6 +18,7 @@ import org.apache.tika.Tika;
 import org.apache.tika.metadata.Metadata;
 
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.cluster.util.RemoteClientServerZK;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.reactor.AbstractReactor;
@@ -90,7 +91,6 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 					throw new IllegalArgumentException("File path for " + file.getName() + " does not exist within the insight or project space.");
 				}
 			}
-
 			vectorDatabase.addDocument(validFiles, paramMap);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);

@@ -15,6 +15,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.CuratorCache;
 import org.apache.curator.framework.recipes.cache.CuratorCacheListener;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.http.HttpEntity;
@@ -417,6 +418,45 @@ public class RemoteClientServerZK implements IRemoteClientServer {
 	        classLogger.error("Error checking active state for model {}", modelId, e);
 	        return false;
 	    }
+	}
+
+	private static Map<String, InterProcessMutex> locks = new HashMap<>();
+
+	public boolean acquireLock(String file){
+		String zNodePath = "/vector/ideas/" + file;
+		InterProcessMutex lock = new InterProcessMutex(client, zNodePath);
+		try{
+			if(lock.acquire(10, TimeUnit.SECONDS)){
+				locks.put(zNodePath, lock);
+				return true;
+			}else{
+				// failed to acquire lock
+				return false;
+			}
+		}catch(Exception e){
+
+		}
+		return false;
+	}
+
+	public void releaseAndDeleteLock(String file){
+		String zNodePath = "/vector/ideas/" + file;
+		try{
+			InterProcessMutex lock = locks.get(zNodePath);
+			try{
+				if(lock != null){
+					lock.release();
+					client.delete().forPath(zNodePath);
+				}
+			}finally {
+				if(lock != null){
+					lock.release();
+					client.delete().forPath(zNodePath);
+				}
+			}
+		}catch(Exception e){
+
+		}
 	}
 
 	// I need this because there is a period of time between when the model is on the active path but the FastAPI service is not quite ready

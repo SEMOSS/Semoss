@@ -26,6 +26,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
+import prerna.cluster.util.RemoteClientServerZK;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
@@ -196,6 +197,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	
 	@Override
 	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -433,6 +435,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			throw e;
 		} finally {
 			cleanUpAddDocument(indexFilesDir);
+			for(String filePath: filePaths){
+				RemoteClientServerZK.getInstance().releaseAndDeleteLock(filePath);
+			}
 		}
 	}
 	
