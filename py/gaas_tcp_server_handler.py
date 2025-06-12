@@ -95,7 +95,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
     def log_error_to_json(self, error_message, location, epoc="N/A"):
         # Generate a unique ID based on the error message and location
-        raw_id = f"{error_message}|{location}"
+        raw_id = f"{error_message}|{location}|{epoc}"
         unique_id = hashlib.sha256(raw_id.encode()).hexdigest()
 
         # Prevent logging the same error ID multiple times in this session
@@ -114,22 +114,23 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         # Append to JSON file
         try:
-            with open(self.error_log_file, "r+") as f:
-                try:
-                    data = json.load(f)
-                except json.JSONDecodeError:
-                    data = []
+            with self.error_log_lock:  # avoid concurrent writes
+                with open(self.error_log_file, "r+", encoding="utf-8") as f:
+                    try:
+                        data = json.load(f)
+                    except json.JSONDecodeError:
+                        data = []
 
-                # Prevent duplicates on disk (check by ID)
-                exists = any(
-                    isinstance(e, dict) and e.get("id") == unique_id for e in data
-                )
+                    # Prevent duplicates on disk (check by ID)
+                    exists = any(
+                        isinstance(e, dict) and e.get("id") == unique_id for e in data
+                    )
 
-                if not exists:
-                    data.append(error_entry)
-                    f.seek(0)
-                    json.dump(data, f, indent=2)
-                    f.truncate()
+                    if not exists:
+                        data.append(error_entry)
+                        f.seek(0)
+                        json.dump(data, f, indent=2)
+                        f.truncate()
         except Exception as e:
             # Fallback logging
             self.logger.error(f"Failed to write to error JSON log: {e}")
@@ -192,8 +193,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.prefix = self.server.prefix
         self.insight_folder = self.server.insight_folder
         self.log_file = None
-        self.error_log_file = None
         self.logger = None
+        self.error_log_file = None
+        self.logged_error_ids = set()
+        self.error_log_lock = threading.Lock()
 
         # need to set timeout here also
         if self.server.timeout_val > 0:
@@ -208,7 +211,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 f"{self.insight_folder}/log.txt", "a", encoding="utf-8"
             )
             self.error_log_file = f"{self.insight_folder}/python_error_file.json"
-            self.logged_error_ids = set()
 
             # Create the error log file if it doesn't exist
             if not os.path.exists(self.error_log_file):
