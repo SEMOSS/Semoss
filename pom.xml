@@ -127,6 +127,7 @@
 						<executions>
 							<execution>
 								<goals>
+									<goal>initialize</goal>
 									<goal>configure</goal>
 								</goals>
 							</execution>
