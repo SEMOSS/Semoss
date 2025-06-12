@@ -14,8 +14,8 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public static final String TOOL = "TOOL";
     public static final String IMAGE = "IMAGE";
 
-    private String messageId;
-    private String roomId;
+    protected String messageId;
+    protected String roomId;
     protected String messageType = CHAT;
     
     public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
@@ -50,6 +50,8 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         responseMap.put(MESSAGE_TYPE, this.messageType);
         return responseMap;
     }
+    
+	public abstract String getStringResponse();
 
  // Factory method to create the appropriate response type
     @SuppressWarnings("unchecked")
@@ -83,9 +85,8 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             	//TODO: why are we grabbing only 1 tool???
             	//TODO: why are we grabbing only 1 tool???
                 List<?> responseList = (List<?>) response;
-                // Handle one tool object to process
-                if (!responseList.isEmpty() && responseList.get(0) instanceof Map) {
-                    return new AskToolModelEngineResponse((Map<String, Object>) responseList.get(0), tokensInPrompt, tokensInResponse);
+                if (!responseList.isEmpty()) {
+                    return new AskToolModelEngineResponse((List<Map<String, Object>>) responseList, tokensInPrompt, tokensInResponse);
                 } else {
                     throw new IllegalArgumentException("Tool list is empty or not valid");
                 }
@@ -134,5 +135,4 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		return fromMap(modelResponse);
     }
 
-	public abstract String getStringResponse();
 }
