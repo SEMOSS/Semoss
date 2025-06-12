@@ -205,14 +205,10 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 				Boolean bool = ((BooleanQuery) fullQuery).evaluate();
 				return bool;
 			}
-		} catch (RepositoryException e) {
+		} catch (RepositoryException | MalformedQueryException | QueryEvaluationException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} catch (MalformedQueryException mqe) {
-			classLogger.error(Constants.STACKTRACE, mqe);
-		} catch (QueryEvaluationException qee) {
-			classLogger.error(Constants.STACKTRACE, qee);
 		}
-		return null;
+        return null;
 	}
 
 	@Override
@@ -261,14 +257,10 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 				retVec.add(next);
 			}
 			return retVec;
-		} catch (RepositoryException e) {
+		} catch (RepositoryException | MalformedQueryException | QueryEvaluationException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} catch (MalformedQueryException mqe) {
-			classLogger.error(Constants.STACKTRACE, mqe);
-		} catch (QueryEvaluationException qee) {
-			classLogger.error(Constants.STACKTRACE, qee);
 		}
-		return null;
+        return null;
 	}
 
 	/**
@@ -373,7 +365,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 		} catch (RepositoryException re) {
 			classLogger.error(Constants.STACKTRACE, re);
 		}
-	}
+  }
 
 	@Override
 	public void removeStatement(Object[] args) {
@@ -455,7 +447,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 		} catch (UpdateExecutionException uee) {
 			classLogger.error(Constants.STACKTRACE, uee);
 		}
-	}
+  }
 
 	/**
 	 * Method exportDB.  Exports the repository connection to the RDF database.

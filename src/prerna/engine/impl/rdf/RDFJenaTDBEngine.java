@@ -182,21 +182,15 @@ public class RDFJenaTDBEngine extends AbstractDatabaseEngine implements IRDFData
 	 */
 	@Override
 	public void insertData(String query) {
-		this.dataset.begin(ReadWrite.WRITE);
-		try {
-			Model jenaModel = this.dataset.getDefaultModel();
-			UpdateRequest request = UpdateFactory.create();
-			request.add(query);
-			UpdateAction.execute(request, jenaModel);
-			this.dataset.commit();
-			this.inferredModel = null;
-		} finally {
-			this.dataset.end();
-		}
+		handleData(query);
 	}
 
 	@Override
 	public void removeData(String query) {
+		handleData(query);
+	}
+
+	private void handleData(String query) {
 		this.dataset.begin(ReadWrite.WRITE);
 		try {
 			Model jenaModel = this.dataset.getDefaultModel();

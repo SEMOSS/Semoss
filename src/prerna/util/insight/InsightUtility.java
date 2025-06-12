@@ -400,6 +400,18 @@ public class InsightUtility {
 		}
 	}
 	
+	/**
+	 * Used to register an insight within an insight to the insight store
+	 * @param parentInsight
+	 * @param newInsight
+	 */
+	public static void registerNestedInsight(Insight parentInsight, Insight childInsight, String sessionId) {
+		transferDefaultVars(parentInsight, childInsight);
+		transferInsightIdentifiers(parentInsight, childInsight);
+		InsightStore.getInstance().put(childInsight);
+		InsightStore.getInstance().addToSessionHash(sessionId, childInsight.getInsightId());
+	}
+	
 	public static NounMetadata dropInsight(final Insight insight) {
 		synchronized(insight) {
 			classLogger.info("Droping insight " + insight.getInsightId());

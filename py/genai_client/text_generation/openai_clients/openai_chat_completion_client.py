@@ -8,7 +8,10 @@ from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import (
     AskModelEngineResponse,
     InstructModelEngineResponse,
+    IMAGE_ENCODED,
+    IMAGE_URL,
 )
+from utils.util import string_to_bool
 
 
 class OpenAiChatCompletion(AbstractOpenAiClient):
@@ -156,6 +159,33 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         return updated_kwargs
 
+    def resolve_token_param_naming(self, **kwargs) -> dict:
+        """
+        Resolves the token parameter naming for different OpenAI-compatible APIs.
+        Some APIs use max_tokens while others use max_completion_tokens.
+        Set use_max_tokens=True in config to use max_tokens parameter.
+        """
+        use_max_tokens_param = self.use_max_tokens_param
+        if isinstance(use_max_tokens_param, str):
+            use_max_tokens_param = string_to_bool(use_max_tokens_param)
+
+        max_completion_tokens = kwargs.pop("max_completion_tokens", None)
+        max_tokens = kwargs.pop("max_tokens", None)
+
+        # Determine which value to use (prefer the one that was actually set)
+        token_limit = max_completion_tokens or max_tokens
+
+        if not token_limit:
+            return kwargs
+
+        # Set the appropriate parameter based on API preference
+        if use_max_tokens_param:
+            kwargs["max_tokens"] = token_limit
+        else:
+            kwargs["max_completion_tokens"] = token_limit
+
+        return kwargs
+
     def inference_call(self, prefix: str, **kwargs) -> Tuple[str, int, str]:
         final_query = ""
         response_tokens = None
@@ -182,11 +212,8 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         if "tool_choice" in kwargs:
             kwargs["stream"] = False
 
-        # Check if 'max_tokens' exists in kwargs and remove it, saving its value
-        max_tokens = kwargs.pop("max_tokens", None)
-        # If 'max_tokens' was found and 'max_completion_tokens' is not already in kwargs, set it
-        if max_tokens is not None and "max_completion_tokens" not in kwargs:
-            kwargs["max_completion_tokens"] = max_tokens
+        # Checking if use_max_tokens was set in SMSS to support non-updated API's (e.g. nvidia nims)
+        kwargs = self.resolve_token_param_naming(**kwargs)
 
         # Update model specific kwargs
         kwargs = self._update_model_specific_kwargs(**kwargs)
@@ -198,9 +225,15 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             toolResult = []
             if tools_call:  # Check if tools_call is not empty
                 for tool_call in tools_call:
+                    # TODO: we should not create our own format
+                    # TODO: we should not create our own format
+                    # TODO: we should not create our own format
+                    # TODO: we should not create our own format
+                    # TODO: we should not create our own format
                     toolResult.append(
                         {
                             "id": tool_call.id,
+                            "type": tool_call.type,
                             "name": tool_call.function.name,
                             "arguments": tool_call.function.arguments,
                         }
@@ -340,3 +373,35 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             model_engine_response.warning = "\n\n".join(warnings)
 
         return updated_messages, final_max_tokens, model_engine_response
+
+    def _handle_image_params(
+        self, question: str, fill_variables: dict, message_payload
+    ):
+        """
+        Handle image parameters in the payload.
+        """
+        image_payload = [{"type": "text", "text": question}]
+
+        key_to_pop = IMAGE_ENCODED if IMAGE_ENCODED in fill_variables else IMAGE_URL
+        images = fill_variables.pop(key_to_pop)
+        if isinstance(images, str):
+            if key_to_pop == IMAGE_ENCODED:
+                image_url = {"url": f"data:image/png;base64,{images}"}
+            else:
+                image_url = {"url": images}
+            image_payload.append({"type": "image_url", "image_url": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload, fill_variables
+        elif isinstance(images, list):
+            for image in images:
+                if key_to_pop == IMAGE_ENCODED:
+                    image_url = {"url": f"data:image/png;base64,{image}"}
+                else:
+                    image_url = {"url": image}
+                image_payload.append({"type": "image_url", "image_url": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload, fill_variables
+        else:
+            raise ValueError(
+                f"Invalid type for {key_to_pop}. Expected str or list, got {type(images)}"
+            )
