@@ -20,6 +20,7 @@ import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.sparql.exec.http.QueryExecutionHTTP;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -96,7 +97,7 @@ public class RemoteJenaEngineUnitTests {
 
         try (MockedStatic<QueryExecutionFactory> factory = Mockito.mockStatic(QueryExecutionFactory.class)) {
             QueryExecution qexec = mock(QueryExecution.class);
-            factory.when(() -> QueryExecutionFactory.sparqlService(expectedFinalUrl, query))
+            factory.when(() -> QueryExecutionHTTP.service(expectedFinalUrl).query(query).build())
                     .thenReturn(qexec);
 
             when(qexec.execAsk()).thenReturn(true);
@@ -125,7 +126,7 @@ public class RemoteJenaEngineUnitTests {
 
         try (MockedStatic<QueryExecutionFactory> factory = Mockito.mockStatic(QueryExecutionFactory.class)) {
             QueryExecution qexec = mock(QueryExecution.class);
-            factory.when(() -> QueryExecutionFactory.sparqlService(expectedFinalUrl, query))
+            factory.when(() -> QueryExecutionHTTP.service(expectedFinalUrl).query(query).build())
                     .thenReturn(qexec);
 
             Model model = mock(Model.class);
@@ -153,7 +154,7 @@ public class RemoteJenaEngineUnitTests {
 
         try (MockedStatic<QueryExecutionFactory> factory = Mockito.mockStatic(QueryExecutionFactory.class)) {
             QueryExecution qexec = mock(QueryExecution.class);
-            factory.when(() -> QueryExecutionFactory.sparqlService(expectedFinalUrl, query))
+            factory.when(() -> QueryExecutionHTTP.service(expectedFinalUrl).query(query).build())
                     .thenReturn(qexec);
 
             ResultSet rs = mock(ResultSet.class);
