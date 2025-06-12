@@ -1,17 +1,20 @@
 package prerna.test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.model.AbstractModelEngine;
-import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.project.api.IProject;
@@ -22,14 +25,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.ArrayList;
 
 public class AskToolReactor extends AbstractReactor {
     private static final Pattern MARKDOWN_CODE_PATTERN = Pattern.compile(
@@ -145,7 +140,7 @@ public class AskToolReactor extends AbstractReactor {
             String toolName;
             String toolType;
             
-            if(toolResponse.getResponse().get("name").equals("project_engine")){
+            if(toolResponse.getResponse().get(0).get("name").equals("project_engine")){
                 IProject project = Utility.getProject((String) functionParams.get("id"));
                 toolName = project.getProjectName();
                 toolType = "PROJECT";

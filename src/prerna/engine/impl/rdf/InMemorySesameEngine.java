@@ -147,14 +147,10 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 				Boolean bool = ((BooleanQuery) fullQuery).evaluate();
 				return bool;
 			}
-		} catch (RepositoryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (MalformedQueryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (QueryEvaluationException e) {
+		} catch (RepositoryException | MalformedQueryException | QueryEvaluationException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		return null;
+        return null;
 	}
 
 	/**
@@ -174,16 +170,11 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 			//tq.evaluate();
 			rc.setAutoCommit(false);
 			up.execute();
-		} catch (RepositoryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (UpdateExecutionException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}catch (MalformedQueryException e)
-		{
+		} catch (RepositoryException | UpdateExecutionException | MalformedQueryException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
-	}
+    }
 	
 	@Override
 	public DATABASE_TYPE getDatabaseType()
@@ -203,7 +194,7 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 			classLogger.debug("\nSPARQL: " + sparqlQuery);
 			tq.setIncludeInferred(true /* includeInferred */);
 			TupleQueryResult sparqlResults = tq.evaluate();
-			Vector<Object> retVec = new Vector<Object>();
+			Vector<Object> retVec = new Vector<>();
 			while(sparqlResults.hasNext()) {
 				Value val = sparqlResults.next().getValue(Constants.ENTITY);
 				Object next = null;
@@ -213,6 +204,8 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 					if(dataType.getLocalName().equals("integer")) {
 						next = literal.intValue();
 					} else if(dataType.getLocalName().equals("double")) {
+						// THIS COULD BE A POTENTIAL BUG. After looking at the Literal class, I believe
+						// There is an implementing class called DECIMAL but not one for DOUBLE
 						next = literal.doubleValue();
 					} else if(dataType.getLocalName().equals("float")) {
 				        next = literal.floatValue();
@@ -233,14 +226,10 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 			}
 
 			return retVec;
-		} catch (RepositoryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (MalformedQueryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (QueryEvaluationException e) {
+		} catch (RepositoryException | MalformedQueryException | QueryEvaluationException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		return null;
+        return null;
 	}
 
 	
@@ -322,14 +311,10 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 					sc.addStatement(newSub, newPred, vf.createURI(object+""));
 				}
 			}
-		} catch (SailException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (UnknownTransactionStateException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (RepositoryException e) {
+		} catch (SailException | RepositoryException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-	}
+    }
 
 	public void removeStatement(Object[] args)
 	{
@@ -373,14 +358,10 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 					sc.removeStatements(newSub, newPred, vf.createURI(object+""));
 				}
 			}
-		} catch (SailException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (UnknownTransactionStateException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (RepositoryException e) {
+		} catch (SailException | RepositoryException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-	}
+    }
 
 	/**
 	 * Processes the passed ASK SPARQL query against the engine.  The query must be in the structure of an ASK query and the 
