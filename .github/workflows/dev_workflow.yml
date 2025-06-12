@@ -11,8 +11,8 @@ on:
   workflow_dispatch:
 
 env:
-  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
-  MAVEN_CLI_OPTS: "-s ./settings.xml --batch-mode"
+  MAVEN_OPTS: '-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true'
+  MAVEN_CLI_OPTS: '-s ./settings.xml --batch-mode'
   DOCKER_DRIVER: overlay2
   GPG_PASS_PHRASE: ${{ secrets.GPG_PASS_PHRASE }}
   RELEASE: ${{ vars.RELEASE }}
@@ -90,7 +90,7 @@ jobs:
     runs-on: self-hosted
     if: ${{ vars.RELEASE != 'TRUE'  && (github.event_name =='push' || github.event_name =='pull_request')  }}
     container:
-      image: semoss/docker
+      image: jelastic/maven:3.9.10-openjdk-21.0.2-almalinux-9
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
