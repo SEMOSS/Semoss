@@ -1,10 +1,11 @@
 from typing import Optional, Dict
 from google import genai
+from anthropic import AnthropicVertex
 from pydantic import BaseModel, Field
 from ..utils import StringEnum
 
 
-class GoogleClientProviders(StringEnum):
+class GoogleClientType(StringEnum):
     """Current providers we support for Google clients.
     Google covers the Google GenAI API & Gemini API.
     """
@@ -19,8 +20,8 @@ class GoogleClientConfig(BaseModel):
     For Gemini clients, the api_key is required.
     """
 
-    provider: GoogleClientProviders = Field(
-        description="The provider for the client (e.g., 'google', 'anthropic')"
+    type: GoogleClientType = Field(
+        description="The type of client (e.g., 'google', 'anthropic')"
     )
     service_account_credentials: Optional[Dict] = None
     service_account_key_file: Optional[str] = None
@@ -70,35 +71,51 @@ class GoogleClient:
         return scoped_credentials
 
     def _get_client(self):
-        if self.config.provider == GoogleClientProviders.GOOGLE:
-            return self._get_google_client(
-                project=self.config.project,
-                location=self.config.region,
-                api_key=self.config.api_key,
-            )
+        if self.config.type == GoogleClientType.GOOGLE:
+            return self._get_google_client()
+        elif self.config.type == GoogleClientType.ANTHROPIC:
+            return self._get_anthropic_client()
         else:
             raise ValueError(f"Unsupported provider: {self.config.provider}. ")
 
     def _get_google_client(
         self,
-        project: str = None,
-        location: str = None,
-        api_key: str = None,
     ) -> genai.Client:
         """Initialize the Google Gen AI client with credentials from SMSS."""
         try:
-            if api_key:
-                return genai.Client(api_key=api_key)
-            elif project is not None and location is not None:
+            if self.config.api_key:
+                return genai.Client(api_key=self.config.api_key)
+            elif (
+                self.config.project
+                and self.config.region
+                and self.service_account_credentials
+            ):
                 return genai.Client(
                     credentials=self.service_account_credentials,
                     vertexai=True,
-                    location=location,
-                    project=project,
+                    location=self.config.region,
+                    project=self.config.project,
                 )
             else:
                 raise ValueError(
-                    "Either api_key or both project and location must be provided."
+                    "Either api_key or each of project, location and service account credentials must be provided."
                 )
         except Exception as e:
             raise RuntimeError(f"Failed to initialize Google Gen AI client: {e}")
+
+    def _get_anthropic_client(self) -> AnthropicVertex:
+        """Initialize the Anthropic Vertex client."""
+        if (
+            not self.config.project
+            or not self.config.region
+            or not self.service_account_credentials
+        ):
+            raise ValueError(
+                "Project, region and service account credentials must be provided for Anthropic client."
+            )
+
+        return AnthropicVertex(
+            credentials=self.service_account_credentials,
+            project_id=self.config.project,
+            region=self.config.region,
+        )

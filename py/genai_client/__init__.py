@@ -27,8 +27,8 @@ def __getattr__(name: str) -> Any:
 
         return VertexClient
     elif name == "AnthropicClient":
-        from .text_generation.anthropic_client.anthropic_controller import (
-            AnthropicClientController as AnthropicClient,
+        from .text_generation.anthropic_client.anthropic_text_client import (
+            AnthropicTextClient as AnthropicClient,
         )
 
         return AnthropicClient

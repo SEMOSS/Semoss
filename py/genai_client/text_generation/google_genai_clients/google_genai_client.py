@@ -4,24 +4,11 @@ from google.genai import types
 from ...clients.google_clients import (
     GoogleClient,
     GoogleClientConfig,
-    GoogleClientProviders,
+    GoogleClientType,
 )
 from ...utils import StringEnum, classify_url
-from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME, FULL_PROMPT
+from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
 from ..abstract_text_generation_client import AbstractTextGenerationClient
-
-
-class AskSettings(BaseModel):
-    """
-    Represents all of the conditional settings that affect the model call but are not passed
-    as parameters to the model call itself.
-    """
-
-    full_prompt: Optional[List[Dict]] = None
-    streaming: bool = False
-    use_history: bool = True
-    history: Optional[List[Dict]] = None
-    image_url: Optional[List[str]] = None
 
 
 # Mimicking Google Gen AI's usage metadata structure
@@ -71,7 +58,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             **kwargs,
         )
         self.client_config = GoogleClientConfig(
-            provider=GoogleClientProviders.GOOGLE,
+            type=GoogleClientType.GOOGLE,
             service_account_credentials=service_account_credentials,
             service_account_key_file=service_account_key_file,
             region=region,
@@ -94,7 +81,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         if self.client is None:
             raise ValueError("Google Gen AI client is not initialized.")
 
-        ask_settings = self._get_ask_settings(history, use_history, **kwargs)
+        ask_settings = self.get_ask_settings(history, use_history, **kwargs)
 
         if ask_settings.full_prompt is not None:
             converted_history = self._convert_history(
@@ -279,31 +266,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         )
         return config
 
-    def _get_ask_settings(
-        self, history=None, use_history: bool = True, **kwargs
-    ) -> AskSettings:
-        """
-        Get the ask settings from the provided keyword arguments.
-        """
-        full_prompt = kwargs.pop(FULL_PROMPT, None)
-        streaming = kwargs.pop("streaming", False)
-        image_url = kwargs.pop("image_url", None)
-        # So we can send multiple images
-        if isinstance(image_url, str):
-            image_url = [image_url]
-        if not streaming:
-            streaming = kwargs.pop("stream", False)
-
-        if not use_history:
-            history = None
-
-        return AskSettings(
-            full_prompt=full_prompt,
-            streaming=streaming,
-            history=history,
-            image_url=image_url,
-        )
-
     def _count_tokens(self, contents: List[types.Content]) -> int:
         try:
             response = self.client.models.count_tokens(
@@ -315,7 +277,11 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             raise RuntimeError(f"Failed to count tokens: {e}")
 
     def _convert_history(
-        self, history: List[Dict] = None, question: str = None, image_url: str = None
+        self,
+        history: List[Dict] = None,
+        question: str = None,
+        image_url: List[str] = None,
+        image_encoded: List[str] = None,
     ) -> ConvertedHistory:
         """
         Convert our history format to Google Gen AI's Content format.
@@ -356,8 +322,12 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         if question:
             final_message_parts = []
             if image_url:
-                image_parts = self._create_image_part(image_url)
-                final_message_parts.extend(image_parts)
+                image_url_parts = self._create_image_part(image_url)
+                final_message_parts.extend(image_url_parts)
+            if image_encoded:
+                image_encoded_parts = self._create_image_part(image_encoded)
+                final_message_parts.extend(image_encoded_parts)
+
             final_message_parts.append(types.Part.from_text(text=question))
             final_message = types.Content(role=Roles.USER, parts=final_message_parts)
             google_history.append(final_message)
