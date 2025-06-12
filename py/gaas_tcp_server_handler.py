@@ -114,23 +114,22 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         # Append to JSON file
         try:
-            with self.error_log_lock:  # avoid concurrent writes
-                with open(self.error_log_file, "r+", encoding="utf-8") as f:
-                    try:
-                        data = json.load(f)
-                    except json.JSONDecodeError:
-                        data = []
+            with open(self.error_log_file, "r+", encoding="utf-8") as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    data = []
 
-                    # Prevent duplicates on disk (check by ID)
-                    exists = any(
-                        isinstance(e, dict) and e.get("id") == unique_id for e in data
-                    )
+                # Prevent duplicates on disk (check by ID)
+                exists = any(
+                    isinstance(e, dict) and e.get("id") == unique_id for e in data
+                )
 
-                    if not exists:
-                        data.append(error_entry)
-                        f.seek(0)
-                        json.dump(data, f, indent=2)
-                        f.truncate()
+                if not exists:
+                    data.append(error_entry)
+                    f.seek(0)
+                    json.dump(data, f, indent=2)
+                    f.truncate()
         except Exception as e:
             # Fallback logging
             self.logger.error(f"Failed to write to error JSON log: {e}")
@@ -196,7 +195,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.logger = None
         self.error_log_file = None
         self.logged_error_ids = set()
-        self.error_log_lock = threading.Lock()
 
         # need to set timeout here also
         if self.server.timeout_val > 0:
