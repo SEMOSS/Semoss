@@ -92,10 +92,18 @@ jobs:
     container:
       image: maven:3.9.9-amazoncorretto-21-debian
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # need this so there is a .git during the code since the githook in pom.xml will fail without it
+      # seems like this action happens in the host, not the container, so it never moves the .git over
+      # - name: Checkout code
+      #   uses: actions/checkout@v4
+      #   with:
+      #     fetch-depth: 0 # need this so there is a .git during the code since the githook in pom.xml will fail without it
+      - name: Checkout manually
+        run: |
+          apt-get update && apt-get install -y git
+          git init
+          git remote add origin https://github.com/${{ github.repository }}.git
+          git fetch --no-tags origin +${{ github.ref }}:refs/remotes/origin/temp
+          git checkout temp
 
       - name: Debug Git
         run: |
