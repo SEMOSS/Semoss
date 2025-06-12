@@ -1,7 +1,11 @@
 from typing import List, Optional, Dict
 from pydantic import BaseModel
 from google.genai import types
-from ...clients.google_genai_client import GoogleGenAIClient, GoogleGenAIClientConfig
+from ...clients.google_clients import (
+    GoogleClient,
+    GoogleClientConfig,
+    GoogleClientProviders,
+)
 from ...utils import StringEnum, classify_url
 from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME, FULL_PROMPT
 from ..abstract_text_generation_client import AbstractTextGenerationClient
@@ -66,14 +70,15 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             template_name=kwargs.pop(TEMPLATE_NAME, None),
             **kwargs,
         )
-        self.client_config = GoogleGenAIClientConfig(
+        self.client_config = GoogleClientConfig(
+            provider=GoogleClientProviders.GOOGLE,
             service_account_credentials=service_account_credentials,
             service_account_key_file=service_account_key_file,
             region=region,
             project=project,
             api_key=api_key,
         )
-        self.client = GoogleGenAIClient(config=self.client_config).client
+        self.client = GoogleClient(config=self.client_config).client
 
         self.safety_settings = safety_settings
 

@@ -1,14 +1,27 @@
 from typing import Optional, Dict
 from google import genai
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from ..utils import StringEnum
 
 
-class GoogleGenAIClientConfig(BaseModel):
+class GoogleClientProviders(StringEnum):
+    """Current providers we support for Google clients.
+    Google covers the Google GenAI API & Gemini API.
     """
-    Provide the first 4 parameters to initialize the Google GenAI client when using Vertex API.
-    Provide only API key to initialize the client when using the Gemini API.
+
+    GOOGLE = "google"
+    ANTHROPIC = "anthropic"
+
+
+class GoogleClientConfig(BaseModel):
+    """
+    For Google GenAI Vertex & Anthropic Vertex clients the service_account_credentials, region and project are required.
+    For Gemini clients, the api_key is required.
     """
 
+    provider: GoogleClientProviders = Field(
+        description="The provider for the client (e.g., 'google', 'anthropic')"
+    )
     service_account_credentials: Optional[Dict] = None
     service_account_key_file: Optional[str] = None
     region: Optional[str] = None
@@ -16,22 +29,21 @@ class GoogleGenAIClientConfig(BaseModel):
     api_key: Optional[str] = None
 
 
-class GoogleGenAIClient:
+class GoogleClient:
     """
     A client for interacting with Google GenAI services.
     Use this class to load the client for text generation, embeddings, and other GenAI functionalities.
     """
 
-    def __init__(self, config: GoogleGenAIClientConfig):
+    def __init__(self, config: GoogleClientConfig):
         self.config = config
 
-        self.service_account_credentials = self._load_credentials(
-            config.service_account_credentials, config.service_account_key_file
-        )
+        if config.service_account_credentials or config.service_account_key_file:
+            self.service_account_credentials = self._load_credentials(
+                config.service_account_credentials, config.service_account_key_file
+            )
 
-        self.client = self._get_client(
-            config.project, config.region, api_key=config.api_key
-        )
+        self.client = self._get_client()
 
     def _load_credentials(self, service_account_credentials, service_account_key_file):
         """Load service account credentials with required scopes"""
@@ -57,7 +69,17 @@ class GoogleGenAIClient:
 
         return scoped_credentials
 
-    def _get_client(
+    def _get_client(self):
+        if self.config.provider == GoogleClientProviders.GOOGLE:
+            return self._get_google_client(
+                project=self.config.project,
+                location=self.config.region,
+                api_key=self.config.api_key,
+            )
+        else:
+            raise ValueError(f"Unsupported provider: {self.config.provider}. ")
+
+    def _get_google_client(
         self,
         project: str = None,
         location: str = None,
