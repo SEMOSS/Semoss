@@ -1021,5 +1021,12 @@ public class Constants {
     public static final String EXTERNAL_DATABASE_MANAGEMENT_TABLENAME = "EXTERNAL_DATABASE_MANAGEMENT_TABLENAME";
     public static final String EXTERNAL_DATABASE_MANAGEMENT_COLUMNNAME = "EXTERNAL_DATABASE_MANAGEMENT_COLUMNNAME";
     public static final String EXTERNAL_DATABASE_MANAGEMENT_DATATYPE = "EXTERNAL_DATABASE_MANAGEMENT_DATATYPE";
-    
+
+	//Kafka Logging
+    public static final String BOOTSTRAP_SERVERS_CONFIG ="BOOTSTRAP_SERVERS_CONFIG";
+	public static final String SECURITY_PROTOCOL_CONFIG = "SECURITY_PROTOCOL_CONFIG";
+	public static final String SASL_MECHANISM = "SASL_MECHANISM";
+	public static final String KAFKA_USERNAME ="KAFKA_USERNAME";
+	public static final String KAFKA_PASSWORD ="KAFKA_PASSWORD";
+	public static final String KAFKA_TOPIC = "KAFKA_TOPIC";
 }

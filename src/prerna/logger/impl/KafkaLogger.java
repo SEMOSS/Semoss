@@ -9,6 +9,8 @@ import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.security.scram.ScramLoginModule;
 import org.apache.kafka.common.serialization.StringSerializer;
 import prerna.logger.IQueueLogger;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 import java.util.Properties;
 
@@ -69,14 +71,33 @@ public class KafkaLogger implements IQueueLogger {
         }
     }
 
+    private void putIfRdfPresent(Properties properties, String rdfKey, String kafkaKey){
+        String value = DIHelper.getInstance().getProperty(rdfKey);
+        if(value != null && !value.isEmpty()){
+            properties.put(kafkaKey, value);
+        }
+    }
+
     private Properties defaultProps(String config) {
         Properties props = getProperties(config);
         props.put("acks", "all");
+
+
+        //read rdf
+        putIfRdfPresent(props,Constants.BOOTSTRAP_SERVERS_CONFIG, ProducerConfig.BOOTSTRAP_SERVERS_CONFIG);
+        putIfRdfPresent(props,Constants.SECURITY_PROTOCOL_CONFIG, CommonClientConfigs.SECURITY_PROTOCOL_CONFIG);
+        putIfRdfPresent(props,Constants.SASL_MECHANISM, SaslConfigs.SASL_MECHANISM);
+        putIfRdfPresent(props, Constants.KAFKA_TOPIC, "topic");
+
+        //override env
         putIfEnvPresent(props,ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ProducerConfig.BOOTSTRAP_SERVERS_CONFIG);
         putIfEnvPresent(props,CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, CommonClientConfigs.SECURITY_PROTOCOL_CONFIG);
         putIfEnvPresent(props,SaslConfigs.SASL_MECHANISM,SaslConfigs.SASL_MECHANISM);
-        String username = System.getenv("USERNAME");
-        String password = System.getenv("PASSWORD");
+
+        System.out.println(props.toString());
+
+        String username = System.getenv(Constants.KAFKA_USERNAME);
+        String password = System.getenv(Constants.KAFKA_PASSWORD);
         if(username !=null && password !=null){
             props.put(SaslConfigs.SASL_JAAS_CONFIG,"org.apache.kafka.common.security.scram.ScramLoginModule required "+"username=\""+username+"\" password=\""+password+"\";");
         }
