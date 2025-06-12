@@ -90,7 +90,7 @@ jobs:
     runs-on: self-hosted
     if: ${{ vars.RELEASE != 'TRUE'  && (github.event_name =='push' || github.event_name =='pull_request')  }}
     container:
-      image: jelastic/maven:3.9.10-openjdk-21.0.2-almalinux-9
+      image: mcr.microsoft.com/openjdk/jdk:21-ubuntu
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
