@@ -95,12 +95,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug Git
-        run: |
-          ls -la
-          ls -la .git 
-          git status
-
       - name: Install dependencies
         run: |
           apt-get --allow-releaseinfo-change update -y
