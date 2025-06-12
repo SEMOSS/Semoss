@@ -96,10 +96,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # need this so there is a .git during the code since the githook in pom.xml will fail without it
-          path: semoss
 
       - name: Debug Git
-        working-directory: semoss
         run: |
           ls -la
           ls -la .git 
@@ -112,7 +110,6 @@ jobs:
           apt-get install -y openjfx
 
       - name: Build with Maven
-        working-directory: semoss
         run: mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
 
       - name: Remove cache to save space
