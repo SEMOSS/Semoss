@@ -105,6 +105,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
 	private boolean modelPropsLoaded = false;
 	
+	private boolean removeDocsFlag = true;
+	
 	// string substitute vars
 	private Map<String, String> vars = new HashMap<>();
 
@@ -279,6 +281,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			this.smssProp.put(Constants.KEYWORD_ENGINE_ID, "");
 		}
 		
+		if(this.smssProp.getProperty(Constants.REMOVE_DOCS_FLAG) != null) {
+			this.removeDocsFlag = Boolean.valueOf(this.smssProp.getProperty(Constants.REMOVE_DOCS_FLAG));
+		}
+		
 		for (Object smssKey : this.smssProp.keySet()) {
 			String key = smssKey.toString();
 			this.vars.put(key, this.smssProp.getProperty(key));
@@ -384,7 +390,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
                     throw new SQLException("Error inserting embeddings data for row " + j);
                 }
             }
-            
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -453,6 +458,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	@Override
 	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws IOException {
+		
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
@@ -524,6 +530,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
 			deleteFilesFromCloudThread.start();
 		}
+		
 	}
 
 	@Override
@@ -899,13 +906,15 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
-		
-		try {
-			this.removeDocument(filePaths, parameters);
-		} catch(Exception ignore) {
-			// we are only removing just in case
-			// if something doesn't exist, just ignore the exception
+		if(removeDocsFlag) {
+			try {
+				this.removeDocument(filePaths, parameters);
+			} catch(Exception ignore) {
+				// we are only removing just in case
+				// if something doesn't exist, just ignore the exception
+			}
 		}
+		
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
@@ -1205,5 +1214,4 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
 		}
 	}
-
 }
