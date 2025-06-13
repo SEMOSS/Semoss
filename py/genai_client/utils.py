@@ -130,14 +130,12 @@ def _extract_extension_from_base64(data_url: str) -> Optional[str]:
         Optional[str]: File extension or None if not found
     """
     try:
-        # Extract MIME type from data URL
         mime_match = re.match(r"^data:image/([a-zA-Z]+);base64,", data_url)
         if not mime_match:
             return None
 
         mime_subtype = mime_match.group(1).lower()
 
-        # Map common MIME subtypes to file extensions
         mime_to_extension = {
             "jpeg": "jpg",
             "jpg": "jpg",
@@ -173,14 +171,11 @@ def _extract_extension_from_web_url(url: str) -> Optional[str]:
         parsed = urlparse(url)
         path = parsed.path
 
-        # Extract extension from the path
         if "." in path:
             extension = path.split(".")[-1].lower()
 
-            # Remove query parameters if they got included
             extension = extension.split("?")[0].split("#")[0]
 
-            # Validate it's a common image extension
             valid_extensions = {
                 "jpg",
                 "jpeg",
@@ -195,7 +190,6 @@ def _extract_extension_from_web_url(url: str) -> Optional[str]:
             }
 
             if extension in valid_extensions:
-                # Normalize jpeg to jpg
                 return "jpeg" if extension == "jpg" else extension
 
         return None
@@ -209,16 +203,13 @@ def fetch_and_encode_image(url: str) -> Tuple[str, str]:
     response = requests.get(url)
     response.raise_for_status()
 
-    # Determine media type from content-type header or URL extension
     content_type = response.headers.get("content-type", "")
     if content_type.startswith("image/"):
         media_type = content_type
     else:
-        # Fallback to extension-based detection
         extension = get_image_extension(url)
         media_type = f"image/{extension.lower()}"
 
-    # Encode to base64
     image_data = base64.b64encode(response.content).decode("utf-8")
 
     return image_data, media_type

@@ -1,4 +1,5 @@
 from typing import List, Optional, Dict, Any, Union, Tuple
+import json
 from pydantic import BaseModel
 from ...clients.google_clients import (
     GoogleClient,
@@ -54,10 +55,25 @@ class DocumentContentPart(BaseModel):
 
 
 # FOR HISTORY
-class ToolContentPart(BaseModel):
+class ToolUseContentPart(BaseModel):
+    type: str = "tool_use"
+    id: str
     name: str
+    input: Dict[str, Any]
+
+
+# FOR HISTORY
+class ToolResultContentPart(BaseModel):
+    type: str = "tool_result"
     tool_use_id: str
     content: str
+
+
+# FOR CALLING TOOLS
+class ToolCall(BaseModel):
+    name: str
+    description: Optional[str] = None
+    input_schema: Optional[Dict[str, Any]] = None
 
 
 class ThinkingContentPart(BaseModel):
@@ -79,7 +95,8 @@ class Message(BaseModel):
             Union[
                 TextContentPart,
                 ImageContentPart,
-                ToolContentPart,
+                ToolUseContentPart,
+                ToolResultContentPart,
                 ThinkingContentPart,
                 DocumentContentPart,
             ]
@@ -102,6 +119,7 @@ class AnthropicRequestConfig(BaseModel):
     model: str
     messages: List[Dict[str, Any]]
     system: Optional[str] = None
+    tools: Optional[List[Dict]] = None
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None
     top_k: Optional[int] = None
@@ -157,9 +175,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         self.ask_settings = self.get_ask_settings(history, use_history, **kwargs)
 
-        converted_history, system_prompt_from_history = self._convert_history(
-            question=question,
-        )
+        if self.ask_settings.full_prompt:
+            self.ask_settings.history = self.ask_settings.full_prompt
+            converted_history, system_prompt_from_history = self._convert_history()
+        else:
+            converted_history, system_prompt_from_history = self._convert_history(
+                question=question,
+            )
+
         if system_prompt_from_history and context is None:
             context = system_prompt_from_history
 
@@ -169,18 +192,22 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             **kwargs,
         )
 
-        request_config_dict = self.request_config.model_dump(
-            exclude_none=True, mode="json"
-        )
-
         if self.ask_settings.streaming:
-            response = self._handle_streaming(prefix=prefix)
+            response = self._handle_streaming(
+                prefix=prefix, converted_history=converted_history
+            )
             response_text = response.text
             usage = response.usage
         else:
             response = self.client.messages.create(
                 **self.request_config.model_dump(exclude_none=True),
             )
+            if response.stop_reason == "tool_use":
+                return self._parse_tools_call_response(
+                    response,
+                    prompt_tokens=response.usage.input_tokens,
+                    response_tokens=response.usage.output_tokens,
+                )
             response_text = response.content[0].text
             usage = Usage(
                 input_tokens=response.usage.input_tokens,
@@ -194,7 +221,30 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             messageType="CHAT",
         )
 
-    def _handle_streaming(self, prefix: str = ""):
+    def _parse_tools_call_response(
+        self, response, prompt_tokens: int = None, response_tokens: int = None
+    ) -> AskModelEngineResponse:
+        tools_result = []
+        for content in response.content:
+            if content.type == "tool_use":
+                tool_use = {
+                    "id": content.id,
+                    "name": content.name,
+                    "arguments": content.input,
+                    "type": "function",
+                }
+                tools_result.append(tool_use)
+
+        return AskModelEngineResponse(
+            response=tools_result,
+            response_tokens=response_tokens,
+            prompt_tokens=prompt_tokens,
+            messageType="TOOL",
+        )
+
+    def _handle_streaming(
+        self, prefix: str = "", converted_history: List[Message] = None
+    ) -> StreamingResponse:
 
         final_response = ""
 
@@ -208,8 +258,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     end="",
                 )
 
-        # TODO:
-        usage = Usage(input_tokens=0, output_tokens=0)
+        input_tokens = self._count_tokens(converted_history=converted_history)
+        output_tokens = self._count_tokens(response_string=final_response)
+        usage = Usage(input_tokens=input_tokens, output_tokens=output_tokens)
 
         return StreamingResponse(
             text=final_response,
@@ -229,10 +280,17 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             or self.model_limits.max_completion_tokens
         )
 
+        tools = kwargs.pop("tools", None)
+        if tools is not None:
+            tools = self._handle_tools_conversion(tools)
+            tools = [tools.model_dump(mode="json") for tools in tools]
+            self.ask_settings.streaming = False
+
         return AnthropicRequestConfig(
             model=self.model_name,
             system=context,
             messages=[message.model_dump(mode="json") for message in history],
+            tools=tools,
             max_tokens=max_tokens,
             temperature=kwargs.pop("temperature", None),
             top_k=kwargs.pop("top_k", None),
@@ -255,17 +313,52 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 role = message.get("role", Roles.USER)
                 # Supporting this for now
                 if role == "system":
-                    system_message = content
+                    system_message = message.get("content", "")
                     continue
 
-                if role != Roles.USER and role != Roles.ASSISTANT:
-                    role = Roles.ASSISTANT
-
-                content = message.get("content", None)
-                tool_calls = message.get("tool_calls", [])
                 content_parts = []
 
-                message = Message(role=role, content=[TextContentPart(text=content)])
+                if role == Roles.USER:
+                    message_content = message.get("content", "")
+                    content_parts.append(TextContentPart(text=message_content))
+
+                # our roles can be assistant, user, tool or system
+                elif role != Roles.USER:
+                    tool_calls = message.get("tool_calls", None)
+                    if tool_calls:
+                        for tool_call in tool_calls:
+
+                            arguments = tool_call.get("function").get("arguments", {})
+                            if isinstance(arguments, str):
+                                try:
+                                    arguments = json.loads(arguments)
+                                except json.JSONDecodeError:
+                                    arguments = {}
+
+                            content_parts.append(
+                                ToolUseContentPart(
+                                    id=tool_call.get("id", ""),
+                                    name=tool_call.get("function").get("name", ""),
+                                    input=arguments,
+                                )
+                            )
+
+                    if role == "tool":
+                        role = Roles.USER
+                        tool_call_result_id = message.get("tool_call_id", "")
+                        tool_result_content = message.get("content", "")
+                        content_parts.append(
+                            ToolResultContentPart(
+                                tool_use_id=tool_call_result_id,
+                                content=tool_result_content,
+                            )
+                        )
+
+                    if role == "assistant":
+                        message_content = message.get("content", "")
+                        content_parts.append(TextContentPart(text=message_content))
+
+                message = Message(role=role, content=content_parts)
 
                 messages.append(message)
 
@@ -297,7 +390,30 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
             messages.append(user_message)
 
+        messages = self._filter_incomplete_tool_conversations(messages)
+
         return messages, system_message
+
+    def _filter_incomplete_tool_conversations(
+        self, messages: List[Message]
+    ) -> List[Message]:
+        """
+        Remove any trailing tool_use messages that don't have corresponding tool_result messages.
+        Anthropic's API doesn't allow incomplete tool conversations.
+        """
+        if not messages:
+            return messages
+
+        last_message = messages[-1]
+        if last_message.role == Roles.ASSISTANT and any(
+            part.type == "tool_use"
+            for part in last_message.content
+            if hasattr(part, "type")
+        ):
+
+            return messages[:-1]
+
+        return messages
 
     def _create_image_part(self, image_type: str, data: str) -> ImageContentPart:
         if image_type == "url":
@@ -338,3 +454,51 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             raise ValueError(f"Unsupported image type '{image_type}'.")
 
         return ImageContentPart(source=image_source)
+
+    def _handle_tools_conversion(self, tools: List[Dict]) -> List[ToolCall]:
+        """
+        Converts tools to ToolContentPart objects.
+        """
+        tool_calls = []
+        for tool in tools:
+            if tool.get("type", None) == "function":
+                func_def = tool["function"]
+
+                parameters_schema = None
+                if "parameters" in func_def:
+                    params = func_def["parameters"]
+
+                    properties = {}
+                    for prop_name, prop_def in params.get("properties", {}).items():
+                        properties[prop_name] = {
+                            "type": prop_def.get("type", "string"),
+                            "description": prop_def.get("description", ""),
+                        }
+                    parameters_schema = {
+                        "type": "object",
+                        "properties": properties,
+                        "required": params.get("required", []),
+                    }
+
+                tool_call = ToolCall(
+                    name=func_def.get("name", ""),
+                    description=func_def.get("description", ""),
+                    input_schema=parameters_schema,
+                )
+                tool_calls.append(tool_call)
+
+        return tool_calls
+
+    def _count_tokens(
+        self, converted_history: List[Message] = None, response_string: str = None
+    ) -> int:
+        if not converted_history and not response_string:
+            return 0
+        if response_string:
+            history = [{"role": "user", "content": response_string}]
+        else:
+            history = [message.model_dump(mode="json") for message in converted_history]
+        response = self.client.messages.count_tokens(
+            model=self.model_name, messages=history
+        )
+        return response.input_tokens if response else 0

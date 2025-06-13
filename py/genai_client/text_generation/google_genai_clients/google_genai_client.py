@@ -92,6 +92,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 history=ask_settings.history,
                 question=question,
                 image_url=ask_settings.image_url,
+                image_encoded=ask_settings.image_encoded,
             )
 
         contents = converted_history.contents
@@ -200,7 +201,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         google_tools = []
 
         for tool in tools:
-            if tool["type"] == "function":
+            if tool.get("type", None) == "function":
                 func_def = tool["function"]
 
                 parameters_schema = None
