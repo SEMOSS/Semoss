@@ -1027,6 +1027,6 @@ public class Constants {
     // default AdminOnlyNonApproveProdCatalogItem
     public static final String ADMIN_ONLY_NON_APPROVED_PROD_ITEM = "ADMIN_ONLY_NON_APPROVED_PROD_ITEM";
      // default AdminOnlyWelcomecontent
-    public static final String ADMIN_ONLY_WELCOME_CONTENT = "ADMIN_ONLY_WELCOME_CONTENT";
+    public static final String WELCOME_CONTENT_CORE = "WELCOME_CONTENT_CORE";
 
 }

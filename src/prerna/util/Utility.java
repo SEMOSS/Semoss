@@ -6169,8 +6169,8 @@ public final class Utility {
 	 * Determine if AICORE has welcomecontent change
 	 * @return
 	 */
-    public static boolean getAdminOnlyWelcomeContent() {
-		String welcomeContent = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_WELCOME_CONTENT);
+    public static boolean getWelcomeContent() {
+		String welcomeContent = Utility.getDIHelperProperty(Constants.WELCOME_CONTENT_CORE);
 		if(welcomeContent == null) {
 			// default option is true
 			return false;
