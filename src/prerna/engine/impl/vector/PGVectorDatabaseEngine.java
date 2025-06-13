@@ -390,16 +390,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
                     throw new SQLException("Error inserting embeddings data for row " + j);
                 }
             }
-            classLogger.info("auto commit set to : " + conn.getAutoCommit());
 			if (!conn.getAutoCommit()) {
-				classLogger.info("COMMITTING!!!!!!!");
 				conn.commit();
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			// start
 			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, ps, null);
 		}
 		
