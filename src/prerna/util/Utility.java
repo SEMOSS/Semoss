@@ -6165,4 +6165,18 @@ public final class Utility {
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
 
+	 /**
+	 * Determine if AICORE has welcomecontent change
+	 * @return
+	 */
+    public static boolean getAdminOnlyWelcomeContent() {
+		String welcomeContent = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_WELCOME_CONTENT);
+		if(welcomeContent == null) {
+			// default option is true
+			return false;
+		}
+		
+		return Boolean.parseBoolean(welcomeContent);
+	}
+
     } 
