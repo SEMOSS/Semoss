@@ -1,7 +1,10 @@
+from typing import Optional, Tuple
 from enum import Enum
 import re
 import base64
 from urllib.parse import urlparse
+import requests
+from io import BytesIO
 
 
 class StringEnum(Enum):
@@ -83,3 +86,139 @@ def classify_url(url: str) -> str:
         return URLClassification.WEB_URL
     else:
         return URLClassification.UNKNOWN
+
+
+def get_image_extension(url_or_base64: str) -> Optional[str]:
+    """
+    Extract the file extension from a base64 encoded image or web URL.
+
+    Args:
+        url_or_base64 (str): Either a base64 data URL or a standard web URL
+
+    Returns:
+        Optional[str]: The file extension (e.g., 'jpg', 'png', 'gif') or None if not found
+
+    Examples:
+        >>> get_image_extension("data:image/jpeg;base64,/9j/4AAQ...")
+        'jpg'
+        >>> get_image_extension("https://example.com/image.png")
+        'png'
+        >>> get_image_extension("https://example.com/image.PNG?size=large")
+        'png'
+    """
+    if not isinstance(url_or_base64, str):
+        return None
+
+    classification = classify_url(url_or_base64)
+
+    if classification == URLClassification.BASE64_IMAGE:
+        return _extract_extension_from_base64(url_or_base64)
+    elif classification == URLClassification.WEB_URL:
+        return _extract_extension_from_web_url(url_or_base64)
+    else:
+        return None
+
+
+def _extract_extension_from_base64(data_url: str) -> Optional[str]:
+    """
+    Extract file extension from a base64 data URL.
+
+    Args:
+        data_url (str): Base64 data URL (e.g., "data:image/jpeg;base64,...")
+
+    Returns:
+        Optional[str]: File extension or None if not found
+    """
+    try:
+        # Extract MIME type from data URL
+        mime_match = re.match(r"^data:image/([a-zA-Z]+);base64,", data_url)
+        if not mime_match:
+            return None
+
+        mime_subtype = mime_match.group(1).lower()
+
+        # Map common MIME subtypes to file extensions
+        mime_to_extension = {
+            "jpeg": "jpg",
+            "jpg": "jpg",
+            "png": "png",
+            "gif": "gif",
+            "webp": "webp",
+            "bmp": "bmp",
+            "tiff": "tiff",
+            "tif": "tiff",
+            "svg+xml": "svg",
+            "svg": "svg",
+            "ico": "ico",
+            "x-icon": "ico",
+        }
+
+        return mime_to_extension.get(mime_subtype)
+
+    except Exception:
+        return None
+
+
+def _extract_extension_from_web_url(url: str) -> Optional[str]:
+    """
+    Extract file extension from a web URL.
+
+    Args:
+        url (str): Web URL (e.g., "https://example.com/image.jpg")
+
+    Returns:
+        Optional[str]: File extension or None if not found
+    """
+    try:
+        parsed = urlparse(url)
+        path = parsed.path
+
+        # Extract extension from the path
+        if "." in path:
+            extension = path.split(".")[-1].lower()
+
+            # Remove query parameters if they got included
+            extension = extension.split("?")[0].split("#")[0]
+
+            # Validate it's a common image extension
+            valid_extensions = {
+                "jpg",
+                "jpeg",
+                "png",
+                "gif",
+                "webp",
+                "bmp",
+                "tiff",
+                "tif",
+                "svg",
+                "ico",
+            }
+
+            if extension in valid_extensions:
+                # Normalize jpeg to jpg
+                return "jpeg" if extension == "jpg" else extension
+
+        return None
+
+    except Exception:
+        return None
+
+
+def fetch_and_encode_image(url: str) -> Tuple[str, str]:
+    """Fetch image from URL and return base64 data with media type"""
+    response = requests.get(url)
+    response.raise_for_status()
+
+    # Determine media type from content-type header or URL extension
+    content_type = response.headers.get("content-type", "")
+    if content_type.startswith("image/"):
+        media_type = content_type
+    else:
+        # Fallback to extension-based detection
+        extension = get_image_extension(url)
+        media_type = f"image/{extension.lower()}"
+
+    # Encode to base64
+    image_data = base64.b64encode(response.content).decode("utf-8")
+
+    return image_data, media_type

@@ -5,8 +5,11 @@ from ...clients.google_clients import (
     GoogleClientConfig,
     GoogleClientType,
 )
-
-from ...utils import StringEnum, classify_url
+from ...utils import (
+    StringEnum,
+    get_image_extension,
+    fetch_and_encode_image,
+)
 from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME, FULL_PROMPT
 from ..abstract_text_generation_client import AbstractTextGenerationClient, AskSettings
 
@@ -14,11 +17,6 @@ from ..abstract_text_generation_client import AbstractTextGenerationClient, AskS
 class Roles(StringEnum):
     USER = "user"
     ASSISTANT = "assistant"
-
-
-class ContentType(StringEnum):
-    TEXT = "text"
-    IMAGE = "image"
 
 
 class ImageType(StringEnum):
@@ -33,16 +31,20 @@ class ImageMediaType(StringEnum):
     GIF = "image/gif"
 
 
-class ImageSource(BaseModel):
+class ImageSourceURL(BaseModel):
+    type: ImageType = ImageType.URL
+    url: str
+
+
+class ImageSourceBase64(BaseModel):
     type: ImageType
     media_type: ImageMediaType
     data: Optional[str] = None
-    url: Optional[str] = None
 
 
 class ImageContentPart(BaseModel):
     type: str = "image"
-    image: ImageSource
+    source: Union[ImageSourceURL, ImageSourceBase64]
 
 
 class DocumentContentPart(BaseModel):
@@ -85,11 +87,21 @@ class Message(BaseModel):
     ]
 
 
+# Mimicking the structure of the usage object from the Anthropic API
+class Usage(BaseModel):
+    input_tokens: int
+    output_tokens: int
+
+
+class StreamingResponse(BaseModel):
+    text: str
+    usage: Usage
+
+
 class AnthropicRequestConfig(BaseModel):
     model: str
     messages: List[Dict[str, Any]]
     system: Optional[str] = None
-    stream: Optional[bool] = None
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None
     top_k: Optional[int] = None
@@ -148,6 +160,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         converted_history, system_prompt_from_history = self._convert_history(
             question=question,
         )
+        if system_prompt_from_history and context is None:
+            context = system_prompt_from_history
 
         self.request_config = self._convert_args_to_provider_config(
             context=context,
@@ -155,18 +169,52 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             **kwargs,
         )
 
-        response = self.client.messages.create(
-            **self.request_config.model_dump(exclude_none=True),
+        request_config_dict = self.request_config.model_dump(
+            exclude_none=True, mode="json"
         )
 
-        model_engine_response = AskModelEngineResponse(
-            response=response.content[0].text,
-            response_tokens=response.usage.output_tokens,
-            prompt_tokens=response.usage.input_tokens,
+        if self.ask_settings.streaming:
+            response = self._handle_streaming(prefix=prefix)
+            response_text = response.text
+            usage = response.usage
+        else:
+            response = self.client.messages.create(
+                **self.request_config.model_dump(exclude_none=True),
+            )
+            response_text = response.content[0].text
+            usage = Usage(
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
+            )
+
+        return AskModelEngineResponse(
+            response=response_text,
+            response_tokens=usage.output_tokens,
+            prompt_tokens=usage.input_tokens,
             messageType="CHAT",
         )
 
-        return model_engine_response
+    def _handle_streaming(self, prefix: str = ""):
+
+        final_response = ""
+
+        with self.client.messages.stream(
+            **self.request_config.model_dump(exclude_none=True),
+        ) as stream:
+            for text in stream.text_stream:
+                final_response += text
+                print(
+                    prefix + text,
+                    end="",
+                )
+
+        # TODO:
+        usage = Usage(input_tokens=0, output_tokens=0)
+
+        return StreamingResponse(
+            text=final_response,
+            usage=usage,
+        )
 
     def _convert_args_to_provider_config(
         self, context: str = None, history: List[Message] = None, **kwargs
@@ -185,7 +233,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             model=self.model_name,
             system=context,
             messages=[message.model_dump(mode="json") for message in history],
-            stream=self.ask_settings.streaming,
             max_tokens=max_tokens,
             temperature=kwargs.pop("temperature", None),
             top_k=kwargs.pop("top_k", None),
@@ -218,7 +265,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 tool_calls = message.get("tool_calls", [])
                 content_parts = []
 
-                message = Message(role=role, content=TextContentPart(text=content))
+                message = Message(role=role, content=[TextContentPart(text=content)])
 
                 messages.append(message)
 
@@ -230,13 +277,64 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
             if self.ask_settings.image_url:
                 for image_url in self.ask_settings.image_url:
-                    if classify_url(image_url) == "web_url":
-                        image_source = ImageSource(
-                            type=ImageType.URL,
-                            media_type=ImageMediaType.JPEG,
-                            url=image_url,
-                        )
+
+                    image_content_part = self._create_image_part(
+                        image_type="url",
+                        data=image_url,
+                    )
+
+                    user_message.content.append(image_content_part)
+
+            if self.ask_settings.image_encoded:
+                for image_encoded in self.ask_settings.image_encoded:
+
+                    image_content_part = self._create_image_part(
+                        image_type="base64",
+                        data=image_encoded,
+                    )
+
+                    user_message.content.append(image_content_part)
 
             messages.append(user_message)
 
         return messages, system_message
+
+    def _create_image_part(self, image_type: str, data: str) -> ImageContentPart:
+        if image_type == "url":
+            if self.provider == "google":
+                try:
+                    base64_encoded = fetch_and_encode_image(data)
+                except Exception as e:
+                    raise ValueError(f"Failed to fetch and encode image: {e}")
+                image_source = ImageSourceBase64(
+                    type=ImageType.BASE64,
+                    media_type=base64_encoded[1],
+                    data=base64_encoded[0],
+                )
+            else:
+                image_source = ImageSourceURL(
+                    type=ImageType.URL,
+                    url=data,
+                )
+        elif image_type == "base64":
+            image_extension = get_image_extension(data)
+            if not image_extension:
+                raise ValueError("Unable to determine image extension from data.")
+
+            try:
+                media_type = ImageMediaType(f"image/{image_extension.lower()}")
+            except ValueError:
+                raise ValueError(
+                    f"Unsupported image extension '{image_extension}' for base64 data."
+                )
+
+            image_source = ImageSourceBase64(
+                type=ImageType.BASE64,
+                media_type=media_type,
+                data=data,
+            )
+
+        else:
+            raise ValueError(f"Unsupported image type '{image_type}'.")
+
+        return ImageContentPart(source=image_source)
