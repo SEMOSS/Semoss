@@ -19,6 +19,7 @@ import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -256,6 +257,15 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		cpwToInit.getSocketClient().executeCommand(prefixPayload);
 	}
 	
+	
+	@Override
+	public AskModelEngineResponse askRoomCall(InputMessage message, Object fullPrompt, Room room, Insight insight, Map<String, Object> parameters) {
+		checkSocketStatus();
+
+		AskModelEngineResponse response = room.ask(message, insight, this);
+
+		return response;
+	}
 
 	@Override
 	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> parameters) {

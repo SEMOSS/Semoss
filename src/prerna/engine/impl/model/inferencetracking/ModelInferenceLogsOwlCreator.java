@@ -63,20 +63,41 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME)
 			);
 		
+//		this.roomColumns = Arrays.asList(
+//				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
+//				Pair.with("ROOM_NAME", "VARCHAR(255)"),
+//				Pair.with("ROOM_CONTEXT", CLOB_DATATYPE_NAME),
+//				//Pair.with("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
+//				Pair.with("USER_ID", "VARCHAR(255)"),
+//				Pair.with("USER_NAME", "VARCHAR(255)"),
+//                Pair.with("USER_EMAIL_ID", "VARCHAR(50)"),
+//				Pair.with("AGENT_TYPE", "VARCHAR(50)"),
+//                Pair.with("AGENT_ID", "VARCHAR(50)"),
+//				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
+//				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+//				Pair.with("PROJECT_ID", "VARCHAR(50)"),
+//				Pair.with("PROJECT_NAME", "VARCHAR(255)")
+//			);
+		
 		this.roomColumns = Arrays.asList(
-				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
-				Pair.with("ROOM_NAME", "VARCHAR(255)"),
-				Pair.with("ROOM_CONTEXT", CLOB_DATATYPE_NAME),
-				//Pair.with("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
-				Pair.with("USER_ID", "VARCHAR(255)"),
-				Pair.with("USER_NAME", "VARCHAR(255)"),
-                Pair.with("USER_EMAIL_ID", "VARCHAR(50)"),
-				Pair.with("AGENT_TYPE", "VARCHAR(50)"),
-                Pair.with("AGENT_ID", "VARCHAR(50)"),
-				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
-				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("PROJECT_ID", "VARCHAR(50)"),
-				Pair.with("PROJECT_NAME", "VARCHAR(255)")
+			    Pair.with("INSIGHT_ID", "VARCHAR(50)"), //ROOM ID now
+			    Pair.with("ROOM_NAME", "VARCHAR(255)"),
+			    Pair.with("ROOM_CONTEXT", CLOB_DATATYPE_NAME),
+			    Pair.with("USER_ID", "VARCHAR(255)"),
+			    Pair.with("USER_NAME", "VARCHAR(255)"),
+			    Pair.with("USER_EMAIL_ID", "VARCHAR(50)"),
+			    Pair.with("AGENT_TYPE", "VARCHAR(50)"),
+			    Pair.with("AGENT_ID", "VARCHAR(50)"),
+			    Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
+			    Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+			    Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),     
+			    Pair.with("PROJECT_ID", "VARCHAR(50)"),
+			    Pair.with("PROJECT_NAME", "VARCHAR(255)"),
+			    Pair.with("MODEL_ID", "VARCHAR(255)")    ,             // NEW
+			    Pair.with("MESSAGES", CLOB_DATATYPE_NAME),            // NEW
+			    Pair.with("PINNED", BOOLEAN_DATATYPE_NAME),           // NEW
+			    Pair.with("OPTIONS", CLOB_DATATYPE_NAME),             // NEW
+			    Pair.with("SHARE_ID", "VARCHAR(255)")               // NEW
 			);
 		
 		this.messageColumns = Arrays.asList(

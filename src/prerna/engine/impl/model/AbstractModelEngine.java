@@ -20,6 +20,7 @@ import com.google.gson.GsonBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -107,6 +108,21 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	 */
 	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> hyperParameters);
 
+	
+	
+	/**
+	 * This is an abstract method for the implementation class such that tracking occurs
+	 * 
+	 * @param question
+	 * @param fullPrompt
+	 * @param context
+	 * @param insight
+	 * @param hyperParameters
+	 * @return
+	 */
+	protected abstract AskModelEngineResponse askRoomCall(InputMessage message, Object fullPrompt, Room room, Insight insight, Map<String, Object> hyperParameters);
+
+	
 	@Override
 	public AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters) {
 		/*
@@ -138,6 +154,66 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*insight*/insight,
 					/*context*/context, 
 					/*prompt*/question,
+					/*fullPrompt*/fullPrompt,
+					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
+					/*inputTime*/inputTime, 
+					/*response*/askModelResponse.getStringResponse(),
+					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
+					/*outputTime*/outputTime
+			));
+			inferenceRecorder.start();
+		}
+		
+		// update current usage based on this new request
+		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse, inputTime, outputTime);
+		
+		return askModelResponse;
+	}
+	
+	
+
+	@Override
+	public AskModelEngineResponse askRoom(InputMessage message, Room room, Insight insight, Map<String, Object> parameters) {
+		/*
+		 * We will check if there are any restrictions for the user's current token usage
+		 * There might be a value set on the user-engine permission which takes priority 
+		 * or if there is none
+		 * there might be a value set on the user for all their model engine usage
+		 */
+
+		// do we have any usage restriction on the user
+		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(insight.getUser(), this.engineId);
+		
+		if(parameters == null) {
+			parameters = new HashMap<String, Object>();
+		}
+		
+		//check if room is not null
+		
+		//if room is null, then use insight to create a room w/ insight id as room id
+		
+		//if not null, check that room exists in rooms table
+		
+		//if room does not exist in table, create room. if it does exist, create room object. 
+		
+		
+
+		
+		Object fullPrompt = parameters.remove(FULL_PROMPT);
+		ZonedDateTime inputTime = ZonedDateTime.now();
+		AskModelEngineResponse askModelResponse = askRoomCall(message, fullPrompt, room, insight, parameters);
+		ZonedDateTime outputTime = ZonedDateTime.now();
+		askModelResponse.setMessageId(UUID.randomUUID().toString());
+		askModelResponse.setRoomId(insight.getInsightId());
+		
+		if (inferenceLogsEnbaled) {
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/askModelResponse.getMessageId(), 
+					/*messageMethod*/"ask", 
+					/*engine*/this, 
+					/*insight*/insight,
+					/*context*/room.getSystemMessage(), 
+					/*prompt*/message.getInputMessage(),
 					/*fullPrompt*/fullPrompt,
 					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
 					/*inputTime*/inputTime, 
