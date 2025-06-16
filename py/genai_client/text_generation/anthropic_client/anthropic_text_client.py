@@ -1,3 +1,4 @@
+import ast
 from typing import List, Optional, Dict, Any, Union, Tuple
 import json
 from pydantic import BaseModel
@@ -10,8 +11,9 @@ from ...utils import (
     StringEnum,
     get_image_extension,
     fetch_and_encode_image,
+    is_base64_image_url,
 )
-from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME, FULL_PROMPT
+from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
 from ..abstract_text_generation_client import AbstractTextGenerationClient, AskSettings
 
 
@@ -322,6 +324,35 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     message_content = message.get("content", "")
                     content_parts.append(TextContentPart(text=message_content))
 
+                    if message.get("image_url", None):
+                        image_messages = message.get("image_url", [])
+                        if isinstance(image_messages, dict):
+                            image_messages = [image_messages]
+
+                        for image in image_messages:
+
+                            if isinstance(image, str):
+                                try:
+                                    image_dict = json.loads(image)
+                                except json.JSONDecodeError:
+                                    image_dict = ast.literal_eval(image)
+                            else:
+                                image_dict = image
+
+                            image_url = image_dict.get("url", "")
+
+                            if is_base64_image_url(image_url):
+                                image_content_part = self._create_image_part(
+                                    image_type="base64",
+                                    data=image_url,
+                                )
+                            else:
+                                image_content_part = self._create_image_part(
+                                    image_type="url",
+                                    data=image_url,
+                                )
+                            content_parts.append(image_content_part)
+
                 # our roles can be assistant, user, tool or system
                 elif role != Roles.USER:
                     tool_calls = message.get("tool_calls", None)
@@ -433,21 +464,37 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     url=data,
                 )
         elif image_type == "base64":
-            image_extension = get_image_extension(data)
-            if not image_extension:
-                raise ValueError("Unable to determine image extension from data.")
+            # Extract media type from data URL prefix if present
+            media_type = None
+            if data.startswith("data:"):
+                # Extract media type from data URL (e.g., "data:image/jpeg;base64,...")
+                if ";" in data:
+                    media_type_str = data.split(";")[0].replace("data:", "")
+                    try:
+                        media_type = ImageMediaType(media_type_str)
+                    except ValueError:
+                        # Fall back to extension detection if media type is not supported
+                        pass
+                # Extract just the base64 part after the comma
+                data = data.split(",", 1)[1] if "," in data else data
 
-            try:
-                media_type = ImageMediaType(f"image/{image_extension.lower()}")
-            except ValueError:
-                raise ValueError(
-                    f"Unsupported image extension '{image_extension}' for base64 data."
-                )
+            # If we couldn't get media type from data URL, try to get it from extension
+            if media_type is None:
+                image_extension = get_image_extension(data)
+                if not image_extension:
+                    raise ValueError("Unable to determine image extension from data.")
+
+                try:
+                    media_type = ImageMediaType(f"image/{image_extension.lower()}")
+                except ValueError:
+                    raise ValueError(
+                        f"Unsupported image extension '{image_extension}' for base64 data."
+                    )
 
             image_source = ImageSourceBase64(
                 type=ImageType.BASE64,
                 media_type=media_type,
-                data=data,
+                data=data,  # Now contains only the raw base64 string
             )
 
         else:

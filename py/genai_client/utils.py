@@ -137,8 +137,8 @@ def _extract_extension_from_base64(data_url: str) -> Optional[str]:
         mime_subtype = mime_match.group(1).lower()
 
         mime_to_extension = {
-            "jpeg": "jpg",
-            "jpg": "jpg",
+            "jpeg": "jpeg",
+            "jpg": "jpeg",
             "png": "png",
             "gif": "gif",
             "webp": "webp",
