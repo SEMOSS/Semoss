@@ -152,6 +152,15 @@ public class RDFJenaTDBEngine extends AbstractDatabaseEngine {
 	 */
 	@Override
 	public void insertData(String query) {
+		handleData(query);
+	}
+
+	@Override
+	public void removeData(String query) {
+		handleData(query);
+	}
+
+	private void handleData(String query) {
 		this.dataset.begin(ReadWrite.WRITE);
 		try {
 			Model jenaModel = this.dataset.getDefaultModel();
@@ -164,20 +173,6 @@ public class RDFJenaTDBEngine extends AbstractDatabaseEngine {
 		}
 	}
 
-	@Override
-	public void removeData(String query) {
-		this.dataset.begin(ReadWrite.WRITE);
-		try {
-			Model jenaModel = this.dataset.getDefaultModel();
-			UpdateRequest request = UpdateFactory.create();
-			request.add(query);
-			UpdateAction.execute(request, jenaModel);
-			this.dataset.commit();
-		} finally {
-			this.dataset.end();
-		}
-	}
-	
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
 		return IDatabaseEngine.DATABASE_TYPE.JENA;

@@ -136,11 +136,12 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				null, 
 				userId,
 				userName,
-				agentType, 
+				userEmail,
+				agentType,
+				engine.getEngineId(),
 				true, 
 				projectId, 
-				projectName, 
-				engine.getEngineId()
+				projectName
 			);
 		}
 		
@@ -172,7 +173,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				insightId,
 				sessionId,
 				userId,
-				userName
+				userName,
+				userEmail
 			);
 			ModelInferenceLogsUtils.doRecordMessage(
 				messageId, 
@@ -186,7 +188,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				insightId,
 				sessionId,
 				userId,
-				userName
+				userName,
+				userEmail
 			);
 		} else {
 			ModelInferenceLogsUtils.doRecordMessage(
@@ -201,7 +204,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				insightId,
 				sessionId,
 				userId,
-				userName
+				userName,
+				userEmail
 			);
 			ModelInferenceLogsUtils.doRecordMessage(
 				messageId, 
@@ -215,7 +219,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				insightId,
 				sessionId,
 				userId,
-				userName
+				userName,
+				userEmail
 			);
 		}
     }
