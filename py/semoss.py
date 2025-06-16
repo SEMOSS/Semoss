@@ -129,7 +129,31 @@ class SemossTool:
 
 class SemossToolParser:
 
-    def get_function_info(self, filePath: str) -> List:
+    def get_tools_from_docstring(self, filePath: str) -> List[BaseSemossTool]:
+        """
+        Parses a file and extracts all the methods as tools from the docstrings
+
+        Args:
+            filePath: the path to the file
+
+        Returns:
+            A list of all the details around each method
+        """
+        with open(filePath, "r") as file:
+            tree = ast.parse(file.read())
+
+        functions = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                function_name = node.name
+                docstring = ast.get_docstring(node)
+                tool = self.parse_docstring(node, function_name, docstring)
+                if tool is not None:
+                    functions.append(tool)
+
+        return functions
+
+    def get_tools_from_functions(self, filePath: str) -> List[BaseSemossTool]:
         """
         Flattens and pulls out all the methods as tools from a file
 
