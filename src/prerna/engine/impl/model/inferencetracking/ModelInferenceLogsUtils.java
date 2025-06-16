@@ -584,7 +584,6 @@ public class ModelInferenceLogsUtils {
 		
 		qs.addRelation(MESSAGE_TABLE_NAME + "INSIGHT_ID", ROOM_TABLE_NAME + "INSIGHT_ID", "left.join");
 		
-		
 		addLimitAndOffSet(qs, limit, offset);
 		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
 		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));

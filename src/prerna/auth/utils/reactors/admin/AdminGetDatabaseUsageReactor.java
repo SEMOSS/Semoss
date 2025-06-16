@@ -47,23 +47,23 @@ public class AdminGetDatabaseUsageReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Get the usage metrics for a database for admin users.";
+		return "Get the usage metrics for a database. The fields for this report include: query_executed, userid, count_query_executed, last_time_ran, last_login, failed_exuected.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Database id of a database " + ReactorKeysEnum.ENGINE.getKey();
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Limit of an engine " + ReactorKeysEnum.LIMIT.getKey();
-		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
-			return "Offset of an engine " + ReactorKeysEnum.OFFSET.getKey();
-		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
-			return "Start date of an engine " + ReactorKeysEnum.START_DATE.getKey();
-		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
-			return "End date of an engine " + ReactorKeysEnum.END_DATE.getKey();
-		}
-		return super.getDescriptionForKey(key);
-	}
+        if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+            return "The database id for the report";
+        } else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+            return "Limit to the number of results to be returned";
+        } else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
+            return "Offset to the number of results to be returned";
+        } else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
+            return "Start date filter on the query executed";
+        } else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
+            return "End date filter on the query executed";
+        }
+        return super.getDescriptionForKey(key);
+    }
 
 }

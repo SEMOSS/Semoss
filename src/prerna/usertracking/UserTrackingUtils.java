@@ -555,28 +555,34 @@ public class UserTrackingUtils {
 		}
 	}
 
+	/**
+	 * 
+	 * @param databaseId
+	 * @param limit
+	 * @param offset
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 */
 	public static List<Map<String, Object>> getDatabaseUsage(String databaseId, String limit, String offset, String startDate, String endDate) {
-		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__USERID"));
-		
+		qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__USERID", "userid"));
+	    qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED", "query_executed"));
+	    qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__FAILED_EXECUTION", "failed_execution")); 
+	    qs.addSelector(new QueryColumnSelector("UT__LAST_LOGON", "last_login"));
+	        
 		// Count(QueryExecuted)
 		QueryFunctionSelector queryExecuted = new QueryFunctionSelector();
 		queryExecuted.setFunction(QueryFunctionHelper.COUNT);
 		queryExecuted.addInnerSelector(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED"));
+		queryExecuted.setAlias("count_query_executed");
 		qs.addSelector(queryExecuted);
 		
 		QueryFunctionSelector lastTimeSelector = new QueryFunctionSelector();
 		lastTimeSelector.setFunction(QueryFunctionHelper.MAX);
 		lastTimeSelector.addInnerSelector(new QueryColumnSelector("QUERY_TRACKING__START_TIME"));
-		lastTimeSelector.setAlias("last time ran");
+		lastTimeSelector.setAlias("last_time_ran");
 		qs.addSelector(lastTimeSelector);
-		
-		qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED"));
-		qs.addSelector(new QueryColumnSelector("UT__LAST_LOGON"));
-		qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__FAILED_EXECUTION"));
-
-		
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			QueryFunctionSelector maxCreatedOnSelector = new QueryFunctionSelector();
@@ -585,8 +591,7 @@ public class UserTrackingUtils {
 			maxCreatedOnSelector.setAlias("LAST_LOGON");
 			subQs.addSelector(maxCreatedOnSelector);
 			subQs.addSelector(new QueryColumnSelector("USER_TRACKING__USERID"));
-			qs.addRelation(new SubqueryRelationship(subQs, "UT", "left.outer.join", 
-					new String[] {"QUERY_TRACKING__USERID", "UT__USERID", "="}));
+			qs.addRelation(new SubqueryRelationship(subQs, "UT", "left.outer.join", new String[] {"QUERY_TRACKING__USERID", "UT__USERID", "="}));
 		}
 		
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUERY_TRACKING__DATABASEID", "==", databaseId));

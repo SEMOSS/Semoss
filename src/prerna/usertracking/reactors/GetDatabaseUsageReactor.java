@@ -2,8 +2,7 @@ package prerna.usertracking.reactors;
 
 import java.util.List;
 import java.util.Map;
-
-import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -19,8 +18,6 @@ public class GetDatabaseUsageReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-
 		if (!Utility.isUserTrackingEnabled()) {
 			throw new IllegalArgumentException("User tracking must be enabled for this report");
 		}
@@ -30,6 +27,11 @@ public class GetDatabaseUsageReactor extends AbstractReactor {
 		if (databaseId == null || databaseId.isEmpty()) {
 			throw new IllegalArgumentException("Must input a database id");
 		}
+		
+	    if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+          throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
+        }
+		
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);
 		String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
@@ -42,21 +44,21 @@ public class GetDatabaseUsageReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Get the usage metrics for a database";
+		return "Get the usage metrics for a database. The fields for this report include: query_executed, userid, count_query_executed, last_time_ran, last_login, failed_exuected.";
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Database id of a database " + ReactorKeysEnum.ENGINE.getKey();
+	protected String getDescriptionForKey(String key) { 
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id for the report";
 		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Limit of an engine " + ReactorKeysEnum.LIMIT.getKey();
+			return "Limit to the number of results to be returned";
 		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
-			return "Offset of an engine " + ReactorKeysEnum.OFFSET.getKey();
+			return "Offset to the number of results to be returned";
 		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
-			return "Start date of an engine " + ReactorKeysEnum.START_DATE.getKey();
+			return "Start date filter on the query executed";
 		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
-			return "End date of an engine " + ReactorKeysEnum.END_DATE.getKey();
+			return "End date filter on the query executed";
 		}
 		return super.getDescriptionForKey(key);
 	}
