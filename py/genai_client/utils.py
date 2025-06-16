@@ -4,7 +4,7 @@ import re
 import base64
 from urllib.parse import urlparse
 import requests
-from io import BytesIO
+from enum import Enum
 
 
 class StringEnum(Enum):
