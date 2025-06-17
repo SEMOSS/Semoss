@@ -32,7 +32,7 @@ public class SaveAssetReactor extends AbstractReactor {
 
 	public SaveAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.CONTENT.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.SPACE.getKey() };
+				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
@@ -57,11 +57,13 @@ public class SaveAssetReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Number of file names and contents must match");
 		}
 
-		String comment = this.keyValue.get(this.keysToGet[2]);
-		String space = this.keyValue.get(this.keysToGet[3]);
+		String space = this.keyValue.get(this.keysToGet[2]);
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
-
+		String comment = this.keyValue.get(this.keysToGet[3]);
+		if(comment == null) {
+        	comment = "add: SaveAsset executed";
+        }
 		// Check strict script source settings once
 		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 
@@ -142,7 +144,16 @@ public class SaveAssetReactor extends AbstractReactor {
 				String baseDir = fileTokens[0];
 				assetFolder = assetFolder + "/" + baseDir;
 				fileName = fileName.replace(baseDir, "");
-				files.add(relativePath + DIR_SEPARATOR + fileName);		
+				// we dont want to start with a "/"
+				if(relativePath.isEmpty()) {
+					if(fileName.startsWith(DIR_SEPARATOR)) {
+						files.add(fileName.substring(1));		
+					} else {
+						files.add(fileName);
+					}
+				} else {
+					files.add(relativePath + DIR_SEPARATOR + fileName);		
+				}
 			}
 			
 			GitRepoUtils.addSpecificFiles(assetFolder, files);
@@ -191,11 +202,11 @@ public class SaveAssetReactor extends AbstractReactor {
 			return "Names of the file(s) to save";
 		} else if(key.equals(ReactorKeysEnum.CONTENT.getKey())) {
 			return "Contents of the file(s) to save";
-		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository associated with the space";
 		} else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
 			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-		}
+		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+			return "Comment to add while saving the files within the git repository associated with the space";
+		} 
 		return super.getDescriptionForKey(key);
 	}
 

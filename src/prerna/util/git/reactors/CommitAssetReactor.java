@@ -62,7 +62,16 @@ public class CommitAssetReactor extends AbstractReactor {
 
 		// add file to git
 		List<String> files = new ArrayList<>();
-		files.add(relativePath + DIR_SEPARATOR + filePath);		
+		// we dont want to start with a "/"
+		if(relativePath.isEmpty()) {
+			if(filePath.startsWith(DIR_SEPARATOR)) {
+				files.add(filePath.substring(1));		
+			} else {
+				files.add(filePath);
+			}
+		} else {
+			files.add(relativePath + DIR_SEPARATOR + filePath);		
+		}
 		GitRepoUtils.addSpecificFiles(assetFolder, files);
 
 		// commit it
