@@ -29,8 +29,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(DeleteAssetReactor.class);
 	
 	public DeleteAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(),
-				ReactorKeysEnum.SPACE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
 	}
 
 	@Override
@@ -47,7 +46,7 @@ public class DeleteAssetReactor extends AbstractReactor {
         String author = accessToken.getUsername();
 
         // get asset base folder
-        String space = this.keyValue.get(this.keysToGet[2]);
+        String space = this.keyValue.get(this.keysToGet[1]);
         String baseFolderPath = AssetUtility.getAssetVersionBasePath(this.insight, space, true);
         // relative path is used for git if insight is saved
         // or if we are dealing with project space
@@ -61,9 +60,11 @@ public class DeleteAssetReactor extends AbstractReactor {
         if(filePaths == null || filePaths.isEmpty()) {
             throw new IllegalArgumentException("Must pass in at least one file name to delete");
         }
-        String comment = this.keyValue.get(this.keysToGet[1]);
-
-        // Prepare to collect Git‐relative paths and actual File objects
+        String comment = this.keyValue.get(this.keysToGet[2]);
+        if(comment == null) {
+        	comment = "remove: DeleteAsset executed";
+        }
+        // Prepare to collect Gitâ€�relative paths and actual File objects
         List<String> gitRelativeFilePaths = new ArrayList<>();
         List<File> deletedFiles = new ArrayList<>();
 
@@ -108,20 +109,19 @@ public class DeleteAssetReactor extends AbstractReactor {
         if(insight.isSavedInsight() && (space == null || AssetUtility.INSIGHT_SPACE_KEY.equalsIgnoreCase(space))) {
             IProject project = Utility.getProject(this.insight.getProjectId());
             gitVersionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), insight.getProjectId()).replace("\\", "/");
-        }else if(AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
+        } else if(AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
             AuthProvider provider = user.getPrimaryLogin();
             String userProjectId = user.getAssetProjectId(provider);
             if(userProjectId != null && !userProjectId.isEmpty()) {
                 IProject userProject = Utility.getUserAssetWorkspaceProject(userProjectId, true);
                 gitVersionFolder = AssetUtility.getUserAssetAndWorkspaceAssetFolder(userProject.getProjectName(), userProject.getProjectId()).replace("\\", "/");
             }
-        }else if(space != null && !space.isEmpty()) {
+        } else if(space != null && !space.isEmpty()) {
             IProject project = Utility.getProject(space);
             gitVersionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), space).replace("\\", "/");
         }
 
         if(gitVersionFolder != null) {
-           
             // remove/commit gitRelativeFilePaths whose realFilePath started with gitVersionFolder.
             List<String> toCommit = new ArrayList<>();
             for (File f : deletedFiles) {
@@ -179,18 +179,19 @@ public class DeleteAssetReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor deletes single or multiple files under Files tab in notebook";
-    }
-	
+		return "Delete a single or multiple files in the space's file repository";
+	}
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-	    	return "File paths to delete";
-	    }else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-	    	return "Comment to add for deletion operation";
-	    }else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
-	    	return "Application ID";
-	    }
+		if(key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
+			return "Names of the file(s) to save";
+		} else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
+			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
+		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+			return "Comment to add while removing the files within the git repository associated with the space";
+		} 
 		return super.getDescriptionForKey(key);
-	} 
+	}
+	
 }
