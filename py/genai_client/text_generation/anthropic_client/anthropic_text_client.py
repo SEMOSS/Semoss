@@ -306,14 +306,15 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         question: str = None,
     ) -> Tuple[List[Message], str]:
         """
-        Converts the history to a list of messages.
+        Converts the history to a list of messages with full support for both legacy and structured content.
         """
         messages = []
         system_message = None
+
         if self.ask_settings.use_history and self.ask_settings.history:
             for message in self.ask_settings.history:
                 role = message.get("role", Roles.USER)
-                # Supporting this for now
+                # Support system message
                 if role == "system":
                     system_message = message.get("content", "")
                     continue
@@ -322,15 +323,63 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
                 if role == Roles.USER:
                     message_content = message.get("content", "")
-                    content_parts.append(TextContentPart(text=message_content))
+                    # --- Main fix: Support both str and list
+                    if isinstance(message_content, str):
+                        content_parts.append(TextContentPart(text=message_content))
+                    elif isinstance(message_content, list):
+                        for part in message_content:
+                            # If it's already a TextContentPart/ImageContentPart skip; only convert dicts
+                            if isinstance(part, dict):
+                                part_type = part.get("type", "")
+                                # Text part
+                                if part_type == "text" and "text" in part:
+                                    content_parts.append(
+                                        TextContentPart(text=part["text"])
+                                    )
+                                # Image part (support both "image", "image_url")
+                                elif part_type in ["image", "image_url"]:
+                                    img = part.get("image_url", None) or part.get(
+                                        "url", None
+                                    )
+                                    if isinstance(img, dict):
+                                        image_url = img.get("url", "")
+                                    elif isinstance(img, str):
+                                        image_url = img
+                                    else:
+                                        raise ValueError(
+                                            f"Unrecognized image part: {part}"
+                                        )
 
+                                    if is_base64_image_url(image_url):
+                                        content_parts.append(
+                                            self._create_image_part(
+                                                image_type="base64", data=image_url
+                                            )
+                                        )
+                                    else:
+                                        content_parts.append(
+                                            self._create_image_part(
+                                                image_type="url", data=image_url
+                                            )
+                                        )
+                                else:
+                                    # If you want to support more part types, add here.
+                                    pass
+                            else:
+                                raise ValueError(
+                                    f"Content part must be dict: got {type(part)}"
+                                )
+                    else:
+                        raise ValueError(
+                            f"Message content of unsupported type: {type(message_content)}"
+                        )
+
+                    # Backward compatibility: Also check for image_url on message level
                     if message.get("image_url", None):
                         image_messages = message.get("image_url", [])
                         if isinstance(image_messages, dict):
                             image_messages = [image_messages]
-
                         for image in image_messages:
-
                             if isinstance(image, str):
                                 try:
                                     image_dict = json.loads(image)
@@ -338,34 +387,28 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                                     image_dict = ast.literal_eval(image)
                             else:
                                 image_dict = image
-
                             image_url = image_dict.get("url", "")
-
                             if is_base64_image_url(image_url):
                                 image_content_part = self._create_image_part(
-                                    image_type="base64",
-                                    data=image_url,
+                                    "base64", image_url
                                 )
                             else:
                                 image_content_part = self._create_image_part(
-                                    image_type="url",
-                                    data=image_url,
+                                    "url", image_url
                                 )
                             content_parts.append(image_content_part)
 
-                # our roles can be assistant, user, tool or system
+                # Other roles as before...
                 elif role != Roles.USER:
                     tool_calls = message.get("tool_calls", None)
                     if tool_calls:
                         for tool_call in tool_calls:
-
                             arguments = tool_call.get("function").get("arguments", {})
                             if isinstance(arguments, str):
                                 try:
                                     arguments = json.loads(arguments)
                                 except json.JSONDecodeError:
                                     arguments = {}
-
                             content_parts.append(
                                 ToolUseContentPart(
                                     id=tool_call.get("id", ""),
@@ -373,7 +416,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                                     input=arguments,
                                 )
                             )
-
                     if role == "tool":
                         role = Roles.USER
                         tool_call_result_id = message.get("tool_call_id", "")
@@ -384,45 +426,37 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                                 content=tool_result_content,
                             )
                         )
-
                     if role == "assistant":
                         message_content = message.get("content", "")
                         content_parts.append(TextContentPart(text=message_content))
 
-                message = Message(role=role, content=content_parts)
+                # Assemble
+                msg_obj = Message(role=role, content=content_parts)
+                messages.append(msg_obj)
 
-                messages.append(message)
-
+        # Add new question (also support both forms for image input)
         if question:
             user_message = Message(
                 role=Roles.USER,
                 content=[TextContentPart(text=question)],
             )
-
             if self.ask_settings.image_url:
                 for image_url in self.ask_settings.image_url:
-
                     image_content_part = self._create_image_part(
                         image_type="url",
                         data=image_url,
                     )
-
                     user_message.content.append(image_content_part)
-
             if self.ask_settings.image_encoded:
                 for image_encoded in self.ask_settings.image_encoded:
-
                     image_content_part = self._create_image_part(
                         image_type="base64",
                         data=image_encoded,
                     )
-
                     user_message.content.append(image_content_part)
-
             messages.append(user_message)
 
         messages = self._filter_incomplete_tool_conversations(messages)
-
         return messages, system_message
 
     def _filter_incomplete_tool_conversations(
