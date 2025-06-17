@@ -10,7 +10,7 @@ import prerna.util.JiraHelper;
 public class JiraReactor extends AbstractReactor {
 
 	public JiraReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COMMAND.getKey(),ReactorKeysEnum.USERNAME.getKey() 
+		this.keysToGet = new String[] { ReactorKeysEnum.COMMAND.getKey(),ReactorKeysEnum.USERID.getKey() 
 				, ReactorKeysEnum.SUMMARY.getKey(),ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.ISSUETYPE.getKey(),
 				ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.JIRAID.getKey()};
 		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
@@ -20,7 +20,7 @@ public class JiraReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String command = this.keyValue.get(this.keysToGet[0]);
-		String userName=this.keyValue.get(this.keysToGet[1]);
+		String userId=this.keyValue.get(this.keysToGet[1]);
 		String summary=this.keyValue.get(this.keysToGet[2]);
 		String description=this.keyValue.get(this.keysToGet[3]);
 		String issuetype=this.keyValue.get(this.keysToGet[4]);
@@ -44,14 +44,16 @@ public class JiraReactor extends AbstractReactor {
 		try {
 			switch (command.trim().replaceAll("\\s+", " ").toLowerCase()) {
 			case "list all tickets":
-				return JiraHelper.listIssue(project,userName);
+				return JiraHelper.listIssue(project,userId);  
 
 			case "create new jira":
-				return JiraHelper.createIssue(summary, description, issuetype, project,userName);
+				return JiraHelper.createIssue(summary, description, issuetype, project,userId);
 
 			case "delete jira ticket":
-				return JiraHelper.deleteIssue(jiraId,userName);
+				return JiraHelper.deleteIssue(jiraId,userId);
 
+			case "truncate data":
+				return JiraHelper.truncateData(userId); 
 			}
 		} catch (Exception e) {
 			throw new SemossPixelException("Issue with input");
