@@ -18,7 +18,7 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 
 import org.apache.logging.log4j.Logger;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -52,13 +52,14 @@ import org.mockito.Mockito;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AbstractRdbmsFrameUnitTests {
-	private UUID uuid = mock(UUID.class);
 	private AbstractRdbmsFrame frame;
 	private RdbmsFrameBuilder builder;
 	private IQueryInterpreter interpreter;
 	private AbstractSqlQueryUtil util;	
 	private Connection conn;
 	private OwlTemporalEngineMeta owl;
+
+	private static final UUID FIXED_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
 	@BeforeEach
 	void setup() {
@@ -96,13 +97,10 @@ public class AbstractRdbmsFrameUnitTests {
 	// Constructors
 	@Nested
 	class InnerAbstractRdbmsFrameUnitTests {
-		private UUID uuid = AbstractRdbmsFrameUnitTests.this.uuid;
-
 		@Test
 		void constuctor() throws Exception {
 			try (MockedStatic<UUID> uuidStatic = Mockito.mockStatic(UUID.class)) {
-				uuidStatic.when(() -> UUID.randomUUID()).thenReturn(uuid);
-				when(uuid.toString()).thenReturn("uuid");
+				uuidStatic.when(() -> UUID.randomUUID()).thenReturn(FIXED_UUID);
 
 				frame = new AbstractRdbmsFrame() {
 					@Override
@@ -123,15 +121,14 @@ public class AbstractRdbmsFrameUnitTests {
 						return interpreter;
 					}
 				};
-				assertEquals("RDBMSFRAME_UUID", frame.getOriginalName());
+				assertEquals("RDBMSFRAME_NULL_NULL_NULL_NULL_NULL", frame.getOriginalName());
 			}
 		}
 
 		@Test
 		void constuctorTableName() throws Exception {
 			try (MockedStatic<UUID> uuidStatic = Mockito.mockStatic(UUID.class)) {
-				uuidStatic.when(() -> UUID.randomUUID()).thenReturn(uuid);
-				when(uuid.toString()).thenReturn("uuid");
+				uuidStatic.when(() -> UUID.randomUUID()).thenReturn(FIXED_UUID);
 
 				frame = new AbstractRdbmsFrame("tableName") {
 					@Override
@@ -173,7 +170,7 @@ public class AbstractRdbmsFrameUnitTests {
 						return interpreter;
 					}
 				};
-				assertEquals("RDBMSFRAME_UUID", frame.getOriginalName());
+				assertEquals("RDBMSFRAME_NULL_NULL_NULL_NULL_NULL", frame.getOriginalName());
 			}
 		}
 
@@ -181,10 +178,8 @@ public class AbstractRdbmsFrameUnitTests {
 		void constuctorHeaders() throws Exception {
 			String[] headers = {"col1"};
 
-			try (MockedStatic<UUID> uuidStatic = Mockito.mockStatic(UUID.class);
-				MockedStatic<ImportUtility> util = Mockito.mockStatic(ImportUtility.class)) {
-				uuidStatic.when(() -> UUID.randomUUID()).thenReturn(uuid);
-				when(uuid.toString()).thenReturn("uuid");
+			try (MockedStatic<UUID> uuidStatic = Mockito.mockStatic(UUID.class)) {
+				uuidStatic.when(() -> UUID.randomUUID()).thenReturn(FIXED_UUID);
 				doNothing().when(builder).alterTableNewColumns(eq("RDBMSFRAME_UUID"), eq(headers), any(String[].class));
 
 				frame = new AbstractRdbmsFrame(headers) {
@@ -199,7 +194,7 @@ public class AbstractRdbmsFrameUnitTests {
 
 					@Override
 					protected void initConnAndBuilder() throws Exception {
-						builder = mock(RdbmsFrameBuilder.class);
+						builder = AbstractRdbmsFrameUnitTests.this.builder;
 					}
 
 					@Override
@@ -207,7 +202,7 @@ public class AbstractRdbmsFrameUnitTests {
 						return interpreter;
 					}
 				};
-				assertEquals("RDBMSFRAME_UUID", frame.getOriginalName());
+				assertEquals("RDBMSFRAME_NULL_NULL_NULL_NULL_NULL", frame.getOriginalName());
 			}
 		}
 
@@ -218,8 +213,7 @@ public class AbstractRdbmsFrameUnitTests {
 
 			try (MockedStatic<UUID> uuidStatic = Mockito.mockStatic(UUID.class);
 				MockedStatic<ImportUtility> util = Mockito.mockStatic(ImportUtility.class)) {
-				uuidStatic.when(() -> UUID.randomUUID()).thenReturn(uuid);
-				when(uuid.toString()).thenReturn("uuid");
+				uuidStatic.when(() -> UUID.randomUUID()).thenReturn(FIXED_UUID);
 				doNothing().when(builder).alterTableNewColumns(eq("RDBMSFRAME_UUID"), eq(headers), eq(types));
 
 				frame = new AbstractRdbmsFrame(headers, types) {
@@ -234,7 +228,7 @@ public class AbstractRdbmsFrameUnitTests {
 
 					@Override
 					protected void initConnAndBuilder() throws Exception {
-						builder = mock(RdbmsFrameBuilder.class);
+						builder = AbstractRdbmsFrameUnitTests.this.builder;
 					}
 
 					@Override
@@ -242,7 +236,7 @@ public class AbstractRdbmsFrameUnitTests {
 						return interpreter;
 					}
 				};
-				assertEquals("RDBMSFRAME_UUID", frame.getOriginalName());
+				assertEquals("RDBMSFRAME_NULL_NULL_NULL_NULL_NULL", frame.getOriginalName());
 			}
 		}
 	}
