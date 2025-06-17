@@ -95,9 +95,9 @@ class AbstractTextGenerationClient(ABC):
         """
         full_prompt = kwargs.pop(FULL_PROMPT, None)
 
-        streaming = kwargs.pop("streaming", False)
+        streaming = kwargs.pop("streaming", True)
         if not streaming:
-            streaming = kwargs.pop("stream", False)
+            streaming = kwargs.pop("stream", True)
 
         image_url = kwargs.pop("image_url", None)
         if isinstance(image_url, str):
