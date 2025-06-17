@@ -2,14 +2,21 @@ package prerna.util.git.reactors;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -17,6 +24,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 
 public class SaveAssetReactor extends AbstractReactor {
 
@@ -31,52 +39,164 @@ public class SaveAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+
 		User user = this.insight.getUser();
 		// check if user is logged in
 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 			throwAnonymousUserError();
 		}
 
+		// Retrieve all file names and contents
+		List<String> fileNames = getNounAsStringList(this.keysToGet[0]);
+		List<String> contents = getNounAsStringList(this.keysToGet[1]);
+
+		if(fileNames == null || fileNames.isEmpty() || contents == null || contents.isEmpty()) {
+			throw new IllegalArgumentException("Must pass in at least one file name and content to save");
+		}
+		if(fileNames.size() != contents.size()) {
+			throw new IllegalArgumentException("Number of file names and contents must match");
+		}
+
+		String comment = this.keyValue.get(this.keysToGet[2]);
 		String space = this.keyValue.get(this.keysToGet[3]);
-		// if security is enabled, you need proper permissions
-		// this takes in the insight and does a user check that the user has access to perform the operations
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
-		String fileName = Utility.normalizePath(keyValue.get(keysToGet[0]));
-		
-		// limit saving R/Py Files in prod - No new files can be created but they can be sourced
-		boolean strict_script_source = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
-		if(strict_script_source) {
-			 String extension = FilenameUtils.getExtension(fileName);
-			 if(extension.equalsIgnoreCase("py") || extension.equalsIgnoreCase("R") ) {
+		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
+
+		// Check strict script source settings once
+		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
+
+		// we will iterate here so that we dont have partial asset changes
+		for (int i = 0; i < fileNames.size(); i++) {
+			String rawFileName = fileNames.get(i).trim();
+			String fileName = Utility.normalizePath(rawFileName);
+
+			// limit saving R/Py Files in prod - no new files can be created but they can be sourced
+			if(strictScriptSource) {
+				String extension = FilenameUtils.getExtension(fileName);
+				if("py".equalsIgnoreCase(extension) || "R".equalsIgnoreCase(extension)) {
 					throw new IllegalArgumentException("User is not allowed to create or save R or Py scripts");
-			 }
-		}
-		
-		String filePath = assetFolder + "/" + fileName;
-		String content = keyValue.get(keysToGet[1]);
+				}
+			}
 
-		// you cannot save at root level if you are in user/project space
-		if(space != null 
-				&& !space.isEmpty() 
-				&& !space.equals(AssetUtility.INSIGHT_SPACE_KEY) 
-				&& !fileName.contains("/")) {
-			return NounMetadata.getErrorNounMessage("You cannot create directory / files at this level");
-		}
-		
-		// write content to file
-		content = Utility.decodeURIComponent(content);
-		File file = new File(filePath);
-		try {
-			FileUtils.writeStringToFile(file, content);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file");
-			SemossPixelException exception = new SemossPixelException(error);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
+			// you cannot save at root level if you are in user/project space
+			if(space != null && !space.isEmpty() && !space.equals(AssetUtility.INSIGHT_SPACE_KEY) && !fileName.contains("/")) {
+				return NounMetadata.getErrorNounMessage("You cannot create directory / files at this level for space = " + space);
+			}
 		}
 
-		return NounMetadata.getSuccessNounMessage("Success!");
+		// iterate each fileName/content pair
+		for (int i = 0; i < fileNames.size(); i++) {
+			String rawFileName = fileNames.get(i).trim();
+			String fileName = Utility.normalizePath(rawFileName);
+			if(fileName == null || fileName.isEmpty()) {
+				continue;
+			}
+
+			String filePath = assetFolder + "/" + fileName;
+			String content = contents.get(i);
+			content = Utility.decodeURIComponent(content);
+
+			File file = new File(filePath);
+			try {
+				FileUtils.writeStringToFile(file, content, Charset.forName("UTF-8"));
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);
+				SemossPixelException exception = new SemossPixelException(error);
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+		}
+
+		// if we do not want this reactor to push to git/cloud
+		// all the below logic can be removed 
+		
+		NounMetadata warning = null;
+		// add to git / push to cloud
+		// we only do this if this is a saved insight or project/user space
+		if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
+			// if we are in the insight space
+			// it must be a saved insight
+			if(!this.insight.isSavedInsight()) {
+				warning = NounMetadata.getWarningNounMessage("Unable to commit file. All files will be commited once the insight is saved.");
+			}
+		}
+		
+		if(warning == null) {
+			// add file to git
+			List<String> files = new ArrayList<>();
+			for (int i = 0; i < fileNames.size(); i++) {
+				String rawFileName = fileNames.get(i).trim();
+				String fileName = Utility.normalizePath(rawFileName);
+				if(fileName == null || fileName.isEmpty()) {
+					continue;
+				}
+				
+				// check the file to see if it is version/
+				// if not add it here
+				// make the asset folder to be the first piece of the file path
+				// need to get the first piece of fileName
+				// add it to the asset
+				// and pass that as asset folder
+				String [] fileTokens = fileName.split("/");
+				String baseDir = fileTokens[0];
+				assetFolder = assetFolder + "/" + baseDir;
+				fileName = fileName.replace(baseDir, "");
+				files.add(relativePath + DIR_SEPARATOR + fileName);		
+			}
+			
+			GitRepoUtils.addSpecificFiles(assetFolder, files);
+			// Get the user's email
+			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+			String email = accessToken.getEmail();
+			String author = accessToken.getUsername();
+			
+			// commit it
+			GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
+			// handle synchronization to the cloud
+			if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
+				AuthProvider provider = user.getPrimaryLogin();
+				String projectId = user.getAssetProjectId(provider);
+				if(projectId!=null && !(projectId.isEmpty())) {
+					ClusterUtil.pushUserWorkspace(projectId, true);
+				}
+			} else {
+				// if space is null or it is in the insight, push using insight id to get engine
+				if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
+					IProject project = Utility.getProject(this.insight.getProjectId());
+					ClusterUtil.pushProjectFolder(project, assetFolder);
+				} else {
+					// this is a project asset. space is the projectId
+					IProject project = Utility.getProject(space);
+					ClusterUtil.pushProjectFolder(project, assetFolder);
+				}
+			}
+		}
+
+		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
+		if(warning != null) {
+			retNoun.addAdditionalReturn(warning);
+		}
+		return retNoun;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Save a single or multiple files in the space's file repository";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
+			return "Names of the file(s) to save";
+		} else if(key.equals(ReactorKeysEnum.CONTENT.getKey())) {
+			return "Contents of the file(s) to save";
+		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+			return "Comment to add while saving the files within the git repository associated with the space";
+		} else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
+			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

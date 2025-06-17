@@ -1385,10 +1385,24 @@ public class GitRepoUtils {
 			f.createNewFile();
 			fw = new FileWriter(f);
 			bw = new BufferedWriter(fw);
-			bw.write("*.cache");
-			bw.newLine();
-			bw.write("*/Temp/*");
-			bw.newLine();
+			String[] ignoreList = new String[] {
+					".DS_Store",
+					".AppleDouble",
+					".LSOverride",
+					"*.log",
+					"*.cache",
+					"*.tmp",
+					"*.pid",
+					"*.pyc",
+					"npm-debug.log*",
+					"yarn-debug.log*",
+					"*/Temp/*",
+					"**/node_modules/"
+			};
+			for(String ignore : ignoreList) {
+				bw.write(ignore);
+				bw.newLine();
+			}
 		} catch(Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 		} finally {
