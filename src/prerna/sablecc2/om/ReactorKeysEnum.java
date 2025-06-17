@@ -286,7 +286,8 @@ public enum ReactorKeysEnum {
 	WIDTH("width", 											    "The width to use for screenshot capture"),
 	X("x",		 											    "The X coordiante."),
 	Y("y",		 											    "The Y coordiante."),
-	FUNCTION_ENGINE_NAME("functionEngineName", 					"The Name of python function engine");
+	FUNCTION_ENGINE_NAME("functionEngineName", 					"The Name of python function engine"), 
+	EXTENTION("extention", 					                    "file extention");
 
 	private String key;
 	private String description;

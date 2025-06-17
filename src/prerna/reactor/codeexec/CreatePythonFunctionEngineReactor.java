@@ -10,32 +10,28 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
-import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public class CreatePythonFunctionEngineReactor extends AbstractReactor {
+public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(CreatePythonFunctionEngineReactor.class);
 
@@ -44,6 +40,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractReactor {
         this.keysToGet = new String[]{
             ReactorKeysEnum.FUNCTION_ENGINE_NAME.getKey(),
             ReactorKeysEnum.FUNCTION_DETAILS.getKey(),
+            ReactorKeysEnum.CONTENT.getKey()
            
         };
     }
@@ -51,30 +48,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractReactor {
     @Override
     public NounMetadata execute() {
     	User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create a function engine", PixelDataType.CONST_STRING,
-					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-			if (this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-		}
-
-		// throw error is user doesn't have rights to publish new databases
-		if (SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
-			throwUserNotPublisherError();
-		}
-
-		if (AbstractSecurityUtils.adminOnlyFunctionAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-			throwFunctionalityOnlyExposedForAdminsError();
-		}
-
+    	validateUserAndEngineAccess(user);
 		organizeKeys();
 		
         String functionEngineName = getFunctionName();
@@ -109,7 +83,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractReactor {
 			// validate engine
 			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.FUNCTION, user, functionName, functionId);
 			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
-			//create empty main.py file
+			//create  main.py file with provided content
 			createPythonFile(specificEngineFolder, pythonFileName, functionDetails);
 			String functionClass = functionType.getFunctionClass();
 			function = (IFunctionEngine) Class.forName(functionClass).newInstance();
@@ -232,12 +206,25 @@ public class CreatePythonFunctionEngineReactor extends AbstractReactor {
 	
 	private void createPythonFile(File specificEngineFolder, String pythonFileName, Map<String, Object> functionDetails) throws IOException {
 	    File mainPy = new File(specificEngineFolder, pythonFileName);
+	    String fileContent = this.keyValue.get(ReactorKeysEnum.CONTENT.getKey());
 
 	    if (mainPy.exists()) {
 	        classLogger.warn(pythonFileName + " already exists in " + specificEngineFolder.getAbsolutePath());
 	        return;
 	    }
-
+	  //UI has passed the full .py content
+	    if (fileContent != null && !fileContent.trim().isEmpty()) {
+	    	String unescapedScript = StringEscapeUtils.unescapeJava(fileContent);
+	        try (BufferedWriter writer = new BufferedWriter(new FileWriter(mainPy))) {
+	            writer.write(unescapedScript);
+	            classLogger.info("Uploaded .py file saved to: " + mainPy.getAbsolutePath());
+	        } catch (IOException e) {
+	            classLogger.error(Constants.STACKTRACE, e);
+	            throw e;
+	        }
+	        return;
+	    }
+	    // No uploaded file, auto-generate main.py
 	    List<String> requiredParams = (List<String>) functionDetails.get("FUNCTION_REQUIRED_PARAMETERS");
 	    List<Map<String, String>> allParams = (List<Map<String, String>>) functionDetails.get("FUNCTION_PARAMETERS");
 

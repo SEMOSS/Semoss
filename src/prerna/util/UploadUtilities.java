@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -2006,106 +2007,4 @@ public final class UploadUtilities {
 		Map<String, Object> retMap = baseInfo.get(0);
 		return retMap;
 	}
-	
-	public static String processPythonFile(String funtionEnginePath, String content,String pyFolderPath) throws IOException, InterruptedException {
-
-	    List<String> originalLines = Arrays.asList(content.split("\n"));
-			
-			// Check if the file is empty or only contains comments/whitespace
-		    boolean isEmptyOrCommentOnly = true;
-		    for (String line : originalLines) {
-		        String trimmed = line.trim();
-		        if (!trimmed.isEmpty() && !trimmed.startsWith("#")) {
-		            isEmptyOrCommentOnly = false;
-		            break;
-		        }
-		    }
-		    
-		    if (isEmptyOrCommentOnly) {
-		        return ""; // Skip this file and return empty output
-		    }
-			
-			// Define the paths to inject
-			String inject1 = "import sys";
-			String inject2 = buildSysPathInject(funtionEnginePath);
-			String inject3 = buildSysPathInject(pyFolderPath);
-		    
-			 // Check if already present
-		    boolean needsInject1 = true;
-		    boolean needsInject2 = true;
-		    boolean needsInject3 = true;
-
-		    for (String line : originalLines) {
-		        String trimmed = line.trim();
-		        if (trimmed.equals(inject1)) needsInject1 = false;
-		        if (trimmed.equals(inject2)) needsInject2 = false;
-		        if (trimmed.equals(inject3)) needsInject3 = false;
-		    }
-
-		    // Inject only if needed
-		    List<String> newLines = new ArrayList<>();
-		    if (needsInject1) newLines.add(inject1);
-		    if (needsInject2) newLines.add(inject2);
-		    if (needsInject3) newLines.add(inject3);
-		    newLines.addAll(originalLines);
-
-		    // Create temp file only if anything was injected
-		    Path tempScript = null;
-		    try {
-	            if (needsInject1 || needsInject2 || needsInject3) {
-	                String uuid = UUID.randomUUID().toString();
-	                tempScript = Files.createTempFile("mod_", "_" + uuid + ".py");
-	                Files.write(tempScript, newLines);
-	            } else {
-	                tempScript = Paths.get(content); // use original
-	            }
-
-	            Path workingDir = tempScript.getParent();
-	            String output = executePythonScript(workingDir.toFile(), tempScript);
-	            return output;
-
-	        } catch (RuntimeException e) {
-	        	return "Error: " + e.getMessage();
-
-	        } finally {
-	            // Clean up only if we created a temporary script
-	            if (tempScript != null && tempScript.getFileName().toString().startsWith("mod_")) {
-	                Files.deleteIfExists(tempScript);
-	            }
-	        }
-	    }
-	
-	public static String buildSysPathInject(String path) {
-		return "sys.path.append(\"" + path.replace("\\", "\\\\") + "\")";
-	}
-    
-	public static  String executePythonScript( File workingDir, Path scriptFile) throws IOException, InterruptedException {
-
-		String pyExecutionPath = Utility.getDIHelperProperty(Constants.PYTHONHOME);
-		Path pythonExecutable = Paths.get(pyExecutionPath, "python.exe");
-
-		if (!Files.exists(pythonExecutable)) {
-			throw new IllegalStateException("Python executable not found at: " + pythonExecutable.toString());
-		}
-
-		// Prepare and run process with modified script
-		ProcessBuilder pb = new ProcessBuilder(pythonExecutable.toString(), scriptFile.toAbsolutePath().toString());
-		pb.directory(workingDir);
-		pb.redirectErrorStream(true);
-		Process process = pb.start();
-		
-
-		String output;
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-			output = reader.lines().collect(Collectors.joining("\n"));
-		}
-
-		int exitCode = process.waitFor();
-		if (exitCode != 0) {
-			throw new RuntimeException("ERROR (code " + exitCode + "): " + output);
-		}
-
-		return output;
-	}
-
 }
