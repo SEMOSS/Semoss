@@ -12,7 +12,6 @@ public class AskStringModelEngineResponse extends AskModelEngineResponse<String>
 
 	@Override
 	public String getStringResponse() {
-		// TODO Auto-generated method stub
 		return this.getResponse();
 	}	
 	

@@ -1,7 +1,7 @@
 package prerna.util.git.reactors;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -61,8 +61,17 @@ public class CommitAssetReactor extends AbstractReactor {
 		filePath = filePath.replace(baseDir, "");
 
 		// add file to git
-		List<String> files = new Vector<>();
-		files.add(relativePath + DIR_SEPARATOR + filePath);		
+		List<String> files = new ArrayList<>();
+		// we dont want to start with a "/"
+		if(relativePath.isEmpty()) {
+			if(filePath.startsWith(DIR_SEPARATOR)) {
+				files.add(filePath.substring(1));		
+			} else {
+				files.add(filePath);
+			}
+		} else {
+			files.add(relativePath + DIR_SEPARATOR + filePath);		
+		}
 		GitRepoUtils.addSpecificFiles(assetFolder, files);
 
 		// commit it
