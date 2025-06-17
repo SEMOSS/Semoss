@@ -27,9 +27,11 @@ import prerna.cluster.util.RemoteClientServerZK;
 import prerna.cluster.util.RemoteClientServerZKRESTProxy;
 import prerna.cluster.util.ZKClientFactory;
 import prerna.engine.impl.model.kserve.KServeAdapter;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.RemoteModelStateEnum;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
@@ -523,5 +525,11 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			classLogger.error("Error deploying model", e);
 		}
 		return implementingEngineClass.instructCall(task, context, projectData, insight, hyperParameters);
+	}
+
+	@Override
+	protected AskModelEngineResponse askRoomCall(InputMessage message, Object fullPrompt, Room room, Insight insight,
+			Map<String, Object> hyperParameters) {
+		return new AskStringModelEngineResponse("This model does not support text generation.", 0, 0);
 	}
 }

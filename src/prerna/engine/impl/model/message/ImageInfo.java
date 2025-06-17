@@ -34,7 +34,7 @@ public class ImageInfo {
 
 		info.base64Data = encodeFileToBase64(fullFilePath);
 
-//finally push image to the cloud
+		//finally push image to the cloud
 		PlaygroundUtils.getInstance().pushFile(fullFilePath, info.folderPath);
 		return info;
 	}

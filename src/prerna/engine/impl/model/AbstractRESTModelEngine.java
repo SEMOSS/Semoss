@@ -25,6 +25,9 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
 import prerna.engine.impl.model.responses.IModelEngineResponseHandler;
 import prerna.engine.impl.model.responses.IModelEngineResponseStreamHandler;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -197,5 +200,12 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 
 	    return new InstructModelEngineResponse(responseList, 0, 0);
 	}
+	
+	@Override
+	protected AskModelEngineResponse askRoomCall(InputMessage message, Object fullPrompt, Room room, Insight insight,
+			Map<String, Object> hyperParameters) {
+		return new AskStringModelEngineResponse("This model does not support text generation.", 0, 0);
+	}
+	
 }
 

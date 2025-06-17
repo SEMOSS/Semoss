@@ -10,6 +10,7 @@ import java.util.Set;
 
 import playground.utils.PlaygroundUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
@@ -91,9 +92,9 @@ public class Room {
         response.getFormattedMessage(); //set the formatted message
         response.setParentMessageId(msg.getMessageId());
         messages.add(response);
-
+        
         // Persist the message history
-        PlaygroundUtils.getInstance().updateRoomMessages(
+        ModelInferenceLogsUtils.llm2_updateRoomMessages(
                 room_id, 
                 insight.getUser().getPrimaryLoginToken().getId(),
                 getMessagesAsString()
@@ -175,10 +176,10 @@ public class Room {
         }
 
         if(insight != null) {
-            PlaygroundUtils.getInstance().updateRoomMessages(
-                room_id,
-                insight.getUser().getPrimaryLoginToken().getId(),
-                getMessagesAsString()
+            ModelInferenceLogsUtils.llm2_updateRoomMessages(
+                    room_id, 
+                    insight.getUser().getPrimaryLoginToken().getId(),
+                    getMessagesAsString()
             );
         }
 
@@ -198,10 +199,10 @@ public class Room {
             nextAssistant.getFormattedMessage();
             messages.add(nextAssistant);
 
-            PlaygroundUtils.getInstance().updateRoomMessages(
-                room_id,
-                insight.getUser().getPrimaryLoginToken().getId(),
-                getMessagesAsString()
+            ModelInferenceLogsUtils.llm2_updateRoomMessages(
+                    room_id, 
+                    insight.getUser().getPrimaryLoginToken().getId(),
+                    getMessagesAsString()
             );
 
             return llmResponse;

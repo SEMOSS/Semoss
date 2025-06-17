@@ -72,10 +72,10 @@ public abstract class AbstractMessage {
 	};
 
 	public Map<String, Object> getFormattedMessage() {
-		if (formattedMessage == null) {
-			formattedMessage = MessageFormatterFactory.getFormatter(this.modelType).format(this);
-		}
-		System.out.println("KUNAL MESSAGE ::: " + formattedMessage);
+//		if (formattedMessage == null) {
+//			formattedMessage = MessageFormatterFactory.getFormatter(this.modelType).format(this);
+//		}
+//		System.out.println("KUNAL MESSAGE ::: " + formattedMessage);
 		return formattedMessage;
 	}
 

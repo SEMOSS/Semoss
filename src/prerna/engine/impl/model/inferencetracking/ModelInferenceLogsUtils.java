@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -968,6 +969,40 @@ public class ModelInferenceLogsUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+		}
+	}
+
+	/**
+	 * 
+	 * @param roomId
+	 * @param userId
+	 * @param messageHistory
+	 */
+	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory) {
+		PreparedStatement updateStmt = null;
+		try {
+			// Update messages and timestamp where room and user match
+			String query = "UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? WHERE INSIGHT_ID = ? AND USER_ID = ?";
+			updateStmt = modelInferenceLogsDb.getPreparedStatement(query);
+
+			// Prepare statement
+			updateStmt.setString(1, messageHistory);
+			updateStmt.setTimestamp(2, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			updateStmt.setString(3, roomId);
+			updateStmt.setString(4, userId);
+
+			// Execute update
+			int rows = updateStmt.executeUpdate();
+			if (!updateStmt.getConnection().getAutoCommit()) {
+				updateStmt.getConnection().commit();
+			}
+			return rows > 0;
+	
+		} catch (Exception e) {
+			classLogger.error("Error updating room messages: ", e);
+			throw new IllegalArgumentException("Error updating room messages: " + e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
 		}
 	}
 	
