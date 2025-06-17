@@ -36,7 +36,7 @@ public abstract class AbstractReactor implements IReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractReactor.class);
 	// get the directory separator
-	public static final String DIR_SEPARATOR = "/";//java.nio.file.FileSystems.getDefault().getSeparator();
+	public static final String DIR_SEPARATOR = "/";
 	protected static final String ALL_NOUN_STORE = "all";
 	
 	protected Insight insight = null;
@@ -896,19 +896,38 @@ public abstract class AbstractReactor implements IReactor {
 		return null;
 	}
 	
-	// gets the success message
+	/**
+	 * Gets a success message noun
+	 * @param message
+	 * @return
+	 */
 	public static NounMetadata getSuccess(String message) {
 		return NounMetadata.getSuccessNounMessage(message);
 	}
 
+	/**
+	 * Returns a error message noun
+	 * @param message
+	 * @return
+	 */
 	public static NounMetadata getError(String message) {
 		return NounMetadata.getErrorNounMessage(message);
 	}
 
+	/**
+	 * Returns a warning message noun
+	 * @param message
+	 * @return
+	 */
 	public static NounMetadata getWarning(String message) {
 		return NounMetadata.getWarningNounMessage(message);
 	}
 	
+	/**
+	 * 
+	 * @param key
+	 * @return
+	 */
 	public List<String> getNounAsStringList(String key) {
 		List<String> columns = new Vector<String>();
 
@@ -932,6 +951,11 @@ public abstract class AbstractReactor implements IReactor {
 		return columns;
 	}
 	
+	/**
+	 * 
+	 * @param input
+	 * @return
+	 */
 	public String fillVars(String input)
 	{
 		// ${i} - insight id
