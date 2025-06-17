@@ -19,8 +19,7 @@ public class JiraGetReactor extends AbstractReactor{
 		try {
 			String tableName = null;
 			List<JiraDetails> resultList = new ArrayList<JiraDetails>();
-			JiraDetails jiraDetails = new JiraDetails();
-			IDatabaseEngine database = Utility.getDatabase("c44b138d-aa8e-42cc-a925-6c2ac855df64");
+			IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
 			List<String> pixelConcepts = database.getPixelConcepts();
 			for (String element : pixelConcepts) {
 				tableName = element;
@@ -31,11 +30,14 @@ public class JiraGetReactor extends AbstractReactor{
 			if (string instanceof ResultSet) {
 				ResultSet rs = (ResultSet) string;
 				while (rs.next()) {
-					jiraDetails.setUserId(rs.getString("USERID"));
-					jiraDetails.setJiraPrimaryId(rs.getString("JIRAPROFILE_UNIQUE_ROW_ID"));
-					jiraDetails.setUrl(rs.getString("URL"));
+					JiraDetails jiraDetails = new JiraDetails();
+					jiraDetails.setCreatedBy(rs.getString("CREATED_BY"));
 					jiraDetails.setDateCreated(rs.getString("DATE_CREATED"));
-					jiraDetails.setLastUsed(rs.getString("LAST_USED"));
+					jiraDetails.setDateLastUsed(rs.getString("DATE_LAST_USED"));
+					jiraDetails.setName(rs.getString("NAME"));
+					jiraDetails.setPrimaryId(rs.getString("JIRAPROFILE_UNIQUE_ROW_ID"));
+					jiraDetails.setUrl(rs.getString("URL"));
+					jiraDetails.setUserId(rs.getString("USER_ID"));
 					resultList.add(jiraDetails);
 				}
 			}

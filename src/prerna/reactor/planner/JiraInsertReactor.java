@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 
+import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.sablecc2.om.PixelDataType;
@@ -35,10 +36,12 @@ public class JiraInsertReactor extends AbstractReactor {
 		Timestamp date=new Timestamp(dateCreated);
 		Timestamp lused=new Timestamp(lastUsed);
 		HashMap<Object, Object> map = new HashMap<Object, Object>();
+		User user = this.insight.getUser();
+		String insightusername = user.getPrimaryLoginToken().getUsername();
 		int profileId = 0;
 		try {
-			IDatabaseEngine database = Utility.getDatabase("c44b138d-aa8e-42cc-a925-6c2ac855df64");
-			insertData = insertData(database, userId, apiToken,url,date,lused);
+			IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
+			insertData = insertData(database, userId, apiToken,url,date,lused,insightusername);
 			if (insertData == true) {
 				profileId = readData(database, userId, apiToken,url,date,lused);
 			}
@@ -63,7 +66,7 @@ public class JiraInsertReactor extends AbstractReactor {
 			for (String element : pixelConcepts) {
 				tableName = element;
 			}
-			String query=" select JIRAPROFILE_UNIQUE_ROW_ID from "+tableName+ " where APIKEY='"+apiKey+"' and URL='"+url+"'and DATE_CREATED='"+date+"' and LAST_USED='"+lused+"'";
+			String query=" select JIRAPROFILE_UNIQUE_ROW_ID from "+tableName+ " where API_KEY='"+apiKey+"' and URL='"+url+"'and DATE_CREATED='"+date+"' and DATE_LAST_USED='"+lused+"'";
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
 			Object string = hashmap.get("RESULTSET_OBJECT");
 			if (string instanceof ResultSet) {
@@ -80,14 +83,14 @@ public class JiraInsertReactor extends AbstractReactor {
 
 	}
 
-	private static Boolean insertData(IDatabaseEngine database, String userId, String apiKey, String url, Timestamp dateCreated, Timestamp lastUsed) {
+	private static Boolean insertData(IDatabaseEngine database, String userId, String apiKey, String url, Timestamp dateCreated, Timestamp lastUsed, String insightusername) {
 		String tableName = null;
 		try {
 			List<String> pixelConcepts = database.getPixelConcepts();
 			for (String element : pixelConcepts) {
 				tableName = element;
 			}
-			String insertQuery=" INSERT INTO "+tableName+ "(Apikey,UserId,URL,DATE_CREATED,LAST_USED) " + "VALUES ('" +apiKey + "','"+userId +"','"+url+"','"+dateCreated+"','"+lastUsed+"')";
+			String insertQuery=" INSERT INTO "+tableName+ "(API_KEY,USER_ID,URL,DATE_CREATED,DATE_LAST_USED,NAME,CREATED_BY) " + "VALUES ('" +apiKey + "','"+userId +"','"+url+"','"+dateCreated+"','"+lastUsed+"','"+insightusername+"','"+insightusername+"')";
 			database.insertData(insertQuery);
 			return true;
 		} catch (Exception e) {

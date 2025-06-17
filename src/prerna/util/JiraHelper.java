@@ -74,7 +74,7 @@ public class JiraHelper {
 		try {
 			String URL = null;
 			String tableName = null;
-			IDatabaseEngine database = Utility.getDatabase("c44b138d-aa8e-42cc-a925-6c2ac855df64");
+			IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
 			List<String> pixelConcepts = database.getPixelConcepts();
 			for (String element : pixelConcepts) {
 				tableName = element;
@@ -100,7 +100,7 @@ public class JiraHelper {
 		try {
 			String userName = null;
 			String tableName = null;
-			IDatabaseEngine database = Utility.getDatabase("c44b138d-aa8e-42cc-a925-6c2ac855df64");
+			IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
 			List<String> pixelConcepts = database.getPixelConcepts();
 			for (String element : pixelConcepts) {
 				tableName = element;
@@ -112,7 +112,7 @@ public class JiraHelper {
 			if (string instanceof ResultSet) {
 				ResultSet rs = (ResultSet) string;
 				while (rs.next()) {
-					userName = rs.getString("UserId");
+					userName = rs.getString("USER_ID");
 				}
 			}
 			return userName;
@@ -126,7 +126,7 @@ public class JiraHelper {
 	private static String getDBDetails(String userId) throws Exception, SQLException {
 		String tableName=null;
 		String apiKey=null;
-		IDatabaseEngine database = Utility.getDatabase("c44b138d-aa8e-42cc-a925-6c2ac855df64");
+		IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
 		List<String> pixelConcepts = database.getPixelConcepts();
 		for (String element : pixelConcepts) {
 			tableName = element;
@@ -137,7 +137,7 @@ public class JiraHelper {
 		if(string instanceof ResultSet) {
 			ResultSet rs=(ResultSet)string;
 			while(rs.next()) {
-				apiKey = rs.getString("Apikey");
+				apiKey = rs.getString("API_KEY");
 			}
 		}
 		return apiKey;
@@ -233,7 +233,7 @@ public class JiraHelper {
 		try {
 			String tableName = null;
 			long Uid;
-			IDatabaseEngine database = Utility.getDatabase("c44b138d-aa8e-42cc-a925-6c2ac855df64");
+			IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
 			List<String> pixelConcepts = database.getPixelConcepts();
 			for (String element : pixelConcepts) {
 				tableName = element;
@@ -267,7 +267,7 @@ public class JiraHelper {
 		try {
 			String tableName = null;
 			String userID;
-			IDatabaseEngine database = Utility.getDatabase("c44b138d-aa8e-42cc-a925-6c2ac855df64");
+			IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
 			List<String> pixelConcepts = database.getPixelConcepts();
 			for (String element : pixelConcepts) {
 				tableName = element;
