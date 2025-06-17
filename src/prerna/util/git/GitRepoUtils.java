@@ -1389,6 +1389,8 @@ public class GitRepoUtils {
 			bw.newLine();
 			bw.write("*/Temp/*");
 			bw.newLine();
+			bw.write("**/node_modules/");
+			bw.newLine();
 		} catch(Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 		} finally {
