@@ -76,7 +76,7 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine imple
 		int rowsCreated = (int) result.get("rowsInCSV");
 
 		// if we didn't get any rows, return back to abstract
-		if (rowsCreated <= 1) {
+		if (rowsCreated < 1) {
 			return rowsCreated;
 		}
 
