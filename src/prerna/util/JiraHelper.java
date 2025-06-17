@@ -105,7 +105,7 @@ public class JiraHelper {
 			for (String element : pixelConcepts) {
 				tableName = element;
 			}
-			String selectQuery = "SELECT UserId FROM " + tableName + " WHERE JIRAPROFILE_UNIQUE_ROW_ID='" + userId
+			String selectQuery = "SELECT USER_ID FROM " + tableName + " WHERE JIRAPROFILE_UNIQUE_ROW_ID='" + userId
 					+ "'";
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(selectQuery);
 			Object string = hashmap.get("RESULTSET_OBJECT");
@@ -131,7 +131,7 @@ public class JiraHelper {
 		for (String element : pixelConcepts) {
 			tableName = element;
 		}
-		String insertQuery = "SELECT Apikey FROM " + tableName + " WHERE JIRAPROFILE_UNIQUE_ROW_ID='" + userId + "'";
+		String insertQuery = "SELECT API_KEY FROM " + tableName + " WHERE JIRAPROFILE_UNIQUE_ROW_ID='" + userId + "'";
 		HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(insertQuery);
 		Object string = hashmap.get("RESULTSET_OBJECT");
 		if(string instanceof ResultSet) {
