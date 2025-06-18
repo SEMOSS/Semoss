@@ -64,6 +64,7 @@ dependencies = [
     "python-pptx>=1.0.2",
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",
+    "semantic-text-splitter==0.18.1",
     "sentence-transformers>=3.4.1",
     "swifter>=1.4.0",
     "text-generation>=0.6.1",

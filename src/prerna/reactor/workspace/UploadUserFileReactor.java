@@ -71,7 +71,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Unable to find Asset App ID for user");
 		}
 
-		String baseUserFolderPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, true);
+		String baseUserFolderPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, true);
 		File baseUserFolder = new File(baseUserFolderPath);
 		if(!baseUserFolder.exists()){
 			throw new IllegalArgumentException("Unable to find user asset app directory");

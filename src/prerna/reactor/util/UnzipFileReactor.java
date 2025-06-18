@@ -38,7 +38,7 @@ public class UnzipFileReactor extends AbstractReactor {
 		
 		// if security enables, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
-		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
+		String baseFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String zipFileLocation = (baseFolder + "/" + fileRelativePath).replace('\\', '/');
 		File zipFile = new File(zipFileLocation);
 		if(zipFile.exists() && !zipFile.isFile()) {

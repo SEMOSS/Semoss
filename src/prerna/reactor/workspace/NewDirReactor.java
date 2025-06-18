@@ -60,7 +60,7 @@ public class NewDirReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Unable to find user asset app");
 		}
 
-		String userFolder = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, true);
+		String userFolder = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, true);
 		File relativeFolder = new File(userFolder + DIR_SEPARATOR + relativePath);
 
 		Boolean created = false;
