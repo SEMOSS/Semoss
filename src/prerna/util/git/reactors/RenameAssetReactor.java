@@ -55,7 +55,7 @@ public class RenameAssetReactor extends AbstractReactor{
             throw new IllegalArgumentException("Must pass both existing name and new name");
         }
  
-        String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
+        String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 		String comment = this.keyValue.get(this.keysToGet[3]);
 		if(comment == null) {

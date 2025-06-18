@@ -46,7 +46,7 @@ public class CommitAssetReactor extends AbstractReactor {
 			}
 		}
 		
-		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, true);
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 		
 		// check the file to see if it is version/

@@ -8,10 +8,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import javax.sql.rowset.CachedRowSet;
+import javax.sql.rowset.RowSetProvider;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.sun.rowset.CachedRowSetImpl;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -152,7 +153,7 @@ public class EngineWorker implements Runnable {
     		{
     			try {
 					// move this CacheRowSetImpl
-					CachedRowSetImpl impl = new CachedRowSetImpl();
+    				CachedRowSet impl = RowSetProvider.newFactory().createCachedRowSet();
 					impl.setMaxRows(MAX_ROWS);
 					impl.populate((ResultSet)obj);
 					output.put(key, impl);
