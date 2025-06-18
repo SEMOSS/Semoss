@@ -60,7 +60,7 @@ public class UserDirReactor extends AbstractReactor {
 
 
 		//Base Asset Folder. Checking that is exists, otherwise error
-		String baseUserFolderPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, true);
+		String baseUserFolderPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, true);
 		//Where we are storing their information under version. Make the version folder if it doesn't exist.
 		String userFolderPath =  baseUserFolderPath + DIR_SEPARATOR + "version";
 		File userFolder = new File(userFolderPath);

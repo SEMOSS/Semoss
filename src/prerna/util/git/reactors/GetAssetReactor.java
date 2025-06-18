@@ -46,7 +46,7 @@ public class GetAssetReactor extends AbstractReactor {
 		// check if user is logged in
 		String space = this.keyValue.get(this.keysToGet[2]);
 		// we need to change this to asset base folder
-		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, false);
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
 		
 		String output = null;
 		if(version != null) {

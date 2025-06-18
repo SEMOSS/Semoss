@@ -487,7 +487,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 						String fileLoc = null;
 						String filePrefix = null;
 						if(space != null) {
-							filePrefix = AssetUtility.getAssetBasePath(this.insight, space, false);
+							filePrefix = AssetUtility.getRootFolderPath(this.insight, space, false);
 						}
 						
 						// this is for legacy recipes

@@ -11,6 +11,13 @@ import javax.sql.rowset.CachedRowSet;
 import javax.sql.rowset.RowSetProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import javax.sql.rowset.CachedRowSet;
+import javax.sql.rowset.RowSetProvider;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -150,7 +157,7 @@ public class EngineWorker implements Runnable {
     		{
     			try {
 					// move this CacheRowSetImpl
-    			    CachedRowSet impl = RowSetProvider.newFactory().createCachedRowSet();
+    			CachedRowSet impl = RowSetProvider.newFactory().createCachedRowSet();
 					impl.setMaxRows(MAX_ROWS);
 					impl.populate((ResultSet)obj);
 					output.put(key, impl);

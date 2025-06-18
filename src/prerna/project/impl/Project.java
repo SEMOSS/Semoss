@@ -168,13 +168,13 @@ public class Project implements IProject {
 		
 		this.isAsset = Boolean.parseBoolean(this.smssProp.getProperty(Constants.IS_ASSET_APP));
 		if(this.isAsset) {
-			this.projectBaseFolder = AssetUtility.getUserAssetAndWorkspaceBaseFolder(this.projectName, this.projectId);
+			this.projectBaseFolder = AssetUtility.getUserAssetAndWorkspaceAppRootFolder(this.projectName, this.projectId);
 			this.projectVersionFolder = AssetUtility.getUserAssetAndWorkspaceVersionFolder(this.projectName, this.projectId);
 			this.projectAssetFolder = AssetUtility.getUserAssetAndWorkspaceAssetFolder(this.projectName, this.projectId);
 		} else {
-			this.projectBaseFolder = AssetUtility.getProjectBaseFolder(this.projectName, this.projectId);
+			this.projectBaseFolder = AssetUtility.getProjectAppRootFolder(this.projectName, this.projectId);
 			this.projectVersionFolder = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId);
-			this.projectAssetFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId);
+			this.projectAssetFolder = AssetUtility.getProjectAssetsFolder(this.projectName, this.projectId);
 			this.projectPortalFolder = AssetUtility.getProjectPortalsFolder(this.projectName, this.projectId);
 			this.projectNotebookFolder = AssetUtility.getProjectNotebookFolder(this.projectName, this.projectId);
 		}
@@ -1797,7 +1797,7 @@ public class Project implements IProject {
 	public String getCompileOutput() {
 		String finalOutput = null;
 		try {
-			String compilerOutput = AssetUtility.getProjectAssetFolder(this.projectId) + "/classes/compileerror.out";
+			String compilerOutput = AssetUtility.getProjectAssetsFolder(this.projectId) + "/classes/compileerror.out";
 			File file = new File(compilerOutput);
 			if(file.exists())
 				finalOutput = FileUtils.readFileToString(new File(compilerOutput));
