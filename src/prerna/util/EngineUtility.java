@@ -25,12 +25,15 @@ public class EngineUtility {
 	public static final String LOCAL_PROJECT_IMAGE_RELPATH = "images/projects";
 
 	public static final String DATABASE_FOLDER = BASE_FOLDER + Constants.DATABASE_FOLDER;
-	public static final String STORAGE_FOLDER = BASE_FOLDER + Constants.STORAGE_FOLDER;
-	public static final String MODEL_FOLDER = BASE_FOLDER + Constants.MODEL_FOLDER;
-	public static final String VECTOR_FOLDER = BASE_FOLDER + Constants.VECTOR_FOLDER;
-	public static final String FUNCTION_FOLDER = BASE_FOLDER + Constants.FUNCTION_FOLDER;
 	public static final String GUARDRAIL_FOLDER = BASE_FOLDER + Constants.GUARDRAIL_FOLDER;
+	public static final String FUNCTION_FOLDER = BASE_FOLDER + Constants.FUNCTION_FOLDER;
+	public static final String MODEL_FOLDER = BASE_FOLDER + Constants.MODEL_FOLDER;
+	public static final String ROOM_FOLDER = BASE_FOLDER + Constants.ROOM_FOLDER;
+	public static final String STORAGE_FOLDER = BASE_FOLDER + Constants.STORAGE_FOLDER;
+	public static final String VECTOR_FOLDER = BASE_FOLDER + Constants.VECTOR_FOLDER;
 	public static final String VENV_FOLDER = BASE_FOLDER + Constants.VENV_FOLDER;
+	
+	
 	// project is special engine
 	public static final String PROJECT_FOLDER = BASE_FOLDER + Constants.PROJECT_FOLDER;
 	public static final String USER_FOLDER = BASE_FOLDER + Constants.USER_FOLDER;

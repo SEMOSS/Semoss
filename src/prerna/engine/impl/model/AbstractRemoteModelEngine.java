@@ -527,9 +527,4 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		return implementingEngineClass.instructCall(task, context, projectData, insight, hyperParameters);
 	}
 
-	@Override
-	protected AskModelEngineResponse askRoomCall(InputMessage message, Object fullPrompt, Room room, Insight insight,
-			Map<String, Object> hyperParameters) {
-		return new AskStringModelEngineResponse("This model does not support text generation.", 0, 0);
-	}
 }

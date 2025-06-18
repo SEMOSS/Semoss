@@ -201,11 +201,6 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 	    return new InstructModelEngineResponse(responseList, 0, 0);
 	}
 	
-	@Override
-	protected AskModelEngineResponse askRoomCall(InputMessage message, Object fullPrompt, Room room, Insight insight,
-			Map<String, Object> hyperParameters) {
-		return new AskStringModelEngineResponse("This model does not support text generation.", 0, 0);
-	}
 	
 }
 

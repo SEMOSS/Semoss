@@ -160,10 +160,5 @@ public class RemoteModelEngine implements IModelEngine {
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 	
-	@Override
-	public AskModelEngineResponse askRoom(InputMessage message, Room room, Insight insight,
-			Map<String, Object> parameters) {
-		return new AskStringModelEngineResponse("This model does not support text generation.", 0, 0);
-	}
 	
 }

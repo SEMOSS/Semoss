@@ -8,7 +8,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-import playground.utils.PlaygroundUtils;
+import prerna.cluster.util.ClusterUtil;
 
 
 public class ImageInfo {
@@ -19,9 +19,8 @@ public class ImageInfo {
 	private String mimeType;
 	private transient String insightFolder;
 
-	public static ImageInfo fromFile(String filePath, String userId, String roomId, String messageId,
-			String insightFolder) {
-// create the image info object from file
+	public static ImageInfo fromFile(String filePath, String userId, String roomId, String messageId, String insightFolder) {
+		// create the image info object from file
 		ImageInfo info = new ImageInfo();
 		info.insightFolder = insightFolder;
 		String fullFilePath = insightFolder + "/" + filePath;
@@ -35,7 +34,7 @@ public class ImageInfo {
 		info.base64Data = encodeFileToBase64(fullFilePath);
 
 		//finally push image to the cloud
-		PlaygroundUtils.getInstance().pushFile(fullFilePath, info.folderPath);
+		ClusterUtil.pushRoom(roomId);
 		return info;
 	}
 

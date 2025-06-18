@@ -27,6 +27,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -972,39 +973,6 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 
-	/**
-	 * 
-	 * @param roomId
-	 * @param userId
-	 * @param messageHistory
-	 */
-	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory) {
-		PreparedStatement updateStmt = null;
-		try {
-			// Update messages and timestamp where room and user match
-			String query = "UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? WHERE INSIGHT_ID = ? AND USER_ID = ?";
-			updateStmt = modelInferenceLogsDb.getPreparedStatement(query);
-
-			// Prepare statement
-			updateStmt.setString(1, messageHistory);
-			updateStmt.setTimestamp(2, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-			updateStmt.setString(3, roomId);
-			updateStmt.setString(4, userId);
-
-			// Execute update
-			int rows = updateStmt.executeUpdate();
-			if (!updateStmt.getConnection().getAutoCommit()) {
-				updateStmt.getConnection().commit();
-			}
-			return rows > 0;
-	
-		} catch (Exception e) {
-			classLogger.error("Error updating room messages: ", e);
-			throw new IllegalArgumentException("Error updating room messages: " + e.getMessage());
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
-		}
-	}
 	
 	/**
 	 * @param userId
@@ -1401,6 +1369,111 @@ public class ModelInferenceLogsUtils {
 		return null;
 	}
 	
+	
+	/* -------- ROOM PIECES -------*/
+	
+	/**
+	 * 
+	 * @param roomId
+	 * @param userId
+	 * @param messageHistory
+	 */
+	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory) {
+		PreparedStatement updateStmt = null;
+		try {
+			// Update messages and timestamp where room and user match
+			String query = "UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? WHERE INSIGHT_ID = ? AND USER_ID = ?";
+			updateStmt = modelInferenceLogsDb.getPreparedStatement(query);
+
+			// Prepare statement
+			updateStmt.setString(1, messageHistory);
+			updateStmt.setTimestamp(2, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			updateStmt.setString(3, roomId);
+			updateStmt.setString(4, userId);
+
+			// Execute update
+			int rows = updateStmt.executeUpdate();
+			if (!updateStmt.getConnection().getAutoCommit()) {
+				updateStmt.getConnection().commit();
+			}
+			return rows > 0;
+	
+		} catch (Exception e) {
+			classLogger.error("Error updating room messages: ", e);
+			throw new IllegalArgumentException("Error updating room messages: " + e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
+		}
+	}
+	
+	
+	
+	public static Room getRoomById(String room_id, String user_id) {
+		String query = "SELECT *  " +
+				"FROM ROOM WHERE INSIGHT_ID = ? and USER_ID = ? ";
+		PreparedStatement stmt = null;
+		ResultSet resultSet = null;
+		try {
+			stmt = modelInferenceLogsDb.getPreparedStatement(query);
+			stmt.setString(1, room_id);
+			stmt.setString(2, user_id);
+			resultSet = stmt.executeQuery();
+				if (resultSet.next()) {
+					return new Room(
+							resultSet.getString("INSIGHT_ID"),
+							resultSet.getString("USER_ID"),
+							resultSet.getString("ROOM_NAME"),
+							resultSet.getString("SHARE_ID"),
+							resultSet.getBoolean("IS_ACTIVE"),
+							resultSet.getTimestamp("DATE_CREATED"),
+							resultSet.getTimestamp("UPDATED_AT"),
+							resultSet.getString("MESSAGES"),
+							resultSet.getBoolean("PINNED"),
+							resultSet.getString("OPTIONS"),
+							resultSet.getString("MODEL_ID"));
+				} else {
+					return null;
+				}
+
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	
+	/**
+	 * Get a list of the user's active rooms
+	 * 
+	 * @param db     - playground database
+	 * @param userId - user accessing the db
+	 * @return a list of the users room
+	 */
+	public static List<Map<String, Object>> getUserActiveRooms(String roomId, String userId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "INSIGHT_ID", "==", roomId));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME  + "USER_ID", "==", userId));
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	public static boolean validUserRoom(String roomId, String userId) {
+		// check if the user has access and the room is active
+		List<Map<String, Object>> roomActiveOutput = getUserActiveRooms(roomId,
+				userId);
+		// if there are no rooms or more than one returned, throw an error
+		if (roomActiveOutput.size() != 1) {
+			throw new IllegalArgumentException("Unable to find room");
+		}
+		// if it isn't active, throw an error
+		if (roomActiveOutput.get(0).get("IS_ACTIVE").equals(false)) {
+			throw new IllegalArgumentException("Room is closed");
+		}
+		return true;
+	}
 	
 
 }

@@ -257,15 +257,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		cpwToInit.getSocketClient().executeCommand(prefixPayload);
 	}
 	
-	
-	@Override
-	public AskModelEngineResponse askRoomCall(InputMessage message, Object fullPrompt, Room room, Insight insight, Map<String, Object> parameters) {
-		checkSocketStatus();
-
-		AskModelEngineResponse response = room.ask(message, insight, this);
-
-		return response;
-	}
 
 	@Override
 	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> parameters) {

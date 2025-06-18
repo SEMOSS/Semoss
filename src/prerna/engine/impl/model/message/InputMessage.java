@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.om.Insight;
@@ -17,20 +18,20 @@ import prerna.om.Insight;
  */
 public class InputMessage extends AbstractMessage {
 
-    // Input message to be shown on UI
-    @SerializedName("inputMessage")
-    private String inputMessage;
+    // Input prompt that is shown on the UI - think RAG query w/o chunks
+    @SerializedName("inputUIPrompt")
+    private String inputUIPrompt;
     
     // inputPrompt to be sent to the Model
-    private transient String inputPrompt;
+    private String inputPrompt;
     
     @SerializedName("type")
     private MessageType type = MessageType.INPUT_TEXT;
     
-    // Tool-related fields
-    @SerializedName("tool_calls")
-    private List<Map<String, Object>> toolCalls = new ArrayList<>();
-    	
+//    // Tool-related fields
+//    @SerializedName("tool_calls")
+//    private List<Map<String, Object>> toolCalls = new ArrayList<>();
+//    	
 	@SerializedName("tool_call_id")
     private String toolCallId;   // For tool result messages only
 
@@ -45,7 +46,7 @@ public class InputMessage extends AbstractMessage {
 
 	private Map<String, Object> paramMap =  new HashMap<>();
 
-    private transient List<ImageInfo> imageInfos = new ArrayList<>();
+    private List<ImageInfo> imageInfos = new ArrayList<>();
 
     // Private constructor - use Builder
     private InputMessage() {
@@ -59,13 +60,13 @@ public class InputMessage extends AbstractMessage {
     
     public void setMessageType(MessageType type) {
         this.type = type;
-        this.formattedMessage = null;
+//        this.formattedMessage = null;
     }
     
     /** Get the effective prompt to send to the LLM (RAG: includes user + chunks). */
     public String getInputPrompt() {
         return (inputPrompt == null || inputPrompt.trim().isEmpty())
-                ? inputMessage
+                ? inputUIPrompt
                 : inputPrompt;
     }
 
@@ -73,12 +74,12 @@ public class InputMessage extends AbstractMessage {
         this.inputPrompt = inputPrompt;
     }
 
-    public String getInputMessage() {
-        return inputMessage;
+    public String getInputUIPrompt() {
+        return inputUIPrompt;
     }
 
-    public void setInputMessage(String inputMessage) {
-        this.inputMessage = inputMessage;
+    public void setInputUIPrompt(String inputMessage) {
+        this.inputUIPrompt = inputMessage;
     }
 
 
@@ -98,8 +99,11 @@ public class InputMessage extends AbstractMessage {
         ImageInfo imageData = ImageInfo.fromFile(imagePath, userId, roomId, messageId, insight.getInsightFolder());
         imageInfos.add(imageData);        
         
+        
+		ClusterUtil.pushRoom(roomId);
+
         // Clear cached formatted message when images change
-        this.formattedMessage = null;
+//        this.formattedMessage = null;
     }
 
     public void addImages(List<String> imagePaths, String userId, String roomId, Insight insight) {
@@ -172,21 +176,35 @@ public class InputMessage extends AbstractMessage {
 
 
     // ----------- Tools -----------
-    public List<Map<String, Object>> getToolCalls() {
-        return new ArrayList<>(toolCalls);
+    public List<Map<String, Object>> getTools() {
+    	//get tool calls from param map. if null return empty array list
+        Object value = paramMap.get("tools");
+        if (value instanceof List) {
+            return new ArrayList<>((List<Map<String, Object>>) value);
+        } else {
+            return new ArrayList<>();
+        }
     }
 
     public boolean hasToolCalls() {
-        return toolCalls != null && !toolCalls.isEmpty();
+        Object value = paramMap.get("tools");
+        return value instanceof List && !((List<?>) value).isEmpty();
     }
 
 
-    public void addToolCall(Map<String, Object> toolCallMap) {
+    //add a single tool
+    public void addTool(Map<String, Object> toolCallMap) {
+        List<Map<String, Object>> toolCalls = (List<Map<String, Object>>) paramMap.get("tools");
         if (toolCalls == null) {
             toolCalls = new ArrayList<>();
+            paramMap.put("tools", toolCalls);
         }
         toolCalls.add(toolCallMap);
-        this.formattedMessage = null;
+//        this.formattedMessage = null;
+    }
+    
+    public void setTools(List<Map<String, Object>> toolCalls) {
+        paramMap.put("tools", toolCalls);
     }
     
     public String getToolCallId() {
@@ -231,7 +249,7 @@ public class InputMessage extends AbstractMessage {
 	
     // Content type checks
     public boolean hasText() {
-        return inputMessage != null && !inputMessage.isEmpty();
+        return inputUIPrompt != null && !inputUIPrompt.isEmpty();
     }
     
     // Builder pattern
@@ -241,15 +259,15 @@ public class InputMessage extends AbstractMessage {
 
     // Convenience factory methods for common cases
     public static InputMessage text(String content) {
-        return builder().withInputMessage(content).withType(MessageType.INPUT_TEXT).build();
+        return builder().withInputUIPrompt(content).withType(MessageType.INPUT_TEXT).build();
     }
 
     public static InputMessage response(String content) {
-        return builder().withInputMessage(content).withType(MessageType.RESPONSE_TEXT).build();
+        return builder().withInputUIPrompt(content).withType(MessageType.RESPONSE_TEXT).build();
     }
 
     public static InputMessage system(String content) {
-        return builder().withInputMessage(content).withType(MessageType.SYSTEM).build();
+        return builder().withInputUIPrompt(content).withType(MessageType.SYSTEM).build();
     }
     
     public static InputMessage toolExecution(String toolCallId, String toolName, String content) {
@@ -267,8 +285,8 @@ public class InputMessage extends AbstractMessage {
         private InputMessage message = new InputMessage();
 
         
-        public Builder withInputMessage(String inputMessage) {
-            message.setInputMessage(inputMessage);
+        public Builder withInputUIPrompt(String inputMessage) {
+            message.setInputUIPrompt(inputMessage);
             return this;
         }
 
@@ -321,14 +339,15 @@ public class InputMessage extends AbstractMessage {
 		}
 
 		
-        public Builder withToolCall(Map<String, Object> toolCallMap) {
-            message.addToolCall(toolCallMap);
+        public Builder withTool(Map<String, Object> toolCallMap) {
+            message.addTool(toolCallMap);
             return this;
         }
-        public Builder withToolCalls(List<Map<String, Object>> toolCalls) {
+        
+        public Builder withTools(List<Map<String, Object>> toolCalls) {
             if (toolCalls != null) {
                 for (Map<String, Object> tc : toolCalls) {
-                    message.addToolCall(tc);
+                    message.addTool(tc);
                 }
             }
             return this;
@@ -337,7 +356,7 @@ public class InputMessage extends AbstractMessage {
         public Builder withToolExecution(String toolCallId, String name, String content) {
             message.toolCallId = toolCallId;
             message.toolName = name;
-            message.setInputMessage(content);
+            message.setInputUIPrompt(content);
             message.setMessageType(MessageType.INPUT_TOOL_EXEC); // Ensure you have TOOL_INPUT or similar in your enum.
             return this;
         }
@@ -366,6 +385,7 @@ public class InputMessage extends AbstractMessage {
                 message.type = MessageType.INPUT_MEDIA;
             }
             
+            
             return message;
         }
 
@@ -383,5 +403,16 @@ public class InputMessage extends AbstractMessage {
 
 
     }
+
+
+
+
+
+
+
+   
+
+
+
 
 }

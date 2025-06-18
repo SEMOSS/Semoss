@@ -64,28 +64,28 @@ public class MessageUtils {
 			return "[]";
 		}
 
-		// Create safe copies for serialization (strip sensitive data if needed)
-		List<AbstractMessage> safeCopies = new ArrayList<>();
-		for (AbstractMessage m : msgs) {
-			AbstractMessage safeCopy = createSafeCopyForSerialization(m);
-			safeCopies.add(safeCopy);
-		}
+//		// Create safe copies for serialization (strip sensitive data if needed)
+//		List<AbstractMessage> safeCopies = new ArrayList<>();
+//		for (AbstractMessage m : msgs) {
+//			AbstractMessage safeCopy = createSafeCopyForSerialization(m);
+//			safeCopies.add(safeCopy);
+//		}
 
-		return gson.toJson(safeCopies);
+		return gson.toJson(msgs);
 	}
 
 	// Create a safe copy of the message for serialization (remove large binary
 	// data, etc.)
-	private static AbstractMessage createSafeCopyForSerialization(AbstractMessage original) {
-		if (original instanceof InputMessage) {
-			InputMessage msg = (InputMessage) original;
-			if (msg.hasImages()) {
-				msg.setFormattedMessage(null);
-			}
-			return msg;
-		}
-
-		return original;
-	}
+//	private static AbstractMessage createSafeCopyForSerialization(AbstractMessage original) {
+//		if (original instanceof InputMessage) {
+//			InputMessage msg = (InputMessage) original;
+//			if (msg.hasImages()) {
+//				msg.setFormattedMessage(null);
+//			}
+//			return msg;
+//		}
+//
+//		return original;
+//	}
 
 }

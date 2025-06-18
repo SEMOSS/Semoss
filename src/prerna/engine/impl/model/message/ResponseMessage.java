@@ -41,12 +41,12 @@ public class ResponseMessage extends AbstractMessage {
 
     public void setContent(String content) {
         this.content = content;
-        this.formattedMessage = null;
+//        this.formattedMessage = null;
     }
 
     public void setMessageType(MessageType type) {
         this.type = type;
-        this.formattedMessage = null;
+//        this.formattedMessage = null;
     }
     
     public void setToolResponses(List<Map<String, Object>> toolResponses) {

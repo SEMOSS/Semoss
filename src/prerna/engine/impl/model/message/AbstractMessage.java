@@ -7,7 +7,6 @@ import java.util.UUID;
 
 import com.google.gson.Gson;
 
-import playground.message.formatters.MessageFormatterFactory;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.om.Insight;
@@ -21,9 +20,9 @@ public abstract class AbstractMessage {
 	protected String transactionId;
 	protected String parentMessageId;
 
-    protected boolean visibile = true;
+    protected boolean visible = true;
 
-	protected Map<String, Object> formattedMessage;
+//	protected Map<String, Object> formattedMessage;
 	protected transient Insight insight;
 
     private String dateCreated;
@@ -71,17 +70,17 @@ public abstract class AbstractMessage {
 		return this.modelType;
 	};
 
-	public Map<String, Object> getFormattedMessage() {
-//		if (formattedMessage == null) {
-//			formattedMessage = MessageFormatterFactory.getFormatter(this.modelType).format(this);
-//		}
-//		System.out.println("KUNAL MESSAGE ::: " + formattedMessage);
-		return formattedMessage;
-	}
+//	public Map<String, Object> getFormattedMessage() {
+////		if (formattedMessage == null) {
+////			formattedMessage = MessageFormatterFactory.getFormatter(this.modelType).format(this);
+////		}
+////		System.out.println("KUNAL MESSAGE ::: " + formattedMessage);
+//		return formattedMessage;
+//	}
 
-	public void setFormattedMessage(Map<String, Object> formattedMessage) {
-		this.formattedMessage = formattedMessage;
-	}
+//	public void setFormattedMessage(Map<String, Object> formattedMessage) {
+//		this.formattedMessage = formattedMessage;
+//	}
 
 //	public Map<String, Object> getFormattedMessage() {
 //		IMessageFormatter formatter = MessageFormatterFactory.getFormatter(getMessageType(), this.modelType);
@@ -113,12 +112,12 @@ public abstract class AbstractMessage {
 	}
 	
 
-	public boolean isVisibile() {
-		return visibile;
+	public boolean isVisible() {
+		return visible;
 	}
 
 	public void setVisibile(boolean visibile) {
-		this.visibile = visibile;
+		this.visible = visibile;
 	}
 
 	public String getDateCreated() {
