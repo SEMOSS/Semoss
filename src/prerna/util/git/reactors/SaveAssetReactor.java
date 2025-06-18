@@ -58,7 +58,7 @@ public class SaveAssetReactor extends AbstractReactor {
 		}
 
 		String space = this.keyValue.get(this.keysToGet[2]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 		String comment = this.keyValue.get(this.keysToGet[3]);
 		if(comment == null) {
