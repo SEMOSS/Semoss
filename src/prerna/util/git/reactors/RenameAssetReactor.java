@@ -47,41 +47,40 @@ public class RenameAssetReactor extends AbstractReactor{
         }
 
         // input paths check
-        String oldName = Utility.normalizePath(keyValue.get(this.keysToGet[0]));
-        String newName = Utility.normalizePath(keyValue.get(this.keysToGet[1]));
+        String currentFileName = Utility.normalizePath(keyValue.get(this.keysToGet[0]));
+        String newFileName = Utility.normalizePath(keyValue.get(this.keysToGet[1]));
         String space  = keyValue.get(this.keysToGet[2]);
 		
-        if (oldName == null || oldName.trim().isEmpty() || newName == null || newName.trim().isEmpty()){
+        if (currentFileName == null || currentFileName.trim().isEmpty() || newFileName == null || newFileName.trim().isEmpty()){
             throw new IllegalArgumentException("Must pass both existing name and new name");
         }
  
-        String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
+        String baseFolderPath = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 		String comment = this.keyValue.get(this.keysToGet[3]);
 		if(comment == null) {
-        	comment = "rename: Renaming " + oldName + " to " + newName;
+        	comment = "rename: Renaming " + currentFileName + " to " + newFileName;
         }
 		
-        String oldAbs    = (assetFolder + "/" + oldName).replace("\\", "/");
-        String newAbs    = (assetFolder + "/" + newName).replace("\\", "/");
+        String oldAbs = (baseFolderPath + "/" + currentFileName).replace("\\", "/");
+        String newAbs = (baseFolderPath + "/" + newFileName).replace("\\", "/");
         File oldFile = new File(oldAbs);
         File newFile = new File(newAbs);
  
         // validation checks
         if (!oldFile.exists()) {
-            throw new IllegalArgumentException("Cannot find file/folder to rename: " + oldName);
+            throw new IllegalArgumentException("Cannot find file/folder to rename: " + currentFileName);
         }
         if (newFile.exists()) {
-            throw new IllegalArgumentException("A file or directory exists with the new name: " + newName);
+            throw new IllegalArgumentException("A file or directory exists with the new name: " + newFileName);
         }
- 
 
         try {
             FileUtils.forceMkdirParent(newFile);
         } catch (IOException e) {
             classLogger.error(Constants.STACKTRACE, e);
             throw new SemossPixelException(
-                NounMetadata.getErrorNounMessage("Unable to create parent directory for " + newName));
+                NounMetadata.getErrorNounMessage("Unable to create parent directory for " + newFileName));
         }
  
         // rename the file/folder
@@ -94,7 +93,7 @@ public class RenameAssetReactor extends AbstractReactor{
         } catch (IOException e) {
             classLogger.error(Constants.STACKTRACE, e);
             SemossPixelException ex = new SemossPixelException(
-            NounMetadata.getErrorNounMessage("Failed to rename " + oldName ));
+            NounMetadata.getErrorNounMessage("Failed to rename " + currentFileName ));
             ex.setContinueThreadOfExecution(false);
             throw ex;
         }
@@ -110,40 +109,40 @@ public class RenameAssetReactor extends AbstractReactor{
 		// need to get the first piece of fileName
 		// add it to the asset
 		// and pass that as asset folder
-		String [] fileTokens = oldName.split("/");
+		String [] fileTokens = currentFileName.split("/");
 		String baseDir = fileTokens[0];
-		assetFolder = assetFolder + "/" + baseDir;
-		oldName = oldName.replace(baseDir, "");
+		baseFolderPath = baseFolderPath + "/" + baseDir;
+		currentFileName = currentFileName.replace(baseDir, "");
 		// we dont want to start with a "/"
 		if(relativePath.isEmpty()) {
-			if(oldName.startsWith(DIR_SEPARATOR)) {
-				toRemove.add(oldName.substring(1));		
+			if(currentFileName.startsWith(DIR_SEPARATOR)) {
+				toRemove.add(currentFileName.substring(1));		
 			} else {
-				toRemove.add(oldName);
+				toRemove.add(currentFileName);
 			}
 		} else {
-			toRemove.add(relativePath + DIR_SEPARATOR + oldName);		
+			toRemove.add(relativePath + DIR_SEPARATOR + currentFileName);		
 		}
-		newName = newName.replace(baseDir, "");
+		newFileName = newFileName.replace(baseDir, "");
 		// we dont want to start with a "/"
 		if(relativePath.isEmpty()) {
-			if(newName.startsWith(DIR_SEPARATOR)) {
-				toAdd.add(newName.substring(1));		
+			if(newFileName.startsWith(DIR_SEPARATOR)) {
+				toAdd.add(newFileName.substring(1));		
 			} else {
-				toAdd.add(newName);
+				toAdd.add(newFileName);
 			}
 		} else {
-			toAdd.add(relativePath + DIR_SEPARATOR + newName);		
+			toAdd.add(relativePath + DIR_SEPARATOR + newFileName);		
 		}
-        GitRepoUtils.addSpecificFiles(assetFolder, toAdd);
-        GitDestroyer.removeSpecificFiles(assetFolder, true, toRemove);
+        GitRepoUtils.addSpecificFiles(baseFolderPath, toAdd);
+        GitDestroyer.removeSpecificFiles(baseFolderPath, true, toRemove);
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
 		String author = accessToken.getUsername();
 		
 		// commit it
-		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
+		GitRepoUtils.commitAddedFiles(baseFolderPath, comment, author, email);
 		// handle synchronization to the cloud
 		if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
 			AuthProvider provider = user.getPrimaryLogin();
@@ -155,11 +154,11 @@ public class RenameAssetReactor extends AbstractReactor{
 			// if space is null or it is in the insight, push using insight id to get engine
 			if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
 				IProject project = Utility.getProject(this.insight.getProjectId());
-				ClusterUtil.pushProjectFolder(project, assetFolder);
+				ClusterUtil.pushProjectFolder(project, baseFolderPath);
 			} else {
 				// this is a project asset. space is the projectId
 				IProject project = Utility.getProject(space);
-				ClusterUtil.pushProjectFolder(project, assetFolder);
+				ClusterUtil.pushProjectFolder(project, baseFolderPath);
 			}
 		}
  
