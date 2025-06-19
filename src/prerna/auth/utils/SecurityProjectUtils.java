@@ -42,14 +42,11 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.joins.SubqueryRelationship;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
-import prerna.query.querystruct.update.UpdateQueryStruct;
-import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
@@ -452,8 +449,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			String projectType, String projectCost, 
 			boolean hasPortal, String portalName,
 			boolean global, User user) {
-		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, HASPORTAL, PORTALNAME) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, HASPORTAL, PORTALNAME) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -474,6 +471,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			}
+			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			ps.setBoolean(parameterIndex++, hasPortal);
 			if(portalName != null) {
@@ -517,10 +515,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+    
 	public static void updateProject(String projectID, String projectName, String projectType, String projectCost, boolean hasPortal, String portalName, boolean global) {
 		String query = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=?, HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?";
-
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -537,6 +534,25 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 			ps.setString(parameterIndex++, projectID);
 			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+	//For updating Last Edited Date for Block Apps
+	public static void updateProjectLastEditedDate(String projectID) {
+		String query = "UPDATE PROJECT SET DATELASTEDITED=? WHERE PROJECTID=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+			ps.setString(parameterIndex++, projectID);
+	        ps.executeUpdate();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
@@ -1076,11 +1092,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	
 	public static void setPortalPublish(User user, String projectId) {
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
-		String updateQ = "UPDATE PROJECT SET PORTALPUBLISHED=?, PORTALPUBLISHEDUSER=?, PORTALPUBLISHEDTYPE=? WHERE PROJECTID=?";
+		String updateQ = "UPDATE PROJECT SET DATELASTEDITED=?, PORTALPUBLISHED=?, PORTALPUBLISHEDUSER=?, PORTALPUBLISHEDTYPE=? WHERE PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
 			int i = 1;
+			ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
 			ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
 			ps.setString(i++, token.getId());
 			ps.setString(i++, token.getProvider().toString());
@@ -2215,6 +2232,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBY", "project_created_by"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBYTYPE", "project_created_by_type"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"DATECREATED", "project_date_created"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"DATELASTEDITED", "project_date_last_edited"));
+		
 		// dont forget reactors/portal information
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"HASPORTAL", "project_has_portal"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"PORTALNAME", "project_portal_name"));
@@ -2533,6 +2552,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DATECREATED", "project_date_created"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__DATELASTEDITED", "project_date_last_edited"));
+		
 		// dont forget reactors/portal information
 		qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL", "project_has_portal"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME", "project_portal_name"));
@@ -2608,6 +2629,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DATECREATED", "project_date_created"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__DATELASTEDITED", "project_date_last_edited"));
 		// dont forget reactors/portal information
 		qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL", "project_has_portal"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME", "project_portal_name"));
@@ -2665,6 +2687,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__DATECREATED", "project_date_created"));
+		qs1.addSelector(new QueryColumnSelector("PROJECT__DATELASTEDITED", "project_date_last_edited"));
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
 		// only care about discoverable engines
 		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
@@ -2813,22 +2836,30 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
-				UpdateQueryStruct uqs = new UpdateQueryStruct();
-				uqs.setEngine(securityDb);
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIdFilters));
-
-				List<IQuerySelector> selectors = new ArrayList<>();
-				selectors.add(new QueryColumnSelector("PROJECTPERMISSION__VISIBILITY"));
-				List<Object> values = new ArrayList<>();
-				values.add(visibility);
-				uqs.setSelectors(selectors);
-				uqs.setValues(values);
-				
-				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
-				String updateQuery = updateInterp.composeQuery();
-				securityDb.insertData(updateQuery);
-				
+				// need to update
+				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET VISIBILITY=? WHERE USERID=?");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
+				}
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setBoolean(parameterIndex++, visibility);
+						ps.setString(parameterIndex++, userId);
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+				}
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION "
@@ -2899,28 +2930,37 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
-				UpdateQueryStruct uqs = new UpdateQueryStruct();
-				uqs.setEngine(securityDb);
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIdFilters));
-
-				List<IQuerySelector> selectors = new ArrayList<>();
-				selectors.add(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE"));
-				List<Object> values = new ArrayList<>();
-				values.add(isFavorite);
-				uqs.setSelectors(selectors);
-				uqs.setValues(values);
-				
-				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
-				String updateQuery = updateInterp.composeQuery();
-				securityDb.insertData(updateQuery);
-				
+				// need to update
+				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET FAVORITE=? WHERE USERID=? AND PROJECTID=?");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
+				}
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setBoolean(parameterIndex++, isFavorite);
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, projectId);
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+				}
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION "
 						+ "(USERID, PROJECTID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
 				if(ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
+					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
 				}
 				try {
 					// we will set the permission to read only
@@ -2976,7 +3016,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		String query = "UPDATE PROJECT SET HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?";
 		PreparedStatement ps = securityDb.getPreparedStatement(query);
 		if(ps == null) {
-			throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
+			throw new IllegalArgumentException("Error generating prepared statement to set project portal");
 		}
 		try {
 			int parameterIndex = 1;

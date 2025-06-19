@@ -46,7 +46,7 @@ public class GitSynchronizer {
 	
 	public static void syncDatabases(String localDatabaseId, String localDatabaseName, String remoteDatabaseName, String username, String password, Logger logger) {
 		String baseFolder = Utility.getBaseFolder();
-		String appFolder = AssetUtility.getProjectBaseFolder(localDatabaseName, localDatabaseId); //baseFolder + "/db/" + SmssUtilities.getUniqueName(localAppName, localAppId);
+		String appFolder = AssetUtility.getProjectAppRootFolder(localDatabaseName, localDatabaseId); //baseFolder + "/db/" + SmssUtilities.getUniqueName(localAppName, localAppId);
 		
 		// the remote location
 		// is of the form account_name/repo_name
@@ -484,7 +484,7 @@ public class GitSynchronizer {
 	
 	public static void syncDatabases(String appId, String localAppName, String remoteAppName, String token, Logger logger) {
 		String baseFolder = Utility.getBaseFolder();
-		String appFolder = AssetUtility.getProjectBaseFolder(localAppName, appId);;
+		String appFolder = AssetUtility.getProjectAppRootFolder(localAppName, appId);;
 		
 		// the remote location
 		// is of the form account_name/repo_name

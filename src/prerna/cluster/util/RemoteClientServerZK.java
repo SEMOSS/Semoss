@@ -15,7 +15,6 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.CuratorCache;
 import org.apache.curator.framework.recipes.cache.CuratorCacheListener;
-import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.http.HttpEntity;
@@ -65,7 +64,7 @@ public class RemoteClientServerZK implements IRemoteClientServer {
 
 	public String modelScalerIp;
 
-	private Boolean devPortFowarding = false;
+	private Boolean devPortForwarding = false;
 	
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
@@ -420,44 +419,6 @@ public class RemoteClientServerZK implements IRemoteClientServer {
 	    }
 	}
 
-	private static Map<String, InterProcessMutex> locks = new HashMap<>();
-
-	public boolean acquireLock(String file){
-		String zNodePath = "/vector/ideas/" + file;
-		InterProcessMutex lock = new InterProcessMutex(client, zNodePath);
-		try{
-			if(lock.acquire(10, TimeUnit.SECONDS)){
-				locks.put(zNodePath, lock);
-				return true;
-			}else{
-				// failed to acquire lock
-				return false;
-			}
-		}catch(Exception e){
-
-		}
-		return false;
-	}
-
-	public void releaseAndDeleteLock(String file){
-		String zNodePath = "/vector/ideas/" + file;
-		try{
-			InterProcessMutex lock = locks.get(zNodePath);
-			try{
-				if(lock != null){
-					lock.release();
-					client.delete().forPath(zNodePath);
-				}
-			}finally {
-				if(lock != null){
-					lock.release();
-					client.delete().forPath(zNodePath);
-				}
-			}
-		}catch(Exception e){
-
-		}
-	}
 
 	// I need this because there is a period of time between when the model is on the active path but the FastAPI service is not quite ready
 	private boolean checkModelHealth(String modelId) {
@@ -507,50 +468,24 @@ public class RemoteClientServerZK implements IRemoteClientServer {
 		return false;
 	}
 
+
 	public boolean waitForModelActive(String modelId, long timeoutMs) {
 		try {
 			long startTime = System.currentTimeMillis();
-			boolean foundInActivePath = false;
-			boolean isHealthy = false;
 
 			// Waiting for model to appear in active path
 			while (System.currentTimeMillis() - startTime < timeoutMs) {
 				if (isModelActive(modelId)) {
 					classLogger.info("Model {} was found in the active path", modelId);
-					foundInActivePath = true;
-					break;
+					return true;
 				} else {
 					classLogger.info("Model {} in a warming wait loop..", modelId);
 				}
 				Thread.sleep(3000);
 			}
-
-			if (!foundInActivePath) {
-				classLogger.warn("Timeout waiting for model {} to appear in active path after {}ms", 
-						modelId, timeoutMs);
-				return false;
-			}
-
-			// Wait for container to be healthy
-			long healthCheckStart = System.currentTimeMillis();
-			long remainingTimeout = timeoutMs - (healthCheckStart - startTime);
-
-			while (System.currentTimeMillis() - healthCheckStart < remainingTimeout) {
-				if (checkModelHealth(modelId)) {
-					classLogger.info("Model {} health check passed", modelId);
-					isHealthy = true;
-					break;
-				}
-				Thread.sleep(1000);
-			}
-
-			if (!isHealthy) {
-				classLogger.warn("Timeout waiting for model {} to become healthy after appearing in active path", 
-						modelId);
-				return false;
-			}
-
-			return true;
+			
+			classLogger.warn("Timeout waiting for model {} to appear in active path after {}ms", modelId, timeoutMs);
+			return false;
 
 		} catch (Exception e) {
 			classLogger.error("Error waiting for model {} to become active", modelId, e);
@@ -663,67 +598,5 @@ public class RemoteClientServerZK implements IRemoteClientServer {
 	    }
 	    
 	    return warmingModels;
-	}
-	
-	public Map<String, Object> canItRun(String hfModelId) throws Exception {
-	    String modelScalerIp = getModelScalerIp();
-	    if (modelScalerIp == null) {
-	        classLogger.error("Unable to get model scaler IP from ZooKeeper");
-	        throw new RuntimeException("Failed to get model scaler IP");
-	    }
-	    
-	    String canItRunUrl;
-	    if (devPortFowarding) {
-	        canItRunUrl = "http://localhost:8000/api/can-it-run";
-	    } else {
-	        canItRunUrl = String.format("http://%s/api/can-it-run", modelScalerIp);
-	    }
-
-	    RequestConfig requestConfig = RequestConfig.custom()
-	            .setConnectTimeout(5000)
-	            .setSocketTimeout(5000)
-	            .build();
-
-	    try (CloseableHttpClient httpClient = HttpClients.custom()
-	            .setDefaultRequestConfig(requestConfig)
-	            .build()) {
-
-	        HttpPost httpPost = new HttpPost(canItRunUrl);
-	        httpPost.setHeader("Content-Type", "application/json");
-
-	        JSONObject requestBody = new JSONObject();
-	        requestBody.put("model_id", hfModelId);
-
-	        StringEntity entity = new StringEntity(requestBody.toString());
-	        httpPost.setEntity(entity);
-
-	        try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
-	            int statusCode = response.getStatusLine().getStatusCode();
-	            HttpEntity responseEntity = response.getEntity();
-	            String responseString = EntityUtils.toString(responseEntity);
-
-	            if (statusCode == 200) {
-	                JSONObject jsonResponse = new JSONObject(responseString);
-	                
-	                Map<String, Object> result = new HashMap<>();
-	                for (String key : jsonResponse.keySet()) {
-	                    result.put(key, jsonResponse.get(key));
-	                }
-	                
-	                classLogger.info("Successfully checked compatibility for model: {} - Can run: {}", 
-	                    hfModelId, result.get("can_run"));
-	                return result;
-	            } else {
-	                JSONObject errorResponse = new JSONObject(responseString);
-	                String errorMessage = errorResponse.getJSONObject("detail").getString("message");
-	                classLogger.error("Error checking model compatibility: {} (Status: {})", 
-	                    errorMessage, statusCode);
-	                throw new RuntimeException("Failed to check model compatibility: " + errorMessage);
-	            }
-	        }
-	    } catch (Exception e) {
-	        classLogger.error("Error making request to model scaler: {}", e.getMessage(), e);
-	        throw new RuntimeException("Failed to check model compatibility", e);
-	    }
 	}
 }

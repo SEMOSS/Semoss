@@ -52,6 +52,8 @@ public class User implements Serializable {
 	// storing the timezone the user is in
 	private ZoneId zoneId;
 	
+	public Map<String,Object> roomHash = new HashMap<>();
+	
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
 	
@@ -677,7 +679,7 @@ public class User implements Serializable {
 		AuthProvider provider = getPrimaryLogin();
 		String appId = getAssetProjectId(provider);
 		String appName = "Asset";
-		String userAssetFolder = AssetUtility.getProjectAssetFolder(appName, appId);
+		String userAssetFolder = AssetUtility.getProjectAssetsFolder(appName, appId);
 
 		// if this folder does not exist create it
 		File file = new File(userAssetFolder);
@@ -745,7 +747,7 @@ public class User implements Serializable {
 			return;
 		}
 		// sets the context space for the user
-		String projectBaseFolder = AssetUtility.getProjectBaseFolder(projectName, projectId);
+		String projectBaseFolder = AssetUtility.getProjectAppRootFolder(projectName, projectId);
 		projectBaseFolder = projectBaseFolder.replace("\\", "/");
 		// also set the cmd context right here
 		this.cmdUtil = new CmdExecUtil(projectId, projectBaseFolder, null);

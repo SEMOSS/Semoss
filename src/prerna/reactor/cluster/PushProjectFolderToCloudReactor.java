@@ -31,7 +31,7 @@ public class PushProjectFolderToCloudReactor extends AbstractReactor {
 		}
 		
 		IProject project = Utility.getProject(projectId);
-		String projectFolderPath = AssetUtility.getProjectBaseFolder(project.getProjectName(), projectId).replace("\\", "/");
+		String projectFolderPath = AssetUtility.getProjectAppRootFolder(project.getProjectName(), projectId).replace("\\", "/");
 		ClusterUtil.pushProjectFolder(project, projectFolderPath);
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);

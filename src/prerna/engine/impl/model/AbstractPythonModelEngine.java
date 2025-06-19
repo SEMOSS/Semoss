@@ -31,7 +31,6 @@ import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
-
 /**
  * This class is responsible for creating a {@code IModelEngine} class that is directly linked to 
  * a python process. The corresponding python class should handle all method implementations. This java class is 
@@ -40,7 +39,6 @@ import prerna.util.Utility;
 public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
-
 	
 	// python server
 	protected String prefix = null;
@@ -81,6 +79,61 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			String key = smssKey.toString();
 			this.vars.put(key, this.smssProp.getProperty(key));
 		}
+	}
+	
+	/**
+	 * Gets a PyTranslator instance
+	 * 
+	 * @param insight The insight id
+	 * @return A configured PyTranslator instance
+	 * @throws IllegalArgumentException if insight is null
+	 * @throws IllegalStateException if the engine is not properly initialized or connection fails
+	 */
+	public PyTranslator getEnginePyTranslator(Insight insight) {
+	    if (insight == null) {
+	        throw new IllegalArgumentException("Insight parameter cannot be null");
+	    }
+	    
+	    try {
+	        this.checkSocketStatus();
+	        
+	        if (this.pyt == null) {
+	            classLogger.error("PyTranslator is null after socket status check for engine: " + this.getEngineName());
+	            throw new IllegalStateException("PyTranslator is not properly initialized");
+	        }
+	        
+	        if (this.cpw == null || this.cpw.getSocketClient() == null) {
+	            classLogger.error("ClientProcessWrapper or SocketClient is null for engine: " + this.getEngineName());
+	            throw new IllegalStateException("Socket connection is not available");
+	        }
+	        
+	        if (!this.cpw.getSocketClient().isConnected()) {
+	            classLogger.warn("Socket client reports as disconnected, attempting reconnection for engine: " + this.getEngineName());
+	            this.checkSocketStatus();
+	            if (!this.cpw.getSocketClient().isConnected()) {
+	                throw new IllegalStateException("Unable to establish socket connection");
+	            }
+	        }
+	        
+	        PyTranslator engineTranslator = this.pyt;
+	        engineTranslator.setSocketClient(this.cpw.getSocketClient());
+	        engineTranslator.setInsight(insight);
+	        
+	        classLogger.debug("Successfully created PyTranslator for engine: " + this.getEngineName() + 
+	                         ", insight ID: " + insight.getInsightId());
+	        
+	        return engineTranslator;
+	        
+	    } catch (Exception e) {
+	        classLogger.error("Failed to create PyTranslator for engine: " + this.getEngineName() + 
+	                         ", insight ID: " + (insight != null ? insight.getInsightId() : "null"), e);
+	        
+	        if (e instanceof RuntimeException) {
+	            throw e;
+	        }
+	        
+	        throw new IllegalStateException("Failed to create PyTranslator: " + e.getMessage(), e);
+	    }
 	}
 
 	
@@ -136,7 +189,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
+				throw new IllegalArgumentException("Unable to connect to server for python model engine.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
 			cpwToInit.shutdown(false);
@@ -144,7 +197,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " +this.getEngineName());
+				throw new IllegalArgumentException("Failed to start TCP Server for Python Model Engine = " +this.getEngineName());
 			}
 		}
 		
@@ -216,6 +269,20 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			callMaker.append(FULL_PROMPT)
 					.append("=")
 					.append(PyUtils.determineStringType(fullPrompt));
+			if(context != null) {
+				if(context.startsWith("\"")) {
+					context = " " + context;
+				}
+				if(context.endsWith("\"")) {
+					context = context + " ";
+				}
+				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+				callMaker.append(",")
+					.append("context=")
+					.append(TRIPLE_QUOTE)
+					.append(context)
+					.append(TRIPLE_QUOTE);	
+			}
 		} else {
 			if(question.startsWith("\"")) {
 				question = " " + question;
@@ -303,6 +370,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	        outputMap.put(ROLE, "assistant");
 	        
+	        //TODO: handle multiple tools being returned
+	        //TODO: handle multiple tools being returned
+	        //TODO: handle multiple tools being returned
 			if(response.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
 				AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) response;
 	            // Create the tool call structure

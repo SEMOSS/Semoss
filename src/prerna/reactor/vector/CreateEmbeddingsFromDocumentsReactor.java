@@ -148,7 +148,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			space = spaceGrs.get(0).toString();
 		}
 		
-		return AssetUtility.getAssetVersionBasePath(this.insight, space, false);
+		return AssetUtility.getRootFolderPath(this.insight, space, false);
 	}
 	
 	/**

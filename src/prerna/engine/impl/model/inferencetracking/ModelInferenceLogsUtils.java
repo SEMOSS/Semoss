@@ -647,44 +647,51 @@ public class ModelInferenceLogsUtils {
 	}
 	
 	/**
+	 * 
 	 * @param roomName
 	 * @param roomContext
 	 * @param userId
 	 * @param userName
+	 * @param userEmail
 	 * @param agentType
+	 * @param agentId
 	 * @param isActive
 	 * @param projectId
 	 * @param projectName
-	 * @param agentId
 	 * @return
 	 */
 	public static String doCreateNewConversation(String roomName, String roomContext,
-												 String userId, String userName, String agentType, 
-												 Boolean isActive, String projectId, String projectName, String agentId) {
+												 String userId, String userName, String userEmail,
+												 String agentType, String agentId,
+												 Boolean isActive, String projectId, String projectName) {
 		String convoId = UUID.randomUUID().toString();
-		doCreateNewConversation(convoId, roomName, roomContext, userId, userName, agentType, isActive, projectId, projectName, agentId);
+		doCreateNewConversation(convoId, roomName, roomContext, userId, userName, userEmail, agentType, agentId, isActive, projectId, projectName);
 		return convoId;
 	}
 	
 	/**
+	 * 
 	 * @param insightId
 	 * @param roomName
 	 * @param roomContext
 	 * @param userId
 	 * @param userName
+	 * @param userEmail
 	 * @param agentType
+	 * @param agentId
 	 * @param isActive
 	 * @param projectId
 	 * @param projectName
-	 * @param agentId
 	 */
 	public static void doCreateNewConversation(String insightId, String roomName, String roomContext, 
-											   String userId, String userName, String agentType, 
-											   Boolean isActive, String projectId, String projectName, String agentId) {
+											   String userId, String userName, String userEmail, 
+											   String agentType, String agentId, 
+											   Boolean isActive, String projectId, String projectName) {
 		String query = "INSERT INTO ROOM (INSIGHT_ID, ROOM_NAME, "
-				+ "ROOM_CONTEXT, USER_ID, USER_NAME, AGENT_TYPE, IS_ACTIVE, "
-				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, AGENT_ID) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, "
+				+ "AGENT_TYPE, AGENT_ID, IS_ACTIVE, "
+				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME) "
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		// boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		PreparedStatement ps = null;
 		try {
@@ -694,7 +701,7 @@ public class ModelInferenceLogsUtils {
 			if (roomName != null) {
 				ps.setString(index++, roomName);
 			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
+				ps.setNull(index++, java.sql.Types.VARCHAR);
 			}
 			if (roomContext != null) {
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, roomContext, index++, new Gson());
@@ -702,13 +709,22 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			ps.setString(index++, userId);
-			ps.setString(index++, userName);
+            if (userName != null) {
+                ps.setString(index++, userName);
+            } else {
+                ps.setNull(index++, java.sql.Types.VARCHAR);
+            }
+            if (userEmail != null) {
+                ps.setString(index++, userEmail);
+            } else {
+                ps.setNull(index++, java.sql.Types.VARCHAR);                
+            }
 			ps.setString(index++, agentType);
+	        ps.setString(index++, agentId);
 			ps.setBoolean(index++, isActive);
 			ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
 			ps.setString(index++, projectId);
 			ps.setString(index++, projectName);
-			ps.setString(index++, agentId);
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -871,9 +887,10 @@ public class ModelInferenceLogsUtils {
 									   String insightId,
 									   String sessionId,
 									   String userId,
-									   String userName) {
+									   String userName, 
+									   String userEmail) {
 		ZonedDateTime dateCreated = ZonedDateTime.now();
-		doRecordMessage(messageId, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated, agentId, insightId, sessionId, userId, userName);
+		doRecordMessage(messageId, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated, agentId, insightId, sessionId, userId, userName, userEmail);
 	}
 	
 	/**
@@ -890,6 +907,7 @@ public class ModelInferenceLogsUtils {
 	 * @param sessionId
 	 * @param userId
 	 * @param userName
+	 * @param userEmail
 	 */
 	public static void doRecordMessage(String messageId,
 									   String messageType,
@@ -902,15 +920,15 @@ public class ModelInferenceLogsUtils {
 									   String insightId,
 									   String sessionId,
 									   String userId,
-									   String userName) {
-		
+									   String userName, 
+									   String userEmail) {
 		// convert the time to UTC 
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
 		
 		// boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
-			+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, SESSIONID, USER_ID, USER_NAME) " + 
-			"	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+			+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) " + 
+			"	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 
@@ -927,7 +945,7 @@ public class ModelInferenceLogsUtils {
 			if (tokenSize != null) {
 				ps.setInt(index++, tokenSize);
 			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
+				ps.setNull(index++, java.sql.Types.INTEGER);
 			}
 			ps.setDouble(index++, reponseTime);
 			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(dateCreatedUTC.toLocalDateTime()));
@@ -935,7 +953,16 @@ public class ModelInferenceLogsUtils {
 			ps.setString(index++, insightId);
 			ps.setString(index++, sessionId);
 			ps.setString(index++, userId);
-			ps.setString(index++, userName);
+			if (userName != null) {
+			    ps.setString(index++, userName);
+			} else {
+			    ps.setNull(index++, java.sql.Types.VARCHAR);
+			}
+			if (userEmail != null) {
+			    ps.setString(index++, userEmail);
+			} else {
+                ps.setNull(index++, java.sql.Types.VARCHAR);			    
+			}
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
