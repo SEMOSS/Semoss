@@ -40,17 +40,17 @@ public class MeUnitTests {
         jriDll = tempDir.resolve("jri");
         Files.createDirectory(jriDll);
 
-        temp = tempDir.resolve(tempDir.resolve("tomcat"));
+        temp = tempDir.resolve("tomcat");
         Files.createDirectory(temp);
-        confDir = tempDir.resolve(tempDir.resolve(temp + "\\conf"));
+        confDir = tempDir.resolve(temp + "\\conf");
         Files.createDirectory(confDir);
         bin = tempDir.resolve(temp + "\\bin");
         Files.createDirectories(bin);
-        temp = tempDir.resolve(tempDir.resolve(temp + "\\webapps"));
+        temp = tempDir.resolve(temp + "\\webapps");
         Files.createDirectory(temp);
-        temp = tempDir.resolve(tempDir.resolve(temp + "\\Monolith"));
+        temp = tempDir.resolve(temp + "\\Monolith");
         Files.createDirectory(temp);
-        webINF = tempDir.resolve(tempDir.resolve(temp + "\\WEB-INF"));
+        webINF = tempDir.resolve(temp + "\\WEB-INF");
         Files.createDirectory(webINF);
 
         temp = tempDir.resolve(homePath + "\\config");
@@ -92,6 +92,7 @@ public class MeUnitTests {
 
     @Test
     void mainTest() throws Exception {
+        int idx = 0;
         String tempDirString = temp.toAbsolutePath().toString().replace('\\', '/');
         String[] args = {
             homePath.toAbsolutePath().toString(), 
@@ -126,7 +127,7 @@ public class MeUnitTests {
         }};
 
 		for (String x : rdfKeys) {
-			assertTrue(p.get(x).toString().startsWith(homePath.toAbsolutePath().toString().replace('\\', '/')));
+			assertTrue(p.getProperty(x).startsWith(homePath.toAbsolutePath().toString().replace('\\', '/')));
 		}
 
         Scanner scn = new Scanner(webxmlTemp);
@@ -150,7 +151,9 @@ public class MeUnitTests {
             if (!str.toLowerCase().startsWith("set"))    continue;
 
             // shortens string to first index of temp dir until end, splits string by ; to test each indiv path in string
-            str = str.substring(str.indexOf(tempDirString));
+            idx = str.indexOf(tempDirString);
+            if (idx >= 0)
+                str = str.substring(idx);
             String[] arr = str.split(";");
             for (String s : arr) {
                 assertTrue(s.contains(tempDirString));
@@ -162,7 +165,9 @@ public class MeUnitTests {
         scn = new Scanner(setenv);
         while (scn.hasNextLine()) {
             String str = scn.nextLine();
-            str = str.substring(str.indexOf(tempDirString));
+            idx = str.indexOf(tempDirString);
+            if (idx >= 0)
+                str = str.substring(idx);
 
             String[] arr = str.split(";");
             for (String s: arr)
@@ -179,8 +184,14 @@ public class MeUnitTests {
             if (str.trim().startsWith("<?xml")) {
                 assertTrue(str.equalsIgnoreCase("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><!--"));
             } else if (str.trim().startsWith("<Connector connectionTimeout=\"20000\"")) {
-                str = str.substring(str.indexOf("port"), str.indexOf(" protocol"));
-                portNum = str.substring(str.indexOf("\"") + 1, str.lastIndexOf("\""));
+                idx = str.indexOf("port");
+                int tempIdx = str.indexOf(" protocol");
+                if (idx >= 0 && tempIdx >= 0)
+                    str = str.substring(idx, tempIdx);
+                idx = str.indexOf("\"") + 1;
+                tempIdx = str.lastIndexOf("\"");
+                if (idx >= 0 && tempIdx >= 0)
+                    portNum = str.substring(idx, tempIdx);
                 break;
             }
         }
@@ -202,8 +213,13 @@ public class MeUnitTests {
         scn = new Scanner(configured);
         if (scn.hasNextLine()) {
             String str = scn.nextLine();
-            String s = str.substring(str.indexOf("= "));
-            assertTrue(str.substring(str.indexOf("= ") + 2).startsWith(portNum));
+            idx = str.indexOf("= ");
+            String s ="";
+            if (idx >= 0)
+                s = str.substring(idx);
+            idx = s.indexOf("= ") + 2;
+            if (idx >= 0)
+                assertTrue(s.substring(idx).startsWith(portNum));
             assertTrue(str.contains("http://localhost:" + portNum + "/SemossWeb/"));
         }
         scn.close();
