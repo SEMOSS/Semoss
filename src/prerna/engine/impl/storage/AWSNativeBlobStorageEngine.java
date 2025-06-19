@@ -43,9 +43,9 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
-public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
+public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AWSNativeBlogStorageEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AWSNativeBlobStorageEngine.class);
 
 	public static final String S3_REGION_KEY = "S3_REGION";
 	public static final String S3_BUCKET_KEY = "S3_BUCKET";
