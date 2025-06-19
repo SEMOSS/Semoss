@@ -94,6 +94,12 @@ class AbstractTextGenerationClient(ABC):
         Not things I necissarily pass to the model call itself.
         """
         full_prompt = kwargs.pop(FULL_PROMPT, None)
+        if full_prompt:
+            if isinstance(full_prompt, List):
+                if isinstance(full_prompt[0], str):
+                    full_prompt = [json.loads(i) for i in full_prompt]
+                elif isinstance(full_prompt[0], dict):
+                    full_prompt = full_prompt
 
         streaming = kwargs.pop("streaming", True)
         if not streaming:

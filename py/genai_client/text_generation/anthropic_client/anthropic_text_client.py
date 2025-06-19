@@ -16,6 +16,13 @@ from ...utils import (
 from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
 from ..abstract_text_generation_client import AbstractTextGenerationClient, AskSettings
 
+from ...message_builders.semoss_base.semoss_message_builder import (
+    SemossMessageBuilder,
+)
+from ...message_builders.anthropic.anthropic_message_builder import (
+    AnthropicMessageBuilder,
+)
+
 
 class Roles(StringEnum):
     USER = "user"
@@ -180,6 +187,18 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if self.ask_settings.full_prompt:
             self.ask_settings.history = self.ask_settings.full_prompt
             converted_history, system_prompt_from_history = self._convert_history()
+
+            semoss_msgs = SemossMessageBuilder().build_messages(
+                input_messages=self.ask_settings.full_prompt,
+            )
+
+            (
+                anthropic_msgs,
+                system_prompt_from_history,
+            ) = AnthropicMessageBuilder().build_messages(
+                semoss_messages=semoss_msgs,
+            )
+            converted_history = anthropic_msgs
         else:
             converted_history, system_prompt_from_history = self._convert_history(
                 question=question,
