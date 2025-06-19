@@ -201,7 +201,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	
 	@Override
 	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
-
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
