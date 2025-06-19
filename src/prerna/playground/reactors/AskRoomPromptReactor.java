@@ -160,7 +160,7 @@ public class AskRoomPromptReactor extends AbstractReactor {
 			}
 
 			String projectId = this.insight.getContextProjectId();
-			String appFolder = AssetUtility.getProjectAssetFolder(projectId);
+			String appFolder = AssetUtility.getProjectAssetsFolder(projectId);
 			String path = appFolder + File.separator + Constants.PY_BASE_FOLDER + File.separator;
 			path = path.replace("\\", "/");
 
