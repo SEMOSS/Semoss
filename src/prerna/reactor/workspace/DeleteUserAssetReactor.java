@@ -53,7 +53,7 @@ public class DeleteUserAssetReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Unable to find user asset app");
 		}
 
-		String userFolder = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, true);
+		String userFolder = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, true);
 		File relativeFile = new File(userFolder + DIR_SEPARATOR + relativeFilePath);
 		if(!relativeFile.exists()){
 			throw new IllegalArgumentException("File/Folder does not exist that this location");

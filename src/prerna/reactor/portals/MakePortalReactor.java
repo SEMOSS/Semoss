@@ -69,7 +69,7 @@ public class MakePortalReactor extends AbstractReactor {
 		
 		projectValues.put(ReactorKeysEnum.PROJECT.getKey(), projectId);
 
-		String projectFolder = AssetUtility.getProjectAssetFolder(projectId);
+		String projectFolder = AssetUtility.getProjectAssetsFolder(projectId);
 		
 		try {
 			pullGit(projectFolder, archetype, portalName);
