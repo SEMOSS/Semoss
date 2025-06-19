@@ -29,39 +29,39 @@ import prerna.security.HttpHelperUtility;
 
 public class JiraHelper {
 
-	public static NounMetadata listIssue(String projectName, String userId) throws JsonMappingException, JsonProcessingException {
-		String msg=null;
+	public static NounMetadata listIssue(String projectName, String userId)
+			throws JsonMappingException, JsonProcessingException {
+		String msg = null;
 		try {
 			String apiKey = getDBDetails(userId);
-			String username=getUserName(userId);
-			String auth=username+":"+apiKey;
+			String username = getUserName(userId);
+			String auth = username + ":" + apiKey;
 			String encodeToString = Base64.getEncoder().encodeToString(auth.getBytes());
 			List<String> jiraIssueDetails = new ArrayList<String>();
 			Map<String, String> map = new HashMap<String, String>();
-			map.put("Authorization", "Basic "+encodeToString);
-			String URL=getURLFromDB(userId);
-			String url = URL+"/rest/api/2/search?jql=project=" + projectName;
+			map.put("Authorization", "Basic " + encodeToString);
+			String URL = getURLFromDB(userId);
+			String url = URL + "/rest/api/2/search?jql=project=" + projectName;
 			if (projectName == null || projectName.isEmpty()) {
 				String error = "Project Name for listing issues is missing or null";
 				return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
 			List<String> checkUserId = checkUserId(userId);
-				if(!checkUserId.contains(userId)) {
-					msg=userId+" is not present in DB";
-					return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
-							PixelOperationType.OPERATION);
-				}
-					String response = HttpHelperUtility.getRequest(url, map, null, null, null);
-					ObjectMapper objectMapper = new ObjectMapper();
-					JsonNode root = objectMapper.readTree(response);
-					JsonNode issues = root.path("issues");
-					for (JsonNode issue : issues) {
-						String name = issue.path("id").asText();
-						jiraIssueDetails.add(name);
-					}
+			if (!checkUserId.contains(userId)) {
+				msg = userId + " is not present in DB";
+				return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
+			String response = HttpHelperUtility.getRequest(url, map, null, null, null);
+			ObjectMapper objectMapper = new ObjectMapper();
+			JsonNode root = objectMapper.readTree(response);
+			JsonNode issues = root.path("issues");
+			for (JsonNode issue : issues) {
+				String name = issue.path("id").asText();
+				jiraIssueDetails.add(name);
+			}
 			return new NounMetadata(jiraIssueDetails, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
-			
+
 		} catch (Exception e) {
 			msg = e.getMessage();
 			return new NounMetadata("Error in listing all issues: " + msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
@@ -70,7 +70,7 @@ public class JiraHelper {
 	}
 
 	private static String getURLFromDB(String userId) {
-		String error=null;
+		String error = null;
 		try {
 			String URL = null;
 			String tableName = null;
@@ -90,13 +90,13 @@ public class JiraHelper {
 			}
 			return URL;
 		} catch (Exception e) {
-			error=e.getMessage();
+			error = e.getMessage();
 		}
 		return error;
 	}
 
 	private static String getUserName(String userId) {
-		String error=null;
+		String error = null;
 		try {
 			String userName = null;
 			String tableName = null;
@@ -117,15 +117,15 @@ public class JiraHelper {
 			}
 			return userName;
 		} catch (Exception e) {
-			error=e.getMessage();
-			
+			error = e.getMessage();
+
 		}
 		return error;
 	}
 
 	private static String getDBDetails(String userId) throws Exception, SQLException {
-		String tableName=null;
-		String apiKey=null;
+		String tableName = null;
+		String apiKey = null;
 		IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
 		List<String> pixelConcepts = database.getPixelConcepts();
 		for (String element : pixelConcepts) {
@@ -134,36 +134,37 @@ public class JiraHelper {
 		String insertQuery = "SELECT API_KEY FROM " + tableName + " WHERE JIRAPROFILE_UNIQUE_ROW_ID='" + userId + "'";
 		HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(insertQuery);
 		Object string = hashmap.get("RESULTSET_OBJECT");
-		if(string instanceof ResultSet) {
-			ResultSet rs=(ResultSet)string;
-			while(rs.next()) {
+		if (string instanceof ResultSet) {
+			ResultSet rs = (ResultSet) string;
+			while (rs.next()) {
 				apiKey = rs.getString("API_KEY");
 			}
 		}
 		return apiKey;
 	}
 
-	public static NounMetadata createIssue(String summary, String description, String istype, String projectName, String userId) {
-		String msg=null;
+	public static NounMetadata createIssue(String summary, String description, String istype, String projectName,
+			String userId) {
+		String msg = null;
 		try {
-			Map<String, Object> responseMap =null;
+			Map<String, Object> responseMap = null;
 			String apiKey = getDBDetails(userId);
-			String username=getUserName(userId);
-			String auth=username+":"+apiKey;
+			String username = getUserName(userId);
+			String auth = username + ":" + apiKey;
 			String encodeToString = Base64.getEncoder().encodeToString(auth.getBytes());
 			Map<String, String> map = new HashMap<String, String>();
-			map.put("Authorization", "Basic "+encodeToString);
+			map.put("Authorization", "Basic " + encodeToString);
 			if ((summary == null && summary.isEmpty()) && (description == null && description.isEmpty())
 					&& (istype == null && istype.isEmpty()) && (projectName == null && projectName.isEmpty())) {
 				String error = "One or more of the information required for creating issue is missing or null";
 				return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
 			String nearestNeigborResponse = null;
-			String URL=getURLFromDB(userId);
-			String url = URL+"/rest/api/2/issue";
+			String URL = getURLFromDB(userId);
+			String url = URL + "/rest/api/2/issue";
 			Project project = new Project();
 			project.setKey(projectName);
-			IssueType issuetype = new IssueType(); 
+			IssueType issuetype = new IssueType();
 			issuetype.setName(istype);
 			Fields fields = new Fields();
 			fields.setProject(project);
@@ -171,52 +172,51 @@ public class JiraHelper {
 			fields.setDescription(description);
 			fields.setIssuetype(issuetype);
 			JiraRequestBodyModel jiraRequestBodyModel = new JiraRequestBodyModel();
-			jiraRequestBodyModel.setFields(fields); 
+			jiraRequestBodyModel.setFields(fields);
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
 			String body = gson.toJson(jiraRequestBodyModel);
 			List<String> checkUserId = checkUserId(userId);
-				if(!checkUserId.contains(userId)) {
-					msg="User id "+userId+ " is not present in DB";
-					return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-				}
-					nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, map, body,
-							ContentType.APPLICATION_JSON, null, null, null);
-					responseMap = gson.fromJson(nearestNeigborResponse, Map.class);
-					Object jiraId = responseMap.get("id");
-					Object link = responseMap.get("self");
-				
-			
-			return new NounMetadata("Jira id: "+jiraId+","+" Jira link: "+link, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			if (!checkUserId.contains(userId)) {
+				msg = "User id " + userId + " is not present in DB";
+				return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
+			nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, map, body,
+					ContentType.APPLICATION_JSON, null, null, null);
+			responseMap = gson.fromJson(nearestNeigborResponse, Map.class);
+			Object jiraId = responseMap.get("id");
+			Object link = responseMap.get("self");
+
+			return new NounMetadata("Jira id: " + jiraId + "," + " Jira link: " + link,
+					PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			msg= e.getMessage();
+			msg = e.getMessage();
 			return new NounMetadata("Error in creating new issue: " + msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		}
 	}
 
 	public static NounMetadata deleteIssue(String jiraId, String userId) {
-		String msg=null;
+		String msg = null;
 		try {
 			String apiKey = getDBDetails(userId);
-			String username=getUserName(userId);
-			String auth=username+":"+apiKey;
+			String username = getUserName(userId);
+			String auth = username + ":" + apiKey;
 			String encodeToString = Base64.getEncoder().encodeToString(auth.getBytes());
 			Map<String, String> map = new HashMap<String, String>();
-			map.put("Authorization", "Basic "+encodeToString);
+			map.put("Authorization", "Basic " + encodeToString);
 			if (jiraId == null && jiraId.isEmpty()) {
 				String error = "Jira id can not be empty or null";
 				return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
-			String URL=getURLFromDB(userId);
-			String url = URL+"/rest/api/2/issue/" + jiraId;
+			String URL = getURLFromDB(userId);
+			String url = URL + "/rest/api/2/issue/" + jiraId;
 			List<String> checkUserId = checkUserId(userId);
-				if(!checkUserId.contains(userId)) {
-					msg="User id "+userId+ " is not present in DB";
-					return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
-							PixelOperationType.OPERATION);
-				}
-					HttpHelperUtility.deleteRequestStringBody(url, map, null, null, null);
-			return new NounMetadata("Jira id "+jiraId + " succesfully deleted", PixelDataType.CUSTOM_DATA_STRUCTURE,
+			if (!checkUserId.contains(userId)) {
+				msg = "User id " + userId + " is not present in DB";
+				return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
+			HttpHelperUtility.deleteRequestStringBody(url, map, null, null, null);
+			return new NounMetadata("Jira id " + jiraId + " succesfully deleted", PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			msg = e.getMessage();
@@ -227,9 +227,9 @@ public class JiraHelper {
 	}
 
 	public static NounMetadata truncateData(String userId) {
-		Boolean truncateFlag=false;
-		String msg=null;
-		String error=null;
+		Boolean truncateFlag = false;
+		String msg = null;
+		String error = null;
 		try {
 			String tableName = null;
 			long Uid;
@@ -239,26 +239,24 @@ public class JiraHelper {
 				tableName = element;
 			}
 			List<String> checkUserId = checkUserId(userId);
-				if(!checkUserId.contains(userId)) {
-					msg="User id "+userId+ " is not present in DB";
-					return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
-							PixelOperationType.OPERATION);
-				}
-					String truncateQuery = "Delete from JIRAPROFILE";
-					database.removeData(truncateQuery);
-					truncateFlag=true;
-					Uid=Long.valueOf(userId);
-					if(truncateFlag==true) {
-						msg="Table truncated succesfully by user with user id: "+Uid;
-						
-					}
-			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
-			
+			if (!checkUserId.contains(userId)) {
+				msg = "User id " + userId + " is not present in DB";
+				return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
+			String truncateQuery = "Delete from JIRAPROFILE";
+			database.removeData(truncateQuery);
+			truncateFlag = true;
+			Uid = Long.valueOf(userId);
+			if (truncateFlag == true) {
+				msg = "Table truncated succesfully by user with user id: " + Uid;
+
+			}
+			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+
 		} catch (Exception e) {
-			error=e.getMessage();
+			error = e.getMessage();
 		}
-		return new NounMetadata("Data not truncated with error message: "+error, PixelDataType.CUSTOM_DATA_STRUCTURE,
+		return new NounMetadata("Data not truncated with error message: " + error, PixelDataType.CUSTOM_DATA_STRUCTURE,
 				PixelOperationType.OPERATION);
 	}
 
@@ -273,7 +271,7 @@ public class JiraHelper {
 				tableName = element;
 			}
 			String query = " SELECT JIRAPROFILE_UNIQUE_ROW_ID from " + tableName;
-			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query); 
+			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
 			Object string = hashmap.get("RESULTSET_OBJECT");
 			if (string instanceof ResultSet) {
 				ResultSet rs = (ResultSet) string;
@@ -288,7 +286,5 @@ public class JiraHelper {
 			return userIds;
 		}
 	}
-
-	
 
 }

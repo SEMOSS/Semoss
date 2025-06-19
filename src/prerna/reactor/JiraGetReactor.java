@@ -12,7 +12,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.JiraDetails;
 import prerna.util.Utility;
 
-public class JiraGetReactor extends AbstractReactor{
+public class JiraGetReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
@@ -41,12 +41,10 @@ public class JiraGetReactor extends AbstractReactor{
 					resultList.add(jiraDetails);
 				}
 			}
-			return new NounMetadata(resultList, PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			return new NounMetadata(resultList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			String error="Error in the reactor JiraGetReactor: "+e.getMessage();
-			return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			String error = "Error in the reactor JiraGetReactor: " + e.getMessage();
+			return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
 	}
 

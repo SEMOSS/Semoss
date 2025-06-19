@@ -21,7 +21,7 @@ public class JiraInsertReactor extends AbstractReactor {
 	public JiraInsertReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.API_KEY.getKey(),
 				ReactorKeysEnum.URL.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1};
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
@@ -33,17 +33,17 @@ public class JiraInsertReactor extends AbstractReactor {
 		long dateCreated = System.currentTimeMillis();
 		long lastUsed = System.currentTimeMillis();
 		Boolean insertData = false;
-		Timestamp date=new Timestamp(dateCreated);
-		Timestamp lused=new Timestamp(lastUsed);
+		Timestamp date = new Timestamp(dateCreated);
+		Timestamp lused = new Timestamp(lastUsed);
 		HashMap<Object, Object> map = new HashMap<Object, Object>();
 		User user = this.insight.getUser();
 		String insightusername = user.getPrimaryLoginToken().getUsername();
 		int profileId = 0;
 		try {
 			IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
-			insertData = insertData(database, userId, apiToken,url,date,lused,insightusername);
+			insertData = insertData(database, userId, apiToken, url, date, lused, insightusername);
 			if (insertData == true) {
-				profileId = readData(database, userId, apiToken,url,date,lused);
+				profileId = readData(database, userId, apiToken, url, date, lused);
 			}
 			if (profileId != 0) {
 				map.put("Primary key from Table", profileId);
@@ -58,7 +58,8 @@ public class JiraInsertReactor extends AbstractReactor {
 		}
 	}
 
-	private Integer readData(IDatabaseEngine database, String userId, String apiKey,String url,Timestamp date,Timestamp lused) {
+	private Integer readData(IDatabaseEngine database, String userId, String apiKey, String url, Timestamp date,
+			Timestamp lused) {
 		int profileKey = 0;
 		try {
 			String tableName = null;
@@ -66,7 +67,8 @@ public class JiraInsertReactor extends AbstractReactor {
 			for (String element : pixelConcepts) {
 				tableName = element;
 			}
-			String query=" select JIRAPROFILE_UNIQUE_ROW_ID from "+tableName+ " where API_KEY='"+apiKey+"' and URL='"+url+"'and DATE_CREATED='"+date+"' and DATE_LAST_USED='"+lused+"'";
+			String query = " select JIRAPROFILE_UNIQUE_ROW_ID from " + tableName + " where API_KEY='" + apiKey
+					+ "' and URL='" + url + "'and DATE_CREATED='" + date + "' and DATE_LAST_USED='" + lused + "'";
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
 			Object string = hashmap.get("RESULTSET_OBJECT");
 			if (string instanceof ResultSet) {
@@ -83,14 +85,18 @@ public class JiraInsertReactor extends AbstractReactor {
 
 	}
 
-	private static Boolean insertData(IDatabaseEngine database, String userId, String apiKey, String url, Timestamp dateCreated, Timestamp lastUsed, String insightusername) {
+	private static Boolean insertData(IDatabaseEngine database, String userId, String apiKey, String url,
+			Timestamp dateCreated, Timestamp lastUsed, String insightusername) {
 		String tableName = null;
 		try {
 			List<String> pixelConcepts = database.getPixelConcepts();
 			for (String element : pixelConcepts) {
 				tableName = element;
 			}
-			String insertQuery=" INSERT INTO "+tableName+ "(API_KEY,USER_ID,URL,DATE_CREATED,DATE_LAST_USED,NAME,CREATED_BY) " + "VALUES ('" +apiKey + "','"+userId +"','"+url+"','"+dateCreated+"','"+lastUsed+"','"+insightusername+"','"+insightusername+"')";
+			String insertQuery = " INSERT INTO " + tableName
+					+ "(API_KEY,USER_ID,URL,DATE_CREATED,DATE_LAST_USED,NAME,CREATED_BY) " + "VALUES ('" + apiKey
+					+ "','" + userId + "','" + url + "','" + dateCreated + "','" + lastUsed + "','" + insightusername
+					+ "','" + insightusername + "')";
 			database.insertData(insertQuery);
 			return true;
 		} catch (Exception e) {
