@@ -44,7 +44,7 @@ public class GitCreator {
 		}
 
 		// need to get the database folder
-		String dbFolder = AssetUtility.getProjectBaseFolder(databaseName, databaseId);;
+		String dbFolder = AssetUtility.getProjectAppRootFolder(databaseName, databaseId);;
 
 		// the remote location
 		// is of the form account_name/repo_name

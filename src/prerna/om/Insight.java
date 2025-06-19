@@ -488,7 +488,7 @@ public class Insight implements Serializable {
 			} else {
 				// grab from db folder... technically shouldn't be binding on db + we allow multiple locations
 				// need to grab from engine
-				this.appFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId);
+				this.appFolder = AssetUtility.getProjectAssetsFolder(this.projectName, this.projectId);
 				// if this folder does not exist create it and git init it
 				File file = new File(appFolder);
 				if(!file.exists())

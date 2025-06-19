@@ -72,8 +72,10 @@ public enum ReactorKeysEnum {
 	EXPORT_TEMPLATE("export_template",					    	"Template file to use for the export of this data"),
 	EXPRESSION("expression",                                	"R / Python expression that needs to be dynamically calculated for this variable"),
 	FIELDS("form_fields", 										"Fields required for the form filler"),	
+	// should be using filePath instead of fileName...
+	@Deprecated
 	FILE_NAME("fileName", 										"Name of the file"),
-	FILE_PATH("filePath", 										"Absolute file path location"),
+	FILE_PATH("filePath", 										"Relative file path location"),
 	FILTERS("filters", 											"Filters automatically persisted on queries affecting this frame or panel"),
 	FILTER_WORD("filterWord", 									"Regex to apply for searches"),
 	FORMAT("format", 											"The format to save the information as Jpeg, Gif, PNG"),
