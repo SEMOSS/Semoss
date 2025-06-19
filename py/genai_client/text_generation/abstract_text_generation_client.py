@@ -9,6 +9,8 @@ from ..constants import (
     EmbeddingsModelEngineResponse,
     FULL_PROMPT,
 )
+from ..message_builders.semoss_base.semoss_models import SEMOSSMessage
+from ..message_builders.semoss_base.semoss_message_builder import SEMOSSMessageBuilder
 
 
 class ModelLimits(BaseModel):
@@ -29,6 +31,8 @@ class AskSettings(BaseModel):
     history: Optional[List[Dict]] = None
     image_url: Optional[List[str]] = None
     image_encoded: Optional[List[str]] = None
+    semoss_messages: Optional[List[SEMOSSMessage]] = None
+    system_prompt: Optional[str] = None
 
 
 class AbstractTextGenerationClient(ABC):
@@ -86,7 +90,7 @@ class AbstractTextGenerationClient(ABC):
         )
 
     def get_ask_settings(
-        self, history=None, use_history: bool = True, **kwargs
+        self, history=None, use_history: bool = True, context: str = None, **kwargs
     ) -> AskSettings:
         """
         Get the ask settings from the provided keyword arguments.
@@ -116,12 +120,34 @@ class AbstractTextGenerationClient(ABC):
         if not use_history:
             history = None
 
+        context = context if context else None
+
+        message_json = kwargs.pop("message_json", None)
+        semoss_messages = None
+        if message_json:
+            try:
+                message_json = json.loads(message_json)
+                semoss_messages = SEMOSSMessageBuilder().build_messages(
+                    input_messages=message_json
+                )
+            except json.JSONDecodeError:
+                try:
+                    decoded_string = message_json.encode().decode("unicode_escape")
+                    message_json = json.loads(decoded_string)
+                    semoss_messages = SEMOSSMessageBuilder().build_messages(
+                        input_messages=message_json
+                    )
+                except Exception as e:
+                    raise ValueError(f"Invalid JSON format in message_json.: {e}")
+
         return AskSettings(
             full_prompt=full_prompt,
             streaming=streaming,
             history=history,
             image_url=image_url,
             image_encoded=image_encoded,
+            semoss_messages=semoss_messages,
+            system_prompt=context,
         )
 
     def get_template(self, template_name=None, **kwargs):

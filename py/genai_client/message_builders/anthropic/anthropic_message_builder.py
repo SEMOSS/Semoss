@@ -31,7 +31,7 @@ class AnthropicMessageBuilder:
             is_last = i == len(semoss_messages) - 1
             # Get the role based on the SEMOSS message type
             role = self._message_type_to_role(message.type)
-            # A list of content parts
+
             content_parts = []
             # Handle text content
             if message.content:
@@ -53,7 +53,7 @@ class AnthropicMessageBuilder:
             if is_last:
                 param_map = message.param_map
 
-            return anthropic_messages, param_map
+        return anthropic_messages, param_map
 
     def _message_type_to_role(self, message_type: SEMOSSMessageType) -> AnthropicRoles:
         """Convert SEMOSS message type to Anthropic role."""
