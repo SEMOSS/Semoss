@@ -66,7 +66,13 @@ Welcome to the SEMOSS Backend Documentation. This collection of documents aims t
     *   Python-Side Components (including chroot & SymlinkHelper details)
     *   Communication Protocol
 
-### V. Cloud and Clustered Deployments
+### V. Integrations
+
+This section describes how SEMOSS interacts with other related systems or components.
+
+- [**SEMOSS Monolith Interaction**](./integrations/monolith_interaction.md): Explains the relationship and data flow between the core SEMOSS platform and the `semoss/monolith` web application, including details on the `runPixel` API endpoint.
+
+### VI. Cloud and Clustered Deployments
 
 1.  **[Overview of SEMOSS in Cloud/Cluster Environments](./cloud_and_cluster/README.md)**
     *   Rationale: Scalability, High Availability, Shared Access
@@ -87,7 +93,7 @@ Welcome to the SEMOSS Backend Documentation. This collection of documents aims t
 5.  **[GitHub Actions Workflows for CI/CD](./cloud_and_cluster/github_actions_workflows.md)**
     *   CI, Python/Tomcat Builders, Application Image Builders.
 
-### VI. Python Packages
+### VII. Python Packages
 
 #### GenAI Client Library (`py/genai_client/`)
 
@@ -109,7 +115,7 @@ This collection of Python modules provides the tools and underlying server infra
 
 - [**GAAS Tools & Components Documentation**](./python_gaas_tools/README.md)
 
-### VII. Development Guides
+### VIII. Development Guides
 
 *   **[Development Guides](./development_guides/README.md)**
     *   Overview of configurations, onboarding, etc.
