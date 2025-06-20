@@ -47,4 +47,9 @@ Welcome to the documentation for the SEMOSS Java backend. This collection of doc
     *   Key Java Modules/Packages to Understand First
     *   Contribution Guidelines (Git Workflow, Coding Conventions, Testing, Documentation)
 
+6.  **[Java to Python Communication](./05_java_python_communication.md)**
+    *   Overview
+    *   Java-Side Components (`PyTranslator`, TCP Client/Socket Management)
+    *   Python-Side Components (`gaas_tcp_socket_server.py`, `gaas_tcp_server_handler.py`, `gaas_server_proxy.py`)
+    *   Communication Protocol and Data Exchange
 ```
