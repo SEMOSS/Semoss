@@ -2,9 +2,11 @@
 
 Welcome to the SEMOSS Backend Documentation. This collection of documents aims to provide developers with a comprehensive understanding of the SEMOSS platform's architecture, core concepts, services, engine integrations, and development practices.
 
-## I. Getting Started
+## Table of Contents
 
-1.  **[Introduction to SEMOSS](./00_introduction.md)**
+### I. Getting Started
+
+1.  **[Introduction to SEMOSS](./00_introduction_to_semoss.md)**
     *   What is SEMOSS?
     *   Core Capabilities
 2.  **[Backend Architecture Overview](./01_backend_architecture_overview.md)**
@@ -12,7 +14,7 @@ Welcome to the SEMOSS Backend Documentation. This collection of documents aims t
     *   Data Storage and Interaction
     *   High-Level API Request Flow
 
-## II. Core Backend Concepts
+### II. Core Backend Concepts
 
 1.  **[Pixel: The SEMOSS Query Language](./concepts/pixel_language.md)**
     *   Core Purposes, Syntax Basics, Data Types, Control Flow, Execution Model
@@ -36,7 +38,7 @@ Welcome to the SEMOSS Backend Documentation. This collection of documents aims t
     *   Key Information Held
     *   How Insights are Used
 
-## III. Engine Implementations Deep Dive
+### III. Engine Implementations Deep Dive
 
 (Located in the `./engines/` directory)
 
@@ -52,16 +54,19 @@ Welcome to the SEMOSS Backend Documentation. This collection of documents aims t
     *   Core Concepts, Examples, Extension Guide
 6.  **[`PROJECT` Engines](./engines/project_engines.md)**
 
-## IV. Platform Services
+### IV. Platform Services
 
 1.  **[SEMOSS Internal Databases](./platform_services/internal_databases.md)**
     *   Overview, `LocalMasterDatabase`, `PromptDatabase`, `ModelInferenceLogsDatabase`, Configuration/Access.
 2.  **[Authentication and Authorization](./platform_services/authentication_and_authorization.md)**
     *   Core Security Objects, AuthN/AuthZ Flows, Key Utilities.
 3.  **[Java-Python Communication](./platform_services/java_python_communication.md)**
-    *   Overview, Java/Python Components, Protocol, Chroot/Symlink Details.
+    *   Overview & Visual Flow Placeholder
+    *   Java-Side Components
+    *   Python-Side Components (including chroot & SymlinkHelper details)
+    *   Communication Protocol
 
-## V. Cloud and Clustered Deployments
+### V. Cloud and Clustered Deployments
 
 1.  **[Overview of SEMOSS in Cloud/Cluster Environments](./cloud_and_cluster/README.md)**
     *   Rationale: Scalability, High Availability, Shared Access
@@ -76,7 +81,7 @@ Welcome to the SEMOSS Backend Documentation. This collection of documents aims t
     *   Role of ZooKeeper: Change Notification, State Coordination
     *   Synchronization Workflow and Configuration
 
-## VI. Python GenAI Client (`py/genai_client/`)
+### VI. Python GenAI Client (`py/genai_client/`)
 
 1.  **[Overview of Python GenAI Client](./python_genai_client/README.md)**
     *   Purpose, Key Sub-modules, Core `constants.py` and `utils.py`
@@ -88,12 +93,10 @@ Welcome to the SEMOSS Backend Documentation. This collection of documents aims t
 6.  **Text Generation Overview** *(Placeholder - to be created)*
 7.  **Tokenizers Overview** *(Placeholder - to be created)*
 
-
-## VII. Development Guides
+### VII. Development Guides
 
 1.  **[SEMOSS Configuration and Environment](./development_guides/configuration_and_environment.md)**
     *   Core Configuration Files, Build Environment (`pom.xml`), Deployment.
 2.  **[Java Developer Onboarding Guide](./development_guides/java_developer_onboarding.md)**
     *   Getting Started, Running Locally, Key Modules, Contributions.
-
 ```
