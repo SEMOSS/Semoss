@@ -290,7 +290,8 @@ public enum ReactorKeysEnum {
 	ISSUETYPE("issuetype", 										"Issuetype for JIRA"),
 	JIRAID("jiraid", 											"Jira id for JIRA"),
 	DATE_CREATED("datecreated",									"Date created passed in for JIRA"),
-	LAST_USED("lastused",										"last used passed in for filter");
+	LAST_USED("lastused",										"last used passed in for filter"),
+	USERID("userid",											"user id to add in JIRA");
 
 	private String key;
 	private String description;
