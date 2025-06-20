@@ -15,16 +15,15 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class GetPythonFunctionEngineFilesReactor extends AbstractEngineFileReactor {
+public class GetEngineFilesReactor extends AbstractEngineFileReactor {
     
-    private static final Logger classLogger = LogManager.getLogger(GetPythonFunctionEngineFilesReactor.class);
+    private static final Logger classLogger = LogManager.getLogger(GetEngineFilesReactor.class);
 
 
-    public GetPythonFunctionEngineFilesReactor() {
+    public GetEngineFilesReactor() {
         this.keysToGet = new String[]{
         ReactorKeysEnum.ENGINE.getKey(),
-        ReactorKeysEnum.FILE_PATH.getKey(),
-        ReactorKeysEnum.EXTENTION.getKey()
+        ReactorKeysEnum.FILE_PATH.getKey()
         
         };
     }
@@ -34,17 +33,16 @@ public class GetPythonFunctionEngineFilesReactor extends AbstractEngineFileReact
     	organizeKeys();
     	User user = this.insight.getUser();
         String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-        String extentionFilter = this.keyValue.get(ReactorKeysEnum.EXTENTION.getKey());
         validateUserAndEngineAccess(user);
         
         if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
             throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to this engine");
         }
 
-        String enginePath = getEngineBasePath(engineId);
+        String enginePath = getEngineBaseFolder(engineId);
         Map<String, Object> responseData = null;
 		try {
-			responseData = getEngineFiles(enginePath, extentionFilter);
+			responseData = getEngineFiles(enginePath);
 		} catch (IOException e) {
 			classLogger.error("Error processing files", e);
             throw new RuntimeException("File processing failed: " + e.getMessage(), e);
@@ -53,7 +51,7 @@ public class GetPythonFunctionEngineFilesReactor extends AbstractEngineFileReact
 		return new NounMetadata(responseData, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.OPERATION);
     }
     
-    private Map<String, Object> getEngineFiles(String enginePath, String extentionFilter) throws IOException {
+    private Map<String, Object> getEngineFiles(String enginePath) throws IOException {
       String engineSubPath = Utility.normalizePath(this.keyValue.getOrDefault(ReactorKeysEnum.FILE_PATH.getKey(), ""));
       if (!engineSubPath.startsWith("/") && !engineSubPath.startsWith("\\")) {
           engineSubPath = "/" + engineSubPath;
@@ -63,7 +61,7 @@ public class GetPythonFunctionEngineFilesReactor extends AbstractEngineFileReact
       File target = new File(engineFilePath);
 
       if (!target.exists()) return new HashMap<>();
-
+      Map<String, Object> result = new HashMap<>();
       if (target.isFile()) {
           Map<String, String> fileData = new HashMap<>();
           fileData.put("fileName", target.getName());
@@ -71,14 +69,27 @@ public class GetPythonFunctionEngineFilesReactor extends AbstractEngineFileReact
 
           Map<String, Object> singleFileMap = new HashMap<>();
           singleFileMap.put("files", Arrays.asList(fileData));
-
-          Map<String, Object> result = new HashMap<>();
           result.put(target.getParentFile().getName(), singleFileMap);
-          return result;
+      } else if (target.isDirectory()) {
+          File[] files = target.listFiles(File::isFile);  // Only immediate files
+
+          if (files != null && files.length > 0) {
+              List<Map<String, String>> fileList = new ArrayList<>();
+              for (File file : files) {
+                  Map<String, String> fileData = new HashMap<>();
+                  fileData.put("fileName", file.getName());
+                  fileData.put("content", readFileContent(file));
+                  fileList.add(fileData);
+              }
+              Map<String, Object> folderMap = new HashMap<>();
+              folderMap.put("files", fileList);
+              result.put(target.getName(), folderMap);
+          }
       }
 
-      return traverseDirectory(engineFilePath, extentionFilter);
+      return result;
   }
+
 
 }
 

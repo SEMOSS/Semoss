@@ -14,11 +14,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class UpdatePythonFunctionEngineReactor extends AbstractEngineFileReactor {
+public class UpdateEngineFilesReactor extends AbstractEngineFileReactor {
 
-    private static final Logger classLogger = LogManager.getLogger(UpdatePythonFunctionEngineReactor.class);
+    private static final Logger classLogger = LogManager.getLogger(UpdateEngineFilesReactor.class);
 
-    public UpdatePythonFunctionEngineReactor() {
+    public UpdateEngineFilesReactor() {
         this.keysToGet = new String[]{
         	ReactorKeysEnum.ENGINE.getKey(),
             ReactorKeysEnum.PAYLOAD.getKey()
@@ -58,6 +58,6 @@ public class UpdatePythonFunctionEngineReactor extends AbstractEngineFileReactor
         writeFilesRecursively(engineBaseDir.toPath(), payload, currentPaths);
         deleteRemovedFiles(engineBaseDir, currentPaths);
 
-        return traverseDirectory(enginePath, "");  // Return updated structure
+        return traverseDirectory(enginePath);  // Return updated structure
     }
 }

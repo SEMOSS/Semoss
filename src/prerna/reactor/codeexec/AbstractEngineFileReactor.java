@@ -63,7 +63,12 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
         return EngineUtility.getLocalEngineBaseDirectory(catalogType);
     }
     
-
+    protected String getEngineBaseFolder(String engineId) {
+        IEngine.CATALOG_TYPE catalogType = SecurityEngineUtils.getEngineType(engineId);
+        String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+        return EngineUtility.getSpecificEngineBaseFolder(catalogType,  engineId,  engineName);
+    }
+    
     protected Map<String, Object> getPayload() {
         GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PAYLOAD.getKey());
 
@@ -168,19 +173,19 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
         return allFiles;
     }
 
-    public static Map<String, Object> traverseDirectory(String path, String extensionFilter) {
+    public static Map<String, Object> traverseDirectory(String path) {
         Map<String, Object> result = new HashMap<>();
         File root = new File(path);
         if (!root.exists() || !root.isDirectory()) {
             classLogger.warn("Invalid directory path.");
             return result;
         }
-        result.put(root.getName(), traverse(root, extensionFilter));
+        result.put(root.getName(), traverse(root));
         return result;
     }
 
 
-    private static Map<String, Object> traverse(File dir, String extensionFilter) {
+    private static Map<String, Object> traverse(File dir) {
         Map<String, Object> folderData = new HashMap<>();
         List<Map<String, String>> filesList = new ArrayList<>();
 
@@ -188,12 +193,8 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
         if (entries != null) {
             for (File entry : entries) {
                 if (entry.isDirectory()) {
-                    folderData.put(entry.getName(), traverse(entry, extensionFilter));
+                    folderData.put(entry.getName(), traverse(entry));
                 } else {
-                    // Apply extension filter (only include .py if requested)
-                    if (extensionFilter != null && !entry.getName().endsWith(extensionFilter)) {
-                        continue;
-                    }
                     Map<String, String> fileData = new HashMap<>();
                     fileData.put("fileName", entry.getName());
                     fileData.put("content", readFileContent(entry));
