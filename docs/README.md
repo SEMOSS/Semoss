@@ -87,17 +87,21 @@ Welcome to the SEMOSS Backend Documentation. This collection of documents aims t
 5.  **[GitHub Actions Workflows for CI/CD](./cloud_and_cluster/github_actions_workflows.md)**
     *   CI, Python/Tomcat Builders, Application Image Builders.
 
-### VI. Python GenAI Client (`py/genai_client/`)
+### VI. Python Packages
 
-1.  **[Overview of Python GenAI Client](./python_genai_client/README.md)**
-    *   Purpose, Key Sub-modules, Core `constants.py` and `utils.py`
-2.  **[Model Keys](./python_genai_client/model_keys.md)** (`ModelKeysEnum`)
-3.  **[Model Limits](./python_genai_client/model_limits.md)** (Context Windows, Max Tokens)
-4.  **[Clients Overview](./python_genai_client/clients_overview.md)** (`client_initializer.py`, `google_clients.py`)
-5.  **[Embedders Overview](./python_genai_client/embedders_overview.md)** (`AbstractEmbedder`, OpenAI, Bedrock examples)
-    *   *(Further details for Azure, Local, Textgen, Vertex embedders to be added)*
-6.  **Text Generation Overview** *(Placeholder - to be created)*
-7.  **Tokenizers Overview** *(Placeholder - to be created)*
+#### GenAI Client Library (`py/genai_client/`)
+
+The `genai_client` Python package provides a standardized interface for interacting with various generative AI models and services, including text generation, embedding generation, and tokenization.
+
+- **[GenAI Client Package Documentation](./python_genai_client/README.md)**
+    - Details on:
+        - Core Files (`constants.py`, `utils.py`)
+        - [Model Keys](./python_genai_client/model_keys.md) (`ModelKeysEnum`)
+        - [Model Limits](./python_genai_client/model_limits.md) (Context Windows, Max Tokens)
+        - [Client Initializers & Wrappers](./python_genai_client/clients_overview.md)
+        - [Embedders Overview](./python_genai_client/embedders_overview.md)
+        - [Text Generation Clients Overview](./python_genai_client/text_generation_overview.md)
+        - [Tokenizers Overview](./python_genai_client/tokenizers_overview.md)
 
 ### VII. Development Guides
 

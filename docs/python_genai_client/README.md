@@ -21,6 +21,18 @@ The `genai_client` package is organized into several key sub-modules:
 
 This documentation will provide details on each of these components.
 
+### Text Generation Clients
+
+The `text_generation` sub-package provides a unified interface for interacting with various large language models for text and chat completion tasks. It includes an abstract base client and concrete implementations for providers like Anthropic, AWS Bedrock, Google Vertex AI, OpenAI, Azure OpenAI, and Oobabooga's Text Generation WebUI.
+
+- [Text Generation Clients Overview](./text_generation_overview.md)
+
+### Tokenizers
+
+The `tokenizers` sub-package provides utilities for token counting, which is essential for managing context windows and estimating costs when interacting with large language models.
+
+- [Tokenizers Overview](./tokenizers_overview.md)
+
 ## Core Files
 
 At the root of the `py/genai_client/` package, there are a few key files providing shared constants, utility functions, and base data structures.
