@@ -8,12 +8,14 @@ Vector engines in SEMOSS are designed to interface with vector databases or vect
 
 This interface outlines the standard functionalities for vector database engines:
 
-*   `addDocument(List<String> filePaths, Map<String, Object> parameters)`: A key method for ingesting source documents. This typically involves:
-    1.  Optionally, extracting text from the files if they are not plain text (e.g., PDF, DOCX).
-    2.  Chunking the extracted text into manageable segments.
-    3.  Generating vector embeddings for each chunk using an associated `IModelEngine` (embedder).
-    4.  Storing these embeddings along with the text chunks and any associated metadata into the vector database.
-*   `addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters)`: Allows for bulk loading of pre-computed embeddings and their corresponding text/metadata, typically from a structured CSV file. Implementations also exist for `List<String>` of CSV files and `File` objects.
+*   `addDocument(List<String> filePaths, Map<String, Object> parameters)`: A key method for ingesting source documents. This typically involves a multi-step process managed by `AbstractVectorDatabaseEngine`:
+    1.  **File Handling**: Copies of the source documents are moved to a dedicated `documents/` folder within the engine's storage.
+    2.  **Custom Pre-processing (Optional)**: If a custom document processor (`IFunctionEngine` implementing `ICustomEmbeddingsFunctionEngine`) is configured and applicable, it's invoked to process the document. This custom processor is responsible for returning data in a structured format (typically CSV-like, compatible with `VectorDatabaseCSVTable`).
+    3.  **Standard Text Extraction**: If no custom processor is used or if it's not applicable, standard text extraction occurs (e.g., using Python scripts like `vector_database.extract_text` via `PyTranslator` for PDFs, DOCX, etc.). The extracted text and basic metadata are typically saved into an intermediate CSV file in an `indexed_files/` or `extraction_files/` directory.
+    4.  **Chunking**: The extracted text (or text from the custom processor's output) is then chunked into smaller segments based on configured strategies (e.g., token size, overlap, chunking method like 'recursive'). This is also often handled by Python scripts (`vector_database.split_text`). The output is an updated CSV (`VectorDatabaseCSVTable` format) where each row represents a chunk.
+    5.  **Embedding Generation**: Each chunk's text content is then sent to a configured `IModelEngine` (embedder) to generate a vector embedding.
+    6.  **Storage**: Finally, these embeddings, along with their corresponding text chunks and metadata (source, modality, divider, part, tokens), are stored in the target vector database by the concrete `IVectorDatabaseEngine` implementation (e.g., `FaissDatabaseEngine`, `ChromaVectorDatabaseEngine`).
+*   `addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters)`: Allows for bulk loading of pre-computed embeddings and their corresponding text/metadata, typically from a structured CSV file adhering to the `VectorDatabaseCSVTable` format. Implementations also exist for `List<String>` of CSV files and `File` objects.
 *   `addEmbedding(List<? extends Number> embedding, String source, String modality, String divider, String part, int tokens, String content, Map<String, Object> additionalMetadata)`: Adds a single pre-computed embedding with its detailed metadata.
 *   `nearestNeighbor(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters)`: The core search functionality. It takes a user's search query (text), generates its embedding using the configured embedder model, and then queries the vector database to find the `limit` most similar items (embeddings/chunks). Returns a list of results, often including the original text, metadata, and similarity scores. `parameters` can include filters for metadata.
 *   `removeDocument(List<String> filePaths, Map<String, Object> parameters)`: Deletes specified documents and their associated embeddings from the vector database.

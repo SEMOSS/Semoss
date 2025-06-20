@@ -1,4 +1,4 @@
-# Java Configuration and Build Environment
+# SEMOSS Configuration and Environment
 
 This document outlines key configuration files and aspects of the build environment relevant to the SEMOSS Java backend.
 

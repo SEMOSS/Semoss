@@ -1,4 +1,4 @@
-# Java Interaction with SEMOSS Internal Databases
+# SEMOSS Internal Databases and Java Interaction
 
 SEMOSS utilizes several internal databases for its operational needs, including metadata storage, user tracking, prompt management, and security. This document outlines how Java components interact with these key internal databases. Most of these databases are typically H2 file-based databases, configured via `.smss` files found in the `db/` directory.
 
