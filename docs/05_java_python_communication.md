@@ -4,6 +4,10 @@ SEMOSS facilitates interoperability between its Java backend and Python scripts/
 
 ## 1. Overview
 
+### 1.1. Visual Flow / Diagram Placeholder
+
+*(A visual diagram here would be beneficial to illustrate the interaction between Java's `PyTranslator`/`ClientProcessWrapper`, the TCP socket communication, and Python's `gaas_tcp_socket_server`/`gaas_tcp_server_handler`. The diagram should show the request flow from Java to Python, the execution of Python code, the streaming of stdout/stderr, the final response, and the callback mechanism via `gaas_server_proxy`.)*
+
 The core mechanism involves:
 *   A Java client component that initiates requests and sends data.
 *   A Python TCP server that listens for these requests, processes them, executes Python code, and returns results.
@@ -67,6 +71,18 @@ The Python side consists of a TCP server that listens for requests from Java, a 
     *   For each incoming connection, it instantiates `gaas_tcp_server_handler.TCPServerHandler` to manage the communication with that specific Java client.
     *   Includes a timeout mechanism to shut down the server if it's idle (no active connections) for a specified period.
     *   Supports running in a `chroot` environment for enhanced security and isolation, based on parameters passed from Java.
+    *   **Chroot Jail and Security**:
+        *   The server can be started within a `chroot` jail if the `userChrootFolder` parameter is provided by the Java `ClientProcessWrapper`.
+        *   **What is `chroot`?**: `chroot` (change root) is a Unix/Linux system call that changes the apparent root directory for the current running process and its children. This means the process cannot "see" or access files outside of this designated directory tree, effectively creating a sandboxed environment.
+        *   **Purpose in SEMOSS**: This is primarily a security measure to isolate the Python server process. It limits the Python script's file system access to only the specified chroot directory, preventing it from potentially accessing or modifying sensitive system files outside its intended scope.
+        *   **`prerna.util.SymlinkHelper`**: When `ClientProcessWrapper` starts the Python server in chroot mode (e.g., via `prerna.util.Utility.startTCPServerNativePyChroot`), it often utilizes `prerna.util.SymlinkHelper`.
+            *   The `SymlinkHelper` is responsible for creating necessary symbolic links *within* the chroot jail. These symlinks might point to:
+                *   Required Python libraries or packages.
+                *   SEMOSS's own Python utility scripts (like those in the `py/` directory that the server needs).
+                *   Specific insight or asset folders that the Python script needs to access for its operations.
+            *   Without these symlinks, the chrooted Python process, being confined to its new root, wouldn't be able to find and load these essential dependencies.
+        *   **Docker Context**: While Docker itself provides containerization (a stronger form of isolation), if SEMOSS is run within a Docker container, the `chroot` mechanism for the Python server can provide an additional layer of defense-in-depth, especially if the Python server handles code or data from potentially less trusted sources or if multiple users/tenants might indirectly cause Python scripts to execute. The Dockerfile might set up a base file system, and `chroot` further restricts specific Python server instances within that.
+        *   The `gaas_tcp_socket_server.py` script itself performs `os.chroot(args.userChrootFolder)` and `os.chdir("/")` if the `userChrootFolder` argument is provided.
 
 ### 3.2. `gaas_tcp_server_handler.py`
 
