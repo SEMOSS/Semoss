@@ -24,11 +24,11 @@ import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
 
-public class DeleteProjectAssetsReactor extends AbstractReactor {
+public class DeleteAppAssetsReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(DeleteProjectAssetsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(DeleteAppAssetsReactor.class);
 
-	public DeleteProjectAssetsReactor() {
+	public DeleteAppAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), 
 				ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey() };
