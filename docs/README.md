@@ -103,6 +103,12 @@ The `genai_client` Python package provides a standardized interface for interact
         - [Text Generation Clients Overview](./python_genai_client/text_generation_overview.md)
         - [Tokenizers Overview](./python_genai_client/tokenizers_overview.md)
 
+#### GAAS (Generative AI Agent Services) Tools & Components
+
+This collection of Python modules provides the tools and underlying server infrastructure for SEMOSS's Generative AI Agent Services. It includes engines for database, model, function, storage, and vector interactions, as well as server components and security utilities.
+
+- [**GAAS Tools & Components Documentation**](./python_gaas_tools/README.md)
+
 ### VII. Development Guides
 
 *   **[Development Guides](./development_guides/README.md)**
