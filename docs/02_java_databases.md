@@ -1,0 +1,80 @@
+# Java Interaction with SEMOSS Internal Databases
+
+SEMOSS utilizes several internal databases for its operational needs, including metadata storage, user tracking, prompt management, and security. This document outlines how Java components interact with these key internal databases. Most of these databases are typically H2 file-based databases, configured via `.smss` files found in the `db/` directory.
+
+## 1. Overview of Internal Databases
+
+SEMOSS leverages a set of specialized databases, often H2 instances, for managing its core metadata and operational data:
+
+*   **`LocalMasterDatabase`**: Stores metadata about user-created and system-level assets like projects, engines (data sources), insights, and their relationships. It's central to organizing and retrieving user work.
+*   **`PromptDatabase`**: Specifically designed to store and manage prompts used with Large Language Models (LLMs) and other GenAI features within SEMOSS.
+*   **`UserTrackingDatabase`**: Records user activity, system events, and audit trails.
+*   **`SecurityDB`**: (Often named `security.smss`) Stores user credentials, roles, permissions for projects, engines, insights, and other assets. This database is fundamental to SEMOSS's access control mechanisms. (Covered in more detail in the Authentication & Authorization section).
+*   **`ThemesDatabase`**: (Often named `themes.smss`) Stores theme configurations for customizing the SEMOSS UI appearance.
+*   **`SchedulerDatabase`**: (Often named `scheduler.smss`) Manages scheduled tasks and jobs within SEMOSS.
+*   **Other Utility Databases**: Depending on the configuration, there might be other small, special-purpose databases.
+
+Java components interact with these databases primarily through JDBC, often abstracted by utility classes or specific data access objects (DAOs).
+
+## 2. `LocalMasterDatabase`
+
+The `LocalMasterDatabase` is arguably one of the most critical internal databases, as it holds the metadata for user assets and system configurations.
+
+### 2.1. Purpose and Schema (Conceptual)
+
+*   **Purpose**: To catalog projects, engines (data sources), insights (analyses/dashboards), and the relationships between them. It also stores metadata about global vs. user-specific assets.
+*   **Key Information Stored (Conceptual Tables)**:
+    *   `PROJECT`: Information about projects (ID, name, type, creator, visibility, etc.).
+    *   `ENGINE`: Information about data engines (ID, name, type, configuration path (SMSS file), creator, global status, etc.). This table is also managed by `SecurityEngineUtils` for consistency in the security database.
+    *   `INSIGHT`: Information about insights (ID, name, project associations, creator, etc.).
+    *   `PROJECT_ENGINE_RELATION`: Links projects to the engines they use.
+    *   `PROJECT_INSIGHT_RELATION`: Links projects to the insights they contain.
+    *   `USER_PROJECT_PERMISSIONS`, `USER_ENGINE_PERMISSIONS`, `USER_INSIGHT_PERMISSIONS`: While primarily managed in the `SecurityDB`, there might be some denormalized or cached permission information here, or this data might solely reside in `SecurityDB`.
+    *   Metadata tables for storing additional key-value properties for projects, engines, and insights.
+
+### 2.2. Java Interaction (`src/prerna/masterdatabase/`)
+
+The `src/prerna/masterdatabase/` package contains Java classes responsible for interacting with the `LocalMasterDatabase`.
+*   **`prerna.masterdatabase.utility.MasterDatabaseUtility`**: This class likely provides high-level methods to query and manipulate metadata stored in `LocalMasterDatabase`. It might offer functions to:
+    *   Retrieve lists of projects, engines, or insights for a user.
+    *   Get detailed metadata for a specific project, engine, or insight.
+    *   Add, update, or delete metadata entries.
+*   **Specific Reactors**: Reactors within sub-packages like `src/prerna/reactor/masterdatabase/` (e.g., `GetProjectListReactor`, `GetEngineListReactor`, `GetInsightListReactor`) would use `MasterDatabaseUtility` or direct JDBC calls to fetch information required by Pixel scripts.
+*   **OWL Representation**: Often, the metadata for these assets (especially engines and projects) is also stored or cached as OWL (Web Ontology Language) files (e.g., `db/LocalMasterDatabase/MasterDatabase_OWL.OWL`). Java classes like `prerna.masterdatabase.utility.MasterDatabaseOwlCreatorHelper` might be involved in generating or updating these OWL files from the database or vice-versa. These OWL files can provide a semantic representation of the assets and their relationships.
+
+## 3. `PromptDatabase`
+
+With the integration of GenAI capabilities, managing prompts effectively is crucial.
+
+### 3.1. Purpose and Schema (Conceptual)
+
+*   **Purpose**: To store, categorize, and manage prompts that can be used with various LLMs integrated into SEMOSS. This allows users to save, reuse, and share effective prompts.
+*   **Key Information Stored (Conceptual Tables)**:
+    *   `PROMPT`: Stores the prompt text itself, a prompt ID, name, description, creation date, creator.
+    *   `PROMPT_CATEGORY`: Allows prompts to be categorized (e.g., "Text Summarization," "Data Analysis," "Code Generation").
+    *   `PROMPT_TAGS`: For tagging prompts with relevant keywords.
+    *   `PROMPT_PARAMETERS`: If prompts are designed as templates with placeholders, this might store information about those parameters.
+    *   `PROMPT_ENGINE_ASSOCIATION`: Links prompts to specific LLM engines they are designed for or compatible with.
+
+### 3.2. Java Interaction
+
+*   **`prerna.prompt.PromptUtils.java` (and related classes)**: This class (or others within `src/prerna/prompt/`) likely provides the core Java logic for interacting with the `PromptDatabase`. It would handle:
+    *   Saving new prompts and their metadata.
+    *   Retrieving prompts by ID, name, category, or tags.
+    *   Updating and deleting prompts.
+    *   Listing available prompts for a user or system-wide.
+*   **Reactors for Prompts**: Specific reactors (e.g., `SavePromptReactor`, `GetPromptReactor` - hypothetical names) would use `PromptUtils` to expose prompt management functionality via Pixel scripts. These might be located in `src/prerna/reactor/llm/` or a similar package.
+*   **GenAI Feature Integration**: Java classes that implement features utilizing LLMs (e.g., those in `py/genai_client` or Java wrappers around them) would call `PromptUtils` to fetch prompts before sending requests to the LLM engines.
+
+## 4. Database Configuration and Access
+
+*   **SMSS Files**: Each internal database (LocalMaster, PromptDB, SecurityDB, etc.) has its connection details defined in a respective `.smss` file located in the `db/` directory (e.g., `db/LocalMasterDatabase.smss`, `db/PromptDatabase.smss`). These files specify the JDBC driver, connection URL (often pointing to an H2 file like `database.mv.db` within its respective subdirectory), username, and password.
+*   **`DIHelper.java`**: As discussed previously, `DIHelper` plays a role in managing access to the *paths* of these `.smss` files or the loaded `Properties` objects.
+    *   `DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE)` is a common pattern to get the SMSS file path for an engine (where `engineId` would be `Constants.LOCAL_MASTER_DB`, `Constants.PROMPT_DB`, etc.).
+*   **`prerna.engine.impl.SmssUtilities.java`**: This utility class contains methods like `getEngine(String engineId)` which can take an engine ID (like `Constants.LOCAL_MASTER_DB`), retrieve its SMSS properties (likely via `DIHelper`), instantiate the correct `IEngine` implementation (usually an `RDBMSNativeEngine` for these H2 databases), and return the opened engine.
+*   **JDBC and Query Utilities**:
+    *   Once an `IEngine` instance for an internal database is obtained, interactions often boil down to standard JDBC operations.
+    *   `prerna.util.sql.AbstractSqlQueryUtil` and its database-specific implementations (e.g., for H2) provide helper methods for executing queries, preparing statements, and processing results.
+    *   Higher-level utility classes (like `MasterDatabaseUtility` or `PromptUtils`) would use these JDBC utilities to perform their tasks.
+
+By using this setup, SEMOSS maintains a clear separation of concerns, with dedicated databases for different types of operational data, all accessed through a consistent mechanism of SMSS configuration files and Java database interaction utilities.
