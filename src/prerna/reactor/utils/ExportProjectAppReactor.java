@@ -65,7 +65,7 @@ public class ExportProjectAppReactor extends AbstractReactor {
 		String projectName = project.getProjectName();
 		String projectNameAndId = SmssUtilities.getUniqueName(projectName, projectId);
 		String baseProjectDir = baseFolder + Constants.PROJECT_FOLDER;
-		String projectAssetFolder = AssetUtility.getProjectAssetFolder(projectName, projectId);
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectName, projectId);
 
 		String outputDir = this.insight.getInsightFolder();
 		String zipFilePath = outputDir + "/" + getFileName(projectNameAndId);

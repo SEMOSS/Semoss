@@ -209,9 +209,9 @@ public final class UploadInputUtility {
 		// grabbing the space
 		// and using the asset utility to get the location
 		if (space != null && !space.isEmpty()) {
-			filePrefix = AssetUtility.getAssetBasePath(in, space, false);
+			filePrefix = AssetUtility.getRootFolderPath(in, space, false);
 		} else {
-			filePrefix = AssetUtility.getAssetBasePath(in, null, false);
+			filePrefix = AssetUtility.getRootFolderPath(in, null, false);
 		}
 
 		// this is for legacy recipes

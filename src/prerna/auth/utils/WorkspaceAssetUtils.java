@@ -85,7 +85,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		// Create a new project id
 		String projectId = UUID.randomUUID().toString();
 
-		String userFolderLocation = AssetUtility.getUserAssetAndWorkspaceBaseFolder(projectName, projectId);
+		String userFolderLocation = AssetUtility.getUserAssetAndWorkspaceAppRootFolder(projectName, projectId);
 		File userFolder = new File(userFolderLocation);
 		userFolder.mkdirs();
 
