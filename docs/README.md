@@ -82,8 +82,10 @@ Welcome to the SEMOSS Backend Documentation. This collection of documents aims t
     *   Synchronization Workflow and Configuration
 4.  **[Docker Deployment Guide](./cloud_and_cluster/docker_deployment.md)**
     *   Introduction to Dockerized SEMOSS
-    *   Details on Core Dockerfiles (`Dockerfile.ubuntu22.04`, `Dockerfile.nvidia.cuda`, `Dockerfile.tomcat`, `Dockerfile.python`, `Dockerfile.dind`)
+    *   Details on Core Dockerfiles
     *   Build Process, Environment Variables, Volume Mounts, Example Usage
+5.  **[GitHub Actions Workflows for CI/CD](./cloud_and_cluster/github_actions_workflows.md)**
+    *   CI, Python/Tomcat Builders, Application Image Builders.
 
 ### VI. Python GenAI Client (`py/genai_client/`)
 
@@ -99,8 +101,6 @@ Welcome to the SEMOSS Backend Documentation. This collection of documents aims t
 
 ### VII. Development Guides
 
-1.  **[SEMOSS Configuration and Environment](./development_guides/configuration_and_environment.md)**
-    *   Core Configuration Files, Build Environment (`pom.xml`), Deployment.
-2.  **[Java Developer Onboarding Guide](./development_guides/java_developer_onboarding.md)**
-    *   Getting Started, Running Locally, Key Modules, Contributions.
+*   **[Development Guides](./development_guides/README.md)**
+    *   Overview of configurations, onboarding, etc.
 ```
