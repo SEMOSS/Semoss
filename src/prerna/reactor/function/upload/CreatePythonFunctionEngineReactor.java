@@ -20,7 +20,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IFunctionEngine;	
+import prerna.engine.api.IFunctionEngine;
 import prerna.reactor.engine.AbstractEngineFileReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -38,7 +38,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 
 	public CreatePythonFunctionEngineReactor() {
 		this.keysToGet = new String[]{
-				ReactorKeysEnum.FUNCTION_ENGINE_NAME.getKey(),
+				ReactorKeysEnum.FUNCTION.getKey(),
 				ReactorKeysEnum.FUNCTION_DETAILS.getKey(),
 				ReactorKeysEnum.CONTENT.getKey()
 		};
@@ -176,7 +176,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 	 * @return
 	 */
 	private String getFunctionName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION_ENGINE_NAME.getKey());
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if(strValues != null && !strValues.isEmpty()) {
