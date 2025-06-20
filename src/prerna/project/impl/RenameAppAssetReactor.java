@@ -25,11 +25,11 @@ import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
 
-public class RenameProjectAssetReactor extends AbstractReactor {
+public class RenameAppAssetReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(RenameProjectAssetReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(RenameAppAssetReactor.class);
 
-	public RenameProjectAssetReactor() {
+	public RenameAppAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), 
 				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.NEW_VALUE.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey() };
