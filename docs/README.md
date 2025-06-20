@@ -16,6 +16,7 @@ Welcome to the documentation for the SEMOSS Java backend. This collection of doc
     *   Data Source Layer (`src/prerna/ds`)
     *   Authentication and Authorization (`src/prerna/auth`)
     *   High-Level API Request Flow
+    *   The Insight Object (`prerna.om.Insight`)
 
 3.  **[Engine Implementations Deep Dive](./06_engine_implementations.md)**
     *   `DATABASE` Engines (Core Concepts, RDBMS, RDF, Neo4j, JanusGraph examples, Extension Guide)
