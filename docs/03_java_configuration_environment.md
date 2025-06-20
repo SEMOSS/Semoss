@@ -77,6 +77,50 @@ This file is critical for tailoring the SEMOSS environment and enabling/disablin
         *   `rootLogger.appenderRef.stdout.ref = STDOUT`: Sends root logger output to the console.
 *   **Impact**: Administrators can modify this file to adjust logging levels for troubleshooting (e.g., setting `logger.app.level = debug` for more detailed SEMOSS logs) or to change log output destinations.
 
+### 1.4. `social.properties` (Root Directory)
+
+*   **Purpose**: This file is central to configuring user authentication methods, particularly for Single Sign-On (SSO) with various external identity providers (IdPs), and for email server settings. It dictates which login options are available to users and how SEMOSS interacts with IdPs.
+*   **Key Property Groups & Examples**:
+    *   **Global Settings**:
+        *   `redirect`: The URL to redirect users to after a successful login.
+    *   **Login Provider Enablement**:
+        *   A series of boolean flags enable or disable specific authentication providers, e.g.:
+            *   `native_login=true` (enables built-in username/password authentication)
+            *   `google_login=false`
+            *   `ldap_login=true`
+            *   `siteminder_login`, `adfs_login`, `okta_login`, `cac_login`, etc.
+    *   **Native Login Configuration**:
+        *   `native_registration=true`: Allows new users to register.
+        *   `native_access_keys_allowed=true`: Allows native users to generate API access keys.
+        *   `native_display_name`: Text for the native login button.
+    *   **External Identity Provider Configuration (OAuth/OIDC/SAML-like)**:
+        *   For each enabled external provider (e.g., Google, Microsoft, Okta, ADFS, generic OIDC), a set of properties defines the connection parameters:
+            *   `*_client_id`: Client ID obtained from the IdP.
+            *   `*_secret_key`: Client secret obtained from the IdP.
+            *   `*_redirect_uri`: The URI SEMOSS expects the IdP to redirect to after authentication.
+            *   `*_auth_url`: The IdP's authorization endpoint.
+            *   `*_token_url`: The IdP's token endpoint.
+            *   `*_userinfo_url`: The IdP's user info endpoint (for OIDC).
+            *   `*_scope`: The requested scopes (permissions) from the IdP.
+            *   `*_auto_add=true`: If true, users successfully authenticated via this IdP are automatically provisioned in SEMOSS's user database.
+            *   `*_access_keys_allowed=false`: Whether users from this IdP can create API keys in SEMOSS.
+            *   `*_display_name`: Text for the login button for this provider.
+    *   **LDAP Configuration**:
+        *   `ldap_provider_url`, `ldap_principal_template`, `ldap_search_context_name`, etc.: Detailed settings for connecting to an LDAP directory for authentication and user attribute lookup.
+    *   **Email (SMTP) Server Configuration**:
+        *   `smtp_enabled=true`: Enables email sending capabilities.
+        *   `smtp_mail.smtp.host`, `smtp_mail.smtp.port`: SMTP server host and port.
+        *   `smtp_mail.smtp.auth=true`: Whether authentication is required for the SMTP server.
+        *   `smtp_username`, `smtp_password`: Credentials for the SMTP server.
+        *   `smtp_sender`: Default "from" address for emails sent by SEMOSS.
+*   **Java Access**:
+    *   These properties are loaded at application startup, likely by classes in the `prerna.auth` package.
+    *   The `prerna.auth.AuthProvider` enum likely maps to the enabled providers.
+    *   Authentication servlets or filters use these properties to initiate SSO flows, validate responses from IdPs, and configure email services.
+    *   `prerna.util.SocialPropertiesUtil` or similar classes might provide convenient access to these properties.
+
+This file is crucial for integrating SEMOSS into an organization's existing identity infrastructure and for enabling communication features.
+
 ## 2. Build Environment: `pom.xml`
 
 The `pom.xml` file at the root of the repository indicates that SEMOSS's Java components are built using Apache Maven.

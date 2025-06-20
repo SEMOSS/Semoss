@@ -78,3 +78,38 @@ With the integration of GenAI capabilities, managing prompts effectively is cruc
     *   Higher-level utility classes (like `MasterDatabaseUtility` or `PromptUtils`) would use these JDBC utilities to perform their tasks.
 
 By using this setup, SEMOSS maintains a clear separation of concerns, with dedicated databases for different types of operational data, all accessed through a consistent mechanism of SMSS configuration files and Java database interaction utilities.
+
+## 5. `ModelInferenceLogsDatabase`
+
+The `ModelInferenceLogsDatabase` is a specialized internal database dedicated to tracking and auditing interactions with Large Language Models (LLMs) and other model engines within SEMOSS.
+
+### 5.1. Purpose and Schema (Conceptual)
+
+*   **Purpose**: To provide a comprehensive log of all requests and responses to model engines, capture usage metrics (like token counts and response times), associate interactions with users, insights (conversations/rooms), and projects, and store user feedback on model responses.
+*   **Initialization**:
+    *   The database schema (tables, columns, keys, indexes) is programmatically defined and managed by `prerna.engine.impl.model.inferencetracking.ModelInferenceLogsOwlCreator`.
+    *   It's typically an H2 database, configured via an SMSS file (e.g., `db/ModelInferenceLogsDatabase.smss`).
+*   **Key Tables (Conceptual Names - actual names might have prefixes/suffixes like `MESSAGE__`)**:
+    *   `MESSAGE`: Stores individual LLM interactions.
+        *   Columns: `MESSAGE_ID` (Primary Key), `MESSAGE_TYPE` (e.g., "INPUT", "OUTPUT"), `MESSAGE_DATA` (the actual prompt or response, potentially large, may be stored as CLOB/BLOB), `MESSAGE_METHOD` (e.g., "ask", "instruct", "embeddings"), `MESSAGE_TOKENS` (token count for the message), `RESPONSE_TIME`, `DATE_CREATED`, `AGENT_ID` (FK to AGENT table), `INSIGHT_ID` (FK to ROOM table, representing the conversation/room ID), `SESSIONID`, `USER_ID`, `USER_NAME`, `USER_EMAIL_ID`.
+    *   `AGENT`: Stores information about the LLM agents or model engines being used.
+        *   Columns: `AGENT_ID` (Primary Key), `AGENT_NAME`, `DESCRIPTION`, `AGENT_TYPE` (e.g., "OpenAI", "Bedrock"), `AUTHOR`, `DATE_CREATED`.
+    *   `ROOM`: Represents conversation sessions or contexts in which LLM interactions occur. Often, an "Insight" in SEMOSS serves as a "room".
+        *   Columns: `INSIGHT_ID` (Primary Key, also the Room ID), `ROOM_NAME`, `ROOM_CONTEXT` (overall context for the conversation), `USER_ID`, `USER_NAME`, `USER_EMAIL_ID`, `AGENT_ID` (FK to AGENT table, the primary model for the room), `IS_ACTIVE`, `DATE_CREATED`, `PROJECT_ID`, `PROJECT_NAME`.
+    *   `FEEDBACK`: Stores user-provided feedback on model responses.
+        *   Columns: `MESSAGE_ID` (FK to MESSAGE table), `MESSAGE_TYPE` (e.g., "RESPONSE"), `FEEDBACK_TEXT`, `FEEDBACK_DATE`, `RATING` (e.g., thumbs up/down as boolean or integer).
+
+### 5.2. Java Interaction
+
+*   **`prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils.java`**: This is the primary utility class for all interactions with the `ModelInferenceLogsDatabase`.
+    *   It handles database initialization, including schema creation and updates.
+    *   Provides methods like:
+        *   `doRecordMessage()`: To log a new model interaction (called by `AbstractModelEngine` and `AbstractVectorDatabaseEngine` after an LLM call).
+        *   `doCreateNewConversation()`: To create a new room/conversation record.
+        *   `doCreateNewAgent()`: To register a new model agent if it's not already present.
+        *   `recordFeedback()`, `updateFeedback()`, `deleteFeedbackEntry()`: To manage user feedback on model responses.
+        *   Various retrieval methods for fetching conversation histories (`doRetrieveConversation`), listing user conversations (`getUserConversations`), and generating usage reports (e.g., `getOverAllEngineUsageFromModelInferenceLogs`, `getTokenUsagePerProjectForEngine`).
+*   **`prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker.java`**: This class, typically run in a separate thread, is responsible for asynchronously calling `ModelInferenceLogsUtils.doRecordMessage()` to ensure that logging model interactions does not block the main execution flow of model calls.
+*   **Reactors for Usage and History**: Reactors in `src/prerna/engine/impl/model/inferencetracking/reactors/` (e.g., `GetRoomMessagesReactor`, `GetUserConversationRoomsReactor`) use `ModelInferenceLogsUtils` to expose conversation history and usage data via Pixel scripts.
+
+This database is essential for monitoring LLM usage, understanding costs, gathering data for potential fine-tuning, and providing users with access to their interaction histories.
