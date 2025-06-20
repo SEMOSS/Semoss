@@ -144,102 +144,17 @@ The `IEngine` interface itself is quite generic. Specific data processing capabi
 
 ### 3.2. Engine Implementations (`src/prerna/engine/impl/`)
 
-SEMOSS provides a wide array of concrete engine implementations, catering to different data sources, services, and functionalities. These classes extend base abstract classes like `prerna.engine.impl.AbstractEngine` or more specialized ones like `prerna.engine.impl.AbstractDatabaseEngine`, `prerna.engine.impl.function.AbstractFunctionEngine`, etc., and implement `IEngine` along with other necessary interfaces (e.g., `IDatabaseEngine`, `IStorageEngine`).
+SEMOSS provides a wide array of concrete engine implementations, catering to different data sources, services, and functionalities. These classes typically extend base abstract classes (like `prerna.engine.impl.AbstractEngine`, `prerna.engine.impl.AbstractDatabaseEngine`, etc.) and implement `IEngine` along with other necessary specialized interfaces (e.g., `IDatabaseEngine`, `IModelEngine`).
 
-Here are some notable examples categorized by their `CATALOG_TYPE`:
+For detailed descriptions of specific engine implementations, their core abstract parent classes (e.g., `AbstractDatabaseEngine`, `AbstractModelEngine`, `AbstractVectorDatabaseEngine`, `AbstractFunctionEngine`, `AbstractStorageEngine`), key interface methods, and guidelines on how to extend them for new custom functionalities, please refer to the **[Engine Implementations Deep Dive](./06_engine_implementations.md)** document.
 
-**`DATABASE` Engines:**
-These engines connect to various database systems, enabling data querying and manipulation. They typically implement `prerna.engine.api.IDatabaseEngine`.
-*   **`prerna.engine.impl.rdbms.RDBMSNativeEngine`**:
-    *   **Purpose**: Provides connectivity to a wide range of relational databases via JDBC (Java Database Connectivity).
-    *   **SMSS Configuration**: Would include JDBC URL, driver class name, username, password.
-*   **`prerna.engine.impl.rdf.InMemoryJenaEngine` / `prerna.engine.impl.rdf.RDFFileJenaEngine`**:
-    *   **Purpose**: Manages RDF data using the Apache Jena framework, either in-memory or backed by files.
-    *   **SMSS Configuration**: Might include file paths for `RDFFileJenaEngine`, or specific Jena settings.
-*   **`prerna.engine.impl.neo4j.Neo4jEngine`**:
-    *   **Purpose**: Connects to Neo4j graph databases.
-    *   **SMSS Configuration**: URI for the Neo4j instance, authentication details.
-*   **`prerna.engine/impl/tinker/JanusEngine.java`**:
-    *   **Purpose**: Interface for JanusGraph, a distributed graph database, likely using the TinkerPop framework.
-    *   **SMSS Configuration**: JanusGraph connection properties (e.g., storage backend, indexing).
-
-**`STORAGE` Engines:**
-These engines provide access to file systems and object storage solutions. They typically implement `prerna.engine.api.IStorageEngine`.
-*   **`prerna.engine.impl.storage.LocalFileSystemStorageEngine`**:
-    *   **Purpose**: Allows SEMOSS to interact with the local file system of the server it's running on.
-    *   **SMSS Configuration**: Might define a base path or allowed directories.
-*   **`prerna.engine.impl.storage.S3StorageEngine`**:
-    *   **Purpose**: Connects to Amazon S3 (Simple Storage Service) for object storage.
-    *   **SMSS Configuration**: AWS credentials, bucket name, region.
-
-**`MODEL` Engines:**
-These engines facilitate interaction with machine learning models, often for predictions, text generation, or embedding creation. They typically extend `prerna.engine.impl.model.AbstractModelEngine` and implement `prerna.engine.api.IModelEngine`.
-*   **Core Interface (`IModelEngine`)**: Defines methods like:
-    *   `ask(String question, String context, Insight insight, Map<String, Object> parameters)`: For conversational AI or question-answering.
-    *   `instruct(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters)`: For instruction-following models.
-    *   `embeddings(List<String> stringsToEmbed, Insight insight, Map<String, Object> parameters)`: For generating text embeddings.
-    *   `imageEmbeddings(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters)`: For generating image embeddings.
-*   **`AbstractModelEngine`**: Provides common functionalities:
-    *   Loading SMSS properties and integrating with secret stores for API keys.
-    *   Managing flags like `keepConversationHistory` and `keepInputOutput`.
-    *   Wrapping core logic calls (e.g., `askCall`) with inference logging (`ModelEngineInferenceLogsWorker`) and user usage restriction checks (`ModelUsageRestrictionUtility`).
-*   **Examples**:
-    *   **`prerna.engine.impl.model.OpenAiEngine`**:
-        *   **Purpose**: Integrates with OpenAI's models (e.g., GPT series).
-        *   **SMSS Configuration**: OpenAI API key, default model names.
-    *   **`prerna.engine.impl.model.BedrockEngine`**:
-        *   **Purpose**: Connects to AWS Bedrock.
-        *   **SMSS Configuration**: AWS credentials, region, Bedrock model IDs.
-    *   **`prerna.engine.impl.model.EmbeddedModelEngine`**:
-        *   **Purpose**: Works with locally hosted models (e.g., Python models via a local Python environment).
-        *   **SMSS Configuration**: Paths to model files, Python environment details.
-    *   **`prerna.engine.impl.model.TextEmbeddingsEngine`**: A specialized engine focused on generating text embeddings, often delegating to other underlying model engines.
-
-**`VECTOR` Engines:**
-These engines connect to vector databases, crucial for similarity searches, retrieval-augmented generation (RAG), and other embedding-based AI applications. They typically extend `prerna.engine.impl.vector.AbstractVectorDatabaseEngine` and implement `prerna.engine.api.IVectorDatabaseEngine`.
-*   **Core Interface (`IVectorDatabaseEngine`)**: Defines methods like:
-    *   `addDocument(List<String> filePaths, Map<String, Object> parameters)`: To ingest documents, perform text extraction, chunking, embedding generation (often via an associated `IModelEngine`), and storage.
-    *   `addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters)`: To add pre-computed embeddings.
-    *   `nearestNeighbor(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters)`: To perform similarity searches.
-    *   `removeDocument(List<String> filePaths, Map<String, Object> parameters)`: To delete documents and their embeddings.
-*   **`AbstractVectorDatabaseEngine`**: Provides common functionalities:
-    *   Manages connections to an embedder model engine (specified by `EMBEDDER_ENGINE_ID` in SMSS) for generating embeddings.
-    *   Handles text processing (extraction, chunking) often by invoking a local Python environment (`PyTranslator`) with scripts from `vector_database.py`.
-    *   Manages storage of indexed files and original documents.
-    *   Defines parameters for content length, overlap, chunking units/methods, and distance metrics.
-*   **Examples**:
-    *   **`prerna.engine.impl.vector.FaissDatabaseEngine`**:
-        *   **Purpose**: Interfaces with FAISS for local, efficient similarity search.
-        *   **SMSS Configuration**: Path to FAISS index files.
-    *   **`prerna.engine.impl.vector.ChromaVectorDatabaseEngine`**:
-        *   **Purpose**: Connects to ChromaDB.
-        *   **SMSS Configuration**: ChromaDB connection details.
-    *   Other implementations exist for PineCone, Milvus, PGVector, OpenSearch/ElasticSearch.
-
-**`FUNCTION` Engines:**
-These engines allow SEMOSS to treat external services, custom scripts, or even other reactors as callable functions, often for integration into LLM function-calling flows or for modularizing custom logic. They typically extend `prerna.engine.impl.function.AbstractFunctionEngine` and implement `prerna.engine.api.IFunctionEngine`.
-*   **Core Interface (`IFunctionEngine`)**: Defines methods like:
-    *   `execute(Map<String, Object> paramValues, Insight insight)`: The primary method to invoke the function with given parameters.
-    *   `getFunctionDefintionJson()`: Returns a JSON schema describing the function's name, description, parameters, and required inputs, often compatible with OpenAI's function/tool specification.
-    *   `buildOpenAIFunctionEngineToolMap()` / `buildBedrockToolSpec()`: Methods to generate specifications for integration with specific LLM providers.
-*   **`AbstractFunctionEngine`**: Provides common functionalities:
-    *   Loading function metadata from SMSS properties: `functionName`, `functionDescription`, `parameters` (list of `FunctionParameter` objects defining expected inputs), and `requiredParameters`.
-    *   Storing and providing access to this metadata.
-*   **Examples**:
-    *   **`prerna.engine.impl.function.LocalPythonFunctionEngine`**:
-        *   **Purpose**: Enables the execution of Python scripts or functions stored locally. The SMSS would define the script path and necessary parameters.
-        *   **SMSS Configuration**: Python interpreter paths, script location, function name within the script, parameter definitions.
-    *   **`prerna.engine.impl.function.RESTFunctionEngine`**:
-        *   **Purpose**: Allows SEMOSS to make calls to external REST APIs. The function parameters map to API request parameters or body.
-        *   **SMSS Configuration**: Base URL, endpoint, HTTP method, authentication details, parameter mappings.
-    *   **`prerna.engine.impl.function.AbstractReactorFunctionEngine`**: An interesting variant that can wrap another SEMOSS Reactor, exposing its functionality as a callable function.
-
-**`PROJECT` Engines:**
-*   **`prerna.engine.impl.app.AppEngine`**:
-    *   **Purpose**: Represents a SEMOSS "Project" (often referred to as an "App"). It acts as a container or a high-level orchestrator for other engines, insights, and assets related to a specific analytical endeavor.
-    *   **SMSS Configuration**: Contains metadata about the project, its constituent engines, and user access.
-
-Each implementation translates the generic `IEngine` contract (like `open()`, `close()`, `getEngineType()`) into actions specific to its underlying technology. The `.smss` property files play a vital role in providing the necessary configuration details for each engine instance.
+A brief overview of categories includes:
+*   **`DATABASE` Engines**: For various SQL, NoSQL, and graph databases.
+*   **`STORAGE` Engines**: For file systems and object stores like S3.
+*   **`MODEL` Engines**: For interacting with AI/ML models (e.g., OpenAI, AWS Bedrock, local models).
+*   **`VECTOR` Engines**: For vector databases (e.g., FAISS, ChromaDB).
+*   **`FUNCTION` Engines**: For exposing scripts or APIs as callable functions.
+*   **`PROJECT` Engines**: Representing SEMOSS projects themselves.
 
 ### 3.3. Engine Management
 

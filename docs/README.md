@@ -12,44 +12,40 @@ Welcome to the documentation for the SEMOSS Java backend. This collection of doc
 2.  **[Java Backend Deep Dive](./01_java_backend.md)**
     *   Pixel: The SEMOSS Query Language & Execution Engine (`src/prerna/sablecc2`)
     *   Reactor Framework (`src/prerna/reactor`)
-        *   Core Reactor Interfaces/Classes (`IReactor.java`, `AbstractReactor.java`)
-        *   Key Reactor Examples and Roles
-    *   Engine Abstraction (`src/prerna/engine`)
-        *   `IEngine.java`: The Core Engine Interface
-        *   Engine Implementations (`src/prerna/engine/impl/`) - Including DATABASE, STORAGE, MODEL, VECTOR, FUNCTION, and PROJECT engines.
-        *   Engine Management
+    *   Engine Abstraction (`src/prerna/engine`) - Overview of `IEngine` and Engine Management.
     *   Data Source Layer (`src/prerna/ds`)
-        *   `ITableDataFrame` and `AbstractTableDataFrame`
-        *   Key Frame Implementations (`TinkerFrame`, `H2Frame`, `NativeFrame`, `PandasFrame`, `RDataTable`, `SparkDataFrame`)
-        *   Interaction with `IEngine` and `QueryStruct`
     *   Authentication and Authorization (`src/prerna/auth`)
     *   High-Level API Request Flow
 
-3.  **[Java Interaction with SEMOSS Internal Databases](./02_java_databases.md)**
+3.  **[Engine Implementations Deep Dive](./06_engine_implementations.md)**
+    *   `DATABASE` Engines (Core Concepts, RDBMS, RDF, Neo4j, JanusGraph examples, Extension Guide)
+    *   `STORAGE` Engines (Core Concepts, Local FS, S3 examples, Extension Guide)
+    *   `MODEL` Engines (Core Concepts, OpenAI, Bedrock, Embedded examples, Extension Guide)
+    *   `VECTOR` Engines (Core Concepts, FAISS, ChromaDB examples, Extension Guide)
+    *   `FUNCTION` Engines (Core Concepts, Local Python, REST examples, Extension Guide)
+    *   `PROJECT` Engines (AppEngine example)
+
+4.  **[Java Interaction with SEMOSS Internal Databases](./02_java_databases.md)**
     *   Overview of Internal Databases
-    *   `LocalMasterDatabase` (Metadata for projects, engines, insights)
-    *   `PromptDatabase` (Storage for LLM prompts)
-    *   `ModelInferenceLogsDatabase` (Tracking LLM interactions and usage)
+    *   `LocalMasterDatabase`
+    *   `PromptDatabase`
+    *   `ModelInferenceLogsDatabase`
     *   Database Configuration and Access
 
-4.  **[Java Configuration and Build Environment](./03_java_configuration_environment.md)**
-    *   Core Configuration Files
-        *   `config.properties`
-        *   `RDF_Map.prop`
-        *   `log4j2.properties`
-        *   `social.properties` (SSO and Email Configuration)
-    *   Build Environment: `pom.xml` (Maven)
-    *   Deployment Environment (Briefly: Docker, Tomcat)
+5.  **[Java Configuration and Build Environment](./03_java_configuration_environment.md)**
+    *   Core Configuration Files (`config.properties`, `RDF_Map.prop`, `log4j2.properties`, `social.properties`)
+    *   Build Environment (`pom.xml`)
+    *   Deployment Environment
 
-5.  **[Java Developer Onboarding Guide](./04_java_developer_onboarding.md)**
-    *   Getting Started (Prerequisites, Setup, Build)
+6.  **[Java Developer Onboarding Guide](./04_java_developer_onboarding.md)**
+    *   Getting Started
     *   Running SEMOSS Locally
-    *   Key Java Modules/Packages to Understand First
-    *   Contribution Guidelines (Git Workflow, Coding Conventions, Testing, Documentation)
+    *   Key Java Modules
+    *   Contribution Guidelines
 
-6.  **[Java to Python Communication](./05_java_python_communication.md)**
-    *   Overview
-    *   Java-Side Components (`PyTranslator`, TCP Client/Socket Management)
-    *   Python-Side Components (`gaas_tcp_socket_server.py`, `gaas_tcp_server_handler.py`, `gaas_server_proxy.py`)
-    *   Communication Protocol and Data Exchange
+7.  **[Java to Python Communication](./05_java_python_communication.md)**
+    *   Overview & Visual Flow Placeholder
+    *   Java-Side Components
+    *   Python-Side Components (including chroot & SymlinkHelper details)
+    *   Communication Protocol
 ```
