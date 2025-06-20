@@ -1,5 +1,4 @@
-package prerna.reactor.codeexec;
-
+package prerna.reactor.engine;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -11,15 +10,16 @@ import java.util.Map;
 import org.apache.commons.io.FilenameUtils;
 
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class BrowseEngineReactor extends AbstractEngineFileReactor {
+public class BrowseEngineAssetsReactor extends AbstractEngineFileReactor {
 
-	public BrowseEngineReactor() {
+	public BrowseEngineAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), 
 				ReactorKeysEnum.FILE_PATH.getKey() };
 		this.keyRequired = new int[] {1,0};
@@ -31,8 +31,11 @@ public class BrowseEngineReactor extends AbstractEngineFileReactor {
 
 		User user = this.insight.getUser();
         String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-        validateUserAndEngineAccess(user);
-        
+        // check if user is logged in
+ 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+ 			throwAnonymousUserError();
+ 		}
+     		
         if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
             throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to this engine");
         }
@@ -47,9 +50,9 @@ public class BrowseEngineReactor extends AbstractEngineFileReactor {
 			}
 		}
 		
-		String pathSubstring = getEngineBasePath(engineId);
+		String pathSubstring = getLocalEngineBaseDirectory(engineId);
 		int pathSubstringIndex = pathSubstring.length();
-		String filePath = getEngineBaseFolder(engineId);
+		String filePath = getSpecificEngineBaseFolder(engineId);
 		if(relativeFilePath != null && !relativeFilePath.isEmpty()) {
 			filePath += relativeFilePath;
 		}
@@ -85,7 +88,7 @@ public class BrowseEngineReactor extends AbstractEngineFileReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "List the files and directories from a relative filePath input from within the engine  folder";
+		return "List the files and directories from a relative filePath input from within the engine folder";
 	}
 
 	@Override

@@ -1,4 +1,4 @@
-package prerna.reactor.codeexec;
+package prerna.reactor.engine;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -7,12 +7,24 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
-import prerna.engine.api.IEngine;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import org.apache.commons.text.StringEscapeUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -20,18 +32,16 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.auth.utils.SecurityEngineUtils;
-
-import org.apache.commons.text.StringEscapeUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import prerna.util.EngineUtility;
 
 public abstract class AbstractEngineFileReactor extends AbstractReactor{
 	
 	protected static final Logger classLogger = LogManager.getLogger(AbstractEngineFileReactor.class);
 
-	
+	/**
+	 * 
+	 * @param user
+	 */
     protected void validateUserAndEngineAccess(User user) {
         if (user == null) {
             NounMetadata noun = new NounMetadata(
@@ -58,17 +68,31 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
 
     }
 
-    protected String getEngineBasePath(String engineId) {
+    /**
+     * 
+     * @param engineId
+     * @return
+     */
+    protected String getLocalEngineBaseDirectory(String engineId) {
         IEngine.CATALOG_TYPE catalogType = SecurityEngineUtils.getEngineType(engineId);
         return EngineUtility.getLocalEngineBaseDirectory(catalogType);
     }
     
-    protected String getEngineBaseFolder(String engineId) {
+    /**
+     * 
+     * @param engineId
+     * @return
+     */
+    protected String getSpecificEngineBaseFolder(String engineId) {
         IEngine.CATALOG_TYPE catalogType = SecurityEngineUtils.getEngineType(engineId);
         String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
         return EngineUtility.getSpecificEngineBaseFolder(catalogType,  engineId,  engineName);
     }
     
+    /**
+     * 
+     * @return
+     */
     protected Map<String, Object> getPayload() {
         GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PAYLOAD.getKey());
 
@@ -77,8 +101,8 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
 
             if (allValues instanceof Map) {
                 return (Map<String, Object>) allValues;
-            } else if (allValues instanceof Vector) {
-                Vector<?> vector = (Vector<?>) allValues;
+            } else if (allValues instanceof List) {
+            	List<?> vector = (List<?>) allValues;
                 
                 if (!vector.isEmpty() && vector.get(0) instanceof Map) {
                     // Directly return the first element if it's a Map
@@ -93,6 +117,13 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
         throw new NullPointerException("Payload must be defined for the Function Engine");
     }
     
+    /**
+     * 
+     * @param baseDir
+     * @param payload
+     * @param currentPath
+     * @throws IOException
+     */
     public void writeFilesRecursively(Path baseDir, Map<String, Object> payload, Set<String> currentPath) throws IOException {
         for (Map.Entry<String, Object> folderEntry : payload.entrySet()) {
             Object folderDataObj = folderEntry.getValue();
@@ -104,6 +135,13 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
         }
     }
 
+    /**
+     * 
+     * @param currentDir
+     * @param folderData
+     * @param touchedPaths
+     * @throws IOException
+     */
     private void processFolder(Path currentDir, Map<String, Object> folderData, Set<String> touchedPaths) throws IOException {
         Object filesObj = folderData.get("files");
         if (filesObj instanceof List<?>) {
@@ -133,6 +171,12 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
         }
     }
 
+    /**
+     * 
+     * @param baseDir
+     * @param validPaths
+     * @throws IOException
+     */
     protected void deleteRemovedFiles(File baseDir, Set<String> validPaths) throws IOException {
         List<File> allFiles = getAllFilesAndFolders(baseDir);
         allFiles.sort((a, b) -> b.getAbsolutePath().length() - a.getAbsolutePath().length());
@@ -158,6 +202,11 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
         }
     }
 
+    /**
+     * 
+     * @param file
+     * @throws IOException
+     */
     private void deleteRecursively(File file) throws IOException {
         if (file.isDirectory()) {
             for (File child : Objects.requireNonNull(file.listFiles())) {
@@ -167,12 +216,23 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
         Files.deleteIfExists(file.toPath());
     }
 
+    /**
+     * 
+     * @param baseDir
+     * @return
+     * @throws IOException
+     */
     private List<File> getAllFilesAndFolders(File baseDir) throws IOException {
         List<File> allFiles = new ArrayList<>();
         Files.walk(baseDir.toPath()).forEach(path -> allFiles.add(path.toFile()));
         return allFiles;
     }
 
+    /**
+     * 
+     * @param path
+     * @return
+     */
     public static Map<String, Object> traverseDirectory(String path) {
         Map<String, Object> result = new HashMap<>();
         File root = new File(path);
@@ -184,7 +244,11 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
         return result;
     }
 
-
+    /**
+     * 
+     * @param dir
+     * @return
+     */
     private static Map<String, Object> traverse(File dir) {
         Map<String, Object> folderData = new HashMap<>();
         List<Map<String, String>> filesList = new ArrayList<>();
@@ -206,6 +270,11 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
         return folderData;
     }
 
+    /**
+     * 
+     * @param file
+     * @return
+     */
     protected static String readFileContent(File file) {
         try {
             return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
