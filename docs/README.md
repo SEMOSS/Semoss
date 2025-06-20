@@ -80,6 +80,10 @@ Welcome to the SEMOSS Backend Documentation. This collection of documents aims t
     *   `ClusterUtil.java` and `ClusterSynchronizer.java`
     *   Role of ZooKeeper: Change Notification, State Coordination
     *   Synchronization Workflow and Configuration
+4.  **[Docker Deployment Guide](./cloud_and_cluster/docker_deployment.md)**
+    *   Introduction to Dockerized SEMOSS
+    *   Details on Core Dockerfiles (`Dockerfile.ubuntu22.04`, `Dockerfile.nvidia.cuda`, `Dockerfile.tomcat`, `Dockerfile.python`, `Dockerfile.dind`)
+    *   Build Process, Environment Variables, Volume Mounts, Example Usage
 
 ### VI. Python GenAI Client (`py/genai_client/`)
 
