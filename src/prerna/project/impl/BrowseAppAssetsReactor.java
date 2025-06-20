@@ -21,9 +21,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-public class BrowseProjectAssetsReactor extends AbstractReactor {
+public class BrowseAppAssetsReactor extends AbstractReactor {
 
-	public BrowseProjectAssetsReactor() {
+	public BrowseAppAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), 
 				ReactorKeysEnum.FILE_PATH.getKey() };
 		this.keyRequired = new int[] {1,0};
