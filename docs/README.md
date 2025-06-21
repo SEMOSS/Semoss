@@ -121,4 +121,10 @@ This collection of Python modules provides the tools and underlying server infra
 
 *   **[Development Guides](./development_guides/README.md)**
     *   Overview of configurations, onboarding, etc.
+
+### IX. How-To Guides (Usage Examples)
+
+This section provides practical guides and code-centric examples for developing with and using SEMOSS. Topics include writing custom Reactors, interacting with databases, working with DataFrames, advanced Pixel scripting, and more.
+
+- [**SEMOSS How-To Guides**](./how-to-guides/README.md)
 ```
