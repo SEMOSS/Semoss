@@ -72,7 +72,7 @@ This section describes how SEMOSS interacts with other related systems or compon
 
 - [**SEMOSS Monolith Interaction**](./integrations/monolith_interaction.md): Explains the relationship and data flow between the core SEMOSS platform and the `semoss/monolith` web application, including details on the `runPixel` API endpoint.
 
-### VI. Cloud and Clustered Deployments
+### VI. Deployment and CI/CD
 
 1.  **[Overview of SEMOSS in Cloud/Cluster Environments](./cloud_and_cluster/README.md)**
     *   Rationale: Scalability, High Availability, Shared Access
@@ -90,7 +90,9 @@ This section describes how SEMOSS interacts with other related systems or compon
     *   Introduction to Dockerized SEMOSS
     *   Details on Core Dockerfiles
     *   Build Process, Environment Variables, Volume Mounts, Example Usage
-5.  **[GitHub Actions Workflows for CI/CD](./cloud_and_cluster/github_actions_workflows.md)**
+5.  **[Docker Configuration Details](./deployment/docker_configuration.md)**
+    *   Configuring SEMOSS via Docker, `semoss-artifacts`, Environment Variables.
+6.  **[GitHub Actions Workflows for CI/CD](./cloud_and_cluster/github_actions_workflows.md)**
     *   CI, Python/Tomcat Builders, Application Image Builders.
 
 ### VII. Python Packages
