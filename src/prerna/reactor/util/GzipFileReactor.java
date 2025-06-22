@@ -43,7 +43,7 @@ public class GzipFileReactor extends AbstractReactor {
 		String outputFileName = this.keyValue.get(this.keysToGet[1]);
 		// if security enables, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
-		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
+		String baseFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String fileToGzip = (baseFolder + "/" + fileRelativePath).replace('\\', '/');
 		File fileToGzipF = new File(fileToGzip);
 		if(fileToGzipF.exists() && !fileToGzipF.isFile()) {

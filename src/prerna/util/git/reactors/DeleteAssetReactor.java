@@ -47,7 +47,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 
         // get asset base folder
         String space = this.keyValue.get(this.keysToGet[1]);
-        String baseFolderPath = AssetUtility.getAssetVersionBasePath(this.insight, space, true);
+        String baseFolderPath = AssetUtility.getRootFolderPath(this.insight, space, true);
         // relative path is used for git if insight is saved
         // or if we are dealing with project space
         String relativePath = "";
@@ -64,7 +64,7 @@ public class DeleteAssetReactor extends AbstractReactor {
         if(comment == null) {
         	comment = "remove: DeleteAsset executed";
         }
-        // Prepare to collect Gitâ€�relative paths and actual File objects
+        // Prepare to collect Git relative paths and actual File objects
         List<String> gitRelativeFilePaths = new ArrayList<>();
         List<File> deletedFiles = new ArrayList<>();
 
@@ -103,6 +103,10 @@ public class DeleteAssetReactor extends AbstractReactor {
             gitRelativeFilePaths.add(relativePath + "/" + inputFilePath);
             deletedFiles.add(realFile);
         }
+        
+        if(deletedFiles.isEmpty()) {
+        	throw new IllegalArgumentException("Could not find any of the files passed in to delete");
+        }
 
         // commit deletions to Git (for each path, only if it has gitVersionFolder)
         String gitVersionFolder = null;
@@ -123,17 +127,17 @@ public class DeleteAssetReactor extends AbstractReactor {
 
         if(gitVersionFolder != null) {
             // remove/commit gitRelativeFilePaths whose realFilePath started with gitVersionFolder.
-            List<String> toCommit = new ArrayList<>();
+            List<String> toDelete = new ArrayList<>();
             for (File f : deletedFiles) {
                 String deletedRealPath = f.getAbsolutePath().replace("\\", "/");
                 if(deletedRealPath.startsWith(gitVersionFolder)) {
                     // build the exact Git-relative path for that single deleted file:
                     String relativeGit = relativePath + "/" + Utility.normalizePath(f.getAbsolutePath().substring(baseFolderPath.length() + 1));
-                    toCommit.add(relativeGit);
+                    toDelete.add(relativeGit);
                 }
             }
-            if(!toCommit.isEmpty()) {
-                GitDestroyer.removeSpecificFiles(gitVersionFolder, true, toCommit);
+            if(!toDelete.isEmpty()) {
+                GitDestroyer.removeSpecificFiles(gitVersionFolder, true, toDelete);
                 GitRepoUtils.commitAddedFiles(gitVersionFolder, comment, author, email);
             }
         }
@@ -185,7 +189,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
-			return "Names of the file(s) to save";
+			return "Names of the file(s) to delete";
 		} else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
 			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
 		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
