@@ -1,6 +1,7 @@
 package prerna.engine.impl.model;
 
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +13,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -25,9 +27,9 @@ import prerna.util.Utility;
 public class LLM2Reactor extends AbstractReactor {
 	
 	public LLM2Reactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM.getKey(), ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM.getKey(), ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.IMAGE.getKey(),
 				 ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 0, 1, 0, 0 };
+		this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -54,12 +56,14 @@ public class LLM2Reactor extends AbstractReactor {
 			context = Utility.decodeURIComponent(context);
 		}
 		
-		Map<String, Object> paramMap = getMap();
+		Map<String, Object> paramMap = getParamMap();
 		IModelEngine modelEngine = Utility.getModel(engineId);
 		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
 		
+        List<String> inputImages = getImages();
+
 		Room room = null;
 		
 		//TODO i should check the user has first if its there then the db if it exits
@@ -106,24 +110,41 @@ public class LLM2Reactor extends AbstractReactor {
         
         ///// MESSAGE CREATION //////////
 
-        
+        MessageUtils.copyImagesToRoomFolder(inputImages,room, insight);
         InputMessage msg;
-        msg = InputMessage.builder().withInputUIPrompt(question).withInputPrompt(question)
+        msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
         .withModelType(modelEngine.getModelType())
         .withParamMap(paramMap)
         .build();
         
         
         
-        AskModelEngineResponse response = room.ask(msg, insight, modelEngine);
+        AskModelEngineResponse response = room.ask(msg, context, insight, modelEngine);
 		return new NounMetadata(response.toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
+	
+	
+	
+    // ----------- image/file helpers, paramMap etc. -------------
+    public List<String> getImages() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
+    
 	/**
 	 * 
 	 * @return
 	 */
-	private Map<String, Object> getMap() {
+	private Map<String, Object> getParamMap() {
         GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
@@ -151,6 +172,8 @@ public class LLM2Reactor extends AbstractReactor {
 			return "The system prompt to use for the LLM call";
 		} else if(key.equals(ReactorKeysEnum.ROOM.getKey())) {
 			return "This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room";
+		} else if(key.equals(ReactorKeysEnum.IMAGE.getKey())) {
+			return "This is  an array of image file names that have already been uploaded to the insight folder.";
 		} else if(key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return "Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc. "
 					+ "In addition, you can pass in 'full_prompt' to represent a full prompt and history via ChatML format which will ignore inputs for " + 

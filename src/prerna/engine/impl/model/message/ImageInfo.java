@@ -17,16 +17,17 @@ public class ImageInfo {
 	private transient String base64Data; // transient to not store into the db.
 	private String format;
 	private String mimeType;
-	private transient String insightFolder;
+	private transient String roomFolder;
 
-	public static ImageInfo fromFile(String filePath, String userId, String roomId, String messageId, String insightFolder) {
+	public static ImageInfo fromFile(String filePath, String userId, String roomId, String messageId, String roomFolder) {
 		// create the image info object from file
 		ImageInfo info = new ImageInfo();
-		info.insightFolder = insightFolder;
-		String fullFilePath = insightFolder + "/" + filePath;
+		
+		info.roomFolder = roomFolder; // ex. /opt/semosshome/room-123123123/
+		String fullFilePath = roomFolder + "/" + filePath;
 		info.fileName = extractFileName(fullFilePath);
 
-		info.folderPath = extractFolderPath(filePath);
+		info.folderPath = extractFolderPath(filePath); // ? what does this do?
 
 		info.format = extractFormat(info.fileName);
 		info.mimeType = guessMimeType(fullFilePath, info.format);
@@ -38,8 +39,8 @@ public class ImageInfo {
 		return info;
 	}
 
-	public void setInsightFolder(String insightFolder) {
-		this.insightFolder = insightFolder;
+	public void setRoomFolder(String roomFolder) {
+		this.roomFolder = roomFolder;
 
 	}
 
@@ -105,7 +106,7 @@ public class ImageInfo {
 
 	public String getBase64Data() {
 
-		String fullImageFilePath = insightFolder + "/" + folderPath + "/" + fileName;
+		String fullImageFilePath = roomFolder + "/" + folderPath + "/" + fileName;
 
 		if (base64Data == null && fullImageFilePath != null) {
 

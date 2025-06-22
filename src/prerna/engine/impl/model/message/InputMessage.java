@@ -6,47 +6,39 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
-
-import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
+import prerna.cluster.util.ClusterUtil;
 
 /**
  * Unified message class that can handle all types of messages (text, image, tool calls, etc.)
- * This class aims to replace the current AbstractMessage hierarchy while maintaining backward compatibility.
+ * 
+ * Builder requires Room; you cannot use it without.
  */
 public class InputMessage extends AbstractMessage {
 
-    // Input prompt that is shown on the UI - think RAG query w/o chunks
     @SerializedName("inputUIPrompt")
     private String inputUIPrompt;
-    
-    // inputPrompt to be sent to the Model
+
     private String inputPrompt;
-    
+
     @SerializedName("type")
     private MessageType type = MessageType.INPUT_TEXT;
-    
-//    // Tool-related fields
-//    @SerializedName("tool_calls")
-//    private List<Map<String, Object>> toolCalls = new ArrayList<>();
-//    	
-	@SerializedName("tool_call_id")
+
+    @SerializedName("tool_call_id")
     private String toolCallId;   // For tool result messages only
 
     @SerializedName("tool_name")
     private String toolName;     // For tool result messages only
 
-    
-    
-    // Additional metadata
     @SerializedName("ornaments")
     private Map<String, Object> ornaments = new HashMap<>();
 
-	private Map<String, Object> paramMap =  new HashMap<>();
-
+    private Map<String, Object> paramMap = new HashMap<>();
     private List<ImageInfo> imageInfos = new ArrayList<>();
+    // Make room package-private for builder, private for rest
+    Room room;
 
     // Private constructor - use Builder
     private InputMessage() {
@@ -57,12 +49,11 @@ public class InputMessage extends AbstractMessage {
     public MessageType getMessageType() {
         return type;
     }
-    
+
     public void setMessageType(MessageType type) {
         this.type = type;
-//        this.formattedMessage = null;
     }
-    
+
     /** Get the effective prompt to send to the LLM (RAG: includes user + chunks). */
     public String getInputPrompt() {
         return (inputPrompt == null || inputPrompt.trim().isEmpty())
@@ -82,7 +73,6 @@ public class InputMessage extends AbstractMessage {
         this.inputUIPrompt = inputMessage;
     }
 
-
     // ----------- Images -----------
     public List<ImageInfo> getImages() {
         return new ArrayList<>(imageInfos);
@@ -92,43 +82,39 @@ public class InputMessage extends AbstractMessage {
         return imageInfos != null && !imageInfos.isEmpty();
     }
 
-    public void addImage(String imagePath, String userId, String roomId, Insight insight) {
+    public void addImage(String imagePath, String userId, Room room, Insight insight) {
         if (imageInfos == null) {
-        	imageInfos = new ArrayList<>();
+            imageInfos = new ArrayList<>();
         }
-        ImageInfo imageData = ImageInfo.fromFile(imagePath, userId, roomId, messageId, insight.getInsightFolder());
-        imageInfos.add(imageData);        
-        
-        
-		ClusterUtil.pushRoom(roomId);
+        ImageInfo imageData = ImageInfo.fromFile(imagePath, userId, room.getId(), messageId, insight.getInsightFolder());
+        imageInfos.add(imageData);
 
-        // Clear cached formatted message when images change
-//        this.formattedMessage = null;
+        ClusterUtil.pushRoom(room.getId());
+        // this.formattedMessage = null;
     }
 
-    public void addImages(List<String> imagePaths, String userId, String roomId, Insight insight) {
+    public void addImages(List<String> imagePaths, String userId, Room room, Insight insight) {
         if (imagePaths != null) {
             for (String path : imagePaths) {
-                addImage(path, userId, roomId, insight);
+                addImage(path, userId, room, insight);
             }
         }
     }
-    
-	public void addImages(List<ImageInfo> imageInfos) {
-		if (this.imageInfos == null) {
-        	this.imageInfos = new ArrayList<>();
-        }	
-		for(ImageInfo image : imageInfos) {
-		    this.imageInfos.add(image);        
-		}
 
-	}
-	
+    public void addImages(List<ImageInfo> imageInfos) {
+        if (this.imageInfos == null) {
+            this.imageInfos = new ArrayList<>();
+        }
+        if (imageInfos != null) {
+            this.imageInfos.addAll(imageInfos);
+        }
+    }
+
     public List<ImageInfo> getImageInfos() {
         // Ensure insight folder is set
-        if (insight != null) {
+        if (room != null) {
             for (ImageInfo info : imageInfos) {
-                info.setInsightFolder(insight.getInsightFolder());
+                info.setRoomFolder(room.getRoomFolderPath());
             }
         }
         return imageInfos;
@@ -174,10 +160,8 @@ public class InputMessage extends AbstractMessage {
         return mimeTypes;
     }
 
-
     // ----------- Tools -----------
     public List<Map<String, Object>> getTools() {
-    	//get tool calls from param map. if null return empty array list
         Object value = paramMap.get("tools");
         if (value instanceof List) {
             return new ArrayList<>((List<Map<String, Object>>) value);
@@ -191,8 +175,6 @@ public class InputMessage extends AbstractMessage {
         return value instanceof List && !((List<?>) value).isEmpty();
     }
 
-
-    //add a single tool
     public void addTool(Map<String, Object> toolCallMap) {
         List<Map<String, Object>> toolCalls = (List<Map<String, Object>>) paramMap.get("tools");
         if (toolCalls == null) {
@@ -200,35 +182,32 @@ public class InputMessage extends AbstractMessage {
             paramMap.put("tools", toolCalls);
         }
         toolCalls.add(toolCallMap);
-//        this.formattedMessage = null;
+        // this.formattedMessage = null;
     }
-    
+
     public void setTools(List<Map<String, Object>> toolCalls) {
         paramMap.put("tools", toolCalls);
     }
-    
+
     public String getToolCallId() {
-		return toolCallId;
-	}
+        return toolCallId;
+    }
+    public void setToolCallId(String toolCallId) {
+        this.toolCallId = toolCallId;
+    }
 
-	public void setToolCallId(String toolCallId) {
-		this.toolCallId = toolCallId;
-	}
-
-	public String getToolName() {
-		return toolName;
-	}
-
-	public void setToolName(String toolName) {
-		this.toolName = toolName;
-	}
-
+    public String getToolName() {
+        return toolName;
+    }
+    public void setToolName(String toolName) {
+        this.toolName = toolName;
+    }
 
     // ----------- Ornaments -----------
     public Map<String, Object> getOrnaments() {
         return new HashMap<>(ornaments);
     }
-    
+
     public void setOrnament(String key, Object value) {
         if (ornaments == null) ornaments = new HashMap<>();
         ornaments.put(key, value);
@@ -236,55 +215,54 @@ public class InputMessage extends AbstractMessage {
     public Object getOrnament(String key) {
         return ornaments != null ? ornaments.get(key) : null;
     }
-    
 
     public Map<String, Object> getParamMap() {
-		return paramMap;
-	}
+        return paramMap;
+    }
+    public void setParamMap(Map<String, Object> paramMap) {
+        this.paramMap = paramMap;
+    }
 
-	public void setParamMap(Map<String, Object> paramMap) {
-		this.paramMap = paramMap;
-	}
-
-	
     // Content type checks
     public boolean hasText() {
         return inputUIPrompt != null && !inputUIPrompt.isEmpty();
     }
-    
-    // Builder pattern
-    public static Builder builder() {
-        return new Builder();
+
+    // ----------- Builder pattern (APPROACH 2) -----------
+    public static Builder builder(Room room) {
+        return new Builder(room);
     }
 
-    // Convenience factory methods for common cases
-    public static InputMessage text(String content) {
-        return builder().withInputUIPrompt(content).withType(MessageType.INPUT_TEXT).build();
+    /**
+     * Convenience factory: must provide a Room.
+     */
+    public static InputMessage text(Room room, String content) {
+        return builder(room).withInputUIPrompt(content).withType(MessageType.INPUT_TEXT).build();
     }
-
-    public static InputMessage response(String content) {
-        return builder().withInputUIPrompt(content).withType(MessageType.RESPONSE_TEXT).build();
+    public static InputMessage response(Room room, String content) {
+        return builder(room).withInputUIPrompt(content).withType(MessageType.RESPONSE_TEXT).build();
     }
-
-    public static InputMessage system(String content) {
-        return builder().withInputUIPrompt(content).withType(MessageType.SYSTEM).build();
+    public static InputMessage system(Room room, String content) {
+        return builder(room).withInputUIPrompt(content).withType(MessageType.SYSTEM).build();
     }
-    
-    public static InputMessage toolExecution(String toolCallId, String toolName, String content) {
-         InputMessage toolExecution = builder()
+    public static InputMessage toolExecution(Room room, String toolCallId, String toolName, String content) {
+        InputMessage toolExecution = builder(room)
             .withToolExecution(toolCallId, toolName, content)
             .withType(MessageType.INPUT_TOOL_EXEC)
             .build();
-         toolExecution.setVisibile(false);
-         return  toolExecution;
+        toolExecution.setVisibile(false);
+        return toolExecution;
     }
 
+    public static class Builder {
+        private final InputMessage message;
 
+        public Builder(Room room) {
+            if (room == null) throw new IllegalArgumentException("Room cannot be null");
+            this.message = new InputMessage();
+            this.message.room = room;
+        }
 
-	public static class Builder {
-        private InputMessage message = new InputMessage();
-
-        
         public Builder withInputUIPrompt(String inputMessage) {
             message.setInputUIPrompt(inputMessage);
             return this;
@@ -294,7 +272,6 @@ public class InputMessage extends AbstractMessage {
             message.setInputPrompt(inputPrompt);
             return this;
         }
-        
 
         public Builder withType(MessageType type) {
             message.type = type;
@@ -318,32 +295,26 @@ public class InputMessage extends AbstractMessage {
             return this;
         }
 
-        public Builder withInsight(Insight insight) {
-            message.insight = insight;
+        public Builder withImage(String imagePath, String userId, Room room, Insight insight) {
+            message.addImage(imagePath, userId, room, insight);
             return this;
         }
 
-        public Builder withImage(String imagePath, String userId, String roomId, Insight insight) {
-            message.addImage(imagePath, userId, roomId, insight);
+        public Builder withImages(List<String> imagePaths, String userId, Room room, Insight insight) {
+            message.addImages(imagePaths, userId, room, insight);
             return this;
         }
 
-        public Builder withImages(List<String> imagePaths, String userId, String roomId, Insight insight) {
-            message.addImages(imagePaths, userId, roomId, insight);
+        public Builder withImages(List<ImageInfo> imageInfos) {
+            message.addImages(imageInfos);
             return this;
         }
-        
-		public Builder withImages(List<ImageInfo> imageInfos) {
-			message.addImages(imageInfos);
-			return this;
-		}
 
-		
         public Builder withTool(Map<String, Object> toolCallMap) {
             message.addTool(toolCallMap);
             return this;
         }
-        
+
         public Builder withTools(List<Map<String, Object>> toolCalls) {
             if (toolCalls != null) {
                 for (Map<String, Object> tc : toolCalls) {
@@ -352,15 +323,14 @@ public class InputMessage extends AbstractMessage {
             }
             return this;
         }
-        
+
         public Builder withToolExecution(String toolCallId, String name, String content) {
             message.toolCallId = toolCallId;
             message.toolName = name;
             message.setInputUIPrompt(content);
-            message.setMessageType(MessageType.INPUT_TOOL_EXEC); // Ensure you have TOOL_INPUT or similar in your enum.
+            message.setMessageType(MessageType.INPUT_TOOL_EXEC);
             return this;
         }
-
 
         public Builder withMetadata(String key, Object value) {
             message.setOrnament(key, value);
@@ -374,18 +344,24 @@ public class InputMessage extends AbstractMessage {
             return this;
         }
 
+        public Builder withRAGChunks(List<Map<String, Object>> chunks) {
+            message.setOrnament("chunks", chunks);
+            return this;
+        }
+
         public InputMessage build() {
+            if (message.room == null) {
+                throw new IllegalStateException("Room must be set before building InputMessage");
+            }
+
             // Set default type if not specified
             if (message.type == null) {
                 message.type = determineMessageType();
             }
-            
-            // If we have images but type isn't set to USER_IMAGE, update it
+
             if (message.hasImages() && message.type == MessageType.INPUT_TEXT) {
                 message.type = MessageType.INPUT_MEDIA;
             }
-            
-            
             return message;
         }
 
@@ -395,24 +371,5 @@ public class InputMessage extends AbstractMessage {
             }
             return MessageType.INPUT_TEXT;
         }
-
-		public Builder withRAGChunks(List<Map<String, Object>> chunks) {
-			message.setOrnament("chunks", chunks);
-			return this;
-		}
-
-
     }
-
-
-
-
-
-
-
-   
-
-
-
-
 }

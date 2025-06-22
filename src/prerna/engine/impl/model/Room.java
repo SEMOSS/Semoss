@@ -37,7 +37,7 @@ public class Room {
 	private String messagesJson;
 	private Insight insight;
 	private String systemMessage;
-	private String roomFilePath;
+	private String roomFolderPath;
 
 	public Room() {
 	}
@@ -57,24 +57,22 @@ public class Room {
 		this.modelId = modelId;
 		this.messagesJson = messagesJson;
 		
-	    this.roomFilePath = Utility.getBaseFolder() + File.separator + this.room_id;
-	    File folder = new File(this.roomFilePath);
-	    folder.mkdirs();
-	    
-	    
+	    this.roomFolderPath = Utility.getBaseFolder() + File.separator + this.room_id;
+	    File folder = new File(this.roomFolderPath);
+	    folder.mkdirs();	 
 		parseMessages();
 	}
 
 	public void parseMessages() {
-		// Ensuring the insight is not null so we pull that room folder to the insight
-		// first
-		if (insight != null) {
-			setMessagesFromString(this.messagesJson, insight);
-		}
+		setMessagesFromString(this.messagesJson);
 	}
 
 	
-	public AskModelEngineResponse ask(InputMessage msg, Insight insight, IModelEngine modelEngine) {
+	public AskModelEngineResponse ask(InputMessage msg, String systemMessage, Insight insight, IModelEngine modelEngine) {
+		
+		if(systemMessage != null) {
+			this.systemMessage=systemMessage;
+		}
 		// Set model type and add message to history
 		msg.setModel(modelEngine);
 		// Set parentMessageId for this message
@@ -163,7 +161,7 @@ public class Room {
 		}
 
 		// 3. Add tool execution message
-		AbstractMessage toolExecution = InputMessage.toolExecution(toolCallId, tool_name, tool_execution_response);
+		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, tool_name, tool_execution_response);
 		toolExecution.setParentMessageId(toolResponse.getMessageId());
 		toolExecution.setModel(modelEngine);
 		messages.add(toolExecution);
@@ -309,8 +307,8 @@ public class Room {
 		this.modelId = modelId;
 	}
 
-	public String getRoomFilePath() {
-		return roomFilePath;
+	public String getRoomFolderPath() {
+		return roomFolderPath;
 	}
 	
 	
@@ -332,14 +330,14 @@ public class Room {
 	}
 
 	// Deserialize from a JSON string (DB column) and populate the list
-	public void setMessagesFromString(String messagesJson, Insight insight) {
+	public void setMessagesFromString(String messagesJson) {
 		// Pull room folder -  Room folder is at BASE_FOLDER/roomid
 		ClusterUtil.pullRoom(this.room_id);
 		if (messagesJson == null || messagesJson.trim().isEmpty()) {
 			this.setMessages(new ArrayList<>());
 			return;
 		}
-		List<AbstractMessage> loaded = MessageUtils.fromJsonArray(messagesJson, insight);
+		List<AbstractMessage> loaded = MessageUtils.fromJsonArray(messagesJson, this);
 		this.setMessages(loaded != null ? loaded : new ArrayList<>());
 	}
 
