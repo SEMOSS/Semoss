@@ -14,7 +14,7 @@ import prerna.cluster.util.ClusterUtil;
 public class ImageInfo {
 	private String folderPath;
 	private String fileName;
-	private transient String base64Data; // transient to not store into the db.
+	private String base64Data; // transient to not store into the db.
 	private String format;
 	private String mimeType;
 	private transient String roomFolder;

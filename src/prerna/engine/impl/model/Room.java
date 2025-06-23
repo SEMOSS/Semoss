@@ -57,7 +57,7 @@ public class Room {
 		this.modelId = modelId;
 		this.messagesJson = messagesJson;
 		
-	    this.roomFolderPath = Utility.getBaseFolder() + File.separator + this.room_id;
+	    this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
 	    File folder = new File(this.roomFolderPath);
 	    folder.mkdirs();	 
 		parseMessages();
@@ -93,7 +93,7 @@ public class Room {
 		
 		Map<String, Object> fakeMap =  new HashMap<>();
 
-		fakeMap.put("message_json", getMessagesAsString());
+		fakeMap.put("message_json", getMessagesWithImageDataAsString());
 		
 		AskModelEngineResponse llmResponse = modelEngine.ask("", this.getSystemMessage(), insight,fakeMap);
 
@@ -328,7 +328,12 @@ public class Room {
 	public String getMessagesAsString() {
 		return MessageUtils.toJsonArray(messages);
 	}
-
+	
+	// Serializes the message history to a JSON array for python exection 
+	public String getMessagesWithImageDataAsString() {
+		return MessageUtils.toJsonArrayWithImageData(messages);
+	}
+	
 	// Deserialize from a JSON string (DB column) and populate the list
 	public void setMessagesFromString(String messagesJson) {
 		// Pull room folder -  Room folder is at BASE_FOLDER/roomid
