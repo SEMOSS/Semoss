@@ -82,21 +82,21 @@ public class InputMessage extends AbstractMessage {
         return imageInfos != null && !imageInfos.isEmpty();
     }
 
-    public void addImage(String imagePath, String userId, Room room, Insight insight) {
+    public void addImage(String imagePath, Room room) {
         if (imageInfos == null) {
             imageInfos = new ArrayList<>();
         }
-        ImageInfo imageData = ImageInfo.fromFile(imagePath, userId, room.getId(), messageId, room.getRoomFolderPath());
+        ImageInfo imageData = ImageInfo.fromFile(imagePath, room.getId(), messageId, room.getRoomFolderPath());
         imageInfos.add(imageData);
 
         ClusterUtil.pushRoom(room.getId());
         // this.formattedMessage = null;
     }
 
-    public void addImages(List<String> imagePaths, String userId, Room room, Insight insight) {
+    public void addImages(List<String> imagePaths, Room room) {
         if (imagePaths != null) {
             for (String path : imagePaths) {
-                addImage(path, userId, room, insight);
+                addImage(path, room);
             }
         }
     }
@@ -144,7 +144,7 @@ public class InputMessage extends AbstractMessage {
         List<String> formats = new ArrayList<>();
         if (imageInfos != null) {
             for (ImageInfo imageData : imageInfos) {
-                formats.add(imageData.getFormat());
+                formats.add(imageData.getFileFormat());
             }
         }
         return formats;
@@ -295,13 +295,13 @@ public class InputMessage extends AbstractMessage {
             return this;
         }
 
-        public Builder withImage(String imagePath, String userId, Room room, Insight insight) {
-            message.addImage(imagePath, userId, room, insight);
+        public Builder withImage(String imagePath, Room room) {
+            message.addImage(imagePath, room);
             return this;
         }
 
-        public Builder withImages(List<String> imagePaths, String userId, Room room, Insight insight) {
-            message.addImages(imagePaths, userId, room, insight);
+        public Builder withImages(List<String> imagePaths, Room room) {
+            message.addImages(imagePaths, room);
             return this;
         }
 

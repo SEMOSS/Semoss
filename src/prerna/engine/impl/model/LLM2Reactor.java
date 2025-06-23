@@ -115,7 +115,7 @@ public class LLM2Reactor extends AbstractReactor {
         msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
         .withModelType(modelEngine.getModelType())
         .withParamMap(paramMap)
-        .withImages(inputImages, userId, room, insight)
+        .withImages(inputImages, room)
         .build();
         
         

@@ -3,147 +3,187 @@ package prerna.engine.impl.model.message;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.tika.Tika;
+import org.apache.tika.mime.MediaType;
 
 import prerna.cluster.util.ClusterUtil;
 
-
 public class ImageInfo {
-	private String folderPath;
-	private String fileName;
-	private String base64Data; // transient to not store into the db.
-	private String format;
-	private String mimeType;
-	private transient String roomFolder;
 
-	public static ImageInfo fromFile(String filePath, String userId, String roomId, String messageId, String roomFolder) {
-		// create the image info object from file
-		ImageInfo info = new ImageInfo();
-		
-		info.roomFolder = roomFolder; // ex. /opt/semosshome/room-123123123/
-		String fullFilePath = roomFolder + "/" + filePath;
-		info.fileName = extractFileName(fullFilePath);
+    public enum ImageSourceType {
+        FILE, URL
+    }
 
-		info.folderPath = extractFolderPath(filePath); // ? what does this do?
+    private String folderPath;
+    private String fileName;
+    private String base64Data;
+    private String fileFormat;
+    private String mimeType;
+    private String imageUrl;
+    private ImageSourceType imageType;
+    private transient String roomFolder;   // Not persisted
 
-		info.format = extractFormat(info.fileName);
-		info.mimeType = guessMimeType(fullFilePath, info.format);
+    /** Factory method for file-based image */
+    public static ImageInfo fromFile(String filePath, String roomId, String messageId, String roomFolder) {
+        ImageInfo info = new ImageInfo();
+        info.roomFolder = roomFolder; // /opt/semoshome/room-123123123/
+        String fullFilePath = roomFolder + "/" + filePath;
+        info.fileName = extractFileName(fullFilePath);
+        info.folderPath = extractFolderPath(filePath);
+        info.fileFormat = extractFormat(info.fileName);
+        info.mimeType = guessMimeType(fullFilePath, info.fileFormat);
+        info.base64Data = encodeFileToBase64(fullFilePath);
+        info.imageType = ImageSourceType.FILE;
+        // Optionally, set imageUrl if you want to expose uploaded images as URLs
+        ClusterUtil.pushRoom(roomId);
+        return info;
+    }
 
-		info.base64Data = encodeFileToBase64(fullFilePath);
+    /** Factory method for image URL (no file data is loaded) */
+    public static ImageInfo fromUrl(String url) {
+        ImageInfo info = new ImageInfo();
+        info.imageUrl = url;
+        info.imageType = ImageSourceType.URL;
+        return info;
+    }
 
-		//finally push image to the cloud
-		ClusterUtil.pushRoom(roomId);
-		return info;
-	}
+    // Setters and getters
 
-	public void setRoomFolder(String roomFolder) {
-		this.roomFolder = roomFolder;
+    public void setRoomFolder(String roomFolder) {
+        this.roomFolder = roomFolder;
+    }
 
-	}
+    public ImageSourceType getImageType() {
+        return imageType;
+    }
 
-	public static String extractFolderPath(String path) {
-		if (path == null)
-			return "";
-		File file = new File(path);
-		String parent = file.getParent();
-		return parent != null ? parent.replace("\\", "/") : "";
-	}
+    public void setImageType(ImageSourceType imageType) {
+        this.imageType = imageType;
+    }
 
-	public static String extractFileName(String path) {
-		if (path == null)
-			return "";
-		int idx = path.lastIndexOf('/');
-		if (idx == -1)
-			idx = path.lastIndexOf('\\');
-		if (idx != -1 && idx + 1 < path.length())
-			return path.substring(idx + 1);
-		return path;
-	}
+    public String getFolderPath() {
+        return folderPath;
+    }
 
-	public static String extractFormat(String fileName) {
-		int idx = fileName.lastIndexOf('.');
-		String extension = (idx != -1 && idx + 1 < fileName.length()) ? fileName.substring(idx + 1).toLowerCase()
-				: "png";
-		if ("jpg".equals(extension))
-			extension = "jpeg";
-		return extension;
-	}
+    public String getFileName() {
+        return fileName;
+    }
 
-	public static String guessMimeType(String localPath, String format) {
-		try {
-			String mime = Files.probeContentType(Paths.get(localPath));
-			if (mime != null)
-				return mime;
-		} catch (IOException ignore) {
-		}
-// Fallback:
-		if (format.equals("jpg") || format.equals("jpeg"))
-			return "image/jpeg";
-		if (format.equals("png"))
-			return "image/png";
-		if (format.equals("gif"))
-			return "image/gif";
-		return "application/octet-stream";
-	}
+    public String getFileFormat() {
+        return fileFormat;
+    }
 
-	public static String encodeFileToBase64(String fullFilePath) {
-		try {
-			byte[] fileContent = Files.readAllBytes(Paths.get(fullFilePath));
-			return Base64.getEncoder().encodeToString(fileContent);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return "";
-		}
-	}
+    public String getMimeType() {
+        return mimeType;
+    }
 
-// Used for OpenAI: "data:image/png;base64,...."
-	public String getFullDataUrl() {
-		return "data:" + getMimeType() + ";base64," + getBase64Data();
-	}
+    public String getImageUrl() {
+        return imageUrl;
+    }
 
-	public String getBase64Data() {
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
 
-		String fullImageFilePath = roomFolder + "/" + folderPath + "/" + fileName;
+    public String getBase64Data() {
+        // Lazy load if needed (e.g. restored from DB without base64)
+        if (base64Data == null && roomFolder != null && fileName != null && folderPath != null) {
+            String fullImageFilePath = roomFolder + "/" + folderPath + "/" + fileName;
+            base64Data = encodeFileToBase64(fullImageFilePath);
+        }
+        return base64Data;
+    }
 
-		if (base64Data == null && fullImageFilePath != null) {
+    public void setBase64Data(String base64Data) {
+        this.base64Data = base64Data;
+    }
 
-			base64Data = encodeFileToBase64(fullImageFilePath); // Load/calculate on demand
-		}
-		return base64Data;
-	}
+    // Extraction & utilities
 
-//public String getLocalPath()   { return localPath; }
-	public String getFolderPath() {
-		return folderPath;
-	}
+    public static String extractFolderPath(String path) {
+        if (path == null)
+            return "";
+        File file = new File(path);
+        String parent = file.getParent();
+        return parent != null ? parent.replace("\\", "/") : "";
+    }
 
-	public String getFileName() {
-		return fileName;
-	}
+    public static String extractFileName(String path) {
+        if (path == null)
+            return "";
+        int idx = path.lastIndexOf('/');
+        if (idx == -1)
+            idx = path.lastIndexOf('\\');
+        if (idx != -1 && idx + 1 < path.length())
+            return path.substring(idx + 1);
+        return path;
+    }
 
-	public String getFormat() {
-		return format;
-	}
+    public static String extractFormat(String fileName) {
+        int idx = fileName.lastIndexOf('.');
+        String extension = (idx != -1 && idx + 1 < fileName.length()) ?
+                fileName.substring(idx + 1).toLowerCase() : "png";
+        if ("jpg".equals(extension))
+            extension = "jpeg";
+        return extension;
+    }
 
-	public String getMimeType() {
-		return mimeType;
-	}
+    private static String guessMimeType(String localPath, String format) {
+        try {
+            Path p = Paths.get(localPath);
+            Tika tika = new Tika();
+            String detectedType = tika.detect(p);
+            MediaType mediaType = MediaType.parse(detectedType);
+            if (mediaType != null) {
+                MediaType baseType = mediaType.getBaseType();
+                return baseType.toString();
+            }
+        } catch (IOException ignore) {}
+        // Fallback:
+        if ("jpg".equals(format) || "jpeg".equals(format))
+            return "image/jpeg";
+        if ("png".equals(format))
+            return "image/png";
+        if ("gif".equals(format))
+            return "image/gif";
+        return "application/octet-stream";
+    }
 
-	public Map<String, Object> toMap() {
-		Map<String, Object> m = new HashMap<>();
-		m.put("fileName", fileName);
-		m.put("filePath", folderPath);
-		m.put("format", format);
-		m.put("mimeType", mimeType);
-		m.put("base64", base64Data);
-		return m;
-	}
+    public static String encodeFileToBase64(String fullFilePath) {
+        try {
+            byte[] fileContent = Files.readAllBytes(Paths.get(fullFilePath));
+            return Base64.getEncoder().encodeToString(fileContent);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
 
-	public void setBase64Data(String base64Data) {
-		this.base64Data = base64Data;
-	}
+    // Used for OpenAI: "data:image/png;base64,...."
+    public String getFullDataUrl() {
+        return "data:" + getMimeType() + ";base64," + getBase64Data();
+    }
 
+    /**
+     * For passing to LLM or APIs: Returns only relevant fields based on type.
+     */
+    public Map<String, Object> toMap() {
+        Map<String, Object> m = new HashMap<>();
+        m.put("imageType", imageType != null ? imageType.name().toLowerCase() : null);
+        if (imageType == ImageSourceType.FILE) {
+            m.put("fileName", fileName);
+            m.put("filePath", folderPath);
+            m.put("fileFormat", fileFormat);
+            m.put("mimeType", mimeType);
+            m.put("base64", base64Data);
+        } else if (imageType == ImageSourceType.URL) {
+            m.put("imageUrl", imageUrl);
+        }
+        return m;
+    }
 }
