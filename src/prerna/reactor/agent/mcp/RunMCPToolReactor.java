@@ -55,7 +55,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 		{
 			// get the param map
 			// load the script and then run it
-			String projectAssetFolder = AssetUtility.getProjectAssetFolder(projectId);
+			String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 			projectAssetFolder = projectAssetFolder.replace("\\", "/");
 
 			String pyFolderLoc = projectAssetFolder + "/py";

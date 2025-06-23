@@ -1,19 +1,10 @@
 package prerna.reactor.agent.mcp;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -40,7 +31,7 @@ public class GetMCPPromptsReactor extends GetMCPToolsReactor {
 		// get the project
 		// check to see if there is a py directory
 		// if there is pick the main.py and ask the system to make the json
-		String projectAssetFolder = AssetUtility.getProjectAssetFolder(keyValue.get(keysToGet[0]));
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(keyValue.get(keysToGet[0]));
 		// need to apply the same from java etc. 
 		String output = "unprocessed";
 		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";

@@ -17,7 +17,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.tcp.client.NativePySocketClient;
 import prerna.util.AssetUtility;
 
 public class GetMCPToolsReactor extends AbstractReactor {
@@ -42,7 +41,7 @@ public class GetMCPToolsReactor extends AbstractReactor {
 		// get the project
 		// check to see if there is a py directory
 		// if there is pick the main.py and ask the system to make the json
-		String projectAssetFolder = AssetUtility.getProjectAssetFolder(keyValue.get(keysToGet[0]));
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(keyValue.get(keysToGet[0]));
 		// need to apply the same from java etc. 
 		classLogger.info("Getting MCP for project .. " + keyValue.get(keysToGet[0]));
 		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";

@@ -1,6 +1,5 @@
 package prerna.reactor.agent.mcp;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,7 +43,7 @@ public class InitMCPReactor extends AbstractReactor {
 		// get the project
 		// check to see if there is a py directory
 		// if there is pick the main.py and ask the system to make the json
-		String projectAssetFolder = AssetUtility.getProjectAssetFolder(keyValue.get(keysToGet[0]));
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(keyValue.get(keysToGet[0]));
 		IProject project = Utility.getProject(keyValue.get(keysToGet[0]));
 		
 		String projectName = project.getProjectName();

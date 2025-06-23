@@ -2,13 +2,11 @@ package prerna.reactor.agent.mcp;
 
 import java.io.File;
 
-import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Utility;
 
 public class MakeMCPReactor extends AbstractReactor {
 
@@ -29,7 +27,7 @@ public class MakeMCPReactor extends AbstractReactor {
 		// get the project
 		// check to see if there is a py directory
 		// if there is pick the main.py and ask the system to make the json
-		String projectAssetFolder = AssetUtility.getProjectAssetFolder(keyValue.get(keysToGet[0]));
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(keyValue.get(keysToGet[0]));
 		String pyFolderLoc = projectAssetFolder + "/py";
 		File pyFolder = new File(pyFolderLoc);
 		String output = "unprocessed";
