@@ -356,6 +356,7 @@ public class JiraHelper {
 		}
 		return new NounMetadata("Data not truncated with error message: " + error, PixelDataType.CUSTOM_DATA_STRUCTURE,
 				PixelOperationType.OPERATION);
+	}
 
 	public static NounMetadata issueType(String userId) {
 		
