@@ -54,12 +54,18 @@ public class JiraReactor extends AbstractReactor {
 
 			case "truncate data":
 				return JiraHelper.truncateData(userId);
+
 			
 			case "get all projects":
 				return JiraHelper.getAllProjects(userId); 
 				
 			case "delete record for userid":
 				return JiraHelper.deleteRecordForUser(userId);
+
+				
+			case "type of issue":
+				return JiraHelper.issueType(userId);
+
 			}
 		} catch (Exception e) {
 			throw new SemossPixelException("Issue with input");
