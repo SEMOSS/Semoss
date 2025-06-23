@@ -29,13 +29,13 @@ public class MakeMCPReactor extends AbstractReactor {
 		// get the project
 		// check to see if there is a py directory
 		// if there is pick the main.py and ask the system to make the json
-		String projectAssetFolder = AssetUtility.getProjectAssetFolder(keyValue.get(keysToGet[0]));
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(keyValue.get(keysToGet[0]));
 		String pyFolderLoc = projectAssetFolder + "/py";
 		File pyFolder = new File(pyFolderLoc);
 		String output = "unprocessed";
 		if(pyFolder.exists() && pyFolder.isDirectory())
 		{
-			String mcpPyFileLoc = pyFolderLoc + "/main.py";
+			String mcpPyFileLoc = pyFolderLoc + "/smss_driver.py";
 			File mcpPyFile = new File(mcpPyFileLoc);
 			if(mcpPyFile.exists())
 			{

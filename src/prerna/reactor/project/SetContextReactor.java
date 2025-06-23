@@ -54,12 +54,20 @@ public class SetContextReactor extends AbstractReactor {
 		// if python enabled
 		// set the path
 		if (PyUtils.pyEnabled()) {
-			String assetsDir = AssetUtility.getProjectAssetsFolder(context).replace("\\", "/");
-			String assetsPyDir = assetsDir + "/py";
-			String script = "import sys\n" + "import os\n" 
-					+ "sys.path.append('" + assetsDir + "')\n" 
-					+ "sys.path.append('" + assetsPyDir + "')\n" 
-					+ "os.chdir('"+ assetsDir + "')";
+			String projectId = context;
+			String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
+			projectAssetFolder = projectAssetFolder.replace("\\", "/");
+
+			String pyFolderLoc = projectAssetFolder + "/py";
+
+			
+			// do a couple of things
+			String sysImport = "import sys";
+			String getpath = "print(sys.path)";
+			String setPyPath = "sys.path.insert(0,'" + pyFolderLoc + "')";
+			String setAssetsPath = "sys.path.insert(0,'" + projectAssetFolder + "')";
+			String chDir = "os.chdir('"+ projectAssetFolder + "')";
+			
 
 			PyTranslator pyT = null;
 			User user = insight.getUser();
@@ -73,8 +81,12 @@ public class SetContextReactor extends AbstractReactor {
 			}
 
 			if (pyT != null) {
-				pyT.setInsight(insight);
-				pyT.runEmptyPy(script);
+				// check if the path is there
+				// if not insert it
+				String curPath = pyT.runPyAndReturnOutput(sysImport, getpath);
+				curPath = curPath.replace("\\", "/");
+				if(!curPath.contains(pyFolderLoc))
+					pyT.runPyAndReturnOutput(setPyPath, setAssetsPath);
 			}
 		}
 

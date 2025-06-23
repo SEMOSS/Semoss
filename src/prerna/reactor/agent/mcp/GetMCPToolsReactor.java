@@ -42,7 +42,7 @@ public class GetMCPToolsReactor extends AbstractReactor {
 		// get the project
 		// check to see if there is a py directory
 		// if there is pick the main.py and ask the system to make the json
-		String projectAssetFolder = AssetUtility.getProjectAssetFolder(keyValue.get(keysToGet[0]));
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(keyValue.get(keysToGet[0]));
 		// need to apply the same from java etc. 
 		classLogger.info("Getting MCP for project .. " + keyValue.get(keysToGet[0]));
 		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";

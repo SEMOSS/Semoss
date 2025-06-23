@@ -55,7 +55,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 		{
 			// get the param map
 			// load the script and then run it
-			String projectAssetFolder = AssetUtility.getProjectAssetFolder(projectId);
+			String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 			projectAssetFolder = projectAssetFolder.replace("\\", "/");
 
 			String pyFolderLoc = projectAssetFolder + "/py";
@@ -65,7 +65,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 			String sysImport = "import sys";
 			String getpath = "print(sys.path)";
 			String setpath = "sys.path.insert(0,'" + pyFolderLoc + "')";
-			String loadLib = "import main";
+			String loadLib = "import smss_driver as smss";
 			
 			// this is where we need to compose the method
 			// for every argument I need to know the type
@@ -103,7 +103,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 					paramString.append(propValue);
 				
 			}
-			String runMethod = "main." + functionName + "(" + paramString + ")";
+			String runMethod = "smss." + functionName + "(" + paramString + ")";
 			classLogger.info("Running method..  " + runMethod + "  On project " + projectId);
 			String curPath = insight.getPyTranslator().runPyAndReturnOutput(sysImport, getpath);
 			curPath = curPath.replace("\\", "/");
