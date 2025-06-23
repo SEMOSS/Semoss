@@ -287,4 +287,18 @@ public class JiraHelper {
 		}
 	}
 
+	public static NounMetadata issueType(String userId) {
+		
+		ArrayList<String> jiraIssues = new ArrayList<>();
+		
+		// Adding various types of Jira Issues
+		jiraIssues.add("Epic");
+		jiraIssues.add("Story");
+		jiraIssues.add("Task");
+		jiraIssues.add("Bug");
+		jiraIssues.add("Subtask");
+		
+		return new NounMetadata(jiraIssues, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+	}
+
 }
