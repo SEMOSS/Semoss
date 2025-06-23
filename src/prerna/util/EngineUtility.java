@@ -1,5 +1,6 @@
 package prerna.util;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.io.connector.couch.CouchUtil;
@@ -163,5 +164,27 @@ public class EngineUtility {
 		
 		throw new IllegalArgumentException("Unhandled engine type = " + type);
 	}
+	
+	
+    /**
+     * 
+     * @param engineId
+     * @return
+     */
+    public static String getLocalEngineBaseDirectory(String engineId) {
+        IEngine.CATALOG_TYPE catalogType = SecurityEngineUtils.getEngineType(engineId);
+        return EngineUtility.getLocalEngineBaseDirectory(catalogType);
+    }
+    
+    /**
+     * 
+     * @param engineId
+     * @return
+     */
+    public static String getSpecificEngineBaseFolder(String engineId) {
+        IEngine.CATALOG_TYPE catalogType = SecurityEngineUtils.getEngineType(engineId);
+        String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+        return EngineUtility.getSpecificEngineBaseFolder(catalogType,  engineId,  engineName);
+    }
 	
 }

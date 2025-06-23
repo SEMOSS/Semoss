@@ -25,11 +25,11 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
-public class NewProjectAssetsFileReactor extends AbstractReactor {
+public class NewAppAssetsFileReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(NewProjectAssetsFileReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(NewAppAssetsFileReactor.class);
 
-	public NewProjectAssetsFileReactor() {
+	public NewAppAssetsFileReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), 
 				ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey() };

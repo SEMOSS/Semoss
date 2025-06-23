@@ -1,39 +1,40 @@
-package prerna.project.impl;
+package prerna.reactor.engine;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.project.api.IProject;
+import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
-import prerna.util.git.GitDestroyer;
-import prerna.util.git.GitRepoUtils;
 
-public class RenameProjectAssetReactor extends AbstractReactor {
+public class RenameEngineAssetReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(RenameProjectAssetReactor.class);
+	/*
+	 * TODO: expose Git at engine level as well
+	 */
+	
+	private static final Logger classLogger = LogManager.getLogger(RenameEngineAssetReactor.class);
 
-	public RenameProjectAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), 
-				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.NEW_VALUE.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] {1,1,1,0};
+	public RenameEngineAssetReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), 
+				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.NEW_VALUE.getKey() };
+		this.keyRequired = new int[] {1,1,1};
+//				,
+//				ReactorKeysEnum.COMMENT_KEY.getKey() };
+//		this.keyRequired = new int[] {1,1,1,0};
 	}
 
 	@Override
@@ -46,11 +47,12 @@ public class RenameProjectAssetReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to edit assets.");
 		}
-		IProject project = Utility.getProject(projectId);
+		// force to pull it from cloud if not in the container
+		IEngine engine = Utility.getEngine(engineId);
 
 		String currentFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
 		String newFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[2]));
@@ -59,12 +61,12 @@ public class RenameProjectAssetReactor extends AbstractReactor {
             throw new IllegalArgumentException("Must pass both existing name and new name");
         }
 
-		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
-		String comment = this.keyValue.get(this.keysToGet[3]);
-		if(comment == null) {
-        	comment = "rename: Renaming " + currentFileName + " to " + newFileName;
-        }
+//		String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
+		String assetFolder = EngineUtility.getSpecificEngineBaseFolder(engineId);
+//		String comment = this.keyValue.get(this.keysToGet[3]);
+//		if(comment == null) {
+//        	comment = "rename: Renaming " + currentFileName + " to " + newFileName;
+//        }
 		
 		String oldAbs = (assetFolder + "/" + currentFileName).replace("\\", "/");
         String newAbs = (assetFolder + "/" + newFileName).replace("\\", "/");
@@ -104,23 +106,23 @@ public class RenameProjectAssetReactor extends AbstractReactor {
         
         // handle pushing to git and the cloud
         
-        List<String> toAdd = new ArrayList<>();
-		toAdd.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + newFileName);		
-
-        List<String> toRemove = new ArrayList<>();
-		toRemove.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + currentFileName);		
-
-		// Get the user's email
-		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		String email = accessToken.getEmail();
-		String author = accessToken.getUsername();
-		
-        GitRepoUtils.addSpecificFiles(versionGitFolder, toAdd);
-        GitDestroyer.removeSpecificFiles(versionGitFolder, true, toRemove);
-        // commit it
-		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
+//        List<String> toAdd = new ArrayList<>();
+//		toAdd.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + newFileName);		
+//
+//        List<String> toRemove = new ArrayList<>();
+//		toRemove.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + currentFileName);		
+//
+//		// Get the user's email
+//		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+//		String email = accessToken.getEmail();
+//		String author = accessToken.getUsername();
+//		
+//        GitRepoUtils.addSpecificFiles(gitFolder, toAdd);
+//        GitDestroyer.removeSpecificFiles(gitFolder, true, toRemove);
+//        // commit it
+//		GitRepoUtils.commitAddedFiles(gitFolder, comment, author, email);
 		// handle synchronization to the cloud
-		ClusterUtil.pushProjectFolder(project, assetFolder);
+		ClusterUtil.pushEngineFolder(engine, assetFolder);
 
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
