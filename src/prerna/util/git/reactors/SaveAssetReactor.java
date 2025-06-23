@@ -58,15 +58,14 @@ public class SaveAssetReactor extends AbstractReactor {
 		}
 
 		String space = this.keyValue.get(this.keysToGet[2]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 		String comment = this.keyValue.get(this.keysToGet[3]);
 		if(comment == null) {
         	comment = "add: SaveAsset executed";
         }
-		// Check strict script source settings once
-		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 
+		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 		// we will iterate here so that we dont have partial asset changes
 		for (int i = 0; i < fileNames.size(); i++) {
 			String rawFileName = fileNames.get(i).trim();
@@ -126,7 +125,7 @@ public class SaveAssetReactor extends AbstractReactor {
 		
 		if(warning == null) {
 			// add file to git
-			List<String> files = new ArrayList<>();
+			List<String> gitRelativeFilePaths = new ArrayList<>();
 			for (int i = 0; i < fileNames.size(); i++) {
 				String rawFileName = fileNames.get(i).trim();
 				String fileName = Utility.normalizePath(rawFileName);
@@ -147,16 +146,16 @@ public class SaveAssetReactor extends AbstractReactor {
 				// we dont want to start with a "/"
 				if(relativePath.isEmpty()) {
 					if(fileName.startsWith(DIR_SEPARATOR)) {
-						files.add(fileName.substring(1));		
+						gitRelativeFilePaths.add(fileName.substring(1));		
 					} else {
-						files.add(fileName);
+						gitRelativeFilePaths.add(fileName);
 					}
 				} else {
-					files.add(relativePath + DIR_SEPARATOR + fileName);		
+					gitRelativeFilePaths.add(relativePath + DIR_SEPARATOR + fileName);		
 				}
 			}
 			
-			GitRepoUtils.addSpecificFiles(assetFolder, files);
+			GitRepoUtils.addSpecificFiles(assetFolder, gitRelativeFilePaths);
 			// Get the user's email
 			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 			String email = accessToken.getEmail();
