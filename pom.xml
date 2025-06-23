@@ -115,7 +115,7 @@
 						</configuration>
 					</plugin>
 
-					<!--  <plugin>
+					<plugin>
 						<groupId>com.rudikershaw.gitbuildhook</groupId>
 						<artifactId>git-build-hook-maven-plugin</artifactId>
 						<version>3.5.0</version>
@@ -131,7 +131,7 @@
 								</goals>
 							</execution>
 						</executions>
-					</plugin>-->
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
@@ -2541,14 +2541,13 @@
 			<artifactId>playwright</artifactId>
 			<version>1.48.0</version>
 		</dependency>
-		<!--
-		https://mvnrepository.com/artifact/com.github.albfernandez/juniversalchardet -->
+		<!-- https://mvnrepository.com/artifact/com.github.albfernandez/juniversalchardet -->
 		<dependency>
 			<groupId>com.github.albfernandez</groupId>
 			<artifactId>juniversalchardet</artifactId>
 			<version>2.5.0</version>
 		</dependency>
-		
+		<!-- https://mvnrepository.com/artifact/io.modelcontextprotocol.sdk/mcp -->
 		<dependency>
 		    <groupId>io.modelcontextprotocol.sdk</groupId>
 		    <artifactId>mcp</artifactId>
