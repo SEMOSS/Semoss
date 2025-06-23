@@ -84,10 +84,25 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     # Class attribute to hold a singleton instance
     da_server = None
 
+    def extract_file_name_and_method(self, traceback_str):
+        # Extract all lines that contain both File and self.<method>(
+        file_names = re.findall(
+            r'File "([^"]+)", line',
+            traceback_str,
+        )
+        method_names = re.findall(
+            r"in (.*?)\n",
+            traceback_str,
+        )
+
+        return {"file_names": file_names, "method_names": method_names}
+
     def _kafka_log_format(self):
         log_format = {
             "timeMillis": int(time.time() * 1000),
-            "stack": "".join(traceback.format_stack()),
+            "stack": self.extract_file_name_and_method(
+                "".join(traceback.format_stack())
+            ),
             "thread": "NA",
             "level": "INFO",
             "loggerName": "NA",
@@ -207,11 +222,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         except Exception as e:
             # Fallback logging
             self.logger.error(f"Failed to write to error JSON log: {e}")
-            self._send_to_kafka(
-                message=f"Failed to write to error JSON log: {e}",
-                insight_id="NA",
-                level="ERROR",
-            )
+            # self._send_to_kafka(
+            #     message=f"Failed to write to error JSON log: {e}",
+            #     insight_id="NA",
+            #     level="ERROR",
+            # )
 
     def logging_setup(self):
         """Configures logging with environment-based log levels."""
@@ -235,9 +250,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 lambda record: record.levelno == log_level
             )  # Logs only the selected level
             self.logger.info("Logging Setup Completed")
-            self._send_to_kafka(
-                message=f"Logging Setup Completed", insight_id="NA", level="INFO"
-            )
+            # self._send_to_kafka(
+            #     message=f"Logging Setup Completed", insight_id="NA", level="INFO"
+            # )
         except Exception as e:
             self.log_file.write("\n ERROR - Unexpected Error While Logging Setup.")
             self.log_file.flush()
@@ -245,11 +260,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 error_message=f"ERROR - Unexpected Error While Logging Setup - {e}",
                 location="logging_setup",
             )
-            self._send_to_kafka(
-                message=f"ERROR - Unexpected Error While Logging Setup.",
-                insight_id="NA",
-                level="ERROR",
-            )
+            # self._send_to_kafka(
+            #     message=f"ERROR - Unexpected Error While Logging Setup.",
+            #     insight_id="NA",
+            #     level="ERROR",
+            # )
 
     def setup(self):
         """
@@ -402,21 +417,21 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
                 if self.server.blocking:
                     self.custom_dev_logger("Server is BLOCKING: Getting final output.")
-                    self._send_to_kafka(
-                        message=f"Server is BLOCKING: Getting final output.",
-                        insight_id="NA",
-                        level="INFO",
-                    )
+                    # self._send_to_kafka(
+                    #     message=f"Server is BLOCKING: Getting final output.",
+                    #     insight_id="NA",
+                    #     level="INFO",
+                    # )
                     self.get_final_output(data, epoc)
                 else:
                     self.custom_dev_logger(
                         "Server is NOT BLOCKING: Starting new thread."
                     )
-                    self._send_to_kafka(
-                        message=f"Server is NOT BLOCKING: Starting new thread.",
-                        insight_id="NA",
-                        level="INFO",
-                    )
+                    # self._send_to_kafka(
+                    #     message=f"Server is NOT BLOCKING: Starting new thread.",
+                    #     insight_id="NA",
+                    #     level="INFO",
+                    # )
                     runner = threading.Thread(
                         target=self.get_final_output,
                         kwargs=({"data": data, "epoc": epoc}),
@@ -434,11 +449,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     error_message="connection closed.. closing this socket",
                     location="handle",
                 )
-                self._send_to_kafka(
-                    message=f"{e} - Connection Closed.. Closing this socket",
-                    insight_id="NA",
-                    level="WARNING",
-                )
+                # self._send_to_kafka(
+                #     message=f"{e} - Connection Closed.. Closing this socket",
+                #     insight_id="NA",
+                #     level="WARNING",
+                # )
                 self.stop_request()
                 # self.server.stop_it()
             # print("all processing has finished !!")
@@ -467,11 +482,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.prod_logger("------------- OUTPUT LOG - START ----------------\n")
             self.prod_logger(log_message)
             self.prod_logger("------------- OUTPUT LOG - END ----------------\n")
-            self._send_to_kafka(
-                message=f"------------- OUTPUT LOG - START ----------------\n {log_message} \n ------------- OUTPUT LOG - END ----------------\n",
-                insight_id="NA",
-                level="INFO",
-            )
+            # self._send_to_kafka(
+            #     message=f"------------- OUTPUT LOG - START ----------------\n {log_message} \n ------------- OUTPUT LOG - END ----------------\n",
+            #     insight_id="NA",
+            #     level="INFO",
+            # )
         except Exception as e:
             self.logger.warning(f"Error in get_final_output: {str(e)}")
             self.log_error_to_json(
@@ -479,11 +494,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 location="log_data",
                 epoc=data.get("epoc", "N/A"),
             )
-            self._send_to_kafka(
-                message=f"ERROR - Error in get_final_output: {str(e)}",
-                insight_id="NA",
-                level="ERROR",
-            )
+            # self._send_to_kafka(
+            #     message=f"ERROR - Error in get_final_output: {str(e)}",
+            #     insight_id="NA",
+            #     level="ERROR",
+            # )
 
     def get_final_output(self, data=None, epoc=None):
         self.log_data(data)
@@ -516,11 +531,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 f"Payload Set For Thread - {json.dumps(payload_set_log, indent=4)}"
             )
             self.custom_dev_logger("---------- PAYLOAD SET LOG - END -------------\n")
-            self._send_to_kafka(
-                message=f"---------- PAYLOAD SET LOG - START -----------\n Payload Set For Thread - {json.dumps(payload_set_log, indent=4)} \n ---------- PAYLOAD SET LOG - END -----------\n",
-                insight_id=insight_id,
-                level="INFO",
-            )
+            # self._send_to_kafka(
+            #     message=f"---------- PAYLOAD SET LOG - START -----------\n Payload Set For Thread - {json.dumps(payload_set_log, indent=4)} \n ---------- PAYLOAD SET LOG - END -----------\n",
+            #     insight_id=insight_id,
+            #     level="INFO",
+            # )
 
             command_list = payload["payload"]
             command = ""
@@ -647,15 +662,17 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 "--------------------- SENDING OUTPUT -------------------------\n"
             )
             self.logger.info(formatted_log)
-            self._send_to_kafka(
-                message=formatted_log,
-                insight_id=(
-                    new_payload_insight_id
-                    if new_payload_insight_id
-                    else orig_payload_insight_id
-                ),
-                level="INFO",
+            insight_id = (
+                new_payload_insight_id
+                if new_payload_insight_id
+                else orig_payload_insight_id
             )
+            if "insightId" not in insight_id:
+                self._send_to_kafka(
+                    message=formatted_log,
+                    insight_id=insight_id,
+                    level="INFO",
+                )
             self.logger.info("--------------------- END ---------------------------\n")
 
         except Exception as e:
@@ -665,15 +682,15 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 error_message=f"ERROR - There was an error during logging - {e}",
                 location="log_payload_details",
             )
-            self._send_to_kafka(
-                message=f"ERROR - There was an error during logging - {e}",
-                insight_id=(
-                    new_payload_insight_id
-                    if new_payload_insight_id
-                    else orig_payload_insight_id
-                ),
-                level="ERROR",
-            )
+            # self._send_to_kafka(
+            #     message=f"ERROR - There was an error during logging - {e}",
+            #     insight_id=(
+            #         new_payload_insight_id
+            #         if new_payload_insight_id
+            #         else orig_payload_insight_id
+            #     ),
+            #     level="ERROR",
+            # )
 
     def send_output(
         self,
@@ -789,11 +806,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             f"send_request(): REQUEST === {json.dumps(payload, indent=4)}"
         )
         self.custom_dev_logger("---------- SEND REQUEST LOG - END -----------\n")
-        self._send_to_kafka(
-            message=f"---------- SEND REQUEST LOG - START -----------\n send_request(): REQUEST === {json.dumps(payload, indent=4)} \n ---------- SEND REQUEST LOG - END -----------\n",
-            insight_id=payload.get("insightId"),
-            level="INFO",
-        )
+        # self._send_to_kafka(
+        #     message=f"---------- SEND REQUEST LOG - START -----------\n send_request(): REQUEST === {json.dumps(payload, indent=4)} \n ---------- SEND REQUEST LOG - END -----------\n",
+        #     insight_id=payload.get("insightId"),
+        #     level="INFO",
+        # )
 
         # send it out
         self.request.sendall(ret_array)
@@ -808,11 +825,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.custom_dev_logger("---------- STOP REQUEST LOG - START ---------\n")
             self.custom_dev_logger("Connection has been closed")
             self.custom_dev_logger("---------- STOP REQUEST LOG - END -----------\n")
-            self._send_to_kafka(
-                message="---------- STOP REQUEST LOG - START ---------\n Connection has been closed\n ---------- STOP REQUEST LOG - END -----------\n",
-                insight_id="NA",
-                level="INFO",
-            )
+            # self._send_to_kafka(
+            #     message="---------- STOP REQUEST LOG - START ---------\n Connection has been closed\n ---------- STOP REQUEST LOG - END -----------\n",
+            #     insight_id="NA",
+            #     level="INFO",
+            # )
 
             sys.exit("Connection has been closed")
             self.stop = True
@@ -961,21 +978,21 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.custom_dev_logger(
             f"handle_response() -- Handling response which is going to check the monitors for epoc {payload.get('epoc', 'EPOC NOT FOUND')}. Here are the monitors: {self.monitors}"
         )
-        self._send_to_kafka(
-            message=f"---------- HANDLE RESPONSE LOG - START ---------\n handle_response() -- Handling response which is going to check the monitors for epoc {payload.get('epoc', 'EPOC NOT FOUND')}. Here are the monitors: {self.monitors}\n",
-            insight_id=payload.get("insightId"),
-            level="INFO",
-        )
+        # self._send_to_kafka(
+        #     message=f"---------- HANDLE RESPONSE LOG - START ---------\n handle_response() -- Handling response which is going to check the monitors for epoc {payload.get('epoc', 'EPOC NOT FOUND')}. Here are the monitors: {self.monitors}\n",
+        #     insight_id=payload.get("insightId"),
+        #     level="INFO",
+        # )
 
         if payload["epoc"] in self.monitors:
             self.prod_logger(
                 f"\nhandle_response() -- Payload Response: {json.dumps(payload, indent=4)}"
             )
-            self._send_to_kafka(
-                message=f"\nhandle_response() -- Payload Response: {json.dumps(payload, indent=4)}",
-                insight_id=payload.get("insightId"),
-                level="INFO",
-            )
+            # self._send_to_kafka(
+            #     message=f"\nhandle_response() -- Payload Response: {json.dumps(payload, indent=4)}",
+            #     insight_id=payload.get("insightId"),
+            #     level="INFO",
+            # )
 
             condition = self.monitors[payload["epoc"]]
             self.monitors.update({payload["epoc"]: payload})
@@ -983,11 +1000,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             condition.notifyAll()
             condition.release()
         self.custom_dev_logger("---------- HANDLE RESPONSE LOG - END ---------\n")
-        self._send_to_kafka(
-            message=f"---------- HANDLE RESPONSE LOG - STAENDRT ---------\n",
-            insight_id=payload.get("insightId"),
-            level="INFO",
-        )
+        # self._send_to_kafka(
+        #     message=f"---------- HANDLE RESPONSE LOG - STAENDRT ---------\n",
+        #     insight_id=payload.get("insightId"),
+        #     level="INFO",
+        # )
 
     def handle_shell(self):
         payload = self.thread_local.payload
@@ -1109,11 +1126,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 error_message=f"There is no mount point for {mount_name}",
                 location="get_cd",
             )
-            self._send_to_kafka(
-                message=f"There is no mount point for {mount_name}",
-                insight_id="NA",
-                level="ERROR",
-            )
+            # self._send_to_kafka(
+            #     message=f"There is no mount point for {mount_name}",
+            #     insight_id="NA",
+            #     level="ERROR",
+            # )
             raise Exception(f"There is no mount point for {mount_name}")
 
     def exec_cd(self, mount_name=None, payload=None, check=True):
