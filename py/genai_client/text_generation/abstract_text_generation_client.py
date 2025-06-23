@@ -132,7 +132,9 @@ class AbstractTextGenerationClient(ABC):
                 )
             except json.JSONDecodeError:
                 try:
-                    decoded_string = message_json.encode().decode("unicode_escape")
+                    decoded_string = message_json.replace('\\n",', '",')
+                    decoded_string = decoded_string.encode().decode("unicode_escape")
+
                     message_json = json.loads(decoded_string)
                     semoss_messages = SEMOSSMessageBuilder().build_messages(
                         input_messages=message_json
