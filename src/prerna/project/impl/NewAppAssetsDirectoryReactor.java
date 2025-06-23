@@ -94,7 +94,7 @@ public class NewAppAssetsDirectoryReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Create a new empty file in the projects assets folder";
+		return "Create a new empty directory in the projects assets folder";
 	}
 
 	@Override

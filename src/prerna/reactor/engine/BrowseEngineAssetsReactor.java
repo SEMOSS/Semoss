@@ -12,12 +12,14 @@ import org.apache.commons.io.FilenameUtils;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.EngineUtility;
 
-public class BrowseEngineAssetsReactor extends AbstractEngineFileReactor {
+public class BrowseEngineAssetsReactor extends AbstractReactor {
 
 	public BrowseEngineAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), 
@@ -50,9 +52,9 @@ public class BrowseEngineAssetsReactor extends AbstractEngineFileReactor {
 			}
 		}
 		
-		String pathSubstring = getLocalEngineBaseDirectory(engineId);
+		String pathSubstring = EngineUtility.getLocalEngineBaseDirectory(engineId);
 		int pathSubstringIndex = pathSubstring.length();
-		String filePath = getSpecificEngineBaseFolder(engineId);
+		String filePath = EngineUtility.getSpecificEngineBaseFolder(engineId);
 		if(relativeFilePath != null && !relativeFilePath.isEmpty()) {
 			filePath += relativeFilePath;
 		}
