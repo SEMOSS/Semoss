@@ -9,6 +9,7 @@ import com.google.gson.Gson;
 
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 
 public abstract class AbstractMessage {
@@ -23,7 +24,8 @@ public abstract class AbstractMessage {
     protected boolean visible = true;
 
 //	protected Map<String, Object> formattedMessage;
-	protected transient Insight insight;
+//	protected transient Insight insight;
+	protected transient Room room;
 
     private String dateCreated;
     
@@ -103,12 +105,22 @@ public abstract class AbstractMessage {
 		this.parentMessageId = parentMessageId;
 	}
 
-	public void setInsight(Insight insight) {
-		this.insight = insight;
+	
+//	public void setInsight(Insight insight) {
+//		this.insight = insight;
+//	}
+//
+//	public Insight getInsight() {
+//		return this.insight;
+//	}
+	
+	
+	public void setRoom(Room room) {
+		this.room = room;
 	}
 
-	public Insight getInsight() {
-		return this.insight;
+	public Room getRoom() {
+		return this.room;
 	}
 	
 
