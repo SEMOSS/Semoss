@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.lang.reflect.Modifier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,10 +24,26 @@ import com.google.gson.JsonParser;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
+
 public class MessageUtils {
 
-	private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    private static Logger logger = LogManager.getLogger(MessageUtils.class);
+	private static final Gson gson = new GsonBuilder()
+		    .addSerializationExclusionStrategy(new ExclusionStrategy() {
+		        @Override
+		        public boolean shouldSkipField(FieldAttributes field) {
+		            return field.getName().equals("room");
+		        }
+
+		        @Override
+		        public boolean shouldSkipClass(Class<?> clazz) {
+		            return false;
+		        }
+		    })
+		    .setPrettyPrinting()
+		    .create();
+	private static Logger logger = LogManager.getLogger(MessageUtils.class);
 
 	// Deserialize a single message from JSON
 	public static AbstractMessage fromJson(String json) {
@@ -82,7 +99,7 @@ public class MessageUtils {
 //			AbstractMessage safeCopy = createSafeCopyForSerialization(m);
 //			safeCopies.add(safeCopy);
 //		}
-
+		
 		return gson.toJson(msgs);
 	}
 
