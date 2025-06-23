@@ -1568,12 +1568,12 @@ public class CentralCloudStorage implements ICloudClient {
 	// pull room - this is using 
 	
 	public void pullRoomFolderFromCloud(String roomId) throws IOException, InterruptedException {
-		String localFolderPath=Utility.getBaseFolder() + File.separator + roomId;
+		String localFolderPath=Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
 		centralStorageEngine.syncStorageToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);			
 	}
 
 	public void pushRoomFolderToCloud(String roomId) throws IOException, InterruptedException {
-		String localFolderPath=Utility.getBaseFolder() + File.separator + roomId;
+		String localFolderPath=Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
 		centralStorageEngine.syncLocalToStorage(localFolderPath, ROOM_CONTAINER_PREFIX+ roomId, null);
 		}
 	
