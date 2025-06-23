@@ -86,7 +86,7 @@ public class InputMessage extends AbstractMessage {
         if (imageInfos == null) {
             imageInfos = new ArrayList<>();
         }
-        ImageInfo imageData = ImageInfo.fromFile(imagePath, userId, room.getId(), messageId, insight.getInsightFolder());
+        ImageInfo imageData = ImageInfo.fromFile(imagePath, userId, room.getId(), messageId, room.getRoomFolderPath());
         imageInfos.add(imageData);
 
         ClusterUtil.pushRoom(room.getId());
