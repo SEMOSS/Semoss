@@ -1,4 +1,4 @@
-package prerna.reactor;
+package prerna.io.connector.jira.reactor;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;

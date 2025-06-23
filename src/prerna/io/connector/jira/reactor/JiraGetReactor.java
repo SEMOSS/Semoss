@@ -1,4 +1,4 @@
-package prerna.reactor;
+package prerna.io.connector.jira.reactor;
 
 import java.sql.ResultSet;
 import java.util.ArrayList;
