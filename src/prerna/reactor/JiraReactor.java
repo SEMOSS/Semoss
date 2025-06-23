@@ -46,7 +46,7 @@ public class JiraReactor extends AbstractReactor {
 			case "list all tickets":
 				return JiraHelper.listIssue(project, userId);
 
-			case "create new jira":
+			case "create new ticket":
 				return JiraHelper.createIssue(summary, description, issuetype, project, userId);
 
 			case "delete jira ticket":
@@ -54,6 +54,12 @@ public class JiraReactor extends AbstractReactor {
 
 			case "truncate data":
 				return JiraHelper.truncateData(userId);
+			
+			case "get all projects":
+				return JiraHelper.getAllProjects(userId); 
+				
+			case "delete record for userid":
+				return JiraHelper.deleteRecordForUser(userId);
 			}
 		} catch (Exception e) {
 			throw new SemossPixelException("Issue with input");
