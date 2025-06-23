@@ -159,7 +159,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 semoss_messages=self.ask_settings.semoss_messages,
             )
         except Exception as e:
-            raise ValueError(
+            raise RuntimeError(
                 f"Failed to build messages in Anthropic format from SEMOSS format: {e}"
             )
 
@@ -179,9 +179,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         But eventually full_prompt will assume the structure of the messages matches the Anthropic API
         """
         self.ask_settings.history = self.ask_settings.full_prompt
-        # In the future we will not do this conversion
-        # Right now it is required for Elsa support
-        # But eventually full_prompt will assume the structure of the messages matches the Anthropic API
         msg_history, system_prompt_from_history = self._convert_history()
         if system_prompt_from_history and not self.ask_settings.system_prompt:
             self.ask_settings.system_prompt = system_prompt_from_history
