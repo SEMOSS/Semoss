@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.http.entity.ContentType;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -74,7 +76,7 @@ public class JiraHelper {
 		try {
 			String URL = null;
 			String tableName = null;
-			IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
+			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
 			List<String> pixelConcepts = database.getPixelConcepts();
 			for (String element : pixelConcepts) {
 				tableName = element;
@@ -100,7 +102,7 @@ public class JiraHelper {
 		try {
 			String userName = null;
 			String tableName = null;
-			IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
+			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
 			List<String> pixelConcepts = database.getPixelConcepts();
 			for (String element : pixelConcepts) {
 				tableName = element;
@@ -126,7 +128,7 @@ public class JiraHelper {
 	private static String getDBDetails(String userId) throws Exception, SQLException {
 		String tableName = null;
 		String apiKey = null;
-		IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
+		IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
 		List<String> pixelConcepts = database.getPixelConcepts();
 		for (String element : pixelConcepts) {
 			tableName = element;
@@ -233,7 +235,7 @@ public class JiraHelper {
 		try {
 			String tableName = null;
 			long Uid;
-			IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
+			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
 			List<String> pixelConcepts = database.getPixelConcepts();
 			for (String element : pixelConcepts) {
 				tableName = element;
@@ -265,7 +267,7 @@ public class JiraHelper {
 		try {
 			String tableName = null;
 			String userID;
-			IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
+			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
 			List<String> pixelConcepts = database.getPixelConcepts();
 			for (String element : pixelConcepts) {
 				tableName = element;
@@ -287,6 +289,74 @@ public class JiraHelper {
 		}
 	}
 
+
+	public static NounMetadata getAllProjects(String userId) {
+		String msg=null;
+		try {
+			String apiKey = getDBDetails(userId);
+			String username = getUserName(userId);
+			String auth = username + ":" + apiKey;
+			String encodeToString = Base64.getEncoder().encodeToString(auth.getBytes());
+			List<String> jiraIssueDetails = new ArrayList<String>();
+			Map<String, String> map = new HashMap<String, String>();
+			map.put("Authorization", "Basic " + encodeToString);
+			String URL = getURLFromDB(userId);
+			String url = URL + "/rest/api/2/project";
+			List<String> projList=new ArrayList<String>();
+			List<String> checkUserId = checkUserId(userId);
+			if (!checkUserId.contains(userId)) {
+				msg = "User id " + userId + " is not present in DB";
+				return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
+			String response = HttpHelperUtility.getRequest(url, map, null, null, null);
+			JSONArray projResponse=new JSONArray(response);
+			for(int i=0;i<projResponse.length();i++) {
+				JSONObject project= projResponse.getJSONObject(i);
+				String key= project.getString("key");
+				projList.add(key);
+			}
+			return new NounMetadata("Project list: "+projList, PixelDataType.CUSTOM_DATA_STRUCTURE,
+					PixelOperationType.OPERATION);
+		}catch(Exception e) {
+			msg=e.getMessage();
+			return new NounMetadata("Error in getting project list: "+msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
+					PixelOperationType.OPERATION);
+		}
+	}
+
+	public static NounMetadata deleteRecordForUser(String userId) {
+		Boolean truncateFlag = false;
+		String msg = null;
+		String error = null;
+		try {
+			String tableName = null;
+			long Uid;
+			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
+			List<String> pixelConcepts = database.getPixelConcepts();
+			for (String element : pixelConcepts) {
+				tableName = element;
+			}
+			List<String> checkUserId = checkUserId(userId);
+			if (!checkUserId.contains(userId)) {
+				msg = "User id " + userId + " is not present in DB";
+				return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
+			String truncateQuery = "Delete from "+tableName+" WHERE JIRAPROFILE_UNIQUE_ROW_ID='"+userId+"'";
+			database.removeData(truncateQuery);
+			truncateFlag = true;
+			Uid = Long.valueOf(userId);
+			if (truncateFlag == true) {
+				msg = "Record deleted succesfully by user "+userId+ " for user id "+userId;
+
+			}
+			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+
+		}catch(Exception e) {
+			error = e.getMessage();
+		}
+		return new NounMetadata("Data not truncated with error message: " + error, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.OPERATION);
+
 	public static NounMetadata issueType(String userId) {
 		
 		ArrayList<String> jiraIssues = new ArrayList<>();
@@ -299,6 +369,7 @@ public class JiraHelper {
 		jiraIssues.add("Subtask");
 		
 		return new NounMetadata(jiraIssues, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+
 	}
 
 }
