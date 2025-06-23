@@ -105,7 +105,7 @@ public class LLM2Reactor extends AbstractReactor {
 			);
 			room = RoomUtils.getOrLoadRoom(insight.getInsightId(), userId, this.insight);
         } else {
-    		RoomUtils.getOrLoadRoom(roomId,userId , insight);
+    		room = RoomUtils.getOrLoadRoom(roomId,userId , insight);
         }
         
         ///// MESSAGE CREATION //////////
