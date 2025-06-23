@@ -205,6 +205,7 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECT", "CREATEDBY", "VARCHAR(255)");
 		owler.addProp("PROJECT", "CREATEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("PROJECT", "DATECREATED", "TIMESTAMP");
+		owler.addProp("PROJECT", "DATELASTEDITED", "TIMESTAMP");
 		
 		// PROJECTPERMISSION
 		owler.addConcept("PROJECTPERMISSION", null, null);

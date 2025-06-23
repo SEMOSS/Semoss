@@ -213,6 +213,50 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 
 		return toolMap;
 	}
+	
+
+	public Map<String, Object> buildBedrockToolSpec() {
+	    // Fetch metadata/description
+	    Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(
+	        this.getEngineId(),
+	        Arrays.asList("description"),
+	        true
+	    );
+	    String description = (String) metadata.get("description");
+	    if (description == null) {
+	        description = "No description available.";
+	    }
+
+	    // Build properties for schema
+	    Map<String, Object> propertiesMap = new HashMap<>();
+	    for (FunctionParameter param : this.getParameters()) {
+	        Map<String, Object> property = new HashMap<>();
+	        property.put("type", param.getParameterType().toLowerCase());
+	        property.put("description", param.getParameterDescription());
+	        propertiesMap.put(param.getParameterName(), property);
+	    }
+
+	    // Build inputSchema.json
+	    Map<String, Object> inputSchemaJson = new HashMap<>();
+	    inputSchemaJson.put("type", "object");
+	    inputSchemaJson.put("properties", propertiesMap);
+	    inputSchemaJson.put("required", this.getRequiredParameters());
+
+	    Map<String, Object> inputSchema = new HashMap<>();
+	    inputSchema.put("json", inputSchemaJson);
+
+	    // toolSpec map (this is what you want to return)
+	    Map<String, Object> toolSpecMap = new HashMap<>();
+	    toolSpecMap.put("name", this.getEngineId()); // or assign function/tool name you want
+	    toolSpecMap.put("description", description);
+	    toolSpecMap.put("inputSchema", inputSchema);
+
+	    // Wrap as {"toolSpec": ...}
+	    Map<String, Object> wrapper = new HashMap<>();
+	    wrapper.put("toolSpec", toolSpecMap);
+
+	    return wrapper;
+	}
 
 	@Override
 	public void setEngineId(String engineId) {
