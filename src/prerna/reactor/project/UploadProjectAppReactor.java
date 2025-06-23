@@ -46,15 +46,19 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(UploadProjectAppReactor.class);
 
 	private static final String CLASS_NAME = UploadProjectAppReactor.class.getName();
+	protected boolean replaceExisting = false;
 
 	public UploadProjectAppReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.GLOBAL.getKey(),
+				ReactorKeysEnum.MODE.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		Logger logger = this.getLogger(CLASS_NAME);
+		String modeKey = (String) this.keyValue.getOrDefault(ReactorKeysEnum.MODE.getKey(), "create");
+		replaceExisting = "replace".equalsIgnoreCase(modeKey);
 		int step = 1;
 		String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		// do we want this project to be accessible to everyone
@@ -333,7 +337,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	 * @return
 	 */
 	protected boolean deleteIfExisting() {
-		return false;
+		return replaceExisting;
 	}
 
 	/**
@@ -366,6 +370,8 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	        return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
 	    } else if(key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
 	    	return "This is a required value to determine if the app is public or private";
+	    } else if(key.equals(ReactorKeysEnum.MODE.getKey())) {
+	        return "Optional: 'replace' to overwrite existing app, 'create' to upload new (default is 'create').";
 	    }
 	    return super.getDescriptionForKey(key);
 	}

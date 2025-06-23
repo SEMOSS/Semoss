@@ -287,7 +287,8 @@ public enum ReactorKeysEnum {
 	VERSION("version", 											"The version"),
 	WIDTH("width", 											    "The width to use for screenshot capture"),
 	X("x",		 											    "The X coordiante."),
-	Y("y",		 											    "The Y coordiante.");
+	Y("y",		 											    "The Y coordiante."), 
+	MODE("mode",                                                "This is key for app can pass create or replace");
 
 	private String key;
 	private String description;

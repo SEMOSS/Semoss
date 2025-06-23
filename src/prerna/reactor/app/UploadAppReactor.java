@@ -8,7 +8,7 @@ public class UploadAppReactor extends UploadProjectAppReactor {
 	
 	@Override
 	protected boolean deleteIfExisting() {
-		return true;
+		return replaceExisting;
 	}
 	
 	@Override
@@ -29,6 +29,8 @@ public class UploadAppReactor extends UploadProjectAppReactor {
 	        return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
 	    } else if(key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
 	    	return "This is a required value to determine if the app is public or private";
+	    } else if(key.equals(ReactorKeysEnum.MODE.getKey())) {
+	        return "Optional: 'replace' to overwrite existing app, 'create' to upload new (default is 'create').";
 	    }
 	    return super.getDescriptionForKey(key);
 	}
