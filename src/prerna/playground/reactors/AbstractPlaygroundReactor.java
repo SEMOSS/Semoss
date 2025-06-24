@@ -5,10 +5,10 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.playground.utils.CustomMapper;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -18,8 +18,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.playground.utils.CustomMapper;
-import prerna.project.api.IProject;
 
 public abstract class AbstractPlaygroundReactor extends AbstractReactor {
 
@@ -35,7 +33,8 @@ public abstract class AbstractPlaygroundReactor extends AbstractReactor {
   public NounMetadata execute() {
     try {
       preExecute();
-      modelInferenceLogsDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.MODEL_INFERENCE_LOGS_DB);
+      modelInferenceLogsDb =
+          (RDBMSNativeEngine) Utility.getDatabase(Constants.MODEL_INFERENCE_LOGS_DB);
       if (modelInferenceLogsDb == null) {
         throw new IllegalArgumentException("Unable to find database");
       }
@@ -59,12 +58,12 @@ public abstract class AbstractPlaygroundReactor extends AbstractReactor {
     }
     projectId = insight.getContextProjectId();
     if (projectId == null) {
-        projectId = insight.getProjectId();
+      projectId = insight.getProjectId();
     }
     projectName = null;
     if (projectId != null) {
-        IProject project = Utility.getProject(projectId);
-        projectName = project.getProjectName();
+      IProject project = Utility.getProject(projectId);
+      projectName = project.getProjectName();
     }
     organizeKeys();
   }

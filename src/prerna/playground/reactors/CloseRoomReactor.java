@@ -1,9 +1,9 @@
 package prerna.playground.reactors;
 
 import java.sql.SQLException;
+import prerna.playground.utils.PlaygroundUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.playground.utils.PlaygroundUtils;
 
 public class CloseRoomReactor extends AbstractPlaygroundReactor {
 
@@ -16,7 +16,8 @@ public class CloseRoomReactor extends AbstractPlaygroundReactor {
   public NounMetadata doExecute() throws SQLException {
     String roomId = this.keyValue.get(this.keysToGet[0]);
     boolean result =
-        PlaygroundUtils.deactivateRoom(roomId, user.getPrimaryLoginToken().getId(), modelInferenceLogsDb);
+        PlaygroundUtils.deactivateRoom(
+            roomId, user.getPrimaryLoginToken().getId(), modelInferenceLogsDb);
     return new NounMetadata(result, PixelDataType.BOOLEAN);
   }
 }
