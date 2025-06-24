@@ -5,15 +5,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.JiraDetails;
+import prerna.util.JiraHelper;
 import prerna.util.Utility;
 
 public class JiraGetReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(JiraGetReactor.class);
 
 	@Override
 	public NounMetadata execute() {
@@ -21,8 +28,8 @@ public class JiraGetReactor extends AbstractReactor {
 			String tableName = null;
 			List<JiraDetails> resultList = new ArrayList<JiraDetails>();
 			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
-			List<String> pixelConcepts = database.getPixelConcepts();
-			for (String element : pixelConcepts) {
+			List<String> tables = database.getPixelConcepts();
+			for (String element : tables) {
 				tableName = element;
 			}
 			String query = "select * from " + tableName;
@@ -45,6 +52,7 @@ public class JiraGetReactor extends AbstractReactor {
 			}
 			return new NounMetadata(resultList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			String error = "Error in the reactor JiraGetReactor: " + e.getMessage();
 			return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}

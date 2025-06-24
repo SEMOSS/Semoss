@@ -5,6 +5,9 @@ import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
@@ -13,10 +16,14 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.JiraHelper;
 import prerna.util.Utility;
 
 public class JiraInsertReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(JiraInsertReactor.class);
+	
 	static IRDBMSEngine userTrackingDb;
 
 	public JiraInsertReactor() {
@@ -45,9 +52,7 @@ public class JiraInsertReactor extends AbstractReactor {
 		try {
 			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
 			map = insertData(database, userId, apiToken, url, date, lused, insightusername, alias);
-			System.out.println("Map content: "+map);
 			Object object = map.get("Data inserted successfully");
-			System.out.println("Object: "+object);
 			if(Boolean.FALSE.equals(map.get("Data inserted successfully"))) {
 				msg=(String) map.get("Error");
 				responseMap.put("Data inserted successfully", object);
@@ -62,6 +67,7 @@ public class JiraInsertReactor extends AbstractReactor {
 			}
 			return new NounMetadata(responseMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			String error = "Error in executing the reactor";
 			msg=e.getMessage();
 			return new NounMetadata(error + ":" + msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
@@ -74,8 +80,8 @@ public class JiraInsertReactor extends AbstractReactor {
 		int profileKey = 0;
 		try {
 			String tableName = null;
-			List<String> pixelConcepts = database.getPixelConcepts();
-			for (String element : pixelConcepts) {
+			List<String> tables = database.getPixelConcepts();
+			for (String element : tables) {
 				tableName = element;
 			}
 			String query = " select JIRAPROFILE_UNIQUE_ROW_ID from " + tableName + " where API_KEY='" + apiKey
@@ -91,7 +97,7 @@ public class JiraInsertReactor extends AbstractReactor {
 			}
 			return profileKey;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return profileKey;
 
@@ -104,8 +110,8 @@ public class JiraInsertReactor extends AbstractReactor {
 		HashMap<String, Object> map=new HashMap<>();
 		boolean flag=false;
 		try {
-			List<String> pixelConcepts = database.getPixelConcepts();
-			for (String element : pixelConcepts) {
+			List<String> tables = database.getPixelConcepts();
+			for (String element : tables) {
 				tableName = element;
 			}
 			String insertQuery = " INSERT INTO " + tableName
@@ -116,10 +122,10 @@ public class JiraInsertReactor extends AbstractReactor {
 			flag=true;
 			map.put("Data inserted successfully", flag);
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			msg=e.getMessage();
 			map.put("Data inserted successfully", flag);
 			map.put("Error", msg);
-			e.printStackTrace();
 		
 		}
 		return map;

@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.http.entity.ContentType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -24,12 +26,15 @@ import prerna.engine.impl.model.Fields;
 import prerna.engine.impl.model.IssueType;
 import prerna.engine.impl.model.JiraRequestBodyModel;
 import prerna.engine.impl.model.Project;
+import prerna.io.connector.jira.reactor.JiraReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
 
 public class JiraHelper {
+	
+	private static final Logger classLogger = LogManager.getLogger(JiraHelper.class);
 
 	public static NounMetadata listIssue(String projectName, String userId)
 			throws JsonMappingException, JsonProcessingException {
@@ -65,6 +70,7 @@ public class JiraHelper {
 					PixelOperationType.OPERATION);
 
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			msg = e.getMessage();
 			return new NounMetadata("Error in listing all issues: " + msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
@@ -77,8 +83,8 @@ public class JiraHelper {
 			String URL = null;
 			String tableName = null;
 			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
-			List<String> pixelConcepts = database.getPixelConcepts();
-			for (String element : pixelConcepts) {
+			List<String> tables = database.getPixelConcepts();
+			for (String element : tables) {
 				tableName = element;
 			}
 			String getURLQuery = "select URL from " + tableName + " WHERE JIRAPROFILE_UNIQUE_ROW_ID='" + userId + "'";
@@ -92,7 +98,7 @@ public class JiraHelper {
 			}
 			return URL;
 		} catch (Exception e) {
-			error = e.getMessage();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return error;
 	}
@@ -103,8 +109,8 @@ public class JiraHelper {
 			String userName = null;
 			String tableName = null;
 			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
-			List<String> pixelConcepts = database.getPixelConcepts();
-			for (String element : pixelConcepts) {
+			List<String> tables = database.getPixelConcepts();
+			for (String element : tables) {
 				tableName = element;
 			}
 			String selectQuery = "SELECT USER_ID FROM " + tableName + " WHERE JIRAPROFILE_UNIQUE_ROW_ID='" + userId
@@ -119,7 +125,7 @@ public class JiraHelper {
 			}
 			return userName;
 		} catch (Exception e) {
-			error = e.getMessage();
+			classLogger.error(Constants.STACKTRACE, e);
 
 		}
 		return error;
@@ -129,8 +135,8 @@ public class JiraHelper {
 		String tableName = null;
 		String apiKey = null;
 		IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
-		List<String> pixelConcepts = database.getPixelConcepts();
-		for (String element : pixelConcepts) {
+		List<String> tables = database.getPixelConcepts();
+		for (String element : tables) {
 			tableName = element;
 		}
 		String insertQuery = "SELECT API_KEY FROM " + tableName + " WHERE JIRAPROFILE_UNIQUE_ROW_ID='" + userId + "'";
@@ -191,6 +197,7 @@ public class JiraHelper {
 			return new NounMetadata("Jira id: " + jiraId + "," + " Jira link: " + link,
 					PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			msg = e.getMessage();
 			return new NounMetadata("Error in creating new issue: " + msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
@@ -221,6 +228,7 @@ public class JiraHelper {
 			return new NounMetadata("Jira id " + jiraId + " succesfully deleted", PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			msg = e.getMessage();
 			return new NounMetadata("Error in deleting issue: " + msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
@@ -236,8 +244,8 @@ public class JiraHelper {
 			String tableName = null;
 			long Uid;
 			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
-			List<String> pixelConcepts = database.getPixelConcepts();
-			for (String element : pixelConcepts) {
+			List<String> tables = database.getPixelConcepts();
+			for (String element : tables) {
 				tableName = element;
 			}
 			List<String> checkUserId = checkUserId(userId);
@@ -256,6 +264,7 @@ public class JiraHelper {
 			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			error = e.getMessage();
 		}
 		return new NounMetadata("Data not truncated with error message: " + error, PixelDataType.CUSTOM_DATA_STRUCTURE,
@@ -268,8 +277,8 @@ public class JiraHelper {
 			String tableName = null;
 			String userID;
 			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
-			List<String> pixelConcepts = database.getPixelConcepts();
-			for (String element : pixelConcepts) {
+			List<String> tables = database.getPixelConcepts();
+			for (String element : tables) {
 				tableName = element;
 			}
 			String query = " SELECT JIRAPROFILE_UNIQUE_ROW_ID from " + tableName;
@@ -284,7 +293,7 @@ public class JiraHelper {
 			}
 			return userIds;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			return userIds;
 		}
 	}
@@ -315,9 +324,10 @@ public class JiraHelper {
 				String key= project.getString("key");
 				projList.add(key);
 			}
-			return new NounMetadata("Project list: "+projList, PixelDataType.CUSTOM_DATA_STRUCTURE,
+			return new NounMetadata(projList, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		}catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			msg=e.getMessage();
 			return new NounMetadata("Error in getting project list: "+msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
@@ -332,8 +342,8 @@ public class JiraHelper {
 			String tableName = null;
 			long Uid;
 			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
-			List<String> pixelConcepts = database.getPixelConcepts();
-			for (String element : pixelConcepts) {
+			List<String> tables = database.getPixelConcepts();
+			for (String element : tables) {
 				tableName = element;
 			}
 			List<String> checkUserId = checkUserId(userId);
@@ -352,6 +362,7 @@ public class JiraHelper {
 			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 
 		}catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			error = e.getMessage();
 		}
 		return new NounMetadata("Data not truncated with error message: " + error, PixelDataType.CUSTOM_DATA_STRUCTURE,

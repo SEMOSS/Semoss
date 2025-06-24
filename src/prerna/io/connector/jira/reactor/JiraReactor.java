@@ -1,14 +1,20 @@
 package prerna.io.connector.jira.reactor;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.JiraHelper;
 
 public class JiraReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(JiraReactor.class);
 
 	public JiraReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.USERID.getKey(),
@@ -68,7 +74,8 @@ public class JiraReactor extends AbstractReactor {
 				return JiraHelper.issueType(userId);
 
 			}
-		} catch (Exception e) {
+		} catch (Exception e) {	
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Issue with input");
 		}
 		return new NounMetadata("Please provide valid command", PixelDataType.CUSTOM_DATA_STRUCTURE,
