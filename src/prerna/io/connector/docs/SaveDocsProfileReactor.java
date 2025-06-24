@@ -21,29 +21,30 @@ public class SaveDocsProfileReactor extends AbstractReactor {
 
 	public SaveDocsProfileReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.DATE_CREATED.getKey(), ReactorKeysEnum.LAST_USED.getKey(),
-				ReactorKeysEnum.JSON.getKey() };
-		this.keyRequired = new int[] {1, 1, 1};
+				ReactorKeysEnum.JSON.getKey(), ReactorKeysEnum.NAME.getKey()};
+		this.keyRequired = new int[] {1, 1, 1, 1};
 	}
-
+// Single Name
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String dateCreated = this.keyValue.get(this.keysToGet[0]);
 		String lastUsed = this.keyValue.get(this.keysToGet[1]);
 		String serviceJson = this.keyValue.get(this.keysToGet[2]);
+		String name = this.keyValue.get(this.keysToGet[3]);
 		Boolean insertData = false;
 		Timestamp date = Timestamp.valueOf(dateCreated);
 		Timestamp lused = Timestamp.valueOf(lastUsed);
 		User user = this.insight.getUser();
-		String userName = user.getPrimaryLoginToken().getUsername();
-		String userEmail = user.getPrimaryLoginToken().getEmail();
+		String insight_username = user.getPrimaryLoginToken().getUsername();
+		String insight_usermailid = user.getPrimaryLoginToken().getEmail();
 		HashMap<Object, Object> map = new HashMap<Object, Object>();
 		int profileId = 0;
 		try {
 			IDatabaseEngine database = Utility.getDatabase("9be6565f-550f-4be0-8758-c25232973cb1");
-			insertData = insertData(database, userName, userEmail, date, lused, serviceJson);
+			insertData = insertData(database, insight_username, insight_usermailid, name, date, lused, serviceJson);
 			if(insertData) {
-				profileId = readData(database, userName, date, lused, serviceJson);
+				profileId = readData(database, insight_username, date, lused, serviceJson);
 			}
 			if (profileId != 0) {
 				map.put("id", profileId);
@@ -58,15 +59,15 @@ public class SaveDocsProfileReactor extends AbstractReactor {
 		}
 	}
 
-	private static Boolean insertData(IDatabaseEngine database, String Name, String email, Timestamp dateCreated, Timestamp lastUsed, String serviceJson) {
+	private static Boolean insertData(IDatabaseEngine database, String InsightName, String InsightEmail, String Name, Timestamp dateCreated, Timestamp lastUsed, String serviceJson) {
 		String tableName = null;
 		try {
 			List<String> tableNames = database.getPixelConcepts();
 			for (String table : tableNames) {
 				tableName = table;
 			}
-			String insertQuery = " INSERT INTO " + tableName + "(name,useremail,datecreated,lastupdateddate,servicejson) "
-					+ "VALUES ('" + Name + "','" + email + "','" + dateCreated + "','" + lastUsed
+			String insertQuery = " INSERT INTO " + tableName + "(insight_username,insight_usermailid,name,datecreated,lastupdateddate,servicejson) "
+					+ "VALUES ('" + InsightName + "','" + InsightEmail + "','" + Name + "','" + dateCreated + "','" + lastUsed
 					+ "','" + serviceJson + "')";
 			database.insertData(insertQuery);
 			return true;
@@ -75,7 +76,7 @@ public class SaveDocsProfileReactor extends AbstractReactor {
 			return false;
 		}
 	}
-	private Integer readData(IDatabaseEngine database, String Name, Timestamp dateCreated, Timestamp lastUsed, String serviceJson) {
+	private Integer readData(IDatabaseEngine database, String InsightName, Timestamp dateCreated, Timestamp lastUsed, String serviceJson) {
 		int profileKey = 0;
 		try {
 			String tableName = null;
@@ -83,7 +84,7 @@ public class SaveDocsProfileReactor extends AbstractReactor {
 			for (String table : tableNames) {
 				tableName = table;
 			}
-			String query=" select id from "+tableName+ " where name='"+Name+"' and servicejson='"+serviceJson+"'";
+			String query=" select id from "+tableName+ " where insight_username='"+InsightName+"' and servicejson='"+serviceJson+"'";
 			@SuppressWarnings("unchecked")
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
 			Object string = hashmap.get("RESULTSET_OBJECT");
