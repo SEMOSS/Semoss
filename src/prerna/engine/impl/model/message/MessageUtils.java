@@ -38,7 +38,6 @@ public class MessageUtils {
                 return false;
             }
         })
-        .setPrettyPrinting()
         .create();
 
     // For Python: skips "room" only, DOES include base64Data
@@ -53,7 +52,6 @@ public class MessageUtils {
                 return false;
             }
         })
-        .setPrettyPrinting()
         .create();
 
     private static Logger logger = LogManager.getLogger(MessageUtils.class);

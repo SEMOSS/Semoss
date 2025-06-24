@@ -28,8 +28,8 @@ public class LLM2Reactor extends AbstractReactor {
 	
 	public LLM2Reactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM.getKey(), ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.IMAGE.getKey(),
-				 ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0 };
+				ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -63,6 +63,7 @@ public class LLM2Reactor extends AbstractReactor {
 		}
 		
         List<String> inputImages = getImages();
+        List<String> inputImageURLs = getImageURLs();
 
 		Room room = null;
 		
@@ -116,6 +117,7 @@ public class LLM2Reactor extends AbstractReactor {
         .withModelType(modelEngine.getModelType())
         .withParamMap(paramMap)
         .withImages(inputImages, room)
+        .withImageUrls(inputImageURLs)
         .build();
         
         
@@ -131,6 +133,20 @@ public class LLM2Reactor extends AbstractReactor {
     public List<String> getImages() {
         List<String> inputStrings = new ArrayList<>();
         GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
+    
+    
+    public List<String> getImageURLs() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
         if (grs != null && !grs.isEmpty()) {
             int size = grs.size();
             for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());

@@ -1,15 +1,16 @@
 package prerna.engine.impl.model.message;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
+
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.Room;
-import prerna.om.Insight;
-import prerna.cluster.util.ClusterUtil;
 
 /**
  * Unified message class that can handle all types of messages (text, image, tool calls, etc.)
@@ -108,6 +109,11 @@ public class InputMessage extends AbstractMessage {
         if (imageInfos != null) {
             this.imageInfos.addAll(imageInfos);
         }
+    }
+    
+    public void addImageUrl(String url) {
+        if (imageInfos == null) imageInfos = new ArrayList<>();
+        imageInfos.add(ImageInfo.fromUrl(url));
     }
 
     public List<ImageInfo> getImageInfos() {
@@ -309,6 +315,27 @@ public class InputMessage extends AbstractMessage {
             message.addImages(imageInfos);
             return this;
         }
+        
+        
+        /** Accept list of image URLs (for direct image references) */
+        public Builder withImageUrls(List<String> imageUrls) {
+            if (imageUrls != null) {
+                List<ImageInfo> byUrl = new ArrayList<>();
+                for (String url : imageUrls) {
+                    byUrl.add(ImageInfo.fromUrl(url));
+                }
+                message.addImages(byUrl);
+            }
+            return this;
+        }
+        /** Single URL convenience */
+        public Builder withImageUrl(String url) {
+            if (url != null) {
+                message.addImages(Collections.singletonList(ImageInfo.fromUrl(url)));
+            }
+            return this;
+        }
+        
 
         public Builder withTool(Map<String, Object> toolCallMap) {
             message.addTool(toolCallMap);
