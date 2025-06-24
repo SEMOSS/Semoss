@@ -71,7 +71,7 @@ class SEMOSSMessageBuilder:
             mime_type = image_info.get("mimeType", None)
             format = image_info.get("format", None)
             file_name = image_info.get("fileName", None)
-            url = image_info.get("url", None)
+            url = image_info.get("imageUrl", None)
             base64Data = image_info.get("base64Data", None)
 
             if url:
