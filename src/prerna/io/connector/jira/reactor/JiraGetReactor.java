@@ -20,7 +20,7 @@ public class JiraGetReactor extends AbstractReactor {
 		try {
 			String tableName = null;
 			List<JiraDetails> resultList = new ArrayList<JiraDetails>();
-			IDatabaseEngine database = Utility.getDatabase("3c6f0856-25f0-4bf2-83ae-c4b6253e8b01");
+			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
 			List<String> pixelConcepts = database.getPixelConcepts();
 			for (String element : pixelConcepts) {
 				tableName = element;
@@ -39,6 +39,7 @@ public class JiraGetReactor extends AbstractReactor {
 					jiraDetails.setPrimaryId(rs.getString("JIRAPROFILE_UNIQUE_ROW_ID"));
 					jiraDetails.setUrl(rs.getString("URL"));
 					jiraDetails.setUserId(rs.getString("USER_ID"));
+					jiraDetails.setAlias(rs.getString("ALIAS"));
 					resultList.add(jiraDetails);
 				}
 			}
