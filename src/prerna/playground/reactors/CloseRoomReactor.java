@@ -1,11 +1,11 @@
 package prerna.playground.reactors;
 
-import java.sql.SQLException;
-import prerna.playground.utils.PlaygroundUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class CloseRoomReactor extends AbstractPlaygroundReactor {
+public class CloseRoomReactor extends AbstractReactor {
 
   public CloseRoomReactor() {
     this.keysToGet = new String[] {"roomId"};
@@ -13,11 +13,10 @@ public class CloseRoomReactor extends AbstractPlaygroundReactor {
   }
 
   @Override
-  public NounMetadata doExecute() throws SQLException {
+  public NounMetadata execute() {
     String roomId = this.keyValue.get(this.keysToGet[0]);
     boolean result =
-        PlaygroundUtils.deactivateRoom(
-            roomId, user.getPrimaryLoginToken().getId(), modelInferenceLogsDb);
+        ModelInferenceLogsUtils.deactivateRoom(roomId, this.insight.getUser().getPrimaryLoginToken().getId());
     return new NounMetadata(result, PixelDataType.BOOLEAN);
   }
 }

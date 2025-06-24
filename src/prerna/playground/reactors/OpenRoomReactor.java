@@ -1,24 +1,18 @@
 package prerna.playground.reactors;
 
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
-import prerna.playground.utils.PlaygroundUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class OpenRoomReactor extends AbstractPlaygroundReactor {
+public class OpenRoomReactor extends AbstractReactor {
 
   @Override
-  public NounMetadata doExecute() throws SQLException {
+  public NounMetadata execute() {
 
-    String roomId =
-        PlaygroundUtils.openRoom(
-            insight.getInsightId(),
-            user.getPrimaryLoginToken(),
-            modelInferenceLogsDb,
-            projectId,
-            projectName);
+    String roomId = ModelInferenceLogsUtils.openRoom(this.insight);
 
     // save the roomId
     Map<String, Object> output = new HashMap<String, Object>();
