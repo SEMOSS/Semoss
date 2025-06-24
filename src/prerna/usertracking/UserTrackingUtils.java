@@ -574,23 +574,23 @@ public class UserTrackingUtils {
 		// Count(QueryExecuted)
 		QueryFunctionSelector queryExecuted = new QueryFunctionSelector();
 		queryExecuted.setFunction(QueryFunctionHelper.COUNT);
-		queryExecuted.addInnerSelector(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED"));
+		queryExecuted.addInnerSelector(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED","query_executed"));
 		queryExecuted.setAlias("count_query_executed");
 		qs.addSelector(queryExecuted);
 		
 		QueryFunctionSelector lastTimeSelector = new QueryFunctionSelector();
 		lastTimeSelector.setFunction(QueryFunctionHelper.MAX);
-		lastTimeSelector.addInnerSelector(new QueryColumnSelector("QUERY_TRACKING__START_TIME"));
+		lastTimeSelector.addInnerSelector(new QueryColumnSelector("QUERY_TRACKING__START_TIME","start_time"));
 		lastTimeSelector.setAlias("last_time_ran");
 		qs.addSelector(lastTimeSelector);
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			QueryFunctionSelector maxCreatedOnSelector = new QueryFunctionSelector();
 			maxCreatedOnSelector.setFunction(QueryFunctionHelper.MAX);
-			maxCreatedOnSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING__CREATED_ON"));
-			maxCreatedOnSelector.setAlias("LAST_LOGON");
+			maxCreatedOnSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING__CREATED_ON","created_on"));
+			maxCreatedOnSelector.setAlias("last_login");
 			subQs.addSelector(maxCreatedOnSelector);
-			subQs.addSelector(new QueryColumnSelector("USER_TRACKING__USERID"));
+			subQs.addSelector(new QueryColumnSelector("USER_TRACKING__USERID","userid"));
 			qs.addRelation(new SubqueryRelationship(subQs, "UT", "left.outer.join", new String[] {"QUERY_TRACKING__USERID", "UT__USERID", "="}));
 		}
 		
@@ -599,7 +599,7 @@ public class UserTrackingUtils {
 		addStartDateEndDateFitler(qs, startDate, endDate);
 		addLimitAndOffSet(qs, limit, offset);
 		
-		qs.addGroupBy(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED"));
+		qs.addGroupBy(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED","query_executed"));
 		
 		return QueryExecutionUtility.flushRsToMap(userTrackingDb, qs); 
 	}

@@ -51,21 +51,21 @@ public class GetEngineUsagePerUserReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor returns the number of tokens usage per engine.";
+		return "This reactor returns the number of tokens usage per engine. The fields for this report include: user_name, user_id, number_of_messages, number_of_rooms, number_of_tokens.";
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
+	protected String getDescriptionForKey(String key) { 
 		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Engine id of an engine " + ReactorKeysEnum.ENGINE.getKey();
+			return "The engine id for the report";
 		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Limit of an engine " + ReactorKeysEnum.LIMIT.getKey();
+			return "Limit to the number of results to be returned";
 		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
-			return "Offset of an engine " + ReactorKeysEnum.OFFSET.getKey();
+			return "Offset to the number of results to be returned";
 		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
-			return "Start date of an engine " + ReactorKeysEnum.START_DATE.getKey();
+			return "Start date filter on the query executed";
 		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
-			return "End date of an engine " + ReactorKeysEnum.END_DATE.getKey();
+			return "End date filter on the query executed";
 		}
 		return super.getDescriptionForKey(key);
 	}
