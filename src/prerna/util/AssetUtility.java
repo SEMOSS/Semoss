@@ -101,6 +101,16 @@ public class AssetUtility {
 		return AssetUtility.getProjectAssetsFolder(projectName, projectId);
 	}
 	
+	@Deprecated
+	/**
+	 * Update to AssetUtility.getProjectAssetsFolder(String projectId) method
+	 * @param projectId
+	 * @return
+	 */
+	public static String getProjectAssetFolder(String projectId) {
+		return getProjectAssetsFolder(projectId);
+	}
+	
 	/**
 	 * 
 	 * @param projectName
