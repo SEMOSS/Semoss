@@ -66,10 +66,6 @@ public class ImageInfo {
         this.imageType = imageType;
     }
 
-    public String getFolderPath() {
-        return folderPath;
-    }
-
     public String getFileName() {
         return fileName;
     }
