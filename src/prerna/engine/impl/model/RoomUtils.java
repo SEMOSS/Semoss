@@ -1,30 +1,97 @@
 package prerna.engine.impl.model;
 
-
+import prerna.auth.AccessToken;
+import prerna.auth.User;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
+import prerna.project.api.IProject;
+import prerna.util.Utility;
 
+/**
+ * Utility methods for fetching and managing Room objects.
+ * - createRoomIfNotExists: creates (if needed) and returns a Room
+ * - getOrLoadRoom: looks up or loads room to memory hash, but never creates a Room
+ */
 public class RoomUtils {
-	
-	 public static Room getOrLoadRoom(String roomId, String userId, Insight insight) {
-	        Room room;
-	        if (insight.getUser().roomHash.containsKey(roomId)) {
-				try {
-					room = (Room) insight.getUser().roomHash.get(roomId);
-					return room;
-				} catch (ClassCastException e) {
-					insight.getUser().roomHash.remove(roomId);
-				}
 
-	        }
-	        
-	        boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckConversationExists(roomId);
-	        if (!roomExistsInDB) throw new IllegalArgumentException("User room is not valid");
-	        room = ModelInferenceLogsUtils.getRoomById(roomId, userId);
-	        room.setInsight(insight);
-	        room.parseMessages();
-	        insight.getUser().roomHash.put(roomId, room);
-	        return room;
-	    }
+    /**
+     * Ensures a Room exists: creates it if necessary, then loads it for the given user/insight.
+     * @return the existing or newly created Room
+     */
+    public static Room createRoomIfNotExists(
+            String engineId,
+            String roomId,
+            Insight insight,
+            IModelEngine modelEngine,
+            String question
+    ) {
+        // Use the passed roomId or fallback to the insightId if null/empty
+        if (roomId == null || roomId.trim().isEmpty()) {
+            roomId = insight.getInsightId();
+        }
 
+        boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckConversationExists(roomId);
+
+        if (!roomExistsInDB) {
+            String agentType = modelEngine.getCatalogSubType(modelEngine.getSmssProp());
+            User user = insight.getUser();
+            AccessToken userToken = user.getPrimaryLoginToken();
+            String userName = userToken.getName();
+            String userEmail = userToken.getEmail();
+            String projectId = insight.getContextProjectId();
+            if (projectId == null) {
+                projectId = insight.getProjectId();
+            }
+            String projectName = null;
+            if (projectId != null) {
+                IProject project = Utility.getProject(projectId);
+                projectName = project != null ? project.getProjectName() : null;
+            }
+            String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : "untitled";
+            ModelInferenceLogsUtils.doCreateNewConversation(
+                    roomId,
+                    roomName,
+                    null,
+                    userToken.getId(),
+                    userName,
+                    userEmail,
+                    agentType,
+                    modelEngine.getEngineId(),
+                    true,
+                    projectId,
+                    projectName
+            );
+            // Always get the loaded room object (avoiding any skipping, ensures in-memory cache is filled)
+            return RoomUtils.getOrLoadRoom(roomId, insight);
+        } else {
+            return RoomUtils.getOrLoadRoom(roomId, insight);
+        }
+    }
+
+    /**
+     * Loads a Room from user room hash or database if present.
+     * Never creates a Room—throws IllegalArgumentException if not found.
+     * @throws IllegalArgumentException if Room does not exist.
+     */
+    public static Room getOrLoadRoom(String roomId,  Insight insight) {
+        Room room;
+        // Check in user's cache (roomHash)
+        if (insight.getUser().roomHash.containsKey(roomId)) {
+            try {
+                room = (Room) insight.getUser().roomHash.get(roomId);
+                return room;
+            } catch (ClassCastException e) {
+                insight.getUser().roomHash.remove(roomId); // Clear corrupted cache entry
+            }
+        }
+        boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckConversationExists(roomId);
+        if (!roomExistsInDB)
+            throw new IllegalArgumentException("User room is not valid");
+        room = ModelInferenceLogsUtils.getRoomById(roomId, insight.getUser().getPrimaryLoginToken().getId());
+        room.setInsight(insight);
+        room.parseMessages();
+        insight.getUser().roomHash.put(roomId, room);
+        return room;
+    }
 }

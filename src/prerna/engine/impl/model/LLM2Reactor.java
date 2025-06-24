@@ -14,6 +14,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -65,49 +66,10 @@ public class LLM2Reactor extends AbstractReactor {
         List<String> inputImages = getImages();
         List<String> inputImageURLs = getImageURLs();
 
-		Room room = null;
 		
-		//TODO i should check the user has first if its there then the db if it exits
-        boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckConversationExists(roomId);
-        if(!roomExistsInDB) {
-        	//create room a room
-        	if(roomId == null) {
-        		roomId=insight.getInsightId();
-        	}
-        	
-	    	String agentType = modelEngine.getCatalogSubType(modelEngine.getSmssProp());
-			String userName = userToken.getName();
-			String userUsername = userToken.getUsername();
-			String userEmail = userToken.getEmail();
-			
-			String projectId = insight.getContextProjectId();
-			if (projectId == null) {
-				projectId = insight.getProjectId();
-			}
-			String projectName = null;
-			if (projectId != null) {
-				IProject project = Utility.getProject(projectId);
-				projectName = project.getProjectName();
-			}
-			
-			String roomName = question.substring(0, Math.min(question.length(), 100));;
-			ModelInferenceLogsUtils.doCreateNewConversation(
-				roomId,
-				roomName, 
-				null, 
-				userId,
-				userName,
-				userEmail,
-				agentType,
-				modelEngine.getEngineId(),
-				true, 
-				projectId, 
-				projectName
-			);
-			room = RoomUtils.getOrLoadRoom(insight.getInsightId(), userId, this.insight);
-        } else {
-    		room = RoomUtils.getOrLoadRoom(roomId,userId , insight);
-        }
+		
+		Room room = RoomUtils.createRoomIfNotExists(engineId, roomId, insight, modelEngine, question);
+       
         
         ///// MESSAGE CREATION //////////
 
@@ -122,8 +84,8 @@ public class LLM2Reactor extends AbstractReactor {
         
         
         
-        AskModelEngineResponse response = room.ask(msg, context, insight, modelEngine);
-		return new NounMetadata(response.toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
+        ResponseMessage response = room.ask(msg, context, insight, modelEngine);
+		return new NounMetadata(response.getModelEngineResponse().toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
 	
