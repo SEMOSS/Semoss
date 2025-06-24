@@ -68,7 +68,7 @@ public class Room {
 	}
 
 	
-	public AskModelEngineResponse ask(InputMessage msg, String systemMessage, Insight insight, IModelEngine modelEngine) {
+	public ResponseMessage ask(InputMessage msg, String systemMessage, Insight insight, IModelEngine modelEngine) {
 		
 		if(systemMessage != null) {
 			this.systemMessage=systemMessage;
@@ -84,21 +84,16 @@ public class Room {
 		}
 		messages.add(msg);
 
-//		// Prepare full prompt (map all formatted messages)
-//		List<Object> fullPrompt = new ArrayList<>();
-//		for (AbstractMessage m : messages) {
-//			fullPrompt.add(m.getFormattedMessage());
-//		}
-		
 		
 		Map<String, Object> fakeMap =  new HashMap<>();
 
 		fakeMap.put("message_json", getMessagesWithImageDataAsString());
 		
+		
 		AskModelEngineResponse llmResponse = modelEngine.ask("", this.getSystemMessage(), insight,fakeMap);
+		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 
 		// Create the assistant's response message and add to history
-		ResponseMessage response = createResponseMessage(llmResponse);
 		response.setModel(modelEngine);
 		response.setTransactionId(msg.getTransactionId());
 		response.setParentMessageId(msg.getMessageId());
@@ -110,7 +105,7 @@ public class Room {
 
 		// Debug
 		System.out.println(getMessagesAsString());
-		return llmResponse;
+		return response;
 	}
 	
 	
