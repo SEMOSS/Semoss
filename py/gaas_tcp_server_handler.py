@@ -94,45 +94,49 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         return log_mapper.get(log_level_name)
 
     def log_error_to_json(self, error_message, location, epoc="N/A"):
-        # Generate a unique ID based on the error message and location
-        raw_id = f"{error_message}|{location}|{epoc}"
-        unique_id = hashlib.sha256(raw_id.encode()).hexdigest()
+        """
+        ONLY WRITES TO LOGS WHEN self.dev_log_switch IS TRUE
+        """
+        if self.dev_log_switch:
+            # Generate a unique ID based on the error message and location
+            raw_id = f"{error_message}|{location}|{epoc}"
+            unique_id = hashlib.sha256(raw_id.encode()).hexdigest()
 
-        # Prevent logging the same error ID multiple times in this session
-        if unique_id in self.logged_error_ids:
-            return
+            # Prevent logging the same error ID multiple times in this session
+            if unique_id in self.logged_error_ids:
+                return
 
-        self.logged_error_ids.add(unique_id)
+            self.logged_error_ids.add(unique_id)
 
-        error_entry = {
-            "id": unique_id,
-            "timestamp": int(time.time()),
-            "epoc": epoc,
-            "error": error_message,
-            "location": location,
-        }
+            error_entry = {
+                "id": unique_id,
+                "timestamp": int(time.time()),
+                "epoc": epoc,
+                "error": error_message,
+                "location": location,
+            }
 
-        # Append to JSON file
-        try:
-            with open(self.error_log_file, "r+", encoding="utf-8") as f:
-                try:
-                    data = json.load(f)
-                except json.JSONDecodeError:
-                    data = []
+            # Append to JSON file
+            try:
+                with open(self.error_log_file, "r+", encoding="utf-8") as f:
+                    try:
+                        data = json.load(f)
+                    except json.JSONDecodeError:
+                        data = []
 
-                # Prevent duplicates on disk (check by ID)
-                exists = any(
-                    isinstance(e, dict) and e.get("id") == unique_id for e in data
-                )
+                    # Prevent duplicates on disk (check by ID)
+                    exists = any(
+                        isinstance(e, dict) and e.get("id") == unique_id for e in data
+                    )
 
-                if not exists:
-                    data.append(error_entry)
-                    f.seek(0)
-                    json.dump(data, f, indent=2)
-                    f.truncate()
-        except Exception as e:
-            # Fallback logging
-            self.logger.error(f"Failed to write to error JSON log: {e}")
+                    if not exists:
+                        data.append(error_entry)
+                        f.seek(0)
+                        json.dump(data, f, indent=2)
+                        f.truncate()
+            except Exception as e:
+                # Fallback logging
+                self.logger.error(f"Failed to write to error JSON log: {e}")
 
     def logging_setup(self):
         """Configures logging with environment-based log levels."""
@@ -330,7 +334,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             except Exception as e:
                 self.logger.warning(e)
                 self.logger.warning("connection closed.. closing this socket")
-                self.log_error_to_json(error_message=f"Log - {e}", location="handle")
+                self.log_error_to_json(error_message=f"{e}", location="handle")
                 self.log_error_to_json(
                     error_message="connection closed.. closing this socket",
                     location="handle",
