@@ -2,7 +2,6 @@ from typing import List, Dict, Any, Tuple
 from ...utils import (
     get_image_extension,
     fetch_and_encode_image,
-    image_to_base64,
 )
 from .anthropic_models import (
     AnthropicRoles,
@@ -85,9 +84,7 @@ class AnthropicMessageBuilder:
 
         anthropic_image_parts = []
         for image in image_content:
-            if image.type == SEMOSSImageType.FILE_PATH:
-                anthropic_image_parts.append(self._build_file_path_image_content(image))
-            elif image.type == SEMOSSImageType.URL:
+            if image.type == SEMOSSImageType.URL:
                 anthropic_image_parts.append(self._build_url_image_content(image))
             elif image.type == SEMOSSImageType.BASE64:
                 anthropic_image_parts.append(self._build_base64_image_content(image))
@@ -95,20 +92,6 @@ class AnthropicMessageBuilder:
                 raise ValueError(f"Unknown image type: {image.type}")
 
         return anthropic_image_parts
-
-    def _build_file_path_image_content(
-        self, image_content: SEMOSSImageContent
-    ) -> AnthropicImageContentPart:
-        """Build Anthropic image content part from file path as base64"""
-        base64_image = image_to_base64(image_content.file_path)
-        if image_content.mime_type == "image/jpg":
-            image_content.mime_type = "image/jpeg"
-
-        image_source = AnthropicImageSourceBase64(
-            media_type=image_content.mime_type,
-            data=base64_image,
-        )
-        return AnthropicImageContentPart(source=image_source)
 
     def _build_url_image_content(
         self, image_content: SEMOSSImageContent

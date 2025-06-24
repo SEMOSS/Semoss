@@ -4,6 +4,16 @@ ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher;SMSSStorageWatcher;SMSSModelWatcher;SMSSVectorWatcher;SMSSFunctionWatcher;SMSSGuardrailWatcher
 PROJECT_WATCHER	ProjectWatcher
 
+# PYTHONHOME C:\\Users\\rweiler\\Desktop\\REPOS\\uv-docker\\.venv\\Scripts
+PYTHONHOME C:\\workspace\\Semoss\\py\\install_config\\.venv\\Scripts
+TCP_WORKER prerna.tcp.SocketServer
+TCP_CLIENT prerna.tcp.client.NativePySocketClient
+NATIVE_PY_SERVER true
+NETTY_PYTHON true
+USE_PYTHON true
+PY_WORKER prerna.pyserve.FileBasedPyWorker
+USE_PY_FILE	TRUE 
+
 INSIGHT_CACHE_DIR C:\\workspace\\Semoss\\InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 
@@ -68,13 +78,6 @@ ENCRYPT_SMSS false
 
 #USE SOCKET FOR RUNNING R/PYTHON IN SEPARATE PROCESS
 NETTY_R false
-NETTY_PYTHON true
-NATIVE_PY_SERVER true
-
-USE_PYTHON true
-PY_WORKER prerna.pyserve.FileBasedPyWorker
-LD_LIBRARY_PATH	{{INPUT_YOUR_PYTHON_HOME}}\\Lib\\site-packages\\jep
-USE_PY_FILE	TRUE 
 
 USE_R true
 R_CONNECTION_JRI	true
@@ -227,8 +230,6 @@ ADMIN_ONLY_FUNCTION_DELETE	false
 ADMIN_ONLY_FUNCTION_ADD_ACCESS	false
 ADMIN_ONLY_FUNCTION_SET_PUBLIC	false
 ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE	false
-ADMIN_ONLY_VIEW_MENU_BAR false
-ADMIN_ONLY_NON_APPROVED_PROD_ITEM  false
 
 USER_TRACKING_ENABLED	false
 USER_TRACKING_METHOD	GEOIP2
