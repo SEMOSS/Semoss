@@ -1,0 +1,66 @@
+package prerna.io.connector.docs;
+
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import prerna.engine.api.IDatabaseEngine;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
+
+public class GetDocsProfileByIdReactor extends AbstractReactor{
+	
+	public GetDocsProfileByIdReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey()};
+		this.keyRequired = new int[] {1};
+	}
+	
+	@Override
+	public NounMetadata execute() {
+		this.organizeKeys();
+		String id = this.keyValue.get(this.keysToGet[0]);
+		String tableName = null;
+		List<String> docProfile = new ArrayList<>();
+		try {
+			IDatabaseEngine database = Utility.getDatabase("9be6565f-550f-4be0-8758-c25232973cb1");
+			List<String> tableNames = database.getPixelConcepts();
+			for (String table : tableNames) {
+				tableName = table;
+			}
+			String query = " select docid,name,datecreated,lastupdateddate,servicejson from " + tableName + " where id= " + id;
+			@SuppressWarnings("unchecked")
+			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
+			Object rsObj = hashmap.get("RESULTSET_OBJECT");
+			
+			if (rsObj instanceof ResultSet) {
+				ResultSet rs = (ResultSet) rsObj;
+				while (rs.next()) {
+					docProfile.add(rs.getString("docid"));
+					docProfile.add(rs.getString("name"));
+					docProfile.add(rs.getString("datecreated"));
+					docProfile.add(rs.getString("lastupdateddate"));
+					docProfile.add(rs.getString("servicejson"));
+				}
+			}
+			HashMap<String, Object> res = new HashMap<>();
+			res.put("id",id);
+			res.put("docid", docProfile);
+			return new NounMetadata(res, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			String error = "Error in getting the user details";
+			return new NounMetadata(error + ":" + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
+					PixelOperationType.OPERATION);
+		}
+		
+	}
+
+
+}
