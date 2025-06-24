@@ -19,7 +19,7 @@ public class ImageInfo {
         FILE, URL
     }
 
-    private String folderPath;
+//    private String folderPath;
     private String fileName;
     private String base64Data;
     private String fileFormat;
@@ -34,7 +34,7 @@ public class ImageInfo {
         info.roomFolder = roomFolder; // /opt/semoshome/room-123123123/
         String fullFilePath = roomFolder + "/" + filePath;
         info.fileName = extractFileName(fullFilePath);
-        info.folderPath = extractFolderPath(filePath);
+//        info.folderPath = extractFolderPath(filePath);
         info.fileFormat = extractFormat(info.fileName);
         info.mimeType = guessMimeType(fullFilePath, info.fileFormat);
         info.base64Data = encodeFileToBase64(fullFilePath);
@@ -66,10 +66,6 @@ public class ImageInfo {
         this.imageType = imageType;
     }
 
-    public String getFolderPath() {
-        return folderPath;
-    }
-
     public String getFileName() {
         return fileName;
     }
@@ -92,8 +88,8 @@ public class ImageInfo {
 
     public String getBase64Data() {
         // Lazy load if needed (e.g. restored from DB without base64)
-        if (base64Data == null && roomFolder != null && fileName != null && folderPath != null) {
-            String fullImageFilePath = roomFolder + "/" + folderPath + "/" + fileName;
+        if (base64Data == null && roomFolder != null && fileName != null ) {
+            String fullImageFilePath = roomFolder + "/" + fileName;
             base64Data = encodeFileToBase64(fullImageFilePath);
         }
         return base64Data;
@@ -177,7 +173,6 @@ public class ImageInfo {
         m.put("imageType", imageType != null ? imageType.name().toLowerCase() : null);
         if (imageType == ImageSourceType.FILE) {
             m.put("fileName", fileName);
-            m.put("filePath", folderPath);
             m.put("fileFormat", fileFormat);
             m.put("mimeType", mimeType);
             m.put("base64", base64Data);
