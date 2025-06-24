@@ -51,7 +51,8 @@ public class RenameAssetReactor extends AbstractReactor{
         String newFileName = Utility.normalizePath(keyValue.get(this.keysToGet[1]));
         String space  = keyValue.get(this.keysToGet[2]);
 		
-        if (currentFileName == null || currentFileName.trim().isEmpty() || newFileName == null || newFileName.trim().isEmpty()){
+        if (currentFileName == null || (currentFileName=currentFileName.trim()).isEmpty() 
+        		|| newFileName == null || (newFileName=newFileName.trim()).isEmpty()){
             throw new IllegalArgumentException("Must pass both existing name and new name");
         }
  

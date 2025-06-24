@@ -70,7 +70,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"How to use in Javascript",
 					"Generation\r\n" + 
 						"```\r\n"+
-						"LLM(engine = \""+engineId+"\", command = \"<encode>Sample Question</encode>\", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}]);\r\n" + 
+						"LLM(engine = \""+engineId+"\", command = \"<encode>Sample Question</encode>\", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}]);\r\n\r\n" + 
+						"LLM ( engine = \""+engineId+"\" , command = \"<encode>Sample Question With Image\", paramValues=[{'image_url':'https://your_image_url.com'}]);\r\n" +
+						"LLM ( engine = \""+engineId+"\" , command = \"<encode>Sample Question With Image\", paramValues=[{'image_encoded':'base64_of_image'}]);\r\n" +
 						"```\r\n\r\n"+
 
 					"Geneartion with ChatML\r\n" +
@@ -107,8 +109,11 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						
 						"\n# Generation\r\n" +
 						"question = 'Sample Question'\r\n" +
-						"output = model.ask(question = question, param_dict={'max_completion_tokens':2000,'temperature':0.3})\r\n" +
-
+						"output = model.ask(question = question, param_dict={'max_completion_tokens':2000,'temperature':0.3})\r\n\r\n" +
+						"question = 'Sample Question With Image'\r\n" +
+						"output = model.ask(question = question, param_dict={'image_url':'https://your_image_url.com','max_completion_tokens':2000,'temperature':0.3})\r\n" +
+						"output = model.ask(question = question, param_dict={'image_encoded':'base64_of_image','max_completion_tokens':2000,'temperature':0.3})\r\n" +
+						
 						"\r\n# Geneartion with ChatML\r\n" +
 						"model.ask(question='ignore', param_dict=\r\n"+
 						"    {\"full_prompt\":[\r\n"+

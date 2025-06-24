@@ -701,7 +701,7 @@ public class ClusterUtil {
 			ClusterUtil.pushProjectFolder(project.getProjectId(), absolutePath, relative.toString());
 		}
 	}
-
+	
 	/**
 	 * 
 	 * @param projectId
@@ -720,7 +720,7 @@ public class ClusterUtil {
 		}
 		if(ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishProjectChange(projectId, "pullProjectFolder",projectId,absolutePath,remoteRelativePath );
+				getClusterSynchronizer().publishProjectChange(projectId, "pullProjectFolder", projectId, absolutePath, remoteRelativePath );
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to publish project folder for '"+projectId+"' to sync with ZK cluster");
@@ -781,6 +781,129 @@ public class ClusterUtil {
 			}  catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull project '"+projectId+"' folder");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param project
+	 * @param absolutePath
+	 */
+	public static void  pushEngineFolder(IEngine engine, String absolutePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+			pushEngineFolder(engine, absolutePath, null);
+		}		
+	}
+	
+	/**
+	 * 
+	 * @param project
+	 * @param absolutePath
+	 * @param relativePath
+	 */
+	public static void pushEngineFolder(IEngine engine, String absolutePath, String relativePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+			if(relativePath != null && !(relativePath=relativePath.trim()).isEmpty()) {
+				if(absolutePath.endsWith(DIR_SEPARATOR)) {
+					absolutePath += relativePath;
+				} else {
+					absolutePath += DIR_SEPARATOR + relativePath;
+				}
+			}
+			
+			String engineHome = EngineUtility.getSpecificEngineBaseFolder(
+										engine.getCatalogType(), 
+										engine.getEngineId(),
+										engine.getEngineName()
+									);
+			Path projectHomePath = Paths.get(engineHome);
+			Path relative = projectHomePath.relativize( Paths.get(absolutePath));
+			ClusterUtil.pushEngineFolder(engine.getEngineId(), absolutePath, relative.toString());
+		}
+	}
+
+	/**
+	 * 
+	 * @param projectId
+	 * @param absolutePath
+	 * @param remoteRelativePath
+	 */
+	public static void pushEngineFolder(String engineId, String absolutePath, String remoteRelativePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				getCentralStorageClient().pushEngineFolder(engineId, absolutePath, remoteRelativePath);
+			}  catch (Exception e) {
+				SemossPixelException err = new SemossPixelException("Failed to push engine '"+engineId+"' folder");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		if(ClusterUtil.IS_CLUSTER_ZK) {
+			try {
+				getClusterSynchronizer().publishEngineChange(engineId, "pullEngineFolder", engineId, absolutePath, remoteRelativePath);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to publish engine folder for '"+engineId+"' to sync with ZK cluster");
+				err.setContinueThreadOfExecution(true);
+				throw err;
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param project
+	 * @param absolutePath
+	 */
+	public static void  pullEngineFolder(IEngine engine, String absolutePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+			pullEngineFolder(engine, absolutePath, null);
+		}		
+	}
+
+	/**
+	 * 
+	 * @param engine
+	 * @param absolutePath
+	 * @param relativePath
+	 */
+	public static void  pullEngineFolder(IEngine engine, String absolutePath, String relativePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+			if(relativePath != null && !(relativePath=relativePath.trim()).isEmpty()) {
+				if(absolutePath.endsWith(DIR_SEPARATOR)) {
+					absolutePath += relativePath;
+				} else {
+					absolutePath += DIR_SEPARATOR + relativePath;
+				}
+			}
+			
+			String engineHome = EngineUtility.getSpecificEngineBaseFolder(
+									engine.getCatalogType(), 
+									engine.getEngineId(),
+									engine.getEngineName()
+								);
+			Path projectHomePath = Paths.get(engineHome);
+			Path relative = projectHomePath.relativize( Paths.get(absolutePath));
+			ClusterUtil.pullEngineFolder(engine.getEngineId(), absolutePath, relative.toString());
+		}		
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param absolutePath
+	 * @param remoteRelativePath
+	 */
+	public static void pullEngineFolder(String engineId, String absolutePath, String remoteRelativePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				getCentralStorageClient().pullEngineFolder(engineId, absolutePath, remoteRelativePath);
+			}  catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to pull engine '"+engineId+"' folder");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
