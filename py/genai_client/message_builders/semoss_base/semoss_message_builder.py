@@ -13,7 +13,7 @@ from .semoss_models import (
 
 class SEMOSSMessageBuilder:
 
-    def build_messages(self, input_messages: List[Dict] = None):
+    def build_messages(self, input_messages: List[Dict] = None) -> List[SEMOSSMessage]:
         if input_messages is None:
             return []
 
@@ -67,20 +67,24 @@ class SEMOSSMessageBuilder:
     ) -> List[SEMOSSImageContent]:
         semoss_image_contents = []
         for image_info in image_infos:
-            folder_path = image_info.get("folderPath", None)
             file_name = image_info.get("fileName", None)
             mime_type = image_info.get("mimeType", None)
             format = image_info.get("format", None)
             file_name = image_info.get("fileName", None)
             url = image_info.get("url", None)
-            data = image_info.get("data", None)
+            base64Data = image_info.get("base64Data", None)
 
-            if folder_path is not None:
-                type = SEMOSSImageType.FILE_PATH
-            elif url is not None:
+            if url:
                 type = SEMOSSImageType.URL
-            else:
+            elif base64Data:
                 type = SEMOSSImageType.BASE64
+            else:
+                raise ValueError("Image content must have either a URL or base64 data.")
+
+            if type == SEMOSSImageType.URL:
+                data = url
+            else:
+                data = base64Data
 
             image_content = SEMOSSImageContent(
                 type=type,
@@ -88,7 +92,7 @@ class SEMOSSMessageBuilder:
                 format=format,
                 mime_type=mime_type,
                 file_name=file_name,
-                file_path=folder_path,
+                url=url,
             )
 
             semoss_image_contents.append(image_content)

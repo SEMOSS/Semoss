@@ -15,7 +15,6 @@ class SEMOSSMessageType(StringEnum):
 class SEMOSSImageType(StringEnum):
     URL = "url"
     BASE64 = "base64"
-    FILE_PATH = "file_path"
 
 
 class SEMOSSToolType(StringEnum):
@@ -53,7 +52,6 @@ class SEMOSSImageContent(BaseModel):
     format: Optional[str] = None
     mime_type: Optional[str] = None
     file_name: Optional[str] = None
-    file_path: Optional[str] = None
     url: Optional[str] = None
 
 
