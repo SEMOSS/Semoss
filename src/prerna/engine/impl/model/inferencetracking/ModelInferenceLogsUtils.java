@@ -1277,6 +1277,35 @@ public class ModelInferenceLogsUtils {
     deleteFeedbackEntry(messageId);
   }
 
+  public static boolean updateRoomOptions(String userId, String roomId, Map<String, Object> roomOptions) {
+    String query =
+        "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND INSIGHT_ID = ?";
+    
+    PreparedStatement ps = null;
+    try {
+      ps = modelInferenceLogsDb.getPreparedStatement(query);
+      int index = 1;
+      if (roomOptions != null) {
+        modelInferenceLogsDb
+            .getQueryUtil()
+            .handleInsertionOfClob(ps.getConnection(), ps, roomOptions, index++, new Gson());
+      } else {
+        ps.setNull(index++, java.sql.Types.NULL);
+      }
+      ps.setString(index++, userId);
+      ps.setString(index++, roomId);
+      ps.executeUpdate();
+      if (!ps.getConnection().getAutoCommit()) {
+        ps.getConnection().commit();
+      }
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    } finally {
+      ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+    }
+    return true;
+  }
+
   /** @param messageId */
   private static void deleteFeedbackEntry(String messageId) {
     String deleteQuery = "DELETE FROM FEEDBACK WHERE MESSAGE_ID = ?";
