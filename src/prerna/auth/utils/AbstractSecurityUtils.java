@@ -2583,7 +2583,7 @@ public abstract class AbstractSecurityUtils {
 			throw new IllegalArgumentException(email + " is not a valid email address. ");
 		}
 		if(isNewUser && SecurityNativeUserUtils.userEmailExists(email)) {
-			throw new IllegalArgumentException("This email already exists. Please login");
+			throw new IllegalArgumentException("This email already exists, Please login. ");
 		}
 	}
 
@@ -2651,5 +2651,14 @@ public abstract class AbstractSecurityUtils {
 		}
 		LocalDateTime formattedEndDate = endDate.getLocalDateTime();
 		return formattedEndDate.isBefore(currentTime);
+	}
+	
+	public static void validUsername(String username) throws IllegalArgumentException {
+		if (username == null || username.trim().isEmpty()) {
+			throw new IllegalArgumentException("Username cannot be empty. ");
+		}
+		if (SecurityQueryUtils.checkUsernameExist(username)) {
+			throw new IllegalArgumentException("Username already exists. ");
+		}
 	}
 }

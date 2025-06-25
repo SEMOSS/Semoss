@@ -214,8 +214,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			} else {
 				// not added by admin
 				// lets see if he exists or not
-				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getUsername(), newUser.getEmail());
-				if (!userExists) {
 					String salt = AbstractSecurityUtils.generateSalt();
 					String hashedPassword = (AbstractSecurityUtils.hash(password, salt));
 
@@ -306,7 +304,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					
 					storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp);
 					return true;
-				}
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -434,8 +431,12 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 */
 	static void validInformation(AccessToken newUser, String password, boolean isNewUser) {
 		String error = "";
-		if (newUser.getUsername() == null || newUser.getUsername().isEmpty()) {
-			error += "User name can not be empty. ";
+		// User name validation
+		try {
+			validUsername(newUser.getUsername());
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			error += e.getMessage();
 		}
 		try {
 			validEmail(newUser.getEmail(), isNewUser);
