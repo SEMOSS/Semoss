@@ -693,77 +693,6 @@ public class ModelInferenceLogsUtils {
   }
 
   /**
-   * @param insightId
-   * @return
-   */
-  public static String openRoom(Insight insight) {
-
-    String query =
-        "INSERT INTO ROOM (INSIGHT_ID, "
-            + "USER_ID, USER_NAME, USER_EMAIL_ID, "
-            + "AGENT_TYPE, AGENT_ID, IS_ACTIVE, "
-            + "DATE_CREATED, PROJECT_ID, PROJECT_NAME) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    // boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
-    PreparedStatement ps = null;
-    try {
-      ps = modelInferenceLogsDb.getPreparedStatement(query);
-      int index = 1;
-      ps.setString(index++, insight.getInsightId());
-      AccessToken userToken = insight.getUser().getPrimaryLoginToken();
-      ps.setString(index++, userToken.getId());
-      ps.setString(index++, userToken.getName());
-      if (userToken.getEmail() != null) {
-        ps.setString(index++, userToken.getEmail());
-      } else {
-        ps.setNull(index++, java.sql.Types.VARCHAR);
-      }
-      ps.setString(
-          index++, modelInferenceLogsDb.getCatalogSubType(modelInferenceLogsDb.getSmssProp()));
-      ps.setString(index++, modelInferenceLogsDb.getEngineId());
-      ps.setBoolean(index++, true);
-      ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
-      String projectId =
-          insight.getContextProjectId() != null
-              ? insight.getContextProjectId()
-              : insight.getProjectId();
-      ps.setString(index++, projectId);
-      ps.setString(index++, Utility.getProject(projectId).getProjectName());
-      ps.execute();
-      if (!ps.getConnection().getAutoCommit()) {
-        ps.getConnection().commit();
-      }
-      return insight.getInsightId();
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
-    return null;
-  }
-
-  /**
-   * @param roomId
-   * @param userId
-   * @return
-   */
-  public static boolean deactivateRoom(String roomId, String userId) {
-
-    String ps = "UPDATE ROOM SET IS_ACTIVE = ? WHERE INSIGHT_ID = ? AND USER_ID = ?";
-
-    try (PreparedStatement updatePs = modelInferenceLogsDb.getPreparedStatement(ps)) {
-      updatePs.setBoolean(1, false);
-      updatePs.setString(2, roomId);
-      updatePs.setString(3, userId);
-      updatePs.executeUpdate();
-      if (!updatePs.getConnection().getAutoCommit()) {
-        updatePs.getConnection().commit();
-      }
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
-    return true;
-  }
-
-  /**
    * @param roomName
    * @param roomContext
    * @param userId
@@ -863,8 +792,16 @@ public class ModelInferenceLogsUtils {
       } else {
         ps.setNull(index++, java.sql.Types.VARCHAR);
       }
-      ps.setString(index++, agentType);
-      ps.setString(index++, agentId);
+      if (agentType != null) {
+        ps.setString(index++, agentType);
+      } else {
+        ps.setNull(index++, java.sql.Types.VARCHAR);
+      }
+	  if (agentId != null) {
+        ps.setString(index++, agentId);
+      } else {
+        ps.setNull(index++, java.sql.Types.VARCHAR);
+      }
       ps.setBoolean(index++, isActive);
       ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
       ps.setString(index++, projectId);

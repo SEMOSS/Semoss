@@ -68,7 +68,7 @@ public class LLM2Reactor extends AbstractReactor {
 
 		
 		
-		Room room = RoomUtils.createRoomIfNotExists(engineId, roomId, insight, modelEngine, question);
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
        
         
         ///// MESSAGE CREATION //////////

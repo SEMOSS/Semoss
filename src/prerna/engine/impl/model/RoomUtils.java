@@ -20,7 +20,6 @@ public class RoomUtils {
      * @return the existing or newly created Room
      */
     public static Room createRoomIfNotExists(
-            String engineId,
             String roomId,
             Insight insight,
             IModelEngine modelEngine,
@@ -34,7 +33,12 @@ public class RoomUtils {
         boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckConversationExists(roomId);
 
         if (!roomExistsInDB) {
-            String agentType = modelEngine.getCatalogSubType(modelEngine.getSmssProp());
+            String agentType = null;
+            String engineId = null;
+            if (modelEngine != null) {
+                agentType = modelEngine.getCatalogSubType(modelEngine.getSmssProp());
+                engineId = modelEngine.getEngineId();
+            }
             User user = insight.getUser();
             AccessToken userToken = user.getPrimaryLoginToken();
             String userName = userToken.getName();
@@ -57,7 +61,7 @@ public class RoomUtils {
                     userName,
                     userEmail,
                     agentType,
-                    modelEngine.getEngineId(),
+                    engineId,
                     true,
                     projectId,
                     projectName
@@ -71,7 +75,7 @@ public class RoomUtils {
 
     /**
      * Loads a Room from user room hash or database if present.
-     * Never creates a Room—throws IllegalArgumentException if not found.
+     * Never creates a Roomï¿½throws IllegalArgumentException if not found.
      * @throws IllegalArgumentException if Room does not exist.
      */
     public static Room getOrLoadRoom(String roomId,  Insight insight) {

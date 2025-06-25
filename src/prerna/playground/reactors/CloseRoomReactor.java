@@ -16,7 +16,7 @@ public class CloseRoomReactor extends AbstractReactor {
   public NounMetadata execute() {
     String roomId = this.keyValue.get(this.keysToGet[0]);
     boolean result =
-        ModelInferenceLogsUtils.deactivateRoom(roomId, this.insight.getUser().getPrimaryLoginToken().getId());
+        ModelInferenceLogsUtils.doSetRoomToInactive(this.insight.getUser().getPrimaryLoginToken().getId(), roomId);
     return new NounMetadata(result, PixelDataType.BOOLEAN);
   }
 }
