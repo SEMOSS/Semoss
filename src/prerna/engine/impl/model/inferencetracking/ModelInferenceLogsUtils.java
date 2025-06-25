@@ -1250,36 +1250,48 @@ public class ModelInferenceLogsUtils {
   /**
    * @param userId
    * @param roomId
-   * @param roomContext
    * @return
    */
-  public static boolean setRoomContext(String userId, String roomId, Map<String, Object> roomContext) {
-    String query =
-        "UPDATE ROOM SET ROOM_CONTEXT = ? WHERE USER_ID = ? AND INSIGHT_ID = ?";
-    
-    PreparedStatement ps = null;
+  public static List<Map<String,Object>> getRoomContext(String userId, String roomId) {
+    SelectQueryStruct qs = new SelectQueryStruct();
+    qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "ROOM_CONTEXT"));
+    qs.addExplicitFilter(
+        SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "INSIGHT_ID", "==", roomId));
+    qs.addExplicitFilter(
+        SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "USER_ID", "==", userId));
+
+    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+  }
+
+  /**
+   * @param userId
+   * @param roomId
+   * @param context
+   * @return
+   */
+  public static void setRoomContext(String insightId, String userId, String context) {
     try {
-      ps = modelInferenceLogsDb.getPreparedStatement(query);
-      int index = 1;
-      if (roomContext != null) {
-        modelInferenceLogsDb
-            .getQueryUtil()
-            .handleInsertionOfClob(ps.getConnection(), ps, roomContext, index++, new Gson());
-      } else {
-        ps.setNull(index++, java.sql.Types.NULL);
-      }
-      ps.setString(index++, userId);
-      ps.setString(index++, roomId);
-      ps.executeUpdate();
-      if (!ps.getConnection().getAutoCommit()) {
-        ps.getConnection().commit();
-      }
+      UpdateQueryStruct qs = new UpdateQueryStruct();
+      qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+      qs.setEngine(modelInferenceLogsDb);
+
+      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+      qs.addExplicitFilter(
+          SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", insightId));
+      List<IQuerySelector> selectors = new ArrayList<>();
+      List<Object> values = new ArrayList<>();
+      selectors.add(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
+      values.add(context);
+      qs.setSelectors(selectors);
+      qs.setValues(values);
+
+      UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+      String updateQ = updateInterp.composeQuery();
+
+      modelInferenceLogsDb.insertData(updateQ);
     } catch (Exception e) {
       classLogger.error(Constants.STACKTRACE, e);
-    } finally {
-      ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
     }
-    return true;
   }
 
   /** @param messageId */
