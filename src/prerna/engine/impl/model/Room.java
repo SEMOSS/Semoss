@@ -25,7 +25,7 @@ import prerna.util.Utility;
 public class Room {
 	private String room_id;
 	private String userId;
-	private String title;
+	private String roomName;
 	private String shareId;
 	private boolean archived;
 	private Timestamp createdAt;
@@ -43,11 +43,12 @@ public class Room {
 	}
 
 	// Use this constructor if you want to load from JSON (as from DB)
-	public Room(String room_id, String userId, String title, String shareId, boolean archived, Timestamp createdAt,
+	public Room(String room_id, String userId, String roomName, String systemMessage, String shareId, boolean archived, Timestamp createdAt,
 			Timestamp updatedAt, String messagesJson, boolean pinned, String options, String modelId) {
 		this.room_id = room_id;
 		this.userId = userId;
-		this.title = title;
+		this.roomName = roomName;
+		this.systemMessage = systemMessage;
 		this.shareId = shareId;
 		this.archived = archived;
 		this.createdAt = createdAt;
@@ -68,10 +69,12 @@ public class Room {
 	}
 
 	
-	public ResponseMessage ask(InputMessage msg, String systemMessage, Insight insight, IModelEngine modelEngine) {
+	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine) {
 		
+		//if a specific system message is sent to use, overwrite the existing in the db. 
 		if(systemMessage != null) {
 			this.systemMessage=systemMessage;
+			ModelInferenceLogsUtils.setRoomContext(this.insight.getInsightId(), this.insight.getUser().getPrimaryLoginToken().getId() , systemMessage);
 		}
 		// Set model type and add message to history
 		msg.setModel(modelEngine);
@@ -89,13 +92,15 @@ public class Room {
 
 		fakeMap.put("message_json", getMessagesWithImageDataAsString());
 		
-		
-		AskModelEngineResponse llmResponse = modelEngine.ask("", this.getSystemMessage(), insight,fakeMap);
+		AskModelEngineResponse llmResponse = modelEngine.ask(msg.getInputPrompt(), this.getSystemMessage(), insight,fakeMap);
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 
+		//set transaction id for both pieces
+		msg.setTransactionId(llmResponse.getMessageId());
+		response.setTransactionId(llmResponse.getMessageId());
+		
 		// Create the assistant's response message and add to history
 		response.setModel(modelEngine);
-		response.setTransactionId(msg.getTransactionId());
 		response.setParentMessageId(msg.getMessageId());
 		messages.add(response);
 
@@ -238,12 +243,12 @@ public class Room {
 		this.userId = userId;
 	}
 
-	public String getTitle() {
-		return title;
+	public String getRoomName() {
+		return roomName;
 	}
 
-	public void setTitle(String title) {
-		this.title = title;
+	public void setRoomName(String roomName) {
+		this.roomName = roomName;
 	}
 
 	public String getShareId() {

@@ -147,7 +147,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		
 		if (this.context != null) {
 			// set the context for the room / insight
-			ModelInferenceLogsUtils.setRoomContext(insightId, userId, userName);
+			ModelInferenceLogsUtils.setRoomContext(insightId, userId, context);
 		}
 		
 		boolean keepInputOutput = false;
