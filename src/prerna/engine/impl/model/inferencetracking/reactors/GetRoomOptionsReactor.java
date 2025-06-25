@@ -14,7 +14,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetRoomOptionsReactor extends AbstractReactor {
     @SuppressWarnings("unused")
-	private static final Logger logger = LogManager.getLogger(UpdateRoomOptionsReactor.class);
+	private static final Logger logger = LogManager.getLogger(GetRoomOptionsReactor.class);
 
 	public GetRoomOptionsReactor() {
 		this.keysToGet = new String[] { "roomId" };
