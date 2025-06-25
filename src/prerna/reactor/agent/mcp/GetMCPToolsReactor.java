@@ -13,29 +13,40 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 
 public class GetMCPToolsReactor extends AbstractReactor {
 
-	// responsible for making the mcp
-	// looks for project id and then makes the MCP based on it
 	private static final Logger classLogger = LogManager.getLogger(GetMCPToolsReactor.class);
-
 	
-	public GetMCPToolsReactor()
-	{
+	public GetMCPToolsReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
 		this.keyRequired = new int[] {1};
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
 		organizeKeys();
+		
+		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
+
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access");
+		}
+		
 		JSONObject toolMap = new JSONObject();
 		
 		// get the project
@@ -66,37 +77,34 @@ public class GetMCPToolsReactor extends AbstractReactor {
 		return new NounMetadata(toolMap, PixelDataType.JSON_OBJECT);
 	}
 	
-	protected JSONArray getNode(String jsonFileLoc, String node)
-	{
+	/**
+	 * 
+	 * @param jsonFileLoc
+	 * @param node
+	 * @return
+	 */
+	protected JSONArray getNode(String jsonFileLoc, String node) {
 		File jsonFile = new File(jsonFileLoc);
 		if(jsonFile.exists())
 		{
-			InputStream is = null;
-			try {
-				is = new FileInputStream(jsonFile);
+			try (InputStream is = new FileInputStream(jsonFile);){
 				String jsonTxt = IOUtils.toString(is, "UTF-8");
 				JSONObject json = new JSONObject(jsonTxt);
 				// the tools is what has it
 				JSONArray toolObj = null;
-				if(json.has(node))
-				{
+				if(json.has(node)) {
 					toolObj = (JSONArray)json.getJSONArray(node);
 					return toolObj;
 				}
-				is.close();
 			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (JSONException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return new JSONArray();
-
 	}
 
 }

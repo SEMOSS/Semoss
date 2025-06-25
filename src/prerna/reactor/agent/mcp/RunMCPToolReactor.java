@@ -16,135 +16,147 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 
 public class RunMCPToolReactor extends AbstractReactor {
 
-	// responsible for making the mcp
-	// looks for project id and then makes the MCP based on it
 	private static final Logger classLogger = LogManager.getLogger(RunMCPToolReactor.class);
 
-	public RunMCPToolReactor()
-	{
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
+	public RunMCPToolReactor() {
+		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FUNCTION.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
 		this.keyRequired = new int[] {1, 1, 1};
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
-		String projectId = null;
-		String functionName = null;
-		if(this.store.getNoun(ReactorKeysEnum.PROJECT.getKey()) != null)
-			projectId = this.store.getNoun(ReactorKeysEnum.PROJECT.getKey()).get(0).toString();
+		organizeKeys();
 
-		if(this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey()) != null)
-			functionName = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey()).get(0).toString();
-		
+		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
+
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access.");
+		}
+
+		String functionName = this.keyValue.get(this.keysToGet[1]);
+		if(functionName == null || (functionName=functionName.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Function name must be passed in to execute the mcp tool");
+		}
+
 		String output = "{}";
-		// get the key
-		// get the value from the param map
-		// format it
+		// get the param map
+		// load the script and then run it
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
+		projectAssetFolder = projectAssetFolder.replace("\\", "/");
 
-		if(projectId != null || functionName != null)
+		String pyFolderLoc = projectAssetFolder + "/py";
+
+		Map<String, Object> paramMap = getMap();
+
+		String sysImport = "import sys";
+		String getpath = "print(sys.path)";
+		String setpath = "sys.path.insert(0,'" + pyFolderLoc + "')";
+		String loadLib = "import main";
+
+		// this is where we need to compose the method
+		// for every argument I need to know the type
+		// and then compose accordingly
+		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+
+		JSONObject functionProperties = getFunction(functionName, jsonFileLoc);
+
+		// iterate function properties and find if it is string etc. 
+		Iterator <String> props = functionProperties.keys();
+		StringBuilder paramString = new StringBuilder();
+		while(props.hasNext())
 		{
-			// get the param map
-			// load the script and then run it
-			String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
-			projectAssetFolder = projectAssetFolder.replace("\\", "/");
-
-			String pyFolderLoc = projectAssetFolder + "/py";
-			
-			Map <String, Object> paramMap = getMap();
-			
-			String sysImport = "import sys";
-			String getpath = "print(sys.path)";
-			String setpath = "sys.path.insert(0,'" + pyFolderLoc + "')";
-			String loadLib = "import main";
-			
-			// this is where we need to compose the method
-			// for every argument I need to know the type
-			// and then compose accordingly
-			String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
-			
-			JSONObject functionProperties = getFunction(functionName, jsonFileLoc);
-			
-			// iterate function properties and find if it is string etc. 
-			Iterator <String> props = functionProperties.keys();
-			StringBuilder paramString = new StringBuilder();
-			while(props.hasNext())
-			{
-				if(paramString.length() != 0)
-					paramString.append(", ");
-				String propName = props.next();
-				JSONObject thisProp = ((JSONObject)functionProperties.get(propName));
-				String propType = thisProp.getString("type");
-				Object propValue = null;
-				
-				// get the value
-				if(paramMap.containsKey(propName))
-					propValue = paramMap.get(propName);
-				else if (thisProp.has("default"))
-					// get the default value
-					propValue = thisProp.getString("default");
-				else
-					propValue = "None";
-				paramString.append(propName).append("=");
-				
-				// compose the string
-				if(propType.toUpperCase().contains("STR") && !propValue.toString().equals("None")) // if it is none send it as is
-					paramString.append("'").append(propValue).append("'");
-				else
-					paramString.append(propValue);
-				
+			if(paramString.length() != 0) {
+				paramString.append(", ");
 			}
-			String runMethod = "main." + functionName + "(" + paramString + ")";
-			classLogger.info("Running method..  " + runMethod + "  On project " + projectId);
-			String curPath = insight.getPyTranslator().runPyAndReturnOutput(sysImport, getpath);
-			curPath = curPath.replace("\\", "/");
-			if(!curPath.contains(pyFolderLoc))
-				insight.getPyTranslator().runPyAndReturnOutput(setpath, loadLib);
-			// run set up
-			// do set context
-			
-			// run method
-			output = insight.getPyTranslator().runSingle(runMethod, insight);
-			
-			classLogger.info(output);
-			
-			
-		}	
+			String propName = props.next();
+			JSONObject thisProp = ((JSONObject)functionProperties.get(propName));
+			String propType = thisProp.getString("type");
+			Object propValue = null;
+
+			// get the value
+			if(paramMap != null && paramMap.containsKey(propName)) {
+				propValue = paramMap.get(propName);
+			} else if (thisProp.has("default")) {
+				// get the default value
+				propValue = thisProp.getString("default");
+			} else {
+				propValue = "None";
+			}
+			paramString.append(propName).append("=");
+
+			// compose the string
+			// if it is none send it as is
+			if(propType.toUpperCase().contains("STR") && !propValue.toString().equals("None")) {
+				paramString.append("'").append(propValue).append("'");
+			} else {
+				paramString.append(propValue);
+			}
+		}
+		
+		String runMethod = "main." + functionName + "(" + paramString + ")";
+		classLogger.info("Running method..  " + runMethod + "  On project " + projectId);
+		String curPath = insight.getPyTranslator().runPyAndReturnOutput(sysImport, getpath);
+		curPath = curPath.replace("\\", "/");
+		if(!curPath.contains(pyFolderLoc)) {
+			insight.getPyTranslator().runPyAndReturnOutput(setpath, loadLib);
+		}
+		// run method
+		output = insight.getPyTranslator().runSingle(runMethod, insight);
+		classLogger.info(output);
+
 		return new NounMetadata(output, PixelDataType.CONST_STRING);
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-        if(mapGrs != null && !mapGrs.isEmpty()) {
-            List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-            if(mapInputs != null && !mapInputs.isEmpty()) {
-                return (Map<String, Object>) mapInputs.get(0).getValue();
-            }
-        }
-        List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-        if(mapInputs != null && !mapInputs.isEmpty()) {
-            return (Map<String, Object>) mapInputs.get(0).getValue();
-        }
-        return null;
-    }
-	
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if(mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if(mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if(mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
+
+	/**
+	 * 
+	 * @param functionName
+	 * @param jsonFileLoc
+	 * @return
+	 */
 	private JSONObject getFunction(String functionName, String jsonFileLoc)
 	{
 		File jsonFile = new File(jsonFileLoc);
 		if(jsonFile.exists())
 		{
-			InputStream is = null;
-			try {
-				is = new FileInputStream(jsonFile);
+			try (InputStream is = new FileInputStream(jsonFile)){
 				String jsonTxt = IOUtils.toString(is, "UTF-8");
 				JSONObject json = new JSONObject(jsonTxt);
 				// the tools is what has it
@@ -162,23 +174,34 @@ public class RunMCPToolReactor extends AbstractReactor {
 							JSONObject properties = ((JSONObject)thisTool.get("inputSchema")).getJSONObject("properties");
 							return properties;
 						}
-
 					}
 				}
-				is.close();
 			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (JSONException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return new JSONObject();
+	}
 
+	@Override
+	public String getReactorDescription() {
+		return "Execute a tool defined in the app";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The unique id for the project/app";
+		} else if(key.equals(ReactorKeysEnum.FUNCTION.getKey())) {
+			return "The name of the function (tool) to execute";
+		} else if(key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			return "A key-value pair map containing the parameter inputs for the function (tool)";
+		}
+		return super.getDescriptionForKey(key);
 	}
 	
 }
