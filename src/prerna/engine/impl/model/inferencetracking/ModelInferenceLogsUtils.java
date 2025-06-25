@@ -1286,7 +1286,7 @@ public class ModelInferenceLogsUtils {
    * @param options
    * @return
    */
-  public static void setRoomOptions(String userId, String roomId, String options) {
+  public static void setRoomOptions(String roomId, String userId, String options) {
     String query =
         "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND INSIGHT_ID = ?";
 
