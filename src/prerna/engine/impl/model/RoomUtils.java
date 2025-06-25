@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.tinkerpop.shaded.jackson.databind.JsonMappingException;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -122,7 +123,12 @@ public class RoomUtils {
 
         Gson gson = new Gson();
         Type type = new TypeToken<Map<String, Object>>(){}.getType();
-        Map<String, Object> map = gson.fromJson(roomContextjsonString, type);
+        Map<String, Object> map = null;
+        try {
+        map = gson.fromJson(roomContextjsonString, type);
+        } catch (Exception e) {
+        	e.printStackTrace();
+        }
 
         String logMessage = String.format("Found %s in room context", map.keySet());
         logger.info(logMessage);
