@@ -75,6 +75,17 @@ public class JiraInsertReactor extends AbstractReactor {
 		}
 	}
 
+	/**
+	 * To return primary key of the user after inserting data in DB
+	 * @param database
+	 * @param userId
+	 * @param apiKey
+	 * @param url
+	 * @param date
+	 * @param lused
+	 * @param alias
+	 * @return
+	 */
 	private Integer readData(IDatabaseEngine database, String userId, String apiKey, String url, Timestamp date,
 			Timestamp lused, String alias) {
 		int profileKey = 0;
@@ -103,6 +114,18 @@ public class JiraInsertReactor extends AbstractReactor {
 
 	}
 
+	/**
+	 * To insert user data in DB
+	 * @param database
+	 * @param userId
+	 * @param apiKey
+	 * @param url
+	 * @param dateCreated
+	 * @param lastUsed
+	 * @param insightusername
+	 * @param alias
+	 * @return
+	 */
 	private static HashMap<String, Object> insertData(IDatabaseEngine database, String userId, String apiKey, String url,
 			Timestamp dateCreated, Timestamp lastUsed, String insightusername, String alias) {
 		String tableName = null;
@@ -129,6 +152,25 @@ public class JiraInsertReactor extends AbstractReactor {
 		
 		}
 		return map;
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is used for inserting data in DB of the user like Username, Apikey, URL and Alias";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.USERNAME.getKey())) {
+			return "username(emaild) of the user who intends to perform Jira operations" + ReactorKeysEnum.USERNAME.getKey();
+		}else if (key.equals(ReactorKeysEnum.API_KEY.getKey())) {
+			return "Api key of the user which will be used for authentication for various Jira Operations" + ReactorKeysEnum.API_KEY.getKey();
+		}else if (key.equals(ReactorKeysEnum.URL.getKey())) {
+			return "Base URL using which url for create, delete, list issues etc will be created" + ReactorKeysEnum.URL.getKey();
+		}else if (key.equals(ReactorKeysEnum.ALIAS.getKey())) {
+			return "Alias for each entry to identify userid while performing different Jira operations" + ReactorKeysEnum.ALIAS.getKey();
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

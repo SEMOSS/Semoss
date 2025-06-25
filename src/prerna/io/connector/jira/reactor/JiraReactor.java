@@ -62,13 +62,11 @@ public class JiraReactor extends AbstractReactor {
 			case "truncate data":
 				return JiraHelper.truncateData(userId);
 
-			
 			case "get all projects":
 				return JiraHelper.getAllProjects(userId); 
 				
 			case "delete record for userid":
 				return JiraHelper.deleteRecordForUser(userId);
-
 				
 			case "type of issue":
 				return JiraHelper.issueType(userId);
@@ -82,4 +80,31 @@ public class JiraReactor extends AbstractReactor {
 				PixelOperationType.OPERATION);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor navigates to implementation of different jira commands";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+			return "Commands to perform for different jira operations" + ReactorKeysEnum.COMMAND.getKey();
+		}else if (key.equals(ReactorKeysEnum.USERID.getKey())) {
+			return "Unique self incremented user id of the user stored in db" + ReactorKeysEnum.USERID.getKey();
+		}else if (key.equals(ReactorKeysEnum.SUMMARY.getKey())) {
+			return "Summary of the Jira" + ReactorKeysEnum.SUMMARY.getKey();
+		}else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+			return "Description of the Jira" + ReactorKeysEnum.DESCRIPTION.getKey();
+		}else if (key.equals(ReactorKeysEnum.ISSUETYPE.getKey())) {
+			return "Issue type of the Jira" + ReactorKeysEnum.ISSUETYPE.getKey();
+		}else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "Project name for performing jira operations" + ReactorKeysEnum.PROJECT.getKey();
+		}else if (key.equals(ReactorKeysEnum.JIRAID.getKey())) {
+			return "Jira id" + ReactorKeysEnum.JIRAID.getKey();
+		}
+		return super.getDescriptionForKey(key);
+	}
+
+	
+	
 }

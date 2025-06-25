@@ -12,6 +12,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.JiraDetails;
@@ -57,5 +58,9 @@ public class JiraGetReactor extends AbstractReactor {
 			return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
 	}
-
+	
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is user for getting list of all the enteries in DB to display on UI.";
+	}
 }

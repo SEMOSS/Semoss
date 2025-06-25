@@ -35,6 +35,13 @@ import prerna.security.HttpHelperUtility;
 public class JiraHelper {
 	
 	private static final Logger classLogger = LogManager.getLogger(JiraHelper.class);
+	
+	/**
+	 * List all the Jira Issues
+	 * @param projectName
+	 * @param userId
+	 * @return
+	 */
 
 	public static NounMetadata listIssue(String projectName, String userId)
 			throws JsonMappingException, JsonProcessingException {
@@ -77,6 +84,11 @@ public class JiraHelper {
 		}
 	}
 
+	/**
+	 * Get URL from DB
+	 * @param userId
+	 * @return
+	 */
 	private static String getURLFromDB(String userId) {
 		String error = null;
 		try {
@@ -102,6 +114,12 @@ public class JiraHelper {
 		}
 		return error;
 	}
+	
+	/**
+	 * Get username from DB
+	 * @param userId
+	 * @return
+	 */
 
 	private static String getUserName(String userId) {
 		String error = null;
@@ -131,6 +149,11 @@ public class JiraHelper {
 		return error;
 	}
 
+	/**
+	 * Get DB Details
+	 * @param userId
+	 * @return
+	 */
 	private static String getDBDetails(String userId) throws Exception, SQLException {
 		String tableName = null;
 		String apiKey = null;
@@ -151,6 +174,15 @@ public class JiraHelper {
 		return apiKey;
 	}
 
+	/**
+	 * Create Jira issue
+	 * @param summary
+	 * @param description
+	 * @param istype
+	 * @param projectName
+	 * @param userId
+	 * @return
+	 */
 	public static NounMetadata createIssue(String summary, String description, String istype, String projectName,
 			String userId) {
 		String msg = null;
@@ -204,6 +236,12 @@ public class JiraHelper {
 		}
 	}
 
+	/**
+	 * Delete Jira issue
+	 * @param jiraId
+	 * @param userId
+	 * @return
+	 */
 	public static NounMetadata deleteIssue(String jiraId, String userId) {
 		String msg = null;
 		try {
@@ -236,6 +274,11 @@ public class JiraHelper {
 
 	}
 
+	/**
+	 * Truncating DB Data completely
+	 * @param userId
+	 * @return
+	 */
 	public static NounMetadata truncateData(String userId) {
 		Boolean truncateFlag = false;
 		String msg = null;
@@ -271,6 +314,11 @@ public class JiraHelper {
 				PixelOperationType.OPERATION);
 	}
 
+	/**
+	 * Check if user id is available in DB to perform various operations
+	 * @param userId
+	 * @return
+	 */
 	private static List<String> checkUserId(String userId) {
 		List<String> userIds = new ArrayList<String>();
 		try {
@@ -299,6 +347,11 @@ public class JiraHelper {
 	}
 
 
+	/**
+	 * Get all projects
+	 * @param userId
+	 * @return
+	 */
 	public static NounMetadata getAllProjects(String userId) {
 		String msg=null;
 		try {
@@ -334,6 +387,11 @@ public class JiraHelper {
 		}
 	}
 
+	/**
+	 * Delete record for a user in DB
+	 * @param userId
+	 * @return
+	 */
 	public static NounMetadata deleteRecordForUser(String userId) {
 		Boolean truncateFlag = false;
 		String msg = null;
@@ -369,6 +427,11 @@ public class JiraHelper {
 				PixelOperationType.OPERATION);
 	}
 
+	/**
+	 * List all issuetype
+	 * @param userId
+	 * @return
+	 */
 	public static NounMetadata issueType(String userId) {
 		
 		ArrayList<String> jiraIssues = new ArrayList<>();
