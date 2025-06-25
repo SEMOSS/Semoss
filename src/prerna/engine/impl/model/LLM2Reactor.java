@@ -84,7 +84,7 @@ public class LLM2Reactor extends AbstractReactor {
         
         
         
-        ResponseMessage response = room.ask(msg, context, insight, modelEngine);
+        ResponseMessage response = room.ask(msg, context, modelEngine);
 		return new NounMetadata(response.getModelEngineResponse().toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	

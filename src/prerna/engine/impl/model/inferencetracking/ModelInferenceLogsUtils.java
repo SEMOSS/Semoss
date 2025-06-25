@@ -1553,6 +1553,7 @@ public class ModelInferenceLogsUtils {
             resultSet.getString("INSIGHT_ID"),
             resultSet.getString("USER_ID"),
             resultSet.getString("ROOM_NAME"),
+            resultSet.getString("ROOM_CONTEXT"),
             resultSet.getString("SHARE_ID"),
             resultSet.getBoolean("IS_ACTIVE"),
             resultSet.getTimestamp("DATE_CREATED"),

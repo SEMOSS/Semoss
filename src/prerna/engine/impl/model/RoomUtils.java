@@ -75,7 +75,6 @@ public class RoomUtils {
 
     /**
      * Loads a Room from user room hash or database if present.
-     * Never creates a Room�throws IllegalArgumentException if not found.
      * @throws IllegalArgumentException if Room does not exist.
      */
     public static Room getOrLoadRoom(String roomId,  Insight insight) {
