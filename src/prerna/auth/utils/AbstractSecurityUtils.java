@@ -1945,10 +1945,23 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(queryUtil.createTable("API_KEY", colNames, types));
 				}
 			}
-	
-			if(!conn.getAutoCommit()) {
+            // NONAPPROVEDPRODUCT
+			// TODO::: need to check with table name
+			   colNames = new String[] { "ENGINE_TYPE", "ENGINE_CLASS", "FE_KEY", "ALLOWED" };
+			   types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(5)"};
+			   defaultValues = new String[]{"","","",""};
+			   if(allowIfExistsTable) {
+				  securityDb.insertData(queryUtil.createTableIfNotExists("ENGINERESTRICTION", colNames, types));
+			    } else {
+					// see if table exists
+					if(!queryUtil.tableExists(conn, "ENGINERESTRICTION", database, schema)) {
+						// make the table
+						securityDb.insertData(queryUtil.createTable("ENGINERESTRICTION", colNames, types));
+					}
+			   }
+			  if(!conn.getAutoCommit()) {
 				conn.commit();
-			}
+			  }
 		} finally {
 			// clean up the connection used for this method
 			if(conn != null && securityDb.isConnectionPooling()) {

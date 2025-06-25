@@ -3181,4 +3181,37 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 	}
 
+    /**
+	 *
+	 * Get the NonApprovedProduct List  for a specific user
+	 * @return
+	 */
+	public static List<Map<String, Object>> getNonApprovedProductList() throws Exception {	
+		String query = "SELECT ENGINE_TYPE,FE_KEY  FROM ENGINERESTRICTION  WHERE ALLOWED ='false' group by FE_KEY ";
+		HardSelectQueryStruct qs = new HardSelectQueryStruct();
+		qs.setQuery(query);
+		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}	
+	/**
+	 *
+	 * Get the NonApprovedProduct List  for a specific user
+	 * @return
+	 */
+	public static Map<String, List<String>> getNonApprovedProduct() throws Exception {
+		Map<String, List<String>> result = null;			
+		if(getNonApprovedProductList().size()>0) {
+		classLogger.info("getNonApproved Product list",getNonApprovedProductList().size());
+	    result = getNonApprovedProductList().stream()
+	            .collect(Collectors.groupingBy(
+	                m -> (String) m.get("ENGINE_TYPE"),
+	                Collectors.mapping(m -> (String) m.get("FE_KEY"), Collectors.toList())
+	            ));
+		}else {			
+			classLogger.info("getNonApproved Product list is null");
+		}
+		
+		return result;
+	}
+
 }
