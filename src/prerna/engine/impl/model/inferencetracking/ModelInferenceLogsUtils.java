@@ -818,36 +818,6 @@ public class ModelInferenceLogsUtils {
   }
 
   /**
-   * @param insightId
-   * @param userId
-   * @param context
-   */
-  public static void setRoomContext(String insightId, String userId, String context) {
-    try {
-      UpdateQueryStruct qs = new UpdateQueryStruct();
-      qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-      qs.setEngine(modelInferenceLogsDb);
-
-      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-      qs.addExplicitFilter(
-          SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", insightId));
-      List<IQuerySelector> selectors = new ArrayList<>();
-      List<Object> values = new ArrayList<>();
-      selectors.add(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
-      values.add(context);
-      qs.setSelectors(selectors);
-      qs.setValues(values);
-
-      UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-      String updateQ = updateInterp.composeQuery();
-
-      modelInferenceLogsDb.insertData(updateQ);
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
-  }
-
-  /**
    * @param roomId
    * @return
    */
@@ -1277,18 +1247,24 @@ public class ModelInferenceLogsUtils {
     deleteFeedbackEntry(messageId);
   }
 
-  public static boolean updateRoomOptions(String userId, String roomId, Map<String, Object> roomOptions) {
+  /**
+   * @param userId
+   * @param roomId
+   * @param roomContext
+   * @return
+   */
+  public static boolean setRoomContext(String userId, String roomId, Map<String, Object> roomContext) {
     String query =
-        "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND INSIGHT_ID = ?";
+        "UPDATE ROOM SET ROOM_CONTEXT = ? WHERE USER_ID = ? AND INSIGHT_ID = ?";
     
     PreparedStatement ps = null;
     try {
       ps = modelInferenceLogsDb.getPreparedStatement(query);
       int index = 1;
-      if (roomOptions != null) {
+      if (roomContext != null) {
         modelInferenceLogsDb
             .getQueryUtil()
-            .handleInsertionOfClob(ps.getConnection(), ps, roomOptions, index++, new Gson());
+            .handleInsertionOfClob(ps.getConnection(), ps, roomContext, index++, new Gson());
       } else {
         ps.setNull(index++, java.sql.Types.NULL);
       }

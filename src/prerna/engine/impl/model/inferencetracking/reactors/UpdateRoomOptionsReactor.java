@@ -29,9 +29,9 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 		}
 
 		String roomId = this.keyValue.get(this.keysToGet[0]);
-		Map<String, Object> roomOptions = getRoomOptionsMap();
+		Map<String, Object> roomContext = getRoomContextMap();
 
-		boolean result = ModelInferenceLogsUtils.updateRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
+		boolean result = ModelInferenceLogsUtils.setRoomContext(roomId, user.getPrimaryLoginToken().getId(), roomContext);
 		return new NounMetadata(result, PixelDataType.BOOLEAN);
 	}
 
@@ -40,7 +40,7 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	private Map<String, Object> getRoomOptionsMap() {
+	private Map<String, Object> getRoomContextMap() {
 		GenRowStruct mapGrs = this.store.getNoun(keysToGet[1]);
 		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
