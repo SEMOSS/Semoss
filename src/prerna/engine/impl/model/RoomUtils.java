@@ -3,10 +3,18 @@ package prerna.engine.impl.model;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.inferencetracking.reactors.UpdateRoomContextReactor;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.util.Utility;
@@ -17,6 +25,8 @@ import prerna.util.Utility;
  * - getOrLoadRoom: looks up or loads room to memory hash, but never creates a Room
  */
 public class RoomUtils {
+
+    private static final Logger logger = LogManager.getLogger(RoomUtils.class);
 
     /**
      * Ensures a Room exists: creates it if necessary, then loads it for the given user/insight.
@@ -103,13 +113,20 @@ public class RoomUtils {
     }
 
     /**
-     * Gets the vector dbs, 
+     * Gets the room context map, 
      */
     public static Map<String, Object> getRoomContext(String roomId, String userId) {
+
         Map<String, Object> rs = ModelInferenceLogsUtils.getRoomContext(userId, roomId).get(0);
-        Object roomContextClob = rs.get("ROOM_CONTEXT");
+        String roomContextjsonString = String.valueOf(rs.get("ROOM_CONTEXT"));
 
+        Gson gson = new Gson();
+        Type type = new TypeToken<Map<String, Object>>(){}.getType();
+        Map<String, Object> map = gson.fromJson(roomContextjsonString, type);
 
-        return null;
+        String logMessage = String.format("Found %s in room context", map.keySet());
+        logger.info(logMessage);
+
+        return map;
     }
 }
