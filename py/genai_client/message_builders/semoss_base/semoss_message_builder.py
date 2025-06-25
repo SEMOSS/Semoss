@@ -1,12 +1,12 @@
 from typing import List, Dict
 from .semoss_models import (
-    SEMOSSToolFunction,
-    SEMOSSToolCall,
-    SEMOSSToolResponse,
     SEMOSSImageContent,
     SEMOSSMessage,
     SEMOSSMessageType,
     SEMOSSImageType,
+    SEMOSSToolFunction,
+    SEMOSSToolCall,
+    SEMOSSToolResponse,
     SEMOSSToolType,
 )
 
@@ -14,6 +14,7 @@ from .semoss_models import (
 class SEMOSSMessageBuilder:
 
     def build_messages(self, input_messages: List[Dict] = None) -> List[SEMOSSMessage]:
+        """Convert a list of input messages (as dictionaries) to a list of SEMOSSMessage objects."""
         if input_messages is None:
             return []
 
@@ -27,9 +28,10 @@ class SEMOSSMessageBuilder:
                 type=message_type, content=content, param_map=param_map
             )
 
-            if "imageInfos" in message:
-                image_content = self._parse_image_content(message["imageInfos"])
-                semoss_message.image_content = image_content
+            if message.get("imageInfos"):
+                semoss_message.image_content = self._parse_image_content(
+                    message["imageInfos"]
+                )
 
             semoss_messages.append(semoss_message)
         return semoss_messages
@@ -65,6 +67,7 @@ class SEMOSSMessageBuilder:
     def _parse_image_content(
         self, image_infos: List[Dict[str, str]]
     ) -> List[SEMOSSImageContent]:
+        """Parse image content into SEMOSSImageContent objects."""
         semoss_image_contents = []
         for image_info in image_infos:
             file_name = image_info.get("fileName", None)
@@ -86,15 +89,15 @@ class SEMOSSMessageBuilder:
             else:
                 data = base64Data
 
-            image_content = SEMOSSImageContent(
-                type=type,
-                data=data,
-                format=format,
-                mime_type=mime_type,
-                file_name=file_name,
-                url=url,
+            semoss_image_contents.append(
+                SEMOSSImageContent(
+                    type=type,
+                    data=data,
+                    format=format,
+                    mime_type=mime_type,
+                    file_name=file_name,
+                    url=url,
+                )
             )
-
-            semoss_image_contents.append(image_content)
 
         return semoss_image_contents
