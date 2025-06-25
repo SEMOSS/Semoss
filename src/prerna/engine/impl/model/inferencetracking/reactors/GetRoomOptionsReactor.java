@@ -12,11 +12,11 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GetRoomContextReactor extends AbstractReactor {
+public class GetRoomOptionsReactor extends AbstractReactor {
     @SuppressWarnings("unused")
-	private static final Logger logger = LogManager.getLogger(UpdateRoomContextReactor.class);
+	private static final Logger logger = LogManager.getLogger(UpdateRoomOptionsReactor.class);
 
-	public GetRoomContextReactor() {
+	public GetRoomOptionsReactor() {
 		this.keysToGet = new String[] { "roomId" };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -32,7 +32,7 @@ public class GetRoomContextReactor extends AbstractReactor {
 
         String roomId = this.keyValue.get(this.keysToGet[0]);
 
-		Map<String, Object> roomContext = RoomUtils.getRoomContext(roomId, user.getPrimaryLoginToken().getId());
-		return new NounMetadata(roomContext, PixelDataType.MAP);
+		Map<String, Object> roomOptions = RoomUtils.getRoomOptions(roomId, user.getPrimaryLoginToken().getId());
+		return new NounMetadata(roomOptions, PixelDataType.MAP);
     }
 }

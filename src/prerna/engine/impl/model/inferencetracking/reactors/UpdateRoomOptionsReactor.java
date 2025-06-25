@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.Map;
 import prerna.sablecc2.om.GenRowStruct;
 
-public class UpdateRoomContextReactor extends AbstractReactor {
+public class UpdateRoomOptionsReactor extends AbstractReactor {
 	@SuppressWarnings("unused")
-	private static final Logger logger = LogManager.getLogger(UpdateRoomContextReactor.class);
+	private static final Logger logger = LogManager.getLogger(UpdateRoomOptionsReactor.class);
 
-	public UpdateRoomContextReactor() {
+	public UpdateRoomOptionsReactor() {
 		this.keysToGet = new String[] { "roomId", "roomOptions" };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -32,17 +32,17 @@ public class UpdateRoomContextReactor extends AbstractReactor {
 		}
 
 		String roomId = this.keyValue.get(this.keysToGet[0]);
-		Map<String, Object> roomContext = getRoomContextMap();
+		Map<String, Object> roomOptions = getRoomOptionsMap();
 
 		ObjectMapper objectMapper = new ObjectMapper();
-    	String contextMapString = null;
+    	String roomOptionsString = null;
 		try {
-			contextMapString = objectMapper.writeValueAsString(roomContext);
+			roomOptionsString = objectMapper.writeValueAsString(roomOptions);
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
 
-		ModelInferenceLogsUtils.setRoomContext(roomId, user.getPrimaryLoginToken().getId(), contextMapString);
+		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptionsString);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
@@ -51,7 +51,7 @@ public class UpdateRoomContextReactor extends AbstractReactor {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	private Map<String, Object> getRoomContextMap() {
+	private Map<String, Object> getRoomOptionsMap() {
 		GenRowStruct mapGrs = this.store.getNoun(keysToGet[1]);
 		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);

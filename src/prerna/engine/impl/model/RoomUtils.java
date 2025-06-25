@@ -15,7 +15,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.engine.impl.model.inferencetracking.reactors.UpdateRoomContextReactor;
+import prerna.engine.impl.model.inferencetracking.reactors.UpdateRoomOptionsReactor;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.util.Utility;
@@ -114,23 +114,24 @@ public class RoomUtils {
     }
 
     /**
-     * Gets the room context map, 
+     * Gets the room options map 
      */
-    public static Map<String, Object> getRoomContext(String roomId, String userId) {
+    public static Map<String, Object> getRoomOptions(String roomId, String userId) {
 
-        Map<String, Object> rs = ModelInferenceLogsUtils.getRoomContext(userId, roomId).get(0);
-        String roomContextjsonString = String.valueOf(rs.get("ROOM_CONTEXT"));
+        List<Map<String, Object>> rs = ModelInferenceLogsUtils.getRoomOptions(userId, roomId);
+       
+        String roomOptionsString = String.valueOf(rs.get(0).get("OPTIONS"));
 
         Gson gson = new Gson();
         Type type = new TypeToken<Map<String, Object>>(){}.getType();
         Map<String, Object> map = null;
         try {
-        map = gson.fromJson(roomContextjsonString, type);
+        map = gson.fromJson(roomOptionsString, type);
         } catch (Exception e) {
         	e.printStackTrace();
         }
 
-        String logMessage = String.format("Found %s in room context", map.keySet());
+        String logMessage = String.format("Found %s in room options", map.keySet());
         logger.info(logMessage);
 
         return map;

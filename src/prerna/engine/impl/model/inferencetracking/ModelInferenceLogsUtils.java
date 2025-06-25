@@ -1266,6 +1266,57 @@ public class ModelInferenceLogsUtils {
   /**
    * @param userId
    * @param roomId
+   * @return
+   */
+  public static List<Map<String,Object>> getRoomOptions(String userId, String roomId) {
+    SelectQueryStruct qs = new SelectQueryStruct();
+    qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "INSIGHT_ID"));
+    qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "OPTIONS"));
+    qs.addExplicitFilter(
+        SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "INSIGHT_ID", "==", roomId));
+    qs.addExplicitFilter(
+        SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "USER_ID", "==", userId));
+
+    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+  }
+
+  /**
+   * @param userId
+   * @param roomId
+   * @param options
+   * @return
+   */
+  public static void setRoomOptions(String userId, String roomId, String options) {
+    String query =
+        "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND INSIGHT_ID = ?";
+
+    PreparedStatement ps = null;
+    try {
+      ps = modelInferenceLogsDb.getPreparedStatement(query);
+      int index = 1;
+      if (options != null) {
+        modelInferenceLogsDb
+            .getQueryUtil()
+            .handleInsertionOfBlob(ps.getConnection(), ps, options, index++);
+      } else {
+        ps.setNull(index++, java.sql.Types.NULL);
+      }
+      ps.setString(index++, userId);
+      ps.setString(index++, roomId);
+      ps.executeUpdate();
+      if (!ps.getConnection().getAutoCommit()) {
+        ps.getConnection().commit();
+      }
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    } finally {
+      ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+    }
+  }
+
+  /**
+   * @param userId
+   * @param roomId
    * @param context
    * @return
    */
