@@ -1,5 +1,8 @@
 package prerna.engine.impl.model;
 
+import java.util.List;
+import java.util.Map;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IModelEngine;
@@ -97,5 +100,16 @@ public class RoomUtils {
         room.parseMessages();
         insight.getUser().roomHash.put(roomId, room);
         return room;
+    }
+
+    /**
+     * Gets the vector dbs, 
+     */
+    public static Map<String, Object> getRoomContext(String roomId, String userId) {
+        Map<String, Object> rs = ModelInferenceLogsUtils.getRoomContext(userId, roomId).get(0);
+        Object roomContextClob = rs.get("ROOM_CONTEXT");
+
+
+        return null;
     }
 }
