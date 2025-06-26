@@ -1,19 +1,13 @@
 package prerna.reactor.agent.mcp;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import prerna.reactor.AbstractReactor;
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -21,21 +15,27 @@ import prerna.util.AssetUtility;
 
 public class GetMCPResourcesReactor extends GetMCPToolsReactor {
 
-	// responsible for making the mcp
-	// looks for project id and then makes the MCP based on it
 	private static final Logger classLogger = LogManager.getLogger(GetMCPResourcesReactor.class);
 
-	
-	public GetMCPResourcesReactor()
-	{
+	public GetMCPResourcesReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
 		this.keyRequired = new int[] {1};
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
 		organizeKeys();
+		
+		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
+
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access");
+		}
 		
 		// get the project
 		// check to see if there is a py directory
