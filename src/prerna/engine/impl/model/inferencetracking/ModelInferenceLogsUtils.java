@@ -1285,14 +1285,7 @@ public class ModelInferenceLogsUtils {
 	} finally {
 	    ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 	}
-//    SelectQueryStruct qs = new SelectQueryStruct();
-//    qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "OPTIONS"));
-//    qs.addExplicitFilter(
-//        SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "INSIGHT_ID", "==", roomId));
-//    qs.addExplicitFilter(
-//        SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "USER_ID", "==", userId));
-//
-//    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	
 	return null;
   }
 
