@@ -10,6 +10,8 @@ import org.apache.tinkerpop.shaded.jackson.databind.JsonMappingException;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
+import java.sql.Blob;
+import java.sql.SQLException;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -118,9 +120,15 @@ public class RoomUtils {
      */
     public static Map<String, Object> getRoomOptions(String roomId, String userId) {
 
-        List<Map<String, Object>> rs = ModelInferenceLogsUtils.getRoomOptions(userId, roomId);
+        Blob optionsBlob = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
+        byte[] bdata = null;
+		try {
+			bdata = optionsBlob.getBytes(1, (int)optionsBlob.length());
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
        
-        String roomOptionsString = String.valueOf(rs.get(0).get("OPTIONS"));
+        String roomOptionsString = new String(bdata);
 
         Gson gson = new Gson();
         Type type = new TypeToken<Map<String, Object>>(){}.getType();

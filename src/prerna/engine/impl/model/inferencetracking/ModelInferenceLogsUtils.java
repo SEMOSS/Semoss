@@ -2,6 +2,7 @@ package prerna.engine.impl.model.inferencetracking;
 
 import com.google.gson.Gson;
 import java.io.IOException;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -1268,16 +1269,31 @@ public class ModelInferenceLogsUtils {
    * @param roomId
    * @return
    */
-  public static List<Map<String,Object>> getRoomOptions(String userId, String roomId) {
-    SelectQueryStruct qs = new SelectQueryStruct();
-    qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "INSIGHT_ID"));
-    qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "OPTIONS"));
-    qs.addExplicitFilter(
-        SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "INSIGHT_ID", "==", roomId));
-    qs.addExplicitFilter(
-        SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "USER_ID", "==", userId));
-
-    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+  public static Blob getRoomOptions(String roomId, String userId) {
+	String query = "SELECT OPTIONS FROM ROOM WHERE INSIGHT_ID = ? AND USER_ID = ?";
+	PreparedStatement ps = null;
+	try {
+		ps = modelInferenceLogsDb.getPreparedStatement(query);
+		ps.setString(1, roomId);
+		ps.setString(2, userId);
+		ResultSet rs = ps.executeQuery();
+		if (rs.next()) {
+			return rs.getBlob("OPTIONS");
+		}
+	} catch (Exception e) {
+	    classLogger.error(Constants.STACKTRACE, e);
+	} finally {
+	    ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+	}
+//    SelectQueryStruct qs = new SelectQueryStruct();
+//    qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "OPTIONS"));
+//    qs.addExplicitFilter(
+//        SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "INSIGHT_ID", "==", roomId));
+//    qs.addExplicitFilter(
+//        SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "USER_ID", "==", userId));
+//
+//    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	return null;
   }
 
   /**
