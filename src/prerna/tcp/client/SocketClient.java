@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,6 +41,7 @@ public class SocketClient implements Runnable, Closeable {
     
     Map<String, PayloadStruct> requestMap = new HashMap<>();
     Map<String, PayloadStruct> responseMap = new HashMap<>();
+    private Map<String, Thread> executingThreads = new ConcurrentHashMap<>();
     private boolean ready = false;
     private boolean connected = false;
     private AtomicInteger count = new AtomicInteger(0);
@@ -51,7 +53,7 @@ public class SocketClient implements Runnable, Closeable {
 	InputStream is = null;
 	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
-
+	
 	/**
 	 * 
 	 * @param HOST
@@ -184,6 +186,7 @@ public class SocketClient implements Runnable, Closeable {
     		// if this is a request wait for it
     		if(!ps.response) // this is a response to something the socket has asked
     		{
+    			executingThreads.put(ps.epoc, Thread.currentThread());
 				int pollNum = 1; // 1 second
 				while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killAll)
 				{
@@ -200,7 +203,10 @@ public class SocketClient implements Runnable, Closeable {
 					{
 						// TODO Auto-generated catch block
 						classLogger.error(Constants.STACKTRACE, e);
+					} finally {
+						executingThreads.remove(ps.epoc);
 					}
+					
 					/*
 					// trigger after 400 milliseconds
 					if(pollNum == 2 && !ps.longRunning)
@@ -354,6 +360,32 @@ public class SocketClient implements Runnable, Closeable {
 			}
     	}
     }
+    
+	public String killActiveThreadsWithInterrupt() {
+	    if (requestMap.isEmpty()) {
+	        return "No active threads to kill";
+	    }
+	    
+	    for (Map.Entry<String, Thread> entry : executingThreads.entrySet()) {
+	        Thread thread = entry.getValue();
+	        if (thread != null && thread.isAlive()) {
+	            thread.interrupt();
+	        }
+	    }
+	    
+	    executingThreads.clear();
+	    
+	    for (PayloadStruct ps : requestMap.values()) {
+	        synchronized(ps) {
+	            ps.ex = "Execution interrupted by user";
+	            ps.notifyAll();
+	        }
+	    }
+	    
+	    requestMap.clear();
+	    
+	    return "Interrupted executing threads";
+	}
     
     /**
      * 
