@@ -1,7 +1,9 @@
 package prerna.auth;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 import prerna.date.SemossDate;
@@ -31,6 +33,9 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		newToken.countryCode = token.countryCode;
 		if(token.sans != null) {
 			newToken.sans = Collections.unmodifiableMap(token.sans);
+		}
+		if(token.meta != null) {
+			newToken.meta = Collections.unmodifiableMap(token.meta);
 		}
 		newToken.locked = token.locked;
 		newToken.lastLogin = token.lastLogin;
@@ -113,6 +118,10 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 	}
 
 	public void setSAN(String sanName, String sanValue) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+
+	public void setMeta(Map<String, Collection<String>> meta) {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
 
