@@ -21,6 +21,9 @@ import prerna.util.Utility;
 
 public class JiraGetReactor extends AbstractReactor {
 	
+	public static final String JIRA_DATABASE="bcdb0a92-2a3b-4c73-bb79-5f5116bd6832";
+	public static final String JIRA_UNIQUE_ID="JIRAPROFILE_UNIQUE_ROW_ID";
+	
 	private static final Logger classLogger = LogManager.getLogger(JiraGetReactor.class);
 
 	@Override
@@ -28,7 +31,7 @@ public class JiraGetReactor extends AbstractReactor {
 		try {
 			String tableName = null;
 			List<JiraDetails> resultList = new ArrayList<JiraDetails>();
-			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
+			IDatabaseEngine database = Utility.getDatabase(JIRA_DATABASE);
 			List<String> tables = database.getPixelConcepts();
 			for (String element : tables) {
 				tableName = element;
@@ -44,10 +47,10 @@ public class JiraGetReactor extends AbstractReactor {
 					jiraDetails.setDateCreated(rs.getString("DATE_CREATED"));
 					jiraDetails.setDateLastUsed(rs.getString("DATE_LAST_USED"));
 					jiraDetails.setName(rs.getString("NAME"));
-					jiraDetails.setPrimaryId(rs.getString("JIRAPROFILE_UNIQUE_ROW_ID"));
+					jiraDetails.setPrimaryId(rs.getString(JIRA_UNIQUE_ID));
 					jiraDetails.setUrl(rs.getString("URL"));
 					jiraDetails.setUserId(rs.getString("USER_ID"));
-					jiraDetails.setAlias(rs.getString("ALIAS"));
+					jiraDetails.setKeyName(rs.getString("KEY_NAME"));
 					resultList.add(jiraDetails);
 				}
 			}
@@ -61,6 +64,6 @@ public class JiraGetReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is user for getting list of all the enteries in DB to display on UI.";
+		return "This reactor is user for getting list of all the Jira API related enteries in DB to display on UI.";
 	}
 }

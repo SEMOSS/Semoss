@@ -34,6 +34,12 @@ import prerna.security.HttpHelperUtility;
 
 public class JiraHelper {
 	
+	public static final String JIRA_LIST_ISSUE_URL="/rest/api/2/search?jql=project=";
+	public static final String JIRA_DATABASE="bcdb0a92-2a3b-4c73-bb79-5f5116bd6832";
+	public static final String JIRA_UNIQUE_ID="JIRAPROFILE_UNIQUE_ROW_ID";
+	public static final String JIRA_CREATE_DELETE_ISSUE_URL="/rest/api/2/issue";
+	public static final String JIRA_GETALL_PROJECTS_URL="/rest/api/2/project";
+	
 	private static final Logger classLogger = LogManager.getLogger(JiraHelper.class);
 	
 	/**
@@ -55,7 +61,7 @@ public class JiraHelper {
 			Map<String, String> map = new HashMap<String, String>();
 			map.put("Authorization", "Basic " + encodeToString);
 			String URL = getURLFromDB(userId);
-			String url = URL + "/rest/api/2/search?jql=project=" + projectName;
+			String url = URL + JIRA_LIST_ISSUE_URL + projectName;
 			if (projectName == null || projectName.isEmpty()) {
 				String error = "Project Name for listing issues is missing or null";
 				return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -94,12 +100,12 @@ public class JiraHelper {
 		try {
 			String URL = null;
 			String tableName = null;
-			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
+			IDatabaseEngine database = Utility.getDatabase(JIRA_DATABASE);
 			List<String> tables = database.getPixelConcepts();
 			for (String element : tables) {
 				tableName = element;
 			}
-			String getURLQuery = "select URL from " + tableName + " WHERE JIRAPROFILE_UNIQUE_ROW_ID='" + userId + "'";
+			String getURLQuery = "select URL from " + tableName + " WHERE "+JIRA_UNIQUE_ID+"='"+userId+"'";
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(getURLQuery);
 			Object string = hashmap.get("RESULTSET_OBJECT");
 			if (string instanceof ResultSet) {
@@ -126,13 +132,12 @@ public class JiraHelper {
 		try {
 			String userName = null;
 			String tableName = null;
-			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
+			IDatabaseEngine database = Utility.getDatabase(JIRA_DATABASE);
 			List<String> tables = database.getPixelConcepts();
 			for (String element : tables) {
 				tableName = element;
 			}
-			String selectQuery = "SELECT USER_ID FROM " + tableName + " WHERE JIRAPROFILE_UNIQUE_ROW_ID='" + userId
-					+ "'";
+			String selectQuery = "SELECT USER_ID FROM " + tableName + " WHERE "+JIRA_UNIQUE_ID+"='"+userId+"'";
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(selectQuery);
 			Object string = hashmap.get("RESULTSET_OBJECT");
 			if (string instanceof ResultSet) {
@@ -157,12 +162,12 @@ public class JiraHelper {
 	private static String getDBDetails(String userId) throws Exception, SQLException {
 		String tableName = null;
 		String apiKey = null;
-		IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
+		IDatabaseEngine database = Utility.getDatabase(JIRA_DATABASE);
 		List<String> tables = database.getPixelConcepts();
 		for (String element : tables) {
 			tableName = element;
 		}
-		String insertQuery = "SELECT API_KEY FROM " + tableName + " WHERE JIRAPROFILE_UNIQUE_ROW_ID='" + userId + "'";
+		String insertQuery = "SELECT API_KEY FROM " + tableName + " WHERE "+JIRA_UNIQUE_ID+"='"+userId+"'";
 		HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(insertQuery);
 		Object string = hashmap.get("RESULTSET_OBJECT");
 		if (string instanceof ResultSet) {
@@ -201,7 +206,7 @@ public class JiraHelper {
 			}
 			String nearestNeigborResponse = null;
 			String URL = getURLFromDB(userId);
-			String url = URL + "/rest/api/2/issue";
+			String url = URL + JIRA_CREATE_DELETE_ISSUE_URL;
 			Project project = new Project();
 			project.setKey(projectName);
 			IssueType issuetype = new IssueType();
@@ -256,7 +261,7 @@ public class JiraHelper {
 				return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
 			String URL = getURLFromDB(userId);
-			String url = URL + "/rest/api/2/issue/" + jiraId;
+			String url = URL + JIRA_CREATE_DELETE_ISSUE_URL + jiraId;
 			List<String> checkUserId = checkUserId(userId);
 			if (!checkUserId.contains(userId)) {
 				msg = "User id " + userId + " is not present in DB";
@@ -286,7 +291,7 @@ public class JiraHelper {
 		try {
 			String tableName = null;
 			long Uid;
-			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
+			IDatabaseEngine database = Utility.getDatabase(JIRA_DATABASE);
 			List<String> tables = database.getPixelConcepts();
 			for (String element : tables) {
 				tableName = element;
@@ -324,18 +329,18 @@ public class JiraHelper {
 		try {
 			String tableName = null;
 			String userID;
-			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
+			IDatabaseEngine database = Utility.getDatabase(JIRA_DATABASE);
 			List<String> tables = database.getPixelConcepts();
 			for (String element : tables) {
 				tableName = element;
 			}
-			String query = " SELECT JIRAPROFILE_UNIQUE_ROW_ID from " + tableName;
+			String query = " SELECT "+JIRA_UNIQUE_ID+" from "+tableName;
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
 			Object string = hashmap.get("RESULTSET_OBJECT");
 			if (string instanceof ResultSet) {
 				ResultSet rs = (ResultSet) string;
 				while (rs.next()) {
-					userID = rs.getString("JIRAPROFILE_UNIQUE_ROW_ID");
+					userID = rs.getString(JIRA_UNIQUE_ID);
 					userIds.add(userID);
 				}
 			}
@@ -363,7 +368,7 @@ public class JiraHelper {
 			Map<String, String> map = new HashMap<String, String>();
 			map.put("Authorization", "Basic " + encodeToString);
 			String URL = getURLFromDB(userId);
-			String url = URL + "/rest/api/2/project";
+			String url = URL + JIRA_GETALL_PROJECTS_URL;
 			List<String> projList=new ArrayList<String>();
 			List<String> checkUserId = checkUserId(userId);
 			if (!checkUserId.contains(userId)) {
@@ -399,7 +404,7 @@ public class JiraHelper {
 		try {
 			String tableName = null;
 			long Uid;
-			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
+			IDatabaseEngine database = Utility.getDatabase(JIRA_DATABASE);
 			List<String> tables = database.getPixelConcepts();
 			for (String element : tables) {
 				tableName = element;
@@ -409,7 +414,7 @@ public class JiraHelper {
 				msg = "User id " + userId + " is not present in DB";
 				return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
-			String truncateQuery = "Delete from "+tableName+" WHERE JIRAPROFILE_UNIQUE_ROW_ID='"+userId+"'";
+			String truncateQuery = "Delete from "+tableName+" WHERE "+JIRA_UNIQUE_ID+"='"+userId+"'";
 			database.removeData(truncateQuery);
 			truncateFlag = true;
 			Uid = Long.valueOf(userId);

@@ -21,14 +21,15 @@ import prerna.util.JiraHelper;
 import prerna.util.Utility;
 
 public class JiraInsertReactor extends AbstractReactor {
+	
+	public static final String JIRA_DATABASE="bcdb0a92-2a3b-4c73-bb79-5f5116bd6832";
+	public static final String JIRA_UNIQUE_ID="JIRAPROFILE_UNIQUE_ROW_ID";
 
 	private static final Logger classLogger = LogManager.getLogger(JiraInsertReactor.class);
-	
-	static IRDBMSEngine userTrackingDb;
 
 	public JiraInsertReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.API_KEY.getKey(),
-				ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.ALIAS.getKey() };
+				ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.KEY_NAME.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1, 1 };
 	}
 
@@ -38,7 +39,7 @@ public class JiraInsertReactor extends AbstractReactor {
 		String userId = this.keyValue.get(this.keysToGet[0]);
 		String apiToken = this.keyValue.get(this.keysToGet[1]);
 		String url = this.keyValue.get(this.keysToGet[2]);
-		String alias = this.keyValue.get(this.keysToGet[3]);
+		String keyName = this.keyValue.get(this.keysToGet[3]);
 		long dateCreated = System.currentTimeMillis();
 		long lastUsed = System.currentTimeMillis();
 		HashMap<String, Object> map=new HashMap<>();
@@ -50,8 +51,8 @@ public class JiraInsertReactor extends AbstractReactor {
 		int profileId = 0;
 		String msg=null;
 		try {
-			IDatabaseEngine database = Utility.getDatabase("bcdb0a92-2a3b-4c73-bb79-5f5116bd6832");
-			map = insertData(database, userId, apiToken, url, date, lused, insightusername, alias);
+			IDatabaseEngine database = Utility.getDatabase(JIRA_DATABASE);
+			map = insertData(database, userId, apiToken, url, date, lused, insightusername, keyName);
 			Object object = map.get("Data inserted successfully");
 			if(Boolean.FALSE.equals(map.get("Data inserted successfully"))) {
 				msg=(String) map.get("Error");
@@ -59,10 +60,10 @@ public class JiraInsertReactor extends AbstractReactor {
 				responseMap.put("Error",msg);
 			}
 			if (Boolean.TRUE.equals(map.get("Data inserted successfully"))) {
-				profileId = readData(database, userId, apiToken, url, date, lused, alias);
+				profileId = readData(database, userId, apiToken, url, date, lused, keyName);
 			}
 			if (profileId != 0) {
-				responseMap.put("Primary key from Table", profileId);
+				responseMap.put("id", profileId);
 				responseMap.put("Success", map.get("Data inserted successfully"));
 			}
 			return new NounMetadata(responseMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -83,11 +84,11 @@ public class JiraInsertReactor extends AbstractReactor {
 	 * @param url
 	 * @param date
 	 * @param lused
-	 * @param alias
+	 * @param keyName
 	 * @return
 	 */
 	private Integer readData(IDatabaseEngine database, String userId, String apiKey, String url, Timestamp date,
-			Timestamp lused, String alias) {
+			Timestamp lused, String keyName) {
 		int profileKey = 0;
 		try {
 			String tableName = null;
@@ -95,15 +96,15 @@ public class JiraInsertReactor extends AbstractReactor {
 			for (String element : tables) {
 				tableName = element;
 			}
-			String query = " select JIRAPROFILE_UNIQUE_ROW_ID from " + tableName + " where API_KEY='" + apiKey
+			String query = " select "+JIRA_UNIQUE_ID+" from "+ tableName + " where API_KEY='" + apiKey
 					+ "' and URL='" + url + "'and DATE_CREATED='" + date + "' and DATE_LAST_USED='" + lused
-					+ "' and ALIAS='" + alias + "'";
+					+ "' and KEY_NAME='" + keyName + "'";
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
 			Object string = hashmap.get("RESULTSET_OBJECT");
 			if (string instanceof ResultSet) {
 				ResultSet rs = (ResultSet) string;
 				while (rs.next()) {
-					profileKey = rs.getInt("JIRAPROFILE_UNIQUE_ROW_ID");
+					profileKey = rs.getInt(JIRA_UNIQUE_ID);
 				}
 			}
 			return profileKey;
@@ -123,11 +124,11 @@ public class JiraInsertReactor extends AbstractReactor {
 	 * @param dateCreated
 	 * @param lastUsed
 	 * @param insightusername
-	 * @param alias
+	 * @param keyName
 	 * @return
 	 */
 	private static HashMap<String, Object> insertData(IDatabaseEngine database, String userId, String apiKey, String url,
-			Timestamp dateCreated, Timestamp lastUsed, String insightusername, String alias) {
+			Timestamp dateCreated, Timestamp lastUsed, String insightusername, String keyName) {
 		String tableName = null;
 		String msg=null;
 		HashMap<String, Object> map=new HashMap<>();
@@ -138,9 +139,9 @@ public class JiraInsertReactor extends AbstractReactor {
 				tableName = element;
 			}
 			String insertQuery = " INSERT INTO " + tableName
-					+ "(API_KEY,USER_ID,URL,DATE_CREATED,DATE_LAST_USED,NAME,CREATED_BY,ALIAS) " + "VALUES ('" + apiKey
+					+ "(API_KEY,USER_ID,URL,DATE_CREATED,DATE_LAST_USED,NAME,CREATED_BY,KEY_NAME) " + "VALUES ('" + apiKey
 					+ "','" + userId + "','" + url + "','" + dateCreated + "','" + lastUsed + "','" + insightusername
-					+ "','" + insightusername + "','" + alias + "')";
+					+ "','" + insightusername + "','" + keyName + "')";
 			database.insertData(insertQuery);
 			flag=true;
 			map.put("Data inserted successfully", flag);
@@ -156,7 +157,7 @@ public class JiraInsertReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used for inserting data in DB of the user like Username, Apikey, URL and Alias";
+		return "This reactor is used for inserting Jira data in DB of the user like Username, Apikey, URL and keyName";
 	}
 
 	@Override
@@ -167,8 +168,8 @@ public class JiraInsertReactor extends AbstractReactor {
 			return "Api key of the user which will be used for authentication for various Jira Operations" + ReactorKeysEnum.API_KEY.getKey();
 		}else if (key.equals(ReactorKeysEnum.URL.getKey())) {
 			return "Base URL using which url for create, delete, list issues etc will be created" + ReactorKeysEnum.URL.getKey();
-		}else if (key.equals(ReactorKeysEnum.ALIAS.getKey())) {
-			return "Alias for each entry to identify userid while performing different Jira operations" + ReactorKeysEnum.ALIAS.getKey();
+		}else if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
+			return "Key name for each entry to identify userid while performing different Jira operations" + ReactorKeysEnum.KEY_NAME.getKey();
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -11,7 +11,7 @@ public class JiraDetails {
 	private String dateCreated;
 	private String dateLastUsed;
 	private String primaryId;
-	private String alias;
+	private String keyName;
 	public String getName() {
 		return name;
 	}
@@ -54,16 +54,16 @@ public class JiraDetails {
 	public void setPrimaryId(String primaryId) {
 		this.primaryId = primaryId;
 	}
-	public String getAlias() {
-		return alias;
+	public String getKeyName() {
+		return keyName;
 	}
-	public void setAlias(String alias) {
-		this.alias = alias;
+	public void setKeyName(String keyName) {
+		this.keyName = keyName;
 	}
 	@Override
 	public String toString() {
 		return "JiraDetails [name=" + name + ", url=" + url + ", userId=" + userId + ", createdBy=" + createdBy
 				+ ", dateCreated=" + dateCreated + ", dateLastUsed=" + dateLastUsed + ", primaryId=" + primaryId
-				+ ", alias=" + alias + "]";
+				+ ", keyName=" + keyName + "]";
 	}
 }
