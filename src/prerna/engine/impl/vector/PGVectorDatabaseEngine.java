@@ -1118,6 +1118,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					/*messageMethod*/"nearestNeighbor", 
 					/*engine*/this, 
 					/*insight*/insight,
+					/*roomId*/insight.getInsightId(), //legacy adapter
 					/*context*/null, 
 					/*prompt*/searchStatement,
 					/*fullPrompt*/null,

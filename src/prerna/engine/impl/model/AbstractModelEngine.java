@@ -114,6 +114,53 @@ public abstract class AbstractModelEngine implements IModelEngine {
 
 	
 	
+	@Override
+	public AskModelEngineResponse askRoom(String question, String context,Room room, Map<String, Object> parameters) {
+		/*
+		 * We will check if there are any restrictions for the user's current token usage
+		 * There might be a value set on the user-engine permission which takes priority 
+		 * or if there is none
+		 * there might be a value set on the user for all their model engine usage
+		 */
+
+		// do we have any usage restriction on the user
+		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(room.getInsight().getUser(), this.engineId);
+		
+		if(parameters == null) {
+			parameters = new HashMap<String, Object>();
+		}
+		
+		Object fullPrompt = parameters.remove(FULL_PROMPT);
+		ZonedDateTime inputTime = ZonedDateTime.now();
+		AskModelEngineResponse askModelResponse = askCall(question, fullPrompt, context, room.getInsight(), parameters);
+		ZonedDateTime outputTime = ZonedDateTime.now();
+		askModelResponse.setMessageId(UUID.randomUUID().toString());
+		askModelResponse.setRoomId(room.getId());
+		
+		if (inferenceLogsEnbaled) {
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/askModelResponse.getMessageId(), 
+					/*messageMethod*/"ask", 
+					/*engine*/this, 
+					/*insight*/room.getInsight(),
+					/*roomId*/room.getId(), //legacy adapter
+					/*context*/context, 
+					/*prompt*/question,
+					/*fullPrompt*/fullPrompt,
+					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
+					/*inputTime*/inputTime, 
+					/*response*/askModelResponse.getStringResponse(),
+					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
+					/*outputTime*/outputTime
+			));
+			inferenceRecorder.start();
+		}
+		
+		// update current usage based on this new request
+		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse, inputTime, outputTime);
+		
+		return askModelResponse;
+	}
 	
 	@Override
 	public AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters) {
@@ -144,6 +191,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageMethod*/"ask", 
 					/*engine*/this, 
 					/*insight*/insight,
+					/*room id*/insight.getInsightId(), //legacy calls
 					/*context*/context, 
 					/*prompt*/question,
 					/*fullPrompt*/fullPrompt,
@@ -197,6 +245,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageMethod*/"instruct", 
 					/*engine*/this, 
 					/*insight*/insight, 
+					/*roomId*/insight.getInsightId(), //legacy adapter
 					/*context*/context,
 					/*prompt*/null,
 					/*fullPrompt*/task,
@@ -241,6 +290,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageMethod*/"embeddings", 
 					/*engine*/this, 
 					/*insight*/insight, 
+					/*room id*/insight.getInsightId(), // legacy adapter
 					/*context*/null,
 					/*prompt*/null,
 					/*fullPrompt*/stringsToEmbed,
@@ -284,6 +334,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageMethod*/"embeddings", 
 					/*engine*/this, 
 					/*insight*/insight, 
+					/*roomId*/insight.getInsightId(), //legacy adapter
 					/*context*/null,
 					/*prompt*/null,
 					/*fullPrompt*/imagesToEmbed,

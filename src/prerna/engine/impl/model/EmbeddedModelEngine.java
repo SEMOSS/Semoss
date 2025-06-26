@@ -44,6 +44,7 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 					/*messageMethod*/"textKeywords", 
 					/*engine*/this,
 					/*insight*/insight,
+					/*roomId*/insight.getInsightId(), //legacy adapter
 					/*context*/null,
 					/*prompt*/input + "",
 					/*fullPrompt*/null,

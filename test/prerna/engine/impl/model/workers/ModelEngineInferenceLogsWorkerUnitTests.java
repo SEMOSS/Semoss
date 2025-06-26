@@ -62,6 +62,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             "method",
             engine,
             insight,
+            insight.getInsightId(), //mocking room id for now
             "context",
             "",
             new ArrayList(){{add("full prompt");}},
@@ -137,6 +138,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
+                eq(insightId), //room id 
                 eq(sessionId),
                 eq("userId"),
                 eq("userUserName"),
@@ -152,6 +154,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
+                eq(insightId), //room id 
                 eq(sessionId),
                 eq("userId"),
                 eq("userUserName"),
@@ -197,6 +200,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
+                eq(insightId), //room id 
                 eq(sessionId),
                 eq("userId"),
                 eq("userUserName"),
@@ -213,6 +217,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     any(ZonedDateTime.class),
                     eq(engineId),
                     eq(insightId),
+                    eq(insightId), //room id 
                     eq(sessionId),
                     eq("userId"),
                     eq("userUserName"),
@@ -230,6 +235,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             "method",
             engine,
             insight,
+			/*roomId*/insight.getInsightId(), //legacy adapter
             "context",
             "",
             new ArrayList(){{add(new JSONObject());}},
@@ -305,6 +311,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
+                eq(insightId), //room id 
                 eq(sessionId),
                 eq("userId"),
                 eq("userUserName"),
@@ -320,6 +327,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
+                eq(insightId), //room id 
                 eq(sessionId),
                 eq("userId"),
                 eq("userUserName"),
@@ -365,6 +373,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
+                eq(insightId), //room id 
                 eq(sessionId),
                 eq("userId"),
                 eq("userUserName"),
@@ -381,6 +390,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     any(ZonedDateTime.class),
                     eq(engineId),
                     eq(insightId),
+                    eq(insightId), //room id 
                     eq(sessionId),
                     eq("userId"),
                     eq("userUserName"),
@@ -398,6 +408,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             "method",
             engine,
             insight,
+			/*roomId*/insight.getInsightId(), //legacy adapter
             "context",
             "",
             new JSONObject(),
@@ -473,6 +484,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
+                eq(insightId), //room id 
                 eq(sessionId),
                 eq("userId"),
                 eq("userUserName"),
@@ -488,6 +500,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
+                eq(insightId), //room id 
                 eq(sessionId),
                 eq("userId"),
                 eq("userUserName"),
@@ -533,6 +546,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
+                eq(insightId), //room id 
                 eq(sessionId),
                 eq("userId"),
                 eq("userUserName"),
@@ -549,6 +563,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     any(ZonedDateTime.class),
                     eq(engineId),
                     eq(insightId),
+                    eq(insightId), //room id 
                     eq(sessionId),
                     eq("userId"),
                     eq("userUserName"),
