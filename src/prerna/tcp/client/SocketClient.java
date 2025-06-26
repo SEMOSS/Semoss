@@ -8,7 +8,6 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -52,7 +51,6 @@ public class SocketClient implements Runnable, Closeable {
 	InputStream is = null;
 	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
-	
 	/**
 	 * 
 	 * @param HOST
@@ -202,7 +200,6 @@ public class SocketClient implements Runnable, Closeable {
 						// TODO Auto-generated catch block
 						classLogger.error(Constants.STACKTRACE, e);
 					}
-					
 					/*
 					// trigger after 400 milliseconds
 					if(pollNum == 2 && !ps.longRunning)
