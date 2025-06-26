@@ -2,6 +2,7 @@ package prerna.engine.impl.model.inferencetracking;
 
 import com.google.gson.Gson;
 import java.io.IOException;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -1261,6 +1262,65 @@ public class ModelInferenceLogsUtils {
         SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "USER_ID", "==", userId));
 
     return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+  }
+
+  /**
+   * @param userId
+   * @param roomId
+   * @return
+   */
+  public static Blob getRoomOptions(String roomId, String userId) {
+	String query = "SELECT OPTIONS FROM ROOM WHERE INSIGHT_ID = ? AND USER_ID = ?";
+	PreparedStatement ps = null;
+	try {
+		ps = modelInferenceLogsDb.getPreparedStatement(query);
+		ps.setString(1, roomId);
+		ps.setString(2, userId);
+		ResultSet rs = ps.executeQuery();
+		if (rs.next()) {
+			return rs.getBlob("OPTIONS");
+		}
+	} catch (Exception e) {
+	    classLogger.error(Constants.STACKTRACE, e);
+	} finally {
+	    ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+	}
+	
+	return null;
+  }
+
+  /**
+   * @param userId
+   * @param roomId
+   * @param options
+   * @return
+   */
+  public static void setRoomOptions(String roomId, String userId, String options) {
+    String query =
+        "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND INSIGHT_ID = ?";
+
+    PreparedStatement ps = null;
+    try {
+      ps = modelInferenceLogsDb.getPreparedStatement(query);
+      int index = 1;
+      if (options != null) {
+        modelInferenceLogsDb
+            .getQueryUtil()
+            .handleInsertionOfBlob(ps.getConnection(), ps, options, index++);
+      } else {
+        ps.setNull(index++, java.sql.Types.NULL);
+      }
+      ps.setString(index++, userId);
+      ps.setString(index++, roomId);
+      ps.executeUpdate();
+      if (!ps.getConnection().getAutoCommit()) {
+        ps.getConnection().commit();
+      }
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    } finally {
+      ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+    }
   }
 
   /**
