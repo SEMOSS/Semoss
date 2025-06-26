@@ -1,9 +1,8 @@
-package prerna.project.impl;
+package prerna.reactor.engine;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -11,30 +10,35 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.project.api.IProject;
+import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
 
-public class SaveProjectAssetsReactor extends AbstractReactor {
+public class SaveEngineAssetsReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(SaveProjectAssetsReactor.class);
+	/*
+	 * TODO: expose Git at engine level as well
+	 */
+	
+	private static final Logger classLogger = LogManager.getLogger(SaveEngineAssetsReactor.class);
 
-	public SaveProjectAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), 
-				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] {1,1,1,0};
+	public SaveEngineAssetsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), 
+				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey()
+				};
+		this.keyRequired = new int[] {1,1,1};
+//				,
+//				ReactorKeysEnum.COMMENT_KEY.getKey() };
+//		this.keyRequired = new int[] {1,1,1,0};
 	}
 
 	@Override
@@ -47,11 +51,12 @@ public class SaveProjectAssetsReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to edit assets.");
 		}
-		IProject project = Utility.getProject(projectId);
+		// force to pull it from cloud if not in the container
+		IEngine engine = Utility.getEngine(engineId);
 
 		// Retrieve all file paths and contents
 		List<String> filePaths = getNounAsStringList(this.keysToGet[1]);
@@ -64,12 +69,12 @@ public class SaveProjectAssetsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Number of file names and contents must match");
 		}
 
-		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
-		String comment = this.keyValue.get(this.keysToGet[3]);
-		if(comment == null) {
-			comment = "add: SaveProjectAsset executed";
-		}
+//		String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
+		String assetFolder = EngineUtility.getSpecificEngineBaseFolder(engineId);
+//		String comment = this.keyValue.get(this.keysToGet[3]);
+//		if(comment == null) {
+//			comment = "add: SaveAppAssets executed";
+//		}
 		// Check strict script source settings once
 		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 
@@ -112,28 +117,28 @@ public class SaveProjectAssetsReactor extends AbstractReactor {
 		}
 
 		// add file to git
-		List<String> gitRelativeFilePaths = new ArrayList<>();
-		for (int i = 0; i < filePaths.size(); i++) {
-			String rawFileName = filePaths.get(i).trim();
-			String fileName = Utility.normalizePath(rawFileName);
-			if(fileName == null || fileName.isEmpty()) {
-				continue;
-			}
-
-			// for git, we need to add the assets folder which is assumed in the path
-			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + fileName);		
-		}
-
-		// Get the user's email
-		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		String email = accessToken.getEmail();
-		String author = accessToken.getUsername();
-		
-		GitRepoUtils.addSpecificFiles(versionGitFolder, gitRelativeFilePaths);
-		// commit it
-		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
+//		List<String> gitRelativeFilePaths = new ArrayList<>();
+//		for (int i = 0; i < filePaths.size(); i++) {
+//			String rawFileName = filePaths.get(i).trim();
+//			String fileName = Utility.normalizePath(rawFileName);
+//			if(fileName == null || fileName.isEmpty()) {
+//				continue;
+//			}
+//
+//			// for git, we need to add the assets folder which is assumed in the path
+//			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + fileName);		
+//		}
+//
+//		// Get the user's email
+//		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+//		String email = accessToken.getEmail();
+//		String author = accessToken.getUsername();
+//		
+//		GitRepoUtils.addSpecificFiles(gitFolder, gitRelativeFilePaths);
+//		// commit it
+//		GitRepoUtils.commitAddedFiles(gitFolder, comment, author, email);
 		// handle synchronization to the cloud
-		ClusterUtil.pushProjectFolder(project, assetFolder);
+		ClusterUtil.pushEngineFolder(engine, assetFolder);
 
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
@@ -146,10 +151,10 @@ public class SaveProjectAssetsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
+		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The unique id for the engine";
 		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
+			return "Names of the file(s) to save";
 		} else if(key.equals(ReactorKeysEnum.CONTENT.getKey())) {
 			return "Contents of the file(s) to save";
 		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
