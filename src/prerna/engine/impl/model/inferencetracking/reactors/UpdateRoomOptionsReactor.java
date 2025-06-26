@@ -2,6 +2,9 @@ package prerna.engine.impl.model.inferencetracking.reactors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
@@ -29,10 +32,18 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 		}
 
 		String roomId = this.keyValue.get(this.keysToGet[0]);
-		Map<String, Object> roomContext = getRoomContextMap();
+		Map<String, Object> roomOptions = getRoomOptionsMap();
 
-		boolean result = ModelInferenceLogsUtils.setRoomContext(roomId, user.getPrimaryLoginToken().getId(), roomContext);
-		return new NounMetadata(result, PixelDataType.BOOLEAN);
+		ObjectMapper objectMapper = new ObjectMapper();
+    	String roomOptionsString = null;
+		try {
+			roomOptionsString = objectMapper.writeValueAsString(roomOptions);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+		}
+
+		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptionsString);
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
 	/**
@@ -40,7 +51,7 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	private Map<String, Object> getRoomContextMap() {
+	private Map<String, Object> getRoomOptionsMap() {
 		GenRowStruct mapGrs = this.store.getNoun(keysToGet[1]);
 		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
