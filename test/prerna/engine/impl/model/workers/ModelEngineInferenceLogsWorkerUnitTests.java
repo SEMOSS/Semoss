@@ -109,7 +109,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId")).thenAnswer((Answer<Void>) invocation -> null);
 
-            milUtils.when(() -> ModelInferenceLogsUtils.doCheckConversationExists(insightId)).thenReturn(false);
+            milUtils.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(insightId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewConversation(
                 insightId,
                 "full prompt",
@@ -172,7 +172,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId");
 
-                ModelInferenceLogsUtils.doCheckConversationExists(insightId);
+                ModelInferenceLogsUtils.doCheckRoomExists(insightId);
 
                 ModelInferenceLogsUtils.doCreateNewConversation(
                     insightId,
@@ -282,7 +282,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId")).thenAnswer((Answer<Void>) invocation -> null);
 
-            milUtils.when(() -> ModelInferenceLogsUtils.doCheckConversationExists(insightId)).thenReturn(false);
+            milUtils.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(insightId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewConversation(
                 insightId,
                 "full prompt",
@@ -345,7 +345,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId");
 
-                ModelInferenceLogsUtils.doCheckConversationExists(insightId);
+                ModelInferenceLogsUtils.doCheckRoomExists(insightId);
 
                 ModelInferenceLogsUtils.doCreateNewConversation(
                     insightId,
@@ -455,7 +455,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId")).thenAnswer((Answer<Void>) invocation -> null);
 
-            milUtils.when(() -> ModelInferenceLogsUtils.doCheckConversationExists(insightId)).thenReturn(false);
+            milUtils.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(insightId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewConversation(
                 insightId,
                 "full prompt",
@@ -518,7 +518,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId");
 
-                ModelInferenceLogsUtils.doCheckConversationExists(insightId);
+                ModelInferenceLogsUtils.doCheckRoomExists(insightId);
 
                 ModelInferenceLogsUtils.doCreateNewConversation(
                     insightId,

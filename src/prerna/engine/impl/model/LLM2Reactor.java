@@ -28,7 +28,7 @@ import prerna.util.Utility;
 public class LLM2Reactor extends AbstractReactor {
 	
 	public LLM2Reactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM.getKey(), ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.IMAGE.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.IMAGE.getKey(),
 				ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
 		this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0, 0 };
 	}
@@ -39,7 +39,7 @@ public class LLM2Reactor extends AbstractReactor {
 		////// SET UP //////////
 		organizeKeys();
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM.getKey());
+		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		User user = this.insight.getUser();
 		String userId = user.getPrimaryLoginToken().getId();
 		AccessToken userToken = user.getPrimaryLoginToken();
@@ -149,7 +149,7 @@ public class LLM2Reactor extends AbstractReactor {
 			return "This is the prompt to execute against the LLM";
 		} else if(key.equals(ReactorKeysEnum.CONTEXT.getKey())) {
 			return "The system prompt to use for the LLM call";
-		} else if(key.equals(ReactorKeysEnum.ROOM.getKey())) {
+		} else if(key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
 			return "This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room";
 		} else if(key.equals(ReactorKeysEnum.IMAGE.getKey())) {
 			return "This is  an array of image file names that have already been uploaded to the insight folder.";

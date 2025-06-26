@@ -910,7 +910,7 @@ public class ModelInferenceLogsUtils {
    * @param roomId
    * @return
    */
-  public static boolean doCheckConversationExists(String roomId) {
+  public static boolean doCheckRoomExists(String roomId) {
     String query = "SELECT COUNT(*) FROM ROOM WHERE ROOM_ID = ?";
     PreparedStatement ps = null;
     try {
