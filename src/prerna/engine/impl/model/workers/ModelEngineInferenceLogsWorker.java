@@ -56,6 +56,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     	this.messageMethod = messageMethod;
     	this.engine = engine;
     	this.insight = insight;
+    	this.roomId = roomId;
     	this.context = context;
         this.prompt = prompt;
         if(this.prompt != null) {
@@ -133,7 +134,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		if (!ModelInferenceLogsUtils.doCheckConversationExists(roomId)) {
 			String roomName = prompt.substring(0, Math.min(prompt.length(), 100));
 			ModelInferenceLogsUtils.doCreateNewConversation(
-				insightId, 
+				insightId,
+				roomId,
 				roomName, 
 				null, 
 				userId,
