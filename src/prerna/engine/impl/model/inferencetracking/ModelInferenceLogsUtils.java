@@ -850,7 +850,7 @@ public class ModelInferenceLogsUtils {
             + "ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, "
             + "AGENT_TYPE, AGENT_ID, IS_ACTIVE, "
             + "DATE_CREATED, PROJECT_ID, PROJECT_NAME) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     // boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
     PreparedStatement ps = null;
     try {
@@ -1089,7 +1089,7 @@ public class ModelInferenceLogsUtils {
     String query =
         "INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
             + " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-            + "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            + "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     PreparedStatement ps = null;
     try {
       ps = modelInferenceLogsDb.getPreparedStatement(query);
