@@ -46,7 +46,7 @@ public class RoomUtils {
             roomId = insight.getInsightId();
         }
 
-        boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckConversationExists(roomId);
+        boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
 
         if (!roomExistsInDB) {
             String agentType = null;
@@ -104,7 +104,7 @@ public class RoomUtils {
                 insight.getUser().roomHash.remove(roomId); // Clear corrupted cache entry
             }
         }
-        boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckConversationExists(roomId);
+        boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
         if (!roomExistsInDB)
             throw new IllegalArgumentException("User room is not valid");
         room = ModelInferenceLogsUtils.getRoomById(roomId, insight.getUser().getPrimaryLoginToken().getId());

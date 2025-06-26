@@ -80,7 +80,8 @@ public class ModelInferenceLogsOwlCreator {
 //			);
 		
 		this.roomColumns = Arrays.asList(
-			    Pair.with("INSIGHT_ID", "VARCHAR(50)"), //ROOM ID now
+			    Pair.with("INSIGHT_ID", "VARCHAR(50)"),  //insight id the room was made with
+			    Pair.with("ROOM_ID", "VARCHAR(50)"), 
 			    Pair.with("ROOM_NAME", "VARCHAR(255)"),
 			    Pair.with("ROOM_CONTEXT", CLOB_DATATYPE_NAME),
 			    Pair.with("USER_ID", "VARCHAR(255)"),
@@ -111,6 +112,7 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("AGENT_ID", "VARCHAR(50)"),
 				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
+			    Pair.with("ROOM_ID", "VARCHAR(50)"), 
 				Pair.with("SESSIONID", "VARCHAR(255)"),
 				Pair.with("USER_ID", "VARCHAR(255)"),
 				Pair.with("USER_NAME", "VARCHAR(255)"),

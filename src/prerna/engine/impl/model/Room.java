@@ -92,7 +92,7 @@ public class Room {
 
 		fakeMap.put("message_json", getMessagesWithImageDataAsString());
 		
-		AskModelEngineResponse llmResponse = modelEngine.ask(msg.getInputPrompt(), this.getSystemMessage(), insight,fakeMap);
+		AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,fakeMap);
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 
 		//set transaction id for both pieces

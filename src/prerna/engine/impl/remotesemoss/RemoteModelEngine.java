@@ -159,6 +159,12 @@ public class RemoteModelEngine implements IModelEngine {
 	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
+
+	@Override
+	public AskModelEngineResponse askRoom(String question, String context, Room room, Map<String, Object> parameters) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	
 	
 }
