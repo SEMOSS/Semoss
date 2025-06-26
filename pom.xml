@@ -2605,7 +2605,11 @@
 			<version>1.3.0</version>
 			<scope>test</scope>
 		</dependency>
-
+		<dependency>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>kafka-clients</artifactId>
+			<version>3.6.0</version>
+		</dependency>
 
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>

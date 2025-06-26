@@ -59,6 +59,8 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
+import prerna.logger.ContextKey;
+import prerna.logger.ThreadContextLogger;
 import prerna.project.api.IProject;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -318,6 +320,7 @@ public class Insight implements Serializable {
 			for(int i = 0; i < size; i++) {
 				String pixelString = pixelList.get(i);
 				if(this.user != null) {
+					ThreadContextLogger.setContext(ContextKey.REACTOR_NAME, Utility.cleanLogString(pixelString));
 					logger.info(User.getSingleLogginName(this.user) + " Running >>> " + Utility.cleanLogString(pixelString));
 				} else {
 					logger.info("No User Running >>> " + Utility.cleanLogString(pixelString));
@@ -569,12 +572,13 @@ public class Insight implements Serializable {
 		this.pixelList.addPixel(pixelRecipe);
 	}
 	
-	public String getInsightId() {
+	public String getInsightId() {		
 		return this.insightId;
 	}
 
 	public void setInsightId(String insightId) {
 		this.insightId = insightId;
+		ThreadContextLogger.setContext(ContextKey.INSIGHT_ID, insightId);
 	}
 
 	public String getUserId(AuthProvider provider) {

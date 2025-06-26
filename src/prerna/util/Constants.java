@@ -1026,5 +1026,13 @@ public class Constants {
     public static final String ADMIN_ONLY_VIEW_MENU_BAR = "ADMIN_ONLY_VIEW_MENU_BAR";
     // default AdminOnlyNonApproveProdCatalogItem
     public static final String ADMIN_ONLY_NON_APPROVED_PROD_ITEM = "ADMIN_ONLY_NON_APPROVED_PROD_ITEM";
+    
+    //Kafka Logging
+    public static final String BOOTSTRAP_SERVERS_CONFIG ="BOOTSTRAP_SERVERS_CONFIG";
+	public static final String SECURITY_PROTOCOL_CONFIG = "SECURITY_PROTOCOL_CONFIG";
+	public static final String SASL_MECHANISM = "SASL_MECHANISM";
+	public static final String KAFKA_USERNAME ="KAFKA_USERNAME";
+	public static final String KAFKA_PASSWORD ="KAFKA_PASSWORD";
+	public static final String KAFKA_TOPIC = "KAFKA_TOPIC";
 
 }
