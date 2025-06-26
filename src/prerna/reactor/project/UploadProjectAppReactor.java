@@ -183,6 +183,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 					} else {
 						// make sure we pull the project from cloud
 						IProject project = Utility.getProject(projectId);
+						project.close();
 						// now delete the project folder - we will make a new one when we copy from temp dir
 			            FileUtils.deleteDirectory(finalProjectFolderF);
 			            // now delete the project smss - we will make a new one when we copy from temp dir

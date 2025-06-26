@@ -47,14 +47,14 @@ public class SetContextReactor extends AbstractReactor {
 		// if we have a chroot, mount the project for that user.
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			// get the app_root folder for the project
-			String projectAppRootFolder = AssetUtility.getProjectBaseFolder(context);
+			String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(context);
 			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
 		}
 
 		// if python enabled
 		// set the path
 		if (PyUtils.pyEnabled()) {
-			String assetsDir = AssetUtility.getProjectAssetFolder(context).replace("\\", "/");
+			String assetsDir = AssetUtility.getProjectAssetsFolder(context).replace("\\", "/");
 			String assetsPyDir = assetsDir + "/py";
 			String script = "import sys\n" + "import os\n" 
 					+ "sys.path.append('" + assetsDir + "')\n" 

@@ -241,7 +241,7 @@ public class PyTranslator {
 
 			// context project takes precedence
 			if (this.insight.getContextProjectId() != null) {
-				appRootPath = AssetUtility.getProjectAssetFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId());
+				appRootPath = AssetUtility.getProjectAssetsFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId());
 				appRootPath = appRootPath.replace('\\', '/');
 				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
 				removePathVariables += ", APP_ROOT";
@@ -252,7 +252,7 @@ public class PyTranslator {
 				removePathVariables += ", APP_ROOT";
 			}
 			try {
-				userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
+				userRootPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, false);
 				userRootPath = userRootPath.replace('\\', '/');
 				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
 				removePathVariables += ", USER_ROOT";
@@ -412,7 +412,7 @@ public class PyTranslator {
 
 			// context project takes precedence
 			if (inputInsight.getContextProjectId() != null) {
-				appRootPath = AssetUtility.getProjectAssetFolder(inputInsight.getContextProjectName(), inputInsight.getContextProjectId());
+				appRootPath = AssetUtility.getProjectAssetsFolder(inputInsight.getContextProjectName(), inputInsight.getContextProjectId());
 				appRootPath = appRootPath.replace('\\', '/');
 				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
 				removePathVariables += ", APP_ROOT";
@@ -423,7 +423,7 @@ public class PyTranslator {
 				removePathVariables += ", APP_ROOT";
 			}
 			try {
-				userRootPath = AssetUtility.getAssetBasePath(inputInsight, AssetUtility.USER_SPACE_KEY, false);
+				userRootPath = AssetUtility.getRootFolderPath(inputInsight, AssetUtility.USER_SPACE_KEY, false);
 				userRootPath = userRootPath.replace('\\', '/');
 				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
 				removePathVariables += ", USER_ROOT";
@@ -559,7 +559,7 @@ public class PyTranslator {
 
 			// context project takes precedence
 			if (inputInsight.getContextProjectId() != null) {
-				appRootPath = AssetUtility.getProjectAssetFolder(inputInsight.getContextProjectName(), inputInsight.getContextProjectId());
+				appRootPath = AssetUtility.getProjectAssetsFolder(inputInsight.getContextProjectName(), inputInsight.getContextProjectId());
 				appRootPath = appRootPath.replace('\\', '/');
 				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
 				removePathVariables += ", APP_ROOT";
@@ -570,7 +570,7 @@ public class PyTranslator {
 				removePathVariables += ", APP_ROOT";
 			}
 			try {
-				userRootPath = AssetUtility.getAssetBasePath(inputInsight, AssetUtility.USER_SPACE_KEY, false);
+				userRootPath = AssetUtility.getRootFolderPath(inputInsight, AssetUtility.USER_SPACE_KEY, false);
 				userRootPath = userRootPath.replace('\\', '/');
 				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
 				removePathVariables += ", USER_ROOT";
