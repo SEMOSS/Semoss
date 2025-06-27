@@ -24,18 +24,19 @@ import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
 
 public class DocsReactor extends AbstractReactor {
-	
+
 	private String SERVICE_ACCOUNT_KEY_FILE = null;
 	private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 	private static final String APPLICATION_NAME = "Google Docs Java";
+	private static final String EngineId = "26a0d483-a005-4885-8420-46c685c5ee52";
 
 	public DocsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.PROMPT_TITLE.getKey(),
-				ReactorKeysEnum.DOCID.getKey(), ReactorKeysEnum.CONTENT.getKey(), ReactorKeysEnum.INDEX.getKey(), ReactorKeysEnum.ENDINDEX.getKey(),
-		};
+		this.keysToGet = new String[] { ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.ID.getKey(),
+				ReactorKeysEnum.PROMPT_TITLE.getKey(), ReactorKeysEnum.DOCID.getKey(), ReactorKeysEnum.CONTENT.getKey(),
+				ReactorKeysEnum.INDEX.getKey(), ReactorKeysEnum.ENDINDEX.getKey() };
 		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
@@ -46,7 +47,7 @@ public class DocsReactor extends AbstractReactor {
 		String content = null;
 		int Startindex = 1;
 		int endindex = 1;
-		
+
 		if (this.keyValue.get(this.keysToGet[1]) != null && this.keyValue.get(this.keysToGet[1]) != "") {
 			id = this.keyValue.get(this.keysToGet[1]);
 		}
@@ -65,57 +66,89 @@ public class DocsReactor extends AbstractReactor {
 		if (this.keyValue.get(this.keysToGet[6]) != null && this.keyValue.get(this.keysToGet[6]) != "") {
 			endindex = Integer.parseInt(this.keyValue.get(this.keysToGet[6]));
 		}
-		
+
 		try {
 			int profileId = Integer.parseInt(id);
 			SERVICE_ACCOUNT_KEY_FILE = getServiceDetails(profileId);
-			InputStream serviceaccount = new ByteArrayInputStream(SERVICE_ACCOUNT_KEY_FILE.getBytes(StandardCharsets.UTF_8));
-			GoogleCredentials credentials = GoogleCredentials.fromStream(serviceaccount).createScoped(Arrays.asList(DocsScopes.DOCUMENTS));
-			Docs service = new Docs.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, new HttpCredentialsAdapter(credentials)).setApplicationName(APPLICATION_NAME).build();
+			InputStream serviceaccount = new ByteArrayInputStream(
+					SERVICE_ACCOUNT_KEY_FILE.getBytes(StandardCharsets.UTF_8));
+			GoogleCredentials credentials = GoogleCredentials.fromStream(serviceaccount)
+					.createScoped(Arrays.asList(DocsScopes.DOCUMENTS));
+			Docs service = new Docs.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY,
+					new HttpCredentialsAdapter(credentials)).setApplicationName(APPLICATION_NAME).build();
 
 			switch (command.trim().replaceAll("\\s+", " ").toLowerCase()) {
 			case "createdoc":
 				boolean success = false;
+				String DOCID = "docid";
+				String SUCCESS = "success";
 				Map<String, Object> res = new HashMap<>();
 				try {
 					Document doc = DocsHelper.createDoc(service, title);
 					if (doc != null && doc.getDocumentId() != null) {
 						success = true;
 						String tableName = null;
-					    try {
-					    	IDatabaseEngine database = Utility.getDatabase("9be6565f-550f-4be0-8758-c25232973cb1");
+						try {
+							IDatabaseEngine database = Utility.getDatabase(EngineId);
 							List<String> tableNames = database.getPixelConcepts();
 							for (String table : tableNames) {
 								tableName = table;
 							}
-							String updatequery = "update "+ tableName + " set docid = '" + doc.getDocumentId() + "'" + " where id = " + id;
+							String updatequery = "update " + tableName + " set docid = '" + doc.getDocumentId() + "'"
+									+ " where id = " + id;
 							database.execQuery(updatequery);
-					    }
-					    catch (Exception e) {
-					    	e.printStackTrace();
-					    }
-						res.put("docid", doc.getDocumentId());
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						res.put(DOCID, doc.getDocumentId());
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-				res.put("success", success);
+				res.put(SUCCESS, success);
 				return new NounMetadata(res, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 
 			case "readdoc":
 				String contentValue = DocsHelper.readDoc(service, docid);
 				return new NounMetadata(contentValue, PixelDataType.CUSTOM_DATA_STRUCTURE,
 						PixelOperationType.OPERATION);
-				
+
 			case "updatedoc":
 				boolean updateresult = DocsHelper.updateDoc(service, docid, content, Startindex);
-				return new NounMetadata(updateresult, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);	
-			
+				String updatetableName = null;
+				try {
+					IDatabaseEngine database = Utility.getDatabase(EngineId);
+					List<String> tableNames = database.getPixelConcepts();
+					for (String table : tableNames) {
+						updatetableName = table;
+					}
+					String updatequery = "update " + updatetableName + " set lastupdateddate = '"
+							+ System.currentTimeMillis() + "'" + " where id = " + id;
+					database.execQuery(updatequery);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				return new NounMetadata(updateresult, PixelDataType.CUSTOM_DATA_STRUCTURE,
+						PixelOperationType.OPERATION);
 
 			case "deletedoc":
 				boolean deleteresult = DocsHelper.deleteDoc(service, docid, Startindex, endindex);
-				return new NounMetadata(deleteresult, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);	
-				
+				String deletetableName = null;
+				try {
+					IDatabaseEngine database = Utility.getDatabase(EngineId);
+					List<String> tableNames = database.getPixelConcepts();
+					for (String table : tableNames) {
+						deletetableName = table;
+					}
+					String updatequery = "update " + deletetableName + " set lastupdateddate = '"
+							+ System.currentTimeMillis() + "'" + " where id = " + id;
+					database.execQuery(updatequery);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				return new NounMetadata(deleteresult, PixelDataType.CUSTOM_DATA_STRUCTURE,
+						PixelOperationType.OPERATION);
+
 			default:
 				return new NounMetadata("Please provide valid command", PixelDataType.CUSTOM_DATA_STRUCTURE,
 						PixelOperationType.OPERATION);
@@ -126,15 +159,16 @@ public class DocsReactor extends AbstractReactor {
 		}
 
 	}
+
 	public static String getServiceDetails(int id) {
 		try {
-			
-			IDatabaseEngine database = Utility.getDatabase("9be6565f-550f-4be0-8758-c25232973cb1");
+			String ResultSetObj = "RESULTSET_OBJECT";
+			IDatabaseEngine database = Utility.getDatabase(EngineId);
 			String query = "select servicejson from googledocsprofile where id = " + id;
 			@SuppressWarnings("unchecked")
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
-			Object rsObj = hashmap.get("RESULTSET_OBJECT");
-			
+			Object rsObj = hashmap.get(ResultSetObj);
+
 			if (rsObj instanceof ResultSet) {
 				ResultSet rs = (ResultSet) rsObj;
 				if (rs.next()) {
@@ -142,11 +176,35 @@ public class DocsReactor extends AbstractReactor {
 				}
 			}
 			throw new Exception("Service Account not found");
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is used to create, update, delete and read the document.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+			return "Command to perform CRUD operations " + ReactorKeysEnum.COMMAND.getKey();
+		} else if (key.equals(ReactorKeysEnum.ID.getKey())) {
+			return "Id " + ReactorKeysEnum.ID.getKey();
+		} else if (key.equals(ReactorKeysEnum.PROMPT_TITLE.getKey())) {
+			return "Title of the Document " + ReactorKeysEnum.PROMPT_TITLE.getKey();
+		} else if (key.equals(ReactorKeysEnum.DOCID.getKey())) {
+			return "Id of the Document created " + ReactorKeysEnum.DOCID.getKey();
+		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
+			return "Content to be added to the document " + ReactorKeysEnum.CONTENT.getKey();
+		} else if (key.equals(ReactorKeysEnum.INDEX.getKey())) {
+			return "Start index for the insertion or deletion of the content " + ReactorKeysEnum.INDEX.getKey();
+		} else if (key.equals(ReactorKeysEnum.ENDINDEX.getKey())) {
+			return "Index till which content of document to be deleted " + ReactorKeysEnum.ENDINDEX.getKey();
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

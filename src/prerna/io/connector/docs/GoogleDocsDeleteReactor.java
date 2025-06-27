@@ -1,7 +1,6 @@
 package prerna.io.connector.docs;
 
 import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -13,64 +12,69 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class GetDocsProfileByIdReactor extends AbstractReactor {
-	
+public class GoogleDocsDeleteReactor extends AbstractReactor {
 	private static final String EngineId = "26a0d483-a005-4885-8420-46c685c5ee52";
 
-	public GetDocsProfileByIdReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
+	public GoogleDocsDeleteReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.NAME.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String id = this.keyValue.get(this.keysToGet[0]);
-		String tableName = null;
-		String ID = "id";
-		String DOCID = "docid";
-		String ResultSetObj = "RESULTSET_OBJECT";
-		List<String> docProfile = new ArrayList<>();
+		String name = this.keyValue.get(this.keysToGet[0]);
+		int id = getID(name);
+		String deletetableName = null;
 		try {
+			IDatabaseEngine database = Utility.getDatabase(EngineId);
+			List<String> tableNames = database.getPixelConcepts();
+			for (String table : tableNames) {
+				deletetableName = table;
+			}
+			String deletequery = "DELETE FROM " + deletetableName + " WHERE id = " + id;
+			database.removeData(deletequery);
+			String message = "Row with id " + id + " succesfully deleted";
+			return new NounMetadata(message, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			String error = "Error in getting the user ids";
+			return new NounMetadata(error + ":" + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
+					PixelOperationType.OPERATION);
+		}
+	}
+	
+	public static int getID(String name) {
+		String tableName = null;
+		try {
+			String ResultSetObj = "RESULTSET_OBJECT";
 			IDatabaseEngine database = Utility.getDatabase(EngineId);
 			List<String> tableNames = database.getPixelConcepts();
 			for (String table : tableNames) {
 				tableName = table;
 			}
-			String query = " select docid,name,docname,datecreated,lastupdateddate,servicejson,insight_usermailid,insight_username from "
-					+ tableName + " where id= " + id;
+			String query = "select id from " + tableName + " where name = '" + name + "'";
 			@SuppressWarnings("unchecked")
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
 			Object rsObj = hashmap.get(ResultSetObj);
 
 			if (rsObj instanceof ResultSet) {
 				ResultSet rs = (ResultSet) rsObj;
-				while (rs.next()) {
-					docProfile.add(rs.getString("docid"));
-					docProfile.add(rs.getString("name"));
-					docProfile.add(rs.getString("docname"));
-					docProfile.add(rs.getString("datecreated"));
-					docProfile.add(rs.getString("lastupdateddate"));
-					docProfile.add(rs.getString("servicejson"));
+				if (rs.next()) {
+					return rs.getInt("id");
 				}
 			}
-			HashMap<String, Object> res = new HashMap<>();
-			res.put(ID, id);
-			res.put(DOCID, docProfile);
-			return new NounMetadata(res, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-
+			throw new Exception("Service Account not found");
 		} catch (Exception e) {
 			e.printStackTrace();
-			String error = "Error in getting the user details";
-			return new NounMetadata(error + ":" + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			return -1;
 		}
-
 	}
-
+	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor returns the details of the document.";
+		return "This reactor delete the row from the googledocsprofile.";
 	}
 
 	@Override

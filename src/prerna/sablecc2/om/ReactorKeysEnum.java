@@ -58,6 +58,7 @@ public enum ReactorKeysEnum {
 	DESCRIPTION("description", 									"A description (could be for an app, table/concept, insight, etc.)"),
 	DRY_RUN("dryRun",											"Boolean whether to perform a dry run of the operation without impacting application state (default is true)"),
 	EMAIL_SESSION("emailSession",								"The javax.mail email session object"),
+	EMAILID("emailid",                                          "Insight Email id"),
 	ENABLE("enable",											"Boolean whether to enable"),
 	EVENTS_KEY("events", 										"Events map input"),
 	EXISTING("existing", 										"Add to exisitng app"),

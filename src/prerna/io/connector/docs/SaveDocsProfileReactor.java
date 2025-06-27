@@ -7,7 +7,6 @@ import java.util.List;
 
 import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IRDBMSEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -16,39 +15,41 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class SaveDocsProfileReactor extends AbstractReactor {
-
-	static IRDBMSEngine userTrackingDb;
+	
+	private static final String EngineId = "26a0d483-a005-4885-8420-46c685c5ee52";
 
 	public SaveDocsProfileReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.DATE_CREATED.getKey(), ReactorKeysEnum.LAST_USED.getKey(),
-				ReactorKeysEnum.JSON.getKey(), ReactorKeysEnum.NAME.getKey()};
-		this.keyRequired = new int[] {1, 1, 1, 1};
+		this.keysToGet = new String[] { ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.DOCNAME.getKey(),
+				ReactorKeysEnum.JSON.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
-// Single Name
+
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String dateCreated = this.keyValue.get(this.keysToGet[0]);
-		String lastUsed = this.keyValue.get(this.keysToGet[1]);
+		String name = this.keyValue.get(this.keysToGet[0]);
+		String DocName = this.keyValue.get(this.keysToGet[1]);
 		String serviceJson = this.keyValue.get(this.keysToGet[2]);
-		String name = this.keyValue.get(this.keysToGet[3]);
 		Boolean insertData = false;
-		Timestamp date = Timestamp.valueOf(dateCreated);
-		Timestamp lused = Timestamp.valueOf(lastUsed);
+		Timestamp date = new Timestamp(System.currentTimeMillis());
+		Timestamp lused = new Timestamp(System.currentTimeMillis());
 		User user = this.insight.getUser();
 		String insight_username = user.getPrimaryLoginToken().getUsername();
 		String insight_usermailid = user.getPrimaryLoginToken().getEmail();
 		HashMap<Object, Object> map = new HashMap<Object, Object>();
 		int profileId = 0;
+		String ID = "id";
+		String SUCCESS = "Success";
 		try {
-			IDatabaseEngine database = Utility.getDatabase("9be6565f-550f-4be0-8758-c25232973cb1");
-			insertData = insertData(database, insight_username, insight_usermailid, name, date, lused, serviceJson);
-			if(insertData) {
+			IDatabaseEngine database = Utility.getDatabase(EngineId);
+			insertData = insertData(database, insight_username, insight_usermailid, name, date, lused, serviceJson,
+					DocName);
+			if (insertData) {
 				profileId = readData(database, insight_username, date, lused, serviceJson);
 			}
 			if (profileId != 0) {
-				map.put("id", profileId);
-				map.put("Success", insertData);
+				map.put(ID, profileId);
+				map.put(SUCCESS, insertData);
 			}
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
@@ -59,16 +60,18 @@ public class SaveDocsProfileReactor extends AbstractReactor {
 		}
 	}
 
-	private static Boolean insertData(IDatabaseEngine database, String InsightName, String InsightEmail, String Name, Timestamp dateCreated, Timestamp lastUsed, String serviceJson) {
+	private static Boolean insertData(IDatabaseEngine database, String InsightName, String InsightEmail, String Name,
+			Timestamp dateCreated, Timestamp lastUsed, String serviceJson, String DocName) {
 		String tableName = null;
 		try {
 			List<String> tableNames = database.getPixelConcepts();
 			for (String table : tableNames) {
 				tableName = table;
 			}
-			String insertQuery = " INSERT INTO " + tableName + "(insight_username,insight_usermailid,name,datecreated,lastupdateddate,servicejson) "
-					+ "VALUES ('" + InsightName + "','" + InsightEmail + "','" + Name + "','" + dateCreated + "','" + lastUsed
-					+ "','" + serviceJson + "')";
+			String insertQuery = " INSERT INTO " + tableName
+					+ "(insight_username,insight_usermailid,name,docname,datecreated,lastupdateddate,servicejson) "
+					+ "VALUES ('" + InsightName + "','" + InsightEmail + "','" + Name + "','" + DocName + "','"
+					+ dateCreated + "','" + lastUsed + "','" + serviceJson + "')";
 			database.insertData(insertQuery);
 			return true;
 		} catch (Exception e) {
@@ -76,18 +79,22 @@ public class SaveDocsProfileReactor extends AbstractReactor {
 			return false;
 		}
 	}
-	private Integer readData(IDatabaseEngine database, String InsightName, Timestamp dateCreated, Timestamp lastUsed, String serviceJson) {
+
+	private Integer readData(IDatabaseEngine database, String InsightName, Timestamp dateCreated, Timestamp lastUsed,
+			String serviceJson) {
 		int profileKey = 0;
 		try {
 			String tableName = null;
+			String ResultSetObj = "RESULTSET_OBJECT";
 			List<String> tableNames = database.getPixelConcepts();
 			for (String table : tableNames) {
 				tableName = table;
 			}
-			String query=" select id from "+tableName+ " where insight_username='"+InsightName+"' and servicejson='"+serviceJson+"'";
+			String query = " select id from " + tableName + " where insight_username='" + InsightName
+					+ "' and servicejson='" + serviceJson + "'";
 			@SuppressWarnings("unchecked")
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
-			Object string = hashmap.get("RESULTSET_OBJECT");
+			Object string = hashmap.get(ResultSetObj);
 			if (string instanceof ResultSet) {
 				ResultSet rs = (ResultSet) string;
 				while (rs.next()) {
@@ -100,6 +107,23 @@ public class SaveDocsProfileReactor extends AbstractReactor {
 		}
 		return profileKey;
 
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "This reactor insert the data into the googledocsprofile database and also return the id.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.NAME.getKey())) {
+			return "Name " + ReactorKeysEnum.NAME.getKey();
+		} else if (key.equals(ReactorKeysEnum.DOCNAME.getKey())) {
+			return "Name of the Document " + ReactorKeysEnum.DOCNAME.getKey();
+		} else if (key.equals(ReactorKeysEnum.JSON.getKey())) {
+			return "ServiceJson " + ReactorKeysEnum.JSON.getKey();
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }
