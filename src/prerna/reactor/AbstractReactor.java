@@ -20,7 +20,10 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.logger.ContextKey;
+import prerna.logger.ThreadContextLogger;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
 import prerna.reactor.job.JobReactor;
 import prerna.sablecc2.comm.InMemoryConsole;
@@ -732,6 +735,21 @@ public abstract class AbstractReactor implements IReactor {
 //				keyValue.put(keysToGet[keyIndex], struct.get(keyIndex)+"");
 //			}
 //		}
+		
+		//This is for logging IDS
+				ThreadContextLogger.setContext(ContextKey.ENGINE_ID, keyValue.getOrDefault(ReactorKeysEnum.ENGINE.getKey(),""));
+				ThreadContextLogger.setContext(ContextKey.ENGINE_NAME, keyValue.getOrDefault(ReactorKeysEnum.ENGINE.getKey(),""));
+				ThreadContextLogger.setContext(ContextKey.ENGINE_TYPE, keyValue.getOrDefault(ReactorKeysEnum.ENGINE_TYPE.getKey(),""));
+				ThreadContextLogger.setContext(ContextKey.INSIGHT_ID, this.insight.getInsightId());
+				Insight insight = InsightStore.getInstance().get(this.insight.getInsightId());
+				if(insight!=null){
+					ThreadContextLogger.setContext(ContextKey.PROJECT_ID, insight.getContextProjectId());
+					ThreadContextLogger.setContext(ContextKey.PROJECT_NAME, insight.getContextProjectName());
+					
+					
+				}
+				ThreadContextLogger.setContext(ContextKey.PIXEL_ID, keyValue.getOrDefault(ReactorKeysEnum.PIXEL_ID.getKey(),""));
+
 		
 		// check which of these are optional
 		checkOptional();
