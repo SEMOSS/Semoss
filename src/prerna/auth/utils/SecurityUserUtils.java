@@ -227,7 +227,11 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				insertPs.setString(1, (String) m.get("metakey"));
 				insertPs.setString(2, (String) m.get("single_multi"));
 				Number n = ((Number) m.get("display_order"));
-				insertPs.setInt(3, n == null ? null : n.intValue());
+				if(n == null) {
+					insertPs.setNull(3, java.sql.Types.INTEGER);
+				} else {
+					insertPs.setInt(3, n.intValue());
+				}
 				insertPs.setString(4, (String) m.get("display_options"));
 				insertPs.setString(5, (String) m.get("display_values"));
 				insertPs.addBatch();

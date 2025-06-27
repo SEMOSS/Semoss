@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import prerna.date.SemossDate;
 
@@ -35,7 +36,12 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 			newToken.sans = Collections.unmodifiableMap(token.sans);
 		}
 		if(token.meta != null) {
-			newToken.meta = Collections.unmodifiableMap(token.meta);
+			Map<String, Collection<String>> deepUnmodifiableMeta = token.meta.entrySet().stream()
+			    .collect(Collectors.toMap(
+			        Map.Entry::getKey,
+			        e -> Collections.unmodifiableCollection(e.getValue())
+			    ));
+			newToken.meta = Collections.unmodifiableMap(deepUnmodifiableMeta);
 		}
 		newToken.locked = token.locked;
 		newToken.lastLogin = token.lastLogin;
