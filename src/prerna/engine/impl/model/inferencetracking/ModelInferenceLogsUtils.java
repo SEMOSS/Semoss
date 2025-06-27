@@ -110,6 +110,7 @@ public class ModelInferenceLogsUtils {
     boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 
     boolean roomIdColumnWasAdded = false;
+    boolean modelIdColumnWasAdded = false;
 
     for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
       String tableName = tableSchema.getValue0();
@@ -142,6 +143,14 @@ public class ModelInferenceLogsUtils {
           if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("ROOM_ID")) {
               roomIdColumnWasAdded = true;
           }
+          
+          // was model id just added? 2025-06-26 addition. if so update w/ insight id
+          if (tableName.equalsIgnoreCase("ROOM") && col.equalsIgnoreCase("MODEL_ID")) {
+        	  modelIdColumnWasAdded = true;
+          }
+          if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("MODEL_ID")) {
+        	  modelIdColumnWasAdded = true;
+          }
         }
       }
     }
@@ -151,6 +160,10 @@ public class ModelInferenceLogsUtils {
         migrateRoomAndMessageIds(conn);
     }
     
+    // was modelId just added
+    if (modelIdColumnWasAdded) {
+    	migrateAgentAndModelIds(conn);
+    }
 
 
     if (allowIfExistsIndexs) {
@@ -371,6 +384,24 @@ public class ModelInferenceLogsUtils {
 	        classLogger.info("Room/Message room_id migration updated " + rCount + " ROOM rows and " + mCount + " MESSAGE rows.");
 	    } catch (SQLException ex) {
 	    	classLogger.error("Failed to migrate legacy ROOM_ID fields", ex);
+	    }
+	}
+  
+  /**
+   * @param conn
+   * @throws SQLException
+   */
+  private static void migrateAgentAndModelIds(Connection conn) {
+	    try (Statement stmt = conn.createStatement()) {
+	        int rCount = stmt.executeUpdate(
+	            "UPDATE ROOM SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''"
+	        );
+	        int mCount = stmt.executeUpdate(
+	            "UPDATE MESSAGE SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''"
+	        );
+	        classLogger.info("Room/Message model_id migration updated " + rCount + " ROOM rows and " + mCount + " MESSAGE rows.");
+	    } catch (SQLException ex) {
+	    	classLogger.error("Failed to migrate legacy AGENT_ID fields", ex);
 	    }
 	}
 

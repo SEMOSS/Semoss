@@ -135,6 +135,11 @@ public abstract class AbstractMessage {
 	public String getDateCreated() {
 		return dateCreated;
 	}
+	
+	//ONLY TO BE USED FOR UPDATED LEGACY MESSAGES.
+	public void setDateCreated(String formattedDate) {
+		this.dateCreated=formattedDate;
+	}
 
 
 	

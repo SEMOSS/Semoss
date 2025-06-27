@@ -1,23 +1,28 @@
 package prerna.engine.impl.model;
 
+import java.lang.reflect.Type;
+import java.sql.Blob;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tinkerpop.shaded.jackson.databind.JsonMappingException;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import java.lang.reflect.Type;
-import java.sql.Blob;
-import java.sql.SQLException;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.engine.impl.model.inferencetracking.reactors.UpdateRoomOptionsReactor;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.util.Utility;
@@ -99,6 +104,10 @@ public class RoomUtils {
         if (insight.getUser().roomHash.containsKey(roomId)) {
             try {
                 room = (Room) insight.getUser().roomHash.get(roomId);
+                //is the message json null? if so then this is probably a legacy room
+                if(room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
+                	RoomUtils.updateRoom(room, insight);
+                }
                 return room;
             } catch (ClassCastException e) {
                 insight.getUser().roomHash.remove(roomId); // Clear corrupted cache entry
@@ -108,13 +117,37 @@ public class RoomUtils {
         if (!roomExistsInDB)
             throw new IllegalArgumentException("User room is not valid");
         room = ModelInferenceLogsUtils.getRoomById(roomId, insight.getUser().getPrimaryLoginToken().getId());
+        
+        //is the message json null? if so then this is probably a legacy room
+        if(room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
+        	RoomUtils.updateRoom(room, insight);
+        }
         room.setInsight(insight);
         room.parseMessages();
         insight.getUser().roomHash.put(roomId, room);
         return room;
     }
 
-    /**
+    private static void updateRoom(Room room,  Insight insight) {
+        List<Map<String, Object>> output = ModelInferenceLogsUtils.doRetrieveConversation(insight.getUser().getPrimaryLoginToken().getId(), room.getId(), "ASC", -1, -1);
+	      
+        // for each message, build an AbstractMessage
+        List<AbstractMessage> messages = new ArrayList<>();
+        for (Map<String, Object> entry : output) {
+            AbstractMessage msg = buildMessageFromMap(room, entry);
+            if (msg != null) messages.add(msg);
+        }
+        
+        //set the messages in the room
+        room.setMessages(messages);
+        
+        //write the message json to db
+		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
+				MessageUtils.toJsonArray(messages));		
+        
+	}
+
+	/**
      * Gets the room options map 
      */
     public static Map<String, Object> getRoomOptions(String roomId, String userId) {
@@ -143,4 +176,47 @@ public class RoomUtils {
 
         return map;
     }
+    
+    
+    /**
+     * Helper method: converts a single row map to an InputMessage or ResponseMessage
+     */
+    private static AbstractMessage buildMessageFromMap(Room room, Map<String, Object> entry) {
+        // Read type
+        String type = "" + entry.get("MESSAGE_TYPE");
+        // Defensive: uppercase for control
+        type = (type == null ? "" : type.trim().toUpperCase());
+
+        // Common fields
+        String messageId = (String) entry.get("MESSAGE_ID");
+        String data = (String) entry.get("MESSAGE_DATA");
+        SemossDate dateCreated = (prerna.date.SemossDate) entry.get("DATE_CREATED");
+
+        // Switch by type
+        if ("INPUT".equals(type)) {
+            InputMessage im = InputMessage.builder(room)
+                .withInputUIPrompt(data)
+                .withInputPrompt(data)
+                .withType(MessageType.INPUT_TEXT)
+                .build();
+            im.setDateCreated(dateCreated.getFormattedDate());
+            im.setModelId(room.getModelId());
+            return im;
+        } else if ("RESPONSE".equals(type)) {
+            ResponseMessage rm = ResponseMessage.builder()
+                .withText(data)
+                .withType(MessageType.RESPONSE_TEXT)
+                .build();
+            rm.setTransactionId(messageId);
+            rm.setDateCreated(dateCreated.getFormattedDate());
+            rm.setModelId(room.getModelId());
+
+            return rm;
+        } else {
+            // fallback; or you could throw an exception
+            System.err.println("Unknown message type: " + type + ", row: " + entry);
+            return null;
+        }
+    }
+    
 }
