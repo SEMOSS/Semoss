@@ -134,9 +134,35 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	    }
 		try {
 			ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(path);
+			
+			// Use a Set to track unique immediate items (similar to rclone --max-depth=1)
+			Set<String> immediateItems = new HashSet<>();
+			
 			for (S3Object object : listObjectsV2Response.contents()) {
-				fileList.add(object.key());
+				String objectKey = object.key();
+				
+				// Calculate the relative path from the specified prefix
+				String relativePath = path.isEmpty() ? objectKey : objectKey.substring(path.length());
+				if (relativePath.startsWith("/")) {
+					relativePath = relativePath.substring(1);
+				}
+				
+				// Find the first path separator to get the immediate item
+				int firstSlashIndex = relativePath.indexOf('/');
+				if (firstSlashIndex > 0) {
+					// This is a file or folder in a subdirectory - add the immediate folder
+					String immediateItem = path.isEmpty() ? 
+						relativePath.substring(0, firstSlashIndex + 1) : // Include trailing slash for folders
+						path + "/" + relativePath.substring(0, firstSlashIndex + 1);
+					immediateItems.add(immediateItem);
+				} else if (firstSlashIndex == -1 && !relativePath.isEmpty()) {
+					// This is a file in the current directory
+					String immediateItem = path.isEmpty() ? objectKey : path + "/" + relativePath;
+					immediateItems.add(immediateItem);
+				}
 			}
+			
+			fileList.addAll(immediateItems);
 
 		} catch (S3Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -161,19 +187,71 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 		try {
 			ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(path);
+			
+			// Use a Set to track unique immediate items (similar to rclone --max-depth=1)
+			Set<String> immediateItems = new HashSet<>();
+			
 			for (S3Object object : listObjectsV2Response.contents()) {
+				String objectKey = object.key();
+				
+				// Calculate the relative path from the specified prefix
+				String relativePath = path.isEmpty() ? objectKey : objectKey.substring(path.length());
+				if (relativePath.startsWith("/")) {
+					relativePath = relativePath.substring(1);
+				}
+				
+				// Find the first path separator to get the immediate item
+				int firstSlashIndex = relativePath.indexOf('/');
+				if (firstSlashIndex > 0) {
+					// This is a file or folder in a subdirectory - add the immediate folder
+					String immediateItem = path.isEmpty() ? 
+						relativePath.substring(0, firstSlashIndex + 1) : // Include trailing slash for folders
+						path + "/" + relativePath.substring(0, firstSlashIndex + 1);
+					immediateItems.add(immediateItem);
+				} else if (firstSlashIndex == -1 && !relativePath.isEmpty()) {
+					// This is a file in the current directory
+					String immediateItem = path.isEmpty() ? objectKey : path + "/" + relativePath;
+					immediateItems.add(immediateItem);
+				}
+			}
+			
+			// Now create details for the unique immediate items
+			for (String immediateItem : immediateItems) {
 				Map<String, Object> objectInfo = new HashMap<>();
-				objectInfo.put("key", object.key());
-				objectInfo.put("size", object.size());
-				objectInfo.put("lastModified", object.lastModified());
-				objectInfo.put("etag", object.eTag());
-				// Fetch object metadata
-				HeadObjectRequest headRequest = HeadObjectRequest.builder().bucket(this.bucket).key(object.key())
-						.build();
-				HeadObjectResponse headResponse = this.client.headObject(headRequest);
-				Map<String, String> metadata = headResponse.metadata();
-
-				objectInfo.put("metadata", (metadata != null) ? metadata : Collections.emptyMap());
+				objectInfo.put("key", immediateItem);
+				
+				// Try to find the actual S3 object for this immediate item to get details
+				boolean foundDetails = false;
+				for (S3Object object : listObjectsV2Response.contents()) {
+					if (object.key().equals(immediateItem) || 
+						(immediateItem.endsWith("/") && object.key().startsWith(immediateItem))) {
+						objectInfo.put("size", object.size());
+						objectInfo.put("lastModified", object.lastModified());
+						objectInfo.put("etag", object.eTag());
+						
+						// Fetch object metadata
+						try {
+							HeadObjectRequest headRequest = HeadObjectRequest.builder().bucket(this.bucket).key(object.key())
+									.build();
+							HeadObjectResponse headResponse = this.client.headObject(headRequest);
+							Map<String, String> metadata = headResponse.metadata();
+							objectInfo.put("metadata", (metadata != null) ? metadata : Collections.emptyMap());
+						} catch (Exception e) {
+							objectInfo.put("metadata", Collections.emptyMap());
+						}
+						foundDetails = true;
+						break;
+					}
+				}
+				
+				// If no details found, add basic info
+				if (!foundDetails) {
+					objectInfo.put("size", 0L);
+					objectInfo.put("lastModified", null);
+					objectInfo.put("etag", "");
+					objectInfo.put("metadata", Collections.emptyMap());
+				}
+				
 				objectDetails.add(objectInfo);
 			}
 
