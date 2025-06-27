@@ -362,5 +362,9 @@ public class Room {
 		this.systemMessage = systemMessage;
 	}
 	
+	public String getMessageJson() {
+		return this.messagesJson;
+	}
+	
 	
 }

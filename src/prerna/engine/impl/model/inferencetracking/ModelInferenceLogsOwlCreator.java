@@ -111,6 +111,7 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("RESPONSE_TIME", DOUBLE_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("AGENT_ID", "VARCHAR(50)"),
+				Pair.with("MODEL_ID", "VARCHAR(50)"),
 				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
 			    Pair.with("ROOM_ID", "VARCHAR(50)"), 
 				Pair.with("SESSIONID", "VARCHAR(255)"),
