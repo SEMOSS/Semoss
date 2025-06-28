@@ -33,6 +33,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -293,13 +294,13 @@ public class Insight implements Serializable {
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	public PixelRunner runPixel(String pixelString) {
-		List<String> pixelList = new Vector<String>();
+		List<String> pixelList = new ArrayList<String>();
 		pixelList.add(pixelString);
 		return runPixel(pixelList);
 	}
 	
 	public PixelRunner runPixel(PixelRunner runner, String pixelString) {
-		List<String> pixelList = new Vector<String>();
+		List<String> pixelList = new ArrayList<String>();
 		pixelList.add(pixelString);
 		return runPixel(runner, pixelList);
 	}
