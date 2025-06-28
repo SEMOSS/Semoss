@@ -1,15 +1,14 @@
 package prerna.reactor;
 
+import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.comm.PixelJobManager;
 
 public class StopPixelExecutionReactor extends AbstractReactor {
 			
 	public StopPixelExecutionReactor() {
-		// THIS IS A JOB ID
 		this.keysToGet = new String[] {ReactorKeysEnum.ID.getKey()};
 		this.keyRequired = new int[] {1};
 	}
@@ -27,5 +26,18 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 		jobManager.removeJob(jobId);
 		
 		return new NounMetadata("Pixel operation ended", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "Stop the current execution of a pixel job";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equalsIgnoreCase(ReactorKeysEnum.ID.getKey()) ) {
+			return "The id for the job. If running the pixel synchronously, the job id will be the same as the insight id.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }
