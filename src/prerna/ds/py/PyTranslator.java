@@ -236,25 +236,25 @@ public class PyTranslator {
 		String pyTemp = null;
 		if (this.insight != null) {
 			insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
-			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
+			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "'";
 			removePathVariables = " ROOT";
 
 			// context project takes precedence
 			if (this.insight.getContextProjectId() != null) {
 				appRootPath = AssetUtility.getProjectAssetsFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId());
 				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "'";
 				removePathVariables += ", APP_ROOT";
 			} else if (this.insight.isSavedInsight()) {
 				appRootPath = this.insight.getAppFolder();
 				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "'";
 				removePathVariables += ", APP_ROOT";
 			}
 			try {
 				userRootPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, false);
 				userRootPath = userRootPath.replace('\\', '/');
-				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
+				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "'";
 				removePathVariables += ", USER_ROOT";
 			} catch (Exception ignore) {
 				// ignore
@@ -407,25 +407,25 @@ public class PyTranslator {
 		String pyTemp = null;
 		if (inputInsight != null) {
 			insightRootPath = inputInsight.getInsightFolder().replace('\\', '/');
-			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
+			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "'";
 			removePathVariables = " ROOT";
 
 			// context project takes precedence
 			if (inputInsight.getContextProjectId() != null) {
 				appRootPath = AssetUtility.getProjectAssetsFolder(inputInsight.getContextProjectName(), inputInsight.getContextProjectId());
 				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "'";
 				removePathVariables += ", APP_ROOT";
 			} else if (inputInsight.isSavedInsight()) {
 				appRootPath = inputInsight.getAppFolder();
 				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "'";
 				removePathVariables += ", APP_ROOT";
 			}
 			try {
 				userRootPath = AssetUtility.getRootFolderPath(inputInsight, AssetUtility.USER_SPACE_KEY, false);
 				userRootPath = userRootPath.replace('\\', '/');
-				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
+				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "'";
 				removePathVariables += ", USER_ROOT";
 			} catch (Exception ignore) {
 				// ignore
@@ -554,25 +554,25 @@ public class PyTranslator {
 
 		if (inputInsight != null) {
 			insightRootPath = inputInsight.getInsightFolder().replace('\\', '/');
-			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
+			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "'";
 			removePathVariables = ", ROOT";
 
 			// context project takes precedence
 			if (inputInsight.getContextProjectId() != null) {
 				appRootPath = AssetUtility.getProjectAssetsFolder(inputInsight.getContextProjectName(), inputInsight.getContextProjectId());
 				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "'";
 				removePathVariables += ", APP_ROOT";
 			} else if (inputInsight.isSavedInsight()) {
 				appRootPath = inputInsight.getAppFolder();
 				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "'";
 				removePathVariables += ", APP_ROOT";
 			}
 			try {
 				userRootPath = AssetUtility.getRootFolderPath(inputInsight, AssetUtility.USER_SPACE_KEY, false);
 				userRootPath = userRootPath.replace('\\', '/');
-				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
+				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "'";
 				removePathVariables += ", USER_ROOT";
 			} catch (Exception ignore) {
 				// ignore
