@@ -18,7 +18,9 @@ env:
   RELEASE: ${{ vars.RELEASE }}
   MAVEN_REPO_TOKEN: ${{ vars.MAVEN_REPO_TOKEN }}
   MAVEN_REPO_TOKEN_PASS: ${{ vars.MAVEN_REPO_TOKEN_PASS }}
-
+  MAVEN_CENTRAL_PORTAL_REPO_USERNAME: ${{ vars.MAVEN_CENTRAL_PORTAL_REPO_USERNAME }}
+  MAVEN_CENTRAL_PORTAL_REPO_PASSWORD: ${{ vars.MAVEN_CENTRAL_PORTAL_REPO_PASSWORD }}
+  
 jobs:
   # version_info_deploy:
   #   runs-on: ubuntu-latest
@@ -131,21 +133,7 @@ jobs:
           apt-get update -y
           apt-get install -y openjfx
           apt-get install -y gnupg2
-      - name: Write settings.xml with secrets
-        run: |
-          cat > ./settings.xml <<EOF
-          <settings xmlns="http://maven.apache.org/SETTINGS/1.1.0"
-            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd">
-            <servers>
-              <server>
-                <id>central</id>
-                <username>${{ env.MAVEN_CENTRAL_PORTAL_REPO_USERNAME }}</username>
-                <password>${{ env.MAVEN_CENTRAL_PORTAL_REPO_PASSWORD }}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
+          
       #gpg key is legacy
       # - name: Import GPG key
       #   run: echo "${{ secrets.GPG_PRIVATE_KEY_2 }}" | gpg2 --batch --import
