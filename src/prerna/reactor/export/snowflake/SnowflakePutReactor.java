@@ -54,7 +54,7 @@ public class SnowflakePutReactor extends AbstractReactor {
 		String space = this.keyValue.get(this.keysToGet[2]);
 		// if security enables, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
-		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
+		String baseFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String filePath = (baseFolder + "/" + fileRelativePath).replace('\\', '/');
 		File putFile = new File(filePath);
 		if(putFile.exists() && !putFile.isFile()) {

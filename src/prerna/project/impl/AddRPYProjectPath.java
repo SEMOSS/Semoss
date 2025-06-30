@@ -27,7 +27,7 @@ public class AddRPYProjectPath extends AbstractReactor {
 		AbstractRJavaTranslator rt = this.insight.getRJavaTranslator(this.getClass().getName());
 
 		String projectId = keyValue.get(keysToGet[0]);
-		String basePath = AssetUtility.getProjectAssetFolder(projectId);
+		String basePath = AssetUtility.getProjectAssetsFolder(projectId);
 		String folderName = basePath + "/py";
 		folderName = folderName.replace("\\", "/");
 
