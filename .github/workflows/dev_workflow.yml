@@ -116,7 +116,7 @@ jobs:
     runs-on: self-hosted
     if: ${{ vars.RELEASE != 'TRUE'  && github.event_name =='workflow_dispatch' }}
     container:
-      image: semoss/docker
+      image: maven:3.9.9-amazoncorretto-21-debian
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -169,7 +169,7 @@ jobs:
     runs-on: self-hosted
     if: ${{ vars.RELEASE == 'TRUE' && github.event_name == 'workflow_dispatch' }}
     container:
-      image: semoss/docker
+      image: maven:3.9.9-amazoncorretto-21-debian
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
