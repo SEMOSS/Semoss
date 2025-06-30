@@ -28,6 +28,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
@@ -113,7 +114,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	protected ClientProcessWrapper cpw = null;
 	// python server
-	protected PyTranslator pyt = null;
+	protected PyTranslator pyTranslator = null;
 	protected File pyDirectoryBasePath = null;
 	
 	protected File schemaFolder;
@@ -355,7 +356,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 								.append(extractedFileName)
 								.append("')");
 							setVectorFolderPermissions();
-							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
+							Number rows = (Number) pyTranslator.transportScript(extractTextFromDocScript.toString());
 							rowsCreated = rows.intValue();
 							processed = true;
 						} else if(this.customDocumentProcessor) {
@@ -403,7 +404,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							.append(chunkingMethod)
 							.append("', cfg_tokenizer = cfg_tokenizer)");
 						
-						pyt.runScript(splitTextCommand.toString());
+						pyTranslator.runScript(splitTextCommand.toString());
 					}
 
 					// add it to the list of files that need to be pushed to the cloud in a new thread
@@ -746,8 +747,11 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 
 		// create the py translator
-		pyt = new PyTranslator();
-		pyt.setSocketClient(cpwToInit.getSocketClient());
+		PyTransporter pyTransporter = new PyTransporter();
+		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
+		pyTranslator = new PyTranslator();
+		pyTranslator.setInsight(new Insight());
+		pyTranslator.setPyTransporter(pyTransporter);
 		
 		try {
 			// this is engine specific... or can be
@@ -763,9 +767,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", commands));
 			
-			pyt.runEmptyPy(commands);
-			
-
+			pyTranslator.runEmptyPy(commands);
 			
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;

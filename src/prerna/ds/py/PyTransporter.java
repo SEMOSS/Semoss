@@ -118,7 +118,7 @@ public class PyTransporter {
 	 * @return
 	 */
 	public int getInt(Insight insight, String script) {
-		Double x = (Double) transportScript(insight, script);
+		Number x = (Number) transportScript(insight, script);
 		return x.intValue();
 	}
 
@@ -128,21 +128,9 @@ public class PyTransporter {
 	 * @param script
 	 * @return
 	 */
-	public Double getLong(Insight insight, String script) {
-		// TODO remove if else once we no longer use JEP
-		// JEP -> Long
-		// PyServer -> Double
-		Object x = transportScript(insight, script);
-		if (x instanceof Long) {
-			Long y = (Long) x;
-			return y.doubleValue();
-		} else if (x instanceof Double) {
-			return (Double) x;
-		} else if (x instanceof String) {
-			return Double.valueOf((String) x);
-		} else {
-			return null;
-		}
+	public Long getLong(Insight insight, String script) {
+		Number x = (Number) transportScript(insight, script);
+		return x.longValue();
 	}
 
 	/**
@@ -152,7 +140,7 @@ public class PyTransporter {
 	 * @return
 	 */
 	public double getDouble(Insight insight, String script) {
-		Double x = (Double) transportScript(insight, script);
+		Number x = (Number) transportScript(insight, script);
 		return x.doubleValue();
 	}
 

@@ -523,7 +523,7 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 	
 	public Map getCurrentCapabilities()
 	{
-		boolean initialized = (Boolean)pyt.runScript("'hardware_util' in globals()");
+		boolean initialized = (Boolean)pyt.transportScript("'hardware_util' in globals()");
 		
 		if(!initialized)
 		{

@@ -16,8 +16,16 @@ public class PyTranslator {
 		this.insight = insight;
 	}
 	
+	public Insight getInsight() {
+		return this.insight;
+	}
+	
 	public void setPyTransporter(PyTransporter pyTransporter) {
 		this.pyTransporter = pyTransporter;
+	}
+	
+	public PyTransporter getPyTransporter() {
+		return this.pyTransporter;
 	}
 	
 	public void setLogger(Logger logger) {
@@ -84,7 +92,7 @@ public class PyTranslator {
 	 * @param script
 	 * @return
 	 */
-	public Double getLong(String script) {
+	public Long getLong(String script) {
 		return this.pyTransporter.getLong(this.insight, script);
 	}
 
