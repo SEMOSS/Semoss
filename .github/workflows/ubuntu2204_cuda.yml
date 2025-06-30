@@ -68,6 +68,7 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.nvidia.cuda.12.5.1.ubuntu22.04
           push: true
+          pull: true
           tags: quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}  
           no-cache: true
           build-args: |
@@ -80,6 +81,7 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.nvidia.cuda.12.5.1.ubuntu22.04
           push: true
+          pull: true
           tags: | 
             quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}  
             quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}  
