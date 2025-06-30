@@ -131,15 +131,31 @@ jobs:
           apt-get update -y
           apt-get install -y openjfx
           apt-get install -y gnupg2
-      - name: Import GPG key
-        run: echo "${{ secrets.GPG_PRIVATE_KEY_2 }}" | gpg2 --batch --import
-      - name: List secret keys
-        run: gpg --list-secret-keys --keyid-format=long
-      - name: Refresh keys
+      - name: Write settings.xml with secrets
         run: |
-          echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
-          #gpg2 --refresh-key
-          gpg --list-keys
+          cat > ./settings.xml <<EOF
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.1.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd">
+            <servers>
+              <server>
+                <id>central</id>
+                <username>${{ env.MAVEN_CENTRAL_PORTAL_REPO_USERNAME }}</username>
+                <password>${{ env.MAVEN_CENTRAL_PORTAL_REPO_PASSWORD }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+      #gpg key is legacy
+      # - name: Import GPG key
+      #   run: echo "${{ secrets.GPG_PRIVATE_KEY_2 }}" | gpg2 --batch --import
+      # - name: List secret keys
+      #   run: gpg --list-secret-keys --keyid-format=long
+      # - name: Refresh keys
+      #   run: |
+      #     echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
+      #     #gpg2 --refresh-key
+      #     gpg --list-keys
       - name: Deploy with Maven
         shell: bash
         run: |
