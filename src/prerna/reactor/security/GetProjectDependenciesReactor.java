@@ -17,6 +17,7 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
+		String userId = this.insight.getUserId();
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 
@@ -26,7 +27,7 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 		
 		boolean details = Boolean.parseBoolean(this.keyValue.get("details")+"");
 		if(details) {
-			return new NounMetadata(SecurityProjectUtils.getProjectDependencyDetails(projectId), PixelDataType.MAP);
+			return new NounMetadata(SecurityProjectUtils.getProjectDependencyDetails(projectId, userId), PixelDataType.MAP);
 		} 
 		
 		return new NounMetadata(SecurityProjectUtils.getProjectDependencies(projectId), PixelDataType.CONST_STRING);
