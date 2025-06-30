@@ -14,10 +14,6 @@
 			<name>The Apache License, Version 2.0</name>
 			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
 		</license>
-		<license>
-			<name>The GNU General Public License, Version 3.0</name>
-			<url>https://www.gnu.org/licenses/gpl-3.0.en.html</url>
-		</license>
 	</licenses>
 	<developers>
 		<developer>
@@ -28,9 +24,9 @@
 		</developer>
 	</developers>
 	<scm>
-		<connection>scm:git:git://repo.semoss.org/semoss/Semoss.git</connection>
-		<developerConnection>scm:git:ssh://repo.semoss.org:semoss/Semoss.git</developerConnection>
-		<url>https://repo.semoss.org/semoss/Semoss</url>
+		<connection>scm:git:git://github.com/SEMOSS/Semoss.git</connection>
+		<developerConnection>scm:git:ssh://github.com:SEMOSS/Semoss.git</developerConnection>
+		<url>https://github.com/SEMOSS/Semoss</url>
 	</scm>
 	<properties>
 		<ci.version>0.0.1-SNAPSHOT</ci.version>
@@ -345,7 +341,7 @@
 		<dependency>
 			<groupId>org.apache.tomcat</groupId>
 			<artifactId>tomcat-catalina</artifactId>
-			<version>9.0.98</version>
+			<version>9.0.106</version>
 		</dependency>
 		<dependency>
 			<groupId>javax.servlet</groupId>
