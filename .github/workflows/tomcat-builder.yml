@@ -12,7 +12,7 @@ on:
       version:
         description: 'Tomcat Version to deploy'
         required: true
-        default: '9.0.104'
+        default: '9.0.106'
   push:
     branches: [ "dev", "main" ]
     paths:

@@ -4,7 +4,7 @@ ARG BASE_IMAGE=ubuntu
 ARG BASE_TAG=22.04
 
 #global argument for tomcat
-ARG TOMCAT_VERSION=9.0.104
+ARG TOMCAT_VERSION=9.0.106
 ARG JAVA_HOME=/usr/lib/jvm/zulu21
 ARG MAVEN_HOME=/opt/apache-maven-3.8.5
 
@@ -27,7 +27,7 @@ ENV SEMOSS_VERSION=${SEMOSS_VERSION}
 
 # Get tomcat, maven and java from another image called tomcat-builder
 COPY --from=tomcat_builder /opt /opt
-COPY --from=tomcat_builder /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
+COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
 
 RUN apt-get update -y \
 	&& apt-get install -y git curl unzip lsof \
@@ -64,7 +64,7 @@ ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
-COPY --from=tomcat_builder /usr/lib/jvm/zulu8 /usr/lib/jvm/zulu8
+COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
 
 RUN	apt update -y \
 	&& apt-get install -y git curl unzip lsof vim nano \
