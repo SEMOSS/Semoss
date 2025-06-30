@@ -7,6 +7,10 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import javax.sql.rowset.CachedRowSet;
+import javax.sql.rowset.RowSetProvider;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.sql.rowset.CachedRowSet;
 import javax.sql.rowset.RowSetProvider;
@@ -153,7 +157,7 @@ public class EngineWorker implements Runnable {
     		{
     			try {
 					// move this CacheRowSetImpl
-    				CachedRowSet impl = RowSetProvider.newFactory().createCachedRowSet();
+    			CachedRowSet impl = RowSetProvider.newFactory().createCachedRowSet();
 					impl.setMaxRows(MAX_ROWS);
 					impl.populate((ResultSet)obj);
 					output.put(key, impl);

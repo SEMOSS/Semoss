@@ -9,15 +9,16 @@ import java.util.Map;
 import java.util.TreeSet;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.entity.mime.HttpMultipartMode;
+import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -103,7 +104,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 			
 			// attach the file
 			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-			builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+			builder.setMode(HttpMultipartMode.EXTENDED);
 			builder.addBinaryBody(
 			    "file",
 			    is,
@@ -115,9 +116,9 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 			httpPost.setEntity(multipart);
 			
 			response = httpClient.execute(httpPost);
-			int statusCode = response.getStatusLine().getStatusCode();
+			int statusCode = response.getCode();
 			entity = response.getEntity();
-            if (statusCode >= 200 && statusCode < 300) {
+			if (statusCode >= 200 && statusCode < 300) {
                 responseData = entity != null ? EntityUtils.toString(entity) : null;
             } else {
                 responseData = entity != null ? EntityUtils.toString(entity) : "";
@@ -141,7 +142,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
     		String analysisFileId = jsonResponse.get("data").asObject().getString("id");
     		return analysisFileId;
     		
-		} catch (IOException e) {
+		} catch (IOException | ParseException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + VIRUS_TOTAL_URL);
 		} finally {
@@ -198,7 +199,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 			httpGet.addHeader("accept", "application/json");
 			
 			response = httpClient.execute(httpGet);
-			int statusCode = response.getStatusLine().getStatusCode();
+			int statusCode = response.getCode();
 			entity = response.getEntity();
             if (statusCode >= 200 && statusCode < 300) {
                 responseData = entity != null ? EntityUtils.toString(entity) : null;
@@ -231,7 +232,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
     		}
     		
     		return retMap;
-		} catch (IOException e) {
+		} catch (IOException | ParseException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + VIRUS_TOTAL_URL);
 		} finally {
