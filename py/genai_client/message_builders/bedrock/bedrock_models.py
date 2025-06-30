@@ -1,5 +1,5 @@
-from typing import List, Optional, Dict, Any, Union, Literal
-from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any, Union
+from pydantic import BaseModel
 from ...utils import StringEnum
 
 
@@ -16,10 +16,6 @@ class BedrockImageFormat(StringEnum):
 
 
 class BedrockImageSource(BaseModel):
-    Union[Literal["url", "bytes", "s3Location"]] = Field(
-        ...,
-        description="The source type of the image. Must be one of 'url', 'bytes', or 's3Location'.",
-    )
     url: Optional[str] = None
     bytes: Optional[str] = None
 
@@ -42,10 +38,6 @@ class BedrockDocumentFormat(StringEnum):
 
 
 class BedrockDocumentSource(BaseModel):
-    Union[Literal["url", "bytes", "s3Location"]] = Field(
-        ...,
-        description="The source type of the document. Must be one of 'url', 'bytes', or 's3Location'.",
-    )
     bytes: Optional[str] = None
     s3Location: Optional[str] = None
 
@@ -72,7 +64,7 @@ class BedrockToolResultBlock(BaseModel):
     tool_result: Dict[str, Any]
 
 
-ContentBlock = Union[
+BedrockContentBlock = Union[
     BedrockTextBlock,
     BedrockImageBlock,
     BedrockDocumentBlock,
@@ -82,26 +74,27 @@ ContentBlock = Union[
 
 
 class BedrockMessage(BaseModel):
-    role: BedrockRoles
-    content: List[ContentBlock]
+    role: str
+    content: List[BedrockContentBlock]
 
 
 ## MODEL PARAMETERS -----------------------------------
 
 
-class BedrockSystemContentBlock(BaseModel):
+class BedrockSystemBlock(BaseModel):
     text: str
 
 
 class BedrockInferenceConfig(BaseModel):
-    maxTokens = Optional[int] = None
-    stopSequences = Optional[List[str]] = None
-    temperature = Optional[float] = None
-    topP = Optional[float] = None
+    maxTokens: Optional[int] = None
+    stopSequences: Optional[List[str]] = None
+    temperature: Optional[float] = None
+    topP: Optional[float] = None
 
 
 class BedrockRequest(BaseModel):
     messages: List[BedrockMessage]
-    system: Optional[BedrockSystemContentBlock] = None
+    system: Optional[BedrockSystemBlock] = None
     inferenceConfig: Optional[BedrockInferenceConfig] = None
+    additionalModelRequestFields: Optional[Dict[str, Any]] = None
     toolConfig: Optional[Any] = None

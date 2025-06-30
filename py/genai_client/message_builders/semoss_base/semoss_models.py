@@ -66,7 +66,7 @@ class SEMOSSMessage(BaseModel):
         default_factory=list, alias="tool_responses"
     )
 
-    param_map: Dict[str, Any] = Field(default_factory=dict, alias="paramMap")
+    param_map: Dict[str, Any] = Field(default_factory=dict)
 
     class Config:
         allow_population_by_field_name = True

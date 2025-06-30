@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Union
 from ...utils import (
     get_image_extension,
     fetch_and_encode_image,
@@ -10,19 +10,20 @@ from ..semoss_base.semoss_models import (
     SEMOSSImageType,
 )
 from .bedrock_models import (
-    BedrockRoles,
     BedrockMessage,
-    ContentBlock,
+    BedrockContentBlock,
     BedrockImageBlock,
     BedrockImageSource,
-    BedrockDocumentBlock,
-    BedrockDocumentSource,
+    BedrockInferenceConfig,
+    BedrockRequest,
+    BedrockSystemBlock,
+    BedrockTextBlock,
 )
 
 
 class BedrockMessageBuilder:
     def build_messages(
-        self, semoss_messages: List[SEMOSSMessage]
+        self, semoss_messages: List[SEMOSSMessage], system_prompt: str = None
     ) -> Tuple[List[BedrockMessage], Dict[str, Any]]:
         bedrock_messages = []
         param_map = {}
@@ -47,11 +48,19 @@ class BedrockMessageBuilder:
             )
 
             if is_last:
-                param_map = message.param_map
+                inference_config, param_map = self._build_request_parameters(
+                    message.param_map
+                )
+                system_block = self.build_system_block(system_prompt)
 
-        return bedrock_messages, param_map
+        return BedrockRequest(
+            messages=bedrock_messages,
+            system=system_block,
+            inferenceConfig=inference_config,
+            additionalModelRequestFields=param_map,
+        )
 
-    def _message_type_to_role(self, message_type: SEMOSSMessageType) -> BedrockRoles:
+    def _message_type_to_role(self, message_type: SEMOSSMessageType) -> str:
         """Convert SEMOSS message type to Bedrock role."""
         user_message_types = [
             SEMOSSMessageType.INPUT_TEXT,
@@ -64,29 +73,29 @@ class BedrockMessageBuilder:
             SEMOSSMessageType.RESPONSE_TOOL,
         ]
         if message_type in user_message_types:
-            return BedrockRoles.USER
+            return "user"
         elif message_type in assistant_message_types:
-            return BedrockRoles.ASSISTANT
+            return "assistant"
         else:
             raise ValueError(f"Unknown SEMOSS message type: {message_type}")
 
-    def _build_text_content_block(self, content: str) -> ContentBlock:
+    def _build_text_content_block(self, content: str) -> BedrockTextBlock:
         """Build a text content block."""
-        return ContentBlock(text=content)
+        return BedrockTextBlock(text=content)
 
     def _build_image_blocks(
         self, image_content: List[SEMOSSImageContent] = []
-    ) -> List[ContentBlock]:
+    ) -> List[BedrockContentBlock]:
 
         bedrock_content_blocks = []
         for image in image_content:
             if image.type == SEMOSSImageType.URL:
                 image_block = self._build_url_image_content(image)
-                content_block = ContentBlock(image=image_block)
+                content_block = BedrockContentBlock(image=image_block)
                 bedrock_content_blocks.append(content_block)
             elif image.type == SEMOSSImageType.BASE64:
                 image_block = self._build_base64_image_content(image)
-                content_block = ContentBlock(image=image_block)
+                content_block = BedrockContentBlock(image=image_block)
                 bedrock_content_blocks.append(content_block)
             else:
                 raise ValueError(f"Unsupported SEMOSS image type: {image.type}")
@@ -122,3 +131,40 @@ class BedrockMessageBuilder:
 
         image_source = BedrockImageSource(bytes=image_content.data)
         return BedrockImageBlock(source=image_source, format=media_type)
+
+    def _build_request_parameters(
+        self, param_map: Dict[str, Any]
+    ) -> Tuple[BedrockInferenceConfig, Dict[str, Any]]:
+        max_tokens = (
+            param_map.pop("max_tokens", None)
+            or param_map.pop("max_completion_tokens", None)
+            or param_map.pop("max_new_tokens", None)
+        )
+        stop_sequences = param_map.pop("stop_sequences", None) or param_map.pop(
+            "stop_sequence",
+            None,
+        )
+        temperature = param_map.pop("temperature", None)
+        top_p = param_map.pop("top_p", None) or param_map.pop(
+            "topP",
+            None,
+        )
+
+        return (
+            BedrockInferenceConfig(
+                maxTokens=max_tokens,
+                stopSequences=stop_sequences,
+                temperature=temperature,
+                topP=top_p,
+            ),
+            param_map,
+        )
+
+    def build_system_block(
+        self, system_prompt: str = None
+    ) -> Union[BedrockSystemBlock, None]:
+        """Build a system content block."""
+        if system_prompt:
+            return BedrockSystemBlock(text=system_prompt)
+        else:
+            return None

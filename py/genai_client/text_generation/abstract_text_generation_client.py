@@ -105,25 +105,9 @@ class AbstractTextGenerationClient(ABC):
                 elif isinstance(full_prompt[0], dict):
                     full_prompt = full_prompt
 
-        streaming = kwargs.pop("streaming", True)
-        if not streaming:
-            streaming = kwargs.pop("stream", True)
-
-        image_url = kwargs.pop("image_url", None)
-        if isinstance(image_url, str):
-            image_url = [image_url]
-
-        image_encoded = kwargs.pop("image_encoded", None)
-        if isinstance(image_encoded, str):
-            image_encoded = [image_encoded]
-
-        if not use_history:
-            history = None
-
-        context = context if context else None
-
         message_json = kwargs.pop("message_json", None)
         semoss_messages = None
+        json_messages_param_map = {}
         if message_json:
             try:
                 message_json = json.loads(message_json)
@@ -141,6 +125,32 @@ class AbstractTextGenerationClient(ABC):
                     )
                 except Exception as e:
                     raise ValueError(f"Invalid JSON format in message_json.: {e}")
+
+        if semoss_messages:
+            json_messages_param_map = semoss_messages[-1].param_map
+
+        # This is a mess but can be cleaned up after we switch to supporting only semoss_messages
+        streaming = json_messages_param_map.pop("streaming", None)
+        if streaming is None:
+            streaming = kwargs.pop("streaming", True)
+            if not streaming:
+                streaming = kwargs.pop("stream", True)
+
+        # After switch we can remove this
+        image_url = kwargs.pop("image_url", None)
+        if isinstance(image_url, str):
+            image_url = [image_url]
+
+        # After switch we can remove this
+        image_encoded = kwargs.pop("image_encoded", None)
+        if isinstance(image_encoded, str):
+            image_encoded = [image_encoded]
+
+        if not use_history:
+            history = None
+
+        # After switch we can remove this
+        context = context if context else None
 
         return AskSettings(
             full_prompt=full_prompt,
