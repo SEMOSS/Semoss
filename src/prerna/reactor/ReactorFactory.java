@@ -281,6 +281,7 @@ import prerna.reactor.project.AddDefaultInsightsReactor;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.reactor.qs.DistinctReactor;
 import prerna.reactor.qs.ExecQueryReactor;
+import prerna.reactor.qs.SqlQueryReactor;
 import prerna.reactor.qs.GroupReactor;
 import prerna.reactor.qs.ImplicitFilterOverrideReactor;
 import prerna.reactor.qs.InsertReactor;
@@ -751,6 +752,7 @@ public class ReactorFactory {
 		reactorHash.put("Delete", DeleteReactor.class);
 		reactorHash.put("Update", UpdateReactor.class);
 		reactorHash.put("ExecQuery", ExecQueryReactor.class);
+		reactorHash.put("SQLQuery", SqlQueryReactor.class);
 		
 		// Data Source Reactors
 		// specifies that our pixel operations after this point are dealing with the specified database
