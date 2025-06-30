@@ -63,7 +63,9 @@ public class NativeFrame extends AbstractTableDataFrame {
 	private static List<IDatabaseEngine.DATABASE_TYPE> cacheEngines = new ArrayList<>();
 	static {
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.SESAME);
+		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.RDF4J);
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.JENA);
+		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.JENA_TDB);
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.RDBMS);
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.IMPALA);
 //		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.NEO4J_EMBEDDED);

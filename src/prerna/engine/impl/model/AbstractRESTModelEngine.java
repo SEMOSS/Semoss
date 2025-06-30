@@ -13,13 +13,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -107,7 +108,7 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 	        }
 	        response = httpClient.execute(httpPost);
 
-	        int statusCode = response.getStatusLine().getStatusCode();
+	        int statusCode = response.getCode();
 	        if (statusCode >= 200 && statusCode < 300) {
 	            HttpEntity entity = response.getEntity();
 	            if (!isStream) {
@@ -157,10 +158,10 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 	            String errorResponse = EntityUtils.toString(response.getEntity(), "UTF-8");
 	            throw new IllegalArgumentException("Connected to " + url + " but received error = " + errorResponse);
 	        }
-	    } catch (IOException e) {
+	    } catch (IOException | ParseException e) {
 	        classLogger.error(Constants.STACKTRACE, e);
 	        throw new IllegalArgumentException("Could not connect to URL at " + url);
-	    } finally {
+		} finally {
 	        try {
 	            if (response != null) {
 	                response.close();
