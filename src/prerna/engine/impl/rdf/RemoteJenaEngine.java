@@ -38,11 +38,11 @@ import java.util.Vector;
 
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.sparql.exec.http.QueryExecutionHTTP;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -84,7 +84,6 @@ public class RemoteJenaEngine extends AbstractDatabaseEngine {
 	 * @return triple query results that can be displayed as a grid */
 	@Override
 	public Object execQuery(String query) {
-		
 		Query q2 = QueryFactory.create(query); 
 		
 		String finalUrl = this.serviceURI;
@@ -94,29 +93,26 @@ public class RemoteJenaEngine extends AbstractDatabaseEngine {
 			String token = paramTokens.nextToken();
 			finalUrl += "?" + token + "=" + smssProp.getProperty(token);
 		}
-		while(paramTokens.hasMoreTokens())
-		{
+		while(paramTokens.hasMoreTokens()) {
 			String token = paramTokens.nextToken();
 			finalUrl += "&" + token + "=" + smssProp.getProperty(token);			
 		}
 		
-		QueryExecution qexec = QueryExecutionFactory.sparqlService(finalUrl, query);
+		QueryExecution qexec = QueryExecutionHTTP.service(finalUrl).query(query).build();
 		if(q2.isSelectType()){
 			ResultSet rs = qexec.execSelect();
 			return rs;
-		}
-		else if(q2.isConstructType()){
+		} else if(q2.isConstructType()){
 			Model resultModel = qexec.execConstruct() ;
 			logger.info("Executing the RDF File Graph Query " + Utility.cleanLogString(query));
 			return resultModel;
-		}
-		else if(q2.isAskType()){
+		} else if(q2.isAskType()){
 			Boolean bool = qexec.execAsk() ;
 			logger.info("Executing the RDF File ASK Query " + Utility.cleanLogString(query));
 			return bool;
 		}
-		else
-			return null;
+
+		return null;
 	}
 
 	/**

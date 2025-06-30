@@ -7,16 +7,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.ParseException;
-import org.apache.http.StatusLine;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.ParseException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -247,24 +239,6 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 		classLogger.info("Response for creating " + eType + " = " + response);
 	}
 
-	private void unwrapToken(String wrappingToken) throws ClientProtocolException, IOException {
-		HttpPost post = new HttpPost(getInput(VAULT_ADDR) + "/v1/sys/wrapping/unwrap");
-		post.setHeader(VAULT_TOKEN_HEADER_KEY, wrappingToken);
-
-		CloseableHttpClient client = HttpClientBuilder.create().build();
-		HttpResponse response = client.execute(post);
-
-		String responseBody = null;
-		HttpEntity entity = response.getEntity();
-		if (entity != null) {
-			responseBody = EntityUtils.toString(entity);
-		}
-
-		StatusLine statusLine = response.getStatusLine();
-		System.out.println("status line = " + statusLine.getStatusCode());
-		System.out.println("response body = " + responseBody);
-	}
-	
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////

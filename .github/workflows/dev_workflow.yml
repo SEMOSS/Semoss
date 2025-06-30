@@ -11,8 +11,8 @@ on:
   workflow_dispatch:
 
 env:
-  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
-  MAVEN_CLI_OPTS: "-s ./settings.xml --batch-mode"
+  MAVEN_OPTS: '-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true'
+  MAVEN_CLI_OPTS: '-s ./settings.xml --batch-mode'
   DOCKER_DRIVER: overlay2
   GPG_PASS_PHRASE: ${{ secrets.GPG_PASS_PHRASE }}
   RELEASE: ${{ vars.RELEASE }}
@@ -90,22 +90,20 @@ jobs:
     runs-on: self-hosted
     if: ${{ vars.RELEASE != 'TRUE'  && (github.event_name =='push' || github.event_name =='pull_request')  }}
     container:
-      image: semoss/docker
+      image: maven:3.9.9-amazoncorretto-21-debian
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      # - name: Setup Java
-      #   uses: actions/setup-java@v2
-      #   with:
-      #     distribution: "adopt"
-      #     java-version: "11"
+
       - name: Install dependencies
         run: |
           apt-get --allow-releaseinfo-change update -y
           apt-get update -y
           apt-get install -y openjfx
+
       - name: Build with Maven
         run: mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
+
       - name: Remove cache to save space
         run: rm -rf .m2/repository/org/semoss
       # - name: Upload artifact
