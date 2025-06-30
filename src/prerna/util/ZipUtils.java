@@ -301,7 +301,7 @@ public final class ZipUtils {
 		Vector<String> dirs = new Vector<>();
 		Vector<String> files = new Vector<>();
 		try {
-			zipFs = FileSystems.newFileSystem(fromZip, null);
+			zipFs = FileSystems.newFileSystem(fromZip.toUri(), null, null);
 			for (Path root : zipFs.getRootDirectories()) {
 				Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
 					@Override

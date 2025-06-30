@@ -43,19 +43,23 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
-public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
+public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AWSNativeBlogStorageEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AWSNativeBlobStorageEngine.class);
 
 	public static final String S3_REGION_KEY = "S3_REGION";
 	public static final String S3_BUCKET_KEY = "S3_BUCKET";
 	public static final String S3_ACCESS_KEY = "S3_ACCESS";
 	public static final String S3_SECRET_KEY = "S3_SECRET";
+	public static final String S3_ENDPOINT_KEY = "S3_ENDPOINT";
+	public static final String S3_PATH_STYLE_ACCESS_KEY = "S3_PATH_STYLE_ACCESS";
 
 	private String accessKey;
 	private String secretKey;
 	private String region;
 	private String bucket;
+	private String endpoint;
+	private boolean pathStyleAccess = false;
 
 	private S3Client client = null;
 
@@ -67,6 +71,11 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 		this.secretKey = smssProp.getProperty(S3_SECRET_KEY);
 		this.region = smssProp.getProperty(S3_REGION_KEY);
 		this.bucket = smssProp.getProperty(S3_BUCKET_KEY);
+		this.endpoint = smssProp.getProperty(S3_ENDPOINT_KEY);
+		String pathStyleAccessStr = smssProp.getProperty(S3_PATH_STYLE_ACCESS_KEY);
+		if (pathStyleAccessStr != null && !pathStyleAccessStr.isEmpty()) {
+			this.pathStyleAccess = Boolean.parseBoolean(pathStyleAccessStr);
+		}
 
 		if (this.accessKey == null || this.accessKey.isEmpty()) {
 			throw new RuntimeException("Must pass in an access key");
@@ -84,9 +93,24 @@ public class AWSNativeBlogStorageEngine extends AbstractStorageEngine {
 	}
 
 	public void createServiceClient() {
-		this.client = S3Client.builder().region(Region.of(this.region))
-				.credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
-				.build();
+		software.amazon.awssdk.services.s3.S3ClientBuilder builder = S3Client.builder();
+		builder.region(Region.of(this.region))
+				.credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)));
+
+		if (this.endpoint != null && !this.endpoint.isEmpty()) {
+			try {
+				builder.endpointOverride(new java.net.URI(this.endpoint));
+				if (this.pathStyleAccess) {
+					builder.forcePathStyle(true);
+				}
+				classLogger.info("Using S3 endpoint override: " + this.endpoint);
+			} catch (java.net.URISyntaxException e) {
+				classLogger.error("Invalid S3 endpoint URI: " + this.endpoint, e);
+				throw new RuntimeException("Invalid S3 endpoint URI: " + this.endpoint, e);
+			}
+		}
+
+		this.client = builder.build();
 		classLogger.info("S3 Blob Service client created successfully.");
 	}
 

@@ -25,7 +25,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.TreeSet;
 import java.util.Vector;
-
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -33,7 +32,6 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,9 +45,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.xeustechnologies.jcl.JarClassLoader;
 import org.xml.sax.InputSource;
-
 import com.google.gson.Gson;
-
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -172,13 +168,13 @@ public class Project implements IProject {
 		
 		this.isAsset = Boolean.parseBoolean(this.smssProp.getProperty(Constants.IS_ASSET_APP));
 		if(this.isAsset) {
-			this.projectBaseFolder = AssetUtility.getUserAssetAndWorkspaceBaseFolder(this.projectName, this.projectId);
+			this.projectBaseFolder = AssetUtility.getUserAssetAndWorkspaceAppRootFolder(this.projectName, this.projectId);
 			this.projectVersionFolder = AssetUtility.getUserAssetAndWorkspaceVersionFolder(this.projectName, this.projectId);
 			this.projectAssetFolder = AssetUtility.getUserAssetAndWorkspaceAssetFolder(this.projectName, this.projectId);
 		} else {
-			this.projectBaseFolder = AssetUtility.getProjectBaseFolder(this.projectName, this.projectId);
+			this.projectBaseFolder = AssetUtility.getProjectAppRootFolder(this.projectName, this.projectId);
 			this.projectVersionFolder = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId);
-			this.projectAssetFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId);
+			this.projectAssetFolder = AssetUtility.getProjectAssetsFolder(this.projectName, this.projectId);
 			this.projectPortalFolder = AssetUtility.getProjectPortalsFolder(this.projectName, this.projectId);
 			this.projectNotebookFolder = AssetUtility.getProjectNotebookFolder(this.projectName, this.projectId);
 		}
@@ -1801,7 +1797,7 @@ public class Project implements IProject {
 	public String getCompileOutput() {
 		String finalOutput = null;
 		try {
-			String compilerOutput = AssetUtility.getProjectAssetFolder(this.projectId) + "/classes/compileerror.out";
+			String compilerOutput = AssetUtility.getProjectAssetsFolder(this.projectId) + "/classes/compileerror.out";
 			File file = new File(compilerOutput);
 			if(file.exists())
 				finalOutput = FileUtils.readFileToString(new File(compilerOutput));
