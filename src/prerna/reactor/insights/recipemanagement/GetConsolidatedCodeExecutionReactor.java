@@ -56,7 +56,7 @@ public class GetConsolidatedCodeExecutionReactor extends AbstractReactor {
 		StringBuffer buffer = null;
 		
 		if(write) {
-			codeDir = AssetUtility.getAssetBasePath(this.insight, null, true) + "/codeConsolidation";
+			codeDir = AssetUtility.getRootFolderPath(this.insight, null, true) + "/codeConsolidation";
 			if(this.insight.isSavedInsight()) {
 				IProject project = Utility.getProject(this.insight.getProjectId());
 				ClusterUtil.pullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId()));
