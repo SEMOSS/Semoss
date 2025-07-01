@@ -18,6 +18,8 @@ public class ModelInferenceLogsOwlCreator {
 	private List<Pair<String, String>> roomColumns = null;
 	private List<Pair<String, String>> messageColumns = null;
 	private List<Pair<String, String>> feedbackColumns = null;
+	private List<Pair<String, String>> workspaceColumns = null;
+	private List<Pair<String, String>> workspaceKnowledgeColumns = null;
 
 	// pairs table name with table's primary keys 
 	private List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys = null;
@@ -35,6 +37,8 @@ public class ModelInferenceLogsOwlCreator {
 		conceptsRequired.add("ROOM");
 		conceptsRequired.add("MESSAGE");
 		conceptsRequired.add("FEEDBACK");
+		conceptsRequired.add("WORKSPACE");
+		conceptsRequired.add("WORKSPACE_KNOWLEDGE");
 	}
 	
 	private IRDBMSEngine modelInferenceDb;
@@ -98,7 +102,8 @@ public class ModelInferenceLogsOwlCreator {
 			    Pair.with("MESSAGES", CLOB_DATATYPE_NAME),            // NEW
 			    Pair.with("PINNED", BOOLEAN_DATATYPE_NAME),           // NEW
 			    Pair.with("OPTIONS", CLOB_DATATYPE_NAME),             // NEW
-			    Pair.with("SHARE_ID", "VARCHAR(255)")               // NEW
+			    Pair.with("SHARE_ID", "VARCHAR(255)"),               // NEW
+			    Pair.with("WORKSPACE_ID", "VARCHAR(255)")               // NEW
 			);
 		
 		this.messageColumns = Arrays.asList(
@@ -128,11 +133,30 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("RATING", BOOLEAN_DATATYPE_NAME)
 			);
 		
+		this.workspaceColumns = Arrays.asList(
+				Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
+				Pair.with("OWNER", "VARCHAR(255)"),
+				Pair.with("NAME", "VARCHAR(255)"),
+				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
+				Pair.with("SYSTEM_PROMPT", CLOB_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
+			);
+		
+		this.workspaceKnowledgeColumns = Arrays.asList(
+				Pair.with("WORKSPACE_KNOWLEDGE_ID", "VARCHAR(255)"),
+				Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
+				Pair.with("KNOWLEDGE_ID", "VARCHAR(255)"),
+				Pair.with("KNOWLEDGE_TYPE", "VARCHAR(255)")
+			);
+		
 		this.allSchemas = Arrays.asList(
 				Pair.with("AGENT", agentColumns),
 				Pair.with("ROOM", roomColumns),
 				Pair.with("MESSAGE", messageColumns),
-				Pair.with("FEEDBACK", feedbackColumns)
+				Pair.with("FEEDBACK", feedbackColumns),
+				Pair.with("WORKSPACE", workspaceColumns),
+				Pair.with("WORKSPACE_KNOWLEDGE", workspaceKnowledgeColumns)
 			);
 	}
 	
@@ -141,7 +165,9 @@ public class ModelInferenceLogsOwlCreator {
 		this.primaryKeys = Arrays.asList(
 				Pair.with("AGENT", Pair.with(Arrays.asList("AGENT_ID"), Arrays.asList("VARCHAR(50)"))),
 				Pair.with("ROOM", Pair.with(Arrays.asList("INSIGHT_ID"), Arrays.asList("VARCHAR(50)"))),
-				Pair.with("MESSAGE", Pair.with(Arrays.asList("MESSAGE_ID","MESSAGE_TYPE"), Arrays.asList("VARCHAR(50)","VARCHAR(50)")))
+				Pair.with("MESSAGE", Pair.with(Arrays.asList("MESSAGE_ID","MESSAGE_TYPE"), Arrays.asList("VARCHAR(50)","VARCHAR(50)"))),
+				Pair.with("WORKSPACE", Pair.with(Arrays.asList("WORKSPACE_ID"), Arrays.asList("VARCHAR(255)"))),
+				Pair.with("WORKSPACE_KNOWLEDGE", Pair.with(Arrays.asList("WORKSPACE_KNOWLEDGE_ID"), Arrays.asList("VARCHAR(255)")))
 			);
 	}
 	
@@ -150,7 +176,8 @@ public class ModelInferenceLogsOwlCreator {
 				// remove this so that UI joins are clean
 				//Pair.with("ROOM", Pair.with(Arrays.asList("AGENT_ID"), Pair.with(Arrays.asList("AGENT"), Arrays.asList("AGENT_ID")))),
 				Pair.with("MESSAGE", Pair.with(Arrays.asList("INSIGHT_ID","AGENT_ID"), Pair.with(Arrays.asList("ROOM","AGENT"), Arrays.asList("INSIGHT_ID","AGENT_ID")))),
-				Pair.with("FEEDBACK", Pair.with(Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"), Pair.with(Arrays.asList("MESSAGE"), Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"))))
+				Pair.with("FEEDBACK", Pair.with(Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"), Pair.with(Arrays.asList("MESSAGE"), Arrays.asList("MESSAGE_ID,MESSAGE_TYPE")))),
+				Pair.with("WORKSPACE_KNOWLEDGE", Pair.with(Arrays.asList("WORKSPACE_ID"), Pair.with(Arrays.asList("WORKSPACE"), Arrays.asList("WORKSPACE_ID"))))
 			);
 	}
 	
