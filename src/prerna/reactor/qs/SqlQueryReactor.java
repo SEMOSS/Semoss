@@ -151,6 +151,10 @@ public class SqlQueryReactor extends AbstractReactor {
 			if (limitStr != null && !limitStr.trim().isEmpty()) {
 				try {
 					limit = Integer.parseInt(limitStr.trim());
+					if (limit <= 0) {
+						classLogger.warn("Non-positive limit value: " + limit + ", using default 500");
+						limit = 500;
+					}
 				} catch (NumberFormatException e) {
 					classLogger.warn("Invalid limit value: " + limitStr + ", using default 500");
 				}
@@ -203,7 +207,9 @@ public class SqlQueryReactor extends AbstractReactor {
 
 	private NounMetadata delegateToExecQueryReactor(String commitStr) {
 		try {
-			boolean commit = commitStr == null || commitStr.trim().isEmpty() || Boolean.parseBoolean(commitStr);
+			//default to false if not provided
+			boolean commit = commitStr != null && !commitStr.trim().isEmpty() && 
+                        Boolean.parseBoolean(commitStr.trim());
 
 			GenRowStruct commitGrs = this.store.makeNoun("commit");
 			commitGrs.add(new NounMetadata(commit, PixelDataType.BOOLEAN));
