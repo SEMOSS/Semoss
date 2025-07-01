@@ -20,7 +20,7 @@
 			<name>Group Mailbox</name>
 			<email>semoss@semoss.org</email>
 			<organization>SEMOSS</organization>
-			<organizationUrl>http://semoss.org/</organizationUrl>
+			<organizationUrl>https://semoss.org/</organizationUrl>
 		</developer>
 	</developers>
 	<scm>
@@ -34,16 +34,18 @@
 		<project.reporting.outputEncoding>cp1252</project.reporting.outputEncoding>
 		<openhtml.version>1.0.1</openhtml.version>
 	</properties>
+	<!-- removing distributionManagement as it is no longer required
 	<distributionManagement>
 		<snapshotRepository>
 			<id>ossrh</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+			<url>https://ossrh-staging-api.central.sonatype.com/content/repositories/snapshots</url>
 		</snapshotRepository>
 		<repository>
 			<id>ossrh</id>
-			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+			<url>https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/</url>
 		</repository>
 	</distributionManagement>
+	-->
 	<build>
 		<sourceDirectory>src</sourceDirectory>
 		<testSourceDirectory>test</testSourceDirectory>
@@ -183,6 +185,7 @@
 							</execution>
 						</executions>
 					</plugin>
+					<!-- removing legacy sonatype plugin 
 					<plugin>
 						<groupId>org.sonatype.plugins</groupId>
 						<artifactId>nexus-staging-maven-plugin</artifactId>
@@ -190,11 +193,12 @@
 						<extensions>true</extensions>
 						<configuration>
 							<serverId>ossrh</serverId>
-							<nexusUrl>https://oss.sonatype.org/</nexusUrl>
-							<!-- set to true to disable manual review of release -->
+							<nexusUrl>https://ossrh-staging-api.central.sonatype.com/</nexusUrl>
 							<autoReleaseAfterClose>false</autoReleaseAfterClose>
 						</configuration>
 					</plugin>
+					-->
+					<!-- removing legacy gpg plugin
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
@@ -208,13 +212,13 @@
 								</goals>
 								<configuration>
 									<gpgArguments>
-										<arg>--pinentry-mode</arg>
 										<arg>loopback</arg>
 									</gpgArguments>
 								</configuration>
 							</execution>
 						</executions>
 					</plugin>
+					-->
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>
@@ -246,25 +250,30 @@
 						</executions>
 					</plugin>
 					<plugin>
+					  <groupId>org.sonatype.central</groupId>
+					  <artifactId>central-publishing-maven-plugin</artifactId>
+					  <version>0.8.0</version>
+					  <extensions>true</extensions>
+					  <configuration>
+					    <publishingServerId>central</publishingServerId>
+					  </configuration>
+					</plugin>
+					<!-- removing deploy plugin 
+					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-deploy-plugin</artifactId>
 						<version>3.0.0-M1</version>
 						<configuration>
-							<skip>false</skip> <!-- Skip the default deployment
-							of the main artifact -->
-							<deployAtEnd>true</deployAtEnd> <!-- Deploy at the
-							end of the build -->
+							<skip>false</skip> <
+							<deployAtEnd>true</deployAtEnd>
 							<attachedArtifacts>
 								<artifact>
-									<file>semoss-${ci.version}.jar</file> <!--
-									Path to the main artifact -->
+									<file>semoss-${ci.version}.jar</file>
 								</artifact>
 								<artifact>
-									<file>semoss-${ci.version}-tests.jar</file> <!--
-									Path to the source JAR -->
-									<classifier>tests</classifier> <!--
-									Classifier for the source JAR -->
-									<type>jar</type> <!-- Type of the artifact -->
+									<file>semoss-${ci.version}-tests.jar</file> 
+									<classifier>tests</classifier> 
+									<type>jar</type> 
 								</artifact>
 								<artifact>
 									<file>semoss-${ci.version}-javadoc.jar</file>
@@ -284,27 +293,17 @@
 							</attachedArtifacts>
 						</configuration>
 					</plugin>
+					-->
 				</plugins>
 			</build>
 		</profile>
 	</profiles>
 	<repositories>
 		<repository>
-			<id>central</id>
+			<id>repo1</id>
 			<name>Maven Repository Switchboard</name>
 			<layout>default</layout>
-			<url>https://repo1.maven.org/maven2</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>public</id>
-			<name>Sonatype's Maven repository</name>
-			<url>https://oss.sonatype.org/content/groups/public</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
+			<url>https://repo.maven.apache.org/maven2</url>
 			<snapshots>
 				<enabled>false</enabled>
 			</snapshots>
