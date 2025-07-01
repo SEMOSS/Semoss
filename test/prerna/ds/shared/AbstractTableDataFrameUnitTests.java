@@ -64,7 +64,7 @@ public class AbstractTableDataFrameUnitTests {
     AbstractTableDataFrame reactor;
     OwlTemporalEngineMeta metaData;
 
-    List<String> selectors = new ArrayList<String>(){{add("table__col1");}};
+    List<String> selectors;
 
     @BeforeEach
     void setup() {
@@ -77,6 +77,9 @@ public class AbstractTableDataFrameUnitTests {
         cf = mock(CachePropFileFrameObject.class);
         rawWrapper = mock(IRawSelectWrapper.class);
         metaData = mock(OwlTemporalEngineMeta.class);
+
+        selectors = new ArrayList<>();
+        selectors.add("table__col1");
 
         reactor = new AbstractTableDataFrame(){
             @Override
@@ -160,23 +163,24 @@ public class AbstractTableDataFrameUnitTests {
     @Test
     void getFrameHeadersObject() {
         String[] types = new String[]{""};
-        Set<String> filteredCols = new HashSet<String>() {{add("aliasVal");}};
-        List<Map<String, Object>> headersMap = new ArrayList<Map<String, Object>>(){{
-            add(new HashMap<String, Object>(){{
-                put("alias", "aliasVal");
-                put("header", "headerVal");
-            }});
-            add(new HashMap<String, Object>(){{
-                put("alias", "aliasVal2");
-                put("header", "headerVal2");
-            }});
-        }};
-        Map<String, Object> headersObj = new HashMap<String, Object>(){{put("headers", headersMap);}};
-        Map<String, Object> expected = new HashMap<String, Object>(){{
-            put("name", "frameName");
-            put("type", "types");
-            put("headerInfo", headersObj);
-        }};
+        Set<String> filteredCols = new HashSet<>();
+        filteredCols.add("aliasVal");
+        List<Map<String, Object>> headersMap = new ArrayList<>();
+        headersMap.add(new HashMap<String, Object>(){{
+            put("alias", "aliasVal");
+            put("header", "headerVal");
+        }});
+        headersMap.add(new HashMap<String, Object>(){{
+            put("alias", "aliasVal2");
+            put("header", "headerVal2");
+        }});
+
+        Map<String, Object> headersObj = new HashMap<>();
+        headersObj.put("headers", headersMap);
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("name", "frameName");
+        expected.put("type", "types");
+        expected.put("headerInfo", headersObj);
 
         when(metaData.getTableHeaderObjects(types)).thenReturn(headersObj);
         when(grf.getAllFilteredColumns()).thenReturn(filteredCols);
@@ -216,7 +220,8 @@ public class AbstractTableDataFrameUnitTests {
 
     @Test
     void getColumnHeaders() {
-        List<String> headers = new ArrayList<String>(){{add("header1");}};
+        List<String> headers = new ArrayList<>();
+        headers.add("header1");
         String[] expected = headers.toArray(new String[headers.size()]);
 
         when(metaData.getOrderedAliasOrUniqueNames()).thenReturn(headers);
@@ -373,12 +378,13 @@ public class AbstractTableDataFrameUnitTests {
 
     @Test
     void saveMeta(@TempDir Path tempDir) throws Exception {
-        Path metaFileName = tempDir.resolve(tempDir + AbstractTableDataFrame.DIR_SEPARATOR + "METADATA__name.owl");
+        Path metaFileName = tempDir.resolve("METADATA__name.owl");
         Files.createFile(metaFileName);
-        Path frameStateFileName = tempDir.resolve(tempDir + AbstractTableDataFrame.DIR_SEPARATOR + "FRAME_STATE__name.json");
+        Path frameStateFileName = tempDir.resolve("FRAME_STATE__name.json");
         Files.createFile(frameStateFileName);
         
-        List<IQueryFilter> filters = new ArrayList<IQueryFilter>(){{add(iFilter);}};        
+        List<IQueryFilter> filters = new ArrayList<>();
+        filters.add(iFilter);
         
         when(grf.getFilters()).thenReturn(filters);
 
@@ -397,9 +403,9 @@ public class AbstractTableDataFrameUnitTests {
 
     @Test
     void openCacheMeta(@TempDir Path tempDir) throws Exception {
-        Path metaFileName = tempDir.resolve(tempDir + AbstractTableDataFrame.DIR_SEPARATOR + "METADATA__name.owl");
+        Path metaFileName = tempDir.resolve("METADATA__name.owl");
         Files.createFile(metaFileName);
-        Path frameStateFileName = tempDir.resolve(tempDir + AbstractTableDataFrame.DIR_SEPARATOR + "FRAME_STATE__name.json");
+        Path frameStateFileName = tempDir.resolve("FRAME_STATE__name.json");
         Files.createFile(frameStateFileName);
 
         when(cf.getFrameName()).thenReturn("frameName");
@@ -417,7 +423,9 @@ public class AbstractTableDataFrameUnitTests {
     @Test
     void getData() throws Exception {
         Object[] obj = new Object[]{null};
-        List<Object[]> expected = new ArrayList<Object[]>(){{add(obj);}};
+        List<Object[]> expected = new ArrayList<>();
+        expected.add(obj);
+
         when(metaData.getFlatTableQs(false)).thenReturn(sqs);
         when(rawWrapper.hasNext()).thenReturn(true).thenReturn(false).thenReturn(true);
         when(rawWrapper.next()).thenReturn(dataRow).thenThrow(NoSuchElementException.class);
@@ -437,7 +445,8 @@ public class AbstractTableDataFrameUnitTests {
 
     @Test
     void scaledUniqueIterator() {
-        List<String> list = new ArrayList<String>(){{add("string");}};
+        List<String> list = new ArrayList<>();
+        list.add("string");
 
         when(metaData.getUniqueNameFromAlias("string")).thenReturn(null);
         when(metaData.getHeaderTypeAsEnum("string")).thenReturn(SemossDataType.INT);
@@ -478,7 +487,7 @@ public class AbstractTableDataFrameUnitTests {
     @Test
     void getScriptReactors() {
         // assertNotNull(reactor.getScriptReactors());
-        Map<String, String> expected = new HashMap<String, String>();
+        Map<String, String> expected = new HashMap<>();
         assertTrue(expected.equals(reactor.getScriptReactors()));
     }
 
@@ -486,7 +495,8 @@ public class AbstractTableDataFrameUnitTests {
     void processPreTransformations() {
         DataMakerComponent dmc = mock(DataMakerComponent.class);
         ISEMOSSTransformation semossTransform = mock(ISEMOSSTransformation.class);
-        List<ISEMOSSTransformation> list = new ArrayList<ISEMOSSTransformation>(){{add(semossTransform);}};
+        List<ISEMOSSTransformation> list = new ArrayList<>();
+        list.add(semossTransform);
 
         reactor.processPreTransformations(dmc, list);
 
@@ -500,7 +510,8 @@ public class AbstractTableDataFrameUnitTests {
         IDataMaker[] dataMaker = new IDataMaker[]{null};
         DataMakerComponent dmc = mock(DataMakerComponent.class);
         ISEMOSSTransformation semossTransform = mock(ISEMOSSTransformation.class);
-        List<ISEMOSSTransformation> list = new ArrayList<ISEMOSSTransformation>(){{add(semossTransform);}};
+        List<ISEMOSSTransformation> list = new ArrayList<>();
+        list.add(semossTransform);
 
         reactor.processPostTransformations(dmc, list, dataMaker);
 

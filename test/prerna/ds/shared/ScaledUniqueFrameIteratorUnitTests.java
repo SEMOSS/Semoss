@@ -56,8 +56,13 @@ public class ScaledUniqueFrameIteratorUnitTests {
         reactor = new ScaledUniqueFrameIterator(frame, col, maxArr, minArr, types, selectors);
         assertNotNull(reactor);
 
-        assertEquals(new ArrayList<Object[]>(){{add(null);}}, reactor.next());
-        assertEquals(new ArrayList<Object[]>(), reactor.next());
+        List<Object[]> expected = new ArrayList<>();
+        expected.add(null);
+        assertEquals(expected, reactor.next());
+
+        expected = new ArrayList<>();
+        assertEquals(expected, reactor.next());
+        
         NoSuchElementException e = assertThrows(NoSuchElementException.class, () -> reactor.next());
         assertEquals("No more elements", e.getMessage());
     }
