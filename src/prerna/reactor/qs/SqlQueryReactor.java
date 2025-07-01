@@ -162,6 +162,10 @@ public class SqlQueryReactor extends AbstractReactor {
 			
 			BasicIteratorTask task = new BasicIteratorTask(qs);
 			task.setNumCollect(limit);
+
+			if (task.isOptimized()) {
+				task.optimizeQuery(limit);
+			}
 			
 			this.insight.addQueriedDatabasesese(databaseId);
 			
