@@ -89,7 +89,7 @@ RUN yum update -y \
 	&& localedef -i en_US -f UTF-8 en_US.UTF-8 \
 	&& echo "LANG=en_US.UTF-8" > /etc/locale.conf
 
-RUN yum install -y debootstrap fakechroot fakeroot
+RUN yum install -y fakechroot fakeroot
 
 # Create a group 'root' with GID 0 if it doesn't exist (it should by default)
 RUN groupadd -g 0 root || true
