@@ -68,8 +68,11 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.ubuntu22.04
           push: true
+          pull: true
           tags: quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
           no-cache: true
+          build-args: |
+            SEMOSS_VERSION=${{ vars.VERSION }}
       
       - name: Build and push Ubuntu Docker image - Non-Release Build
         if: ${{ vars.RELEASE == 'false' }}
@@ -78,7 +81,10 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.ubuntu22.04
           push: true
+          pull: true
           tags: |
             quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
             quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}
           no-cache: true
+          build-args: |
+            SEMOSS_VERSION=${{ vars.VERSION }}-SNAPSHOT
