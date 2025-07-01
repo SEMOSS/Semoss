@@ -3190,7 +3190,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getNonApprovedProductList() throws Exception {	
-		String query = "SELECT ENGINE_TYPE,FE_KEY  FROM ENGINERESTRICTION  WHERE ALLOWED ='false' group by FE_KEY ";
+		String query = "SELECT DISTINCT ENGINE_TYPE,FE_KEY  FROM ENGINERESTRICTION  WHERE ALLOWED ='false' group by FE_KEY ";
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
 		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
@@ -3212,9 +3212,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	            ));
 		}else {			
 			classLogger.info("getNonApproved Product list is null");
+			result = null;	
 		}
 		
 		return result;
+		
 	}
 
 }
