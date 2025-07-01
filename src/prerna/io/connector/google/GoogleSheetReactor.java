@@ -21,16 +21,11 @@ public class GoogleSheetReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GoogleSheetReactor.class);
 
-	private static final String APPLICATION_NAME = "Google Sheets API Java";
-	private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
-	private static final String SPREADSHEET_ID = "19AETLkT1QNKuI04dOhCntJ6eHprK2LvCoxt1Hxvbg1Q";
-	private static final String RANGE = "Sheet1!A1";
-
 	public GoogleSheetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.USERID.getKey(),
 				ReactorKeysEnum.ROW_NO.getKey(), ReactorKeysEnum.COLUMN_NO.getKey(), ReactorKeysEnum.DATA.getKey(),
-				ReactorKeysEnum.SHEET_NAME.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 1 };
+				ReactorKeysEnum.SHEET_NAME.getKey(), ReactorKeysEnum.SPREADSHEET_ID.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -42,30 +37,45 @@ public class GoogleSheetReactor extends AbstractReactor {
 		String colNo = this.keyValue.get(this.keysToGet[3]);
 		String data = this.keyValue.get(this.keysToGet[4]);
 		String sheetName = this.keyValue.get(this.keysToGet[5]);
+		String spreadSheetId = this.keyValue.get(this.keysToGet[6]);
+		if (this.keyValue.get(this.keysToGet[2]) != null && this.keyValue.get(this.keysToGet[2]) != "") {
+			rowNo = this.keyValue.get(this.keysToGet[2]);
+		}
+		if (this.keyValue.get(this.keysToGet[3]) != null && this.keyValue.get(this.keysToGet[3]) != "") {
+			colNo = this.keyValue.get(this.keysToGet[3]);
+		}
+		if (this.keyValue.get(this.keysToGet[4]) != null && this.keyValue.get(this.keysToGet[4]) != "") {
+			data = this.keyValue.get(this.keysToGet[4]);
+		}
+		if (this.keyValue.get(this.keysToGet[5]) != null && this.keyValue.get(this.keysToGet[5]) != "") {
+			sheetName = this.keyValue.get(this.keysToGet[5]);
+		}
+		if (this.keyValue.get(this.keysToGet[6]) != null && this.keyValue.get(this.keysToGet[6]) != "") {
+			spreadSheetId = this.keyValue.get(this.keysToGet[6]);
+		}
 		Sheets sheetsService = null;
 		try {
 			sheetsService = SheetServiceUtil.getSheetsService();
-			switch (command) {
+			switch (command.trim().toLowerCase()) {
 			case "write":
-				return SpreadSheetHelper.writeData(userId, rowNo, colNo, data, SPREADSHEET_ID, sheetName,
-						sheetsService);
-
+				return SpreadSheetHelper.writeData(userId, rowNo, colNo, data, spreadSheetId, sheetName, sheetsService);
 			case "update":
-				return SpreadSheetHelper.updateData(userId, rowNo, colNo, data, SPREADSHEET_ID, sheetName,
+				return SpreadSheetHelper.updateData(userId, rowNo, colNo, data, spreadSheetId, sheetName,
 						sheetsService);
-
 			case "delete":
-				return SpreadSheetHelper.deleteData(userId, rowNo, colNo, data, SPREADSHEET_ID, sheetName,
+				return SpreadSheetHelper.deleteData(userId, rowNo, colNo, data, spreadSheetId, sheetName,
 						sheetsService);
-
 			case "read":
-				return SpreadSheetHelper.readData(userId, rowNo, colNo, data, SPREADSHEET_ID, sheetName, sheetsService);
+				return SpreadSheetHelper.readData(userId, rowNo, colNo, data, spreadSheetId, sheetName, sheetsService);
 
 			case "truncate all user data":
 				return SpreadSheetHelper.truncateDataFromDB(userId);
 
 			case "delete user data for user":
 				return SpreadSheetHelper.deleteDataForUser(userId);
+
+			case "delete sheet":
+				return SpreadSheetHelper.deleteSheet(userId, spreadSheetId, sheetName, sheetsService);
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);

@@ -7,8 +7,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.api.services.sheets.v4.Sheets;
+import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.ClearValuesRequest;
+import com.google.api.services.sheets.v4.model.DeleteSheetRequest;
+import com.google.api.services.sheets.v4.model.Request;
+import com.google.api.services.sheets.v4.model.Sheet;
+import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import prerna.engine.api.IDatabaseEngine;
@@ -18,8 +26,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SpreadSheetHelper {
 
-	public static final String SPREADSHEET_DATABASE = "bcdb0a92-2a3b-4c73-bb79-5f5116bd6832";
+	public static final String SPREADSHEET_DATABASE = "6abf12ab-ae96-4edd-a1af-b56b9a37634d";
 	public static final String SPREADSHEET_UNIQUE_ID = "id";
+	
+	private static final Logger classLogger = LogManager.getLogger(SpreadSheetHelper.class);
 
 	public static NounMetadata writeData(String userId, String rowNo, String colNo, String data, String spreadsheetId,
 			String sheetName, Sheets sheetsService) {
@@ -27,14 +37,40 @@ public class SpreadSheetHelper {
 		String range = sheetName + "!" + cell;
 		String msg = null;
 		ValueRange body = new ValueRange().setValues(Collections.singletonList(Collections.singletonList(data)));
+		String missingFields = findMissingFields(rowNo, colNo, data, spreadsheetId, sheetName);
+		if(!missingFields.isEmpty()) {
+			return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		}
 		boolean writeSuccess = write(spreadsheetId, sheetsService, range, body);
 		if (Boolean.TRUE.equals(writeSuccess)) {
-			msg = data + " written successfully";
+			msg = "Data written successfully";
 		} else {
-			msg = data + " not written successfully";
+			msg = "Data not written successfully";
 		}
 
 		return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+	}
+
+	private static String findMissingFields(String rowNo, String colNo, String data, String spreadsheetId,
+			String sheetName) {
+		StringBuilder errorBuilder=new StringBuilder();
+		if(rowNo == null && rowNo.isEmpty()){
+			errorBuilder.append("rowNo, ");
+		}
+		if(colNo == null && colNo.isEmpty()){
+			errorBuilder.append("colNo, ");
+		}
+		if(data == null && data.isEmpty()){
+			errorBuilder.append("data, ");
+		}
+		if(sheetName == null && sheetName.isEmpty()){
+			errorBuilder.append("sheetName, ");
+		}
+		if(spreadsheetId == null && spreadsheetId.isEmpty()){
+			errorBuilder.append("spreadsheetId, ");
+		}
+		String error=errorBuilder.toString().replaceAll("$", "");
+		return error;
 	}
 
 	private static boolean write(String spreadsheetId, Sheets sheetsService, String range, ValueRange body) {
@@ -54,9 +90,13 @@ public class SpreadSheetHelper {
 		String range = sheetName + "!" + cell;
 		String msg = null;
 		ValueRange body = new ValueRange().setValues(Collections.singletonList(Collections.singletonList(data)));
+		String missingFields = findMissingFields(rowNo, colNo, data, spreadsheetId, sheetName);
+		if(!missingFields.isEmpty()) {
+			return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		}
 		boolean updateSuccess = update(spreadsheetId, sheetsService, range, body);
 		if (Boolean.TRUE.equals(updateSuccess)) {
-			msg = "Data Update successfully";
+			msg = "Data Updated successfully";
 		} else {
 			msg = "Data not updated successfully";
 		}
@@ -80,11 +120,15 @@ public class SpreadSheetHelper {
 		String cell = SheetServiceUtil.getA1Notation(Integer.parseInt(rowNo), Integer.parseInt(colNo));
 		String range = sheetName + "!" + cell;
 		String msg = null;
+		String missingFields = findMissingFields(rowNo, colNo, data, spreadsheetId, sheetName);
+		if(!missingFields.isEmpty()) {
+			return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		}
 		boolean deleteSucess = delete(spreadsheetId, sheetsService, range);
 		if (Boolean.TRUE.equals(deleteSucess)) {
-			msg = data + " deleted successfully";
+			msg = "Data deleted successfully";
 		} else {
-			msg = data + " not deleted successfully";
+			msg = "Data not deleted successfully";
 		}
 		return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
@@ -106,7 +150,6 @@ public class SpreadSheetHelper {
 		String msg = null;
 		try {
 			IDatabaseEngine database = Utility.getDatabase(SPREADSHEET_DATABASE);
-			long Uid;
 			List<String> tables = database.getPixelConcepts();
 			for (String element : tables) {
 				tableName = element;
@@ -119,26 +162,30 @@ public class SpreadSheetHelper {
 			String truncateQuery = "Delete from " + tableName;
 			database.removeData(truncateQuery);
 			truncateFlag = true;
-			Uid = Long.valueOf(userId);
 			if (truncateFlag == true) {
 				msg = "Table truncated succesfully by user with user id: " + userId;
-
 			}
 			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-
+			classLogger.error(Constants.STACKTRACE, e);
+			msg = e.getMessage();
 		}
-		return null;
+		return new NounMetadata("Data not truncated with error message: " + msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.OPERATION);
 	}
 
-	public static NounMetadata readData(String userId, String rowNo, String colNo, String data, String spreadsheetId,
+	public static NounMetadata readData(String userId, String rowNo, String colNo, String data, String spreadsheetId, 
 			String sheetName, Sheets sheetsService) {
 		String cell = SheetServiceUtil.getA1Notation(Integer.parseInt(rowNo), Integer.parseInt(colNo));
 		String range = sheetName + "!" + cell;
 		String msg = null;
+		String missingFields = findMissingFields(rowNo, colNo, data, spreadsheetId, sheetName);
+		if(!missingFields.isEmpty()) {
+			return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		}
 		boolean readSuccess = read(spreadsheetId, sheetsService, range);
 		if (Boolean.TRUE.equals(readSuccess)) {
-			msg = "Data read successfully";
+			msg = data;
 		} else {
 			msg = "Data not read succesfully";
 		}
@@ -213,6 +260,43 @@ public class SpreadSheetHelper {
 			return userIds;
 		} catch (Exception e) {
 			return userIds;
+		}
+	}
+
+	public static NounMetadata deleteSheet(String userId, String spreadsheetId, String sheetName,
+			Sheets sheetsService) {
+		try {
+			Spreadsheet spreadsheet = sheetsService.spreadsheets().get(spreadsheetId).execute();
+			List<Sheet> sheets = spreadsheet.getSheets();
+			Integer sheetIdToDelete = null;
+			for (Sheet sheet : sheets) {
+				if (sheet.getProperties().getTitle().equals(sheetName)) {
+					sheetIdToDelete = sheet.getProperties().getSheetId();
+					break;
+				}
+			}
+			if (sheetIdToDelete == null) {
+				String msg = "Sheet not found:";
+				return new NounMetadata(msg + sheetIdToDelete, PixelDataType.CUSTOM_DATA_STRUCTURE,
+						PixelOperationType.OPERATION);
+			}
+			
+			if(sheets.size()<=1) {
+				String msg="Cannot delete the only remaining sheet";
+				return new NounMetadata(msg + sheetIdToDelete, PixelDataType.CUSTOM_DATA_STRUCTURE,
+						PixelOperationType.OPERATION);
+			}
+			Request deleteSheetRequest = new Request()
+					.setDeleteSheet(new DeleteSheetRequest().setSheetId(sheetIdToDelete));
+			BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest()
+					.setRequests(java.util.Arrays.asList(deleteSheetRequest));
+			sheetsService.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
+			return new NounMetadata(sheetIdToDelete + " deleted successfully", PixelDataType.CUSTOM_DATA_STRUCTURE,
+					PixelOperationType.OPERATION);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			String error = "Error in the class SpreadSheetHelper: " + e.getMessage();
+			return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
 	}
 

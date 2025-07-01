@@ -287,7 +287,14 @@ public enum ReactorKeysEnum {
 	VERSION("version", 											"The version"),
 	WIDTH("width", 											    "The width to use for screenshot capture"),
 	X("x",		 											    "The X coordiante."),
-	Y("y",		 											    "The Y coordiante.");
+	Y("y",		 											    "The Y coordiante."),
+	SPREADSHETT_ID("spreadsheetId",								"Spread sheet id for google spread sheets"),
+	SERVICE_JSON("serviceJson",								    "Google spreadsheet service json for authentication"),
+	ROW_NO("rowno",								    			"Row number in spreadsheet"),
+	COLUMN_NO("columnno",								    	"Column number in spreadsheet"),
+	DATA("data",								    			"Data to be entered in spreadsheet"),
+	SHEETNAME("sheetName",								    	"Sheet name to be entered for Google spread sheet operations"),
+	SPREADSHEET_ID("spreadSheetId",								"Sheet id to be entered for Google spread sheet operations");
 
 	private String key;
 	private String description;
