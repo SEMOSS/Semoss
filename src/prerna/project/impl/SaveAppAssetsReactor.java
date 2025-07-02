@@ -68,7 +68,7 @@ public class SaveAppAssetsReactor extends AbstractReactor {
 		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 		String comment = this.keyValue.get(this.keysToGet[3]);
 		if(comment == null) {
-			comment = "add: SaveProjectAsset executed";
+			comment = "add: SaveAppAssets executed";
 		}
 		// Check strict script source settings once
 		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
