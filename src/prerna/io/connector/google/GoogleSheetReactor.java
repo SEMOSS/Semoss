@@ -66,7 +66,7 @@ public class GoogleSheetReactor extends AbstractReactor {
 				return SpreadSheetHelper.deleteData(userId, rowNo, colNo, data, spreadSheetId, sheetName,
 						sheetsService);
 			case "read":
-				return SpreadSheetHelper.readData(userId, rowNo, colNo, data, spreadSheetId, sheetName, sheetsService);
+				return SpreadSheetHelper.readData(userId, rowNo, colNo, spreadSheetId, sheetName, sheetsService);
 
 			case "truncate all user data":
 				return SpreadSheetHelper.truncateDataFromDB(userId);

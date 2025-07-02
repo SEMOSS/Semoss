@@ -1,12 +1,14 @@
 package prerna.io.connector.google;
 
 import java.sql.ResultSet;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -17,13 +19,13 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SaveGoogleProfileReactor extends AbstractReactor{
-	
+	 
 	private static final Logger classLogger = LogManager.getLogger(SaveGoogleProfileReactor.class);
 	
 	public SaveGoogleProfileReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.SPREADSHETT_ID.getKey(),
-				ReactorKeysEnum.SERVICE_JSON.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1 };
+				ReactorKeysEnum.SERVICE_JSON.getKey(), ReactorKeysEnum.USERNAME.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1, 1 };
 	}
 
 	@Override
@@ -32,13 +34,17 @@ public class SaveGoogleProfileReactor extends AbstractReactor{
 		int profileId = 0;
 		try {
 			this.organizeKeys();
+			LocalDateTime now = LocalDateTime.now();
+			User user = this.insight.getUser();
+			String insightusername = user.getPrimaryLoginToken().getEmail();
 			HashMap<String, Object> map=new HashMap<String, Object>();
 			HashMap<String, Object> responseMap=new HashMap<String, Object>();
 			IDatabaseEngine database = Utility.getDatabase("6abf12ab-ae96-4edd-a1af-b56b9a37634d");
 			String name = this.keyValue.get(this.keysToGet[0]);
 			String spreadSheetId = this.keyValue.get(this.keysToGet[1]);
 			String serviceJson = this.keyValue.get(this.keysToGet[2]);
-			map=insertSpreadSheetData(name,spreadSheetId,serviceJson,database);
+			String userName = this.keyValue.get(this.keysToGet[3]);
+			map=insertSpreadSheetData(name,spreadSheetId,serviceJson,database,now,insightusername,userName);
 			Object object = map.get("Data inserted successfully");
 			if(Boolean.FALSE.equals(map.get("Data inserted successfully"))) {
 				msg=(String) map.get("Error");
@@ -86,7 +92,7 @@ public class SaveGoogleProfileReactor extends AbstractReactor{
 		return profileKey;
 	}
 
-	private HashMap<String, Object> insertSpreadSheetData(String name, String spreadSheetId, String serviceJson, IDatabaseEngine database) {
+	private HashMap<String, Object> insertSpreadSheetData(String name, String spreadSheetId, String serviceJson, IDatabaseEngine database, LocalDateTime now, String insightusername, String userName) {
 		String tableName = null;
 		String msg=null;
 		HashMap<String, Object> map=new HashMap<>();
@@ -97,7 +103,7 @@ public class SaveGoogleProfileReactor extends AbstractReactor{
 				tableName = element;
 			}
 			String insertQuery =" INSERT INTO " + tableName
-					+ "(name,credentials,spreadsheet_id) " + "VALUES ('" + name +"','"+ serviceJson +"','"+ spreadSheetId + "')";
+					+ "(name,credentials,spreadsheet_id,update_at,created_at,user_id,username) " + "VALUES ('" + name +"','"+ serviceJson +"','"+ spreadSheetId + "','"+ now + "','"+ now + "','"+ insightusername + "','"+ userName + "')";
 			database.insertData(insertQuery);
 			flag=true;
 			map.put("Data inserted successfully", flag);

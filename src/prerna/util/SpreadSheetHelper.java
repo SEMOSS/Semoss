@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,7 +29,7 @@ public class SpreadSheetHelper {
 
 	public static final String SPREADSHEET_DATABASE = "6abf12ab-ae96-4edd-a1af-b56b9a37634d";
 	public static final String SPREADSHEET_UNIQUE_ID = "id";
-	
+
 	private static final Logger classLogger = LogManager.getLogger(SpreadSheetHelper.class);
 
 	public static NounMetadata writeData(String userId, String rowNo, String colNo, String data, String spreadsheetId,
@@ -38,7 +39,7 @@ public class SpreadSheetHelper {
 		String msg = null;
 		ValueRange body = new ValueRange().setValues(Collections.singletonList(Collections.singletonList(data)));
 		String missingFields = findMissingFields(rowNo, colNo, data, spreadsheetId, sheetName);
-		if(!missingFields.isEmpty()) {
+		if (!missingFields.isEmpty()) {
 			return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
 		boolean writeSuccess = write(spreadsheetId, sheetsService, range, body);
@@ -53,23 +54,23 @@ public class SpreadSheetHelper {
 
 	private static String findMissingFields(String rowNo, String colNo, String data, String spreadsheetId,
 			String sheetName) {
-		StringBuilder errorBuilder=new StringBuilder();
-		if(rowNo == null && rowNo.isEmpty()){
+		StringBuilder errorBuilder = new StringBuilder();
+		if (rowNo == null || rowNo.isEmpty()) {
 			errorBuilder.append("rowNo, ");
 		}
-		if(colNo == null && colNo.isEmpty()){
+		if (colNo == null || colNo.isEmpty()) {
 			errorBuilder.append("colNo, ");
 		}
-		if(data == null && data.isEmpty()){
+		if (data == null || data.isEmpty()) {
 			errorBuilder.append("data, ");
 		}
-		if(sheetName == null && sheetName.isEmpty()){
+		if (sheetName == null || sheetName.isEmpty()) {
 			errorBuilder.append("sheetName, ");
 		}
-		if(spreadsheetId == null && spreadsheetId.isEmpty()){
+		if (spreadsheetId == null || spreadsheetId.isEmpty()) {
 			errorBuilder.append("spreadsheetId, ");
 		}
-		String error=errorBuilder.toString().replaceAll("$", "");
+		String error = errorBuilder.toString().replaceAll("$", "");
 		return error;
 	}
 
@@ -91,7 +92,7 @@ public class SpreadSheetHelper {
 		String msg = null;
 		ValueRange body = new ValueRange().setValues(Collections.singletonList(Collections.singletonList(data)));
 		String missingFields = findMissingFields(rowNo, colNo, data, spreadsheetId, sheetName);
-		if(!missingFields.isEmpty()) {
+		if (!missingFields.isEmpty()) {
 			return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
 		boolean updateSuccess = update(spreadsheetId, sheetsService, range, body);
@@ -121,7 +122,7 @@ public class SpreadSheetHelper {
 		String range = sheetName + "!" + cell;
 		String msg = null;
 		String missingFields = findMissingFields(rowNo, colNo, data, spreadsheetId, sheetName);
-		if(!missingFields.isEmpty()) {
+		if (!missingFields.isEmpty()) {
 			return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
 		boolean deleteSucess = delete(spreadsheetId, sheetsService, range);
@@ -174,33 +175,44 @@ public class SpreadSheetHelper {
 				PixelOperationType.OPERATION);
 	}
 
-	public static NounMetadata readData(String userId, String rowNo, String colNo, String data, String spreadsheetId, 
+	public static NounMetadata readData(String userId, String rowNo, String colNo, String spreadsheetId,
 			String sheetName, Sheets sheetsService) {
 		String cell = SheetServiceUtil.getA1Notation(Integer.parseInt(rowNo), Integer.parseInt(colNo));
 		String range = sheetName + "!" + cell;
-		String msg = null;
-		String missingFields = findMissingFields(rowNo, colNo, data, spreadsheetId, sheetName);
-		if(!missingFields.isEmpty()) {
+		Object msg = null;
+		String missingFields = findMissingFields(rowNo, colNo, "not required", spreadsheetId, sheetName);
+		if (!missingFields.isEmpty()) {
 			return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
-		boolean readSuccess = read(spreadsheetId, sheetsService, range);
-		if (Boolean.TRUE.equals(readSuccess)) {
-			msg = data;
+		HashMap<Object, Boolean> hashMap = read(spreadsheetId, sheetsService, range);
+		Entry<Object, Boolean> dataMap = hashMap.entrySet().iterator().next();
+		Object dataObject = dataMap.getKey();
+		Boolean flagValue = dataMap.getValue();
+		if (Boolean.TRUE.equals(flagValue)) {
+			msg = dataObject;
 		} else {
 			msg = "Data not read succesfully";
 		}
 		return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
-	private static Boolean read(String spreadsheetId, Sheets sheetsService, String range) {
+	private static HashMap<Object, Boolean> read(String spreadsheetId, Sheets sheetsService, String range) {
+		Boolean flag = false;
+		HashMap<Object, Boolean> dataMap = new HashMap<Object, Boolean>();
 		try {
 			ValueRange response = sheetsService.spreadsheets().values().get(spreadsheetId, range).execute();
-			return true;
+			List<List<Object>> values = response.getValues();
+			String actualValue = (values != null) && !values.isEmpty() && !values.get(0).isEmpty()
+					? values.get(0).get(0).toString()
+					: "cell is empty";
+			flag = true;
+			dataMap.put(actualValue, flag);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return false;
+			dataMap.put("Data read successfully", flag);
+
 		}
+		return dataMap;
 	}
 
 	public static NounMetadata deleteDataForUser(String userId) {
@@ -280,9 +292,9 @@ public class SpreadSheetHelper {
 				return new NounMetadata(msg + sheetIdToDelete, PixelDataType.CUSTOM_DATA_STRUCTURE,
 						PixelOperationType.OPERATION);
 			}
-			
-			if(sheets.size()<=1) {
-				String msg="Cannot delete the only remaining sheet";
+
+			if (sheets.size() <= 1) {
+				String msg = "Cannot delete the only remaining sheet";
 				return new NounMetadata(msg + sheetIdToDelete, PixelDataType.CUSTOM_DATA_STRUCTURE,
 						PixelOperationType.OPERATION);
 			}

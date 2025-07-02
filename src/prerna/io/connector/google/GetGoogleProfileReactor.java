@@ -19,8 +19,8 @@ import prerna.util.Utility;
 
 public class GetGoogleProfileReactor extends AbstractReactor{
 
-	public static final String JIRA_DATABASE="6abf12ab-ae96-4edd-a1af-b56b9a37634d";
-	public static final String JIRA_UNIQUE_ID="JIRAPROFILE_UNIQUE_ROW_ID";
+	public static final String SP_DATABASE="6abf12ab-ae96-4edd-a1af-b56b9a37634d";
+	public static final String SP_UNIQUE_ID="id";
 	
 	private static final Logger classLogger = LogManager.getLogger(GetGoogleProfileReactor.class);
 	@Override
@@ -28,7 +28,7 @@ public class GetGoogleProfileReactor extends AbstractReactor{
 		try {
 			String tableName = null;
 			List<SpreadSheetDetail> resultList = new ArrayList<SpreadSheetDetail>();
-			IDatabaseEngine database = Utility.getDatabase(JIRA_DATABASE);
+			IDatabaseEngine database = Utility.getDatabase(SP_DATABASE);
 			List<String> tables = database.getPixelConcepts();
 			for (String element : tables) {
 				tableName = element;
@@ -41,10 +41,12 @@ public class GetGoogleProfileReactor extends AbstractReactor{
 				while (rs.next()) {
 					SpreadSheetDetail sheetDetail=new SpreadSheetDetail();
 					sheetDetail.setCreatedAt(rs.getString("created_at"));
-					sheetDetail.setId(rs.getString("id"));
+					sheetDetail.setId(rs.getString(SP_UNIQUE_ID));
 					sheetDetail.setName(rs.getString("name"));
 					sheetDetail.setSpreadSheetId(rs.getString("spreadsheet_id"));
 					sheetDetail.setUpdatedAt(rs.getString("update_at"));
+					sheetDetail.setUserId(rs.getString("user_id"));
+					sheetDetail.setUserName(rs.getString("username"));
 					resultList.add(sheetDetail);
 				}
 			}return new NounMetadata(resultList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);

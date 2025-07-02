@@ -294,7 +294,8 @@ public enum ReactorKeysEnum {
 	COLUMN_NO("columnno",								    	"Column number in spreadsheet"),
 	DATA("data",								    			"Data to be entered in spreadsheet"),
 	SHEETNAME("sheetName",								    	"Sheet name to be entered for Google spread sheet operations"),
-	SPREADSHEET_ID("spreadSheetId",								"Sheet id to be entered for Google spread sheet operations");
+	SPREADSHEET_ID("spreadSheetId",								"Sheet id to be entered for Google spread sheet operations"),
+	USERID("userid",											"user id to add in JIRA");
 
 	private String key;
 	private String description;
