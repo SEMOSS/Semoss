@@ -35,6 +35,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -74,6 +75,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -6157,6 +6159,103 @@ public final class Utility {
 		}
 		
 		return Boolean.parseBoolean(nonApprovedFlag);
+	}
+    //copy an engine and its contents but creates a new engine id
+    public static void copyEngineToFunctionFolder(String originalEngineId, String newEngineId, String originalEnginePath ) throws IOException {
+        File originalEngineDir = new File(originalEnginePath);
+
+        String originalSmssPath = DIHelper.getInstance().getEngineProperty(originalEngineId + "_" + Constants.STORE) + "";
+        Properties smssProps = Utility.loadProperties(originalSmssPath);
+
+        String newAlias = smssProps.getProperty("ENGINE_ALIAS") +"__Temp";
+
+        File parentDir = originalEngineDir.getParentFile();
+        String newEngineFolderName = newAlias + "__" + newEngineId;
+        File newEngineDir = new File(parentDir, newEngineFolderName);
+
+        if (!newEngineDir.mkdirs()) {
+            throw new IOException("Could not create new engine folder: " + newEngineDir.getAbsolutePath());
+        }
+
+        // Copy all files from old engine folder to new one
+        FileUtils.copyDirectory(originalEngineDir, newEngineDir);
+
+        // Update smss properties with new engine details
+        smssProps.setProperty("ENGINE", newEngineId);
+        smssProps.setProperty("ENGINE_ALIAS", newAlias);
+
+        // Create new .smss file next to the new engine folder
+        File newSmssFile = new File(parentDir, newEngineFolderName + ".smss");
+        writeSmssInReadableFormat(newSmssFile, smssProps);
+       
+    }
+
+    public static void writeSmssInReadableFormat(File file, Properties props) throws IOException {
+    	final String tab = "\t";
+    	final String newline = "\n";
+
+    	try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+    		writer.write(newline);
+    		writer.write(newline);
+
+    		for (String key : props.stringPropertyNames()) {
+    			writer.write(key + tab + props.getProperty(key));
+    			writer.write(newline);
+    		}
+    	}
+    }
+   //take assets from the new(temp) engine and replace the assets with the original engine
+    public static void replaceAllEditedAssetsFromTempEngine(String tempEngineId, String engineId, String existingEnginePath , String newEnginePath) throws IOException {
+		File tempEngineDir = new File(newEnginePath);
+		File existingEngineDir = new File(existingEnginePath);
+
+		if (!tempEngineDir.exists()) {
+			throw new FileNotFoundException("Temp engine folder not found: " + tempEngineDir.getAbsolutePath());
+		}
+		if (!existingEngineDir.exists()) {
+			throw new FileNotFoundException("Original engine folder not found: " + existingEngineDir.getAbsolutePath());
+		}
+
+		// Get all files from the temp engine folder (recursively)
+		Collection<File> tempFiles = FileUtils.listFiles(tempEngineDir, null, true);
+
+		for (File tempFile : tempFiles) {
+			String relativePath = tempEngineDir.toURI().relativize(tempFile.toURI()).getPath();
+
+			File originalFile = new File(existingEngineDir, relativePath);
+
+			File parentDir = originalFile.getParentFile();
+			if (!parentDir.exists() && !parentDir.mkdirs()) {
+				throw new IOException("Failed to create parent directory: " + parentDir.getAbsolutePath());
+			}
+
+			// Read content from both files
+			String tempContent = FileUtils.readFileToString(tempFile, StandardCharsets.UTF_8);
+			String originalContent = originalFile.exists()
+					? FileUtils.readFileToString(originalFile, StandardCharsets.UTF_8)
+					: "";
+
+			// Only replace if content has changed
+			if (!tempContent.equals(originalContent)) {
+				FileUtils.writeStringToFile(originalFile, tempContent, StandardCharsets.UTF_8);
+			}
+		}
+	}
+    // delete the temp engine once the user saves the changes
+	public static void deleteTempEngine(String newEngineBasePath) throws IOException {
+		File tempEngineDir = new File(newEngineBasePath);
+
+		// Delete the temp engine folder
+		if (tempEngineDir.exists()) {
+			FileUtils.deleteDirectory(tempEngineDir);
+		}
+
+		// Delete the .smss file associated with temp engine
+		File parentDir = tempEngineDir.getParentFile();
+		File tempSmssFile = new File(parentDir, tempEngineDir.getName() + ".smss");
+		if (tempSmssFile.exists()) {
+			tempSmssFile.delete();
+		}
 	}
 
     } 
