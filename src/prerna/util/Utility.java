@@ -6161,7 +6161,7 @@ public final class Utility {
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
     //copy an engine and its contents but creates a new engine id
-    public static void copyEngineToFunctionFolder(String originalEngineId, String newEngineId, String originalEnginePath ) throws IOException {
+    public static IFunctionEngine copyEngineToFunctionFolder(String originalEngineId, String newEngineId, String originalEnginePath ) throws IOException {
         File originalEngineDir = new File(originalEnginePath);
 
         String originalSmssPath = DIHelper.getInstance().getEngineProperty(originalEngineId + "_" + Constants.STORE) + "";
@@ -6187,6 +6187,7 @@ public final class Utility {
         // Create new .smss file next to the new engine folder
         File newSmssFile = new File(parentDir, newEngineFolderName + ".smss");
         writeSmssInReadableFormat(newSmssFile, smssProps);
+		return Utility.getFunctionEngine(newEngineId);
        
     }
 
