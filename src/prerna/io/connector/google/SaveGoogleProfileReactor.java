@@ -23,9 +23,9 @@ public class SaveGoogleProfileReactor extends AbstractReactor{
 	private static final Logger classLogger = LogManager.getLogger(SaveGoogleProfileReactor.class);
 	
 	public SaveGoogleProfileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.SPREADSHETT_ID.getKey(),
-				ReactorKeysEnum.SERVICE_JSON.getKey(), ReactorKeysEnum.USERNAME.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.SHEET_NAME.getKey(), ReactorKeysEnum.SPREADSHETT_ID.getKey(),
+				ReactorKeysEnum.SERVICE_JSON.getKey(), ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.USERID.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 1 };
 	}
 
 	@Override
@@ -35,16 +35,15 @@ public class SaveGoogleProfileReactor extends AbstractReactor{
 		try {
 			this.organizeKeys();
 			LocalDateTime now = LocalDateTime.now();
-			User user = this.insight.getUser();
-			String insightusername = user.getPrimaryLoginToken().getEmail();
 			HashMap<String, Object> map=new HashMap<String, Object>();
 			HashMap<String, Object> responseMap=new HashMap<String, Object>();
 			IDatabaseEngine database = Utility.getDatabase("6abf12ab-ae96-4edd-a1af-b56b9a37634d");
-			String name = this.keyValue.get(this.keysToGet[0]);
+			String sheetName = this.keyValue.get(this.keysToGet[0]);
 			String spreadSheetId = this.keyValue.get(this.keysToGet[1]);
 			String serviceJson = this.keyValue.get(this.keysToGet[2]);
-			String userName = this.keyValue.get(this.keysToGet[3]);
-			map=insertSpreadSheetData(name,spreadSheetId,serviceJson,database,now,insightusername,userName);
+			String name = this.keyValue.get(this.keysToGet[3]);
+			String userId = this.keyValue.get(this.keysToGet[3]);
+			map=insertSpreadSheetData(sheetName,spreadSheetId,serviceJson,database,now,name,userId);
 			Object object = map.get("Data inserted successfully");
 			if(Boolean.FALSE.equals(map.get("Data inserted successfully"))) {
 				msg=(String) map.get("Error");
@@ -92,7 +91,7 @@ public class SaveGoogleProfileReactor extends AbstractReactor{
 		return profileKey;
 	}
 
-	private HashMap<String, Object> insertSpreadSheetData(String name, String spreadSheetId, String serviceJson, IDatabaseEngine database, LocalDateTime now, String insightusername, String userName) {
+	private HashMap<String, Object> insertSpreadSheetData(String sheetName, String spreadSheetId, String serviceJson, IDatabaseEngine database, LocalDateTime now, String name, String userId) {
 		String tableName = null;
 		String msg=null;
 		HashMap<String, Object> map=new HashMap<>();
@@ -103,7 +102,7 @@ public class SaveGoogleProfileReactor extends AbstractReactor{
 				tableName = element;
 			}
 			String insertQuery =" INSERT INTO " + tableName
-					+ "(name,credentials,spreadsheet_id,update_at,created_at,user_id,username) " + "VALUES ('" + name +"','"+ serviceJson +"','"+ spreadSheetId + "','"+ now + "','"+ now + "','"+ insightusername + "','"+ userName + "')";
+					+ "(sheet_name,credentials,spreadsheet_id,update_at,created_at,user_id,name) " + "VALUES ('" + sheetName +"','"+ serviceJson +"','"+ spreadSheetId + "','"+ now + "','"+ now + "','"+ userId + "','"+ name + "')";
 			database.insertData(insertQuery);
 			flag=true;
 			map.put("Data inserted successfully", flag);
