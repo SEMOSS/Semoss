@@ -63,7 +63,7 @@ public class GoogleSheetReactor extends AbstractReactor {
 				return SpreadSheetHelper.updateData(userId, rowNo, colNo, data, spreadSheetId, sheetName,
 						sheetsService);
 			case "delete":
-				return SpreadSheetHelper.deleteData(userId, rowNo, colNo, data, spreadSheetId, sheetName,
+				return SpreadSheetHelper.deleteData(userId, rowNo, colNo, spreadSheetId, sheetName,
 						sheetsService);
 			case "read":
 				return SpreadSheetHelper.readData(userId, rowNo, colNo, spreadSheetId, sheetName, sheetsService);

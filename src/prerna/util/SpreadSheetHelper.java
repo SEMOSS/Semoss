@@ -116,12 +116,12 @@ public class SpreadSheetHelper {
 		}
 	}
 
-	public static NounMetadata deleteData(String userId, String rowNo, String colNo, String data, String spreadsheetId,
+	public static NounMetadata deleteData(String userId, String rowNo, String colNo, String spreadsheetId,
 			String sheetName, Sheets sheetsService) {
 		String cell = SheetServiceUtil.getA1Notation(Integer.parseInt(rowNo), Integer.parseInt(colNo));
 		String range = sheetName + "!" + cell;
 		String msg = null;
-		String missingFields = findMissingFields(rowNo, colNo, data, spreadsheetId, sheetName);
+		String missingFields = findMissingFields(rowNo, colNo,"not required", spreadsheetId, sheetName);
 		if (!missingFields.isEmpty()) {
 			return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
@@ -303,7 +303,7 @@ public class SpreadSheetHelper {
 			BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest()
 					.setRequests(java.util.Arrays.asList(deleteSheetRequest));
 			sheetsService.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
-			return new NounMetadata(sheetIdToDelete + " deleted successfully", PixelDataType.CUSTOM_DATA_STRUCTURE,
+			return new NounMetadata("Sheet deleted successfully", PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
