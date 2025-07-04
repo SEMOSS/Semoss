@@ -3468,7 +3468,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserAccessRequestsByProject(String projectId) {
+	public static List<Map<String, Object>> getUserAccessRequestsByProject(String projectId, String userId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__ID"));
 		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__REQUEST_USERID"));
@@ -3485,6 +3485,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__APPROVER_TIMESTAMP"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__APPROVER_DECISION", "==", "NEW_REQUEST"));
+		if(userId!=null){
+		  qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__REQUEST_USERID", "==", userId));
+		}
 		qs.addRelation("PROJECTACCESSREQUEST__REQUEST_USERID", "SMSS_USER__ID", "inner.join");
 		qs.addRelation("PROJECTACCESSREQUEST__REQUEST_TYPE", "SMSS_USER__TYPE", "inner.join");
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
