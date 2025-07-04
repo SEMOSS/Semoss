@@ -16,33 +16,29 @@ class Models(StringEnum):
     IMAGEN_3 = "imagen-3.0-generate-002"
 
 
-class QualityLegacy(StringEnum):
-    HD = "hd"
-    STANDARD = "standard"
-
-
 class OutputFormat(StringEnum):
-    PNG = "png"
-    JPEG = "jpeg"
-    WEBP = "webp"
+    PNG = "image/png"
+    JPEG = "image/jpeg"
 
 
-class Imagen3Sizes(StringEnum):
-    AUTO = "auto"
-    SQUARE = "1024x1024"
-    LANDSCAPE = "1536X1024"
-    PORTRAIT = "1024x1536"
+class AspectRatio(StringEnum):
+    AUTO = "1:1"
+    SQUARE = "3:4"
+    RECTANGLE = "4:3"
+    PORTRAIT = "9:16"
+    LANDSCAPE = "16:9"
+
+
+class PersonGeneration(StringEnum):
+    AUTO = "ALLOW_ADULT"
+    DONT_ALLOW = "DONT_ALLOW"
+    ALLOW_ALL = "ALLOW_ALL"
 
 
 class Imagen3Config(BaseModel):
     prompt: str
     model: Literal["imagen-3.0-generate-002"] = "imagen-3.0-generate-002"
     config: Optional[types.GenerateImagesConfig] = (None,)
-    background: Optional[str] = (None,)
-    output_compression: Optional[str] = (None,)
-    quality: Optional[QualityLegacy] = None
-    size: Optional[Imagen3Sizes] = None
-    user: Optional[str] = None
 
     class Config:
         use_enum_values = True
@@ -53,10 +49,32 @@ class GoogleGenAiImageClient(GoogleGenAiTextClient):
     def ask_call(
         self,
         question: str = None,
+        # context: str = None,
+        # use_history: bool = True,
+        # history: List[Dict] = None,
         **kwargs,
     ):
         if self.client is None:
             raise ValueError("Google Gen AI Image client is not initialized.")
+
+        # self.ask_settings = self.get_ask_settings(
+        #     history, use_history, context, **kwargs
+        # )
+
+        # Handling new history format through message_json
+        # if self.ask_settings.semoss_messages:
+        #     msg_history = self._handle_semoss_msgs()
+
+        # # Handling full prompt from Elsa...
+        # elif self.ask_settings.full_prompt:
+        #     msg_history = self._handle_full_prompt_msgs(**kwargs)
+
+        # # Handling standard ask with question and legacy history
+        # else:
+        #     msg_history = self._handle_standard_ask(
+        #         question=question,
+        #         **kwargs,
+        #     )
 
         image_config = self._create_image_config(question, **kwargs)
 
@@ -86,10 +104,8 @@ class GoogleGenAiImageClient(GoogleGenAiTextClient):
                 for generated_image in response.generated_images
             ]
 
-            if self.model_name == Models.IMAGEN_3:
-                # TODO: Calculate tokens for Imagen3
-                input_tokens = 0
-                output_tokens = 0
+            input_tokens = 0
+            output_tokens = 0
 
             model_engine_response = AskModelEngineResponse(
                 response=image_data,
@@ -100,36 +116,45 @@ class GoogleGenAiImageClient(GoogleGenAiTextClient):
             return model_engine_response
         except Exception as e:
             print(f"Error generating image: {e}")
-            raise
+            raise ValueError(f"Error generating image: {e}")
 
-    def _create_image_config(self, question: str, **kwargs):
+    def _create_image_config(self, question, **kwargs):
         """
-        Create the configuration for the OpenAI image generation request.
+        Create the configuration for the Google's image generation request.
         """
-        # If the model is not an OpenAI model, I have to trust that the correct arguments are passed
-        if self.model_name not in Models.values():
-            return kwargs
+        try:
+            # If the model is not an  Google model, I have to trust that the correct arguments are passed
+            if self.model_name not in Models.values():
+                return kwargs
 
-        background = kwargs.pop("background", None)
-        model = self.model_name
-        number_of_images = kwargs.pop("number_of_images", 1)
-        output_compression = kwargs.pop("output_compression", None)
-        quality = kwargs.pop("quality", None)
-        size = kwargs.pop("size", None)
-        user = kwargs.pop("user", None)
+            model = self.model_name
+            number_of_images = kwargs.pop("number_of_images", 1)
+            output_format = kwargs.pop("output_format", OutputFormat.PNG)
+            aspect_ratio = kwargs.pop("aspect_ratio", AspectRatio.AUTO)
+            person_generation = kwargs.pop("person_generation", PersonGeneration.AUTO)
 
-        if size is not None and size not in Imagen3Sizes.values():
-            size = Imagen3Sizes.AUTO
+            if aspect_ratio is not None and aspect_ratio not in AspectRatio.values():
+                aspect_ratio = AspectRatio.AUTO
 
-        return Imagen3Config(
-            model=model,
-            prompt=question,
-            config=types.GenerateImagesConfig(
-                number_of_images=number_of_images,
-            ),
-            background=background,
-            output_compression=output_compression,
-            quality=quality,
-            size=size,
-            user=user,
-        )
+            if (
+                person_generation is not None
+                and person_generation not in PersonGeneration.values()
+            ):
+                person_generation = PersonGeneration.AUTO
+
+            if output_format not in [OutputFormat.PNG, OutputFormat.JPEG]:
+                output_format = OutputFormat.PNG
+
+            return Imagen3Config(
+                model=model,
+                prompt=question,
+                config=types.GenerateImagesConfig(
+                    number_of_images=number_of_images,
+                    aspect_ratio=aspect_ratio,
+                    output_mime_type=output_format,
+                    personGeneration=person_generation,
+                ),
+            )
+        except Exception as e:
+            print(f"Error creating image config: {e}")
+            raise ValueError(f"Error creating image config: {e}")
