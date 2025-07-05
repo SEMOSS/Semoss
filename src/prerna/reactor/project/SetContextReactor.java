@@ -85,8 +85,18 @@ public class SetContextReactor extends AbstractReactor {
 				// if not insert it
 				String curPath = pyT.runPyAndReturnOutput(sysImport, getpath);
 				curPath = curPath.replace("\\", "/");
-				if(!curPath.contains(pyFolderLoc))
-					pyT.runPyAndReturnOutput(setPyPath, setAssetsPath);
+				// small logic change
+				// if it exists I need to remove it and then set this upfront
+				String remPy = "";
+				String remPyAssets = "";
+				if(curPath.contains(pyFolderLoc))
+				{
+					curPath = curPath.replace(pyFolderLoc, "");
+					remPy = "sys.path.remove('" + pyFolderLoc + "')";
+					remPyAssets = "sys.path.remove('" + projectAssetFolder + "')";
+				}	
+				//if(!curPath.contains(pyFolderLoc))
+				pyT.runPyAndReturnOutput(remPy, remPyAssets, setPyPath, setAssetsPath);
 			}
 		}
 
