@@ -85,57 +85,19 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	/**
 	 * Gets a PyTranslator instance
 	 * 
-	 * @param insight The insight id
 	 * @return A configured PyTranslator instance
 	 * @throws IllegalArgumentException if insight is null
 	 * @throws IllegalStateException if the engine is not properly initialized or connection fails
 	 */
-	public PyTranslator getEnginePyTranslator(Insight insight) {
-	    if (insight == null) {
-	        throw new IllegalArgumentException("Insight parameter cannot be null");
-	    }
-	    
+	public PyTranslator getEnginePyTranslator() {
 	    try {
 	        this.checkSocketStatus();
-	        
-	        if (this.pyTranslator == null) {
-	            classLogger.error("PyTranslator is null after socket status check for engine: " + this.getEngineName());
-	            throw new IllegalStateException("PyTranslator is not properly initialized");
-	        }
-	        
-	        if (this.cpw == null || this.cpw.getSocketClient() == null) {
-	            classLogger.error("ClientProcessWrapper or SocketClient is null for engine: " + this.getEngineName());
-	            throw new IllegalStateException("Socket connection is not available");
-	        }
-	        
-	        if (!this.cpw.getSocketClient().isConnected()) {
-	            classLogger.warn("Socket client reports as disconnected, attempting reconnection for engine: " + this.getEngineName());
-	            this.checkSocketStatus();
-	            if (!this.cpw.getSocketClient().isConnected()) {
-	                throw new IllegalStateException("Unable to establish socket connection");
-	            }
-	        }
-	        
-	        PyTranslator engineTranslator = this.pyTranslator;
-	        engineTranslator.setSocketClient(this.cpw.getSocketClient());
-	        engineTranslator.setInsight(insight);
-	        
-	        classLogger.debug("Successfully created PyTranslator for engine: " + this.getEngineName() + 
-	                         ", insight ID: " + insight.getInsightId());
-	        
-	        return engineTranslator;
+	        return this.pyTranslator;
 	    } catch (Exception e) {
-	        classLogger.error("Failed to create PyTranslator for engine: " + this.getEngineName() + 
-	                         ", insight ID: " + (insight != null ? insight.getInsightId() : "null"), e);
-	        
-	        if (e instanceof RuntimeException) {
-	            throw e;
-	        }
-	        
-	        throw new IllegalStateException("Failed to create PyTranslator: " + e.getMessage(), e);
+	        classLogger.error(Constants.STACKTRACE, "Failed to create PyTranslator for engine: " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+	        throw new IllegalStateException("Failed to get PyTranslator: " + e.getMessage(), e);
 	    }
 	}
-
 	
 	/**
 	 * This method is responsible for starting the python process that is linked to this model engine.

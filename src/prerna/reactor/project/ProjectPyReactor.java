@@ -43,7 +43,7 @@ public class ProjectPyReactor extends AbstractReactor {
 		}
 
 		IProject project = Utility.getProject(projectId);
-		PyTranslator projectPyTranslator = project.getProjectPyTranslator(this.insight);
+		PyTranslator projectPyTranslator = project.getProjectPyTranslator();
 		String output = projectPyTranslator.runSingle(code);
 		
 		List<NounMetadata> outputs = new ArrayList<>(1);
