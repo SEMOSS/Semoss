@@ -37,7 +37,7 @@ class PersonGeneration(StringEnum):
 class Imagen3Config(BaseModel):
     prompt: str
     model: Literal["imagen-3.0-generate-002"] = "imagen-3.0-generate-002"
-    config: Optional[types.GenerateImagesConfig] = (None,)
+    config: Optional[types.GenerateImagesConfig] = None
 
     class Config:
         use_enum_values = True
@@ -74,7 +74,8 @@ class GoogleGenAiImageClient(GoogleGenAiTextClient):
         #         question=question,
         #         **kwargs,
         #     )
-
+        if not question:
+            raise ValueError("A prompt must be provided for image generation.")
         image_config = self._create_image_config(question, **kwargs)
 
         response = self._create_image(image_config)
