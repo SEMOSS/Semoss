@@ -1,8 +1,7 @@
-from typing import List, Optional, Dict, Literal
+from typing import Optional, Literal
 import base64
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from google.genai import types
-from ...utils import classify_url
 from ...constants import AskModelEngineResponse
 from ...message_builders.google_genai.google_genai_models import GoogleRoles as Roles
 from ...message_builders.google_genai.google_genai_builder import (
@@ -83,7 +82,7 @@ class GoogleGenAiImageClient(GoogleGenAiTextClient):
         return response
 
     def _create_image_url(self, mime_type, image_bytes):
-        """Creating Image URL from bytes."""
+        """Creating base64 string URL for generated image from bytes."""
         image_url = (
             f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('utf-8')}"
         )
@@ -94,7 +93,9 @@ class GoogleGenAiImageClient(GoogleGenAiTextClient):
         if isinstance(image_config, BaseModel):
             image_config = image_config.model_dump(exclude_none=True)
         try:
-            response = self.client.models.generate_images(**image_config)
+            response = self.client.models.generate_images(
+                **image_config
+            )  # Generating the images
 
             image_data = [
                 self._create_image_url(
@@ -104,6 +105,7 @@ class GoogleGenAiImageClient(GoogleGenAiTextClient):
                 for generated_image in response.generated_images
             ]
 
+            # TODO: Calculate tokens for input_tokens
             input_tokens = 0
             output_tokens = 0
 
@@ -123,12 +125,12 @@ class GoogleGenAiImageClient(GoogleGenAiTextClient):
         Create the configuration for the Google's image generation request.
         """
         try:
-            # If the model is not an  Google model, I have to trust that the correct arguments are passed
             if self.model_name not in Models.values():
                 return kwargs
 
             model = self.model_name
             number_of_images = kwargs.pop("number_of_images", 1)
+            negative_prompt = kwargs.pop("negative_prompt", None)
             output_format = kwargs.pop("output_format", OutputFormat.PNG)
             aspect_ratio = kwargs.pop("aspect_ratio", AspectRatio.AUTO)
             person_generation = kwargs.pop("person_generation", PersonGeneration.AUTO)
@@ -150,6 +152,7 @@ class GoogleGenAiImageClient(GoogleGenAiTextClient):
                 prompt=question,
                 config=types.GenerateImagesConfig(
                     number_of_images=number_of_images,
+                    negative_prompt=negative_prompt,
                     aspect_ratio=aspect_ratio,
                     output_mime_type=output_format,
                     personGeneration=person_generation,
