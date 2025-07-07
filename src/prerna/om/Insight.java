@@ -1112,6 +1112,13 @@ public class Insight implements Serializable {
 			
 			Map<String, NounMetadata> currentParameters = this.varStore.pullParameters();
 			Map<String, NounMetadata> preAppliedParameters = this.varStore.pullPreAppliedParameters();
+			Map<String, NounMetadata> defaultVars = new HashMap<>();
+			String[] keys = new String[]{JobReactor.JOB_KEY, JobReactor.SESSION_KEY, JobReactor.INSIGHT_KEY, JobReactor.ROUTE_KEY};
+			for(String key : keys) {
+				if(this.varStore.containsKey(key)) {
+					defaultVars.put(key, this.varStore.get(key));
+				}
+			}
 			
 			// always add the insight config
 			boolean hasInsightConfig = false;
@@ -1164,6 +1171,11 @@ public class Insight implements Serializable {
 			// so that we can set the value inside of them
 			for(String paramKey : preAppliedParameters.keySet()) {
 				this.varStore.put(paramKey, preAppliedParameters.get(paramKey));
+			}
+			
+			// add back the default vars
+			for(String paramKey : defaultVars.keySet()) {
+				this.varStore.put(paramKey, defaultVars.get(paramKey));
 			}
 			
 			// execution

@@ -117,6 +117,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	public PandasFrame(String tableName, PyTranslator pyTranslator) {
+		this.pyTranslator = pyTranslator;
+
 		if(tableName == null || tableName.trim().isEmpty()) {
 			tableName = "PYFRAME_" + UUID.randomUUID().toString().replace("-", "_");
 		}

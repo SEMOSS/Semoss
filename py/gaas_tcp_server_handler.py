@@ -979,7 +979,24 @@ class InsightGlobalStore:
     def get_insight_globals(self, insight_id: str) -> dict:
         if not insight_id:
             return {}
-        return self.insight_globals.setdefault(insight_id, {})
+
+        if insight_id not in self.insight_globals:
+            # First-time initialization: build the globals dict
+            globals_dict = {
+                "string": string,
+                "np": np,
+                "pd": pd,
+                "random": random,
+                "datetime": datetime,
+                "json": json,
+                "jsonpickle": jp,
+                "math": math,
+                "PyFrame": PyFrame,
+                "smssutil": smssutil,
+            }
+            self.insight_globals[insight_id] = globals_dict
+
+        return self.insight_globals[insight_id]
 
     def set_insight_globals(self, insight_id: str, this_insight_globals: dict):
         if not insight_id:

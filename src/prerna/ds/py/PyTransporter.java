@@ -237,25 +237,25 @@ public class PyTransporter {
 		String pyTemp = null;
 		if (insight != null) {
 			insightRootPath = insight.getInsightFolder().replace('\\', '/');
-			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
+			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "'\n";
 			removePathVariables = " ROOT";
 
 			// context project takes precedence
 			if (insight.getContextProjectId() != null) {
 				appRootPath = AssetUtility.getProjectAssetsFolder(insight.getContextProjectName(), insight.getContextProjectId());
 				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "'\n";
 				removePathVariables += ", APP_ROOT";
 			} else if (insight.isSavedInsight()) {
 				appRootPath = insight.getAppFolder();
 				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "'\n";
 				removePathVariables += ", APP_ROOT";
 			}
 			try {
 				userRootPath = AssetUtility.getRootFolderPath(insight, AssetUtility.USER_SPACE_KEY, false);
 				userRootPath = userRootPath.replace('\\', '/');
-				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
+				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "'\n";
 				removePathVariables += ", USER_ROOT";
 			} catch (Exception ignore) {
 				// ignore
@@ -573,7 +573,7 @@ public class PyTransporter {
 			} else if (insight.isSavedInsight()) {
 				appRootPath = insight.getAppFolder();
 				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "'\n";
 				removePathVariables += ", APP_ROOT";
 			}
 			try {
@@ -588,7 +588,7 @@ public class PyTransporter {
 
 		String assignmentString = insightRootAssignment + appRootAssignment + userRootAssignment;
 		transportScript(insight, assignmentString);
-		String output = runScript(insight, script) + "";
+		String output = transportScript(insight, script) + "";
 
 		// clean up the output
 		if (userRootPath != null && output.contains(userRootPath)) {
