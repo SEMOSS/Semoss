@@ -561,6 +561,106 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 	
 	@Override
+	public void pushEngineFolder(String engineId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(engineId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("Engine not found...");
+		}
+		if(storageRelativePath != null) {
+			storageRelativePath = storageRelativePath.replace("\\", "/");
+		}
+		if(storageRelativePath.startsWith("/")) {
+			storageRelativePath = storageRelativePath.substring(1);
+		}
+		
+		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
+
+		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
+		
+		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
+		String localEngineFolder = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId);
+		{
+			// lets make sure this exists
+			File localEngineF = new File(localEngineFolder);
+			if(!localEngineF.exists() || !localEngineF.isDirectory()) {
+				localEngineF.mkdirs();
+			}
+			ClusterUtil.validateFolder(localEngineFolder);
+		}
+		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
+		String cloudEngineFolder = cloudContainerPrefix + engineId;
+		if(storageRelativePath != null) {
+			cloudEngineFolder = cloudEngineFolder + "/" + storageRelativePath;
+		}
+		
+		// TODO: we might not need the lock - these are only assets
+		
+		classLogger.info("Applying lock for engine " + aliasAndEngineId + " to push engine relative folder " + storageRelativePath);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
+		lock.lock();
+		classLogger.info("Engine " + aliasAndEngineId + " is locked");
+		try {
+			classLogger.info("Pushing folder from local=" + localAbsoluteFilePath + " to remote=" + storageRelativePath);
+			centralStorageEngine.syncLocalToStorage(localAbsoluteFilePath, storageRelativePath, null);
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Engine " + aliasAndEngineId + " is unlocked");
+		}
+	}
+
+	@Override
+	public void pullEngineFolder(String engineId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(engineId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("Engine not found...");
+		}
+		if(storageRelativePath != null) {
+			storageRelativePath = storageRelativePath.replace("\\", "/");
+		}
+		if(storageRelativePath.startsWith("/")) {
+			storageRelativePath = storageRelativePath.substring(1);
+		}
+		
+		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
+
+		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
+		
+		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
+		String localEngineFolder = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId);
+		{
+			// lets make sure this exists
+			File localEngineF = new File(localEngineFolder);
+			if(!localEngineF.exists() || !localEngineF.isDirectory()) {
+				localEngineF.mkdirs();
+			}
+			ClusterUtil.validateFolder(localEngineFolder);
+		}
+		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
+		String cloudEngineFolder = cloudContainerPrefix + engineId;
+		if(storageRelativePath != null) {
+			cloudEngineFolder = cloudEngineFolder + "/" + storageRelativePath;
+		}
+		
+		// TODO: we might not need the lock - these are only assets
+		
+		classLogger.info("Applying lock for engine " + aliasAndEngineId + " to pull engine relative folder " + storageRelativePath);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
+		lock.lock();
+		classLogger.info("Engine " + aliasAndEngineId + " is locked");
+		try {
+			classLogger.info("Pulling folder from remote=" + cloudEngineFolder + " to local=" + localAbsoluteFilePath);
+			centralStorageEngine.syncStorageToLocal(cloudEngineFolder, localAbsoluteFilePath);
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Engine " + aliasAndEngineId + " is unlocked");
+		}
+	}
+	
+	@Override
 	public void deleteEngine(String engineId) throws IOException, InterruptedException {
 		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 		IEngine.CATALOG_TYPE engineType = (CATALOG_TYPE) typeAndSubtype[0];

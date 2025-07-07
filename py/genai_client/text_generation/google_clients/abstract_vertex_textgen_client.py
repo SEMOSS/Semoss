@@ -1,5 +1,4 @@
 from typing import Dict, Optional
-from abc import abstractclassmethod
 from vertexai.language_models import ChatMessage
 
 from ..abstract_text_generation_client import AbstractTextGenerationClient
@@ -42,10 +41,10 @@ class AbstractVertextAiTextGeneration(AbstractTextGenerationClient):
         self.max_tokens = max_tokens
         self.safety_settings = safety_settings or {}
 
-    @abstractclassmethod
+    @classmethod
     def ask_call(self, **kwargs) -> AskModelEngineResponse:
         pass
 
-    @abstractclassmethod
+    @classmethod
     def _get_client(self):
         pass
