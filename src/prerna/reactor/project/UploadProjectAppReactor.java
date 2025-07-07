@@ -420,10 +420,6 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	 
 	    User user = this.insight.getUser();
 	    
-	    if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-	        throw new IllegalArgumentException("The user does not have access to edit this project or project id is invalid");
-	    }
-	 
 	    Map<String, Object> result = new HashMap<>();
 	    Map<String, String> success = new HashMap<>();
 	    Set<String> failed = new HashSet<>();
