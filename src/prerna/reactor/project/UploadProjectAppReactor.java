@@ -2,12 +2,18 @@ package prerna.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -19,6 +25,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -46,6 +53,9 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(UploadProjectAppReactor.class);
 
 	private static final String CLASS_NAME = UploadProjectAppReactor.class.getName();
+	
+	private static final Pattern UUID_PATTERN = Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$");
+
 
 	public UploadProjectAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
@@ -322,8 +332,14 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		
 		// push new project to cloud
 		ClusterUtil.pushProject(projectId);
-
+		
+		String[] engineIds = getEngineIdsFromProject(finalProjectFolderF);
+		Map<String, Object> engineInfo = processAndSetProjectDependencies(engineIds, projectId);
+		
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), projectId);
+		
+		// sending the success and failed list of engineIds to FE
+		retMap.put("engineIds", engineInfo);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 	
@@ -351,6 +367,88 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				}
 			}
 		}
+	}
+	
+	// extracts and returns engineIds from the files with the given extensions
+	// in the project folder.
+	public String[] getEngineIdsFromProject(File finalProjectFolderF) {
+        Set<String> engineIds = new HashSet<>();
+        String folderPath = finalProjectFolderF.getAbsolutePath();
+ 
+        // extensions you want to look into
+        String[] extensions = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx" };
+        
+        try {
+            Files.walk(Paths.get(folderPath))
+                .filter(Files::isRegularFile)
+                .filter(path -> {
+                    String fileName = path.getFileName().toString().toLowerCase();
+                    for (String ext : extensions) {
+                        if (fileName.endsWith(ext)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                })
+                .forEach(path -> {
+                    try {
+                        List<String> lines = Files.readAllLines(path);
+                        for (String line : lines) {
+                            String[] tokens = line.split("[^a-zA-Z0-9-]+");
+                            for (String token : tokens) {
+                                Matcher matcher = UUID_PATTERN.matcher(token.trim());
+                                if (matcher.matches()) {
+                                    engineIds.add(token.trim());
+                                }
+                            }
+                        }
+                    } catch (IOException e) {
+                        System.err.println("Error reading file: " + path);
+                        e.printStackTrace();
+                    }
+                });
+ 
+        } catch (IOException e) {
+            System.err.println("Error walking folder: " + folderPath);
+            e.printStackTrace();
+        }
+ 
+        return engineIds.toArray(new String[0]);
+    }
+	
+	// check if the extracted engineIds are present in the engine table or not
+	// adding the info of the existing engineIds into the projectdependencies table
+	// returning a list of added (success) and not added (failed) engineIds
+	private Map<String, Object> processAndSetProjectDependencies(String[] engineIds, String projectId) {
+	 
+	    User user = this.insight.getUser();
+	    
+	    if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+	        throw new IllegalArgumentException("The user does not have access to edit this project or project id is invalid");
+	    }
+	 
+	    Map<String, Object> result = new HashMap<>();
+	    Map<String, String> success = new HashMap<>();
+	    Set<String> failed = new HashSet<>();
+	 
+	    for (String engineId : engineIds) {
+	        if (SecurityEngineUtils.containsEngineId(engineId)) {
+	            IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
+	            success.put(engineId, engineType.toString());
+	        } else {
+	            failed.add(engineId);
+	        }
+	    }
+	 
+	    // update the project dependencies in DB only with valid engineIds
+	    List<String> validEngineIds = new ArrayList<>(success.keySet());
+	    SecurityProjectUtils.updateProjectDependencies(user, projectId, validEngineIds);
+	 
+	    // build final result map to return
+	    result.put("success", success);
+	    result.put("failed", failed);
+	    
+	    return result;
 	}
 	
 	@Override
