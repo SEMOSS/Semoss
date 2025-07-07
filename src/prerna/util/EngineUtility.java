@@ -9,7 +9,7 @@ public class EngineUtility {
 
 	private static final String BASE_FOLDER;
 	static {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		baseFolder = baseFolder.replace("\\", "/");
 		if(!baseFolder.endsWith("/")) {
 			baseFolder += "/";
