@@ -2,7 +2,6 @@ package prerna.engine.impl.storage;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -62,12 +61,28 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 	}
 	
 	@Override
-	public List<String> list(String containerName) throws BlobStorageException {
+	public List<String> list(String path) throws BlobStorageException {
 	    List<String> fileList = new ArrayList<>();
+	    Set<String> folderSet = new HashSet<>();
+	    String containerName = getContainerName(path);
+	    String prefix = getPrefix(path);
 	    BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
-	    // List blobs inside the container
-	    for (BlobItem blobItem : containerClient.listBlobs()) {
-	    	fileList.add(blobItem.getName());
+	    for (BlobItem blobItem : containerClient.listBlobs(new ListBlobsOptions().setPrefix(prefix), null)) {
+	        String blobName = blobItem.getName();
+	        String relativePath = blobName.substring(prefix.length());
+	 
+	        if (relativePath.isEmpty()) continue;
+	 
+	        if (!relativePath.contains("/")) {
+	            // This is an immediate file
+	            fileList.add(blobName);
+	        } else {
+	            // This is inside a folder collect the folder name only
+	            String folderName = relativePath.substring(0, relativePath.indexOf("/") + 1);
+	            if (folderSet.add(folderName)) {
+	                fileList.add(prefix + folderName); // Add folder only once
+	            }
+	        }
 	    }
 	    return fileList;
 	}
@@ -740,6 +755,20 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		return new String[] { containerName, blobDirectory };
+	}
+	
+	private String getContainerName(String path) {
+	    String[] parts = path.split("/", 2);
+	    return parts[0];
+	}
+
+	private String getPrefix(String path) {
+	    // Remove container name from path
+	    int index = path.indexOf('/');
+	    if (index == -1 || index == path.length() - 1) {
+	        return "";
+	    }
+	    return path.substring(index + 1).replaceAll("^/+", "").replaceAll("/+$", "") + "/";
 	}
 
 	@Override
