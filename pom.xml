@@ -152,10 +152,10 @@
 				<plugins>
 					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.3</version>
+						<version>3.14.0</version>
 						<configuration>
-							<source>1.8</source>
-							<target>1.8</target>
+	        				<source>21</source>
+	        				<target>21</target>
 							<encoding>cp1252</encoding>
 						</configuration>
 					</plugin>
