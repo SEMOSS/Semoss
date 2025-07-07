@@ -1,0 +1,50 @@
+{
+  'actions': ['playwright', 'find_search_bar', 'click_on_search', 'user_fills_in', 'click_test_link'],
+  'Comment':
+  {
+    'comment': '===========================Go to Playwright and enter value into search bar====================================='
+  },
+  'playwright':
+  {
+    'actor':'system',
+    'action':'navigate',
+    'website':'https://playwright.dev/java/',
+  },
+  'find_search_bar':
+  {
+    'actor': 'system',
+    'action': 'getByLabel',
+    'params': ['Search (Ctrl+K)'],
+    'event': 'click',
+  },
+  'click_on_search':
+  {
+    'actor': 'system',
+    'action': 'getByPlaceholder',
+	'params': ['Search docs'],
+	'event': 'click',
+  },
+  'user_fills_in':
+  {
+    'actor': 'user',
+    'parent_action': 'click_on_search',
+    'message':'Please enter user name',
+    'action': 'fill',
+    'synchronize':'true',
+    'output': '__user_field',
+    'exit': 'blur'
+  },
+  'click_test_link':
+  {
+    'actor':'system',
+    'action':'getByRole',
+    'params':['AriaRole.LINK'],
+    'options': ['setName'],
+    'option_values': ['Writing tests'],
+    'options_exact':'true',
+    'sleep_after': 1000,
+    'event':'click'
+  }
+}
+
+

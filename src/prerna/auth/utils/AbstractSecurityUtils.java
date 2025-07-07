@@ -92,6 +92,12 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyFunctionSetPublic = false;
 	static boolean adminOnlyFunctionSetDiscoverable = false;
 	
+	static boolean adminOnlyBrowserAdd = false;
+	static boolean adminOnlyBrowserDelete = false;
+	static boolean adminOnlyBrowserAddAccess = false;
+	static boolean adminOnlyBrowserSetPublic = false;
+	static boolean adminOnlyBrowserSetDiscoverable = false;
+	
 	static boolean adminOnlyInsightSetPublic = false;
 	static boolean adminOnlyInsightAddAccess = false;
 
@@ -179,6 +185,12 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyFunctionAddAccess = Utility.getApplicationAdminOnlyFunctionAddAccess();
 		adminOnlyFunctionSetPublic = Utility.getApplicationAdminOnlyFunctionSetPublic();
 		adminOnlyFunctionSetDiscoverable = Utility.getApplicationAdminOnlyFunctionSetDiscoverable();
+		
+		adminOnlyBrowserAdd = Utility.getApplicationAdminOnlyBrowserAdd();
+		adminOnlyBrowserDelete = Utility.getApplicationAdminOnlyBrowserDelete();
+		adminOnlyBrowserAddAccess = Utility.getApplicationAdminOnlyBrowserAddAccess();
+		adminOnlyBrowserSetPublic = Utility.getApplicationAdminOnlyBrowserSetPublic();
+		adminOnlyBrowserSetDiscoverable = Utility.getApplicationAdminOnlyBrowserSetDiscoverable();
 		
 		adminOnlyInsightSetPublic = Utility.getApplicationAdminOnlyInsightSetPublic();
 		adminOnlyInsightAddAccess = Utility.getApplicationAdminOnlyInsightAddAccess();
@@ -322,6 +334,26 @@ public abstract class AbstractSecurityUtils {
 	public static boolean adminOnlyFunctionSetDiscoverable() {
 		return adminOnlyFunctionSetDiscoverable;
 	}
+	
+	public static boolean adminOnlyBrowserAdd() {
+		return adminOnlyBrowserAdd;
+	}
+
+	public static boolean adminOnlyBrowserDelete() {
+		return adminOnlyBrowserDelete;
+	}
+
+	public static boolean adminOnlyBrowserAddAccess() {
+		return adminOnlyBrowserAddAccess;
+	}
+
+	public static boolean adminOnlyBrowserSetPublic() {
+		return adminOnlyBrowserSetPublic;
+	}
+
+	public static boolean adminOnlyBrowserSetDiscoverable() {
+		return adminOnlyBrowserSetDiscoverable;
+	}
 
 	public static boolean adminOnlyInsightSetPublic() {
 		return adminOnlyInsightSetPublic;
@@ -350,6 +382,8 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyVectorAdd;
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return adminOnlyFunctionAdd;
+		} else if (IEngine.CATALOG_TYPE.BROWSER == type) {
+			return adminOnlyBrowserAdd;
 		}
 		
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
@@ -370,6 +404,8 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyVectorDelete;
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return adminOnlyFunctionDelete;
+		} else if (IEngine.CATALOG_TYPE.BROWSER == type) {
+			return adminOnlyBrowserDelete;
 		}
 		
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
@@ -390,6 +426,8 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyVectorAddAccess;
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return adminOnlyFunctionAddAccess;
+		} else if (IEngine.CATALOG_TYPE.BROWSER == type) {
+			return adminOnlyBrowserAddAccess;
 		}
 		
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
@@ -410,6 +448,8 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyVectorSetPublic;
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return adminOnlyFunctionSetPublic;
+		} else if (IEngine.CATALOG_TYPE.BROWSER == type) {
+			return adminOnlyBrowserSetPublic;
 		}
 		
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
@@ -430,6 +470,8 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyVectorSetDiscoverable;
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return adminOnlyFunctionSetDiscoverable;
+		} else if (IEngine.CATALOG_TYPE.BROWSER == type) {
+			return adminOnlyBrowserSetDiscoverable;
 		}
 		
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);

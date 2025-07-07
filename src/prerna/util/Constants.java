@@ -342,6 +342,7 @@ public class Constants {
 	public static final String PERSPECTIVE_SELECTOR = "perspectiveSelector";
 
 	public static final String BROWSER_TYPE = "BROWSER_TYPE";
+	public static final String BROWSER_FILE = "BROWSER_FILE";
 
 	public static final String SPARQL_QUERY_ENDPOINT = "SPARQL_QUERY_ENDPOINT";
 	public static final String SPARQL_UPDATE_ENDPOINT = "SPARQL_UPDATE_ENDPOINT";
@@ -384,6 +385,7 @@ public class Constants {
 	public static final String STORAGE_FOLDER = "storage";
 	public static final String MODEL_FOLDER = "model";
 	public static final String FUNCTION_FOLDER = "function";
+	public static final String BROWSER_FOLDER = "browser";
 	public static final String VECTOR_FOLDER = "vector";
 	public static final String GUARDRAIL_FOLDER = "guardrail";
 	public static final String VENV_FOLDER = "venv";
@@ -607,6 +609,12 @@ public class Constants {
 	public static final String ADMIN_ONLY_FUNCTION_ADD_ACCESS	= "ADMIN_ONLY_FUNCTION_ADD_ACCESS";
 	public static final String ADMIN_ONLY_FUNCTION_SET_PUBLIC = "ADMIN_ONLY_FUNCTION_SET_PUBLIC";
 	public static final String ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE = "ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE";
+
+	public static final String ADMIN_ONLY_BROWSER_ADD = "ADMIN_ONLY_BROWSER_ADD";
+	public static final String ADMIN_ONLY_BROWSER_DELETE = "ADMIN_ONLY_BROWSER_DELETE";
+	public static final String ADMIN_ONLY_BROWSER_ADD_ACCESS	= "ADMIN_ONLY_BROWSER_ADD_ACCESS";
+	public static final String ADMIN_ONLY_BROWSER_SET_PUBLIC = "ADMIN_ONLY_BROWSER_SET_PUBLIC";
+	public static final String ADMIN_ONLY_BROWSER_SET_DISCOVERABLE = "ADMIN_ONLY_BROWSER_SET_DISCOVERABLE";
 	
 	public static final String ADMIN_ONLY_INSIGHT_SET_PUBLIC = "ADMIN_ONLY_INSIGHT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_INSIGHT_ADD_ACCESS = "ADMIN_ONLY_INSIGHT_ADD_ACCESS";

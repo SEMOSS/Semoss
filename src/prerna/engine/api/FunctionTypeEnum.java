@@ -1,5 +1,6 @@
 package prerna.engine.api;
 
+import prerna.engine.impl.browser.BrowserEngine;
 import prerna.engine.impl.function.AWSTextractFunctionEngine;
 import prerna.engine.impl.function.AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine;
 import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
@@ -11,6 +12,7 @@ public enum FunctionTypeEnum {
 
 	// normal function engines
 	AWS_TEXTRACT("AWS_TEXTRACT", AWSTextractFunctionEngine.class.getName()),
+	BROWSER("BROWSER", BrowserEngine.class.getName()),
 	IMAGE_DESCRIPTION("IMAGE_DESCRIPTION", ImageDescriptionFunctionEngine.class.getName()),
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonFunctionEngine.class.getName()),
 	REST("REST", RESTFunctionEngine.class.getName()),

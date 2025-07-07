@@ -10,6 +10,7 @@ public interface IEngine extends Closeable {
 	String METADATA_FILE_SUFFIX = "_metadata.json";
 	
 	enum CATALOG_TYPE {
+		BROWSER,
 		DATABASE,
 		STORAGE,
 		MODEL,
@@ -19,7 +20,7 @@ public interface IEngine extends Closeable {
 		// not really used anymore
 		VENV,
 		// special kind for IProject
-		PROJECT,
+		PROJECT, 
 	};
 	
 	/**

@@ -1047,6 +1047,20 @@ public final class UploadUtilities {
 	}
 	
 	/**
+	 * Create a temporary smss file for browser engine
+	 * 
+	 * @param engineId
+	 * @param engineName
+	 * @param className
+	 * @param properties
+	 * @return
+	 * @throws IOException
+	 */
+	public static File createTemporaryBrowserSmss(String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.BROWSER, engineId, engineName, className, properties);
+	}
+	
+	/**
 	 * Create a temporary smss file for venv engine
 	 * 
 	 * @param engineId

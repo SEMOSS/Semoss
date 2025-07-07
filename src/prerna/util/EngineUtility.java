@@ -21,6 +21,7 @@ public class EngineUtility {
 	public static final String LOCAL_MODEL_IMAGE_RELPATH = "images/models";
 	public static final String LOCAL_VECTOR_IMAGE_RELPATH = "images/vectors";
 	public static final String LOCAL_FUNCTION_IMAGE_RELPATH = "images/functions";
+	public static final String LOCAL_BROWSER_IMAGE_RELPATH = "images/browsers";
 	public static final String LOCAL_GUARDRAIL_IMAGE_RELPATH = "images/guardrail";
 	public static final String LOCAL_PROJECT_IMAGE_RELPATH = "images/projects";
 
@@ -29,6 +30,7 @@ public class EngineUtility {
 	public static final String MODEL_FOLDER = BASE_FOLDER + Constants.MODEL_FOLDER;
 	public static final String VECTOR_FOLDER = BASE_FOLDER + Constants.VECTOR_FOLDER;
 	public static final String FUNCTION_FOLDER = BASE_FOLDER + Constants.FUNCTION_FOLDER;
+	public static final String BROWSER_FOLDER = BASE_FOLDER + Constants.BROWSER_FOLDER;
 	public static final String GUARDRAIL_FOLDER = BASE_FOLDER + Constants.GUARDRAIL_FOLDER;
 	public static final String VENV_FOLDER = BASE_FOLDER + Constants.VENV_FOLDER;
 	// project is special engine
@@ -40,6 +42,7 @@ public class EngineUtility {
 	public static final String MODEL_IMAGE_FOLDER = BASE_FOLDER + LOCAL_MODEL_IMAGE_RELPATH;
 	public static final String VECTOR_IMAGE_FOLDER = BASE_FOLDER + LOCAL_VECTOR_IMAGE_RELPATH;
 	public static final String FUNCTION_IMAGE_FOLDER = BASE_FOLDER + LOCAL_FUNCTION_IMAGE_RELPATH;
+	public static final String BROWSER_IMAGE_FOLDER = BASE_FOLDER + LOCAL_BROWSER_IMAGE_RELPATH;
 	public static final String GUARDRAIL_IMAGE_FOLDER = BASE_FOLDER + LOCAL_GUARDRAIL_IMAGE_RELPATH;
 	public static final String PROJECT_IMAGE_FOLDER = BASE_FOLDER + LOCAL_PROJECT_IMAGE_RELPATH;
 	
@@ -109,6 +112,8 @@ public class EngineUtility {
 			return VENV_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.BROWSER == type) {
+			return BROWSER_FOLDER;
 		}
 		
 		throw new IllegalArgumentException("Unhandled engine type = " + type);
@@ -134,6 +139,8 @@ public class EngineUtility {
 			return GUARDRAIL_IMAGE_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_IMAGE_FOLDER;
+		} else if (IEngine.CATALOG_TYPE.BROWSER == type) {
+			return BROWSER_IMAGE_FOLDER;
 		}
 		
 		throw new IllegalArgumentException("Unhandled engine type = " + type);

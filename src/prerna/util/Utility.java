@@ -156,6 +156,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
 import prerna.date.SemossDate;
+import prerna.engine.api.IBrowserEngine;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -2591,6 +2592,8 @@ public final class Utility {
 			return getFunctionEngine(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.VENV == type) {
 			return getVenvEngine(engineId, pullIfNeeded);
+		} else if (IEngine.CATALOG_TYPE.BROWSER == type) {
+			return getBrowserEngine(engineId, pullIfNeeded);
 		}
 		
 		throw new IllegalArgumentException("Unknown engine type with value " + type);
@@ -2869,6 +2872,25 @@ public final class Utility {
 	 */
 	public static IVenvEngine getVenvEngine(String engineId, boolean pullIfNeeded) {
 		return (IVenvEngine) baseGetEngine(engineId, pullIfNeeded);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static IBrowserEngine getBrowserEngine(String engineId) {
+		return getBrowserEngine(engineId, true);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	public static IBrowserEngine getBrowserEngine(String engineId, boolean pullIfNeeded) {
+		return (IBrowserEngine) baseGetEngine(engineId, pullIfNeeded);
 	}
 	
 	/**
@@ -4198,6 +4220,76 @@ public final class Utility {
 	 */
 	public static boolean getApplicationAdminOnlyFunctionSetDiscoverable() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a browser
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyBrowserAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_BROWSER_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a browser
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyBrowserDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_BROWSER_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set browser access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyBrowserAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_BROWSER_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a browser public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyBrowserSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_BROWSER_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a browser
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyBrowserSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_BROWSER_SET_DISCOVERABLE);
 		if(boolString == null) {
 			// default false
 			return false;

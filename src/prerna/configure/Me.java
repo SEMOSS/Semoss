@@ -350,6 +350,7 @@ public class Me {
 									"SMSSModelWatcher_DIR",
 									"SMSSVectorWatcher_DIR",
 									"SMSSFunctionWatcher_DIR",
+									"SMSSBrowserWatcher_DIR",
 									"SMSSGuardrailWatcher_DIR",
 									"SMSSVenvWatcher_DIR",
 									"ProjectWatcher_DIR",
@@ -369,6 +370,7 @@ public class Me {
 										 homePath + "/model",
 										 homePath + "/vector",
 										 homePath + "/function",
+										 homePath + "/browser",
 										 homePath + "/guardrail",
 										 homePath + "/venv",
 										 homePath + "/project",
@@ -709,8 +711,9 @@ public class Me {
 		//FileWriter fw = new FileWriter();
 		TransformerFactory tf = TransformerFactory.newInstance();
 		tf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-		tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-		tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
+		// DO NOT COMMIT THIS -------------------------------------------------------------------
+//		tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+//		tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
 		DOMSource source = new DOMSource(d);
 		StreamResult sr = new StreamResult(new File(altFile));
 
