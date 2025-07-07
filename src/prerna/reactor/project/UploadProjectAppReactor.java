@@ -378,22 +378,20 @@ public class UploadProjectAppReactor extends AbstractReactor {
         // extensions you want to look into
         String[] extensions = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx" };
         
-        try {
-            Files.walk(Paths.get(folderPath))
-                .filter(Files::isRegularFile)
-                .filter(path -> {
-                    String fileName = path.getFileName().toString().toLowerCase();
-                    for (String ext : extensions) {
-                        if (fileName.endsWith(ext)) {
-                            return true;
-                        }
-                    }
-                    return false;
-                })
+        try (java.util.stream.Stream<java.nio.file.Path> stream = Files.walk(Paths.get(folderPath))) {
+        	 stream.filter(Files::isRegularFile)
+        	       .filter(path -> {
+        	          String fileName = path.getFileName().toString().toLowerCase();
+        	          for (String ext : extensions) {
+        	              if (fileName.endsWith(ext)) {
+        	                  return true;
+        	              }
+        	          }
+        	          return false;
+        	    })
                 .forEach(path -> {
-                    try {
-                        List<String> lines = Files.readAllLines(path);
-                        for (String line : lines) {
+                    try (java.util.stream.Stream<String> lines = Files.lines(path)) {
+                        lines.forEach(line -> {
                             String[] tokens = line.split("[^a-zA-Z0-9-]+");
                             for (String token : tokens) {
                                 Matcher matcher = UUID_PATTERN.matcher(token.trim());
@@ -401,7 +399,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
                                     engineIds.add(token.trim());
                                 }
                             }
-                        }
+                        });
                     } catch (IOException e) {
                         System.err.println("Error reading file: " + path);
                         e.printStackTrace();
@@ -409,8 +407,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
                 });
  
         } catch (IOException e) {
-            System.err.println("Error walking folder: " + folderPath);
-            e.printStackTrace();
+            classLogger.error("Error reading file: {}", folderPath, e);
         }
  
         return engineIds.toArray(new String[0]);
