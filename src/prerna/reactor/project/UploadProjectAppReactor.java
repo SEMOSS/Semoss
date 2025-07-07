@@ -440,7 +440,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	        }
 	    }
 	 
-	    // update the project dependencies in DB only with valid engineIds
+	    // update the project dependencies table only with valid engineIds
 	    List<String> validEngineIds = new ArrayList<>(success.keySet());
 	    SecurityProjectUtils.updateProjectDependencies(user, projectId, validEngineIds);
 	 
