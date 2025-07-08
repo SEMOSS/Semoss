@@ -74,7 +74,7 @@ public class SaveGoogleProfileReactor extends AbstractReactor{
 			for (String element : tables) {
 				tableName = element;
 			}
-			String query = " select ID from " + tableName + " where name='" + name + "'";
+			String query = " select id from " + tableName + " where name='" + name + "'";
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
 			Object string = hashmap.get("RESULTSET_OBJECT");
 			if (string instanceof ResultSet) {
