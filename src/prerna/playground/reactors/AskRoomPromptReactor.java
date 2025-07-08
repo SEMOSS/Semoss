@@ -1,6 +1,5 @@
 package prerna.playground.reactors;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,8 +9,12 @@ import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.py.PyTranslator;
@@ -197,7 +200,7 @@ public class AskRoomPromptReactor extends AbstractReactor {
       PyTranslator pt = this.insight.getPyTranslator();
 
       List<Map<String, Object>> pyResponse =
-          (List<Map<String, Object>>) pt.runSmssWrapperEval(commands, this.insight);
+          (List<Map<String, Object>>) pt.runSmssWrapperEval(commands);
 
       Map<String, Object> output = new HashMap<String, Object>();
       output.put("response", new ArrayList<Map<String, Object>>());
