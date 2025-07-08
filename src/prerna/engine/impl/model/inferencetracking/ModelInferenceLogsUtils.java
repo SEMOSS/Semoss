@@ -1,6 +1,6 @@
 package prerna.engine.impl.model.inferencetracking;
 
-import com.google.gson.Gson;
+import java.io.File;
 import java.io.IOException;
 import java.sql.Blob;
 import java.sql.Connection;
@@ -8,45 +8,76 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
-import prerna.auth.AccessToken;
+
+import com.google.gson.Gson;
+
+import prerna.algorithm.api.SemossDataType;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.DeleteEngineRunner;
+import prerna.cluster.util.DeleteProjectRunner;
 import prerna.date.SemossDate;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.om.Insight;
+import prerna.project.api.IProject;
+import prerna.project.impl.Project;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryIfSelector;
+import prerna.query.querystruct.selectors.QueryOpaqueSelector;
+import prerna.query.querystruct.selectors.QueryTypedColumnSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.usertracking.UserTrackingUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.EngineSyncUtility;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -54,6 +85,9 @@ public class ModelInferenceLogsUtils {
 
   private static Logger classLogger = LogManager.getLogger(ModelInferenceLogsUtils.class);
 
+  public static final String WORKSPACE_PROJECT_TAG = "Workspace_Project";
+  public static final String WORKSPACE_DATABASE_TAG = "Workspace_Database";
+  
   // Constants for Table
   private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
   private static final String AGENT_TABLE_NAME = "AGENT__";
@@ -270,7 +304,7 @@ public class ModelInferenceLogsUtils {
         String name = primaryKeyNames.get(i);
         String type = primaryKeyTypes.get(i);
         String notNullQuery =
-            "ALTER TABLE " + tableName + " ALTER COLUMN " + name + " " + type + " NOT NULL;";
+            "ALTER TABLE " + tableName + " ALTER COLUMN " + name + " " + type + ", ALTER COLUMN " + name + " SET NOT NULL;";
         try {
           executeSql(conn, notNullQuery);
         } catch (SQLException se) {
@@ -1800,4 +1834,756 @@ public class ModelInferenceLogsUtils {
     }
     return true;
   }
+
+  
+  
+  
+  /* -------- WORKSPACE PIECES -------*/
+  
+  
+	/**
+	 * 
+	 * @param workspaceId
+	 * @param ownerId
+	 * @param workspaceName
+	 * @param workspaceDescription
+	 * @param systemPrompt
+	 * @param sharingEnabled
+	 */
+	public static void createNewWorkspaceEntry(String workspaceId, String ownerId, String workspaceName,
+			String workspaceDescription, String systemPrompt, boolean sharingEnabled) throws Exception {
+		Gson gson = new Gson();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try(
+				PreparedStatement ps = con.prepareStatement("INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, SHARING_ENABLED, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?)")
+			) {
+				int index = 1;
+				ps.setString(index++, workspaceId);
+				ps.setString(index++, workspaceName);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, workspaceDescription,
+						index++, gson);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++,
+						gson);
+				ps.setString(index++, ownerId);
+				ps.setBoolean(index++, sharingEnabled);;
+				ps.setTimestamp(index++, now);
+				ps.setTimestamp(index++, now);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error creating workspace: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param workspaceId
+	 * @param workspaceName
+	 * @param workspaceDescription
+	 * @param systemPrompt
+	 * @param sharingEnabled
+	 */
+	public static void updateWorkspaceEntry(String workspaceId, String workspaceName,
+			String workspaceDescription, String systemPrompt, boolean sharingEnabled) throws Exception {
+		Gson gson = new Gson();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try(
+				PreparedStatement ps = con.prepareStatement("UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, SHARING_ENABLED = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")
+			) {
+				int index = 1;
+				ps.setString(index++, workspaceName);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, workspaceDescription,
+						index++, gson);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++,
+						gson);
+				ps.setBoolean(index++, sharingEnabled);
+				ps.setTimestamp(index++, now);
+				ps.setString(index++, workspaceId);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error updating workspace: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * 
+	 * @param workspaceId
+	 */
+	public static void deleteWorkspaceEntry(String workspaceId) {
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try(
+				PreparedStatement ps1 = con.prepareStatement("DELETE FROM WORKSPACE_KNOWLEDGE WHERE WORKSPACE_ID = ?");
+				PreparedStatement ps2 = con.prepareStatement("UPDATE ROOM SET WORKSPACE_ID = NULL WHERE WORKSPACE_ID = ?");
+				PreparedStatement ps3 = con.prepareStatement("DELETE FROM WORKSPACE WHERE WORKSPACE_ID = ?");
+			) {
+				ps1.setString(1, workspaceId);
+				ps2.setString(1, workspaceId);
+				ps3.setString(1, workspaceId);
+				ps1.execute();
+				ps2.execute();
+				ps3.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error deleting workspace: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param workspaceId
+	 */
+	public static Map<String, Object> getWorkspaceEntry(String workspaceId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__WORKSPACE_ID", "workspace_id"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__DESCRIPTION", "description"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__SYSTEM_PROMPT", "system_prompt"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
+		
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
+		
+		QueryFunctionSelector createdSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR", "WORKSPACE__DATE_CREATED", "date_created");
+		createdSelector.addAdditionalParam(new String[] {"'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'"});
+		qs.addSelector(createdSelector);
+		
+		QueryFunctionSelector updatedSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR", "WORKSPACE__DATE_UPDATED", "date_updated");
+		updatedSelector.addAdditionalParam(new String[] {"'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'"});
+		qs.addSelector(updatedSelector);
+		
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", workspaceId));
+		
+		qs.setLimit(1L);
+		
+		Map<String, Object> result = null;
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
+			while(wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				String[] headers = headerRow.getHeaders();
+				Object[] values = headerRow.getValues();
+				result = new HashMap<String, Object>();
+				for(int i = 0; i < headers.length; i++) {
+					if(values[i] instanceof java.sql.Clob) {
+						String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]);
+						result.put(headers[i], value);
+					} else if(values[i] instanceof java.sql.Blob) {
+						String value = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]);
+						result.put(headers[i], value);
+					} else {
+						result.put(headers[i], values[i]);
+					}
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return result;
+	}
+	
+	/**
+	 * 
+	 * @param workspaceId
+	 * @param user
+	 * @param limit
+	 * @param offset
+	 * @param filters
+	 * @param sorts
+	 * @param sharedWorkspaceIds
+	 */
+	public static Map<String, Object> getWorkspaceRoomsForUser(String workspaceId, User user, long limit, long offset, GenRowFilters filters, List<IQuerySort> sorts) {
+		Collection<String> userIds = getUserFiltersQs(user);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+	    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
+	    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
+	    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT", "room_context"));
+	    qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "model_id"));
+	    qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID", "workspace_id"));
+	    
+	    QueryFunctionSelector createdSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR", "ROOM__DATE_CREATED", "date_created");
+		createdSelector.addAdditionalParam(new String[] {"'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'"});
+		qs.addSelector(createdSelector);
+		
+		QueryFunctionSelector updatedSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR", "ROOM__UPDATED_AT", "date_updated");
+		updatedSelector.addAdditionalParam(new String[] {"'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'"});
+		qs.addSelector(updatedSelector);
+
+	    SelectQueryStruct subQs = new SelectQueryStruct();
+	    subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
+	    subQs.addRelation("ROOM__ROOM_ID", "MESSAGE__ROOM_ID", "inner.join");
+	    subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userIds));
+	    subQs.addExplicitFilter(
+	        SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+	    subQs.addExplicitFilter(
+	        SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
+	    subQs.addExplicitFilter(
+	    	SimpleQueryFilter.makeColToValFilter("ROOM__WORKSPACE_ID", "==", workspaceId));
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
+		
+		SelectQueryStruct outerQs = new SelectQueryStruct();
+		outerQs.addSelector(new QueryTypedColumnSelector("subquery__room_id", "room_id", SemossDataType.STRING));
+		outerQs.addSelector(new QueryTypedColumnSelector("subquery__room_name", "room_name", SemossDataType.STRING));
+		outerQs.addSelector(new QueryTypedColumnSelector("subquery__room_context", "room_context", SemossDataType.STRING));
+		outerQs.addSelector(new QueryTypedColumnSelector("subquery__model_id", "model_id", SemossDataType.STRING));
+		outerQs.addSelector(new QueryTypedColumnSelector("subquery__workspace_id", "workspace_id", SemossDataType.STRING));
+		outerQs.addSelector(new QueryTypedColumnSelector("subquery__date_created", "date_created", SemossDataType.STRING));
+		outerQs.addSelector(new QueryTypedColumnSelector("subquery__date_updated", "date_updated", SemossDataType.STRING));
+		outerQs.addSelector(new QueryOpaqueSelector("COUNT(*) OVER()", "total_row_count"));
+		
+		if(filters != null && !filters.isEmpty()) {
+			outerQs.mergeExplicitFilters(filters);
+		}
+		
+		outerQs.setLimit(limit);
+		outerQs.setOffSet(offset);
+		
+		if(sorts == null || sorts.isEmpty()) {
+			outerQs.addOrderBy("date_created", "DESC");
+		} else {
+			outerQs.addOrderBy(sorts);
+		}
+		
+		IQueryInterpreter interpreter = modelInferenceLogsDb.getQueryInterpreter();
+		interpreter.setQueryStruct(qs);
+		String subQuery = interpreter.composeQuery();
+		outerQs.setCustomFrom(subQuery);
+		outerQs.setCustomFromAliasName("subquery");
+		
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, outerQs)) {
+			Map<String, Object> workspaces = new HashMap<>();
+			List<Map<String, Object>> roomDetails = new ArrayList<>();
+			Long totalCount = 0L;
+			while(wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				String[] headers = headerRow.getHeaders();
+				Object[] values = headerRow.getValues();
+				Map<String, Object> map = new HashMap<String, Object>();
+				for(int i = 0; i < headers.length; i++) {
+					if(values[i] instanceof java.sql.Clob) {
+						String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]);
+						map.put(headers[i], value);
+					} else if(values[i] instanceof java.sql.Blob) {
+						String value = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]);
+						map.put(headers[i], value);
+					} else {
+						map.put(headers[i], values[i]);
+					}
+				}
+				Object totalCountObj = map.remove("total_row_count");
+				if(totalCount == 0) {
+					totalCount = (Long) totalCountObj;
+				}
+				roomDetails.add(map);
+			}
+			workspaces.put("total_count", totalCount);
+			workspaces.put("rooms", roomDetails);
+			return workspaces;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return null;
+		}
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param limit
+	 * @param offset
+	 * @param filters
+	 * @param sorts
+	 * @param sharedWorkspaceIds
+	 */
+	public static Map<String, Object> getWorkspaceEntriesForUser(User user, long limit, long offset, GenRowFilters filters, List<IQuerySort> sorts, Set<String> sharedWorkspaceIds) {
+		Collection<String> userIds = getUserFiltersQs(user);
+		
+		SelectQueryStruct subQs = new SelectQueryStruct();
+		subQs.addSelector(new QueryColumnSelector("WORKSPACE__WORKSPACE_ID", "workspace_id"));
+		subQs.addSelector(new QueryColumnSelector("WORKSPACE__NAME", "name"));
+		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DESCRIPTION", "description"));
+		subQs.addSelector(new QueryColumnSelector("WORKSPACE__SYSTEM_PROMPT", "system_prompt"));
+		subQs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
+		subQs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
+		
+		QueryFunctionSelector createdSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR", "WORKSPACE__DATE_CREATED", "date_created");
+		createdSelector.addAdditionalParam(new String[] {"'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'"});
+		subQs.addSelector(createdSelector);
+		
+		QueryFunctionSelector updatedSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR", "WORKSPACE__DATE_UPDATED", "date_updated");
+		updatedSelector.addAdditionalParam(new String[] {"'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'"});
+		subQs.addSelector(updatedSelector);
+		
+		subQs.addSelector(QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds),
+				new QueryConstantSelector(Boolean.TRUE), 
+				new QueryConstantSelector(Boolean.FALSE), 
+				"is_creator")
+		);
+		
+		OrQueryFilter userPermissionFilter = new OrQueryFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds));
+		if(sharedWorkspaceIds != null && !sharedWorkspaceIds.isEmpty()) {
+			userPermissionFilter.addFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", sharedWorkspaceIds));
+		}
+		subQs.addExplicitFilter(userPermissionFilter);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryTypedColumnSelector("subquery__workspace_id", "workspace_id", SemossDataType.STRING));
+		qs.addSelector(new QueryTypedColumnSelector("subquery__name", "name", SemossDataType.STRING));
+		qs.addSelector(new QueryTypedColumnSelector("subquery__description", "description", SemossDataType.STRING));
+		qs.addSelector(new QueryTypedColumnSelector("subquery__system_prompt", "system_prompt", SemossDataType.STRING));
+		qs.addSelector(new QueryTypedColumnSelector("subquery__owner", "owner", SemossDataType.STRING));
+		qs.addSelector(new QueryTypedColumnSelector("subquery__sharing_enabled", "sharing_enabled", SemossDataType.BOOLEAN));
+		qs.addSelector(new QueryTypedColumnSelector("subquery__date_created", "date_created", SemossDataType.STRING));
+		qs.addSelector(new QueryTypedColumnSelector("subquery__date_updated", "date_updated", SemossDataType.STRING));
+		qs.addSelector(new QueryTypedColumnSelector("subquery__is_creator", "is_creator", SemossDataType.BOOLEAN));
+		qs.addSelector(new QueryOpaqueSelector("COUNT(*) OVER()", "total_row_count"));
+		
+		if(filters != null && !filters.isEmpty()) {
+			qs.mergeExplicitFilters(filters);
+		}
+		
+		qs.setLimit(limit);
+		qs.setOffSet(offset);
+		
+		if(sorts == null || sorts.isEmpty()) {
+			qs.addOrderBy("date_updated", "DESC");
+		} else {
+			qs.addOrderBy(sorts);
+		}
+		
+		IQueryInterpreter interpreter = modelInferenceLogsDb.getQueryInterpreter();
+		interpreter.setQueryStruct(subQs);
+		String subQuery = interpreter.composeQuery();
+		qs.setCustomFrom(subQuery);
+		qs.setCustomFromAliasName("subquery");
+		
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
+			Map<String, Object> workspaces = new HashMap<>();
+			List<Map<String, Object>> workspaceDetails = new ArrayList<>();
+			Long totalCount = 0L;
+			while(wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				String[] headers = headerRow.getHeaders();
+				Object[] values = headerRow.getValues();
+				Map<String, Object> map = new HashMap<String, Object>();
+				for(int i = 0; i < headers.length; i++) {
+					if(values[i] instanceof java.sql.Clob) {
+						String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]);
+						map.put(headers[i], value);
+					} else if(values[i] instanceof java.sql.Blob) {
+						String value = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]);
+						map.put(headers[i], value);
+					} else {
+						map.put(headers[i], values[i]);
+					}
+				}
+				Object totalCountObj = map.remove("total_row_count");
+				if(totalCount == 0) {
+					totalCount = (Long) totalCountObj;
+				}
+				workspaceDetails.add(map);
+			}
+			workspaces.put("total_count", totalCount);
+			workspaces.put("workspaces", workspaceDetails);
+			return workspaces;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return null;
+		}
+	}
+	
+	private static Collection<String> getUserFiltersQs(User user) {
+		List<String> filters = new ArrayList<String>();
+		if(user != null) {
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider thisLogin : logins) {
+				filters.add(Utility.inputSQLSanitizer(user.getAccessToken(thisLogin).getId()));
+			}
+		}
+
+		return filters;
+	}
+	
+	public static List<Map<String, Object>> getWorkspaceKnowledge(String workspaceId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("WORKSPACE_KNOWLEDGE__WORKSPACE_KNOWLEDGE_ID", "workspace_knowledge_id"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE_KNOWLEDGE__WORKSPACE_ID", "workspace_id"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE_KNOWLEDGE__KNOWLEDGE_ID", "knowledge_id"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE_KNOWLEDGE__KNOWLEDGE_TYPE", "knowledge_type"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE_KNOWLEDGE__WORKSPACE_ID", "==", workspaceId));
+		
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
+			List<Map<String, Object>> results = new ArrayList<>();
+			while(wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				String[] headers = headerRow.getHeaders();
+				Object[] values = headerRow.getValues();
+				Map<String, Object> map = new HashMap<String, Object>();
+				for(int i = 0; i < headers.length; i++) {
+					if(values[i] instanceof java.sql.Clob) {
+						String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]);
+						map.put(headers[i], value);
+					} else if(values[i] instanceof java.sql.Blob) {
+						String value = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]);
+						map.put(headers[i], value);
+					} else {
+						map.put(headers[i], values[i]);
+					}
+				}
+				results.add(map);
+			}
+			return results;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return null;
+		}
+	}
+	
+	public static void createNewWorkspaceKnowledge(String workspaceKnowledgeId, String workspaceId, String knowledgeId, String knowledgeType) throws Exception {
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try(
+				PreparedStatement ps = con.prepareStatement("INSERT INTO WORKSPACE_KNOWLEDGE (WORKSPACE_KNOWLEDGE_ID, WORKSPACE_ID, KNOWLEDGE_ID, KNOWLEDGE_TYPE) VALUES (?,?,?,?)")
+			) {
+				int index = 1;
+				ps.setString(index++, workspaceKnowledgeId);
+				ps.setString(index++, workspaceId);
+				ps.setString(index++, knowledgeId);
+				ps.setString(index++, knowledgeType);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error creating workspace knowledge: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * 
+	 * @param workspaceKnowledgeId
+	 */
+	public static void deleteWorkspaceKnowledge(String workspaceKnowledgeId) {
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try(
+				PreparedStatement ps = con.prepareStatement("DELETE FROM WORKSPACE_KNOWLEDGE WHERE WORKSPACE_KNOWLEDGE_ID = ?");
+			) {
+				ps.setString(1, workspaceKnowledgeId);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error deleting workspace knowledge: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+	
+	public static void enableWorkspaceProject(User user, String projectId) {
+		if(!SecurityProjectUtils.userIsOwner(user, projectId)) {
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
+			}
+		}
+		
+		boolean needsMetaUpdate = true;
+		Map<String, Object> currentTags = SecurityProjectUtils.getAggregateProjectMetadata(projectId, Arrays.asList("tag"), true);
+		Object oldTagObject = currentTags.get("tag");
+		Object newTagObject = oldTagObject;
+		if(oldTagObject != null) {
+			if(oldTagObject instanceof List) {
+				List<String> tags = (List<String>) oldTagObject;
+				if(!tags.contains(ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG)) {
+					tags.add(ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
+				} else {
+					needsMetaUpdate = false;
+				}
+			} else {
+				String tag = (String) oldTagObject;
+				if(!ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG.equals(tag)) {
+					newTagObject = Arrays.asList(tag, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
+				} else {
+					needsMetaUpdate = false;
+				}
+			}
+		} else {
+			newTagObject = Arrays.asList(ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
+		}
+		if(needsMetaUpdate) {
+			Map<String, Object> metadata = new HashMap<>();
+			metadata.put("tag", newTagObject);
+			SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+		}
+	}
+	
+	public static void disableWorkspaceProject(String projectId) {
+		try {
+			SecurityProjectUtils.copyProjectPermissions(null, projectId);
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		boolean needsMetaUpdate = true;
+		Map<String, Object> currentTags = SecurityProjectUtils.getAggregateProjectMetadata(projectId, Arrays.asList("tag"), true);
+		Object oldTagObject = currentTags.get("tag");
+		Object newTagObject = oldTagObject;
+		if(oldTagObject != null) {
+			if(oldTagObject instanceof List) {
+				List<String> tags = (List<String>) oldTagObject;
+				needsMetaUpdate = tags.remove(ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
+			} else {
+				String tag = (String) oldTagObject;
+				if(ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG.equals(tag)) {
+					newTagObject = new ArrayList<>();
+				} else {
+					needsMetaUpdate = false;
+				}
+			}
+		} else {
+			newTagObject = new ArrayList<>();
+		}
+		if(needsMetaUpdate) {
+			Map<String, Object> metadata = new HashMap<>();
+			metadata.put("tag", newTagObject);
+			SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+		}
+	}
+	
+	public static IProject createWorkspaceProject(User user, String projectId, String projectName) {
+		IProject project = null;
+		File projectFolder = null;
+		File projectTempSmss = null;
+		File projectSmssFile = null;
+		
+		try {
+			classLogger.info("Creating workspace project");
+			
+			projectFolder = SmssUtilities.validateProject(null, projectName, projectId);
+			projectFolder.mkdirs();
+			
+			project = new Project();
+			
+			projectTempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, IProject.PROJECT_TYPE.CODE, false, null, null, null, null);
+			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, projectTempSmss.getAbsolutePath());
+			
+			DIHelper.getInstance().setProjectProperty(projectId, project);
+			String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
+			projects = projects + ";" + projectId;
+			DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
+			
+			projectSmssFile = new File(projectTempSmss.getAbsolutePath().replace(".temp", ".smss"));
+			FileUtils.copyFile(projectTempSmss, projectSmssFile);
+			projectTempSmss.delete();
+			project.open(projectSmssFile.getAbsolutePath());
+			
+			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, projectSmssFile.getAbsolutePath());
+			
+			if (ClusterUtil.IS_CLUSTER) {
+				classLogger.info("Syncing workspace project for cloud backup");
+				ClusterUtil.pushProject(projectId);
+			}
+			
+			SecurityProjectUtils.addProject(projectId, false, user);
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
+			}
+			Map<String, Object> metadata = new HashMap<>();
+			metadata.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
+			SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+			
+			classLogger.info("Finished creating workspace project");
+			
+			return project;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			
+			for(File file : Arrays.asList(projectTempSmss, projectSmssFile, projectFolder)) {
+				try {
+					if(file != null && file.exists()) {
+						FileUtils.forceDelete(file);
+					}
+				} catch(Exception e2) {
+					classLogger.error("Failed to delete file", e2);
+				}
+			}
+			deleteWorkspaceProject(projectId, project);
+			
+			throw new SemossPixelException(e);
+		}
+	}
+	
+	public static void deleteWorkspaceProject(String projectId, IProject project) {
+		UploadUtilities.removeProjectFromDIHelper(projectId);
+		SecurityProjectUtils.deleteProject(projectId);
+		UserTrackingUtils.deleteProject(projectId);
+
+		if(project != null) {
+			try {
+				project.delete();
+			} catch(Exception e) {
+				classLogger.error("Error deleting workspace project " + projectId);
+			}
+		}
+		if (ClusterUtil.IS_CLUSTER) {
+			Thread deleteThread = new Thread(new DeleteProjectRunner(projectId));
+			deleteThread.start();
+		}
+	}
+	
+	public static IVectorDatabaseEngine createWorkspaceVectorDb(User user, String vectorDbId, String vectorDbName, Map<String, Object> vectorDbDetails, VectorDatabaseTypeEnum vectorDbType) throws IllegalAccessException, Exception {
+		IVectorDatabaseEngine vectorDb = null;
+		File vectorDbFolder = null;
+		File vectorDbTempSmss = null;
+		File vectorDbSmssFile = null;
+		
+		try {
+			classLogger.info("Creating workspace db");
+			
+			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.VECTOR, user, vectorDbName, vectorDbId);
+			vectorDbFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.VECTOR, vectorDbId, vectorDbName);
+			
+			String vectorDbClass = vectorDbType.getVectorDatabaseClass();
+			vectorDb = (IVectorDatabaseEngine) Class.forName(vectorDbClass).getDeclaredConstructor().newInstance();
+			
+			vectorDbTempSmss = UploadUtilities.createTemporaryVectorDatabaseSmss(vectorDbId, vectorDbName, vectorDbClass, vectorDbDetails);
+			DIHelper.getInstance().setEngineProperty(vectorDbId + "_" + Constants.STORE, vectorDbTempSmss.getAbsolutePath());
+			
+			DIHelper.getInstance().setEngineProperty(vectorDbId, vectorDb);
+			String engines = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
+			engines = engines + ";" + vectorDbId;
+			DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engines);
+			
+			vectorDbSmssFile = new File(vectorDbTempSmss.getAbsolutePath().replace(".temp", ".smss"));
+			FileUtils.copyFile(vectorDbTempSmss, vectorDbSmssFile);
+			vectorDbTempSmss.delete();
+			
+			vectorDb.open(vectorDbSmssFile.getAbsolutePath());
+			
+			DIHelper.getInstance().setEngineProperty(vectorDbId + "_" + Constants.STORE, vectorDbSmssFile.getAbsolutePath());
+			
+			if (ClusterUtil.IS_CLUSTER) {
+				classLogger.info("Syncing workspace db for cloud backup");
+				ClusterUtil.pushEngine(vectorDbId);
+			}
+			
+			SecurityEngineUtils.addEngine(vectorDbId, false, user);
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(vectorDbId, user.getAccessToken(ap).getId());
+			}
+			Map<String, Object> metadata = new HashMap<>();
+			metadata.put("tag", ModelInferenceLogsUtils.WORKSPACE_DATABASE_TAG);
+			SecurityEngineUtils.updateEngineMetadata(vectorDbId, metadata);
+			
+			classLogger.info("Finished creating workspace db");
+			
+			return vectorDb;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			
+			for(File file : Arrays.asList(vectorDbTempSmss, vectorDbSmssFile, vectorDbFolder)) {
+				try {
+					if(file != null && file.exists()) {
+						FileUtils.forceDelete(file);
+					}
+				} catch(Exception e2) {
+					classLogger.error("Failed to delete file", e2);
+				}
+			}
+			deleteWorkspaceVectorDb(vectorDbId, vectorDb);
+			
+			throw new SemossPixelException(e);
+		}
+	}
+	
+	
+	
+	public static void deleteWorkspaceVectorDb(String dbId, IEngine db) {
+		UploadUtilities.removeEngineFromDIHelper(dbId);
+		SecurityEngineUtils.deleteEngine(dbId);
+		UserTrackingUtils.deleteEngine(dbId);
+		
+		if(db != null) {
+			try {
+				db.delete();;
+			} catch(Exception e) {
+				classLogger.error("Error deleting db during workspace exception clean-up", e);
+			}
+		}
+		
+		EngineSyncUtility.clearEngineCache(dbId);
+		if (ClusterUtil.IS_CLUSTER) {
+			Thread deleteAppThread = new Thread(new DeleteEngineRunner(dbId, IEngine.CATALOG_TYPE.VECTOR));
+			deleteAppThread.start();
+		}
+	}
+	
+	public static boolean isWorkspaceSharedWithUser(String workspaceId, User user, Integer... validPermissions) {
+		return getWorkspaceSharePermission(workspaceId, user, validPermissions) < Integer.MAX_VALUE;
+	}
+	
+	public static int getWorkspaceSharePermission(String workspaceId, User user, Integer... validPermissions) {
+		List<String> projectIdFilter = Arrays.asList(workspaceId);
+		
+		Map<String, Object> projectMetadataFilter = new HashMap<>();
+		projectMetadataFilter.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
+		
+		List<Integer> permissionFilter = null;
+		if(validPermissions != null && validPermissions.length > 0) {
+			permissionFilter = Arrays.asList(validPermissions);
+			
+		}
+		
+		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(user, projectIdFilter, 
+				false, false, projectMetadataFilter, permissionFilter, null, null, null);
+		
+		int bestPermission = Integer.MAX_VALUE;
+		for(Map<String, Object> info : projectInfo) {
+			Integer permission = (Integer) info.get("permission");
+			if(permission < bestPermission) {
+				bestPermission = permission;
+			}
+		}
+		return bestPermission;
+	}
+
 }
