@@ -54,9 +54,12 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = UploadProjectAppReactor.class.getName();
 	
-	private static final Pattern UUID_PATTERN = Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$");
+    private static final String UUID_PATTERN_STRING = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
 
-
+	private static final Pattern UUID_PATTERN = Pattern.compile(UUID_PATTERN_STRING);
+	
+    private static final String[] LIST_FILE_EXTENSIONS = {".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx"};
+    
 	public UploadProjectAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
 	}
@@ -373,17 +376,15 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	// in the project folder.
 	public String[] getEngineIdsFromProject(File finalProjectFolderF) {
         Set<String> engineIds = new HashSet<>();
+        
         String folderPath = finalProjectFolderF.getAbsolutePath();
- 
-        // extensions you want to look into
-        String[] extensions = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx" };
         
         try (java.util.stream.Stream<java.nio.file.Path> stream = Files.walk(Paths.get(folderPath))) {
         	 stream.filter(Files::isRegularFile)
         	       .filter(path -> {
         	          String fileName = path.getFileName().toString().toLowerCase();
-        	          for (String ext : extensions) {
-        	              if (fileName.endsWith(ext)) {
+        	          for (String extension : LIST_FILE_EXTENSIONS) {
+        	              if (fileName.endsWith(extension)) {
         	                  return true;
         	              }
         	          }
@@ -401,8 +402,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
                             }
                         });
                     } catch (IOException e) {
-                        System.err.println("Error reading file: " + path);
-                        e.printStackTrace();
+                        classLogger.error("Error reading file: " + path);
                     }
                 });
  
