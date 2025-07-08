@@ -28,7 +28,7 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 		}
 		callMaker.append(")");
 		
-		List<String> output = (List<String>) pyTranslator.transportScript(callMaker.toString());
+		List<String> output = (List<String>) pyTranslator.runDirectPy(callMaker.toString());
 		return output;
 	}
 	

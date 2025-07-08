@@ -315,7 +315,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
-		Object output = pyTranslator.transportScript(callMaker.toString());
+		Object output = pyTranslator.runDirectPy(callMaker.toString());
 		AskModelEngineResponse response = null;
 		try {
 			response = AskModelEngineResponse.fromObject(output);
@@ -423,7 +423,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		callMaker.append(")");
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
-		Object output = pyTranslator.transportScript(callMaker.toString());
+		Object output = pyTranslator.runDirectPy(callMaker.toString());
 		InstructModelEngineResponse response = null;
 		try {
 			response = InstructModelEngineResponse.fromObject(output);
@@ -465,7 +465,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			
 		callMaker.append(")");
 		
-		Object output = pyTranslator.transportScript(callMaker.toString());
+		Object output = pyTranslator.runDirectPy(callMaker.toString());
 		EmbeddingsModelEngineResponse response = null;
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);
@@ -507,7 +507,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			
 		callMaker.append(")");
 		
-		Object output = pyTranslator.transportScript(callMaker.toString());
+		Object output = pyTranslator.runDirectPy(callMaker.toString());
 		EmbeddingsModelEngineResponse response = null;
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);

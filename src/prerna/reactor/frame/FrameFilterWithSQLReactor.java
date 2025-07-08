@@ -52,7 +52,7 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 			// drop into sqlite the new name
 			String frameMaker = newFrameName + " = pd.read_sql(\"" + query + "\", " + sqlite + ")";
 			logger.info("Creating frame with query..  " + query + " <<>> " + frameMaker);
-			insight.getPyTranslator().runSingle(frameMaker); 
+			insight.getPyTranslator().runDirectPy(frameMaker); 
 			// need to make the wrapper in this instance
 			insight.getPyTranslator().runScript(PandasSyntaxHelper.makeWrapper(
 					PandasSyntaxHelper.createFrameWrapperName(newFrameName), newFrameName));
