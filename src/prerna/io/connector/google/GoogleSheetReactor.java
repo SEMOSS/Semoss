@@ -59,7 +59,7 @@ public class GoogleSheetReactor extends AbstractReactor {
 			data = this.keyValue.get(this.keysToGet[5]);
 		}
 		try {
-			switch (command.toLowerCase()) {
+			switch (command.trim().toLowerCase()) {
 			case "write": 
 				return SpreadSheetHelper.writeData(titleSheetName, sheetName, rowNo, colNo, data, accessToken);
 			case "update":
@@ -76,7 +76,7 @@ public class GoogleSheetReactor extends AbstractReactor {
 				return SpreadSheetHelper.createnewSheet(titleSheetName,sheetName, accessToken); 
 			case "truncate DB data":
 				return SpreadSheetHelper.truncateData(accessToken); 
-			case "Delete DB record for user id":
+			case "delete db record for user id":
 				return SpreadSheetHelper.deleteRecordUserId(accessToken); 
 			case "delete titlesheet":
 				return SpreadSheetHelper.deleteTitleSheet(titleSheetName, accessToken); 
