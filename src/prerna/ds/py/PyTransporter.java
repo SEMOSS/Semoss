@@ -670,15 +670,13 @@ public class PyTransporter {
 		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 
 		PayloadStruct ps = constructPayload(methodName, script);
-		ps.operation = PayloadStruct.OPERATION.PYTHON;
 		ps.payloadClasses = new Class[] {String.class};
 		ps.longRunning = true;
 		
 		// get error messages
-		if(insight != null) {
-			ps.insightId = insight.getInsightId();
-		}
-
+		ps.insightId = insight.getInsightId();
+		ps.jobId = insight.getJobId();
+		
 		if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(ps != null && ps.ex != null) {
@@ -702,10 +700,9 @@ public class PyTransporter {
 	private PayloadStruct constructPayload(String methodName, Object...objects ) {
 		// go through the objects and if they are set to null then make them as string null
 		PayloadStruct ps = new PayloadStruct();
-		ps.operation = PayloadStruct.OPERATION.R;
+		ps.operation = PayloadStruct.OPERATION.PYTHON;
 		ps.methodName = methodName;
 		ps.payload = objects;
-		
 		return ps;
 	}	
 

@@ -238,7 +238,9 @@ public class PixelJobManager {
 	}
 	
 	public void interruptThread(String jobId) {
-		((Thread)threadPool.get(jobId)).interrupt();
+		if(threadPool.get(jobId) != null) {
+			((Thread)threadPool.get(jobId)).interrupt();
+		}
 	}
 	
 	public PixelRunner getOutput(String jobId) {

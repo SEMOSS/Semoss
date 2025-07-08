@@ -19,6 +19,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
+
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
@@ -34,23 +38,27 @@ public class SocketClient implements Runnable, Closeable {
 	
 	private static final Logger classLogger = LogManager.getLogger(SocketClient.class);
 	
-    private String HOST = null;
-    private int PORT = -1;
-    private boolean SSL = false;
+    String HOST = null;
+    int PORT = -1;
+    boolean SSL = false;
     
     Map<String, PayloadStruct> requestMap = new HashMap<>();
     Map<String, PayloadStruct> responseMap = new HashMap<>();
-    private boolean ready = false;
-    private boolean connected = false;
-    private AtomicInteger count = new AtomicInteger(0);
-    private long averageMillis = 200;
-    private boolean killAll = false; // use this if the server is dead or it has crashed
-    private User user;
+    Map<String, String> jobIdToEpoc = new HashMap<>();
+
+    boolean ready = false;
+    boolean connected = false;
+    AtomicInteger count = new AtomicInteger(0);
+    long averageMillis = 200;
+    boolean killAll = false; // use this if the server is dead or it has crashed
+    User user;
 	
-    private Socket clientSocket = null;
+    Socket clientSocket = null;
 	InputStream is = null;
 	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
+	Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
+
 	/**
 	 * 
 	 * @param HOST
@@ -63,17 +71,37 @@ public class SocketClient implements Runnable, Closeable {
     	this.SSL = SSL;
     }
     
-    @Override
-    public void close() {
-    	if(this.requestMap != null) {
-    		this.requestMap.clear();
-    	}
-    	closeStream(this.os);
-    	closeStream(this.is);
-    	closeStream(this.clientSocket);
-    	this.connected = false;
-    	this.killAll = true;
-    }
+	@Override
+	public void close() {
+		if(this.requestMap != null) {
+			this.requestMap.clear();
+		}
+		if(this.responseMap != null) {
+			this.responseMap.clear();
+		}
+		if(this.jobIdToEpoc != null) {
+			this.jobIdToEpoc.clear();
+		}
+		closeStream(this.os);
+		closeStream(this.is);
+		closeStream(this.clientSocket);
+		this.connected = false;
+		this.killAll = true;
+	}
+	
+	/**
+	 * 
+	 * @param jobId
+	 */
+	public void interrupt(String jobId) {
+		String epoc = jobIdToEpoc.get(jobId);
+		PayloadStruct lock = this.requestMap.remove(epoc);
+		if(lock != null) {
+			synchronized(lock) {
+				lock.notifyAll();
+			}
+		}
+	}
 
     @Override
     public void run()	
@@ -150,8 +178,12 @@ public class SocketClient implements Runnable, Closeable {
     	}
     }	
     
-    public Object executeCommand(PayloadStruct ps)
-    {
+    /**
+     * 
+     * @param ps
+     * @return
+     */
+    public Object executeCommand(PayloadStruct ps) {
     	if(killAll) {
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
     	}
@@ -222,6 +254,10 @@ public class SocketClient implements Runnable, Closeable {
     	}
     }
     
+    /**
+     * 
+     * @param ps
+     */
     private void writePayload(PayloadStruct ps)
     {
     	byte [] psBytes = FstUtil.packBytes(ps);
@@ -233,15 +269,9 @@ public class SocketClient implements Runnable, Closeable {
     	}
     }
     
-    private void writeEmptyPayload()
-    {
-    	PayloadStruct ps = new PayloadStruct();
-    	ps.epoc=Utility.getRandomString(8);
-    	ps.methodName = "EMPTYEMPTYEMPTY";
-    	writePayload(ps);
-    }
-    
-
+    /**
+     * 
+     */
     public void writeReleaseAllPayload()
     {
     	PayloadStruct ps = new PayloadStruct();
@@ -344,7 +374,7 @@ public class SocketClient implements Runnable, Closeable {
      * 
      * @param closeThis
      */
-    private void closeStream(Closeable closeThis) {
+    void closeStream(Closeable closeThis) {
     	if(closeThis != null) {
 	    	try {
 				closeThis.close();
@@ -393,4 +423,5 @@ public class SocketClient implements Runnable, Closeable {
 	public boolean isReady() {
 		return this.ready;
 	}
+
 }

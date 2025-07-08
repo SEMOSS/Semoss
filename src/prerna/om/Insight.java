@@ -578,6 +578,15 @@ public class Insight implements Serializable {
 	public void setInsightId(String insightId) {
 		this.insightId = insightId;
 	}
+	
+	public String getJobId() {
+		String jobId = null;
+		NounMetadata jNoun = this.varStore.get(JobReactor.JOB_KEY);
+		if(jNoun != null) {
+			jobId = (String) jNoun.getValue();
+		}
+		return jobId;
+	}
 
 	public String getUserId(AuthProvider provider) {
 		if(this.user == null) {

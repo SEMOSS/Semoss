@@ -1,10 +1,12 @@
 package prerna.reactor;
 
+import prerna.auth.User;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.tcp.client.SocketClient;
 
 public class StopPixelExecutionReactor extends AbstractReactor {
 			
@@ -15,6 +17,8 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		
 		this.organizeKeys();
 		
 		String jobId = this.keyValue.get(ReactorKeysEnum.ID.getKey());
@@ -24,6 +28,11 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 		jobManager.interruptThread(jobId);
 		jobManager.clearJob(jobId);
 		jobManager.removeJob(jobId);
+		
+		SocketClient pySocketClient = user.getPythonSocketClient(false);
+		if(pySocketClient != null) {
+			pySocketClient.interrupt(jobId);
+		}
 		
 		return new NounMetadata("Pixel operation ended", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
