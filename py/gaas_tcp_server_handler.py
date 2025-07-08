@@ -687,7 +687,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # if new_code is not ""
             # we will exec all of these lines
             if preceding_code != "":
-                exec(preceding_code, globals())
+                exec(preceding_code, insight_globals)
 
             # now we will eval the last expression if we can
             last_expression = parsed_code.body[len(parsed_code.body) - 1]
