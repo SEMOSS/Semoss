@@ -65,23 +65,22 @@ public class PyUnion extends AbstractUnion {
 	 * Below method flushes out the underlying py dataframe into a java PandasFrame.
 	 * 
 	 * @param varName
-	 * @param pyT
+	 * @param pyTranslator
 	 * @return
 	 */
 
-	private ITableDataFrame createFrameFromPyOutput(String varName, PyTranslator pyT) {
+	private ITableDataFrame createFrameFromPyOutput(String varName, PyTranslator pyTranslator) {
 		logger.info("Generating result.");
-		String[] colNames = pyT.getStringArray(PandasSyntaxHelper.getColumns(varName));
-		pyT.runScript(PandasSyntaxHelper.cleanFrameHeaders(varName, colNames));
-		colNames = pyT.getStringArray(PandasSyntaxHelper.getColumns(varName));
-		String[] colTypes = pyT.getStringArray(PandasSyntaxHelper.getTypes(varName));
+		String[] colNames = pyTranslator.getStringArray(PandasSyntaxHelper.getColumns(varName));
+		pyTranslator.runScript(PandasSyntaxHelper.cleanFrameHeaders(varName, colNames));
+		colNames = pyTranslator.getStringArray(PandasSyntaxHelper.getColumns(varName));
+		String[] colTypes = pyTranslator.getStringArray(PandasSyntaxHelper.getTypes(varName));
 		if (colNames == null || colTypes == null) {
 			throw new IllegalArgumentException(
 					"Please make sure the variable " + varName + " exists and can be a valid data.table object");
 		}
-		PandasFrame frame = new PandasFrame(varName);
-		pyT.runPyAndReturnOutput(PandasSyntaxHelper.makeWrapper(frame.getWrapperName(), varName));
-		frame.setTranslator(pyT);
+		PandasFrame frame = new PandasFrame(varName, pyTranslator);
+		pyTranslator.runPyAndReturnOutput(PandasSyntaxHelper.makeWrapper(frame.getWrapperName(), varName));
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(frame.getMetaData(), colNames, colTypes, varName);
 		logger.info("Done.");
 		return frame;

@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -221,7 +222,7 @@ public class InsightCacheUtility {
 		
 		File versionFile = new File(Utility.normalizePath(versionFileLoc));
 		try {
-			FileUtils.writeStringToFile(versionFile, version.toString());
+			FileUtils.writeStringToFile(versionFile, version.toString(), Charset.forName("UTF-8"));
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
