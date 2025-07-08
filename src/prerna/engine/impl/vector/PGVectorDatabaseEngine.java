@@ -36,6 +36,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
@@ -98,12 +99,14 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private String defaultIndexClass;
 	private	List<String> indexClasses;
 
-	// python server
-	private PyTranslator pyt = null;
-	private File pyDirectoryBasePath;
 	private ClientProcessWrapper cpw = null;
+	// python server
+	private PyTranslator pyTranslator = null;
+	private File pyDirectoryBasePath;
 	
 	private boolean modelPropsLoaded = false;
+	
+	private boolean removeDocsFlag = true;
 	
 	// string substitute vars
 	private Map<String, String> vars = new HashMap<>();
@@ -279,6 +282,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			this.smssProp.put(Constants.KEYWORD_ENGINE_ID, "");
 		}
 		
+		if(this.smssProp.getProperty(Constants.REMOVE_DOCS_FLAG) != null) {
+			this.removeDocsFlag = Boolean.valueOf(this.smssProp.getProperty(Constants.REMOVE_DOCS_FLAG));
+		}
+		
 		for (Object smssKey : this.smssProp.keySet()) {
 			String key = smssKey.toString();
 			this.vars.put(key, this.smssProp.getProperty(key));
@@ -384,7 +391,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
                     throw new SQLException("Error inserting embeddings data for row " + j);
                 }
             }
-            
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -453,6 +459,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	@Override
 	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws IOException {
+		
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
@@ -524,6 +531,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
 			deleteFilesFromCloudThread.start();
 		}
+		
 	}
 
 	@Override
@@ -854,8 +862,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 
 		// create the py translator
-		pyt = new PyTranslator();
-		pyt.setSocketClient(cpwToInit.getSocketClient());
+		PyTransporter pyTransporter = new PyTransporter();
+		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
+		pyTranslator = new PyTranslator();
+		pyTranslator.setInsight(new Insight());
+		pyTranslator.setPyTransporter(pyTransporter);
 		
 		try {
 			String[] commands = getServerStartCommands();
@@ -865,7 +876,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				String resolvedString = substitutor.replace(commands[commandIndex]);
 				commands[commandIndex] = resolvedString;
 			}
-			pyt.runEmptyPy(commands);
+			pyTranslator.runEmptyPy(commands);
 			
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
@@ -899,13 +910,15 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
-		
-		try {
-			this.removeDocument(filePaths, parameters);
-		} catch(Exception ignore) {
-			// we are only removing just in case
-			// if something doesn't exist, just ignore the exception
+		if(removeDocsFlag) {
+			try {
+				this.removeDocument(filePaths, parameters);
+			} catch(Exception ignore) {
+				// we are only removing just in case
+				// if something doesn't exist, just ignore the exception
+			}
 		}
+		
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
@@ -1059,7 +1072,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 							.append(chunkingStrategy)
 							.append(", cfg_tokenizer = cfg_tokenizer)");
 						
-						pyt.runScript(splitTextCommand.toString());
+						pyTranslator.runScript(splitTextCommand.toString());
 					}
 
 					// add it to the list of files that need to be pushed to the cloud in a new thread
@@ -1205,5 +1218,4 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
 		}
 	}
-
 }

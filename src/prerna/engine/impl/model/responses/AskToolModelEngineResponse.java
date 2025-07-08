@@ -22,7 +22,7 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
     private static final String NAME_KEY = "name";
     private static final String TYPE_KEY = "type";
     private static final String ARGUMENTS_KEY = "arguments";
-
+    List<Map<String, Object>> toolResponse;
     private List<ToolResponse> tools;
 
     /**
@@ -33,7 +33,7 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
      */
     public AskToolModelEngineResponse(List<Map<String, Object>> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
-        
+        this.toolResponse=response;
         this.tools = new ArrayList<>();
         for(Map<String, Object> toolResponse : response) {
         	String id = null;
@@ -106,6 +106,14 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
      */
     public List<ToolResponse> getTools() {
 		return tools;
+	}
+    
+    /**
+     * 
+     * @return
+     */
+    public List<Map<String, Object>> getToolResponse() {
+		return toolResponse;
 	}
     
     /**

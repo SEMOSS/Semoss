@@ -1135,14 +1135,29 @@ public class GitRepoUtils {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param gitFolder
+	 */
 	public static void commitAddedFiles(String gitFolder) {
 		commitAddedFiles(gitFolder, null);
 	}
 	
+	/**
+	 * 
+	 * @param gitFolder
+	 * @param message
+	 */
 	public static void commitAddedFiles(String gitFolder, String message) {
 		commitAddedFiles(gitFolder, message, null, null);
 	}
 	
+	/**
+	 * 
+	 * @param gitFolder
+	 * @param message
+	 * @param user
+	 */
 	public static void commitAddedFiles(String gitFolder, String message, User user) {
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
@@ -1150,6 +1165,13 @@ public class GitRepoUtils {
 		commitAddedFiles(gitFolder, message, author, email);
 	}
 
+	/**
+	 * 
+	 * @param gitFolder
+	 * @param message
+	 * @param author
+	 * @param email
+	 */
 	public static void commitAddedFiles(String gitFolder, String message, String author, String email) {
 		Git thisGit = null;
 		try {
@@ -1161,16 +1183,18 @@ public class GitRepoUtils {
 
 		CommitCommand cc = thisGit.commit();
 		try {
-			if(message == null)
+			if(message == null || message.isEmpty()) {
 				message = GitUtils.getDateMessage("Commited on.. ");
-			if(author == null)
+			}
+			if(author == null || author.isEmpty()) {
 				author = "SEMOSS";
-			if(email == null)
+			}
+			if(email == null || email.isEmpty()) {
 				email = "semoss@semoss.org";
-			cc
-			.setMessage(message)
-			.setAuthor(author, email)
-			.call();
+			}
+			cc.setMessage(message)
+				.setAuthor(author, email)
+				.call();
 		} catch (GitAPIException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -1385,10 +1409,24 @@ public class GitRepoUtils {
 			f.createNewFile();
 			fw = new FileWriter(f);
 			bw = new BufferedWriter(fw);
-			bw.write("*.cache");
-			bw.newLine();
-			bw.write("*/Temp/*");
-			bw.newLine();
+			String[] ignoreList = new String[] {
+					".DS_Store",
+					".AppleDouble",
+					".LSOverride",
+					"*.log",
+					"*.cache",
+					"*.tmp",
+					"*.pid",
+					"*.pyc",
+					"npm-debug.log*",
+					"yarn-debug.log*",
+					"*/Temp/*",
+					"**/node_modules/"
+			};
+			for(String ignore : ignoreList) {
+				bw.write(ignore);
+				bw.newLine();
+			}
 		} catch(Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 		} finally {

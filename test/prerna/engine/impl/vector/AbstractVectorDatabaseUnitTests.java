@@ -307,9 +307,9 @@ public class AbstractVectorDatabaseUnitTests {
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
 																										// addDocument()->checkSocketStatus()->startServer()
 						(mock, context) -> {
-							doNothing().when(mock).setSocketClient(scMock);
+							//doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
-							when(mock.runScript(any())).thenReturn(true);
+							when(mock.runScript(any())).thenReturn("true");
 						});
 				MockedStatic<VectorDatabaseCSVTable> vdcsvt = Mockito.mockStatic(VectorDatabaseCSVTable.class);) {
 
@@ -397,9 +397,9 @@ public class AbstractVectorDatabaseUnitTests {
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
 																										// addDocument()->checkSocketStatus()->startServer()
 						(mock, context) -> {
-							doNothing().when(mock).setSocketClient(scMock);
+							//doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
-							when(mock.runScript(any())).thenReturn(true);
+							when(mock.runScript(any())).thenReturn("true");
 						});
 				MockedStatic<VectorDatabaseCSVTable> vdcsvt = Mockito.mockStatic(VectorDatabaseCSVTable.class);) {
 
