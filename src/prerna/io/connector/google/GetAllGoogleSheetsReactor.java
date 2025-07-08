@@ -30,7 +30,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GetAllGoogleSheetsReactor extends AbstractReactor{
-	private static final String SPREADSHEET_DATABASE = "6abf12ab-ae96-4edd-a1af-b56b9a37634d";
+
+	private static final String table="Google_USERDB";
 	private static final String GOOGLEDRIVE_URL="https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet'&fields=files(id,name)";
 	private static final String GOOGLESHEETS_URL="https://sheets.googleapis.com/v4/spreadsheets/";
 	private static final String USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
@@ -51,13 +52,16 @@ public class GetAllGoogleSheetsReactor extends AbstractReactor{
 		List<Map<String, Object>> spreadsheets = new ArrayList<>();
 		try {
 			String name = this.keyValue.get(this.keysToGet[0]);
-			IDatabaseEngine database = Utility.getDatabase(SPREADSHEET_DATABASE);
-			List<String> tables = database.getPixelConcepts();
-			for (String element : tables) {
-				tableName = element;
+			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+			List<String> tables = securityDb.getPixelConcepts();
+			for(String tbl:tables) {
+				if(table.equals(tbl)) {
+					tableName=tbl;
+					break;
+				}
 			}
-			String getUserIdQuery="select userid from "+tableName+" where name='"+name+"'";
-			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(getUserIdQuery);
+			String getUserIdQuery="select USERID from "+tableName+" where NAME='"+name+"'";
+			HashMap<String, String> hashmap = (HashMap<String, String>) securityDb.execQuery(getUserIdQuery);
 			Object string = hashmap.get("RESULTSET_OBJECT");
 			if (string instanceof ResultSet) {
 				rs = (ResultSet) string;
@@ -65,8 +69,7 @@ public class GetAllGoogleSheetsReactor extends AbstractReactor{
 					userId = rs.getString("userid");
 				}
 			}
-//			String accessToken=getAccessToken();
-			String accessToken="ya29.a0AS3H6Ny6T6_dU_Msmltv38mAkyh3zh3801IgI6OtU1lAzbVxkDvWupl6XuB7pJOlZ-C6ARf7T-WFWXiXwhM3-w24kooowW2lwQbvKLejiiqer1rR0M7xxBktnxaDz-9Mc8XJEnLWfRsMZQgsTWFLfPCjQB2FYUxYKZZe4ZaCaCgYKAegSARcSFQHGX2MipNSkrjr_cIES-zX7A0ypSw0175";
+			String accessToken=getAccessToken();
 			String emailToken=getEmailAccessToken(accessToken);
 			if(emailToken.equals(userId)) {
 				 spreadsheets = fetchSpreadsheetMetadata(accessToken);
@@ -93,6 +96,16 @@ public class GetAllGoogleSheetsReactor extends AbstractReactor{
 	}
 
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor will return all spreadsheets, spreadsheettitles and sheet names";
+	}
+
+	/**
+	 * To return list of all spreadsheets, spreadsheettitles and sheetnames a user has
+	 * @param accessToken
+	 * @return 
+	 */
 	private List<Map<String, Object>> fetchSpreadsheetMetadata(String accessToken) {
 	    List<Map<String, Object>> spreadsheets = new ArrayList<>();
 	    JSONObject driveResponse = Utility.httpGetJson(GOOGLEDRIVE_URL, accessToken);
@@ -126,6 +139,11 @@ public class GetAllGoogleSheetsReactor extends AbstractReactor{
 	}
 
 
+	/**
+	 * To get email from accesstoken
+	 * @param accessToken
+	 * @return 
+	 */
 	private String getEmailAccessToken(String accessToken) {
 		try {
 			String urlStr = USERINFO_URL;
@@ -157,7 +175,12 @@ public class GetAllGoogleSheetsReactor extends AbstractReactor{
 		}
 	}
 
-
+	/**
+	 * To get accesstoken of google logged in user
+	 * @param titleSheetName
+	 * @param accessToken
+	 * @return 
+	 */
 	private String getAccessToken() {
 		String accessToken=null;
 		User user = this.insight.getUser();

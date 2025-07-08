@@ -295,6 +295,16 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHTFRAMES", "COLUMNTYPE", "VARCHAR(255)");
 		owler.addProp("INSIGHTFRAMES", "ADDITIONALTYPE", "VARCHAR(255)");
 		
+		//Google_Spreadsheet
+		owler.addConcept("Google_USERDB",null,null);
+		owler.addProp("Google_USERDB", "ID", "VARCHAR(255)");
+		owler.addProp("Google_USERDB", "NAME", "VARCHAR(255)");
+		owler.addProp("Google_USERDB", "USERID", "VARCHAR(255)");
+		owler.addProp("Google_USERDB", "TYPE", "VARCHAR(255)");
+		owler.addProp("Google_USERDB", "DATECREATED", "TIMESTAMP");
+		owler.addProp("Google_USERDB", "SPID", "VARCHAR(255)");
+		owler.addProp("Google_USERDB", "USERNAME", "VARCHAR(255)");
+		
 		// SMSS_USER
 		owler.addConcept("SMSS_USER", null, null);
 		owler.addProp("SMSS_USER", "ID", "VARCHAR(255)");

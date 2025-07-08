@@ -19,36 +19,48 @@ import prerna.util.Utility;
 
 public class GetGoogleProfileReactor extends AbstractReactor{
 
-	public static final String SP_DATABASE="6abf12ab-ae96-4edd-a1af-b56b9a37634d";
-	
+	private static final String table="Google_USERDB";
 	private static final Logger classLogger = LogManager.getLogger(GetGoogleProfileReactor.class);
+	
 	@Override
 	public NounMetadata execute() {
+		ResultSet rs =null;
 		try {
 			String tableName = null;
 			List<SpreadSheetDetail> resultList = new ArrayList<SpreadSheetDetail>();
-			IDatabaseEngine database = Utility.getDatabase(SP_DATABASE);
-			List<String> tables = database.getPixelConcepts();
-			for (String element : tables) {
-				tableName = element;
+			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+			List<String> tables = securityDb.getPixelConcepts();
+			for(String tbl:tables) {
+				if(table.equals(tbl)) {
+					tableName=tbl;
+					break;
+				}
 			}
 			String query = "select * from " + tableName;
-			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
+			HashMap<String, String> hashmap = (HashMap<String, String>) securityDb.execQuery(query);
 			Object string = hashmap.get("RESULTSET_OBJECT");
 			if (string instanceof ResultSet) {
-				ResultSet rs = (ResultSet) string;
+				rs = (ResultSet) string;
 				while (rs.next()) {
 					SpreadSheetDetail sheetDetail=new SpreadSheetDetail();
-					sheetDetail.setCreatedAt(rs.getString("datecreated"));
-					sheetDetail.setUserId(rs.getString("userid"));
-					sheetDetail.setName(rs.getString("name"));
+					sheetDetail.setCreatedAt(rs.getString("DATECREATED"));
+					sheetDetail.setUserId(rs.getString("USERID"));
+					sheetDetail.setName(rs.getString("NAME"));
 					resultList.add(sheetDetail);
 				}
 			}return new NounMetadata(resultList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			String error = "Error in the reactor JiraGetReactor: " + e.getMessage();
+			String error = "Error in the reactor GetGoogleProfileReactor: " + e.getMessage();
 			return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		}finally {
+			if(rs!=null){
+				try {
+					rs.close();
+				}catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		
 	}

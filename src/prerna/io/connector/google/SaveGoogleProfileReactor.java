@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,6 +20,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SaveGoogleProfileReactor extends AbstractReactor{
+	
+	private static final String table="Google_USERDB";
 	 
 	private static final Logger classLogger = LogManager.getLogger(SaveGoogleProfileReactor.class);
 	
@@ -28,21 +31,26 @@ public class SaveGoogleProfileReactor extends AbstractReactor{
 	}
 
 	@Override
+	public String getReactorDescription() {
+		return "This reactor will save user details in DB";
+	}
+
+	@Override
 	public NounMetadata execute() {
 		String msg=null;
-		int profileId = 0;
+		String profileId = null;
 		try {
 			this.organizeKeys();
 			LocalDateTime now = LocalDateTime.now();
 			HashMap<String, Object> map=new HashMap<String, Object>();
 			HashMap<String, Object> responseMap=new HashMap<String, Object>();
-			IDatabaseEngine database = Utility.getDatabase("6abf12ab-ae96-4edd-a1af-b56b9a37634d");
+			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
 			String name = this.keyValue.get(this.keysToGet[0]);
 			String userId = this.keyValue.get(this.keysToGet[1]);
 			User user = this.insight.getUser();
 			String insightusername = user.getPrimaryLoginToken().getUsername();
 			String type="Google";
-			map=insertSpreadSheetData(database,now,name,userId,insightusername,type);
+			map=insertSpreadSheetData(securityDb,now,name,userId,insightusername,type);
 			Object object = map.get("Data inserted successfully");
 			if(Boolean.FALSE.equals(map.get("Data inserted successfully"))) {
 				msg=(String) map.get("Error");
@@ -50,9 +58,9 @@ public class SaveGoogleProfileReactor extends AbstractReactor{
 				responseMap.put("Error",msg);
 			}
 			if (Boolean.TRUE.equals(map.get("Data inserted successfully"))) {
-				profileId = readData(name,database);
+				profileId = readData(name,securityDb);
 			}
-			if (profileId != 0) {
+			if (!profileId.isEmpty()) {
 				responseMap.put("Primary key from Table", profileId);
 				responseMap.put("Success", map.get("Data inserted successfully"));
 			}
@@ -66,21 +74,30 @@ public class SaveGoogleProfileReactor extends AbstractReactor{
 		}
 	}
 
-	private int readData(String name, IDatabaseEngine database) {
-		int profileKey = 0;
+	/**
+	 * To readdata of db
+	 * @param titleSheetName
+	 * @param accessToken
+	 * @return 
+	 */
+	private String readData(String name, IDatabaseEngine securityDb) {
+		String tableName = null;
+		String profileKey=null;
 		try {
-			String tableName = null;
-			List<String> tables = database.getPixelConcepts();
-			for (String element : tables) {
-				tableName = element;
+			List<String> tables = securityDb.getPixelConcepts();
+			for(String tbl:tables) {
+				if(table.equals(tbl)) {
+					tableName=tbl;
+					break;
+				}
 			}
 			String query = " select id from " + tableName + " where name='" + name + "'";
-			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
+			HashMap<String, String> hashmap = (HashMap<String, String>) securityDb.execQuery(query);
 			Object string = hashmap.get("RESULTSET_OBJECT");
 			if (string instanceof ResultSet) {
-				ResultSet rs = (ResultSet) string;
+				ResultSet rs = (ResultSet) string; 
 				while (rs.next()) {
-					profileKey = rs.getInt("ID");
+					profileKey = rs.getString("id");
 				}
 			}
 			return profileKey;
@@ -90,19 +107,33 @@ public class SaveGoogleProfileReactor extends AbstractReactor{
 		return profileKey;
 	}
 
-	private HashMap<String, Object> insertSpreadSheetData(IDatabaseEngine database, LocalDateTime now, String name, String userId, String insightusername, String type) {
+	/**
+	 * To insert user data in db
+	 * @param securityDb
+	 * @param now
+	 * @param name
+	 * @param userId
+	 * @param insightusername
+	 * @param type
+	 * @return 
+	 */
+	private HashMap<String, Object> insertSpreadSheetData(IDatabaseEngine securityDb, LocalDateTime now, String name, String userId, String insightusername, String type) {
 		String tableName = null;
 		String msg=null;
 		HashMap<String, Object> map=new HashMap<>();
 		boolean flag=false;
 		try {
-			List<String> tables = database.getPixelConcepts();
-			for (String element : tables) {
-				tableName = element;
+			String id = UUID.randomUUID().toString();
+			List<String> tables = securityDb.getPixelConcepts();
+			for(String tbl:tables) {
+				if(table.equals(tbl)) {
+					tableName=tbl;
+					break;
+				}
 			}
 			String insertQuery =" INSERT INTO " + tableName
-					+ "(datecreated,userid,name,username,type) " + "VALUES ('" + now + "','"+ userId + "','"+ name + "','"+ insightusername + "','"+ type + "')";
-			database.insertData(insertQuery);
+					+ "(datecreated,userid,name,username,type,id) " + "VALUES ('" + now + "','"+ userId + "','"+ name + "','"+ insightusername + "','"+ type + "','"+ id + "')";
+			securityDb.insertData(insertQuery);
 			flag=true;
 			map.put("Data inserted successfully", flag);
 		}catch(Exception e) {

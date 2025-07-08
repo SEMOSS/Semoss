@@ -30,7 +30,7 @@ public class GoogleSheetReactor extends AbstractReactor {
 
 	public GoogleSheetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.TITLESHEET_NAME.getKey(), ReactorKeysEnum.SHEET_NAME.getKey(), ReactorKeysEnum.ROW_NO.getKey(),ReactorKeysEnum.COLUMN_NO.getKey(), ReactorKeysEnum.DATA.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0};
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0};
 	}
 
 	@Override
@@ -42,15 +42,24 @@ public class GoogleSheetReactor extends AbstractReactor {
 		String rowNo = this.keyValue.get(this.keysToGet[3]);
 		String colNo = this.keyValue.get(this.keysToGet[4]);
 		String data = this.keyValue.get(this.keysToGet[5]);
-//		String accessToken=getAccessToken();
-		String accessToken="ya29.a0AS3H6NxGF5uE4EDiIIruEyhY3YWAf2dyrtVwim5_BSYvmaMOoas6ICjNxfIL5OHJb4wsyfQu4szJ8Tly5DOLuFQQ4ko1FVnZEIe-MkC3e4GQrqJTRFt_MW-9p2b1DEjszyAwrr8MeQBhUfTmoPUrIBkX6e2-HXOzgJye_LnwaCgYKAacSARcSFQHGX2MiTpMOmqEPtYMtFjIc50ccjw0175";
-		System.out.println("accessToken: "+accessToken);
+		String accessToken=getAccessToken();
+		if (this.keyValue.get(this.keysToGet[1]) != null && this.keyValue.get(this.keysToGet[1]) != "") {
+			titleSheetName = this.keyValue.get(this.keysToGet[1]);
+		}
+		if (this.keyValue.get(this.keysToGet[2]) != null && this.keyValue.get(this.keysToGet[2]) != "") {
+			sheetName = this.keyValue.get(this.keysToGet[2]);
+		}
+		if (this.keyValue.get(this.keysToGet[3]) != null && this.keyValue.get(this.keysToGet[3]) != "") {
+			rowNo = this.keyValue.get(this.keysToGet[3]);
+		}
+		if (this.keyValue.get(this.keysToGet[4]) != null && this.keyValue.get(this.keysToGet[4]) != "") {
+			colNo = this.keyValue.get(this.keysToGet[4]);
+		}
 		if (this.keyValue.get(this.keysToGet[5]) != null && this.keyValue.get(this.keysToGet[5]) != "") {
 			data = this.keyValue.get(this.keysToGet[5]);
 		}
-		Sheets sheetsService = null;
 		try {
-			switch (command.trim().toLowerCase()) {
+			switch (command.toLowerCase()) {
 			case "write": 
 				return SpreadSheetHelper.writeData(titleSheetName, sheetName, rowNo, colNo, data, accessToken);
 			case "update":
@@ -80,6 +89,15 @@ public class GoogleSheetReactor extends AbstractReactor {
 				PixelOperationType.OPERATION);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is used for giving commands such as read,write,delete,update, create new sheet, etc";
+	}
+
+	/**
+	 * To return access token of the user logged in 
+	 * @return
+	 */
 	private String getAccessToken() {
 		String accessToken=null;
 		User user = this.insight.getUser();
