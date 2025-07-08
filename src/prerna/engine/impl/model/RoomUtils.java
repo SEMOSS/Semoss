@@ -26,6 +26,11 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.util.Utility;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
 
 /**
  * Utility methods for fetching and managing Room objects.
@@ -113,6 +118,7 @@ public class RoomUtils {
                 insight.getUser().roomHash.remove(roomId); // Clear corrupted cache entry
             }
         }
+        // else it may be in the DB
         boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
         if (!roomExistsInDB)
             throw new IllegalArgumentException("User room is not valid");
@@ -138,7 +144,8 @@ public class RoomUtils {
             if (msg != null) messages.add(msg);
         }
         
-        //set the messages in the room
+        //set the messages in the room from string
+        room.setMessagesJson(MessageUtils.toJsonArray(messages));
         room.setMessages(messages);
         
         //write the message json to db
@@ -217,6 +224,51 @@ public class RoomUtils {
             System.err.println("Unknown message type: " + type + ", row: " + entry);
             return null;
         }
+    }
+    
+    /**
+     * Returns a paged and sorted sub-list of messages.
+     *
+     * @param messages  The complete (unsorted) list of messages.
+     * @param sortOrder "ASC" or "DESC" (sort by dateCreated).
+     * @param offset    Number of records to skip (0-based).
+     * @param limit     Maximum records to return. If limit <= 0, returns all after offset.
+     * @return A new List containing the result slice in requested sort order.
+     */
+    public static List<AbstractMessage> getPagedMessages(
+            List<AbstractMessage> messages,
+            String sortOrder,
+            int offset,
+            int limit
+    ) {
+        if (messages == null || messages.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Copy to avoid mutating the original list
+        List<AbstractMessage> copy = new ArrayList<>(messages);
+
+        Comparator<AbstractMessage> comp = Comparator.comparing(AbstractMessage::getDateCreated);
+
+        if ("DESC".equalsIgnoreCase(sortOrder)) {
+            comp = comp.reversed();
+        }
+
+        // Sort the copy
+        copy.sort(comp);
+
+        // Calculate safe offset/limit
+        int startIdx = Math.max(0, offset);
+        int endIdx = limit > 0 ? Math.min(copy.size(), startIdx + limit) : copy.size();
+
+        // If offset is past end, return empty list
+        if (startIdx >= copy.size()) {
+            return new ArrayList<>();
+        }
+
+        // Return the requested sublist
+        // new ArrayList to ensure it's not a view of the original list
+        return new ArrayList<>(copy.subList(startIdx, endIdx));
     }
     
 }
