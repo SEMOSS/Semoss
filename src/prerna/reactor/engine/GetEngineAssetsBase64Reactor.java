@@ -1,32 +1,32 @@
-package prerna.project.impl;
+package prerna.reactor.engine;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Base64;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
-import prerna.project.api.IProject;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class GetAppAssetsReactor extends AbstractReactor {
+public class GetEngineAssetsBase64Reactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GetAppAssetsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetEngineAssetsBase64Reactor.class);
 
-	public GetAppAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
+	public GetEngineAssetsBase64Reactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
 		this.keyRequired = new int[] {1,1};
 	}
 
@@ -40,11 +40,12 @@ public class GetAppAssetsReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to edit assets.");
 		}
-		IProject project = Utility.getProject(projectId);
+		// force to pull it from cloud if not in the container
+		Utility.getEngine(engineId);
 
 		String filePath = this.keyValue.get(this.keysToGet[1]);
 		if (filePath == null || (filePath=filePath.trim()).isEmpty()) {
@@ -54,7 +55,7 @@ public class GetAppAssetsReactor extends AbstractReactor {
 		if(!filePath.startsWith("/")) {
 			filePath = "/" + filePath;
 		}
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		String assetFolder = EngineUtility.getSpecificEngineBaseFolder(engineId);
 
 		String output = null;
 		// just read the current file
@@ -67,7 +68,8 @@ public class GetAppAssetsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("The filePath " + filePath + " exists but is not a file");
 		}
 		try {
-			output = FileUtils.readFileToString(new File(assetFilePath), Charset.forName("UTF-8"));
+			byte[] bytes = Files.readAllBytes(Paths.get(assetFilePath));
+			output = Base64.getEncoder().encodeToString(bytes);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to read file " + filePath);
@@ -78,15 +80,15 @@ public class GetAppAssetsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Retrieve the contents of a file in the projects assets folder";
+		return "Retrieve the contents of an image file as base64 encoded string in the engine";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
+		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The unique id for the engine";
 		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file to get the contents. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
+			return "Names of the file to get the contents as a base64 encoded string";
 		}
 		return super.getDescriptionForKey(key);
 	}

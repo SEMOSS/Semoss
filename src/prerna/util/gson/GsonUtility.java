@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.ZonedDateTime;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -173,7 +174,9 @@ public class GsonUtility {
 		JsonReader jReader = null;
 		BufferedReader fReader = null;
 		try {
-			Gson gson = new Gson();
+			Gson gson = new GsonBuilder()
+					.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
+					.create();
 			fReader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
 			jReader = new JsonReader(fReader);
 	        return gson.fromJson(jReader, type);

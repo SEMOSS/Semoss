@@ -9,7 +9,7 @@ public class EngineUtility {
 
 	private static final String BASE_FOLDER;
 	static {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		baseFolder = baseFolder.replace("\\", "/");
 		if(!baseFolder.endsWith("/")) {
 			baseFolder += "/";
@@ -24,6 +24,7 @@ public class EngineUtility {
 	public static final String LOCAL_FUNCTION_IMAGE_RELPATH = "images/functions";
 	public static final String LOCAL_GUARDRAIL_IMAGE_RELPATH = "images/guardrail";
 	public static final String LOCAL_PROJECT_IMAGE_RELPATH = "images/projects";
+	public static final String LOCAL_VENV_IMAGE_RELPATH = "images/venv";
 
 	public static final String DATABASE_FOLDER = BASE_FOLDER + Constants.DATABASE_FOLDER;
 	public static final String GUARDRAIL_FOLDER = BASE_FOLDER + Constants.GUARDRAIL_FOLDER;
@@ -46,7 +47,8 @@ public class EngineUtility {
 	public static final String FUNCTION_IMAGE_FOLDER = BASE_FOLDER + LOCAL_FUNCTION_IMAGE_RELPATH;
 	public static final String GUARDRAIL_IMAGE_FOLDER = BASE_FOLDER + LOCAL_GUARDRAIL_IMAGE_RELPATH;
 	public static final String PROJECT_IMAGE_FOLDER = BASE_FOLDER + LOCAL_PROJECT_IMAGE_RELPATH;
-	
+	public static final String VENV_IMAGE_FOLDER = BASE_FOLDER + LOCAL_PROJECT_IMAGE_RELPATH;
+
 	/**
 	 * 
 	 * @param type
@@ -109,11 +111,11 @@ public class EngineUtility {
 			return FUNCTION_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			return GUARDRAIL_FOLDER;
-		} else if(IEngine.CATALOG_TYPE.VENV == type) {
-			return VENV_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_FOLDER;
-		}
+		} else if(IEngine.CATALOG_TYPE.VENV == type) {
+			return VENV_FOLDER;
+		} 
 		
 		throw new IllegalArgumentException("Unhandled engine type = " + type);
 	}
@@ -138,7 +140,9 @@ public class EngineUtility {
 			return GUARDRAIL_IMAGE_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_IMAGE_FOLDER;
-		}
+		} else if(IEngine.CATALOG_TYPE.VENV == type) {
+			return VENV_IMAGE_FOLDER;
+		} 
 		
 		throw new IllegalArgumentException("Unhandled engine type = " + type);
 	}
@@ -163,7 +167,9 @@ public class EngineUtility {
 			return CouchUtil.GUARDRAIL;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return CouchUtil.PROJECT;
-		}
+		} else if(IEngine.CATALOG_TYPE.VENV == type) {
+			return CouchUtil.VENV;
+		} 
 		
 		throw new IllegalArgumentException("Unhandled engine type = " + type);
 	}
