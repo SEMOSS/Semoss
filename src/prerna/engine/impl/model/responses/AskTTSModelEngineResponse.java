@@ -142,7 +142,7 @@ public class AskTTSModelEngineResponse extends AskModelEngineResponse<Map<String
         if (sampleRateObj instanceof Integer) {
             return (Integer) sampleRateObj;
         }
-        return 22050; // Default sample rate
+        return 22050;
     }
     
     /**
@@ -157,7 +157,7 @@ public class AskTTSModelEngineResponse extends AskModelEngineResponse<Map<String
         } else if (durationObj instanceof Integer) {
             return ((Integer) durationObj).doubleValue();
         }
-        return -1.0; // Indicates duration not available
+        return -1.0;
     }
     
     /**
