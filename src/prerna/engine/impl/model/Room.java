@@ -35,6 +35,7 @@ public class Room {
 	private String options;
 	private String modelId;
 	private String messagesJson;
+
 	private Insight insight;
 	private String systemMessage;
 	private String roomFolderPath;
@@ -364,6 +365,11 @@ public class Room {
 	
 	public String getMessageJson() {
 		return this.messagesJson;
+	}
+
+	// this should rarely be used. Really only if a Message object was created and then jsonified 
+	public void setMessagesJson(String messagesJson) {
+		this.messagesJson = messagesJson;
 	}
 	
 	
