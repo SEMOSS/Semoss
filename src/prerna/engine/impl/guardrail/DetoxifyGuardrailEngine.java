@@ -79,7 +79,7 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 			threshold = Double.parseDouble(this.keyValue.get("threshold"));
 		}
 		String script = "model.predict(\"\"\""+prompt+"\"\"\")";
-		Map<String, Object> value = (Map<String, Object>) pyTranslator.transportScript(script);
+		Map<String, Object> value = (Map<String, Object>) pyTranslator.runDirectPy(script);
 		
 		boolean pass = true;
 		for(String category : value.keySet()) {

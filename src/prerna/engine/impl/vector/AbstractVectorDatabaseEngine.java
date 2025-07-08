@@ -356,7 +356,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 								.append(extractedFileName)
 								.append("')");
 							setVectorFolderPermissions();
-							Number rows = (Number) pyTranslator.transportScript(extractTextFromDocScript.toString());
+							Number rows = (Number) pyTranslator.runDirectPy(extractTextFromDocScript.toString());
 							rowsCreated = rows.intValue();
 							processed = true;
 						} else if(this.customDocumentProcessor) {

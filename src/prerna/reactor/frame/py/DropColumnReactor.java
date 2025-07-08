@@ -1,5 +1,6 @@
 package prerna.reactor.frame.py;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
@@ -57,7 +58,7 @@ public class DropColumnReactor extends AbstractPyFrameReactor {
 			frame.getFrameFilters().removeColumnFilter(col);
 		}
 		// run the script
-		insight.getPyTranslator().runPyAndReturnOutput(remCommands);
+		insight.getPyTranslator().runEmptyPy(remCommands);
 		for(String script : remCommands) {
 			this.addExecutedCode(script);
 		}
@@ -84,7 +85,7 @@ public class DropColumnReactor extends AbstractPyFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 	
 	private List<String> getColumns() {
-		List<String> columns = new Vector<String>();
+		List<String> columns = new ArrayList<String>();
 
 		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
 		if (colGrs != null && !colGrs.isEmpty()) {
