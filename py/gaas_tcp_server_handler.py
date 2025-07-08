@@ -635,24 +635,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(
             self.console
         ):
-            if command.endswith(".py") or command.startswith("smssutil"):
-                try:
-                    output = eval(command, insight_globals)
-                except Exception as e:
-                    try:
-                        output = exec(command, insight_globals)
-                    except Exception as e:
-                        is_exception = True
-                        output = str(e)
-                print(f"executing file.. {command.encode('utf-8')}")
-            # all new
-            else:
-                # same trick - try to eval if it fails run as exec
-                insight_globals["core_server"] = self
-
-                output, is_exception = self.execute_and_capture(
-                    command, insight_globals
-                )
+            insight_globals["core_server"] = self
+            output, is_exception = self.execute_and_capture(command, insight_globals)
 
             self.send_output(
                 output if type(output) is not type(None) else '""',

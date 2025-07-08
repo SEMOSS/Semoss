@@ -37,6 +37,14 @@ public class PyTranslator {
 	}
 	
 	/**
+	 * 
+	 * @return
+	 */
+	public String getCurEncoding() {
+		return this.pyTransporter.getCurEncoding(this.insight);
+	}
+	
+	/**
 	 * Get list of Objects from py script
 	 * 
 	 * @param script
@@ -115,48 +123,7 @@ public class PyTranslator {
 	public String getString(String script) {
 		return this.pyTransporter.getString(this.insight, script);
 	}
-
-	/**
-	 * 
-	 * @param script
-	 */
-	public void runEmptyPy(String... script) {
-		this.pyTransporter.runEmptyPy(this.insight, script);
-	}
-
-	/**
-	 * 
-	 * @param inscript
-	 * @return
-	 */
-	public String runPyAndReturnOutput(String... inscript) {
-		return this.pyTransporter.runPyAndReturnOutput(this.insight, inscript);
-	}
-
-	/**
-	 * 
-	 * @param inscript
-	 * @return
-	 */
-	public synchronized String runSingle(String inscript) {
-		return this.pyTransporter.runSingle(this.insight, inscript);
-	}
-
-	/**
-	 * 
-	 * @param script
-	 * @return
-	 */
-	public String runScript(String script) {
-		return this.pyTransporter.runScript(this.insight, script);
-	}
-
-
-	// this becomes an issue on windows where it only consumes specific encoding
-	public String getCurEncoding() {
-		return this.pyTransporter.getCurEncoding(this.insight);
-	}
-
+	
 	/*
 	 * This method is used to get the column names of a frame
 	 * 
@@ -166,25 +133,43 @@ public class PyTranslator {
 		return this.pyTransporter.getColumns(this.insight, frameName);
 	}
 
+	/**
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the execution
+	 * @param script
+	 */
+	public void runEmptyPy(String... script) {
+		this.pyTransporter.executePyDirect(insight, script);
+	}
+	
+	/**
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the execution
+	 * @param script
+	 */
+	public Object runDirectPy(String... script) {
+		if(script.length == 1) {
+			return this.pyTransporter.transportScript(insight, script[0]);
+		}
+		
+		return this.pyTransporter.executePyDirect(insight, script);
+	}
+
+	/**
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * @param script
+	 * @return
+	 */
+	public Object runScript(String... script) {
+		return this.pyTransporter.executePyWithDefualtVars(this.insight, script);
+	}
 
 	@Deprecated
 	/**
-	 * Switch to transportScript
+	 * Switch to runDirectPy
 	 * @param script
 	 * @param insight
 	 * @return
 	 */
 	public Object runSmssWrapperEval(String script) {
-		return this.pyTransporter.transportScript(this.insight, script);
-	}
-	
-	/**
-	 * 
-	 * @param script
-	 * @param insight
-	 * @return
-	 */
-	public Object transportScript(String script) {
 		return this.pyTransporter.transportScript(this.insight, script);
 	}
 

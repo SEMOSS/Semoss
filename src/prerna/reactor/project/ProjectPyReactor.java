@@ -44,10 +44,10 @@ public class ProjectPyReactor extends AbstractReactor {
 
 		IProject project = Utility.getProject(projectId);
 		PyTranslator projectPyTranslator = project.getProjectPyTranslator();
-		String output = projectPyTranslator.runSingle(code);
+		Object output = projectPyTranslator.runScript(code);
 		
 		List<NounMetadata> outputs = new ArrayList<>(1);
-		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
+		outputs.add(new NounMetadata(output+"", PixelDataType.CONST_STRING));
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 	}
 
