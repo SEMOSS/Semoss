@@ -40,6 +40,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.SemossDefaultEngines;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -526,10 +527,10 @@ public abstract class AbstractSecurityUtils {
 			// ENGINE
 			colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", 
 					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
-					"ENGINETYPE", "ENGINESUBTYPE", "COST" };
+					"ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
 					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
-					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -751,16 +752,16 @@ public abstract class AbstractSecurityUtils {
 			// Type and cost are the main questions - 
 			boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
 			colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "DISCOVERABLE", 
-					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
+					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "DATELASTEDITED",
 					"TYPE", "COST", "CATALOGNAME", 
 					"HASPORTAL", "PORTALNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE",
 					"REACTORSCOMPILED", "REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE"
 			};
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
-					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
+					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
 					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
 					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
-					TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+					TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("PROJECT", colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -1385,9 +1386,9 @@ public abstract class AbstractSecurityUtils {
 			 */
 	
 			// GROUP TABLE
-			colNames = new String[] { "ID", "TYPE", "DESCRIPTION", "IS_CUSTOM_GROUP", 
+			colNames = new String[] { "ID", "TYPE", "DESCRIPTION", 
 					"DATEADDED", "USERID", "USERIDTYPE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME,
 					 TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_GROUP", colNames, types));
@@ -2319,9 +2320,8 @@ public abstract class AbstractSecurityUtils {
 
 
 	public static boolean ignoreDatabase(String databaseId) {
-		if(databaseId.equals(Constants.LOCAL_MASTER_DB) || databaseId.equals(Constants.SECURITY_DB) 
-				|| databaseId.equals(Constants.SCHEDULER_DB) || databaseId.equals(Constants.USER_TRACKING_DB) ) {
-			// dont add local master or security db to security db
+		// dont add default semoss databases to security
+		if(SemossDefaultEngines.getDatabaseIgnoreSecurity().contains(databaseId)) {
 			return true;
 		}
 		// engine is an asset

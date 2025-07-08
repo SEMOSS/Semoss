@@ -63,18 +63,15 @@ import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
-import org.openrdf.sail.SailConnection;
-import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.ISesameRdfEngine;
+import prerna.engine.api.ISesameRDFEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
@@ -83,12 +80,11 @@ import prerna.util.Utility;
 /**
  * References the RDF source and uses the Sesame API to query a database stored in an RDF file
  */
-public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesameRdfEngine {
+public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesameRDFEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(RDFFileSesameEngine.class);
 
 	private RepositoryConnection rc = null;
-	private SailConnection sc = null;
 	private ValueFactory vf = null;
 	
 	private String rdfFileType = "RDF/XML";
@@ -134,7 +130,6 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 		}
 
 		rc = myRepository.getConnection();
-		sc = ((SailRepositoryConnection) rc).getSailConnection();
 		vf = rc.getValueFactory();
 
 		loadFile();
@@ -210,14 +205,10 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 				Boolean bool = ((BooleanQuery) fullQuery).evaluate();
 				return bool;
 			}
-		} catch (RepositoryException e) {
+		} catch (RepositoryException | MalformedQueryException | QueryEvaluationException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} catch (MalformedQueryException mqe) {
-			classLogger.error(Constants.STACKTRACE, mqe);
-		} catch (QueryEvaluationException qee) {
-			classLogger.error(Constants.STACKTRACE, qee);
 		}
-		return null;
+        return null;
 	}
 
 	@Override
@@ -266,14 +257,10 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 				retVec.add(next);
 			}
 			return retVec;
-		} catch (RepositoryException e) {
+		} catch (RepositoryException | MalformedQueryException | QueryEvaluationException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} catch (MalformedQueryException mqe) {
-			classLogger.error(Constants.STACKTRACE, mqe);
-		} catch (QueryEvaluationException qee) {
-			classLogger.error(Constants.STACKTRACE, qee);
 		}
-		return null;
+        return null;
 	}
 
 	/**
@@ -309,16 +296,79 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 		return connected;
 	}
 
-	/**
-	 * Method addStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
-	 * @param subject String - RDF Subject
-	 * @param predicate String - RDF Predicate
-	 * @param object Object - RDF Object
-	 * @param concept boolean - True if the statement is a concept
-	 */
-	//	public void addStatement(String subject, String predicate, Object object, boolean concept)
-	public void addStatement(Object[] args)
-	{
+	@Override
+	public void bulkInsert(List<Object[]> args) {
+		for(Object[] obj : args) {
+			addStatement(obj);
+		}
+	}
+
+	@Override
+	public void bulkRemoval(List<Object[]> args) {
+		for(Object[] obj : args) {
+			removeStatement(obj);
+		}		
+	}
+
+	@Override
+	public void addStatement(Object[] args) {
+		String subject = args[0]+"";
+		String predicate = args[1]+"";
+		Object object = args[2];
+		Boolean concept = (Boolean) args[3];
+		//logger.info("Updating Triple " + subject + "<>" + predicate + "<>" + object);
+		try {
+			URI newSub = null;
+			URI newPred = null;
+			String subString = null;
+			String predString = null;
+			String sub = subject.trim();
+			String pred = predicate.trim();
+
+			//System.err.println("VF is " + vf);
+			if(!rc.isActive()) {
+				rc.begin();
+			}
+
+			subString = Utility.cleanString(sub, false);
+			newSub = vf.createURI(subString);
+
+			predString = Utility.cleanString(pred, false);
+			newPred = vf.createURI(predString);
+			
+			if(concept) {
+				URI newObj = vf.createURI(Utility.cleanString((object + "").trim(), false));
+				rc.add(newSub, newPred, newObj);
+			} else {
+				if(object.getClass() == new Double(1).getClass())
+				{
+					classLogger.debug("Found Double " + object);
+					rc.add(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
+				}
+				else if(object.getClass() == new Date(1).getClass())
+				{
+					classLogger.debug("Found Date " + object);
+					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+					String date = df.format(object);
+					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
+					rc.add(newSub, newPred, vf.createLiteral(date, datatype));
+				}
+				else
+				{
+					classLogger.debug("Found String " + object);
+					String value = object + "";
+					// try to see if it already has properties then add to it
+					rc.add(newSub, newPred, vf.createLiteral(value));
+				}
+			}
+			rc.commit();
+		} catch (RepositoryException re) {
+			classLogger.error(Constants.STACKTRACE, re);
+		}
+  }
+
+	@Override
+	public void removeStatement(Object[] args) {
 		String subject = args[0]+"";
 		String predicate = args[1]+"";
 		Object object = args[2];
@@ -343,12 +393,14 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 			predString = Utility.cleanString(pred, false);
 			newPred = vf.createURI(predString);
 
-			if(!concept)
-			{
+			if(concept) {
+				URI newObj = vf.createURI(Utility.cleanString((object + "").trim(), false));
+				rc.remove(newSub, newPred, newObj);
+			} else {
 				if(object.getClass() == new Double(1).getClass())
 				{
 					classLogger.debug("Found Double " + object);
-					sc.addStatement(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
+					rc.remove(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
 				}
 				else if(object.getClass() == new Date(1).getClass())
 				{
@@ -356,100 +408,19 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 					String date = df.format(object);
 					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
-					sc.addStatement(newSub, newPred, vf.createLiteral(date, datatype));
+					rc.remove(newSub, newPred, vf.createLiteral(date, datatype));
 				}
 				else
 				{
 					classLogger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
-					//String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
-					sc.addStatement(newSub, newPred, vf.createLiteral(value));
+					rc.remove(newSub, newPred, vf.createLiteral(value));
 				}
-			}
-			else {
-				URI newObj = vf.createURI(Utility.cleanString((object + "").trim(), false));
-				sc.addStatement(newSub, newPred, newObj);
 			}
 			rc.commit();
-		} catch (SailException e) {
-			classLogger.error(Constants.STACKTRACE, e);
 		} catch (RepositoryException re) {
 			classLogger.error(Constants.STACKTRACE, re);
-		}
-	}
-
-	/**
-	 * Method removeStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
-	 * @param subject String - RDF Subject
-	 * @param predicate String - RDF Predicate
-	 * @param object Object - RDF Object
-	 * @param concept boolean - True if the statement is a concept
-	 */
-	//	public void removeStatement(String subject, String predicate, Object object, boolean concept)
-	public void removeStatement(Object[] args)
-	{
-		String subject = args[0]+"";
-		String predicate = args[1]+"";
-		Object object = args[2];
-		Boolean concept = (Boolean) args[3];
-		//logger.info("Updating Triple " + subject + "<>" + predicate + "<>" + object);
-		try {
-			URI newSub = null;
-			URI newPred = null;
-			String subString = null;
-			String predString = null;
-			String sub = subject.trim();
-			String pred = predicate.trim();
-
-			//System.err.println("VF is " + vf);
-			sc.begin();
-
-
-			subString = Utility.cleanString(sub, false);
-			newSub = vf.createURI(subString);
-
-			predString = Utility.cleanString(pred, false);
-			newPred = vf.createURI(predString);
-
-			URI uriObj = null;
-			try{
-				uriObj = vf.createURI(object+"");
-			}catch(IllegalArgumentException e){
-				// ignore exception
-			}
-
-			if(!concept || uriObj == null)
-			{
-				if(object.getClass() == new Double(1).getClass())
-				{
-					classLogger.debug("Found Double " + object);
-					sc.removeStatements(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
-				}
-				else if(object.getClass() == new Date(1).getClass())
-				{
-					classLogger.debug("Found Date " + object);
-					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-					String date = df.format(object);
-					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
-					sc.removeStatements(newSub, newPred, vf.createLiteral(date, datatype));
-				}
-				else
-				{
-					classLogger.debug("Found String " + object);
-					String value = object + "";
-					// try to see if it already has properties then add to it
-					//String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
-					sc.removeStatements(newSub, newPred, vf.createLiteral(value));
-				}
-			}
-			else
-			{
-				sc.removeStatements(newSub, newPred, uriObj);
-			}
-			sc.commit();
-		} catch (SailException e) {
-			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -465,25 +436,18 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 		Update up;
 		try {
 			up = rc.prepareUpdate(QueryLanguage.SPARQL, query);
-			//sc.addStatement(vf.createURI("<http://semoss.org/ontologies/Concept/Service/tom2>"),vf.createURI("<http://semoss.org/ontologies/Relation/Exposes>"),vf.createURI("<http://semoss.org/ontologies/Concept/BusinessLogicUnit/tom1>"));
 			classLogger.debug("\nSPARQL: " + query);
-			//tq.setIncludeInferred(true /* includeInferred */);
-			//tq.evaluate();
-			//rc.setAutoCommit(false);
-			sc.begin();
+			rc.begin();
 			up.execute();
-			//rc.commit();
-			sc.commit();
+			rc.commit();
 		} catch (RepositoryException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException mqe) {
 			classLogger.error(Constants.STACKTRACE, mqe);
-		} catch (SailException se) {
-			classLogger.error(Constants.STACKTRACE, se);
 		} catch (UpdateExecutionException uee) {
 			classLogger.error(Constants.STACKTRACE, uee);
 		}
-	}
+  }
 
 	/**
 	 * Method exportDB.  Exports the repository connection to the RDF database.
@@ -527,8 +491,8 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 	@Override
 	public void commit() {
 		try {
-			sc.commit();
-		} catch (SailException e) {
+			rc.commit();
+		} catch (RepositoryException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
@@ -547,17 +511,6 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 	public void setRc(RepositoryConnection rc) {
 		this.rc = rc;
 	}
-
-	@Override
-	public void setSc(SailConnection sc) {
-		this.sc = sc;
-	}
-	
-	@Override
-	public SailConnection getSc() {
-		return this.sc;
-	}
-
 
 	@Override
 	public ValueFactory getVf() {

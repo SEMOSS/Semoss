@@ -23,7 +23,7 @@ import org.javatuples.Pair;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IStorageMount;
 import prerna.engine.impl.r.IRUserConnection;
@@ -52,6 +52,8 @@ public class User implements Serializable {
 	// storing the timezone the user is in
 	private ZoneId zoneId;
 	
+	public Map<String,Object> roomHash = new HashMap<>();
+	
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
 	
@@ -61,7 +63,7 @@ public class User implements Serializable {
 
 	// python related stuff
 	private transient ClientProcessWrapper pythonCPW = new ClientProcessWrapper();
-	private transient PyTranslator pyt = null;
+	private transient PyTransporter pyTransporter = null;
 	private transient Process pyProcess = null;
 
 	// r
@@ -614,7 +616,7 @@ public class User implements Serializable {
 	 * 
 	 * @return
 	 */
-	public ClientProcessWrapper getClientProcessWrapper() {
+	public ClientProcessWrapper getPythonClientProcessWrapper() {
 		return this.pythonCPW;
 	}
 	
@@ -623,8 +625,8 @@ public class User implements Serializable {
 	 * @param create
 	 * @return
 	 */
-	public SocketClient getSocketClient(boolean create) {
-		return getSocketClient(create, -1, null);
+	public SocketClient getPythonSocketClient(boolean create) {
+		return getPythonSocketClient(create, -1, null);
 	}
 	
 	/**
@@ -633,8 +635,8 @@ public class User implements Serializable {
 	 * @param venvName
 	 * @return
 	 */
-	public SocketClient getSocketClient(boolean create, String venvEngineId) {
-		return getSocketClient(create, -1, venvEngineId);
+	public SocketClient getPythonSocketClient(boolean create, String venvEngineId) {
+		return getPythonSocketClient(create, -1, venvEngineId);
 	}
 	
 	/**
@@ -643,7 +645,7 @@ public class User implements Serializable {
 	 * @param port
 	 * @return
 	 */
-	public SocketClient getSocketClient(boolean create, int port, String venvEngineId) {
+	public SocketClient getPythonSocketClient(boolean create, int port, String venvEngineId) {
 		if(!create) {
 			if(this.pythonCPW == null) {
 				return null;
@@ -651,7 +653,7 @@ public class User implements Serializable {
 			return this.pythonCPW.getSocketClient();
 		}
 		if(this.pythonCPW == null || this.pythonCPW.getSocketClient() == null) {
-			startSocketServerAndClient(-1, venvEngineId);
+			startPythonSocketServerAndClient(-1, venvEngineId);
 			this.pythonCPW.getSocketClient().setUser(this);
 		} else if(!this.pythonCPW.getSocketClient().isConnected()) {
 			this.pythonCPW.shutdown(false);
@@ -677,7 +679,7 @@ public class User implements Serializable {
 		AuthProvider provider = getPrimaryLogin();
 		String appId = getAssetProjectId(provider);
 		String appName = "Asset";
-		String userAssetFolder = AssetUtility.getProjectAssetFolder(appName, appId);
+		String userAssetFolder = AssetUtility.getProjectAssetsFolder(appName, appId);
 
 		// if this folder does not exist create it
 		File file = new File(userAssetFolder);
@@ -697,40 +699,55 @@ public class User implements Serializable {
 		return this.externalMounts;
 	}
 
-	public PyTranslator getPyTranslator() {
-		return getPyTranslator(true);
+	/**
+	 * 
+	 * @return
+	 */
+	public PyTransporter getPyTransporter() {
+		return getPyTransporter(true);
 	}
 	
-	public PyTranslator getPyTranslator(boolean create) {
-		return getPyTranslator(create, null);
+	/**
+	 * 
+	 * @param create
+	 * @return
+	 */
+	public PyTransporter getPyTransporter(boolean create) {
+		return getPyTransporter(create, null);
 	}
 	
-	public PyTranslator getPyTranslator(boolean create, String venvEngineId) {
+	/**
+	 * 
+	 * @param create
+	 * @param venvEngineId
+	 * @return
+	 */
+	public PyTransporter getPyTransporter(boolean create, String venvEngineId) {
 		if(!PyUtils.pyEnabled()) {
-			throw new IllegalArgumentException("Python is set to false for this instance");
+			throw new IllegalArgumentException("Python is not enabled for this instance");
 		}
-		if(this.pyt == null && create) {
+		if(this.pyTransporter == null && create) {
 			// all of the logic should go here now ?
 			synchronized(this) {
-				SocketClient sc = getSocketClient(create, -1, venvEngineId);
+				SocketClient sc = getPythonSocketClient(create, -1, venvEngineId);
 				if(sc != null) {
-					PyTranslator pyJavaTranslator = new PyTranslator();
-					pyJavaTranslator.setSocketClient(sc);
-					this.pyt = pyJavaTranslator;
+					PyTransporter pyTransporter = new PyTransporter();
+					pyTransporter.setSocketClient(sc);
+					this.pyTransporter = pyTransporter;
 				}
 			}
 		}
 		else {
-			SocketClient sc = getSocketClient(create, -1, venvEngineId);
+			SocketClient sc = getPythonSocketClient(create, -1, venvEngineId);
 			if(sc != null) {
-				PyTranslator pyJavaTranslator = new PyTranslator();
-				pyJavaTranslator.setSocketClient(sc);
-				this.pyt = pyJavaTranslator;
+				PyTransporter pyTransporter = new PyTransporter();
+				pyTransporter.setSocketClient(sc);
+				this.pyTransporter = pyTransporter;
 			}
 		}
 		
 		// return the translator reference
-		return this.pyt;
+		return this.pyTransporter;
 	}
 	
 	/**
@@ -745,7 +762,7 @@ public class User implements Serializable {
 			return;
 		}
 		// sets the context space for the user
-		String projectBaseFolder = AssetUtility.getProjectBaseFolder(projectName, projectId);
+		String projectBaseFolder = AssetUtility.getProjectAppRootFolder(projectName, projectId);
 		projectBaseFolder = projectBaseFolder.replace("\\", "/");
 		// also set the cmd context right here
 		this.cmdUtil = new CmdExecUtil(projectId, projectBaseFolder, null);
@@ -753,7 +770,7 @@ public class User implements Serializable {
 	
 	public CmdExecUtil getCmdUtil() {
 	    if (this.pythonCPW.getSocketClient() == null) {
-	        this.getPyTranslator();
+	        this.getPyTransporter();
 	    }
 	    if (cmdUtil != null) {
 	        if (this.pythonCPW.getSocketClient() != null && !this.pythonCPW.getSocketClient().isConnected()) {
@@ -778,7 +795,7 @@ public class User implements Serializable {
 		}
 	}
 	
-	public void startSocketServerAndClient(int port, String venvEngineId) {
+	public void startPythonSocketServerAndClient(int port, String venvEngineId) {
 		if(this.pythonCPW == null) {
 			this.pythonCPW = new ClientProcessWrapper();
 		}

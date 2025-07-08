@@ -517,7 +517,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			try {
 				// you only have this if you are logged in
 				if(this.insight.getUser() != null && !this.insight.getUser().isAnonymous()) {
-					userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
+					userRootPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, false);
 					userRootPath = userRootPath.replace('\\', '/');
 					userRootAssignment = "USER_ROOT <- '" + userRootPath.replace("'", "\\'") + "';";
 					removePathVariables += ", USER_ROOT";
@@ -598,7 +598,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			try {
 				// you only have this if you are logged in
 				if(this.insight.getUser() != null && !this.insight.getUser().isAnonymous()) {
-					userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
+					userRootPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, false);
 					userRootPath = userRootPath.replace('\\', '/');
 					userRootAssignment = "USER_ROOT <- '" + userRootPath.replace("'", "\\'") + "';";
 					removePathVariables += ", USER_ROOT";

@@ -21,12 +21,17 @@ import javax.ws.rs.core.StreamingOutput;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.ToNumberPolicy;
 
+import io.burt.jmespath.Expression;
+import io.burt.jmespath.JmesPath;
+import io.burt.jmespath.jackson.JacksonRuntime;
 import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -35,6 +40,7 @@ import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.TCPLogMessage;
 import prerna.tcp.client.workers.NativePyEngineWorker;
@@ -343,7 +349,21 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						            PixelRunner pixelRunner = insight.runPixel(pixelOp);
 						            StreamingOutput streamedOutput = PixelStreamUtility.collectPixelData(pixelRunner, null);
 						            streamedOutput.write(output);
-						            JsonElement json = JsonParser.parseString(new String(output.toByteArray(),"UTF-8"));
+						            //checks oprationType 
+						            String jsonOutputString = new String(output.toByteArray(),"UTF-8");
+						            ObjectMapper mapper = new ObjectMapper();
+						            JsonNode jsonNode = mapper.readTree(jsonOutputString);
+						            
+						            //JMESPath to check for any ERROR in operationType
+						            JmesPath<JsonNode> jmespath = new JacksonRuntime();
+						            Expression<JsonNode> expression = jmespath.compile("length(pixelReturn[?contains(operationType, 'ERROR')]) > `0`");
+						            JsonNode result = expression.search(jsonNode);
+
+						            if(result.asBoolean()) {
+						            	throw new IllegalArgumentException("Pixel execution returned ERROR operationType");
+						            }
+						            
+						            JsonElement json = JsonParser.parseString(jsonOutputString);
 						            finalPs.payload = new Object[] {json};
 						            finalPs.response = true;
 						            executeCommand(finalPs);
@@ -466,10 +486,14 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	// this is the method that pushes to the front end
 	// when output happens
 	private void exposeLog(String data, String insightId) {
+		classLogger.debug("Exposing log to insightId = '" + insightId + "' with data = " + data);
 		if(insightId != null && data != null) {
 			Insight insight = InsightStore.getInstance().get(insightId);
-			String jobId =  insight.getVarStore().get(JobReactor.JOB_KEY).getValue().toString();
-			PixelJobManager.getManager().addStdOut(jobId, data);
+			NounMetadata jobNoun = insight.getVarStore().get(JobReactor.JOB_KEY);
+			if(jobNoun != null) {
+				String jobId = (String) jobNoun.getValue();
+				PixelJobManager.getManager().addStdOut(jobId, data);
+			}
 		}
 	}
 

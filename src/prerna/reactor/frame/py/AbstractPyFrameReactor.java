@@ -31,8 +31,7 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 		PandasFrame newFrame = frame; 
 		// I am just going to try to recreate the frame here
 		if(override) {
-			newFrame = new PandasFrame(frameName);
-			newFrame.setTranslator(insight.getPyTranslator());
+			newFrame = new PandasFrame(frameName, insight.getPyTranslator());
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(newFrame.getWrapperName(), frameName);
 			//newFrame.runScript(makeWrapper);
 			insight.getPyTranslator().runEmptyPy(makeWrapper);
@@ -68,14 +67,14 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 	public String[] getColumns(PandasFrame frame) {		
 		String wrapperName = frame.getWrapperName();
 		// get jep thread and get the names
-		List<String> val = (List<String>) insight.getPyTranslator().runScript("list(" + wrapperName + ".cache['data'])");
+		List<String> val = (List) insight.getPyTranslator().getList("list(" + wrapperName + ".cache['data'])");
 		return val.toArray(new String[val.size()]);
 	}
 	
 	public String[] getColumnTypes(PandasFrame frame) {
 		String wrapperName = frame.getWrapperName();
 		// get jep thread and get the names
-		List<String> val = (List<String>) insight.getPyTranslator().runScript(PandasSyntaxHelper.getTypes(wrapperName + ".cache['data']"));
+		List<String> val = (List) insight.getPyTranslator().getList(PandasSyntaxHelper.getTypes(wrapperName + ".cache['data']"));
 		return val.toArray(new String[val.size()]);
 	}
 	

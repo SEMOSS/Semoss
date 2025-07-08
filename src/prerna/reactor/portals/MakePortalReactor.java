@@ -69,7 +69,7 @@ public class MakePortalReactor extends AbstractReactor {
 		
 		projectValues.put(ReactorKeysEnum.PROJECT.getKey(), projectId);
 
-		String projectFolder = AssetUtility.getProjectAssetFolder(projectId);
+		String projectFolder = AssetUtility.getProjectAssetsFolder(projectId);
 		
 		try {
 			pullGit(projectFolder, archetype, portalName);
@@ -97,7 +97,7 @@ public class MakePortalReactor extends AbstractReactor {
 		if(!portalFolderFile.exists())
 			portalFolderFile.mkdir();
 
-		CmdExecUtil util = new CmdExecUtil(mountName, portalFolder, this.insight.getUser().getSocketClient(true));
+		CmdExecUtil util = new CmdExecUtil(mountName, portalFolder, this.insight.getUser().getPythonSocketClient(true));
 		
 		if(!archetype.startsWith("http")) // this is our local repo pull from it
 			archetype = "https://github.com/semoss/" + archetype;

@@ -10,6 +10,7 @@ import os
 import gc as gc
 import sys
 import re
+import ast
 
 # IMPORTANT
 # Your python support extention might tell you that these packages arent being used
@@ -380,7 +381,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
             # If this is a python payload
             elif payload["operation"] == "PYTHON":
-                self.handle_python(command)
+                insight_id = payload.get("insightId")
+                self.handle_python(command, insight_id)
             # this is when it is a response
             elif payload["response"]:
                 self.handle_response()
@@ -611,7 +613,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             condition.notifyAll()
             condition.release()
 
-    def handle_python(self, command):
+    def handle_python(self, command: str, insight_id: str):
+        """
+        Execute python code within the proper globals object
+
+        Args:
+            command (`str`): The python code to execute
+            insight_id (`str`): The insight id / global store to execute with
+        """
         is_exception = False
         # print(f"Executing command {command.encode('utf-8')}")
 
@@ -619,16 +628,19 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # set the payload coming in
         self.console.set_payload(payload=payload)
 
+        store = InsightGlobalStore()
+        insight_globals = store.get_insight_globals(insight_id)
+
         output = None
         with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(
             self.console
         ):
             if command.endswith(".py") or command.startswith("smssutil"):
                 try:
-                    output = eval(command, globals())
+                    output = eval(command, insight_globals)
                 except Exception as e:
                     try:
-                        output = exec(command, globals())
+                        output = exec(command, insight_globals)
                     except Exception as e:
                         is_exception = True
                         output = str(e)
@@ -636,9 +648,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # all new
             else:
                 # same trick - try to eval if it fails run as exec
-                globals()["core_server"] = self
+                insight_globals["core_server"] = self
 
-                output, is_exception = self.execute_and_capture(command)
+                output, is_exception = self.execute_and_capture(
+                    command, insight_globals
+                )
 
             self.send_output(
                 output if type(output) is not type(None) else '""',
@@ -647,7 +661,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 exception=is_exception,
             )
 
-    def execute_and_capture(self, code) -> Tuple[str, bool]:
+    def execute_and_capture(self, code: str, insight_globals: dict) -> Tuple[str, bool]:
         """
         Mimics a Python Jupyter kernel for executing a code block. The intended purpose of this method is to try capture the final line output
 
@@ -655,61 +669,67 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         Args:
             code (`str`): The Python code to be executed.
+            insight_globals (`dict`): The globals dict to execute with.
 
         Returns:
-            `Tuple[str, Any]`: A tuple containing the captured print statements and the result of the last expression. The first element is a string capturing any output from print statements, and the second element can be of any type, representing the result of the last expression executed. If the last line is not an expression or doesn't produce a result, the second element will be None.
+            `Tuple[str, bool]`: A tuple containing the output of the last expression in the code input and a boolean if it was successfully able to execute the code.
+                                The first element is the eval output of the last expression. If last expression is not evaluable, then it will exec and return an empty string.
+                                The second element is a boolean indicating if the code was executed successfully (False) or if an exception occurred (True).
         """
-
         try:
+            parsed_code = ast.parse(code)
+            # we will loop through the parsed_code up until the last expression
+            # and combine into a single string
+            preceding_code = ""
+            for node in parsed_code.body[:-1]:
+                preceding_code += ast.unparse(node) + "\n"
+
+            # if new_code is not ""
+            # we will exec all of these lines
+            if preceding_code != "":
+                exec(preceding_code, globals())
+
+            # now we will eval the last expression if we can
+            last_expression = parsed_code.body[len(parsed_code.body) - 1]
+            can_eval = isinstance(last_expression, ast.Expr) and isinstance(
+                last_expression.value,
+                (
+                    ast.Attribute,
+                    ast.BinOp,
+                    ast.BoolOp,
+                    ast.Call,
+                    ast.Compare,
+                    ast.Constant,
+                    ast.Dict,
+                    ast.DictComp,
+                    ast.Expression,
+                    ast.GeneratorExp,
+                    ast.IfExp,
+                    ast.Lambda,
+                    ast.List,
+                    ast.ListComp,
+                    ast.Name,
+                    ast.Num,
+                    ast.Set,
+                    ast.SetComp,
+                    ast.Str,
+                    ast.Subscript,
+                    ast.Tuple,
+                    ast.UnaryOp,
+                ),
+            )
+
+            # if we can eval then we will do that and return the result
             try:
-                # Split the code into lines
-                lines = code.strip().split("\n")
-
-                # loop through and remove trailing white space at the end of each line
-                # and if it is empty
-                # remove from the array entirely
-                new_lines = []
-                for line in lines:
-                    new_line = line.rstrip()
-                    if len(new_line) > 0:
-                        new_lines.append(line.rstrip())
-
-                # now try to grab the last line
-                last_line = new_lines[-1]
-                if last_line.startswith(" ") or last_line.startswith("\t"):
-                    # this is part of a loop or function
-                    # can't get you an output
-                    preceding_lines = new_lines
-                    last_line = None
+                if can_eval:
+                    return eval(ast.unparse(last_expression), insight_globals), False
                 else:
-                    preceding_lines = new_lines[:-1]
-
-                # Create a string to hold preceding lines of code
-                preceding_code = None
-                if len(preceding_lines) > 0:
-                    preceding_code = "\n".join(preceding_lines)
-
-                # Execute preceding lines
-                if preceding_code is not None:
-                    exec(preceding_code, globals())
-
-                # Evaluate last line (if not empty) and capture the output
-                last_line_output = '""'
-                if last_line is not None:
-                    try:
-                        last_line_output = eval(last_line, globals())
-                    except:
-                        # Fallback to exec if eval fails, indicating it's not an expression
-                        exec(last_line, globals())
-
-                return last_line_output, False
-            except Exception:
-                # we failed so try run all the code as is
-                try:
-                    return eval(code, globals()), False
-                except:
-                    exec(code, globals())
+                    exec(ast.unparse(last_expression), insight_globals)
                     return '""', False
+            except:
+                # couldn't eval / exec ... just try to run everything
+                exec(code, insight_globals)
+                return '""', False
         except Exception as e:
             # if we fail all attempts then send back the traceback
             traceback = sys.exc_info()[2]
@@ -945,6 +965,43 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         )
         output = proc.stdout.read().decode("utf-8")
         return output
+
+
+class InsightGlobalStore:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.insight_globals = {}
+        return cls._instance
+
+    def get_insight_globals(self, insight_id: str) -> dict:
+        if not insight_id:
+            return {}
+
+        if insight_id not in self.insight_globals:
+            # First-time initialization: build the globals dict
+            globals_dict = {
+                "string": string,
+                "np": np,
+                "pd": pd,
+                "random": random,
+                "datetime": datetime,
+                "json": json,
+                "jsonpickle": jp,
+                "math": math,
+                "PyFrame": PyFrame,
+                "smssutil": smssutil,
+            }
+            self.insight_globals[insight_id] = globals_dict
+
+        return self.insight_globals[insight_id]
+
+    def set_insight_globals(self, insight_id: str, this_insight_globals: dict):
+        if not insight_id:
+            return
+        self.insight_globals[insight_id] = this_insight_globals
 
 
 if __name__ == "__main__":

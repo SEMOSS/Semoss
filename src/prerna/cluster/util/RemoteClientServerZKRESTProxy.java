@@ -490,47 +490,21 @@ public class RemoteClientServerZKRESTProxy implements IRemoteClientServer {
     public boolean waitForModelActive(String modelId, long timeoutMs) {
         try {
             long startTime = System.currentTimeMillis();
-            boolean foundInActivePath = false;
-            boolean isHealthy = false;
-            
+   
             while (System.currentTimeMillis() - startTime < timeoutMs) {
                 if (isModelActive(modelId)) {
                     classLogger.info("Model {} was found in the active path", modelId);
-                    foundInActivePath = true;
-                    break;
+                    modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
+                    return true;
                 } else {
                     classLogger.info("Model {} in a warming wait loop..", modelId);
                 }
                 Thread.sleep(3000);
             }
-            
-            if (!foundInActivePath) {
-                classLogger.warn("Timeout waiting for model {} to appear in active path after {}ms", 
-                        modelId, timeoutMs);
-                return false;
-            }
-            
-            long healthCheckStart = System.currentTimeMillis();
-            long remainingTimeout = timeoutMs - (healthCheckStart - startTime);
-            
-            String clusterIp = getModelClusterIp(modelId);
-            if (clusterIp == null) {
-                classLogger.error("No cluster IP available for model {}", modelId);
-                return false;
-            }
-            
-            try {
-                long waitTime = Math.min(remainingTimeout, 1000000);
-                Thread.sleep(waitTime);
-                isHealthy = true;
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                classLogger.warn("Interrupted while waiting for model to become healthy");
-            }
-            
-            modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
-            return isHealthy;
-            
+            classLogger.warn("Timeout waiting for model {} to appear in active path after {}ms", 
+                    modelId, timeoutMs);
+            return false;
+
         } catch (Exception e) {
             classLogger.error("Error waiting for model {} to become active", modelId, e);
             return false;
@@ -642,14 +616,7 @@ public class RemoteClientServerZKRESTProxy implements IRemoteClientServer {
         return warmingModels;
     }
     
-    @Override
-    public Map<String, Object> canItRun(String hfModelId) throws Exception {
-        // Always assume it can run in dev mode i guess
-        Map<String, Object> result = new HashMap<>();
-        result.put("can_run", true);
-        result.put("message", "Development mode - assuming model can run");
-        
-        classLogger.info("Development mode: Assuming model {} can run", hfModelId);
-        return result;
-    }
+	public String getModelScalerIp() {
+		return System.getenv("KMS_INGRESS");
+	}
 }

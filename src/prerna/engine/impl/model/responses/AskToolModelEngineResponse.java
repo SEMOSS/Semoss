@@ -1,88 +1,168 @@
 package prerna.engine.impl.model.responses;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import org.json.JSONObject;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-public class AskToolModelEngineResponse extends AskModelEngineResponse<Map<String, Object>> {
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
+
+import prerna.util.Constants;
+
+public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<String, Object>>> {
+
+	private static final Logger classLogger = LogManager.getLogger(AskToolModelEngineResponse.class);
 
     private static final long serialVersionUID = 1L;
     private static final String ID_KEY = "id";
     private static final String NAME_KEY = "name";
+    private static final String TYPE_KEY = "type";
     private static final String ARGUMENTS_KEY = "arguments";
-    private static final String NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
-    private static final String NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
+    List<Map<String, Object>> toolResponse;
+    private List<ToolResponse> tools;
 
-    private String id;
-    private String name;
-    private Map<String, Object> arguments;
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-
-    public AskToolModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
+    /**
+     * 
+     * @param response
+     * @param numberOfTokensInPrompt
+     * @param numberOfTokensInResponse
+     */
+    public AskToolModelEngineResponse(List<Map<String, Object>> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
-        
-        if (response.containsKey(ID_KEY) && response.get(ID_KEY) instanceof String) {
-            this.id = (String) response.get(ID_KEY);
-        } else {
-            // Handle error or set default value
-            this.id = null;
-        }
-
-        if (response.containsKey(NAME_KEY) && response.get(NAME_KEY) instanceof String) {
-            this.name = (String) response.get(NAME_KEY);
-        } else {
-            // Handle error or set default value
-            this.name = null;
-        }
-
-        if (response.containsKey(ARGUMENTS_KEY) && response.get(ARGUMENTS_KEY) instanceof String) {
-            String argumentsJson = (String) response.get(ARGUMENTS_KEY);
-            try {
-                this.arguments = objectMapper.readValue(argumentsJson, Map.class);
-            } catch (Exception e) {
-                // Handle parsing error
-                this.arguments = null;
+        this.toolResponse=response;
+        this.tools = new ArrayList<>();
+        for(Map<String, Object> toolResponse : response) {
+        	String id = null;
+        	String type = null;
+        	String name = null;
+        	Map<String, Object> arguments = null;
+        	
+        	if (toolResponse.containsKey(ID_KEY) && toolResponse.get(ID_KEY) instanceof String) {
+                id = (String) toolResponse.get(ID_KEY);
             }
-        } else {
-            this.arguments = null;
+        	
+        	if (toolResponse.containsKey(TYPE_KEY) && toolResponse.get(TYPE_KEY) instanceof String) {
+                type = (String) toolResponse.get(TYPE_KEY);
+            }
+        	
+        	if (toolResponse.containsKey(NAME_KEY) && toolResponse.get(NAME_KEY) instanceof String) {
+                name = (String) toolResponse.get(NAME_KEY);
+            }
+        	
+        	if (toolResponse.containsKey(ARGUMENTS_KEY) && toolResponse.get(ARGUMENTS_KEY) instanceof String) {
+                String argumentsJson = (String) toolResponse.get(ARGUMENTS_KEY);
+                try {
+                	arguments = new GsonBuilder()
+                					.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+                					.disableHtmlEscaping
+                					().create
+                					().fromJson(argumentsJson, Map.class);
+                } catch (Exception e) {
+                	classLogger.error(Constants.STACKTRACE, e);
+                }
+            }
+        	
+        	ToolResponse tool = new ToolResponse(id, type, name, arguments);
+        	this.tools.add(tool);
         }
-        
+
         this.messageType = TOOL;
     }
-
-    public static AskToolModelEngineResponse fromMap(Map<String, Object> modelResponse) {
-        Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
-        Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
-        return new AskToolModelEngineResponse(modelResponse, tokensInPrompt, tokensInResponse);
+    
+    @Deprecated
+    public String getToolCallId() {
+        return this.tools.get(0).getId();
+    }
+    
+    @Deprecated
+    public String getToolCallArgumentsAsString() {
+    	Map<String, Object> arguments = this.tools.get(0).getArguments();
+    	if(arguments == null) {
+    		return "{}";
+    	}
+    	return new Gson().toJson(arguments);
     }
 
+    @Deprecated
+    public String getToolCallName() {
+    	return this.tools.get(0).getName();
+    }
+    
     @Override
     public String getStringResponse() {    
-        JSONObject jsonObject = new JSONObject(this.getResponse());
-        return jsonObject.toString();
+    	if(this.response != null) {
+    		return new Gson().toJson(this.response);
+    	}
+        return "[]";
     }
     
-    public String getToolCallId() {
-        return this.id;
-    }
+    /**
+     * 
+     * @return
+     */
+    public List<ToolResponse> getTools() {
+		return tools;
+	}
     
-    public String getToolCallArgumentsAsString() {
-        if (this.arguments != null) {
-            try {
-                return objectMapper.writeValueAsString(this.arguments);
-            } catch (JsonProcessingException e) {
-                // Handle the exception, maybe log it or return a default value
-                e.printStackTrace();
-                return "{}"; // or null, depending on your needs
-            }
+    /**
+     * 
+     * @return
+     */
+    public List<Map<String, Object>> getToolResponse() {
+		return toolResponse;
+	}
+    
+    /**
+     * 
+     */
+    public class ToolResponse {
+    	
+    	private String id;
+        private String type;
+        private String name;
+        private Map<String, Object> arguments;
+        
+        public ToolResponse(String id, String type, String name, Map<String, Object> arguments) {
+        	this.id= id;
+        	this.type = type;
+        	this.name = name;
+        	this.arguments = arguments;
         }
-        return "{}"; // or null, depending on your needs
-    }
-    
-    public String getToolCallName() {
-        return this.name;
+
+		public String getId() {
+			return id;
+		}
+
+		public String getName() {
+			return name;
+		}
+		
+		public String getType() {
+			return type;
+		}
+
+		public Map<String, Object> getArguments() {
+			return arguments;
+		}
+
+//		public void setId(String id) {
+//			this.id = id;
+//		}
+//		
+//		public void setName(String name) {
+//			this.name = name;
+//		}
+//		
+//		public void setType(String type) {
+//			this.type = type;
+//		}
+//		
+//		public void setArguments(Map<String, Object> arguments) {
+//			this.arguments = arguments;
+//		}
     }
 }

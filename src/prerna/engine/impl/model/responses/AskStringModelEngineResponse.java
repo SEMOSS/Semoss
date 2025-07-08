@@ -12,9 +12,10 @@ public class AskStringModelEngineResponse extends AskModelEngineResponse<String>
 
 	@Override
 	public String getStringResponse() {
-		// TODO Auto-generated method stub
 		return this.getResponse();
-	}	/**
+	}	
+	
+	/**
 	 * Creates an AskModelEngineResponse from a JSONObject returned by the KServe adapter
 	 * 
 	 * @param jsonResponse The JSONObject from makeModelRequest
