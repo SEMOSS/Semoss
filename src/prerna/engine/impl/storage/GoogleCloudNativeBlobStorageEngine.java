@@ -95,17 +95,37 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 	@Override
 	public List<String> list(String containerPrefix) throws Exception {
 		 List<String> fileList = new ArrayList<>();
+		 Set<String> folderSet = new HashSet<>();
 		 containerPrefix = Utility.normalizePath(containerPrefix);
 		 
 		   if (containerPrefix.startsWith("/")) {
 			   containerPrefix = containerPrefix.substring(1);
 		    }
-		    if (containerPrefix.endsWith("/")) {
-		    	containerPrefix = containerPrefix.substring(0, containerPrefix.length() - 1);
+		   if (!containerPrefix.isEmpty() && !containerPrefix.endsWith("/")) {
+		        containerPrefix += "/";
 		    }
-	        for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
-	            fileList.add(blob.getName());
-	        }
+
+		// List all blobs starting with prefix
+		    Page<Blob> blobs = this.bucket.list(Storage.BlobListOption.prefix(containerPrefix));
+
+		    for (Blob blob : blobs.iterateAll()) {
+		        String blobName = blob.getName();
+		        String relativePath = blobName.substring(containerPrefix.length());
+
+		        if (relativePath.isEmpty()) continue;
+
+		        if (!relativePath.contains("/")) {
+		            //Immediate file
+		            fileList.add(blobName);
+		        } else {
+		            //It's inside a subfolder — extract folder name only
+		            String folderName = relativePath.substring(0, relativePath.indexOf("/") + 1);
+		            if (folderSet.add(folderName)) {
+		                fileList.add(containerPrefix + folderName); // Add folder only once
+		            }
+		        }
+		    }
+
 	        return fileList;
 	}
 
