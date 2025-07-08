@@ -11,10 +11,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.ClientProcessWrapper;
+import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Settings;
@@ -32,7 +34,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 	protected File cacheFolder;
 	
 	protected ClientProcessWrapper cpw = null;
-	protected PyTranslator pyt = null;
+	protected PyTranslator pyTranslator = null;
 
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
@@ -114,8 +116,11 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		}
 		
 		// create the py translator
-		pyt = new PyTranslator();
-		pyt.setSocketClient(cpwToInit.getSocketClient());
+		PyTransporter pyTransporter = new PyTransporter();
+		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
+		pyTranslator = new PyTranslator();
+		pyTranslator.setInsight(new Insight());
+		pyTranslator.setPyTransporter(pyTransporter);
 		
 		try {
 			String execCommand = "import sys\n" 
@@ -136,7 +141,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 				}
 			}
 			
-			this.pyt.runScript(execCommand);
+			this.pyTranslator.runScript(execCommand);
 
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", execCommand));
@@ -182,7 +187,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 				 .append(PyUtils.determineStringType(parameterValues))
 				 .append(")");
 		
-		return pyt.runScript(callMaker.toString());
+		return pyTranslator.runScript(callMaker.toString());
 	}
 
 	@Override
