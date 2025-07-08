@@ -15,22 +15,15 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 
 /**
  * Concrete Py union class.
- *
  */
-
 public class PyUnion extends AbstractUnion {
 
 	private Logger logger;
 	private Map<String, String> colMappings;
 	private PyTranslator pyT;
 
-	public PyUnion() {
-
-	}
-
 	@Override
-	public ITableDataFrame performUnion(ITableDataFrame a, ITableDataFrame b, String unionType, Insight insight,
-			Logger logger) {
+	public ITableDataFrame performUnion(ITableDataFrame a, ITableDataFrame b, String unionType, Insight insight, Logger logger) {
 		List<String> aCols = getSemossCols(a.getQsHeaders());
 		List<String> bCols = getSemossCols(b.getQsHeaders());
 		checkPyBaseCases(a, b, aCols, bCols);
@@ -80,7 +73,7 @@ public class PyUnion extends AbstractUnion {
 					"Please make sure the variable " + varName + " exists and can be a valid data.table object");
 		}
 		PandasFrame frame = new PandasFrame(varName, pyTranslator);
-		pyTranslator.runPyAndReturnOutput(PandasSyntaxHelper.makeWrapper(frame.getWrapperName(), varName));
+		pyTranslator.runEmptyPy(PandasSyntaxHelper.makeWrapper(frame.getWrapperName(), varName));
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(frame.getMetaData(), colNames, colTypes, varName);
 		logger.info("Done.");
 		return frame;

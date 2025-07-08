@@ -77,5 +77,10 @@ public class KServeImageEngine extends AbstractRemoteModelEngine {
             return new AskImageModelEngineResponse(responseMap, 0, 0);
         }
 	}
+	
+	@Override
+	public ModelTypeEnum getModelType() {
+		return ModelTypeEnum.KSERVE_IMAGE;
+	}
 
 }
