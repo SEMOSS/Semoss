@@ -20,7 +20,8 @@ public abstract class AbstractMessage {
 	protected String messageId;
 	protected String transactionId;
 	protected String parentMessageId;
-
+	protected int tokens;
+	
     protected boolean visible = true;
 
 //	protected Map<String, Object> formattedMessage;
@@ -141,6 +142,14 @@ public abstract class AbstractMessage {
 		this.dateCreated=formattedDate;
 	}
 
+	
+	public int getTokensInMessage() {
+		return tokens;
+	}
+	
+	public void setTokensInMessage(int tokens) {
+		this.tokens=tokens;
+	}
 
 	
 
