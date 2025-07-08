@@ -138,6 +138,7 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("OWNER", "VARCHAR(255)"),
 				Pair.with("NAME", "VARCHAR(255)"),
 				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
+				Pair.with("SHARING_ENABLED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("SYSTEM_PROMPT", CLOB_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
