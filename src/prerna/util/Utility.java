@@ -45,6 +45,7 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -6163,6 +6164,26 @@ public final class Utility {
 		}
 		
 		return Boolean.parseBoolean(nonApprovedFlag);
+	}
+
+	public static JSONObject httpGetJson(String googledriveUrl, String accessToken) {
+		StringBuilder response = new StringBuilder();
+		try {
+			URL url = new URL(googledriveUrl);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+			BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			String inputLine;
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			in.close();
+			
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return new JSONObject(response.toString());
 	}
 
     } 

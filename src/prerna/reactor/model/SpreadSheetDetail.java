@@ -1,7 +1,7 @@
 package prerna.reactor.model;
 
 public class SpreadSheetDetail {
-
+	
 	private String createdAt;
 	private String name;
 	private String userId;
@@ -28,3 +28,4 @@ public class SpreadSheetDetail {
 		return "SpreadSheetDetail [createdAt=" + createdAt + ", name=" + name + ", userId=" + userId + "]";
 	}
 }
+

@@ -39,8 +39,8 @@ public class GetGoogleProfileReactor extends AbstractReactor{
 				ResultSet rs = (ResultSet) string;
 				while (rs.next()) {
 					SpreadSheetDetail sheetDetail=new SpreadSheetDetail();
-					sheetDetail.setCreatedAt(rs.getString("created_at"));
-					sheetDetail.setUserId(rs.getString("user_id"));
+					sheetDetail.setCreatedAt(rs.getString("datecreated"));
+					sheetDetail.setUserId(rs.getString("userid"));
 					sheetDetail.setName(rs.getString("name"));
 					resultList.add(sheetDetail);
 				}

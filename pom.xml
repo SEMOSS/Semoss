@@ -2605,6 +2605,38 @@
 			<version>1.3.0</version>
 			<scope>test</scope>
 		</dependency>
+		
+		<dependency>
+		<groupId>com.google.apis</groupId>
+		<artifactId>google-api-services-sheets</artifactId>
+		<version>v4-rev581-1.25.0</version>
+		</dependency>
+		
+		<dependency>
+		<groupId>com.google.apis</groupId>
+		<artifactId>google-api-services-drive</artifactId>
+		<version>v3-rev136-1.25.0</version>
+		</dependency>
+		
+		<dependency>
+		<groupId>com.google.oauth-client</groupId>
+		<artifactId>google-oauth-client</artifactId>
+		<version>1.25.0</version>
+		</dependency>
+		
+		
+		
+		<dependency>
+    	<groupId>com.google.http-client</groupId>
+    	<artifactId>google-http-client-jackson2</artifactId>
+    	<version>1.47.0</version>
+		</dependency>
+
+		<dependency>
+    	<groupId>com.google.api-client</groupId>
+    	<artifactId>google-api-client</artifactId>
+    	<version>1.24.1</version>
+		</dependency>
 
 
 		<!--  please add jars above and not within the testing block -->
