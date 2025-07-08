@@ -53,11 +53,10 @@ public class EnginePyReactor extends AbstractReactor  {
 		AbstractPythonModelEngine engine = (AbstractPythonModelEngine) rawEngine;
 		
 		PyTranslator enginePyTranslator = null;
-		String output = null;
-		
+		Object output = null;
 		try {
 			enginePyTranslator = engine.getEnginePyTranslator();
-			output = enginePyTranslator.runSingle(code);
+			output = enginePyTranslator.runScript(code);
 		} catch (IllegalArgumentException e) {
 			classLogger.warn("Invalid argument when getting PyTranslator for engine {}: {}", engineId, e.getMessage());
 			throw e;
@@ -76,7 +75,7 @@ public class EnginePyReactor extends AbstractReactor  {
 		}
 		
 		List<NounMetadata> outputs = new ArrayList<>(1);
-		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
+		outputs.add(new NounMetadata(output+"", PixelDataType.CONST_STRING));
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 	}
 }

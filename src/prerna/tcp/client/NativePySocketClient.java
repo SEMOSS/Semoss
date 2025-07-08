@@ -489,10 +489,16 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		classLogger.debug("Exposing log to insightId = '" + insightId + "' with data = " + data);
 		if(insightId != null && data != null) {
 			Insight insight = InsightStore.getInstance().get(insightId);
-			NounMetadata jobNoun = insight.getVarStore().get(JobReactor.JOB_KEY);
-			if(jobNoun != null) {
-				String jobId = (String) jobNoun.getValue();
-				PixelJobManager.getManager().addStdOut(jobId, data);
+			if(insight != null) {
+				NounMetadata jobNoun = insight.getVarStore().get(JobReactor.JOB_KEY);
+				if(jobNoun != null) {
+					String jobId = (String) jobNoun.getValue();
+					PixelJobManager.getManager().addStdOut(jobId, data);
+				}
+			} else {
+				// 2025-07-08
+				// currently insights for the model py translator is not in store
+				classLogger.debug("InsightId = '" + insightId + "' is not in insight store");
 			}
 		}
 	}
