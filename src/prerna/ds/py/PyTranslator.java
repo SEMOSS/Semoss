@@ -172,5 +172,25 @@ public class PyTranslator {
 	public Object runSmssWrapperEval(String script) {
 		return this.pyTransporter.transportScript(this.insight, script);
 	}
+	
+	@Deprecated
+	/**
+	 * Switch to runScript
+	 * @param script
+	 * @return
+	 */
+	public String runPyAndReturnOutput(String... script) {
+		return this.pyTransporter.executePyWithDefualtVars(this.insight, script) + "";
+	}
+	
+	@Deprecated
+	/**
+	 * Switch to runScript
+	 * @param script
+	 * @return
+	 */
+	public String runSingle(String... script) {
+		return this.pyTransporter.executePyWithDefualtVars(this.insight, script) + "";
+	}
 
 }
