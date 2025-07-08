@@ -155,10 +155,11 @@ public class MessageUtils {
 
 	// ---- Image copy utilities (unchanged) ----
 
-	public static void copyFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
+	public static List<String> copyFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
+		List<String> roomFilePaths = new ArrayList<>();
 		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
 			logger.info("No file paths provided to copy.");
-			return;
+			return roomFilePaths;
 		}
 		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
 		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
@@ -167,7 +168,7 @@ public class MessageUtils {
 			Files.createDirectories(targetDir);
 		} catch (IOException e) {
 			logger.warn("Failed to create room folder: " + targetDir, e);
-			return;
+			return roomFilePaths;
 		}
 		for (String relPath : relativePathToFiles) {
 			File srcFile = new File(insightFolder, relPath);
@@ -182,6 +183,8 @@ public class MessageUtils {
 			} catch (IOException e) {
 				logger.warn("Failed to copy file: " + srcFile.getAbsolutePath() + " to " + destination, e);
 			}
+			roomFilePaths.add(destination.toString());
 		}
+		return roomFilePaths;
 	}
 }

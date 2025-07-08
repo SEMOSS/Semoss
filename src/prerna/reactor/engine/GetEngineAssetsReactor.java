@@ -50,7 +50,10 @@ public class GetEngineAssetsReactor extends AbstractReactor {
 		if (filePath == null || (filePath=filePath.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must pass a filePath for the file to retrieve");
         }
-		
+		filePath = filePath.replace("\\", "/");
+		if(!filePath.startsWith("/")) {
+			filePath = "/" + filePath;
+		}
 		String assetFolder = EngineUtility.getSpecificEngineBaseFolder(engineId);
 
 		String output = null;

@@ -100,7 +100,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		this.indexClasses.add(indexClass);
 		//TODO: do we really need base path for this?
 		String basePath = this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR;
-		this.pyt.runScript(this.vectorDatabaseSearcher + ".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+ basePath +"')");
+		this.pyTranslator.runScript(this.vectorDatabaseSearcher + ".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+ basePath +"')");
 	}
 	
 	@Override
@@ -256,7 +256,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String script = addDocumentPyCommand.toString();
 		
 		classLogger.info("Running >>>" + script);
-		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyt.runSmssWrapperEval(script, insight);
+		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyTranslator.transportScript(script);
 
 		if (ClusterUtil.IS_CLUSTER) {
 			// this should already be handled, but just in case...
@@ -274,7 +274,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 							 .append(indexClass)
 							 .append("']")
 							 .append(".datasetsLoaded()");
-		boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
+		boolean datasetsLoaded = (boolean) pyTranslator.transportScript(checkForEmptyDatabase.toString());
 	}
 	
 	@Override
@@ -410,7 +410,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to delete remove the index class folder");
 			}
-			this.pyt.runScript(this.vectorDatabaseSearcher + ".delete_searcher(searcher_name = '"+indexClass+"')");
+			this.pyTranslator.runScript(this.vectorDatabaseSearcher + ".delete_searcher(searcher_name = '"+indexClass+"')");
 			this.indexClasses.remove(indexClass);
 		} else {
 			// Regenerate the master "dataset.pkl" and "vectors.pkl" files
@@ -425,7 +425,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	        String script = updateMasterFilesCommand.toString();
 	        classLogger.info("Running >>>" + script);
-	        this.pyt.runScript(script);
+	        this.pyTranslator.runScript(script);
 		}
 		
 		if (ClusterUtil.IS_CLUSTER) {
@@ -569,9 +569,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// close the method
  		callMaker.append(")");
  		classLogger.info("Running >>> " + callMaker.toString());
-		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		
-		return (List<Map<String, Object>>) output;
+ 		List<Map<String, Object>> output = (List<Map<String, Object>>) pyTranslator.transportScript(callMaker.toString());
+		return output;
 	}
 	
 	/**
@@ -604,7 +603,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					   .append("')");
 		
 		@SuppressWarnings("unchecked")
-		Map<String, String> corruptedFilesToReason = (Map<String, String>) this.pyt.runScript(executionScript.toString());
+		Map<String, String> corruptedFilesToReason = (Map<String, String>) this.pyTranslator.transportScript(executionScript.toString());
 		
 		if (ClusterUtil.IS_CLUSTER) {
 			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), corruptedFilesToReason.keySet().stream().toArray(String[]::new)));
@@ -634,7 +633,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				.append(indexClass)
 				.append("') else []");
 		
-		List<String> sources = (List<String>) pyt.runSmssWrapperEval(listDocumentsCommand.toString(), null);
+		List<String> sources = (List<String>) pyTranslator.transportScript(listDocumentsCommand.toString());
 		
 		List<Map<String, Object>> fileList = new ArrayList<>();
 		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
@@ -668,7 +667,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		getAllRecordsCommand.append(this.vectorDatabaseSearcher)
 				.append(".list_all_records()");
 		
-		List<Map<String, Object>> allRecords = (List<Map<String, Object>>) pyt.runSmssWrapperEval(getAllRecordsCommand.toString(), null);
+		List<Map<String, Object>> allRecords = (List<Map<String, Object>>) pyTranslator.transportScript(getAllRecordsCommand.toString());
 		return allRecords;
 	}
 	
