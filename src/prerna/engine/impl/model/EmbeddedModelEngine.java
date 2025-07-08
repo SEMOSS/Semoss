@@ -28,7 +28,7 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 		}
 		callMaker.append(")");
 		
-		List<String> output = (List<String>) pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		List<String> output = (List<String>) pyTranslator.transportScript(callMaker.toString());
 		return output;
 	}
 	

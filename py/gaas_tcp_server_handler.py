@@ -450,7 +450,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
             # If this is a python payload
             elif payload["operation"] == "PYTHON":
-                self.handle_python(command)
+                insight_id = payload.get("insightId")
+                self.handle_python(command, insight_id)
             # this is when it is a response
             elif payload["response"]:
                 self.handle_response()
@@ -692,7 +693,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             condition.notifyAll()
             condition.release()
 
-    def handle_python(self, command):
+    def handle_python(self, command: str, insight_id: str):
+        """
+        Execute python code within the proper globals object
+
+        Args:
+            command (`str`): The python code to execute
+            insight_id (`str`): The insight id / global store to execute with
+        """
         is_exception = False
         # print(f"Executing command {command.encode('utf-8')}")
 
@@ -700,16 +708,19 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # set the payload coming in
         self.console.set_payload(payload=payload)
 
+        store = InsightGlobalStore()
+        insight_globals = store.get_insight_globals(insight_id)
+
         output = None
         with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(
             self.console
         ):
             if command.endswith(".py") or command.startswith("smssutil"):
                 try:
-                    output = eval(command, globals())
+                    output = eval(command, insight_globals)
                 except Exception as e:
                     try:
-                        output = exec(command, globals())
+                        output = exec(command, insight_globals)
                     except Exception as e:
                         is_exception = True
                         output = str(e)
@@ -717,9 +728,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # all new
             else:
                 # same trick - try to eval if it fails run as exec
-                globals()["core_server"] = self
+                insight_globals["core_server"] = self
 
-                output, is_exception = self.execute_and_capture(command)
+                output, is_exception = self.execute_and_capture(
+                    command, insight_globals
+                )
 
             self.send_output(
                 output if type(output) is not type(None) else '""',
@@ -728,7 +741,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 exception=is_exception,
             )
 
-    def execute_and_capture(self, code) -> Tuple[str, bool]:
+    def execute_and_capture(self, code: str, insight_globals: dict) -> Tuple[str, bool]:
         """
         Mimics a Python Jupyter kernel for executing a code block. The intended purpose of this method is to try capture the final line output
 
@@ -736,6 +749,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         Args:
             code (`str`): The Python code to be executed.
+            insight_globals (`dict`): The globals dict to execute with.
 
         Returns:
             `Tuple[str, bool]`: A tuple containing the output of the last expression in the code input and a boolean if it was successfully able to execute the code.
@@ -788,13 +802,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # if we can eval then we will do that and return the result
             try:
                 if can_eval:
-                    return eval(ast.unparse(last_expression), globals()), False
+                    return eval(ast.unparse(last_expression), insight_globals), False
                 else:
-                    exec(ast.unparse(last_expression), globals())
+                    exec(ast.unparse(last_expression), insight_globals)
                     return '""', False
             except:
                 # couldn't eval / exec ... just try to run everything
-                exec(code, globals())
+                exec(code, insight_globals)
                 return '""', False
         except Exception as e:
             # if we fail all attempts then send back the traceback
@@ -1035,6 +1049,43 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         )
         output = proc.stdout.read().decode("utf-8")
         return output
+
+
+class InsightGlobalStore:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.insight_globals = {}
+        return cls._instance
+
+    def get_insight_globals(self, insight_id: str) -> dict:
+        if not insight_id:
+            return {}
+
+        if insight_id not in self.insight_globals:
+            # First-time initialization: build the globals dict
+            globals_dict = {
+                "string": string,
+                "np": np,
+                "pd": pd,
+                "random": random,
+                "datetime": datetime,
+                "json": json,
+                "jsonpickle": jp,
+                "math": math,
+                "PyFrame": PyFrame,
+                "smssutil": smssutil,
+            }
+            self.insight_globals[insight_id] = globals_dict
+
+        return self.insight_globals[insight_id]
+
+    def set_insight_globals(self, insight_id: str, this_insight_globals: dict):
+        if not insight_id:
+            return
+        self.insight_globals[insight_id] = this_insight_globals
 
 
 if __name__ == "__main__":

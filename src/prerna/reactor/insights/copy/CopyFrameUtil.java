@@ -58,11 +58,10 @@ public class CopyFrameUtil {
 			// we will also account for names to be new
 
 			if(frameToCopy instanceof PandasFrame) {
-				newFrame = new PandasFrame(newName);
+				newFrame = new PandasFrame(newName, insightContext.getPyTranslator());
 				// set the metadata
 				newFrame.setMetaData(newMetadata);
 				PandasFrame dt = (PandasFrame) newFrame;
-				dt.setTranslator( insightContext.getPyTranslator() );
 				if(limit > 0) {
 					dt.runScript(newName + " = " + oldName + "[:" + limit + "].copy(deep=True)");
 				} else {
