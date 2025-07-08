@@ -6,6 +6,7 @@ import org.json.JSONObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.responses.AskTTSModelEngineResponse;
 import prerna.om.Insight;
 
@@ -65,5 +66,10 @@ public class KServeTTSEngine extends AbstractRemoteModelEngine {
 			errorResponse.put("message", "Error processing TTS request: " + e.getMessage());
 			return new AskTTSModelEngineResponse(errorResponse, 0, 0);
 		}
+	}
+	
+	@Override
+	public ModelTypeEnum getModelType() {
+		return ModelTypeEnum.KSERVE_TTS;
 	}
 }
