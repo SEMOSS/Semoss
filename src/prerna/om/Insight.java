@@ -73,7 +73,6 @@ import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.reactor.insights.SetInsightConfigReactor;
-import prerna.reactor.job.JobReactor;
 import prerna.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
@@ -154,7 +153,6 @@ public class Insight implements Serializable {
 	// we will keep a central rJavaTranslator for the entire insight
 	// that can be referenced through all the reactors
 	// since reactors have access to insight
-	protected String tupleSpace = null;
 	private transient AbstractRJavaTranslator rJavaTranslator; // need a way keep the environment name so it is communicated
 	private transient PyTranslator pyTranslator;
 
@@ -175,6 +173,10 @@ public class Insight implements Serializable {
 
 	private transient boolean deleteFilesOnDropInsight = true;
 	private transient boolean deleteREnvOnDropInsight = true;
+	
+	//TODO: rename to delete python globals
+	//TODO: rename to delete python globals
+	//TODO: rename to delete python globals
 	private transient boolean deletePythonTupleOnDropInsight = true;
 
 	private transient boolean isTemporaryInsight = false;
@@ -312,6 +314,11 @@ public class Insight implements Serializable {
 	}
 	
 	public PixelRunner runPixel(PixelRunner runner, List<String> pixelList) {
+		String jobId = ThreadStore.getJobId();
+		if(jobId == null) {
+			logger.warn("The job id is null. Defaulting to insight id");
+			jobId = this.insightId;
+		}
 		int size = pixelList.size();
 		if(size == 0) {
 			// set the insight in the runner as it is used
@@ -326,7 +333,7 @@ public class Insight implements Serializable {
 					logger.info("No User Running >>> " + Utility.cleanLogString(pixelString));
 				}
 				try {
-					runner.runPixel(pixelString, this);
+					runner.runPixel(pixelString, jobId, this);
 				} catch(SemossPixelException e) {
 					logger.error(Constants.ERROR_MESSAGE, e);
 					if(!e.isContinueThreadOfExecution()) {
@@ -456,11 +463,6 @@ public class Insight implements Serializable {
 			// account for unsaved insights vs. saved insights
 			if(!isSavedInsight()) {
 				String sessionId = ThreadStore.getSessionId();
-				if(sessionId == null && 
-					(this.varStore != null && this.varStore.get(JobReactor.SESSION_KEY) != null) )
-						{
-							sessionId = (String) this.varStore.get(JobReactor.SESSION_KEY).getValue();
-						}
 				sessionId = InsightUtility.getFolderDirSessionId(sessionId);
 				this.insightFolder = Utility.getInsightCacheDir() + DIR_SEPARATOR + sessionId 
 						+ DIR_SEPARATOR + this.insightId;
@@ -1114,13 +1116,6 @@ public class Insight implements Serializable {
 			
 			Map<String, NounMetadata> currentParameters = this.varStore.pullParameters();
 			Map<String, NounMetadata> preAppliedParameters = this.varStore.pullPreAppliedParameters();
-			Map<String, NounMetadata> defaultVars = new HashMap<>();
-			String[] keys = new String[]{JobReactor.JOB_KEY, JobReactor.SESSION_KEY, JobReactor.INSIGHT_KEY, JobReactor.ROUTE_KEY};
-			for(String key : keys) {
-				if(this.varStore.containsKey(key)) {
-					defaultVars.put(key, this.varStore.get(key));
-				}
-			}
 			
 			// always add the insight config
 			boolean hasInsightConfig = false;
@@ -1173,11 +1168,6 @@ public class Insight implements Serializable {
 			// so that we can set the value inside of them
 			for(String paramKey : preAppliedParameters.keySet()) {
 				this.varStore.put(paramKey, preAppliedParameters.get(paramKey));
-			}
-			
-			// add back the default vars
-			for(String paramKey : defaultVars.keySet()) {
-				this.varStore.put(paramKey, defaultVars.get(paramKey));
 			}
 			
 			// execution
@@ -1452,14 +1442,6 @@ public class Insight implements Serializable {
 		return count;
 	}
 	
-	public String getTupleSpace() {
-		return this.tupleSpace;
-	}
-	
-	public void setTupleSpace(String tupleSpace) {
-		this.tupleSpace = tupleSpace;
-	}
-	
 	public void setBaseURL(String baseURL) {
 		this.baseURL = baseURL;
 	}
@@ -1612,23 +1594,6 @@ public class Insight implements Serializable {
 		return this.pyTranslator;
 	}
 	
-	/**
-	 * 
-	 */
-	public void dropPythonTupleSpace() {
-		if(this.tupleSpace != null && nc == null) {
-			try {
-				File closer = new File(tupleSpace + "/alldone.closeall");
-				closer.createNewFile();
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
-		if(this.nc != null) {
-			//nc.disconnect();
-		}
-	}
-
 	///////////////////////////////////////// END PYTHON SPECIFIC METHODS ///////////////////////////////////////////
 
 	public ChromeDriverUtility getChromeDriver() {

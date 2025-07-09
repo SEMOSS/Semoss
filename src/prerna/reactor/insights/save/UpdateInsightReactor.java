@@ -131,7 +131,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			if(recipeEncoded()) {
 				recipeToSave = decodeRecipe(recipeToSave);
 			}
-			queriedDatabaseIds = PixelUtility.getDatabaseIds(user, recipeToSave);
+			queriedDatabaseIds = PixelUtility.getDatabaseIds(user, recipeToSave, this.jobId);
 		}
 		
 		IProject project = Utility.getProject(projectId);
@@ -191,7 +191,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		ZonedDateTime cachedOn = null;
 		
 		if(params != null && !params.isEmpty()) {
-			recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params, insightName);
+			recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params, insightName, this.jobId);
 		}
 		
 		// to append preApplied parameters to the save recipe

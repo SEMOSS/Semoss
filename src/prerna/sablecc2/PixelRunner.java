@@ -68,13 +68,13 @@ public class PixelRunner extends Thread {
 	protected List<String> encodingList = new ArrayList<>();
 	protected Map<String, String> encodedTextToOriginal = new HashMap<>();
 	
-	public void runPixel(String expression, Insight insight) {
+	public void runPixel(String expression, String jobId, Insight insight) {
 		this.insight = insight;
 		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodingList, this.encodedTextToOriginal);
 		
 		try {
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
-			translation = new GreedyTranslation(this, insight);
+			translation = new GreedyTranslation(this, insight, jobId);
 
 			// parsing the pixel - this process also determines if expression is syntactically correct
 			Start tree = p.parse();

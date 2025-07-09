@@ -27,6 +27,7 @@ import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
@@ -136,6 +137,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageMethod*/"ask", 
 					/*engine*/this, 
 					/*insight*/insight,
+					/*sessionId*/ThreadStore.getSessionId(),
 					/*context*/context, 
 					/*prompt*/question,
 					/*fullPrompt*/fullPrompt,
@@ -188,7 +190,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageId*/messageId, 
 					/*messageMethod*/"instruct", 
 					/*engine*/this, 
-					/*insight*/insight, 
+					/*insight*/insight,
+					/*sessionId*/ThreadStore.getSessionId(),
 					/*context*/context,
 					/*prompt*/null,
 					/*fullPrompt*/task,
@@ -232,7 +235,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageId*/messageId, 
 					/*messageMethod*/"embeddings", 
 					/*engine*/this, 
-					/*insight*/insight, 
+					/*insight*/insight,
+					/*sessionId*/ThreadStore.getSessionId(),
 					/*context*/null,
 					/*prompt*/null,
 					/*fullPrompt*/stringsToEmbed,
@@ -276,6 +280,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageMethod*/"embeddings", 
 					/*engine*/this, 
 					/*insight*/insight, 
+					/*sessionId*/ThreadStore.getSessionId(),
 					/*context*/null,
 					/*prompt*/null,
 					/*fullPrompt*/imagesToEmbed,

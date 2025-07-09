@@ -26,8 +26,8 @@ public class JsonTranslation extends LazyJsonTranslation {
 	boolean validate = true;
 	Object finalOutput = null;
 
-	public JsonTranslation(PixelRunner runner, Insight insight) {
-		super(insight);
+	public JsonTranslation(PixelRunner runner, Insight insight, String jobId) {
+		super(insight, jobId);
 		if(insight.getDataMaker() != null) {
 			this.planner.addProperty("FRAME", "FRAME", insight.getDataMaker());
 		}
