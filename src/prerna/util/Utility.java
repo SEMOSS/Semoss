@@ -5826,6 +5826,8 @@ public final class Utility {
 		options.add("-cp");
 		options.add(classpath);
 		options.add("-proc:none");
+		
+		options.add("-g:source,lines,vars");
 
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
