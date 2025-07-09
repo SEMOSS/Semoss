@@ -4,11 +4,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ICodeExecution;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.om.Pixel;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.reactor.AssignmentReactor;
 import prerna.reactor.Assimilator;
@@ -25,22 +30,81 @@ import prerna.reactor.qs.source.FileReadReactor;
 import prerna.reactor.qs.source.FrameReactor;
 import prerna.reactor.utils.RemoveVariableReactor;
 import prerna.sablecc2.node.AIdWordOrId;
+import prerna.sablecc2.node.AMetaRoutine;
 import prerna.sablecc2.node.AOperation;
+import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.POtherOpInput;
+import prerna.sablecc2.node.PRoutine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.util.Constants;
+import prerna.util.insight.InsightUtility;
 
 public class GreedyTranslation extends LazyTranslation {
+
+	private static final Logger classLogger = LogManager.getLogger(GreedyTranslation.class);
 
 	protected PixelRunner runner;
 
 	public GreedyTranslation(PixelRunner runner, Insight insight) {
 		super(insight);
 		this.runner = runner;
+	}
+	
+	@Override
+	public void caseARoutineConfiguration(ARoutineConfiguration node) {
+        List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
+        int size = copy.size();
+        for(int pixelstep = 0; pixelstep < size; pixelstep++)
+        {
+        	if(!this.runner.isInterrupted()) {
+        		PRoutine e = copy.get(pixelstep);
+            	try {
+            		// we will start to keep track of some metadata
+            		// at the start of each pixel being processed
+            		this.resultKey = "$RESULT_" + e.hashCode();
+            		this.pixelObj = new Pixel("tempStorage", e.toString());
+            		if(isTimeTracking) {
+            			this.pixelObj.startTime();
+            		}
+            		// if not META, store the starting frame headers
+            		if(!(e instanceof AMetaRoutine)) {
+                		this.pixelObj.setStartingFrameHeaders(InsightUtility.getAllFrameHeaders(this.planner.getVarStore()));
+            		}
+            		
+            		// actually run the operation
+            		e.apply(this);
+            		// reset the state of the frame
+            		this.currentFrame = null;
+            	} catch(SemossPixelException ex) {
+            		trackError(e.toString(), this.pixelObj.isMeta(), ex);
+            		classLogger.error(Constants.STACKTRACE, ex);
+            		// if we want to continue the thread of execution
+            		// nothing special
+            		// just add the error to the return
+            		if(ex.isContinueThreadOfExecution()) {
+            			planner.addVariable(this.resultKey, ex.getNoun());
+                		postProcess(e.toString().trim());
+            		} else {
+            			// if we do want to stop
+            			// propagate the error up and the PixelRunner
+            			// will handle grabbing the meta and returning it to the FE
+            			postRuntimeErrorProcess(e.toString(), ex.getNoun(), 
+            					copy.subList(pixelstep+1, size).stream().map(p -> p.toString()).collect(Collectors.toList()));
+            			throw ex;
+            		}
+            	} catch(Exception ex) {
+            		trackError(e.toString(), this.pixelObj.isMeta(), ex);
+            		classLogger.error(Constants.STACKTRACE, ex);
+            		planner.addVariable(this.resultKey, new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
+            		postProcess(e.toString().trim());
+            	}
+    		}
+        }
 	}
 	
     /**

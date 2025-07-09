@@ -25,7 +25,7 @@ public class JobReactor extends AbstractReactor {
 				ReactorKeysEnum.ID.getKey(), 
 				ReactorKeysEnum.SESSION_ID.getKey(),
 				ReactorKeysEnum.ROUTE_ID.getKey()
-				};
+			};
 	}
 	
 	@Override

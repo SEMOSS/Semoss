@@ -330,12 +330,10 @@ public class PyTransporter {
 	 * @return
 	 */
 	private PayloadStruct constructPayload(String methodName, Object...objects ) {
-		// go through the objects and if they are set to null then make them as string null
 		PayloadStruct ps = new PayloadStruct();
 		ps.operation = PayloadStruct.OPERATION.PYTHON;
 		ps.methodName = methodName;
 		ps.payload = objects;
-		
 		return ps;
 	}	
 
