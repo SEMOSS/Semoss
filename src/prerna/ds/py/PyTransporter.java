@@ -304,14 +304,10 @@ public class PyTransporter {
 		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 
 		PayloadStruct ps = constructPayload(methodName, script);
-		ps.operation = PayloadStruct.OPERATION.PYTHON;
 		ps.payloadClasses = new Class[] {String.class};
 		ps.longRunning = true;
-		
-		// get error messages
-		if(insight != null) {
-			ps.insightId = insight.getInsightId();
-		}
+		// we always need an insight
+		ps.insightId = insight.getInsightId();
 
 		if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
