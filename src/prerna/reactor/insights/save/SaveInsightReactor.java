@@ -161,7 +161,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			if(recipeEncoded()) {
 				recipeToSave = decodeRecipe(recipeToSave);
 			}
-			queriedDatabaseIds = PixelUtility.getDatabaseIds(user, recipeToSave);
+			queriedDatabaseIds = PixelUtility.getDatabaseIds(user, recipeToSave, this.jobId);
 		}
 		
 		IProject project = Utility.getProject(projectId);
@@ -191,7 +191,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		if(params != null && !params.isEmpty()) {
 			try {
-				recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params, insightName);
+				recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params, insightName, this.jobId);
 			} catch(Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("An error occurred trying to parameterize the insight recipe. The source error message is: " + e.getMessage(), e);
