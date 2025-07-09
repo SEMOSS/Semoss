@@ -78,7 +78,7 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 //					output = pyTranslator.runScript(code, this.insight) + "";
 //				}
 //				else
-					output = pyTranslator.runSingle(code, this.insight) + "";
+					output = pyTranslator.runScript(code) + "";
 					execNoun = new NounMetadata(output, PixelDataType.CONST_STRING);
 			} 
 			/*else {

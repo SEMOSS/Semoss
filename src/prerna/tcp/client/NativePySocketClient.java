@@ -40,6 +40,7 @@ import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.TCPLogMessage;
 import prerna.tcp.client.workers.NativePyEngineWorker;
@@ -485,10 +486,20 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	// this is the method that pushes to the front end
 	// when output happens
 	private void exposeLog(String data, String insightId) {
+		classLogger.debug("Exposing log to insightId = '" + insightId + "' with data = " + data);
 		if(insightId != null && data != null) {
 			Insight insight = InsightStore.getInstance().get(insightId);
-			String jobId =  insight.getVarStore().get(JobReactor.JOB_KEY).getValue().toString();
-			PixelJobManager.getManager().addStdOut(jobId, data);
+			if(insight != null) {
+				NounMetadata jobNoun = insight.getVarStore().get(JobReactor.JOB_KEY);
+				if(jobNoun != null) {
+					String jobId = (String) jobNoun.getValue();
+					PixelJobManager.getManager().addStdOut(jobId, data);
+				}
+			} else {
+				// 2025-07-08
+				// currently insights for the model py translator is not in store
+				classLogger.debug("InsightId = '" + insightId + "' is not in insight store");
+			}
 		}
 	}
 

@@ -36,6 +36,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
@@ -98,10 +99,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private String defaultIndexClass;
 	private	List<String> indexClasses;
 
-	// python server
-	private PyTranslator pyt = null;
-	private File pyDirectoryBasePath;
 	private ClientProcessWrapper cpw = null;
+	// python server
+	private PyTranslator pyTranslator = null;
+	private File pyDirectoryBasePath;
 	
 	private boolean modelPropsLoaded = false;
 	
@@ -861,8 +862,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 
 		// create the py translator
-		pyt = new PyTranslator();
-		pyt.setSocketClient(cpwToInit.getSocketClient());
+		PyTransporter pyTransporter = new PyTransporter();
+		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
+		pyTranslator = new PyTranslator();
+		pyTranslator.setInsight(new Insight());
+		pyTranslator.setPyTransporter(pyTransporter);
 		
 		try {
 			String[] commands = getServerStartCommands();
@@ -872,7 +876,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				String resolvedString = substitutor.replace(commands[commandIndex]);
 				commands[commandIndex] = resolvedString;
 			}
-			pyt.runEmptyPy(commands);
+			pyTranslator.runEmptyPy(commands);
 			
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
@@ -1068,7 +1072,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 							.append(chunkingStrategy)
 							.append(", cfg_tokenizer = cfg_tokenizer)");
 						
-						pyt.runScript(splitTextCommand.toString());
+						pyTranslator.runScript(splitTextCommand.toString());
 					}
 
 					// add it to the list of files that need to be pushed to the cloud in a new thread
