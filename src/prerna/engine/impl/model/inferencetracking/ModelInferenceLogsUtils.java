@@ -891,38 +891,6 @@ public class ModelInferenceLogsUtils {
 	  
 	   doCreateNewConversation(insightId,insightId, roomName, roomContext, userId, userName, userEmail, agentType, agentId, isActive, projectId, projectName, null);
   }
-
-  /**
-   * @param insightId
-   * @param roomName
-   * @param roomContext
-   * @param userId
-   * @param userName
-   * @param userEmail
-   * @param agentType
-   * @param agentId
-   * @param isActive
-   * @param projectId
-   * @param projectName
-   * @param options
-   */
-  public static void doCreateNewConversation(
-      String insightId,
-      String roomName,
-      String roomContext,
-      String userId,
-      String userName,
-      String userEmail,
-      String agentType,
-      String agentId,
-      Boolean isActive,
-      String projectId,
-      String projectName,
-      Map<String, Object> options) {
-	  
-	   doCreateNewConversation(insightId,insightId, roomName, roomContext, userId, userName, userEmail, agentType, agentId, isActive, projectId, projectName, options);
-  }
-	  
    
   
   /**

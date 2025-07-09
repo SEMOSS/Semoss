@@ -98,6 +98,7 @@ public class RoomUtils {
             String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : "untitled";
             ModelInferenceLogsUtils.doCreateNewConversation(
                     roomId,
+                    insight.getInsightId(),
                     roomName,
                     null,
                     userToken.getId(),
