@@ -20,14 +20,9 @@ import javax.ws.rs.core.StreamingOutput;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
-import io.burt.jmespath.Expression;
-import io.burt.jmespath.JmesPath;
-import io.burt.jmespath.jackson.JacksonRuntime;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.reactor.job.JobReactor;
@@ -300,21 +295,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						            PixelRunner pixelRunner = insight.runPixel(pixelOp);
 						            StreamingOutput streamedOutput = PixelStreamUtility.collectPixelData(pixelRunner, null);
 						            streamedOutput.write(output);
-						            //checks oprationType 
-						            String jsonOutputString = new String(output.toByteArray(),"UTF-8");
-						            ObjectMapper mapper = new ObjectMapper();
-						            JsonNode jsonNode = mapper.readTree(jsonOutputString);
-						            
-						            //JMESPath to check for any ERROR in operationType
-						            JmesPath<JsonNode> jmespath = new JacksonRuntime();
-						            Expression<JsonNode> expression = jmespath.compile("length(pixelReturn[?contains(operationType, 'ERROR')]) > `0`");
-						            JsonNode result = expression.search(jsonNode);
-
-						            if(result.asBoolean()) {
-						            	throw new IllegalArgumentException("Pixel execution returned ERROR operationType");
-						            }
-						            
-						            JsonElement json = JsonParser.parseString(jsonOutputString);
+						            JsonElement json = JsonParser.parseString(new String(output.toByteArray(),"UTF-8"));
 						            finalPs.payload = new Object[] {json};
 						            finalPs.response = true;
 						            executeCommand(finalPs);
