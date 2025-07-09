@@ -61,7 +61,7 @@ public class SentimentFunctionEngine extends AbstractReactorFunctionEngine {
 		inputs.append("]");
 		
 		StringBuilder cmd = new StringBuilder(varName).append(".execute(input_arr=" + inputs + ")");
-		List output = (List) pyTranslator.transportScript(cmd.toString());
+		List output = (List) pyTranslator.runDirectPy(cmd.toString());
 		
 		// tbd implement filtering based on values
 		float minValue = -1;
