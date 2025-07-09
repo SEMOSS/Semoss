@@ -41,10 +41,9 @@ public class ExecuteTempPythonFunctionEngineReactor extends AbstractEngineFileRe
 			String newEngineId = UUID.randomUUID().toString();
 			String existingEnginePath = getSpecificEngineBaseFolder(engineId);
 			 //new(temp) engine reference and return the new engine object
-			IFunctionEngine engine = Utility.copyEngineToFunctionFolder(engineId, newEngineId, existingEnginePath);
-			Map<String, Object> parameterValues = getMap();
+			IFunctionEngine engine = Utility.copyAndLoadEngine(engineId, newEngineId, existingEnginePath);
 			//execute new(temp) engine
-			Object execValue = engine.execute(parameterValues);
+			Object execValue = engine.execute(getMap());
 			return new NounMetadata(execValue, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.OPERATION);
 
 		} catch (Exception e) {

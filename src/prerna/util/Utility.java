@@ -6161,7 +6161,7 @@ public final class Utility {
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
     //copy an engine and its contents but creates a new engine id
-    public static IFunctionEngine copyEngineToFunctionFolder(String originalEngineId, String newEngineId, String originalEnginePath ) throws IOException {
+    public static IFunctionEngine copyAndLoadEngine(String originalEngineId, String newEngineId, String originalEnginePath ) throws IOException {
         File originalEngineDir = new File(originalEnginePath);
 
         String originalSmssPath = DIHelper.getInstance().getEngineProperty(originalEngineId + "_" + Constants.STORE) + "";
@@ -6187,8 +6187,30 @@ public final class Utility {
         // Create new .smss file next to the new engine folder
         File newSmssFile = new File(parentDir, newEngineFolderName + ".smss");
         writeSmssInReadableFormat(newSmssFile, smssProps);
-		return Utility.getFunctionEngine(newEngineId);
-       
+        
+        if (!newSmssFile.exists()) {
+            throw new IllegalStateException("Expected .smss file not found: " + newSmssFile.getAbsolutePath());
+        }
+
+        IFunctionEngine engine = null;
+        int retries = 30; // retry for up to 3 seconds
+        int delayMs = 100;
+
+        while (retries-- > 0) {
+            engine = Utility.getFunctionEngine(newEngineId);
+            if (engine != null) break;
+
+            try {
+                Thread.sleep(delayMs); // wait 100ms before retrying
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Thread interrupted while waiting for engine: " + newEngineId, e);
+            }
+        }
+        if (engine == null) {
+            throw new IllegalStateException("Failed to load engine: " + newEngineId);
+        }
+		return engine;
     }
 
     public static void writeSmssInReadableFormat(File file, Properties props) throws IOException {

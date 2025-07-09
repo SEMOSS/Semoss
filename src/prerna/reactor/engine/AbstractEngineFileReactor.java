@@ -58,7 +58,7 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
             throwAnonymousUserError();
         }
 
-        if (SecurityQueryUtils.userIsPublisher(user)) {
+        if (!SecurityQueryUtils.userIsPublisher(user)) {
             throwUserNotPublisherError();
         }
 
