@@ -1,12 +1,14 @@
 package prerna.util;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.GeneralSecurityException;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,6 +18,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.model.FileList;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -29,21 +36,39 @@ public class SpreadSheetHelper {
 	private static final String SHEET_URL = "https://sheets.googleapis.com/v4/spreadsheets/";
 	private static final String GOOGLEDRIVE_URL = "https://www.googleapis.com/drive/v3/files/";
 	private static final String USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
+	private static final String table = "Google_USERDB";
+	private static final String TITLESHEET_NAMEURL="mimeType='application/vnd.google-apps.spreadsheet' and trashed=false";
 	private static final Logger classLogger = LogManager.getLogger(SpreadSheetHelper.class);
 
 	/**
 	 * To write data in spreadsheet given by user
+	 * 
+	 * @param name
+	 * @param accessToken
+	 * @param data
+	 * @param colNo
+	 * @param rowNo
+	 * @param sheetName
+	 * @param titleSheetName
 	 * @param titleSheetName
 	 * @param sheetName
 	 * @param rowNo
 	 * @param colNo
 	 * @param data
 	 * @param accessToken
+	 * @param name
 	 * @return
 	 */
 	public static NounMetadata writeData(String titleSheetName, String sheetName, String rowNo, String colNo,
-			String data, String accessToken) {
+			String data, String accessToken, String name) {
 		try {
+			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+			// Check if name is present in DB
+			boolean nameExists = isNamePresentInDB(name, securityDb);
+			if (!nameExists) {
+				return new NounMetadata("Name '" + name + "' not found in database.",
+						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
 			String msg = null;
 			String missingFields = findMissingFields(titleSheetName, sheetName, rowNo, colNo, data, accessToken);
 			if (!missingFields.isEmpty()) {
@@ -114,63 +139,100 @@ public class SpreadSheetHelper {
 		}
 	}
 
+	private static boolean isNamePresentInDB(String nameParam, IDatabaseEngine securityDb) {
+		String tableName = null;
+		boolean nameFlag = false;
+		try {
+			List<String> tables = securityDb.getPixelConcepts();
+			for (String tbl : tables) {
+				if (table.equals(tbl)) {
+					tableName = tbl;
+					break;
+				}
+			}
+
+			if (tableName == null) {
+				// Table not found
+				return false;
+			}
+			String query = "select name from " + tableName;
+			HashMap<String, String> hashmap = (HashMap<String, String>) securityDb.execQuery(query);
+			Object result = hashmap.get("RESULTSET_OBJECT");
+			if (result instanceof ResultSet) {
+				ResultSet rs = (ResultSet) result;
+				while (rs.next()) {
+					String name = rs.getString("name");
+					if (nameParam.equals(name)) {
+						nameFlag = true;
+						break; // Found, no need to continue
+					}
+				}
+			}
+			return nameFlag;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return nameFlag;
+	}
+
 	/**
 	 * To return spreadsheet id by title given by user on spreadsheet
+	 * 
 	 * @param titleSheetName
 	 * @param accessToken
 	 * @return spreadsheetid
 	 */
 	private static String getSpreadsheetIdByTitle(String titleSheetName, String accessToken) {
 		try {
-		    // 1. Build the full query string (not just the title)
-		    String query = "name='" + titleSheetName + "' and mimeType='application/vnd.google-apps.spreadsheet'";
-		    // 2. Encode the entire query string
-		    String encodedQuery = URLEncoder.encode(query, "UTF-8");
-		    // 3. Construct the URL with the encoded query
-		    String urlStr = "https://www.googleapis.com/drive/v3/files"
-		            + "?q=" + encodedQuery
-		            + "&fields=files(id,name)"
-		            + "&spaces=drive";
+			// 1. Build the full query string (not just the title)
+			String query = "name='" + titleSheetName + "' and mimeType='application/vnd.google-apps.spreadsheet'";
+			// 2. Encode the entire query string
+			String encodedQuery = URLEncoder.encode(query, "UTF-8");
+			// 3. Construct the URL with the encoded query
+			String urlStr = "https://www.googleapis.com/drive/v3/files" + "?q=" + encodedQuery
+					+ "&fields=files(id,name)" + "&spaces=drive";
 
-		    URL url = new URL(urlStr);
-		    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-		    conn.setRequestMethod("GET");
-		    conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+			URL url = new URL(urlStr);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Authorization", "Bearer " + accessToken);
 
-		    int responseCode = conn.getResponseCode();
-		    InputStream is = (responseCode >= 200 && responseCode < 300) ? conn.getInputStream() : conn.getErrorStream();
+			int responseCode = conn.getResponseCode();
+			InputStream is = (responseCode >= 200 && responseCode < 300) ? conn.getInputStream()
+					: conn.getErrorStream();
 
-		    BufferedReader in = new BufferedReader(new InputStreamReader(is));
-		    String inputLine;
-		    StringBuilder response = new StringBuilder();
-		    while ((inputLine = in.readLine()) != null) {
-		        response.append(inputLine);
-		    }
-		    in.close();
+			BufferedReader in = new BufferedReader(new InputStreamReader(is));
+			String inputLine;
+			StringBuilder response = new StringBuilder();
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			in.close();
 
-		    // Debug: print the response if not 2xx
-		    if (responseCode < 200 || responseCode >= 300) {
-		    	classLogger.info("Error response: " + response.toString());
-		    }
+			// Debug: print the response if not 2xx
+			if (responseCode < 200 || responseCode >= 300) {
+				classLogger.info("Error response: " + response.toString());
+			}
 
-		    JSONObject jsonResponse = new JSONObject(response.toString());
-		    JSONArray files = jsonResponse.optJSONArray("files");
-		    if (files != null && files.length() > 0) {
-		        return files.getJSONObject(0).getString("id");
-		    } else {
-		        return "No spreadsheet found with that title";
-		    }
+			JSONObject jsonResponse = new JSONObject(response.toString());
+			JSONArray files = jsonResponse.optJSONArray("files");
+			if (files != null && files.length() > 0) {
+				return files.getJSONObject(0).getString("id");
+			} else {
+				return "No spreadsheet found with that title";
+			}
 
 		} catch (Exception e) {
-		    classLogger.error(Constants.STACKTRACE, e);
-		    String msg = "Exception in getSpreadsheetIdByTitle() method with error: " + e.getMessage();
-		    return msg;
+			classLogger.error(Constants.STACKTRACE, e);
+			String msg = "Exception in getSpreadsheetIdByTitle() method with error: " + e.getMessage();
+			return msg;
 		}
 
 	}
 
 	/**
 	 * To return error with missing fields
+	 * 
 	 * @param titleSheetName
 	 * @param sheetName
 	 * @param rowNo
@@ -182,6 +244,7 @@ public class SpreadSheetHelper {
 	private static String findMissingFields(String titleSheetName, String sheetName, String rowNo, String colNo,
 			String data, String accessToken) {
 		StringBuilder errorBuilder = new StringBuilder();
+
 		if (titleSheetName == null || titleSheetName.isEmpty()) {
 			errorBuilder.append("titleSheetName, ");
 		}
@@ -200,23 +263,48 @@ public class SpreadSheetHelper {
 		if (accessToken == null || accessToken.isEmpty()) {
 			errorBuilder.append("accessToken, ");
 		}
-		String error = errorBuilder.toString().replaceAll("$", "");
-		return error;
+
+		int len = errorBuilder.length();
+		if (len > 2) {
+			errorBuilder.setLength(len - 2);
+		}
+
+		if (errorBuilder.length() > 0) {
+			return "Missing required fields: " + errorBuilder.toString();
+		} else {
+			return "";
+		}
 	}
 
 	/**
 	 * To update data in spreadsheet
+	 * 
+	 * @param name
+	 * @param accessToken
+	 * @param data
+	 * @param colNo
+	 * @param rowNo
+	 * @param sheetName
+	 * @param titleSheetName
 	 * @param titleSheetName
 	 * @param sheetName
 	 * @param rowNo
 	 * @param colNo
 	 * @param data
 	 * @param accessToken
-	 * @return 
+	 * @param name
+	 * @return
 	 */
 	public static NounMetadata updateData(String titleSheetName, String sheetName, String rowNo, String colNo,
-			String data, String accessToken) {
+			String data, String accessToken, String name) {
 		try {
+			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+			// Check if name is present in DB
+			boolean nameExists = isNamePresentInDB(name, securityDb);
+			if (!nameExists) {
+				return new NounMetadata("Name '" + name + "' not found in database.",
+						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
 			String spreadsheetId = getSpreadsheetIdByTitle(titleSheetName, accessToken);
 			if (spreadsheetId == null) {
 				return new NounMetadata("Spreadsheet not found for title: " + titleSheetName,
@@ -225,7 +313,8 @@ public class SpreadSheetHelper {
 
 			String cell = SheetServiceUtil.getA1Notation(Integer.parseInt(rowNo), Integer.parseInt(colNo));
 			String range = sheetName + "!" + cell;
-			String missingFields = findMissingFields(titleSheetName, sheetName, rowNo, colNo, "Not required", "Not required");
+			String missingFields = findMissingFields(titleSheetName, sheetName, rowNo, colNo, "Not required",
+					"Not required");
 			if (!missingFields.isEmpty()) {
 				return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE,
 						PixelOperationType.OPERATION);
@@ -284,18 +373,34 @@ public class SpreadSheetHelper {
 					PixelOperationType.OPERATION);
 		}
 	}
+
 	/**
 	 * To delete data in spreadsheet
+	 * 
+	 * @param name
+	 * @param accessToken
+	 * @param colNo
+	 * @param rowNo
+	 * @param sheetName
+	 * @param titleSheetName
 	 * @param titleSheetName
 	 * @param sheetName
 	 * @param rowNo
 	 * @param colNo
 	 * @param accessToken
-	 * @return 
+	 * @param name
+	 * @return
 	 */
 	public static NounMetadata deleteData(String titleSheetName, String sheetName, String rowNo, String colNo,
-			String accessToken) {
+			String accessToken, String name) {
 		try {
+			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+			// Check if name is present in DB
+			boolean nameExists = isNamePresentInDB(name, securityDb);
+			if (!nameExists) {
+				return new NounMetadata("Name '" + name + "' not found in database.",
+						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
 			String spreadsheetId = getSpreadsheetIdByTitle(titleSheetName, accessToken);
 			if (spreadsheetId == null) {
 				return new NounMetadata("Spreadsheet not found for title: " + titleSheetName,
@@ -304,7 +409,8 @@ public class SpreadSheetHelper {
 
 			String cell = SheetServiceUtil.getA1Notation(Integer.parseInt(rowNo), Integer.parseInt(colNo));
 			String range = sheetName + "!" + cell;
-			String missingFields = findMissingFields(titleSheetName, "Not required", "Not required", "Not required", "Not required", accessToken);
+			String missingFields = findMissingFields(titleSheetName, "Not required", "Not required", "Not required",
+					"Not required", accessToken);
 			if (!missingFields.isEmpty()) {
 				return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE,
 						PixelOperationType.OPERATION);
@@ -351,18 +457,35 @@ public class SpreadSheetHelper {
 
 	/**
 	 * To read data from spreadsheet
+	 * 
+	 * @param name
+	 * @param accessToken
+	 * @param data
+	 * @param colNo
+	 * @param rowNo
+	 * @param sheetName
+	 * @param titleSheetName
 	 * @param titleSheetName
 	 * @param sheetName
 	 * @param rowNo
 	 * @param colNo
 	 * @param data
 	 * @param accessToken
-	 * @return 
+	 * @param name
+	 * @return
 	 */
 	public static NounMetadata readData(String titleSheetName, String sheetName, String rowNo, String colNo,
-			String data, String accessToken) {
+			String accessToken, String name) {
 		try {
-			String missingFields = findMissingFields(titleSheetName, sheetName, rowNo, colNo, data, accessToken);
+			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+			// Check if name is present in DB
+			boolean nameExists = isNamePresentInDB(name, securityDb);
+			if (!nameExists) {
+				return new NounMetadata("Name '" + name + "' not found in database.",
+						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
+			String missingFields = findMissingFields(titleSheetName, sheetName, rowNo, colNo, "Not required",
+					accessToken);
 			if (!missingFields.isEmpty()) {
 				return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE,
 						PixelOperationType.OPERATION);
@@ -416,25 +539,39 @@ public class SpreadSheetHelper {
 
 	/**
 	 * To delete sheet from spreadsheet
+	 * 
+	 * @param name
+	 * @param accessToken
+	 * @param sheetName
+	 * @param titleSheetName
 	 * @param titleSheetName
 	 * @param sheetName
 	 * @param accessToken
-	 * @return 
+	 * @param name
+	 * @return
 	 */
-	public static NounMetadata deleteSheet(String titleSheetName, String sheetName, String accessToken) {
+	public static NounMetadata deleteSheet(String titleSheetName, String sheetName, String accessToken, String name) {
 		try {
+			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+			// Check if name is present in DB
+			boolean nameExists = isNamePresentInDB(name, securityDb);
+			if (!nameExists) {
+				return new NounMetadata("Name '" + name + "' not found in database.",
+						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
 			String spreadsheetId = getSpreadsheetIdByTitle(titleSheetName, accessToken);
 			if (spreadsheetId == null) {
 				return new NounMetadata("Spreadsheet not found for title: " + titleSheetName,
 						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
-			String missingFields = findMissingFields(titleSheetName, sheetName, "Not required", "Not required", "Not required", accessToken);
+			String missingFields = findMissingFields(titleSheetName, sheetName, "Not required", "Not required",
+					"Not required", accessToken);
 			if (!missingFields.isEmpty()) {
 				return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE,
 						PixelOperationType.OPERATION);
 			}
 			// 1. Get the sheet ID for the given sheet name
-			String getSheetsUrl = "https://sheets.googleapis.com/v4/spreadsheets/" + spreadsheetId
+			String getSheetsUrl = SHEET_URL + spreadsheetId
 					+ "?fields=sheets.properties";
 			URL url = new URL(getSheetsUrl);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -520,9 +657,10 @@ public class SpreadSheetHelper {
 
 	/**
 	 * To return list of spreadsheets
+	 * 
 	 * @param accessToken
 	 * @param spreadSheetIds
-	 * @return 
+	 * @return
 	 */
 	public static List<String> getSheetName(String accessToken, List<String> spreadSheetIds) {
 		List<String> allSheetNames = new ArrayList<>();
@@ -556,8 +694,9 @@ public class SpreadSheetHelper {
 
 	/**
 	 * To return list of spreadsheetIds
+	 * 
 	 * @param accessToken
-	 * @return 
+	 * @return
 	 */
 	public static List<String> getSpreadSheetId(String accessToken) {
 		List<String> spreadsheetIds = new ArrayList<>();
@@ -587,16 +726,34 @@ public class SpreadSheetHelper {
 
 	/**
 	 * To create new spreadsheet
+	 * 
+	 * @param name
+	 * @param accessToken
+	 * @param titleSheetName
 	 * @param titleSheetName
 	 * @param accessToken
-	 * @return 
+	 * @param name
+	 * @return
 	 */
-	public static NounMetadata createnewSpreadSheet(String titleSheetName, String accessToken) {
+	public static NounMetadata createnewSpreadSheet(String titleSheetName, String accessToken, String name) {
 		try {
-			String missingFields = findMissingFields(titleSheetName, "Not required", "Not required", "Not required", "Not required", accessToken);
+			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+			// Check if name is present in DB
+			boolean nameExists = isNamePresentInDB(name, securityDb);
+			if (!nameExists) {
+				return new NounMetadata("Name '" + name + "' not found in database.",
+						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
+			String missingFields = findMissingFields(titleSheetName, "Not required", "Not required", "Not required",
+					"Not required", accessToken);
 			if (!missingFields.isEmpty()) {
 				return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE,
 						PixelOperationType.OPERATION);
+			}
+			boolean isTitleSheetNamePresent = validateTitleSheetName(titleSheetName, accessToken);
+			if (Boolean.FALSE.equals(isTitleSheetNamePresent)) {
+				String msg = "A Spreadsheet with this title already exist";
+				return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
 			URL url = new URL(SHEET_URL);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -632,12 +789,12 @@ public class SpreadSheetHelper {
 			if (responseCode >= 200 && responseCode < 300) {
 				String spreadsheetId = jsonResponse.optString("spreadsheetId", "");
 				// Update the spreadsheetId in your database
-				boolean updateSuccess = updateSpreadsheetIdInDatabase(spreadsheetId,accessToken);
-				 if (updateSuccess) {
-		                msg = "Spreadsheet created and spid updated in DB: " + spreadsheetId;
-		            } else {
-		                msg = "Spreadsheet created, but failed to update spid in DB: " + spreadsheetId;
-		            }
+				boolean updateSuccess = updateSpreadsheetIdInDatabase(spreadsheetId, accessToken);
+				if (updateSuccess) {
+					msg = "Spreadsheet created and spid updated in DB: " + spreadsheetId;
+				} else {
+					msg = "Spreadsheet created, but failed to update spid in DB: " + spreadsheetId;
+				}
 			} else {
 				msg = "Failed to create spreadsheet. HTTP code: " + responseCode + ". Response: "
 						+ jsonResponse.toString();
@@ -651,11 +808,48 @@ public class SpreadSheetHelper {
 		}
 	}
 
+	private static boolean validateTitleSheetName(String titleSheetName, String accessToken) {
+		try {
+			Drive driveService = getDriveService(accessToken);
+
+			// Query for spreadsheets with the given name (case-insensitive)
+			String query = TITLESHEET_NAMEURL;
+			FileList result = driveService.files().list().setQ(query).setFields("files(name)").execute();
+
+			for (com.google.api.services.drive.model.File file : result.getFiles()) {
+				if (file.getName().equalsIgnoreCase(titleSheetName)) {
+					// Spreadsheet with this title already exists
+					return false;
+				}
+			}
+			// No spreadsheet with this title found
+			return true;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return false; // Or true, depending on your error policy
+		}
+	}
+
+	private static Drive getDriveService(String accessToken) {
+		try {
+			return new Drive.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(),
+					request -> request.getHeaders().setAuthorization("Bearer " + accessToken))
+					.setApplicationName("Your Application Name").build();
+		} catch (GeneralSecurityException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return null;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return null;
+		}
+	}
+
 	/**
 	 * To update spreadsheet id in db
+	 * 
 	 * @param spreadsheetId
 	 * @param accessToken
-	 * @return 
+	 * @return
 	 */
 	private static boolean updateSpreadsheetIdInDatabase(String spreadsheetId, String accessToken) {
 		try {
@@ -670,18 +864,33 @@ public class SpreadSheetHelper {
 
 	/**
 	 * To create new sheet
+	 * 
+	 * @param name
+	 * @param accessToken
+	 * @param sheetName
+	 * @param titleSheetName
 	 * @param spreadsheetId
 	 * @param accessToken
-	 * @return 
+	 * @param name
+	 * @return
 	 */
-	public static NounMetadata createnewSheet(String titleSheetName, String sheetName, String accessToken) {
+	public static NounMetadata createnewSheet(String titleSheetName, String sheetName, String accessToken,
+			String name) {
 		try {
+			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+			// Check if name is present in DB
+			boolean nameExists = isNamePresentInDB(name, securityDb);
+			if (!nameExists) {
+				return new NounMetadata("Name '" + name + "' not found in database.",
+						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
 			String spreadsheetId = getSpreadsheetIdByTitle(titleSheetName, accessToken);
 			if (spreadsheetId == null) {
 				return new NounMetadata("Spreadsheet not found for title: " + titleSheetName,
 						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
-			String missingFields = findMissingFields(titleSheetName,sheetName, "Not required", "Not required", "Not required", accessToken);
+			String missingFields = findMissingFields(titleSheetName, sheetName, "Not required", "Not required",
+					"Not required", accessToken);
 			if (!missingFields.isEmpty()) {
 				return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE,
 						PixelOperationType.OPERATION);
@@ -740,13 +949,21 @@ public class SpreadSheetHelper {
 
 	/**
 	 * To truncate all data from DB
+	 * 
+	 * @param name
 	 * @param accessToken
-	 * @return 
+	 * @return
 	 */
-	public static NounMetadata truncateData(String accessToken) {
+	public static NounMetadata truncateData(String accessToken, String name) {
 		String msg = null;
 		try {
 			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+			// Check if name is present in DB
+			boolean nameExists = isNamePresentInDB(name, securityDb);
+			if (!nameExists) {
+				return new NounMetadata("Name '" + name + "' not found in database.",
+						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
 			AbstractSecurityUtils.deleteGoogleUserDB();
 			String email = getEmailFromAccessToken(accessToken);
 			msg = "Table truncated successfully by user with email: " + email;
@@ -762,8 +979,9 @@ public class SpreadSheetHelper {
 
 	/**
 	 * To get email from access token
+	 * 
 	 * @param accessToken
-	 * @return 
+	 * @return
 	 */
 	private static String getEmailFromAccessToken(String accessToken) {
 		try {
@@ -797,15 +1015,23 @@ public class SpreadSheetHelper {
 	}
 
 	/**
-	 * To delete record of logged in  user id from db
+	 * To delete record of logged in user id from db
+	 * 
+	 * @param name
 	 * @param accessToken
-	 * @return 
+	 * @param accessToken
+	 * @return
 	 */
-	public static NounMetadata deleteRecordUserId(String accessToken) {
+	public static NounMetadata deleteRecordUserId(String accessToken, String name) {
 		String msg = null;
 		try {
 			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
-			List<String> tables = securityDb.getPixelConcepts();
+			// Check if name is present in DB
+			boolean nameExists = isNamePresentInDB(name, securityDb);
+			if (!nameExists) {
+				return new NounMetadata("Name '" + name + "' not found in database.",
+						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
 			String email = getEmailFromAccessToken(accessToken);
 			AbstractSecurityUtils.deleteGoogleUser(email);
 			msg = "Data truncated successfully by user with email: " + email;
@@ -821,52 +1047,66 @@ public class SpreadSheetHelper {
 
 	/**
 	 * To delete title spreadsheet
+	 * 
+	 * @param name
+	 * @param accessToken
+	 * @param titleSheetName
 	 * @param titleSheetName
 	 * @param accessToken
-	 * @return 
+	 * @param name
+	 * @return
 	 */
-	public static NounMetadata deleteTitleSheet(String titleSheetName, String accessToken) {
+	public static NounMetadata deleteTitleSheet(String titleSheetName, String accessToken, String name) {
 		String msg = null;
-	    try {
-	        // 1. Find the spreadsheet ID by title
-	        String spreadsheetId = getSpreadsheetIdByTitle(titleSheetName, accessToken);
-	        if (spreadsheetId == null) {
-	            msg = "Spreadsheet not found for title: " + titleSheetName;
-	            return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-	        }
-	        String missingFields = findMissingFields(titleSheetName,"Not required", "Not required", "Not required", "Not required", accessToken);
+		try {
+			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+			// Check if name is present in DB
+			boolean nameExists = isNamePresentInDB(name, securityDb);
+			if (!nameExists) {
+				return new NounMetadata("Name '" + name + "' not found in database.",
+						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
+			// 1. Find the spreadsheet ID by title
+			String spreadsheetId = getSpreadsheetIdByTitle(titleSheetName, accessToken);
+			if (spreadsheetId == null) {
+				msg = "Spreadsheet not found for title: " + titleSheetName;
+				return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			}
+			String missingFields = findMissingFields(titleSheetName, "Not required", "Not required", "Not required",
+					"Not required", accessToken);
 			if (!missingFields.isEmpty()) {
 				return new NounMetadata(missingFields, PixelDataType.CUSTOM_DATA_STRUCTURE,
 						PixelOperationType.OPERATION);
 			}
-	        // 2. Delete the spreadsheet using the Drive API
-	        String urlStr = GOOGLEDRIVE_URL + spreadsheetId;
-	        URL url = new URL(urlStr);
-	        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-	        conn.setRequestMethod("DELETE");
-	        conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+			// 2. Delete the spreadsheet using the Drive API
+			String urlStr = GOOGLEDRIVE_URL + spreadsheetId;
+			URL url = new URL(urlStr);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("DELETE");
+			conn.setRequestProperty("Authorization", "Bearer " + accessToken);
 
-	        int responseCode = conn.getResponseCode();
+			int responseCode = conn.getResponseCode();
 
-	        if (responseCode == 204) { // 204 No Content means success
-	            msg = "Spreadsheet '" + titleSheetName + "' deleted successfully.";
-	        } else {
-	            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
-	            String inputLine;
-	            StringBuilder response = new StringBuilder();
-	            while ((inputLine = in.readLine()) != null) {
-	                response.append(inputLine);
-	            }
-	            in.close();
-	            msg = "Failed to delete spreadsheet. HTTP code: " + responseCode + ". Response: " + response.toString();
-	        }
+			if (responseCode == 204) { // 204 No Content means success
+				msg = "Spreadsheet '" + titleSheetName + "' deleted successfully.";
+			} else {
+				BufferedReader in = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+				String inputLine;
+				StringBuilder response = new StringBuilder();
+				while ((inputLine = in.readLine()) != null) {
+					response.append(inputLine);
+				}
+				in.close();
+				msg = "Failed to delete spreadsheet. HTTP code: " + responseCode + ". Response: " + response.toString();
+			}
 
-	        return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 
-	    } catch (Exception e) {
-	        msg = e.getMessage();
-	        return new NounMetadata("Spreadsheet not deleted. Error: " + msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-	    }
+		} catch (Exception e) {
+			msg = e.getMessage();
+			return new NounMetadata("Spreadsheet not deleted. Error: " + msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
+					PixelOperationType.OPERATION);
+		}
 	}
 
 }

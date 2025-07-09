@@ -29,8 +29,10 @@ public class GoogleSheetReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GoogleSheetReactor.class);
 
 	public GoogleSheetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.TITLESHEET_NAME.getKey(), ReactorKeysEnum.SHEET_NAME.getKey(), ReactorKeysEnum.ROW_NO.getKey(),ReactorKeysEnum.COLUMN_NO.getKey(), ReactorKeysEnum.DATA.getKey() };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.TITLESHEET_NAME.getKey(),
+				ReactorKeysEnum.SHEET_NAME.getKey(), ReactorKeysEnum.ROW_NO.getKey(),
+				ReactorKeysEnum.COLUMN_NO.getKey(), ReactorKeysEnum.DATA.getKey(), ReactorKeysEnum.NAME.getKey() };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 1 };
 	}
 
 	@Override
@@ -42,7 +44,8 @@ public class GoogleSheetReactor extends AbstractReactor {
 		String rowNo = this.keyValue.get(this.keysToGet[3]);
 		String colNo = this.keyValue.get(this.keysToGet[4]);
 		String data = this.keyValue.get(this.keysToGet[5]);
-		String accessToken=getAccessToken();
+		String name = this.keyValue.get(this.keysToGet[6]);
+		String accessToken = getAccessToken();
 		if (this.keyValue.get(this.keysToGet[1]) != null && this.keyValue.get(this.keysToGet[1]) != "") {
 			titleSheetName = this.keyValue.get(this.keysToGet[1]);
 		}
@@ -59,27 +62,27 @@ public class GoogleSheetReactor extends AbstractReactor {
 			data = this.keyValue.get(this.keysToGet[5]);
 		}
 		try {
-			switch (command.trim().toLowerCase()) {
-			case "write": 
-				return SpreadSheetHelper.writeData(titleSheetName, sheetName, rowNo, colNo, data, accessToken);
+			switch (command.trim().replaceAll("\\s+", " ").toLowerCase()) {
+			case "write":
+				return SpreadSheetHelper.writeData(titleSheetName, sheetName, rowNo, colNo, data, accessToken, name);
 			case "update":
-				return SpreadSheetHelper.updateData(titleSheetName, sheetName, rowNo, colNo, data, accessToken); 
+				return SpreadSheetHelper.updateData(titleSheetName, sheetName, rowNo, colNo, data, accessToken, name);
 			case "delete":
-				return SpreadSheetHelper.deleteData(titleSheetName, sheetName, rowNo, colNo, accessToken);
+				return SpreadSheetHelper.deleteData(titleSheetName, sheetName, rowNo, colNo, accessToken, name);
 			case "read":
-				return SpreadSheetHelper.readData(titleSheetName, sheetName, rowNo, colNo, data, accessToken);
+				return SpreadSheetHelper.readData(titleSheetName, sheetName, rowNo, colNo, accessToken, name);
 			case "delete sheet":
-				return SpreadSheetHelper.deleteSheet(titleSheetName, sheetName, accessToken);
+				return SpreadSheetHelper.deleteSheet(titleSheetName, sheetName, accessToken, name);
 			case "create new spread sheet":
-				return SpreadSheetHelper.createnewSpreadSheet(titleSheetName, accessToken); 
+				return SpreadSheetHelper.createnewSpreadSheet(titleSheetName, accessToken, name);
 			case "create new sheet":
-				return SpreadSheetHelper.createnewSheet(titleSheetName,sheetName, accessToken); 
-			case "truncate DB data":
-				return SpreadSheetHelper.truncateData(accessToken); 
+				return SpreadSheetHelper.createnewSheet(titleSheetName, sheetName, accessToken, name);
+			case "truncate db data":
+				return SpreadSheetHelper.truncateData(accessToken, name);
 			case "delete db record for user id":
-				return SpreadSheetHelper.deleteRecordUserId(accessToken); 
+				return SpreadSheetHelper.deleteRecordUserId(accessToken, name);
 			case "delete titlesheet":
-				return SpreadSheetHelper.deleteTitleSheet(titleSheetName, accessToken); 
+				return SpreadSheetHelper.deleteTitleSheet(titleSheetName, accessToken, name);
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -95,23 +98,24 @@ public class GoogleSheetReactor extends AbstractReactor {
 	}
 
 	/**
-	 * To return access token of the user logged in 
+	 * To return access token of the user logged in
+	 * 
 	 * @return
 	 */
 	private String getAccessToken() {
-		String accessToken=null;
+		String accessToken = null;
 		User user = this.insight.getUser();
 		try {
-			if(user==null) {
-				Map<String,Object> retMap=new HashMap<String, Object>();
+			if (user == null) {
+				Map<String, Object> retMap = new HashMap<String, Object>();
 				retMap.put("type", "google");
 				retMap.put("message", "Please login to your Google account");
-				throwLoginError(retMap);	
-			}else {
+				throwLoginError(retMap);
+			} else {
 				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
-				accessToken=msToken.getAccess_token();
+				accessToken = msToken.getAccess_token();
 			}
-		}catch(Exception e) {
+		} catch (Exception e) {
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("type", "google");
 			retMap.put("message", "Please login to your Google account");

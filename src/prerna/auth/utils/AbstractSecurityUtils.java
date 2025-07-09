@@ -2072,7 +2072,7 @@ public abstract class AbstractSecurityUtils {
 
 	//delete user details
 	public static void deleteGoogleUser(String id) throws SQLException {
-	    String sql = "DELETE FROM Google_USERDB WHERE ID=?";
+	    String sql = "DELETE FROM Google_USERDB WHERE USERID=?";
 	    try (Connection conn = securityDb.getConnection();
 	         PreparedStatement ps = conn.prepareStatement(sql)) {
 	        ps.setString(1, id);

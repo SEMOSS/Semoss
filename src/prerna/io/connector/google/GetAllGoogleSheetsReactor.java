@@ -29,38 +29,37 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class GetAllGoogleSheetsReactor extends AbstractReactor{
+public class GetAllGoogleSheetsReactor extends AbstractReactor {
 
-	private static final String table="Google_USERDB";
-	private static final String GOOGLEDRIVE_URL="https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet'&fields=files(id,name)";
-	private static final String GOOGLESHEETS_URL="https://sheets.googleapis.com/v4/spreadsheets/";
+	private static final String table = "Google_USERDB";
+	private static final String GOOGLEDRIVE_URL = "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet'&fields=files(id,name)";
+	private static final String GOOGLESHEETS_URL = "https://sheets.googleapis.com/v4/spreadsheets/";
 	private static final String USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
 	private static final Logger classLogger = LogManager.getLogger(GetAllGoogleSheetsReactor.class);
-	
+
 	public GetAllGoogleSheetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.NAME.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.NAME.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
-
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String tableName = null;
-		String userId=null;
-		ResultSet rs=null;
+		String userId = null;
+		ResultSet rs = null;
 		List<Map<String, Object>> spreadsheets = new ArrayList<>();
 		try {
 			String name = this.keyValue.get(this.keysToGet[0]);
 			IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
 			List<String> tables = securityDb.getPixelConcepts();
-			for(String tbl:tables) {
-				if(table.equals(tbl)) {
-					tableName=tbl;
+			for (String tbl : tables) {
+				if (table.equals(tbl)) {
+					tableName = tbl;
 					break;
 				}
 			}
-			String getUserIdQuery="select USERID from "+tableName+" where NAME='"+name+"'";
+			String getUserIdQuery = "select USERID from " + tableName + " where NAME='" + name + "'";
 			HashMap<String, String> hashmap = (HashMap<String, String>) securityDb.execQuery(getUserIdQuery);
 			Object string = hashmap.get("RESULTSET_OBJECT");
 			if (string instanceof ResultSet) {
@@ -69,32 +68,30 @@ public class GetAllGoogleSheetsReactor extends AbstractReactor{
 					userId = rs.getString("userid");
 				}
 			}
-			String accessToken=getAccessToken();
-			String emailToken=getEmailAccessToken(accessToken);
-			if(emailToken.equals(userId)) {
-				 spreadsheets = fetchSpreadsheetMetadata(accessToken);
-				
-			}else {
+			String accessToken = getAccessToken();
+			String emailToken = getEmailAccessToken(accessToken);
+			if (emailToken.equals(userId)) {
+				spreadsheets = fetchSpreadsheetMetadata(accessToken);
+
+			} else {
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put("type", "Google");
 				retMap.put("message", "Please login to your Google account");
 				throwLoginError(retMap);
 			}
-		}catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		}finally {
-			if(rs!=null) {
+		} finally {
+			if (rs != null) {
 				try {
 					rs.close();
-				}catch(SQLException ex) {
+				} catch (SQLException ex) {
 					classLogger.error(Constants.STACKTRACE, ex);
 				}
 			}
 		}
-		return new NounMetadata(spreadsheets, PixelDataType.CUSTOM_DATA_STRUCTURE,
-				PixelOperationType.OPERATION);
+		return new NounMetadata(spreadsheets, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
-
 
 	@Override
 	public String getReactorDescription() {
@@ -102,47 +99,49 @@ public class GetAllGoogleSheetsReactor extends AbstractReactor{
 	}
 
 	/**
-	 * To return list of all spreadsheets, spreadsheettitles and sheetnames a user has
+	 * To return list of all spreadsheets, spreadsheettitles and sheetnames a user
+	 * has
+	 * 
 	 * @param accessToken
-	 * @return 
+	 * @return
 	 */
 	private List<Map<String, Object>> fetchSpreadsheetMetadata(String accessToken) {
-	    List<Map<String, Object>> spreadsheets = new ArrayList<>();
-	    JSONObject driveResponse = Utility.httpGetJson(GOOGLEDRIVE_URL, accessToken);
-	    JSONArray files = driveResponse.getJSONArray("files");
+		List<Map<String, Object>> spreadsheets = new ArrayList<>();
+		JSONObject driveResponse = Utility.httpGetJson(GOOGLEDRIVE_URL, accessToken);
+		JSONArray files = driveResponse.getJSONArray("files");
 
-	    for (int i = 0; i < files.length(); i++) {
-	        JSONObject file = files.getJSONObject(i);
-	        String spreadsheetId = file.getString("id");
-	        String spreadsheetTitle = file.getString("name");
+		for (int i = 0; i < files.length(); i++) {
+			JSONObject file = files.getJSONObject(i);
+			String spreadsheetId = file.getString("id");
+			String spreadsheetTitle = file.getString("name");
 
-	        // Fetch all sheet names for this spreadsheet
-	        String sheetsUrl = GOOGLESHEETS_URL + spreadsheetId;
-	        JSONObject sheetsResponse = Utility.httpGetJson(sheetsUrl, accessToken);
-	        JSONArray sheets = sheetsResponse.getJSONArray("sheets");
-	        List<String> sheetNames = new ArrayList<>();
-	        for (int j = 0; j < sheets.length(); j++) {
-	            JSONObject sheet = sheets.getJSONObject(j).getJSONObject("properties");
-	            String sheetTitle = sheet.getString("title");
-	            sheetNames.add(sheetTitle);
-	        }
+			// Fetch all sheet names for this spreadsheet
+			String sheetsUrl = GOOGLESHEETS_URL + spreadsheetId;
+			JSONObject sheetsResponse = Utility.httpGetJson(sheetsUrl, accessToken);
+			JSONArray sheets = sheetsResponse.getJSONArray("sheets");
+			List<String> sheetNames = new ArrayList<>();
+			for (int j = 0; j < sheets.length(); j++) {
+				JSONObject sheet = sheets.getJSONObject(j).getJSONObject("properties");
+				String sheetTitle = sheet.getString("title");
+				sheetNames.add(sheetTitle);
+			}
 
-	        // Store the info
-	        Map<String, Object> spreadsheetInfo = new HashMap<>();
-	        spreadsheetInfo.put("spreadsheetId", spreadsheetId);
-	        spreadsheetInfo.put("spreadsheetTitle", spreadsheetTitle);
-	        spreadsheetInfo.put("sheetNames", sheetNames);
+			// Store the info
+			Map<String, Object> spreadsheetInfo = new HashMap<>();
+			spreadsheetInfo.put("spreadsheetId", spreadsheetId);
+			spreadsheetInfo.put("spreadsheetTitle", spreadsheetTitle);
+			spreadsheetInfo.put("sheetNames", sheetNames);
 
-	        spreadsheets.add(spreadsheetInfo);
-	    }
-	    return spreadsheets;
+			spreadsheets.add(spreadsheetInfo);
+		}
+		return spreadsheets;
 	}
-
 
 	/**
 	 * To get email from accesstoken
+	 * 
 	 * @param accessToken
-	 * @return 
+	 * @return
 	 */
 	private String getEmailAccessToken(String accessToken) {
 		try {
@@ -177,24 +176,25 @@ public class GetAllGoogleSheetsReactor extends AbstractReactor{
 
 	/**
 	 * To get accesstoken of google logged in user
+	 * 
 	 * @param titleSheetName
 	 * @param accessToken
-	 * @return 
+	 * @return
 	 */
 	private String getAccessToken() {
-		String accessToken=null;
+		String accessToken = null;
 		User user = this.insight.getUser();
 		try {
-			if(user==null) {
-				Map<String,Object> retMap=new HashMap<String, Object>();
+			if (user == null) {
+				Map<String, Object> retMap = new HashMap<String, Object>();
 				retMap.put("type", "google");
 				retMap.put("message", "Please login to your Google account");
-				throwLoginError(retMap);	
-			}else {
+				throwLoginError(retMap);
+			} else {
 				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
-				accessToken=msToken.getAccess_token();
+				accessToken = msToken.getAccess_token();
 			}
-		}catch(Exception e) {
+		} catch (Exception e) {
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("type", "google");
 			retMap.put("message", "Please login to your Google account");
