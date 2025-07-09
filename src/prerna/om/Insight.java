@@ -28,6 +28,7 @@
 package prerna.om;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -1291,8 +1292,9 @@ public class Insight implements Serializable {
 		
 		StringBuilder retClassPath = new StringBuilder("");
 		ClassLoader cl = getClass().getClassLoader();
-
-        URL[] urls = ((URLClassLoader)cl).getURLs();
+		
+		// Fix for differing class loaders during runtime in tomcat server and unit tests. 
+		URL[] urls = getUrlsFromClassLoader(cl);
 
         if(System.getProperty("os.name").toLowerCase().contains("win")) {
 	        for(URL url: urls){
@@ -1341,6 +1343,33 @@ public class Insight implements Serializable {
         // we should also add to sys.path for py and then also remove it
         // sys.path.add
         // sys.path.remove - the remove is tricky however
+	}
+
+	/**
+	 * Either casts to or creates a URLClassLoader from default class loader
+	 * This is needed because during runtime of unit tests, the default class loader
+	 * is not an instance of URLClassLoader in Java 9+. Also, this now closes the URLClassLoader
+	 * to prevent resource leaks. 
+	 * 
+	 * @param cl Class loader to get URLs from
+	 * @return array of URL
+	 */
+	private URL[] getUrlsFromClassLoader(ClassLoader cl) {
+		URL[] urls = null;
+		if (cl instanceof URLClassLoader) {
+			try (URLClassLoader urlCl = (URLClassLoader) cl) {
+				urls = urlCl.getURLs();
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		} else {
+			try (URLClassLoader urlCl = new URLClassLoader(new URL[] {}, cl)) {
+				urls = urlCl.getURLs();
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
+		return urls;
 	}
 	
 	public void setLastPanelId(String panelId) {
