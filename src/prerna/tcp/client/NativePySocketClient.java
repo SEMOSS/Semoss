@@ -14,25 +14,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.ws.rs.core.StreamingOutput;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import com.google.gson.ToNumberPolicy;
 
-import io.burt.jmespath.Expression;
-import io.burt.jmespath.JmesPath;
-import io.burt.jmespath.jackson.JacksonRuntime;
-import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.reactor.job.JobReactor;
@@ -40,68 +30,25 @@ import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.TCPLogMessage;
 import prerna.tcp.client.workers.NativePyEngineWorker;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class NativePySocketClient extends SocketClient implements Runnable, Closeable  {
+public class NativePySocketClient extends SocketClient implements Runnable, Closeable {
 
 	private static final Logger classLogger = LogManager.getLogger(NativePySocketClient.class);
 
-	private String HOST = null;
-	private int PORT = -1;
-	private boolean SSL = false;
-
-	//Map requestMap = new HashMap();
-	//Map responseMap = new HashMap();
-
-	private boolean ready = false;
-	private boolean connected = false;
-	private AtomicInteger count = new AtomicInteger(0);
-	private long averageMillis = 200;
-	private boolean killall = false; // use this if the server is dead or it has crashed
-	private User user;
-
-	private Socket clientSocket = null;
-	//InputStream is = null;
-	//OutputStream os = null;
-	//SocketClientHandler sch = new SocketClientHandler();
-	private Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
-
-	/**
-	 * 
-	 */
-	public void connect(final String HOST, final int PORT, final boolean SSL) {
-		this.HOST = HOST;
-		this.PORT = PORT;
-		this.SSL = SSL;
-	}
-
 	@Override
-	public void close() {
-		if(this.requestMap != null) {
-			this.requestMap.clear();
-		}
-		closeStream(this.os);
-		closeStream(this.is);
-		closeStream(this.clientSocket);
-		this.connected = false;
-		this.killall = true;
-	}
-
-	/**
-	 * 
-	 */
-	public void run()	
-	{
+	public void run() {
 		// there is 2 portions to the run
 		// one is before connect
 		// one is after. The reason this is done is to avoid an extra handler for information
 
 		// Configure SSL.git
-		if(!connected && !killall)
+		if(!connected && !killAll)
 		{
 			int attempt = 1;
 			int SLEEP_TIME = 800;
@@ -129,7 +76,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					//classLogger.info("First command.. Prime" + executeCommand("2+2"));
 					connected = true;
 					ready = true;
-					killall = false;
+					killAll = false;
 					synchronized(this) {
 						this.notifyAll();
 					}
@@ -149,7 +96,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 			if(attempt >= 6) {
 				classLogger.error("CLIENT Connection Failed !!!!!!!");
-				killall = true;
+				killAll = true;
 				connected = false;
 				ready = false;
 				synchronized(this) {
@@ -164,12 +111,12 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		{
 			StringBuilder partialAssimilator = new StringBuilder("");
 			StringBuilder outputAssimilator = new StringBuilder("");
-			while (!killall) 
+			while (!killAll) 
 			{
 				classLogger.debug("Starting new read iteration in run() loop");
 				try {
 				    String threadName = Thread.currentThread().getName();
-				    long threadId = Thread.currentThread().getId();
+				    long threadId = Thread.currentThread().threadId();
 				    classLogger.debug("Socket read thread [{}:{}] attempting to read next message", threadName, threadId);
 				    
 				    byte[] length = new byte[4];
@@ -348,21 +295,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						            PixelRunner pixelRunner = insight.runPixel(pixelOp);
 						            StreamingOutput streamedOutput = PixelStreamUtility.collectPixelData(pixelRunner, null);
 						            streamedOutput.write(output);
-						            //checks oprationType 
-						            String jsonOutputString = new String(output.toByteArray(),"UTF-8");
-						            ObjectMapper mapper = new ObjectMapper();
-						            JsonNode jsonNode = mapper.readTree(jsonOutputString);
-						            
-						            //JMESPath to check for any ERROR in operationType
-						            JmesPath<JsonNode> jmespath = new JacksonRuntime();
-						            Expression<JsonNode> expression = jmespath.compile("length(pixelReturn[?contains(operationType, 'ERROR')]) > `0`");
-						            JsonNode result = expression.search(jsonNode);
-
-						            if(result.asBoolean()) {
-						            	throw new IllegalArgumentException("Pixel execution returned ERROR operationType");
-						            }
-						            
-						            JsonElement json = JsonParser.parseString(jsonOutputString);
+						            JsonElement json = JsonParser.parseString(new String(output.toByteArray(),"UTF-8"));
 						            finalPs.payload = new Object[] {json};
 						            finalPs.response = true;
 						            executeCommand(finalPs);
@@ -409,7 +342,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					}
 					else
 					{
-						killall = true;
+						killAll = true;
 						break;
 					}
 				} catch (SocketException ex1) {
@@ -426,6 +359,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 	}
 
+	/**
+	 * 
+	 * @param ps
+	 */
 	private void processEngineRequest(PayloadStruct ps)
 	{
 		String insightId = ps.insightId;
@@ -458,6 +395,11 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 	}
 
+	/**
+	 * 
+	 * @param input
+	 * @return
+	 */
 	private PayloadStruct convertPayloadClasses(PayloadStruct input)
 	{
 		if(input.payloadClassNames != null)
@@ -482,22 +424,35 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		return input;
 	}
 
-	// this is the method that pushes to the front end
-	// when output happens
+	/**
+	 * This is the method that pushes to the front end when output happens
+	 * @param data
+	 * @param insightId
+	 */
 	private void exposeLog(String data, String insightId) {
+		classLogger.debug("Exposing log to insightId = '" + insightId + "' with data = " + data);
 		if(insightId != null && data != null) {
 			Insight insight = InsightStore.getInstance().get(insightId);
-			String jobId =  insight.getVarStore().get(JobReactor.JOB_KEY).getValue().toString();
-			PixelJobManager.getManager().addStdOut(jobId, data);
+			if(insight != null) {
+				NounMetadata jobNoun = insight.getVarStore().get(JobReactor.JOB_KEY);
+				if(jobNoun != null) {
+					String jobId = (String) jobNoun.getValue();
+					PixelJobManager.getManager().addStdOut(jobId, data);
+				}
+			} else {
+				// 2025-07-08
+				// currently insights for the model py translator is not in store
+				classLogger.debug("InsightId = '" + insightId + "' is not in insight store");
+			}
 		}
 	}
 
-	public Object executeCommand(PayloadStruct ps)
-	{
+	@Override
+	public Object executeCommand(PayloadStruct ps) {
 	    String threadName = Thread.currentThread().getName();
-	    long threadId = Thread.currentThread().getId();
+	    long threadId = Thread.currentThread().threadId();
 	    classLogger.debug("Entering executeCommand for epoc: {} on thread: {} (ID: {})", ps.epoc, threadName, threadId);
-		if(killall) {
+		if(killAll) {
 			throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
 
@@ -506,69 +461,76 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 
 		String id = ps.epoc;
-		if(!ps.response || id == null)
-		{
+		if(!ps.response || id == null) {
 			id = "ps"+ count.getAndIncrement();
 			ps.epoc = id;
 		}
+		if(ps.insightId != null) {
+			addEpocForInsight(ps.insightId, ps.epoc);
+		}
 		ps.longRunning = true;
 
-		synchronized(ps) // going back to single threaded .. earlier it was ps
-		{	
-	        classLogger.debug("Inside synchronized block for epoc: {} on thread: {} (ID: {})", ps.epoc, threadName, threadId);
-
-			//if(ps.hasReturn)
-			// put it into request map
-			if(!ps.response) {
-				requestMap.put(id, ps);
-			}
-			writePayload(ps);
-			classLogger.debug("outgoing payload " + ps.epoc);
-
-			// send the message
-			// time to wait = average time * 10
-			// if this is a request wait for it
-		
-			if(!ps.response) // this is a response to something the socket has asked
-			{
-				int pollNum = 1; // 1 second
-				while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killall)
+		try {
+			synchronized(ps) {	
+		        classLogger.debug("Inside synchronized block for epoc: {} on thread: {} (ID: {})", ps.epoc, threadName, threadId);
+	
+				if(!ps.response) {
+					this.requestMap.put(id, ps);
+				}
+				writePayload(ps);
+				classLogger.debug("outgoing payload " + ps.epoc);
+	
+				// send the message
+				// time to wait = average time * 10
+				// if this is a request wait for it
+				
+				int maxWait = 1_000;
+				if(!ps.response) // this is a response to something the socket has asked
 				{
-			        classLogger.debug("Thread {} waiting for response to epoc: {} (poll #{})", 
-			                Thread.currentThread().getId(), ps.epoc, pollNum);
-					//classLogger.info("Checking to see if there was a response");
-					try {
-						classLogger.debug("I'm looking for epoc{}", ps.epoc);
-						if(pollNum < 10) {
-							ps.wait(averageMillis);
-						} else { //if(ps.longRunning) // this is to make sure the kill all is being checked
-							classLogger.debug("Im about to wait eternally for epoc{}", ps.epoc);
-							ps.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
+					int pollNum = 1;
+					while(!responseMap.containsKey(ps.epoc) && (pollNum < maxWait || ps.longRunning) && !killAll
+							&& !cancelledEpocs.contains(ps.epoc))
+					{
+				        classLogger.debug("Thread {} waiting for response to epoc: {} (poll #{})", Thread.currentThread().threadId(), ps.epoc, pollNum);
+						try {
+							classLogger.debug("I'm looking for epoc{}", ps.epoc);
+							if(pollNum < maxWait) {
+								ps.wait(this.averageMillis);
+							} else { 
+								classLogger.debug("Im about to wait eternally for epoc{}", ps.epoc);
+								// wait eternally - we dont know how long some of the load operations would take besides
+								// I am not sure if the null gets us anything
+								ps.wait(); 
+							}													
+							pollNum++;
+						} catch (InterruptedException e) {
+							classLogger.error(Constants.STACKTRACE, e);
 						}
-						pollNum++;
-					} catch (InterruptedException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+					}
+					if(cancelledEpocs.contains(ps.epoc)) {
+						cancelledEpocs.remove(ps.epoc);
+						classLogger.info("Cancelled epoc " + ps.epoc + " " + ps.methodName);
+						throw new SemossPixelException("The request was cancelled by the user");
+					} else if(!responseMap.containsKey(ps.epoc) && ps.hasReturn) {
+						classLogger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
 					}
 				}
-				if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
-				{
-					classLogger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
-				}
+	
+				return responseMap.remove(ps.epoc);
 			}
-
-			// after 10 seconds give up
-			//printUnprocessed();
-			return responseMap.remove(ps.epoc);
+		} finally {
+			removeEpocForInsight(ps.insightId, ps.epoc);
 		}
 	}
 
-	private void writePayload(PayloadStruct ps)
-	{
+	/**
+	 * 
+	 * @param ps
+	 */
+	private void writePayload(PayloadStruct ps) {
 		classLogger.debug("Starting writePayload for epoc: " + ps.epoc);
-		// nulling the classes so they dont screw up json
 		ps.payloadClasses = null;
-		try
-		{
+		try {
 			String jsonPS = gson.toJson(ps);
 			byte [] psBytes = pack(jsonPS, ps.epoc);
 			try {
@@ -578,14 +540,18 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			} catch(IOException ex) {
 				classLogger.info("Failed writing to output stream for epoc: " + ps.epoc, ex);
 				classLogger.error(Constants.STACKTRACE, ex);
-				//crash();
 			}
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		}
 	}
 
+	/**
+	 * 
+	 * @param message
+	 * @param epoc
+	 * @return
+	 */
 	public byte[] pack(String message, String epoc) {
 		byte[] psBytes = message.getBytes(StandardCharsets.UTF_8);
 
@@ -617,6 +583,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 	}
 
+	/**
+	 * 
+	 */
 	public void writeReleaseAllPayload() {
 		PayloadStruct ps = new PayloadStruct();
 		ps.epoc=Utility.getRandomString(8);
@@ -718,60 +687,4 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 	}
 
-	/**
-	 * 
-	 * @param closeThis
-	 */
-	private void closeStream(Closeable closeThis) {
-		if(closeThis != null) {
-			try {
-				closeThis.close();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * @param user
-	 */
-	public void setUser(User user) {
-		this.user = user;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public User getUser() {
-		return this.user;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	@Override
-	public boolean isConnected() {
-		return this.connected;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	@Override
-	public boolean isKillAll() {
-		return killall;
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	@Override
-	public boolean isReady() {
-		return this.ready;
-	}
 }

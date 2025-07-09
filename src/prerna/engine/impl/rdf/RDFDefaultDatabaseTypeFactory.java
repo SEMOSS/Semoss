@@ -5,7 +5,7 @@ import java.lang.reflect.InvocationTargetException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.ISesameRdfEngine;
+import prerna.engine.api.IRDFDatabase;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -19,13 +19,13 @@ public final class RDFDefaultDatabaseTypeFactory {
 		
 	}
 	
-	public static ISesameRdfEngine getDefaultSesameEngine() {
-		ISesameRdfEngine engine = null;
+	public static IRDFDatabase getDefaultRdfEngine() {
+		IRDFDatabase engine = null;
 		
 		String className = Utility.getDIHelperProperty(DEFAULT_RDF_ENGINE);
 		if(className != null && !(className=className.trim()).isEmpty()) {
 			try {
-				engine = (ISesameRdfEngine) Class.forName(className).getConstructor(null).newInstance();
+				engine = (IRDFDatabase) Class.forName(className).getConstructor(null).newInstance();
 			} catch (ClassNotFoundException cnfe) {
 				classLogger.error(Constants.STACKTRACE, cnfe);
 				classLogger.fatal("No such class: " + Utility.cleanLogString(className));
@@ -51,7 +51,8 @@ public final class RDFDefaultDatabaseTypeFactory {
 		}
 		
 		if(engine == null) {
-			engine = new RDFFileSesameEngine();
+//			engine = new EclipseRDF4JFileEngine();
+			engine = new RDFJenaTDBEngine();
 		}
 		
 		return engine;

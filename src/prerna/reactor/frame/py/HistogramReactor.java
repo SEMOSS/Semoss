@@ -79,10 +79,10 @@ public class HistogramReactor extends AbstractFrameReactor {
 			format = true;
 		}
 		
-		insight.getPyTranslator().runPyAndReturnOutput("import numpy as np", script.toString());
+		insight.getPyTranslator().runEmptyPy("import numpy as np", script.toString());
 
 		if (format) {
-			insight.getPyTranslator().runPyAndReturnOutput(formatHist.toString(), formatBins.toString());
+			insight.getPyTranslator().runEmptyPy(formatHist.toString(), formatBins.toString());
 		}
 
 		List<Object> counts = pyT.getList("hist");

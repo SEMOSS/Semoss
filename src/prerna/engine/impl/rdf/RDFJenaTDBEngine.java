@@ -32,6 +32,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -49,10 +50,13 @@ import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
+import org.apache.jena.reasoner.Reasoner;
+import org.apache.jena.reasoner.ReasonerRegistry;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.update.UpdateAction;
 import org.apache.jena.update.UpdateFactory;
@@ -61,24 +65,29 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDFDatabase;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 /**
  * References the RDF source and uses the Jena API to query a database stored in an RDF file
  */
-public class RDFJenaTDBEngine extends AbstractDatabaseEngine {
-	
+public class RDFJenaTDBEngine extends AbstractDatabaseEngine implements IRDFDatabase {
+
 	private static final Logger classLogger = LogManager.getLogger(RDFJenaTDBEngine.class);
 
+	public static final String DATASET_OBJECT = "DATASET_OBJECT";
+	public static final String QUERY_RETURN = "QUERY_RETURN";
+
 	private Dataset dataset = null;
-	private String propFile = null;
+	private Model inferredModel = null;
 	private boolean connected = false;
-	
+
 	private String fileLocation = null;
 	private String baseURI = null;
-	
+
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
 	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
@@ -90,10 +99,23 @@ public class RDFJenaTDBEngine extends AbstractDatabaseEngine {
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		this.fileLocation = smssProp.getProperty(Constants.RDF_FILE_NAME);
+		this.fileLocation = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
+		this.fileLocation += "/data";
 		this.baseURI = smssProp.getProperty(Constants.RDF_FILE_BASE_URI);
 		this.dataset = TDB2Factory.connectDataset(this.fileLocation);
 		this.connected = true;
+	}
+	
+	private Model getInferredModel() {
+		if(this.inferredModel == null) {
+			// Get the default model from the dataset
+	        Model tdbModel = dataset.getDefaultModel();
+			 // Create an RDFS reasoner
+	        Reasoner reasoner = ReasonerRegistry.getRDFSReasoner();
+	        // Create an inferred model by binding the reasoner to the TDB2 model
+	        this.inferredModel = ModelFactory.createInfModel(reasoner, tdbModel);
+		}
+		return this.inferredModel;
 	}
 	
 	/**
@@ -104,43 +126,51 @@ public class RDFJenaTDBEngine extends AbstractDatabaseEngine {
 	@Override
 	public void close() throws IOException {
 		super.close();
+		if(this.inferredModel != null) {
+			this.inferredModel.close();
+		}
 		this.dataset.close();
-		classLogger.info("Closing the database to the file " + Utility.cleanLogString(propFile));		
+		classLogger.info("Closed the database");
 	}
 
 	/**
 	 * Runs the passed string query against the engine as a SELECT query.  The query passed must be in the structure of a SELECT 
 	 * SPARQL query and the result format will depend on the engine type.
 	 * @param query the string version of the SELECT query to be run against the engine
-	
+
 	 * @return triple query results that can be displayed as a grid */
 	@Override
 	public Object execQuery(String query) {
+		Map<String, Object> map = new HashMap<>();
+		map.put(DATASET_OBJECT, this.dataset);
 		this.dataset.begin(ReadWrite.READ);
 		try {
-			Model jenaModel = this.dataset.getDefaultModel();
+			Model inferredModel = getInferredModel();
 			Query q2 = QueryFactory.create(query);
-			QueryExecution qexec = QueryExecutionFactory.create(q2, jenaModel) ;
+			QueryExecution qexec = QueryExecutionFactory.create(q2, inferredModel);
 			if(q2.isSelectType()){
 				ResultSet rs = qexec.execSelect();
-				return rs;
+				map.put(QUERY_RETURN, rs);
 			}
 			else if(q2.isConstructType()){
-				Model resultModel = qexec.execConstruct() ;
-				classLogger.info("Executing the RDF File Graph Query " + Utility.cleanLogString(query));
-				return resultModel;
+				Model resultModel = qexec.execConstruct();
+				map.put(QUERY_RETURN, resultModel);
 			}
 			else if(q2.isAskType()){
 				Boolean bool = qexec.execAsk() ;
-				classLogger.info("Executing the RDF File ASK Query " + Utility.cleanLogString(query));
-				return bool;
+				map.put(QUERY_RETURN, bool);
 			}
 			else {
+				this.dataset.end();
 				return null;
 			}
-		} finally {
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			this.dataset.end();
+			throw e;
 		}
+		
+		return map;
 	}
 
 	/**
@@ -168,6 +198,7 @@ public class RDFJenaTDBEngine extends AbstractDatabaseEngine {
 			request.add(query);
 			UpdateAction.execute(request, jenaModel);
 			this.dataset.commit();
+			this.inferredModel = null;
 		} finally {
 			this.dataset.end();
 		}
@@ -175,9 +206,9 @@ public class RDFJenaTDBEngine extends AbstractDatabaseEngine {
 
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
-		return IDatabaseEngine.DATABASE_TYPE.JENA;
+		return IDatabaseEngine.DATABASE_TYPE.JENA_TDB;
 	}
-	
+
 	@Override
 	public boolean holdsFileLocks() {
 		return true;
@@ -188,30 +219,27 @@ public class RDFJenaTDBEngine extends AbstractDatabaseEngine {
 	 * This is important for things like param values so that we can take the returned value and fill the main query without needing modification
 	 * @param sparqlQuery the SELECT SPARQL query to be run against the engine
 	 * @return the Vector of Strings representing the full uris of all of the query results */
-	public Vector<Object> getCleanSelect(String sparqlQuery)
-	{
+	public Vector<Object> getCleanSelect(String sparqlQuery) {
 		// run the query 
 		// convert to string
 		Vector <Object> retString = new Vector<Object>();
 		ResultSet rs = (ResultSet)execQuery(sparqlQuery);
-		
+
 		// gets only the first variable
 		Iterator<String> varIterator = rs.getResultVars().iterator();
 		String varName = varIterator.next();
-		while(rs.hasNext())
-		{
+		while(rs.hasNext()) {
 			QuerySolution row = rs.next();
 			retString.addElement(row.get(varName)+"");
 		}
 		return retString;
 	}
-	
+
 	/**
 	 * Uses a type URI to get the URIs of all instances of that type. These instance URIs are returned as the Vector of Strings.
 	 * @param type The full URI of the node type that we want to get the instances of
 	 * @return the Vector of Strings representing the full uris of all of the instances of the passed in type */
-	public Vector<Object> getEntityOfType(String type)
-	{
+	public Vector<Object> getEntityOfType(String type) {
 		// Get query from smss
 		// If the query is not there, get from RDFMap
 		// Fill query with type
@@ -225,14 +253,14 @@ public class RDFJenaTDBEngine extends AbstractDatabaseEngine {
 		retList.add(type);
 		paramHash.put("entity", retList);
 		query = Utility.fillParam(query, paramHash);
-		
+
 		return getCleanSelect(query);
 	}
 
 	/**
 	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #open(String)} 
 	 * is called and the connection becomes false when {@link #close()} is called.
-	
+
 	 * @return true if the engine is connected to its data store and false if it is not */
 	@Override
 	public boolean isConnected() {
@@ -244,93 +272,150 @@ public class RDFJenaTDBEngine extends AbstractDatabaseEngine {
 		this.dataset.commit();
 	}
 
-	
-	/**
-	 * Method addStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
-	 * @param subject String - RDF Subject
-	 * @param predicate String - RDF Predicate
-	 * @param object Object - RDF Object
-	 * @param concept boolean - True if the statement is a concept
-	 */
+	@Override
 	public void addStatement(Object[] args) {
 		processStatement(args, true);
 	}
-	
-	/**
-	 * Method removeStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
-	 * @param subject String - RDF Subject
-	 * @param predicate String - RDF Predicate
-	 * @param object Object - RDF Object
-	 * @param concept boolean - True if the statement is a concept
-	 */
+
+	@Override
 	public void removeStatement(Object[] args) {
 		processStatement(args, false);
 	}
-	
+
 	/**
-	 * 
-	 * @param args
-	 * @param add
+	 * Handles the transaction for a single triple to be added/removed from the dataset
+	 * @param args array contains the following
+	 * 				subject String - RDF Subject
+	 * 				predicate String - RDF Predicate
+	 * 				object Object - RDF Object
+	 * 				concept boolean - True if the statement is a concept (URI), False if it is a property (Literal)
+	 * @param add	if we are adding or removing the triple
 	 */
 	private void processStatement(Object[] args, boolean add) {
 		this.dataset.begin(ReadWrite.WRITE);
 		try {
-			Model jenaModel = this.dataset.getDefaultModel();
-
-			String subject = args[0]+"";
-			String predicate = args[1]+"";
-			Object object = args[2];
-			Boolean concept = (Boolean) args[3];
-				
-			Resource newSub = null;
-			Property newPred = null;
-			String subString = null;
-			String predString = null;
-			String sub = subject.trim();
-			String pred = predicate.trim();
-
-			subString = Utility.cleanString(sub, false);
-			newSub = jenaModel.createResource(subString);
-
-			predString = Utility.cleanString(pred, false);
-			newPred = jenaModel.createProperty(predString);
-
-			RDFNode newObject = null;
-
-			if(concept) {
-				String objString = Utility.cleanString((object + "").trim(), false);
-				newObject = jenaModel.createResource(objString);
-			} else {
-				if(object instanceof Number) {
-					classLogger.debug("Found Double " + object);
-			        newObject = ResourceFactory.createTypedLiteral( ((Number) object).doubleValue() );
-				} else if(object instanceof Date) {
-					classLogger.debug("Found Date " + object);
-					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-					String date = df.format(object);
-			        newObject = ResourceFactory.createTypedLiteral(date, XSDDatatype.XSDdateTime);
-				} else if(object instanceof Boolean) {
-					classLogger.debug("Found Boolean " + object);
-			        newObject = ResourceFactory.createTypedLiteral((Boolean) object);
-				} else {
-					classLogger.debug("Found String " + object);
-					newObject = ResourceFactory.createTypedLiteral(object+"");
-				}
-			}
-			
-			if(add) {
-				jenaModel.add(newSub, newPred, newObject);
-			} else {
-				jenaModel.remove(newSub, newPred, newObject);
-			}
-			
+			processTriple(args, add);
 			this.dataset.commit();
 		} finally {
 			this.dataset.end();
 		}
 	}
 	
+	@Override
+	public void bulkInsert(List<Object[]> args) {
+		this.dataset.begin(ReadWrite.WRITE);
+		try {
+			for(Object[] obj : args) {
+				processTriple(obj, true);
+			}
+			this.dataset.commit();
+			this.inferredModel = null;
+		} finally {
+			this.dataset.end();
+		}
+	}
+
+	@Override
+	public void bulkRemoval(List<Object[]> args) {
+		this.dataset.begin(ReadWrite.WRITE);
+		try {
+			for(Object[] obj : args) {
+				processTriple(obj, false);
+			}
+			this.dataset.commit();
+			this.inferredModel = null;
+		} finally {
+			this.dataset.end();
+		}	
+	}
+	
+	/**
+	 * Adds or removes a single triple - no transaction management
+	 * @param args array contains the following
+	 * 				subject String - RDF Subject
+	 * 				predicate String - RDF Predicate
+	 * 				object Object - RDF Object
+	 * 				concept boolean - True if the statement is a concept (URI), False if it is a property (Literal)
+	 * @param add	if we are adding or removing the triple
+	 */
+	private void processTriple(Object[] args, boolean add) {
+		Model jenaModel = this.dataset.getDefaultModel();
+
+		String subject = args[0]+"";
+		String predicate = args[1]+"";
+		Object object = args[2];
+		Boolean concept = (Boolean) args[3];
+
+		Resource newSub = null;
+		Property newPred = null;
+		String subString = null;
+		String predString = null;
+		String sub = subject.trim();
+		String pred = predicate.trim();
+
+		subString = Utility.cleanString(sub, false);
+		newSub = jenaModel.createResource(subString);
+
+		predString = Utility.cleanString(pred, false);
+		newPred = jenaModel.createProperty(predString);
+
+		RDFNode newObject = null;
+
+		if(concept) {
+			String objString = Utility.cleanString((object + "").trim(), false);
+			newObject = jenaModel.createResource(objString);
+		} else {
+			if(object instanceof Number) {
+				classLogger.debug("Found Double " + object);
+				newObject = ResourceFactory.createTypedLiteral( ((Number) object).doubleValue() );
+			} else if(object instanceof Date) {
+				classLogger.debug("Found Date " + object);
+				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+				String date = df.format(object);
+				newObject = ResourceFactory.createTypedLiteral(date, XSDDatatype.XSDdateTime);
+			} else if(object instanceof Boolean) {
+				classLogger.debug("Found Boolean " + object);
+				newObject = ResourceFactory.createTypedLiteral((Boolean) object);
+			} else {
+				classLogger.debug("Found String " + object);
+				newObject = ResourceFactory.createTypedLiteral(object+"");
+			}
+		}
+
+		if(add) {
+			jenaModel.add(newSub, newPred, newObject);
+		} else {
+			jenaModel.remove(newSub, newPred, newObject);
+		}
+	}
+
 	public Dataset getDataset() {
 		return this.dataset;
 	}
+	
+	@Override
+	public void infer() {
+//		// Get the default model from the dataset
+//        Model tdbModel = this.dataset.getDefaultModel();
+//		 // Create an RDFS reasoner
+//        Reasoner reasoner = ReasonerRegistry.getRDFSReasoner();
+//        // Create an inferred model by binding the reasoner to the TDB2 model
+//        Model inferredModel = ModelFactory.createInfModel(reasoner, tdbModel);
+//        // Begin a write transaction to persist inferred triples
+//        this.dataset.begin(ReadWrite.WRITE);
+//        try {
+//            // Add inferred triples to the base model
+//        	tdbModel.add(inferredModel);
+//        	this.dataset.commit();
+//        } finally {
+//        	this.dataset.end();
+//        }
+	}
+	
+	@Override
+	public void exportDB() throws Exception {
+		// do nothing
+		
+	}
+	
 }

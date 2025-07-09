@@ -171,7 +171,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		String removeSeaborn = "del(sns)";
 		String removeSaveFile = "del(saveFile)";
 		
-		seabornFile = (String)pyt.runPyAndReturnOutput(assigner, importPyPlot, importSeaborn, clearPlot, saveFileName, runPlot, savePlot, removeSeaborn, printFile, removeSaveFile);
+		seabornFile = (String)pyt.runDirectPy(assigner, importPyPlot, importSeaborn, clearPlot, saveFileName, runPlot, savePlot, removeSeaborn, printFile, removeSaveFile);
 
 		// get the insight folder
 		String IF = insight.getInsightFolder();

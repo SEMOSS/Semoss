@@ -27,14 +27,21 @@ public class PixelJobThread extends Thread {
 
 	@Override
 	public void run() {
+		this.runner = new PixelRunner();
 		try {
 			this.status = PixelJobStatus.IN_PROGRESS;
-			this.runner = insight.runPixel(pixel);
+			this.runner = insight.runPixel(this.runner, this.pixel);
 			this.status = PixelJobStatus.PROGRESS_COMPLETE;
 		} catch (Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 			this.status = PixelJobStatus.ERROR;
 		}
+	}
+	
+	@Override
+	public void interrupt() {
+		super.interrupt();
+		this.runner.interrupt();
 	}
 	
 	public void addPixel(String pixel) {

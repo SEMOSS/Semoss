@@ -92,7 +92,7 @@ public class UpdateMatchColumnValuesReactor extends AbstractPyFrameReactor {
 			scripts.add(frameName + "['" + column + "'] = pd.to_numeric(" + frameName + "['" + column + "'])");
 		}
 		
-		insight.getPyTranslator().runPyAndReturnOutput(scripts.toArray(new String[scripts.size()]));
+		insight.getPyTranslator().runEmptyPy(scripts.toArray(new String[scripts.size()]));
 		for(String script : scripts) {
 			this.addExecutedCode(script);
 		}

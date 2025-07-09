@@ -29,29 +29,19 @@ package prerna.engine.api;
 
 import org.openrdf.model.ValueFactory;
 import org.openrdf.repository.RepositoryConnection;
-import org.openrdf.sail.SailConnection;
 
 /**
  * An Abstract Engine that sets up the base constructs needed to create an
  * engine.
  */
-public interface ISesameRdfEngine extends IDatabaseEngine {
+public interface ISesameRDFEngine extends IRDFDatabase {
 
 	RepositoryConnection getRc();
 
 	void setRc(RepositoryConnection rc);
 	
-	SailConnection getSc();
-	
-	void setSc(SailConnection sc);
-	
 	ValueFactory getVf();
 	
 	void setVf(ValueFactory vf);
 
-	void infer() throws Exception;
-	
-	@Deprecated
-	// TODO: replace and set this within the commit
-	void exportDB() throws Exception;
 }
