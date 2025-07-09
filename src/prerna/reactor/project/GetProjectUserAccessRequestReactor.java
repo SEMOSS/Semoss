@@ -28,7 +28,7 @@ public class GetProjectUserAccessRequestReactor extends AbstractReactor {
 		// check user permission for the database
 		User user = this.insight.getUser();
 		String userId = this.insight.getUserId();
-		if(!SecurityAdminUtils.userIsAdmin(user) && 
+		if(!isSpecificUser && !SecurityAdminUtils.userIsAdmin(user) && 
 				!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException("User does not have permission to view access requests for this project");
 		}
