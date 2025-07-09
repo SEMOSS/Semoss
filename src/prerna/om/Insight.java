@@ -1357,11 +1357,7 @@ public class Insight implements Serializable {
 	private URL[] getUrlsFromClassLoader(ClassLoader cl) {
 		URL[] urls = null;
 		if (cl instanceof URLClassLoader) {
-			try (URLClassLoader urlCl = (URLClassLoader) cl) {
-				urls = urlCl.getURLs();
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
+			urls = ((URLClassLoader) cl).getURLs();
 		} else {
 			try (URLClassLoader urlCl = new URLClassLoader(new URL[] {}, cl)) {
 				urls = urlCl.getURLs();
