@@ -29,27 +29,26 @@ import prerna.om.Insight;
 public class MessageUtils {
 
 	private static final ExclusionStrategy NO_ROOM_INSIGHT_SOCKET_EXCLUSION = new ExclusionStrategy() {
-	    @Override
-	    public boolean shouldSkipField(FieldAttributes f) {
-	        String fieldName = f.getName();
-	        if ("room".equals(fieldName) || "insight".equals(fieldName))
-	            return true;
-	        Type declaredType = f.getDeclaredType();
-	        if (declaredType instanceof Class<?>) {
-	            Class<?> declaredClass = (Class<?>) declaredType;
-	            if (Room.class.isAssignableFrom(declaredClass) ||
-	                Insight.class.isAssignableFrom(declaredClass) ||
-	                Socket.class.isAssignableFrom(declaredClass))
-	                return true;
-	        }
-	        return false;
-	    }
-	    @Override
-	    public boolean shouldSkipClass(Class<?> clazz) {
-	        return Room.class.isAssignableFrom(clazz) ||
-	               Insight.class.isAssignableFrom(clazz) ||
-	               Socket.class.isAssignableFrom(clazz);
-	    }
+		@Override
+		public boolean shouldSkipField(FieldAttributes f) {
+			String fieldName = f.getName();
+			if ("room".equals(fieldName) || "insight".equals(fieldName))
+				return true;
+			Type declaredType = f.getDeclaredType();
+			if (declaredType instanceof Class<?>) {
+				Class<?> declaredClass = (Class<?>) declaredType;
+				if (Room.class.isAssignableFrom(declaredClass) || Insight.class.isAssignableFrom(declaredClass)
+						|| Socket.class.isAssignableFrom(declaredClass))
+					return true;
+			}
+			return false;
+		}
+
+		@Override
+		public boolean shouldSkipClass(Class<?> clazz) {
+			return Room.class.isAssignableFrom(clazz) || Insight.class.isAssignableFrom(clazz)
+					|| Socket.class.isAssignableFrom(clazz);
+		}
 	};
 
 	// For DB: skips "room", "insight", "socket", and "base64Data"
@@ -76,18 +75,31 @@ public class MessageUtils {
 	// ---- Serialization/Deserialization ----
 
 	// Deserialize a single message from JSON
-	public static AbstractMessage fromJson(String json) {
-		JsonObject jsonObj = JsonParser.parseString(json).getAsJsonObject();
-		MessageType type = MessageType.valueOf(jsonObj.get("type").getAsString());
-		switch (type) {
-		case RESPONSE_TEXT:
-		case RESPONSE_TOOL:
-			return gsonForDB.fromJson(json, ResponseMessage.class);
-		case INPUT_TEXT:
-		case INPUT_MEDIA:
-		default:
-			return gsonForDB.fromJson(json, InputMessage.class);
-		}
+	public static AbstractMessage fromJson(String json, Room room) {
+	    JsonObject jsonObj = JsonParser.parseString(json).getAsJsonObject();
+	    MessageType type = MessageType.valueOf(jsonObj.get("type").getAsString());
+	    AbstractMessage message = null;
+	    switch (type) {
+	        case RESPONSE_TEXT:
+	        case RESPONSE_TOOL:
+	            message = gsonForDB.fromJson(json, ResponseMessage.class);
+	            break;
+	        case INPUT_MEDIA:
+	            message = gsonForDB.fromJson(json, InputMessage.class);
+	            // re-encode the base64 from file.
+	            for (ImageInfo imageInfo : ((InputMessage) message).getImageInfos()) {
+	                imageInfo.setRoomFolder(room.getRoomFolderPath());
+	                imageInfo.getBase64Data();
+	            }
+	            break;
+	        case INPUT_TEXT:
+	            message = gsonForDB.fromJson(json, InputMessage.class);
+	            break;
+	    }
+	    if (message != null) {
+	        message.setRoom(room);
+	    }
+	    return message;
 	}
 
 	// Serialize any message to JSON (for DB)
@@ -103,9 +115,8 @@ public class MessageUtils {
 		JsonArray array = JsonParser.parseString(jsonArrayString).getAsJsonArray();
 		List<AbstractMessage> result = new ArrayList<>();
 		for (JsonElement elem : array) {
-			AbstractMessage message = fromJson(elem.toString());
+			AbstractMessage message = fromJson(elem.toString(), room);
 			if (message != null) {
-				message.setRoom(room);
 				result.add(message);
 			}
 		}
