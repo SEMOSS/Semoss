@@ -3,6 +3,7 @@ package prerna.sablecc2.om;
 public enum ReactorKeysEnum {
 	
 	ACCESS("access",											"Boolean to check if access is required."),
+	ACCOUNTNAME("accountname",                                  "Name of the google account."),
 	ADDITIONAL_DATA_TYPE("additionalDataType",					"Additional data types defining specific format"),
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",				"Additional data types defining specific formats"),
 	ADDITIONAL_PIXELS("additionalPixels",						"Additional pixels to be executed in addition to the pixel steps saved within the insight"),
@@ -57,6 +58,7 @@ public enum ReactorKeysEnum {
 	DESCRIPTION("description", 									"A description (could be for an app, table/concept, insight, etc.)"),
 	DRY_RUN("dryRun",											"Boolean whether to perform a dry run of the operation without impacting application state (default is true)"),
 	EMAIL_SESSION("emailSession",								"The javax.mail email session object"),
+	ENDINDEX("endindex",                                        "End index for updating a file"),
 	ENABLE("enable",											"Boolean whether to enable"),
 	EVENTS_KEY("events", 										"Events map input"),
 	EXISTING("existing", 										"Add to exisitng app"),
