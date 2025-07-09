@@ -114,13 +114,13 @@ public class RunMCPToolReactor extends AbstractReactor {
 		
 		String runMethod = "main." + functionName + "(" + paramString + ")";
 		classLogger.info("Running method..  " + runMethod + "  On project " + projectId);
-		String curPath = insight.getPyTranslator().runPyAndReturnOutput(sysImport, getpath);
+		String curPath = insight.getPyTranslator().runScript(sysImport, getpath)+"";
 		curPath = curPath.replace("\\", "/");
 		if(!curPath.contains(pyFolderLoc)) {
-			insight.getPyTranslator().runPyAndReturnOutput(setpath, loadLib);
+			insight.getPyTranslator().runScript(setpath, loadLib);
 		}
 		// run method
-		output = insight.getPyTranslator().runSingle(runMethod, insight);
+		output = insight.getPyTranslator().runScript(runMethod)+"";
 		classLogger.info(output);
 
 		return new NounMetadata(output, PixelDataType.CONST_STRING);
