@@ -889,7 +889,38 @@ public class ModelInferenceLogsUtils {
       String projectId,
       String projectName) {
 	  
-	   doCreateNewConversation(insightId,insightId, roomName, roomContext, userId, userName, userEmail, agentType, agentId, isActive, projectId, projectName );
+	   doCreateNewConversation(insightId,insightId, roomName, roomContext, userId, userName, userEmail, agentType, agentId, isActive, projectId, projectName, null);
+  }
+
+  /**
+   * @param insightId
+   * @param roomName
+   * @param roomContext
+   * @param userId
+   * @param userName
+   * @param userEmail
+   * @param agentType
+   * @param agentId
+   * @param isActive
+   * @param projectId
+   * @param projectName
+   * @param options
+   */
+  public static void doCreateNewConversation(
+      String insightId,
+      String roomName,
+      String roomContext,
+      String userId,
+      String userName,
+      String userEmail,
+      String agentType,
+      String agentId,
+      Boolean isActive,
+      String projectId,
+      String projectName,
+      Map<String, Object> options) {
+	  
+	   doCreateNewConversation(insightId,insightId, roomName, roomContext, userId, userName, userEmail, agentType, agentId, isActive, projectId, projectName, options);
   }
 	  
    
@@ -907,6 +938,7 @@ public class ModelInferenceLogsUtils {
    * @param isActive
    * @param projectId
    * @param projectName
+   * @param options
    */
   public static void doCreateNewConversation(
       String insightId,
@@ -920,13 +952,14 @@ public class ModelInferenceLogsUtils {
       String agentId,
       Boolean isActive,
       String projectId,
-      String projectName) {
+      String projectName,
+      Map<String, Object> options) {
     String query =
         "INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, "
             + "ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, "
             + "AGENT_TYPE, AGENT_ID, IS_ACTIVE, "
-            + "DATE_CREATED, PROJECT_ID, PROJECT_NAME) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            + "DATE_CREATED, PROJECT_ID, PROJECT_NAME, OPTIONS) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     // boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
     PreparedStatement ps = null;
     try {
@@ -971,6 +1004,13 @@ public class ModelInferenceLogsUtils {
       ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
       ps.setString(index++, projectId);
       ps.setString(index++, projectName);
+      if (options != null) {
+          modelInferenceLogsDb
+              .getQueryUtil()
+              .handleInsertionOfClob(ps.getConnection(), ps, options, index++, new Gson());
+        } else {
+          ps.setNull(index++, java.sql.Types.NULL);
+        }
       ps.execute();
       if (!ps.getConnection().getAutoCommit()) {
         ps.getConnection().commit();

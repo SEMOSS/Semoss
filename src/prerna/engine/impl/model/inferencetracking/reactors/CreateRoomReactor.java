@@ -1,0 +1,97 @@
+package prerna.engine.impl.model.inferencetracking.reactors;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.Vector;
+
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
+import prerna.reactor.AbstractReactor;
+import prerna.reactor.insights.AbstractInsightReactor;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
+
+public class CreateRoomReactor extends AbstractReactor {
+	
+	public CreateRoomReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.WORKSPACE_ID.getKey()};
+		this.keyRequired = new int [] {0,0,0,0,0,0};
+	}
+	
+	@Override
+	public NounMetadata execute() {
+		
+		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+		String roomName = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
+		
+		Map<String, Object> context = null;
+		Map<String, Object> options = null;
+		
+		if (workspaceId == null) {
+			List<String> vectorDbs = getVectorDbs();
+			List<String> tools = getTools();
+			context = getContext();
+			options = new HashMap<>();
+			options.put("tools", tools);
+			options.put("vectorDbs", vectorDbs);
+		}
+		
+		if (roomId == null) roomId = UUID.randomUUID().toString();
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, null, null, options);
+
+		return new NounMetadata(room.getId(), PixelDataType.CONST_STRING);
+	}
+	
+	private List<String> getVectorDbs() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
+	
+	private List<String> getTools() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
+	
+	private Map<String, Object> getContext() {
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.CONTEXT.getKey());
+		if(mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if(mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if(mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
+}

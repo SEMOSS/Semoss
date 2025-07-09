@@ -40,16 +40,33 @@ import java.util.List;
 public class RoomUtils {
 
     private static final Logger logger = LogManager.getLogger(RoomUtils.class);
-
+    
+    /**
+     * Overload create room
+     * @param roomId
+     * @param insight
+     * @param modelEngine
+     * @param question
+     * @return the existing or newly created Room
+     */
+    public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question) {
+    	return createRoomIfNotExists(roomId, insight, modelEngine, question, null);
+    }
     /**
      * Ensures a Room exists: creates it if necessary, then loads it for the given user/insight.
+     * @param roomId
+     * @param insight
+     * @param modelEngine
+     * @param question
+     * @param options
      * @return the existing or newly created Room
      */
     public static Room createRoomIfNotExists(
             String roomId,
             Insight insight,
             IModelEngine modelEngine,
-            String question
+            String question,
+            Map<String, Object> options
     ) {
         // Use the passed roomId or fallback to the insightId if null/empty
         if (roomId == null || roomId.trim().isEmpty()) {
@@ -90,7 +107,8 @@ public class RoomUtils {
                     engineId,
                     true,
                     projectId,
-                    projectName
+                    projectName,
+                    options
             );
             // Always get the loaded room object (avoiding any skipping, ensures in-memory cache is filled)
             return RoomUtils.getOrLoadRoom(roomId, insight);
