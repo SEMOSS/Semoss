@@ -46,11 +46,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 	private static final Logger classLogger = LogManager.getLogger(NativePySocketClient.class);
 
-	/**
-	 * 
-	 */
-	public void run()	
-	{
+	@Override
+	public void run() {
 		// there is 2 portions to the run
 		// one is before connect
 		// one is after. The reason this is done is to avoid an extra handler for information
@@ -469,9 +466,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 	}
 
-	/**
-	 * 
-	 */
+	@Override
 	public Object executeCommand(PayloadStruct ps) {
 	    String threadName = Thread.currentThread().getName();
 	    long threadId = Thread.currentThread().threadId();
@@ -485,62 +480,65 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 
 		String id = ps.epoc;
-		if(!ps.response || id == null)
-		{
+		if(!ps.response || id == null) {
 			id = "ps"+ count.getAndIncrement();
 			ps.epoc = id;
-			if(ps.jobId != null) {
-				this.jobIdToEpoc.put(ps.jobId, ps.epoc);
-			}
+		}
+		if(ps.insightId != null) {
+			addEpocForInsight(ps.insightId, ps.epoc);
 		}
 		ps.longRunning = true;
 
-		synchronized(ps) // going back to single threaded .. earlier it was ps
-		{	
-	        classLogger.debug("Inside synchronized block for epoc: {} on thread: {} (ID: {})", ps.epoc, threadName, threadId);
-
-			//if(ps.hasReturn)
-			// put it into request map
-			if(!ps.response) {
-				requestMap.put(id, ps);
-			}
-			writePayload(ps);
-			classLogger.debug("outgoing payload " + ps.epoc);
-
-			// send the message
-			// time to wait = average time * 10
-			// if this is a request wait for it
-		
-			if(!ps.response) // this is a response to something the socket has asked
-			{
-				int pollNum = 1; // 1 second
-				while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killAll)
+		try {
+			synchronized(ps) {	
+		        classLogger.debug("Inside synchronized block for epoc: {} on thread: {} (ID: {})", ps.epoc, threadName, threadId);
+	
+				if(!ps.response) {
+					this.requestMap.put(id, ps);
+				}
+				writePayload(ps);
+				classLogger.debug("outgoing payload " + ps.epoc);
+	
+				// send the message
+				// time to wait = average time * 10
+				// if this is a request wait for it
+				
+				int maxWait = 1_000;
+				if(!ps.response) // this is a response to something the socket has asked
 				{
-			        classLogger.debug("Thread {} waiting for response to epoc: {} (poll #{})", 
-			                Thread.currentThread().threadId(), ps.epoc, pollNum);
-					//classLogger.info("Checking to see if there was a response");
-					try {
-						classLogger.debug("I'm looking for epoc{}", ps.epoc);
-						if(pollNum < 10) {
-							ps.wait(averageMillis);
-						} else { //if(ps.longRunning) // this is to make sure the kill all is being checked
-							classLogger.debug("Im about to wait eternally for epoc{}", ps.epoc);
-							ps.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
+					int pollNum = 1;
+					while(!responseMap.containsKey(ps.epoc) && (pollNum < maxWait || ps.longRunning) && !killAll
+							&& !cancelledEpocs.contains(ps.epoc))
+					{
+				        classLogger.debug("Thread {} waiting for response to epoc: {} (poll #{})", Thread.currentThread().threadId(), ps.epoc, pollNum);
+						try {
+							classLogger.debug("I'm looking for epoc{}", ps.epoc);
+							if(pollNum < maxWait) {
+								ps.wait(this.averageMillis);
+							} else { 
+								classLogger.debug("Im about to wait eternally for epoc{}", ps.epoc);
+								// wait eternally - we dont know how long some of the load operations would take besides
+								// I am not sure if the null gets us anything
+								ps.wait(); 
+							}													
+							pollNum++;
+						} catch (InterruptedException e) {
+							classLogger.error(Constants.STACKTRACE, e);
 						}
-						pollNum++;
-					} catch (InterruptedException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+					}
+					if(cancelledEpocs.contains(ps.epoc)) {
+						cancelledEpocs.remove(ps.epoc);
+						classLogger.info("Cancelled epoc " + ps.epoc + " " + ps.methodName);
+						throw new SemossPixelException("The request was cancelled by the user");
+					} else if(!responseMap.containsKey(ps.epoc) && ps.hasReturn) {
+						classLogger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
 					}
 				}
-				if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
-				{
-					classLogger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
-				}
+	
+				return responseMap.remove(ps.epoc);
 			}
-
-			// after 10 seconds give up
-			//printUnprocessed();
-			return responseMap.remove(ps.epoc);
+		} finally {
+			removeEpocForInsight(ps.insightId, ps.epoc);
 		}
 	}
 
@@ -548,13 +546,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	 * 
 	 * @param ps
 	 */
-	private void writePayload(PayloadStruct ps)
-	{
+	private void writePayload(PayloadStruct ps) {
 		classLogger.debug("Starting writePayload for epoc: " + ps.epoc);
-		// nulling the classes so they dont screw up json
 		ps.payloadClasses = null;
-		try
-		{
+		try {
 			String jsonPS = gson.toJson(ps);
 			byte [] psBytes = pack(jsonPS, ps.epoc);
 			try {
@@ -564,10 +559,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			} catch(IOException ex) {
 				classLogger.info("Failed writing to output stream for epoc: " + ps.epoc, ex);
 				classLogger.error(Constants.STACKTRACE, ex);
-				//crash();
 			}
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		}
 	}

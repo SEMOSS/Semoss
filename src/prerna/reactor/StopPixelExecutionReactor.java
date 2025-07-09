@@ -2,6 +2,7 @@ package prerna.reactor;
 
 import prerna.auth.User;
 import prerna.sablecc2.comm.PixelJobManager;
+import prerna.sablecc2.comm.PixelJobThread;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -27,11 +28,11 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 		
 		jobManager.interruptThread(jobId);
 		jobManager.clearJob(jobId);
-		jobManager.removeJob(jobId);
+		PixelJobThread pjt = jobManager.removeJob(jobId);
 		
 		SocketClient pySocketClient = user.getPythonSocketClient(false);
 		if(pySocketClient != null) {
-			pySocketClient.interrupt(jobId);
+			pySocketClient.interruptInsight(pjt.getInsight().getInsightId());
 		}
 		
 		return new NounMetadata("Pixel operation ended", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);

@@ -17,32 +17,29 @@ public class PixelJobManager {
 	// obviously I assume the user wont run that many jobs to start with
 	// I will adjust this to a random number generator later
 	
-	// hashtable to status
-	private Hashtable <String, String> jobStatus = new Hashtable <String, String> ();
-	
 	// hashtable of job id to stdOut messages
-	private Hashtable <String, List<String>> jobStdOut = new Hashtable <String, List<String>>();
+	private Map<String, List<String>> jobStdOut = new Hashtable<>();
 	
 	//hashtable of job id to offset
-	private Hashtable <String, Integer> stdOutOffset = new Hashtable<String, Integer>();
+	private Map<String, Integer> stdOutOffset = new Hashtable<>();
 	
 	// hashtable of job id to error messages
-	private Hashtable <String, List<String>> jobError = new Hashtable <String, List<String>>();
+	private Map<String, List<String>> jobError = new Hashtable<>();
 
 	//hashtable of job id to offset
-	private Hashtable <String, Integer> errorOffset = new Hashtable<String, Integer>();
+	private Map<String, Integer> errorOffset = new Hashtable<>();
 
 	// output offset - this will eventually be needed for distributed processing
-	private Hashtable <String, Integer> outputOffset = new Hashtable<String, Integer>();
+	private Map<String, Integer> outputOffset = new Hashtable<>();
 	
 	// keeps the job to thread
-	private Hashtable <String, PixelJobThread> threadPool = new Hashtable<String, PixelJobThread>();
+	private Map<String, PixelJobThread> threadPool = new Hashtable<>();
 	
 	// hashtable of job id to stdOut messages
-	private Hashtable <String, StringBuilder> jobPartialOut = new Hashtable <String, StringBuilder>();
+	private Map<String, StringBuilder> jobPartialOut = new Hashtable<>();
 	
 	//hashtable of job id to offset
-	private Hashtable <String, Integer> jobPartialOutOffset = new Hashtable<String, Integer>();
+	private Map<String, Integer> jobPartialOutOffset = new Hashtable<>();
 	
 	private PixelJobManager() {
 		
@@ -63,21 +60,19 @@ public class PixelJobManager {
 	
 	public PixelJobThread makeJob() {
 		String jobId = UUID.randomUUID().toString();
-		jobStatus.put(jobId, PixelJobStatus.CREATED+"");
 		PixelJobThread jt = new PixelJobThread(jobId);
 		threadPool.put(jobId, jt);
 		return jt;
 	}
 	
 	public PixelJobThread makeJob(String jobId) {
-		jobStatus.put(jobId, PixelJobStatus.CREATED+"");
 		PixelJobThread jt = new PixelJobThread(jobId);
 		threadPool.put(jobId, jt);
 		return jt;
 	}
 	
-	public void removeJob(String jobId) {
-		threadPool.remove(jobId);
+	public PixelJobThread removeJob(String jobId) {
+		return threadPool.remove(jobId);
 	}
 	
 	public PixelJobThread getJob(String jobId) {
@@ -222,7 +217,6 @@ public class PixelJobManager {
 	}
 	
 	public void clearJob(String jobId) {
-		jobStatus.remove(jobId);
 		jobError.remove(jobId);
 		stdOutOffset.remove(jobId);
 		errorOffset.remove(jobId);
@@ -239,7 +233,9 @@ public class PixelJobManager {
 	
 	public void interruptThread(String jobId) {
 		if(threadPool.get(jobId) != null) {
-			((Thread)threadPool.get(jobId)).interrupt();
+			PixelJobThread pixelThread = threadPool.get(jobId);
+			pixelThread.interrupt();
+			pixelThread.setStatus(PixelJobStatus.CANCELED);
 		}
 	}
 	

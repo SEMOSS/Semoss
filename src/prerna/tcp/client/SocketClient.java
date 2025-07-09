@@ -6,7 +6,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -44,8 +46,9 @@ public class SocketClient implements Runnable, Closeable {
     
     Map<String, PayloadStruct> requestMap = new HashMap<>();
     Map<String, PayloadStruct> responseMap = new HashMap<>();
-    Map<String, String> jobIdToEpoc = new HashMap<>();
-
+    Map<String, Set<String>> insightToEpoc = new HashMap<>();
+    Set<String> cancelledEpocs = new HashSet<>();
+    
     boolean ready = false;
     boolean connected = false;
     AtomicInteger count = new AtomicInteger(0);
@@ -71,41 +74,8 @@ public class SocketClient implements Runnable, Closeable {
     	this.SSL = SSL;
     }
     
-	@Override
-	public void close() {
-		if(this.requestMap != null) {
-			this.requestMap.clear();
-		}
-		if(this.responseMap != null) {
-			this.responseMap.clear();
-		}
-		if(this.jobIdToEpoc != null) {
-			this.jobIdToEpoc.clear();
-		}
-		closeStream(this.os);
-		closeStream(this.is);
-		closeStream(this.clientSocket);
-		this.connected = false;
-		this.killAll = true;
-	}
-	
-	/**
-	 * 
-	 * @param jobId
-	 */
-	public void interrupt(String jobId) {
-		String epoc = jobIdToEpoc.get(jobId);
-		PayloadStruct lock = this.requestMap.remove(epoc);
-		if(lock != null) {
-			synchronized(lock) {
-				lock.notifyAll();
-			}
-		}
-	}
-
     @Override
-    public void run()	
-    {
+    public void run() {
         // Configure SSL.git
     	int attempt = 1;
     	int SLEEP_TIME = 800;
@@ -193,8 +163,7 @@ public class SocketClient implements Runnable, Closeable {
     	}
     	
     	String id = ps.epoc;
-    	if(!ps.response || id == null)
-    	{
+    	if(!ps.response || id == null) {
 	    	id = "ps"+ count.getAndIncrement();
 	    	ps.epoc = id;
     	}
@@ -369,6 +338,73 @@ public class SocketClient implements Runnable, Closeable {
     	this.close();
     	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
     }
+    
+	@Override
+	public void close() {
+		if(this.requestMap != null) {
+			this.requestMap.clear();
+		}
+		if(this.responseMap != null) {
+			this.responseMap.clear();
+		}
+		if(this.insightToEpoc != null) {
+			this.insightToEpoc.clear();
+		}
+		closeStream(this.os);
+		closeStream(this.is);
+		closeStream(this.clientSocket);
+		this.connected = false;
+		this.killAll = true;
+	}
+	
+	/**
+	 * 
+	 * @param insightId
+	 * @param epoc
+	 */
+	void addEpocForInsight(String insightId, String epoc) {
+		Set<String> epocs = null;
+		if(this.insightToEpoc.containsKey(insightId)) {
+			epocs = this.insightToEpoc.get(insightId);
+		} else {
+			epocs = new HashSet<>();
+			this.insightToEpoc.put(insightId, epocs);
+		}
+		epocs.add(epoc);
+	}
+	
+	/**
+	 * 
+	 * @param insightId
+	 * @param epoc
+	 */
+	void removeEpocForInsight(String insightId, String epoc) {
+		Set<String> epocs = this.insightToEpoc.get(insightId);
+		if(epocs != null) {
+			epocs.remove(epoc);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param jobId
+	 */
+	public void interruptInsight(String insightId) {
+		Set<String> epocs = this.insightToEpoc.get(insightId);
+		if(epocs != null) {
+			this.cancelledEpocs.addAll(epocs);
+		}
+		if(epocs != null) {
+			for(String epoc : epocs) {
+				PayloadStruct lock = this.requestMap.remove(epoc);
+				if(lock != null) {
+					synchronized(lock) {
+						lock.notifyAll();
+					}
+				}
+			}
+		}
+	}
     
     /**
      * 
