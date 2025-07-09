@@ -58,6 +58,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyTransporter;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.project.api.IProject;
 import prerna.query.parsers.GenExpressionWrapper;
@@ -153,7 +154,7 @@ public class Insight implements Serializable {
 	// since reactors have access to insight
 	protected String tupleSpace = null;
 	private transient AbstractRJavaTranslator rJavaTranslator; // need a way keep the environment name so it is communicated
-	private transient PyTranslator pyt;
+	private transient PyTranslator pyTranslator;
 
 	private transient SaveInsightIntoWorkspace workspaceCacheThread = null;
 	private transient boolean cacheInWorkspace = false;
@@ -732,9 +733,9 @@ public class Insight implements Serializable {
 			if(this.rJavaTranslator instanceof TCPRTranslator)
 			{
 				// do this so that the netty client is initialized
-				//getPyTranslator();
+				// getPyTranslator();
 				// now set the netty client
-				((TCPRTranslator)this.rJavaTranslator).setClient( this.user.getSocketClient(true) );
+				((TCPRTranslator)this.rJavaTranslator).setClient( this.user.getPythonSocketClient(true) );
 				this.rJavaTranslator.setInsight(this);
 				this.rJavaTranslator.startR();
 			}
@@ -1111,6 +1112,13 @@ public class Insight implements Serializable {
 			
 			Map<String, NounMetadata> currentParameters = this.varStore.pullParameters();
 			Map<String, NounMetadata> preAppliedParameters = this.varStore.pullPreAppliedParameters();
+			Map<String, NounMetadata> defaultVars = new HashMap<>();
+			String[] keys = new String[]{JobReactor.JOB_KEY, JobReactor.SESSION_KEY, JobReactor.INSIGHT_KEY, JobReactor.ROUTE_KEY};
+			for(String key : keys) {
+				if(this.varStore.containsKey(key)) {
+					defaultVars.put(key, this.varStore.get(key));
+				}
+			}
 			
 			// always add the insight config
 			boolean hasInsightConfig = false;
@@ -1163,6 +1171,11 @@ public class Insight implements Serializable {
 			// so that we can set the value inside of them
 			for(String paramKey : preAppliedParameters.keySet()) {
 				this.varStore.put(paramKey, preAppliedParameters.get(paramKey));
+			}
+			
+			// add back the default vars
+			for(String paramKey : defaultVars.keySet()) {
+				this.varStore.put(paramKey, defaultVars.get(paramKey));
 			}
 			
 			// execution
@@ -1482,7 +1495,7 @@ public class Insight implements Serializable {
 			String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 			String mountDir = AssetUtility.getProjectVersionFolder(projectName, projectId);
 	
-			this.cmdUtil = new CmdExecUtil(projectName, mountDir, this.user.getSocketClient(false));
+			this.cmdUtil = new CmdExecUtil(projectName, mountDir, this.user.getPythonSocketClient(false));
 			this.contextProjectId = projectId;
 			return true;
 		}
@@ -1558,27 +1571,24 @@ public class Insight implements Serializable {
 
 	///////////////////////////////////////// PYTHON SPECIFIC METHODS ///////////////////////////////////////////
 	
-	public void setPyTranslator(PyTranslator pyt)
-	{
-		this.pyt = pyt;
-		if (pyt != null) {
-			pyt.setInsight(this);
-		}
-	}
-	
+	/**
+	 * 
+	 * @return
+	 */
 	public PyTranslator getPyTranslator() {
-		this.pyt = user.getPyTranslator();
-		if(this.pyt == null) {
+		PyTransporter pyTransporter = user.getPyTransporter();
+		if(pyTransporter == null) {
 			throw new NullPointerException("Could not create python translator");
 		}
-		// need to recreate the translator
-		SocketClient nc1 = pyt.getSocketClient();
-		this.pyt = new PyTranslator();
-		this.pyt.setSocketClient(nc1);
-		this.pyt.setInsight(this);
-		return this.pyt;
+		this.pyTranslator = new PyTranslator();
+		this.pyTranslator.setInsight(this);
+		this.pyTranslator.setPyTransporter(pyTransporter);
+		return this.pyTranslator;
 	}
 	
+	/**
+	 * 
+	 */
 	public void dropPythonTupleSpace() {
 		if(this.tupleSpace != null && nc == null) {
 			try {

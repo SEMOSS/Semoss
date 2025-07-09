@@ -319,13 +319,14 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			ITableDataFrame frame;
 			try {
 				String className = cf.getFrameType();
-				frame = (ITableDataFrame) Class.forName(className).newInstance();
 				// need to set the exector for pandas
-				if(frame instanceof PandasFrame) {
-					((PandasFrame)frame).setTranslator(insight.getPyTranslator());
+				if(className.equalsIgnoreCase(PandasFrame.class.getName())) {
+					frame = new PandasFrame(insight.getPyTranslator());
 				}
-				else if(frame instanceof RDataTable) {
+				else if(className.equalsIgnoreCase(RDataTable.class.getName())) {
 					frame = new RDataTable(insight.getRJavaTranslator(CLASS_NAME));
+				} else {
+					frame = (ITableDataFrame) Class.forName(className).newInstance();
 				}
 				
 				frame.open(cf, this.cipher);

@@ -98,19 +98,20 @@ public class Room {
 
 		//set transaction id for both pieces
 		msg.setTransactionId(llmResponse.getMessageId());
+		msg.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
 		response.setTransactionId(llmResponse.getMessageId());
 		
 		// Create the assistant's response message and add to history
 		response.setModel(modelEngine);
 		response.setParentMessageId(msg.getMessageId());
+		response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
 		messages.add(response);
 
 		// Persist the message history
 		ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 				getMessagesAsString());
 
-		// Debug
-		System.out.println(getMessagesAsString());
+
 		return response;
 	}
 	
