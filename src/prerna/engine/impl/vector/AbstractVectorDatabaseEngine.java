@@ -43,6 +43,7 @@ import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -356,7 +357,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 								.append(extractedFileName)
 								.append("')");
 							setVectorFolderPermissions();
-							Number rows = (Number) pyTranslator.transportScript(extractTextFromDocScript.toString());
+							Number rows = (Number) pyTranslator.runDirectPy(extractTextFromDocScript.toString());
 							rowsCreated = rows.intValue();
 							processed = true;
 						} else if(this.customDocumentProcessor) {
@@ -561,6 +562,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 					/*messageMethod*/"nearestNeighbor", 
 					/*engine*/this, 
 					/*insight*/insight,
+					/*sessionId*/ThreadStore.getSessionId(),
 					/*context*/null, 
 					/*prompt*/searchStatement,
 					/*fullPrompt*/null,

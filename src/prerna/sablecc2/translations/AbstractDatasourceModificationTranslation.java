@@ -34,8 +34,8 @@ public class AbstractDatasourceModificationTranslation extends LazyTranslation {
 		importTypes.add("GoogleSheetSource");
 	}
 	
-	public AbstractDatasourceModificationTranslation(Insight insight) {
-		super(insight);
+	public AbstractDatasourceModificationTranslation(Insight insight, String jobId) {
+		super(insight, jobId);
 		this.isTimeTracking = false;
 	}
 	
