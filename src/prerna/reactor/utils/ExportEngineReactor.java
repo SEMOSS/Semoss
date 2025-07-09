@@ -42,7 +42,7 @@ public class ExportEngineReactor extends AbstractReactor {
 	private String keepGit = "keepGit";
 
 	public ExportEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), keepGit };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), keepGit, ReactorKeysEnum.INCLUDE_DATA.getKey()};
 	}
 
 	@Override
@@ -50,6 +50,7 @@ public class ExportEngineReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String includeData = this.keyValue.get(this.keysToGet[2]);
 		boolean keepGit = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]));
 
 		// security
@@ -111,7 +112,7 @@ public class ExportEngineReactor extends AbstractReactor {
 							// ignore the current metadata file
 							Arrays.asList(
 									engineNameAndId+"/"+engineName+IEngine.METADATA_FILE_SUFFIX
-								));
+								), includeData);
 					logger.info("Done zipping engine folder");
 				} else {
 					logger.info("No engine folder to zip");

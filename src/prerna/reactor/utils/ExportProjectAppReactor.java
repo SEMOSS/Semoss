@@ -98,7 +98,7 @@ public class ExportProjectAppReactor extends AbstractReactor {
 				
 				// zip project folder
 				logger.info("Zipping project app files...");
-				zos = ZipUtils.zipFolder(projectAssetFolder, zipFilePath, null, null);
+				zos = ZipUtils.zipFolder(projectAssetFolder, zipFilePath, null, null, "true");
 				logger.info("Done zipping project app files...");
 				
 				// zip up the project metadata

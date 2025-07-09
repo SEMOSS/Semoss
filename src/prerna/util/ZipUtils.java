@@ -59,7 +59,7 @@ public final class ZipUtils {
 	 */
 	public static ZipOutputStream zipFolder(String folderPath, String zipFilePath)
 			throws FileNotFoundException, IOException {
-		return zipFolder(folderPath, zipFilePath, null, null);
+		return zipFolder(folderPath, zipFilePath, null, null, "true");
 	}
 
 	/**
@@ -72,7 +72,7 @@ public final class ZipUtils {
 	 * @throws IOException
 	 */
 	public static ZipOutputStream zipFolder(String folderPath, String zipFilePath, List<String> ignoreDirs,
-			List<String> ignoreFiles) throws FileNotFoundException {
+			List<String> ignoreFiles, String includeData) throws FileNotFoundException {
 		FileOutputStream fos;
 		try {
 			fos = new FileOutputStream(zipFilePath);
@@ -87,7 +87,7 @@ public final class ZipUtils {
 			classLogger.info(
 					"Adding to zip with details.\n folderPath: {}\n zipFilePath: {}\n ignoredDirs: {}\n ignoredFiles: {}",
 					folderPath, zipFilePath, ignoreDirs, ignoreFiles);
-			addAllToZip(dir, zos, null, ignoreDirs, ignoreFiles);
+			addAllToZip(dir, zos, null, ignoreDirs, ignoreFiles, includeData);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not add folder to zip. See logs for details.");
@@ -181,7 +181,7 @@ public final class ZipUtils {
 	 * @throws IOException
 	 */
 	private static void addAllToZip(File file, ZipOutputStream zos, String prefix, List<String> ignoreDirs,
-			List<String> ignoreFiles) throws FileNotFoundException, IOException {
+			List<String> ignoreFiles, String includeData) throws FileNotFoundException, IOException {
 		if (file.isDirectory()) {
 			String subPrefix = file.getName();
 			if (prefix != null) {
@@ -191,7 +191,9 @@ public final class ZipUtils {
 			if (ignoreDirs == null || !ignoreDirs.contains(subPrefix)) {
 				File[] files = file.listFiles();
 				for (File subF : files) {
-					addAllToZip(subF, zos, subPrefix, ignoreDirs, ignoreFiles);
+					String s=subF.toString();
+					if(!(includeData.equals("false") && (s.endsWith("database.mv.db"))))
+					addAllToZip(subF, zos, subPrefix, ignoreDirs, ignoreFiles, includeData);
 				}
 			}
 		} else {

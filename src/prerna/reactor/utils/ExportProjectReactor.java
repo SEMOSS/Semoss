@@ -127,7 +127,7 @@ public class ExportProjectReactor extends AbstractReactor {
 									projectNameAndId+"/"+FilenameUtils.getName(insightsFile.getAbsolutePath()),
 									projectNameAndId+"/"+projectName+IEngine.METADATA_FILE_SUFFIX,
 									projectNameAndId+"/"+projectName+IProject.DEPENDENCIES_FILE_SUFFIX
-								));
+								), "true");
 					logger.info("Done zipping project files...");
 					
 					logger.info("Zipping insight database ...");
@@ -136,7 +136,7 @@ public class ExportProjectReactor extends AbstractReactor {
 				} else {
 					// zip project folder
 					logger.info("Zipping project files...");
-					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath, ignoreDirs, null);
+					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath, ignoreDirs, null, "true");
 					logger.info("Done zipping project files...");
 				}
 				
