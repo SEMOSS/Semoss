@@ -1,4 +1,4 @@
-package prerna.project.impl;
+package prerna.reactor.project;
 
 import prerna.ds.py.PyTranslator;
 import prerna.reactor.AbstractReactor;
@@ -7,20 +7,15 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 
-public class AddRPYProjectPath extends AbstractReactor {
+public class AddRPYProjectPathReactor extends AbstractReactor {
 	
-	public AddRPYProjectPath()
-	{
+	public AddRPYProjectPathReactor() {
 		this.keysToGet = new String [] {ReactorKeysEnum.PROJECT.getKey()};
 		this.keyRequired = new int[] {1};
 	}
 
 	@Override
-	public NounMetadata execute() 
-	{
-		// TODO Auto-generated method stub
-		// get the project id
-		// set it as part of path
+	public NounMetadata execute() {
 		organizeKeys();
 		
 		PyTranslator pyt = this.insight.getPyTranslator();
@@ -34,10 +29,7 @@ public class AddRPYProjectPath extends AbstractReactor {
 
 		if(pyt != null)
 		{	
-			String path = "import sys";
-			pyt.runScript(path);
-			path = "sys.path.append('" + folderName +"')";
-			pyt.runScript(path);
+			pyt.runScript("import sys", "sys.path.append('" + folderName +"')");
 		}
 		if(rt != null)
 		{
@@ -45,5 +37,10 @@ public class AddRPYProjectPath extends AbstractReactor {
 		}
 		
 		return NounMetadata.getSuccessNounMessage("Added " + projectId + " to path");
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "Add the project assets folder to the python sys.path and/or the R setwd";
 	}
 }
