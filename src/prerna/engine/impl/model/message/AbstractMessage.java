@@ -37,6 +37,11 @@ public abstract class AbstractMessage {
 
 	public abstract MessageType getMessageType();
 
+	// this should really never be used unless we are translating old message formats
+	public void setMessageId(String messageId) {
+		this.messageId = messageId;
+	}
+	
 	public String getMessageId() {
 		return messageId;
 	}

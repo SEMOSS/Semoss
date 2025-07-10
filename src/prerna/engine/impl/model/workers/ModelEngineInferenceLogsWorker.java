@@ -145,7 +145,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				engine.getEngineId(),
 				true, 
 				projectId, 
-				projectName
+				projectName,
+				null
 			);
 		}
 		

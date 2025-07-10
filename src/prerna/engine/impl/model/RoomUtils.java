@@ -159,7 +159,7 @@ public class RoomUtils {
         // for each message, build an AbstractMessage
         List<AbstractMessage> messages = new ArrayList<>();
         for (Map<String, Object> entry : output) {
-            AbstractMessage msg = buildMessageFromMap(room, entry);
+            AbstractMessage msg = convertLegacyMessage(room, entry);
             if (msg != null) messages.add(msg);
         }
         
@@ -207,7 +207,7 @@ public class RoomUtils {
     /**
      * Helper method: converts a single row map to an InputMessage or ResponseMessage
      */
-    private static AbstractMessage buildMessageFromMap(Room room, Map<String, Object> entry) {
+    private static AbstractMessage convertLegacyMessage(Room room, Map<String, Object> entry) {
         // Read type
         String type = "" + entry.get("MESSAGE_TYPE");
         // Defensive: uppercase for control
