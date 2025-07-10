@@ -1,8 +1,14 @@
-package prerna.reactor.insights;
+package prerna.reactor.project;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -15,21 +21,20 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
-@Deprecated
-public class ReloadInsightClassesReactor extends AbstractReactor {
+public class CompileAppReactorsReactor extends AbstractReactor {
 
-	public ReloadInsightClassesReactor() {
+	private static final Logger classLogger = LogManager.getLogger(CompileAppReactorsReactor.class);
+
+	public CompileAppReactorsReactor() {
 		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.RELEASE.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		this.insight.resetClassCache();
 		
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		Boolean release = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1])+"");
@@ -47,6 +52,7 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 			try {
 				clearProjectAssets(project, release);
 				messages.add("Compiled reactors for project '" + project.getProjectId() + "'.");
+				messages.add(loadCompilerOutput(project));
 			} catch(IllegalArgumentException e) {
 				messages.add(e.getMessage());
 			}
@@ -57,6 +63,7 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 				try {
 					clearProjectAssets(project, release);
 					messages.add("Compiled reactors for project '" + project.getProjectId() + "'.");
+					messages.add(loadCompilerOutput(project));
 				} catch(IllegalArgumentException e) {
 					messages.add(e.getMessage());
 				}
@@ -67,13 +74,14 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 				try {
 					clearProjectAssets(project, release);
 					messages.add("Compiled reactors for project '" + project.getProjectId() + "'.");
+					messages.add(loadCompilerOutput(project));
 				} catch(IllegalArgumentException e) {
 					messages.add(e.getMessage());
 				}
 			}
 		}
 		
-		return new NounMetadata(String.join(" ", messages), PixelDataType.CONST_STRING);
+		return new NounMetadata(messages, PixelDataType.VECTOR);
 	}
 	
 	/**
@@ -107,8 +115,8 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 		
 		// if we are doing reactors on socket side
 		boolean executeOnSocket = false;
-		if(DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null) {
-			executeOnSocket = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION)+"");
+		if(Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null) {
+			executeOnSocket = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION)+"");
 		}
 		
 		if(executeOnSocket && this.insight.getUser() != null && this.insight.getUser().getPythonSocketClient(false) != null) {
@@ -122,9 +130,39 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 		}
 	}
 	
-	@Override
-	public String getReactorDescription() {
-		return "This reactor is deprecated. Please use CompileAppReactors(project='', release='') instead";
+	/**
+	 * 
+	 * @param project
+	 * @return
+	 */
+	private String loadCompilerOutput(IProject project) {
+		String projectId = project.getProjectId();
+		String projectName = project.getProjectName();
+		
+		String projectAssetFolder = AssetUtility.getProjectVersionFolder(projectName, projectId) + "/" + Constants.ASSETS_FOLDER;
+		File compiledClasses = new File(projectAssetFolder + DIR_SEPARATOR + "classes" + DIR_SEPARATOR + "compileerror.out");
+		if(!compiledClasses.exists() || !compiledClasses.isFile()) {
+			return "No compiler.out for project";
+		}
+		
+		try {
+			return FileUtils.readFileToString(compiledClasses, Charset.forName("UTF-8"));
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return e.getMessage();
+		}
 	}
 	
+	@Override
+	public String getReactorDescription() {
+		return "Compile the custom reactors associcated with an app";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.RELEASE.getKey())) {
+			return "If release=true, the change will be persisted to cloud storage and propagate to other containers";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }
