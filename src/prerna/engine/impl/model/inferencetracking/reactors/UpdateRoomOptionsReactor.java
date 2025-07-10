@@ -9,7 +9,11 @@ import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import prerna.sablecc2.om.GenRowStruct;
@@ -19,8 +23,8 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(UpdateRoomOptionsReactor.class);
 
 	public UpdateRoomOptionsReactor() {
-		this.keysToGet = new String[] { "roomId", "roomOptions" };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] {ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.VECTORDB.getKey()};
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -31,38 +35,48 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("You are not properly logged in");
 		}
 
-		String roomId = this.keyValue.get(this.keysToGet[0]);
-		Map<String, Object> roomOptions = getRoomOptionsMap();
-
-		ObjectMapper objectMapper = new ObjectMapper();
-    	String roomOptionsString = null;
-		try {
-			roomOptionsString = objectMapper.writeValueAsString(roomOptions);
-		} catch (JsonProcessingException e) {
-			e.printStackTrace();
-		}
-
-		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptionsString);
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	@SuppressWarnings("unchecked")
-	private Map<String, Object> getRoomOptionsMap() {
-		GenRowStruct mapGrs = this.store.getNoun(keysToGet[1]);
-		if (mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if (mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
+		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+		Map<String, Object> options = null;
+		
+		List<String> vectorDbs = getVectorDbs();
+		List<String> tools = getTools();
+		if (!tools.isEmpty() || !vectorDbs.isEmpty()) {
+			options = new HashMap<>();
+			if (!tools.isEmpty()) {
+				options.put("tools", tools);
+			}
+			if (!vectorDbs.isEmpty()) {
+				options.put("vectorDbs", vectorDbs);
 			}
 		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
-		}
-		return null;
+
+		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), options);
+		return new NounMetadata(options, PixelDataType.MAP);
 	}
+
+	private List<String> getVectorDbs() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
+	
+	private List<String> getTools() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
 }

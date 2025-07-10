@@ -25,14 +25,13 @@ import prerna.util.insight.InsightUtility;
 public class CreateRoomReactor extends AbstractReactor {
 	
 	public CreateRoomReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.WORKSPACE_ID.getKey()};
-		this.keyRequired = new int [] {0,0,0,0,0,0};
+		this.keysToGet = new String[]{ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.WORKSPACE_ID.getKey()};
+		this.keyRequired = new int [] {0,0,0,0,0};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()); // think we should remove this tbh
 		String roomName = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
@@ -53,8 +52,7 @@ public class CreateRoomReactor extends AbstractReactor {
 			}
 		}
 		
-		if (roomId == null) roomId = UUID.randomUUID().toString();
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, null, roomName, options, context);
+		Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, null, roomName, options, context);
 
 		return new NounMetadata(room.getId(), PixelDataType.CONST_STRING);
 	}

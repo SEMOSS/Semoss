@@ -1471,7 +1471,7 @@ public class ModelInferenceLogsUtils {
    * @param options
    * @return
    */
-  public static void setRoomOptions(String roomId, String userId, String options) {
+  public static void setRoomOptions(String roomId, String userId, Map<String, Object> options) {
     String query =
         "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?";
 
@@ -1480,12 +1480,12 @@ public class ModelInferenceLogsUtils {
       ps = modelInferenceLogsDb.getPreparedStatement(query);
       int index = 1;
       if (options != null) {
-        modelInferenceLogsDb
-            .getQueryUtil()
-            .handleInsertionOfBlob(ps.getConnection(), ps, options, index++);
-      } else {
-        ps.setNull(index++, java.sql.Types.NULL);
-      }
+          modelInferenceLogsDb
+              .getQueryUtil()
+              .handleInsertionOfClob(ps.getConnection(), ps, options, index++, new Gson());
+        } else {
+          ps.setNull(index++, java.sql.Types.NULL);
+        }
       ps.setString(index++, userId);
       ps.setString(index++, roomId);
       ps.executeUpdate();
