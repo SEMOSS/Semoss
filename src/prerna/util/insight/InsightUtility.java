@@ -47,7 +47,6 @@ import prerna.reactor.export.FormattingUtility;
 import prerna.reactor.export.IFormatter;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.reactor.insights.SetInsightConfigReactor;
-import prerna.reactor.job.JobReactor;
 import prerna.reactor.task.AutoTaskOptionsHelper;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelUtility;
@@ -97,21 +96,13 @@ public class InsightUtility {
 		if(origInsight == null) {
 			return;
 		}
-		String[] keys = new String[]{JobReactor.JOB_KEY, JobReactor.SESSION_KEY, JobReactor.INSIGHT_KEY, JobReactor.ROUTE_KEY};
-		for(String key : keys) {
-			if(origInsight.getVarStore().containsKey(key)) {
-				newInsight.getVarStore().put(key, origInsight.getVarStore().get(key));
-			}
-		}
+		newInsight.setUser(origInsight.getUser());
 		newInsight.setBaseURL(origInsight.getBaseURL());
 		newInsight.setSchedulerMode(origInsight.isSchedulerMode());
-		newInsight.setUser(origInsight.getUser());
 		// r
 		if(origInsight.rInstantiated()) {
 			newInsight.setRJavaTranslator(origInsight.getRJavaTranslator(classLogger));
 		}
-		// py
-		newInsight.setTupleSpace(origInsight.getTupleSpace());
 	}
 	
 	/**
@@ -412,6 +403,11 @@ public class InsightUtility {
 		InsightStore.getInstance().addToSessionHash(sessionId, childInsight.getInsightId());
 	}
 	
+	/**
+	 * 
+	 * @param insight
+	 * @return
+	 */
 	public static NounMetadata dropInsight(final Insight insight) {
 		synchronized(insight) {
 			classLogger.info("Droping insight " + insight.getInsightId());
@@ -459,7 +455,13 @@ public class InsightUtility {
 			// if Python is instantiated
 			// remove the watcher
 			if(insight.isDeletePythonTupleOnDropInsight()) {
-				insight.dropPythonTupleSpace();
+				//TODO: delete the python env
+				//TODO: delete the python env
+				//TODO: delete the python env
+				//TODO: delete the python env
+				if(insight.getPyTranslator() != null) {
+
+				}
 			}
 			
 //			NounMetadata sessionNoun = insight.getVarStore().get(JobReactor.SESSION_KEY);
@@ -500,11 +502,6 @@ public class InsightUtility {
 		rerunInsight.setUser(in.getUser());
 		InsightUtility.transferDefaultVars(in, rerunInsight);
 		InsightUtility.transferInsightIdentifiers(in, rerunInsight);
-		
-		// set in thread
-		ThreadStore.setInsightId(in.getInsightId());
-		ThreadStore.setSessionId(in.getVarStore().get(JobReactor.SESSION_KEY).getValue() + "");
-		ThreadStore.setUser(in.getUser());
 		
 		try {
 			// add a copy of all the insight sheets

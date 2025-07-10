@@ -15,7 +15,6 @@ import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
-import prerna.reactor.job.JobReactor;
 import prerna.util.Utility;
 
 public class ModelEngineInferenceLogsWorker implements Runnable {
@@ -27,6 +26,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private String messageMethod;
     private IEngine engine;
     private Insight insight;
+    private String sessionId;
     private String context;
     private String prompt;
     private Object fullPrompt;
@@ -40,7 +40,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		String messageId, 
 		String messageMethod, 
 		IEngine engine,
-		Insight insight, 
+		Insight insight,
+		String sessionId,
 	   	String context,
 	   	String prompt,
 	   	Object fullPrompt,
@@ -54,6 +55,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     	this.messageMethod = messageMethod;
     	this.engine = engine;
     	this.insight = insight;
+    	this.sessionId = sessionId;
     	this.context = context;
         this.prompt = prompt;
         if(this.prompt != null) {
@@ -71,11 +73,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     public void run() {
     	String agentType = engine.getCatalogSubType(engine.getSmssProp());
     	
-    	String sessionId = null;
-		if (insight.getVarStore().containsKey(JobReactor.SESSION_KEY)) {
-			sessionId = (String) insight.getVarStore().get(JobReactor.SESSION_KEY).getValue();
-		}
-		
 		// assumption, if project level, then they will be inferencing through a saved insight or SetContext
 		String projectId = insight.getContextProjectId();
 		if (projectId == null) {
@@ -162,62 +159,62 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		
 		if(keepInputOutput) {
 			ModelInferenceLogsUtils.doRecordMessage(
-				messageId, 
+				this.messageId, 
 				INPUT,
-				prompt,
+				this.prompt,
 				this.messageMethod,
-				promptTokens,
+				this.promptTokens,
 				millisecondsDouble,
-				inputTime,
-				engine.getEngineId(),
+				this.inputTime,
+				this.engine.getEngineId(),
 				insightId,
-				sessionId,
+				this.sessionId,
 				userId,
 				userName,
 				userEmail
 			);
 			ModelInferenceLogsUtils.doRecordMessage(
-				messageId, 
+				this.messageId, 
 				RESPONSE,
-				response,
+				this.response,
 				this.messageMethod,
-				responseTokens,
+				this.responseTokens,
 				millisecondsDouble,
-				responseTime,
-				engine.getEngineId(),
+				this.responseTime,
+				this.engine.getEngineId(),
 				insightId,
-				sessionId,
+				this.sessionId,
 				userId,
 				userName,
 				userEmail
 			);
 		} else {
 			ModelInferenceLogsUtils.doRecordMessage(
-				messageId, 
+				this.messageId, 
 				INPUT,
 				null,
 				this.messageMethod,
-				promptTokens,
+				this.promptTokens,
 				millisecondsDouble,
-				inputTime,
-				engine.getEngineId(),
+				this.inputTime,
+				this.engine.getEngineId(),
 				insightId,
-				sessionId,
+				this.sessionId,
 				userId,
 				userName,
 				userEmail
 			);
 			ModelInferenceLogsUtils.doRecordMessage(
-				messageId, 
+				this.messageId, 
 				RESPONSE,
 				null,
 				this.messageMethod,
-				responseTokens,
+				this.responseTokens,
 				millisecondsDouble,
-				responseTime,
-				engine.getEngineId(),
+				this.responseTime,
+				this.engine.getEngineId(),
 				insightId,
-				sessionId,
+				this.sessionId,
 				userId,
 				userName,
 				userEmail
