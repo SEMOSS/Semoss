@@ -501,11 +501,11 @@ public class ModelInferenceLogsUtils {
 	public static List<Map<String, Object>> getTokenUsagePerProjectForEngine(String engineId, String limit, String offset, String startDate, String endDate) {
         SelectQueryStruct qs = new SelectQueryStruct();
 		
-		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("number_of_tokens");
-		sumTokenSelector.setFunction(QueryFunctionHelper.COUNT);
-		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS","message_tokens"));
-		qs.addSelector(sumTokenSelector);
+		QueryFunctionSelector countTokenSelector = new QueryFunctionSelector();
+		countTokenSelector.setAlias("number_of_tokens");
+		countTokenSelector.setFunction(QueryFunctionHelper.COUNT);
+		countTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS","message_tokens"));
+		qs.addSelector(countTokenSelector);
 		
 		QueryFunctionSelector countNumberRequestSelector = new QueryFunctionSelector();
 		countNumberRequestSelector.setAlias("number_of_requests");
@@ -557,12 +557,11 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME","user_name"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID","user_id"));
 		
-		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("number_of_tokens");
-		sumTokenSelector.setFunction(QueryFunctionHelper.COUNT);
-		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS","message_tokens"));
-	
-		qs.addSelector(sumTokenSelector);
+		QueryFunctionSelector countTokenSelector = new QueryFunctionSelector();
+		countTokenSelector.setAlias("number_of_tokens");
+		countTokenSelector.setFunction(QueryFunctionHelper.COUNT);
+		countTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS","message_tokens"));
+		qs.addSelector(countTokenSelector);
 		
 		QueryFunctionSelector totalMessages = new QueryFunctionSelector();
 		totalMessages.setAlias("number_of_messages");
