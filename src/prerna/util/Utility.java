@@ -2129,13 +2129,7 @@ public final class Utility {
 					|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core")+"")) {
 				// for database, load into local master as well
 				if(engine.getCatalogType() == IEngine.CATALOG_TYPE.DATABASE) {
-					boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB);
-					boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
-					boolean isScheduler = engineId.equals(Constants.SCHEDULER_DB);
-					boolean isThemes = engineId.equals(Constants.THEMING_DB);
-					boolean isUserTracking = engineId.equals(Constants.USER_TRACKING_DB);
-
-					if (!isLocal && !isSecurity && !isScheduler && !isThemes && !isUserTracking) {
+					if (!SemossDefaultEngines.getDatabaseIgnoreLocalMaster().contains(engineId)) {
 						synchronizeEngineMetadata(engineId);
 					}
 				}

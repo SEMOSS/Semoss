@@ -2,6 +2,7 @@ package prerna.reactor.frame.py;
 
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
+import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -29,9 +30,9 @@ public class MatchColumnValuesReactor extends AbstractPyFrameReactor {
 		insight.getPyTranslator().runEmptyPy(script);
 		this.addExecutedCode(script);
 		
-		PandasFrame returnTable = new PandasFrame(matchesTable);
-		returnTable.setTranslator(this.insight.getPyTranslator());
-		returnTable.getTranslator().runEmptyPy(PandasSyntaxHelper.makeWrapper(returnTable.getWrapperName(), matchesTable));
+		PyTranslator pyTranslator = this.insight.getPyTranslator();
+		PandasFrame returnTable = new PandasFrame(matchesTable, pyTranslator);
+		pyTranslator.runEmptyPy(PandasSyntaxHelper.makeWrapper(returnTable.getWrapperName(), matchesTable));
 		returnTable = (PandasFrame) recreateMetadata(returnTable, false);
 
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);

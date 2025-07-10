@@ -224,7 +224,6 @@ import prerna.reactor.insights.save.SetInsightCacheableReactor;
 import prerna.reactor.insights.save.SetInsightNameReactor;
 import prerna.reactor.insights.save.UpdateInsightImageReactor;
 import prerna.reactor.insights.save.UpdateInsightReactor;
-import prerna.reactor.job.JobReactor;
 import prerna.reactor.masterdatabase.AllConceptualNamesReactor;
 import prerna.reactor.masterdatabase.CLPModelReactor;
 import prerna.reactor.masterdatabase.GetConceptPropertiesReactor;
@@ -636,9 +635,6 @@ public class ReactorFactory {
 */	
 	// populates the frame agnostic reactors used by pixel
 	private static void createReactorHash(Map<String, Class> reactorHash) {
-		// used to generate the base Job for the pksl commands being executed
-		reactorHash.put("Job", JobReactor.class); // defines the job
-
 		// Import Reactors
 		// takes in a query struct and imports data to a new frame
 		reactorHash.put("Import", ImportReactor.class);
