@@ -81,7 +81,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     # Class attribute to hold a singleton instance
     da_server = None
 
-    def log_level_mapper(self, log_level_name):
+    def log_level_mapper(self, log_level_name: str) -> int:
+        """
+        Maps a log level name to its corresponding logging constant.
+
+        Args:
+            log_level_name (str): The name of the log level (e.g., "DEBUG", "INFO").
+
+        Returns:
+            int: The logging constant corresponding to the log level name.
+        """
         log_mapper = {
             "DEBUG": logging.DEBUG,
             "INFO": logging.INFO,
@@ -204,24 +213,34 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         #     exec(define_root_logger_script, globals())
         self.logging_setup()  # setting up to log
 
-    def custom_dev_logger(self, message):
+    def custom_dev_logger(self, message: str):
         """
         ONLY WRITES TO LOGS WHEN self.dev_log_switch IS TRUE
         Write to the log txt file. Ensures file exists, creates new line, adds message and flushes log.
         This is very useful when the python debugger cannot handle troubleshooting a threading issue.
+
+        Args:
+            message (str): The message to log.
         """
         if self.logger and self.dev_log_switch:
             self.logger.info(message)
 
-    def prod_logger(self, message):
+    def prod_logger(self, message: str):
         """
         These messages will be logged to the log file in container environments.
         Write to the log txt file. Ensures file exists, creates new line, adds message and flushes log.
+
+        Args:
+            message (str): The message to log.
         """
         if self.logger:
             self.logger.info(message)
 
     def handle(self):
+        """
+        Handles incoming requests from the client.
+        This method is called for each request to be handled.
+        """
         while not self.stop:
             # print("listening")
             try:
@@ -271,19 +290,18 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 # self.get_final_output(data)
                 if not data:
                     break
-                    self.request.sendall(data)
             except Exception as e:
                 self.logger.warning(e)
                 self.logger.warning("connection closed.. closing this socket")
                 self.stop_request()
-                # self.server.stop_it()
-            # print("all processing has finished !!")
-        # self.get_final_output(data)
 
-    def log_data(self, data):
+    def log_data(self, data: Union[bytes, dict, None]):
         """
         Log the data to the log file. This is useful for debugging purposes.
         Trimming the payload to 50 characters to avoid log file bloat.
+
+        Args:
+            data (Union[bytes, dict, None]): The data to log.
         """
         try:
             if isinstance(data, bytes):
@@ -306,7 +324,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         except Exception as e:
             self.logger.warning(f"Error in get_final_output: {str(e)}")
 
-    def get_final_output(self, data=None, epoc=None):
+    def get_final_output(
+        self, data: Optional[bytes] = None, epoc: Optional[str] = None
+    ):
+        """
+        Processes the final output of a request.
+
+        Args:
+            data (Optional[bytes]): The data received from the client. Defaults to None.
+            epoc (Optional[str]): The epoc associated with the request. Defaults to None.
+        """
         self.log_data(data)
 
         payload = ""
@@ -355,7 +382,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
             if command == "stop" and payload["operation"] == "CMD":
                 self.stop_request()
-
             # handle setting prefix
             elif command == "prefix" and payload["operation"] == "CMD":
                 self.prefix = output_file
@@ -364,21 +390,36 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 else:
                     print("The prefix is set to value = " + self.prefix)
                 self.send_output("prefix set", operation="PYTHON", response=True)
-
             # handle log out
             elif command == "CLOSE_ALL_LOGOUT<o>" and payload["operation"] == "CMD":
                 # shut down the server
                 self.stop_request()
-
-            # elif command == 'core':
-            #  exec('core_server=s
-            #  print("set the core " + self.prefix)
-            #  self.send_output("prefix set", payload, response=True)
-
-            # need a way to handle stop message here
-
-            # Need a way to push stdout as print here
-
+            # handle clear of insight globals
+            elif (
+                command == "CLEAR_NON_MODULE_GLOBALS"
+                and payload["operation"] == "INSIGHT"
+            ):
+                insight_id = payload.get("insightId")
+                store = InsightGlobalStore()
+                store.clear_non_module_globals(insight_id)
+                self.send_output(
+                    "Successfully cleared non-module globals",
+                    operation=payload["operation"],
+                    response=True,
+                )
+            # handle delete of insight globals
+            elif (
+                command == "REMOVE_INSIGHT_GLOBALS"
+                and payload["operation"] == "INSIGHT"
+            ):
+                insight_id = payload.get("insightId")
+                store = InsightGlobalStore()
+                store.remove_insight_globals(insight_id)
+                self.send_output(
+                    "Successfully removed insight globals",
+                    operation=payload["operation"],
+                    response=True,
+                )
             # If this is a python payload
             elif payload["operation"] == "PYTHON":
                 insight_id = payload.get("insightId")
@@ -386,7 +427,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # this is when it is a response
             elif payload["response"]:
                 self.handle_response()
-            # nothing to do here. Unfortunately this is a py instance so we cannot anything
+            # this is when we are doing shell
             elif payload["operation"] == "CMD":
                 self.handle_shell()
             else:
@@ -417,10 +458,18 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     output, operation="PYTHON", response=True, exception=True
                 )
 
-    def log_payload_details(self, payload, operation, response, interim):
+    def log_payload_details(
+        self, payload: dict, operation: str, response: bool, interim: bool
+    ):
         """
         Logs payload details for debugging purposes.
         This helps prevent excessive logging when streaming responses.
+
+        Args:
+            payload (dict): The payload to log.
+            operation (str): The operation being performed.
+            response (bool): Whether this is a response.
+            interim (bool): Whether this is an interim response.
         """
         # When streaming responses, this will cause the log files to become very heavy, so we only want to do this during development. Switch dev_log_switch to True to enable this.
         if not self.logger or not self.dev_log_switch:
@@ -464,12 +513,22 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
     def send_output(
         self,
-        output,
-        operation="STDOUT",
-        response=False,
-        interim=False,
-        exception=False,
+        output: Any,
+        operation: str = "STDOUT",
+        response: bool = False,
+        interim: bool = False,
+        exception: bool = False,
     ):
+        """
+        Sends output back to the client.
+
+        Args:
+            output (Any): The output to send.
+            operation (str, optional): The operation being performed. Defaults to "STDOUT".
+            response (bool, optional): Whether this is a response. Defaults to False.
+            interim (bool, optional): Whether this is an interim response. Defaults to False.
+            exception (bool, optional): Whether an exception occurred. Defaults to False.
+        """
         # Do not write any prints here
         # since the console is captured it will go into recursion
 
@@ -546,7 +605,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # send it out
         self.request.sendall(ret_array)
 
-    def send_request(self, payload):
+    def send_request(self, payload: dict):
+        """
+        Sends a request to the client.
+
+        Args:
+            payload (dict): The payload to send.
+        """
         # Do not write any prints here
         # since the console is captured it will go into recursion
 
@@ -580,6 +645,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.request.sendall(ret_array)
 
     def stop_request(self):
+        """Stops the request and closes the connection."""
         if not self.stop:
             self.server.remove_handler()
             self.server.stop_it()
@@ -594,12 +660,15 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.stop = True
 
     def close_request(self):
+        """Closes the request."""
         print("close request called")
 
     def handle_timeout(self):
-        print("handler timeout.. ")
+        """Handles a timeout."""
+        print("handler timeout")
 
     def release_all(self):
+        """Releases all conditions so no threads are breaking."""
         # pushes out all the conditions
         # so no threads are breaking
         # technically this is not a good way.. but
@@ -727,6 +796,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             return "".join(full_trace), True
 
     def handle_response(self):
+        """Handles a response from the client."""
         payload = self.thread_local.payload
         # print("In the response block")
         # this is a response coming back from a request from the java container
@@ -747,6 +817,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.custom_dev_logger("---------- HANDLE RESPONSE LOG - END ---------\n")
 
     def handle_shell(self):
+        """Handles a shell command."""
         payload = self.thread_local.payload
         # get the method name
         try:
@@ -854,7 +925,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.cmd_monitor.release()
             raise
 
-    def get_cd(self, mount_name):
+    def get_cd(self, mount_name: str) -> str:
+        """
+        Gets the current directory for a given mount name.
+
+        Args:
+            mount_name (str): The name of the mount.
+
+        Returns:
+            str: The current directory.
+        """
         cur_dir = ""
         if mount_name in self.cur_mount_points:
             cur_dir = self.cur_mount_points[mount_name]
@@ -864,7 +944,23 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.logger.warning(f"There is no mount point for {mount_name}")
             raise Exception(f"There is no mount point for {mount_name}")
 
-    def exec_cd(self, mount_name=None, payload=None, check=True):
+    def exec_cd(
+        self,
+        mount_name: Optional[str] = None,
+        payload: Optional[list] = None,
+        check: bool = True,
+    ) -> str:
+        """
+        Executes a cd command.
+
+        Args:
+            mount_name (Optional[str]): The name of the mount. Defaults to None.
+            payload (Optional[list]): The payload for the command. Defaults to None.
+            check (bool): Whether to check if the directory is within the mount sandbox. Defaults to True.
+
+        Returns:
+            str: The new directory.
+        """
         import subprocess
 
         # there is only 2 arguments I need to accomodate for
@@ -902,7 +998,19 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # except NotADirectoryError:
         #  raise Exception
 
-    def exec_dir(self, mount_name=None, payload=None):
+    def exec_dir(
+        self, mount_name: Optional[str] = None, payload: Optional[list] = None
+    ) -> str:
+        """
+        Executes a dir or ls command.
+
+        Args:
+            mount_name (Optional[str]): The name of the mount. Defaults to None.
+            payload (Optional[list]): The payload for the command. Defaults to None.
+
+        Returns:
+            str: The output of the command.
+        """
         import subprocess
 
         # there is only 2 arguments I need to accomodate for
@@ -918,7 +1026,19 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         output = proc.stdout.read().decode("utf-8")
         return output
 
-    def exec_cp(self, mount_name=None, payload=None):
+    def exec_cp(
+        self, mount_name: Optional[str] = None, payload: Optional[list] = None
+    ) -> str:
+        """
+        Executes a cp or copy command.
+
+        Args:
+            mount_name (Optional[str]): The name of the mount. Defaults to None.
+            payload (Optional[list]): The payload for the command. Defaults to None.
+
+        Returns:
+            str: The output of the command.
+        """
         import subprocess
 
         cur_mount_dir = self.get_cd(mount_name)
@@ -938,7 +1058,19 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         )
         return output
 
-    def exec_generic(self, mount_name=None, payload=None):
+    def exec_generic(
+        self, mount_name: Optional[str] = None, payload: Optional[list] = None
+    ) -> str:
+        """
+        Executes a generic command.
+
+        Args:
+            mount_name (Optional[str]): The name of the mount. Defaults to None.
+            payload (Optional[list]): The payload for the command. Defaults to None.
+
+        Returns:
+            str: The output of the command.
+        """
         import subprocess
 
         cur_mount_dir = self.get_cd(mount_name)
@@ -986,6 +1118,44 @@ class InsightGlobalStore:
         if not insight_id:
             return
         self.insight_globals[insight_id] = this_insight_globals
+
+    def clear_non_module_globals(self, insight_id: str):
+        """
+        Clears all non-module variables from the global dictionary for a given insight.
+
+        Args:
+            insight_id (`str`): The insight id to clear the globals for.
+        """
+        if insight_id in self.insight_globals:
+            self.insight_globals[insight_id] = {
+                k: v
+                for k, v in self.insight_globals[insight_id].items()
+                if isinstance(v, type(sys))
+                or k
+                in [
+                    "string",
+                    "np",
+                    "pd",
+                    "random",
+                    "datetime",
+                    "json",
+                    "jsonpickle",
+                    "math",
+                    "PyFrame",
+                    "smssutil",
+                ]
+            }
+
+    def remove_insight_globals(self, insight_id: str):
+        """
+        Removes the entire global dictionary for a given insight and suggests garbage collection.
+
+        Args:
+            insight_id (`str`): The insight id to remove the globals for.
+        """
+        if insight_id in self.insight_globals:
+            del self.insight_globals[insight_id]
+            gc.collect()
 
 
 if __name__ == "__main__":

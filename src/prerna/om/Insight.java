@@ -173,11 +173,7 @@ public class Insight implements Serializable {
 
 	private transient boolean deleteFilesOnDropInsight = true;
 	private transient boolean deleteREnvOnDropInsight = true;
-	
-	//TODO: rename to delete python globals
-	//TODO: rename to delete python globals
-	//TODO: rename to delete python globals
-	private transient boolean deletePythonTupleOnDropInsight = true;
+	private transient boolean deletePythonGlobalsOnDropInsight = true;
 
 	private transient boolean isTemporaryInsight = false;
 	private transient boolean isSchedulerMode = false;
@@ -839,12 +835,12 @@ public class Insight implements Serializable {
 		this.deleteREnvOnDropInsight = deleteREnvOnDropInsight;
 	}
 	
-	public boolean isDeletePythonTupleOnDropInsight() {
-		return this.deletePythonTupleOnDropInsight;
+	public boolean isDeletePythonGlobalsOnDropInsight() {
+		return this.deletePythonGlobalsOnDropInsight;
 	}
 	
-	public void setDeletePythonTupleOnDropInsight(boolean deletePythonTupleOnDropInsight) {
-		this.deletePythonTupleOnDropInsight = deletePythonTupleOnDropInsight;
+	public void setDeletePythonGlobalsOnDropInsight(boolean deletePythonGlobalsOnDropInsight) {
+		this.deletePythonGlobalsOnDropInsight = deletePythonGlobalsOnDropInsight;
 	}
 	
 	public void setRunSavedInsightMode(boolean isSavedInsightMode) {
