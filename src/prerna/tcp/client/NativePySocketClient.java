@@ -25,12 +25,11 @@ import com.google.gson.JsonParser;
 
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.reactor.job.JobReactor;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.TCPLogMessage;
 import prerna.tcp.client.workers.NativePyEngineWorker;
@@ -174,7 +173,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 								switch(tcpLogMessage.stack) {
 								case "FRONTEND":
-									exposeLog(logMessage, lock.insightId);
+									exposeLog(logMessage, lock.jobId);
 									break;
 								case "BACKEND":
 									switch(tcpLogMessage.levelName) {
@@ -196,7 +195,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 									break;
 								}	    						
 							} else if (lock != null) {
-								exposeLog(logMessage, lock.insightId);
+								exposeLog(logMessage, lock.jobId);
 							} 
 						}
 
@@ -211,8 +210,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							if(ps.payload != null && !((String)ps.payload[0]).equalsIgnoreCase("NONE"))
 							{
 								partialAssimilator.append(ps.payload[0] + "");
-								if(lock != null && lock.insightId != null) {
-									PixelJobManager.getManager().addPartialOut(lock.insightId, ps.payload[0]+"");
+								if(lock != null && lock.jobId != null) {
+									PixelJobManager.getManager().addPartialOut(lock.jobId, ps.payload[0]+"");
 								}
 							}
 							if(!ps.interim)
@@ -278,6 +277,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						// this is a request for a reactor
 						else if(ps.operation == PayloadStruct.OPERATION.REACTOR) {
 							final PayloadStruct finalPs = ps;
+							final String jobId = ps.jobId;
+							final String sessionId = ThreadStore.getSessionId();
+							final String routeId = ThreadStore.getRouteId();
 							// I'm creating a new thread to run the pixel
 						    new Thread(() -> {
 						        classLogger.debug("Starting reactor operation for epoc: {}", finalPs.epoc);
@@ -288,6 +290,13 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						            if(insight == null) {
 						            	throw new IllegalArgumentException("Could not find the insight id");
 						            }
+						            // set in thread
+						    		ThreadStore.setInsightId(insight.getInsightId());
+						    		ThreadStore.setSessionId(sessionId);
+						    		ThreadStore.setRouteId(routeId);
+						    		ThreadStore.setJobId(jobId);
+						    		ThreadStore.setUser(insight.getUser());
+						    		
 						            String pixelOp = (String) finalPs.payload[0];
 						            if(!(pixelOp=pixelOp.trim()).endsWith(";")) {
 						                pixelOp+=";";
@@ -429,21 +438,14 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	 * @param data
 	 * @param insightId
 	 */
-	private void exposeLog(String data, String insightId) {
-		classLogger.debug("Exposing log to insightId = '" + insightId + "' with data = " + data);
-		if(insightId != null && data != null) {
-			Insight insight = InsightStore.getInstance().get(insightId);
-			if(insight != null) {
-				NounMetadata jobNoun = insight.getVarStore().get(JobReactor.JOB_KEY);
-				if(jobNoun != null) {
-					String jobId = (String) jobNoun.getValue();
-					PixelJobManager.getManager().addStdOut(jobId, data);
-				}
-			} else {
-				// 2025-07-08
-				// currently insights for the model py translator is not in store
-				classLogger.debug("InsightId = '" + insightId + "' is not in insight store");
-			}
+	private void exposeLog(String data, String jobId) {
+		classLogger.debug("Exposing log to jobId = '" + jobId + "' with data = " + data);
+		if(jobId != null && data != null) {
+			PixelJobManager.getManager().addStdOut(jobId, data);
+		} else {
+			// 2025-07-08
+			// currently insights for the model py translator is not in store
+			classLogger.debug("Job Id = '" + jobId + "' is not in insight store");
 		}
 	}
 

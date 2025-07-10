@@ -33,8 +33,8 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.reactor.job.JobReactor;
 import prerna.sablecc2.comm.PixelJobManager;
+import prerna.sablecc2.comm.PixelJobThread;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -87,7 +87,7 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
-		String jobId = (String) parameterValues.remove(JobReactor.JOB_KEY);
+		String jobId = (String) parameterValues.remove(PixelJobThread.JOB_KEY);
 		if(jobId == null) {
 			throw new IllegalArgumentException("Must provide the job id for streaming output");
 		}

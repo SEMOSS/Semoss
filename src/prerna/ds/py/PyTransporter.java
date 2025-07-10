@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
@@ -308,7 +309,8 @@ public class PyTransporter {
 		ps.longRunning = true;
 		// we always need an insight
 		ps.insightId = insight.getInsightId();
-
+		ps.jobId = ThreadStore.getJobId();
+		
 		if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(ps != null && ps.ex != null) {

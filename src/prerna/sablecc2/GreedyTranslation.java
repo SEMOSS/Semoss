@@ -49,7 +49,7 @@ public class GreedyTranslation extends LazyTranslation {
 	private static final Logger classLogger = LogManager.getLogger(GreedyTranslation.class);
 
 	protected PixelRunner runner;
-
+	
 	public GreedyTranslation(PixelRunner runner, Insight insight) {
 		super(insight);
 		this.runner = runner;
