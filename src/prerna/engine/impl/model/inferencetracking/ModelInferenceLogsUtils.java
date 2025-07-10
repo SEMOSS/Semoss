@@ -3,6 +3,7 @@ package prerna.engine.impl.model.inferencetracking;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -1463,7 +1464,7 @@ public class ModelInferenceLogsUtils {
    * @param roomId
    * @return
    */
-  public static Blob getRoomOptions(String roomId, String userId) {
+  public static String getRoomOptions(String roomId, String userId) {
 	String query = "SELECT OPTIONS FROM ROOM WHERE ROOM_ID = ? AND USER_ID = ?";
 	PreparedStatement ps = null;
 	try {
@@ -1472,7 +1473,11 @@ public class ModelInferenceLogsUtils {
 		ps.setString(2, userId);
 		ResultSet rs = ps.executeQuery();
 		if (rs.next()) {
-			return rs.getBlob("OPTIONS");
+		  try {
+			return AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) rs.getClob("OPTIONS"));	
+		  } catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		  }
 		}
 	} catch (Exception e) {
 	    classLogger.error(Constants.STACKTRACE, e);

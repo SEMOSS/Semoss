@@ -2,6 +2,7 @@ package prerna.engine.impl.model;
 
 import java.lang.reflect.Type;
 import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +30,7 @@ import prerna.util.Utility;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 
 
@@ -179,21 +181,13 @@ public class RoomUtils {
      */
     public static Map<String, Object> getRoomOptions(String roomId, String userId) {
 
-        Blob optionsBlob = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
-        byte[] bdata = null;
-		try {
-			bdata = optionsBlob.getBytes(1, (int)optionsBlob.length());
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-       
-        String roomOptionsString = new String(bdata);
+        String roomOptionsString = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
 
         Gson gson = new Gson();
         Type type = new TypeToken<Map<String, Object>>(){}.getType();
-        Map<String, Object> map = null;
+        Map<String, Object> map = new HashMap<>();
         try {
-        map = gson.fromJson(roomOptionsString, type);
+        	map = gson.fromJson(roomOptionsString, type);
         } catch (Exception e) {
         	e.printStackTrace();
         }

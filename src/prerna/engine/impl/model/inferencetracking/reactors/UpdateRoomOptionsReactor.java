@@ -22,6 +22,7 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LogManager.getLogger(UpdateRoomOptionsReactor.class);
 
+	// consider changing to just take in an options param so that diff apps can do what they want
 	public UpdateRoomOptionsReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey()};
 		this.keyRequired = new int[] { 1, 0, 0 };
