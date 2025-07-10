@@ -1,7 +1,6 @@
 package prerna.engine.impl.model;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.json.JSONObject;
 import org.apache.logging.log4j.LogManager;
@@ -30,33 +29,28 @@ public class KServeImageEngine extends AbstractRemoteModelEngine {
 			}
 			
 			if (hyperParameters.containsKey("height")) {
-				String height = (String) hyperParameters.get("height");
-				payload.put("height", height);
+			    Object heightObj = hyperParameters.get("height");
+			    payload.put("height", heightObj.toString());
 			}
-			
+
 			if (hyperParameters.containsKey("width")) {
-				String width = (String) hyperParameters.get("width");
-				payload.put("width", width);
+			    Object widthObj = hyperParameters.get("width");
+			    payload.put("width", widthObj.toString());
 			}
-			
+
 			if (hyperParameters.containsKey("num_inference_steps")) {
-				String num_inference_steps = (String) hyperParameters.get("num_inference_steps");
-				payload.put("num_inference_steps", num_inference_steps);
+			    Object stepsObj = hyperParameters.get("num_inference_steps");
+			    payload.put("num_inference_steps", stepsObj.toString());
 			}
-			
+
 			if (hyperParameters.containsKey("guidance_scale")) {
-				String guidance_scale = (String) hyperParameters.get("guidance_scale");
-				payload.put("guidance_scale", guidance_scale);
+			    Object scaleObj = hyperParameters.get("guidance_scale");
+			    payload.put("guidance_scale", scaleObj.toString());
 			}
-			
-			if (hyperParameters.containsKey("seed")) {
-				String seed = (String) hyperParameters.get("seed");
-				payload.put("seed", seed);
-			}
-			
+
 			if (hyperParameters.containsKey("num_images")) {
-				String num_images = (String) hyperParameters.get("num_images");
-				payload.put("num_images", num_images);
+			    Object numImagesObj = hyperParameters.get("num_images");
+			    payload.put("num_images", numImagesObj.toString());
 			}
 		}
 		
@@ -76,6 +70,11 @@ public class KServeImageEngine extends AbstractRemoteModelEngine {
             responseMap.put("output", "Error creating image.");
             return new AskImageModelEngineResponse(responseMap, 0, 0);
         }
+	}
+	
+	@Override
+	public ModelTypeEnum getModelType() {
+		return ModelTypeEnum.KSERVE_IMAGE;
 	}
 
 }

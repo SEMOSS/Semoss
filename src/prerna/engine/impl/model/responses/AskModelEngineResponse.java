@@ -13,6 +13,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public static final String CHAT = "CHAT";
     public static final String TOOL = "TOOL";
     public static final String IMAGE = "IMAGE";
+    public static final String TTS = "TTS";
 
     protected String messageId;
     protected String roomId;

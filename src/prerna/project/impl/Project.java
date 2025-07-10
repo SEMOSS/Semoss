@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.TreeSet;
 import java.util.Vector;
+
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -32,6 +33,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,13 +47,16 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.xeustechnologies.jcl.JarClassLoader;
 import org.xml.sax.InputSource;
+
 import com.google.gson.Gson;
+
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyTransporter;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -151,8 +156,14 @@ public class Project implements IProject {
 	private boolean publishedPortal = false;
 	private boolean republishPortal = false;
 	
+	// python server
+	protected String prefix = null;
+	protected String workingDirectory;
+	protected String workingDirectoryBasePath = null;
+	protected File cacheFolder;
 	// project specific analytics thread
 	private transient ClientProcessWrapper cpw = new ClientProcessWrapper();
+	protected PyTranslator pyTranslator = null;
 	
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -1711,43 +1722,45 @@ public class Project implements IProject {
 	 * 
 	 * @return
 	 */
-	public PyTranslator getProjectPyTranslator(Insight insight) {
-		if(this.cpw.getSocketClient() == null) {
-			createProjectTcpServer(-1);
-		} else if( !this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
-			try {
-				this.cpw.reconnect();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Project = " + SmssUtilities.getUniqueName(this.projectName, this.projectId));
-			}
+	public PyTranslator getProjectPyTranslator() {
+		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			this.createProjectTcpServer(-1);
 		}
-		PyTranslator pyJavaTranslator = new PyTranslator();
-		pyJavaTranslator.setSocketClient(this.cpw.getSocketClient());
-		pyJavaTranslator.setInsight(insight);
-		return pyJavaTranslator;
+		return this.pyTranslator;
 	}
 	
 	/**
 	 * 
 	 */
 	private synchronized void createProjectTcpServer(int port) {
-		if(this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			boolean nativePyServer = false;
-			// first is it defined in smss
-			String nativePyServerStr = this.smssProp.getProperty(Settings.NATIVE_PY_SERVER);
-			// if not, grab from rdf map
-			if(nativePyServerStr == null || (nativePyServerStr=nativePyServerStr.trim()).isEmpty()) {
-				nativePyServerStr = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER);
-			}
-			if(nativePyServerStr != null && !(nativePyServerStr=nativePyServerStr.trim()).isEmpty()) {
-				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
-			}
-			
+		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+			return;
+		}
+		if(this.workingDirectoryBasePath == null) {
+			this.createCacheFolder();
+		}
+
+		// check if we have already created a process wrapper
+		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+		if(this.cpw != null) {
+			this.cpw.shutdown(false);
+		}
+		
+		String timeout = "30";
+		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+		}
+		if(cpwToInit.getSocketClient() == null) {
 			boolean debug = false;
+			
+			// pull the relevant values from the smss
+			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
+			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+			
 			if(port < 0) {
-				String forcePort = this.projectProperties.getProperty(Settings.FORCE_PORT);
 				// port has not been forced
 				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
 					try {
@@ -1755,41 +1768,56 @@ public class Project implements IProject {
 						debug = true;
 					} catch(NumberFormatException e) {
 						// ignore
-						classLogger.warn("Project " + this.projectId + " has an invalid FORCE_PORT value");
+						classLogger.warn("Model " + this.getEngineName() + " has an invalid FORCE_PORT value");
 					}
 				}
 			}
 			
-			String timeout = "-1";
-			if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-				timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-			}
-			
-			//TODO: how do we account for chroot??
-			String customClassPath = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
-			if(customClassPath == null) {
-				classLogger.info("No custom class path set");
-			}
-			
-			Path serverDirectoryPath = null;
+			String serverDirectory = this.cacheFolder.getAbsolutePath();
+			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {
-				serverDirectoryPath = Files.createTempDirectory(Paths.get(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR)), "a");
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Could not create directory to launch project process");
-			}
-			
-			classLogger.info("Starting TCP Server for Project = " + SmssUtilities.getUniqueName(this.projectName, this.projectId));
-			// TODO: ignoring chroot for now...
-			try {
-				String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-				String loggerLevel =  this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-				String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectoryPath.toString(), customClassPath, debug, timeout, loggerLevel);
+				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Project = " + SmssUtilities.getUniqueName(this.projectName, this.projectId));
+				throw new IllegalArgumentException("Unable to connect to server for python model engine.");
 			}
+		} else if (!cpwToInit.getSocketClient().isConnected()) {
+			cpwToInit.shutdown(false);
+			try {
+				cpwToInit.reconnect();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Failed to start TCP Server for Python Model Engine = " +this.getEngineName());
+			}
+		}
+		
+		// create the py translator
+		PyTransporter pyTransporter = new PyTransporter();
+		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
+		this.pyTranslator = new PyTranslator();
+		this.pyTranslator.setInsight(new Insight());
+		this.pyTranslator.setPyTransporter(pyTransporter);
+		// finally set the cpw in the class
+		this.cpw = cpwToInit;
+	}
+	
+	/**
+	 * 
+	 */
+	private void createCacheFolder() {
+		String engineId = this.getEngineId();
+		
+		if (engineId == null || engineId.isEmpty()) {
+			engineId="";
+		}
+		// create a generic folder
+		this.workingDirectory = "PROJECT_" + engineId + "_" + Utility.getRandomString(6);
+		this.workingDirectoryBasePath = Utility.getInsightCacheDir() + "/" + this.workingDirectory;
+		this.cacheFolder = new File(workingDirectoryBasePath);
+		
+		// make the folder if one does not exist
+		if(!this.cacheFolder.exists()) {
+			this.cacheFolder.mkdir();
 		}
 	}
 

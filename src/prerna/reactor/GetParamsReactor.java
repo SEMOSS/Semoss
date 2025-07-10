@@ -7,27 +7,22 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+public class GetParamsReactor extends AbstractReactor {
 
-public class GetParamsReactor extends AbstractReactor
-{
-
-	public GetParamsReactor()
-	{
+	public GetParamsReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.REACTOR.getKey()};
 	}
 	
 	// execute method - GREEDY translation
-	public NounMetadata execute()
-	{
+	public NounMetadata execute() {
 		organizeKeys();
 		// get the reactor name
 		// instantiate the reactor and make the call to get Params
 		IReactor reactor = this.insight.getReactor(keyValue.get(keysToGet[0]));
 		if(reactor == null) // try reactor factory
-			reactor = ReactorFactory.getReactor(keyValue.get(keysToGet[0]), "random", null, null);
+			reactor = ReactorFactory.getReactor(keyValue.get(keysToGet[0]), "random", null, null, this.jobId);
 		Map <String, Map<String, String>> retMap = null;
-		if(reactor instanceof AbstractReactor)
-		{
+		if(reactor instanceof AbstractReactor) {
 			retMap = ((AbstractReactor)reactor).getReactorParams();
 		}
 		

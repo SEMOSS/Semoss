@@ -29,8 +29,8 @@ public class ImportQueryTranslation extends LazyTranslation {
 
 	private Map<Pixel, SelectQueryStruct> importQsMap = new HashMap<>();
 	
-	public ImportQueryTranslation(Insight insight) {
-		super(insight);
+	public ImportQueryTranslation(Insight insight, String jobId) {
+		super(insight, jobId);
 		this.isTimeTracking = false;
 	}
 	
