@@ -1572,8 +1572,6 @@ public class Insight implements Serializable {
 		return (Boolean) getVar(FILTER_REFRESH_KEY);
 	}
 
-	///////////////////////////////////////// PYTHON SPECIFIC METHODS ///////////////////////////////////////////
-	
 	/**
 	 * 
 	 * @return
@@ -1589,20 +1587,12 @@ public class Insight implements Serializable {
 		return this.pyTranslator;
 	}
 	
-	///////////////////////////////////////// END PYTHON SPECIFIC METHODS ///////////////////////////////////////////
-
 	public ChromeDriverUtility getChromeDriver() {
 		if(this.chromeUtil == null) {
 			chromeUtil = new ChromeDriverUtility();
 		}
 		return chromeUtil;
 	}
-	
-	@Override
-	protected void finalize() throws Throwable {
-		logger.info("Insight " + this.insightId + " is being gc'd");
-	}
-	
 	
 	// query the frame and get the data
 	public Object query(String sql, String srcFrameName) {
@@ -1694,6 +1684,7 @@ public class Insight implements Serializable {
 		id2SQLMapper.remove(id);
 		this.sqlWrapperMap.remove(sql);
 	}
+	
 	public void replaceWrapper(String id, String sql, GenExpressionWrapper wrapper)
 	{
 		String origSql = this.id2SQLMapper.get(id);

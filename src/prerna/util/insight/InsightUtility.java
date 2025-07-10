@@ -403,6 +403,11 @@ public class InsightUtility {
 		InsightStore.getInstance().addToSessionHash(sessionId, childInsight.getInsightId());
 	}
 	
+	/**
+	 * 
+	 * @param insight
+	 * @return
+	 */
 	public static NounMetadata dropInsight(final Insight insight) {
 		synchronized(insight) {
 			classLogger.info("Droping insight " + insight.getInsightId());
@@ -454,7 +459,9 @@ public class InsightUtility {
 				//TODO: delete the python env
 				//TODO: delete the python env
 				//TODO: delete the python env
+				if(insight.getPyTranslator() != null) {
 
+				}
 			}
 			
 //			NounMetadata sessionNoun = insight.getVarStore().get(JobReactor.SESSION_KEY);
