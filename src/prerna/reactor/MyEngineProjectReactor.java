@@ -57,7 +57,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	        List<Map<String, Object>> result;
 	        if ("PROJECT".equalsIgnoreCase(currentType)) {
 	        	result = getProjects(
-	        			Collections.singletonList(currentType),
+	        			List.of("CODE", "BLOCKS"),
 		                favoritesOnly,
 		                portalsOnly,
 		                engineProjectMetadataFilter,
