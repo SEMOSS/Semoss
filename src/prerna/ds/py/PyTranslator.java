@@ -162,33 +162,36 @@ public class PyTranslator {
 		return this.pyTransporter.executePyWithDefualtVars(this.insight, script);
 	}
 
-	@Deprecated
 	/**
-	 * Switch to runDirectPy
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the execution
+	 * @deprecated This method is deprecated. Use {@link #runDirectPy(String...)} instead.
 	 * @param script
 	 * @param insight
 	 * @return
 	 */
+	@Deprecated
 	public Object runSmssWrapperEval(String script) {
 		return this.pyTransporter.transportScript(this.insight, script);
 	}
 	
-	@Deprecated
 	/**
-	 * Switch to runScript
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * @deprecated This method is deprecated. Use {@link #runScript(String...)} instead.
 	 * @param script
 	 * @return
 	 */
+	@Deprecated
 	public String runPyAndReturnOutput(String... script) {
 		return this.pyTransporter.executePyWithDefualtVars(this.insight, script) + "";
 	}
 	
-	@Deprecated
 	/**
-	 * Switch to runScript
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * @deprecated This method is deprecated. Use {@link #runScript(String...)} instead.
 	 * @param script
 	 * @return
 	 */
+	@Deprecated
 	public String runSingle(String... script) {
 		return this.pyTransporter.executePyWithDefualtVars(this.insight, script) + "";
 	}
