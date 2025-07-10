@@ -804,6 +804,7 @@ public class ModelInferenceLogsUtils {
   
   /**
    * @param projectId
+   * @param userId
    * @return
    */
   public static List<Map<String, Object>> getUserRoomsMetadataPerProject(String projectId, String userId) {
