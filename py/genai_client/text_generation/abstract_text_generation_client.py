@@ -126,8 +126,9 @@ class AbstractTextGenerationClient(ABC):
                 except Exception as e:
                     raise ValueError(f"Invalid JSON format in message_json.: {e}")
 
+        json_messages_param_map = kwargs
         if semoss_messages:
-            json_messages_param_map = semoss_messages[-1].param_map
+            json_messages_param_map = json_messages_param_map | semoss_messages[-1].param_map
 
         # This is a mess but can be cleaned up after we switch to supporting only semoss_messages
         streaming = json_messages_param_map.pop("streaming", None)
@@ -137,12 +138,12 @@ class AbstractTextGenerationClient(ABC):
                 streaming = kwargs.pop("stream", True)
 
         # After switch we can remove this
-        image_url = kwargs.pop("image_url", None)
+        image_url = json_messages_param_map.pop("image_url", None)
         if isinstance(image_url, str):
             image_url = [image_url]
 
         # After switch we can remove this
-        image_encoded = kwargs.pop("image_encoded", None)
+        image_encoded = json_messages_param_map.pop("image_encoded", None)
         if isinstance(image_encoded, str):
             image_encoded = [image_encoded]
 

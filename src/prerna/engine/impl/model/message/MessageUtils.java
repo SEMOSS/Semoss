@@ -66,9 +66,21 @@ public class MessageUtils {
 				}
 			}).create();
 
-	// For Python: skips "room", "insight", "socket", includes base64Data
+	// For Python: skips "room", "insight", "socket", "paramMap", includes base64Data
 	private static final Gson gsonForPy = new GsonBuilder()
-			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION).create();
+			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
+			.addSerializationExclusionStrategy(new ExclusionStrategy() {
+				@Override
+				public boolean shouldSkipField(FieldAttributes f) {
+					return "paramMap".equals(f.getName());
+				}
+
+				@Override
+				public boolean shouldSkipClass(Class<?> clazz) {
+					return false;
+				}
+			})
+			.create();
 
 	private static Logger logger = LogManager.getLogger(MessageUtils.class);
 

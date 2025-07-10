@@ -1,13 +1,14 @@
 package prerna.engine.impl.model;
 
+import java.io.File;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.io.File;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
@@ -86,14 +87,21 @@ public class Room {
 		} else {
 			msg.setParentMessageId(null); // first message
 		}
+		
 		messages.add(msg);
-
 		
-		Map<String, Object> fakeMap =  new HashMap<>();
-
-		fakeMap.put("message_json", getMessagesWithImageDataAsString());
+		String messageJsonString;
+		if(Boolean.TRUE == msg.getParamMap().getOrDefault("use_history", Boolean.TRUE)) {
+			messageJsonString = getMessagesWithImageDataAsString();
+		} else {
+			messageJsonString = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
+		}
 		
-		AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,fakeMap);
+		Map<String, Object> kwArgMap =  new HashMap<>();
+		kwArgMap.putAll(msg.getParamMap());
+		kwArgMap.put("message_json", messageJsonString);
+		
+		AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this, kwArgMap);
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 
 		//set transaction id for both pieces
@@ -110,7 +118,6 @@ public class Room {
 		// Persist the message history
 		ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 				getMessagesAsString());
-
 
 		return response;
 	}

@@ -2581,7 +2581,7 @@ public class ModelInferenceLogsUtils {
 			
 		}
 		
-		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(user, projectIdFilter, 
+		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(user, null, projectIdFilter, 
 				false, false, projectMetadataFilter, permissionFilter, null, null, null);
 		
 		int bestPermission = Integer.MAX_VALUE;
