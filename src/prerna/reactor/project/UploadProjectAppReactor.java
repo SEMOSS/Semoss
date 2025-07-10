@@ -2,18 +2,12 @@ package prerna.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -25,7 +19,6 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -54,12 +47,6 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = UploadProjectAppReactor.class.getName();
 	
-    private static final String UUID_PATTERN_STRING = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
-
-	private static final Pattern UUID_PATTERN = Pattern.compile(UUID_PATTERN_STRING);
-	
-    private static final String[] LIST_FILE_EXTENSIONS = {".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx"};
-    
 	public UploadProjectAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
 	}
@@ -336,8 +323,10 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		// push new project to cloud
 		ClusterUtil.pushProject(projectId);
 		
-		String[] engineIds = getEngineIdsFromProject(finalProjectFolderF);
-		Map<String, Object> engineInfo = processAndSetProjectDependencies(engineIds, projectId);
+		// extract engineIds from project
+	    // then process and set project dependencies
+		String[] engineIds = UploadInputUtility.getEngineIdsFromProject(finalProjectFolderF);
+		Map<String, Object> engineInfo = UploadInputUtility.processAndSetProjectDependencies(engineIds, projectId, user);
 		
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), projectId);
 		
@@ -370,78 +359,6 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				}
 			}
 		}
-	}
-	
-	// extracts and returns engineIds from the files with the given extensions
-	// in the project folder.
-	public String[] getEngineIdsFromProject(File finalProjectFolderF) {
-        Set<String> engineIds = new HashSet<>();
-        
-        String folderPath = finalProjectFolderF.getAbsolutePath();
-        
-        try (java.util.stream.Stream<java.nio.file.Path> stream = Files.walk(Paths.get(folderPath))) {
-        	 stream.filter(Files::isRegularFile)
-        	       .filter(path -> {
-        	          String fileName = path.getFileName().toString().toLowerCase();
-        	          for (String extension : LIST_FILE_EXTENSIONS) {
-        	              if (fileName.endsWith(extension)) {
-        	                  return true;
-        	              }
-        	          }
-        	          return false;
-        	    })
-                .forEach(path -> {
-                    try (java.util.stream.Stream<String> lines = Files.lines(path)) {
-                        lines.forEach(line -> {
-                            String[] tokens = line.split("[^a-zA-Z0-9-]+");
-                            for (String token : tokens) {
-                                Matcher matcher = UUID_PATTERN.matcher(token.trim());
-                                if (matcher.matches()) {
-                                    engineIds.add(token.trim());
-                                }
-                            }
-                        });
-                    } catch (IOException e) {
-                        classLogger.error("Error reading file: " + path);
-                    }
-                });
- 
-        } catch (IOException e) {
-            classLogger.error("Error reading file: {}", folderPath, e);
-        }
- 
-        return engineIds.toArray(new String[0]);
-    }
-	
-	// check if the extracted engineIds are present in the engine table or not
-	// adding the info of the existing engineIds into the projectdependencies table
-	// returning a list of added (success) and not added (failed) engineIds
-	private Map<String, Object> processAndSetProjectDependencies(String[] engineIds, String projectId) {
-	 
-	    User user = this.insight.getUser();
-	    
-	    Map<String, Object> result = new HashMap<>();
-	    Map<String, String> success = new HashMap<>();
-	    Set<String> failed = new HashSet<>();
-	 
-	    for (String engineId : engineIds) {
-	        if (SecurityEngineUtils.containsEngineId(engineId)) {
-	            IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
-	            success.put(engineId, engineType.toString());
-	        } else {
-	            failed.add(engineId);
-	        }
-	    }
-	 
-	    // update the project dependencies table only with valid engineIds
-	    List<String> validEngineIds = new ArrayList<>(success.keySet());
-	    SecurityProjectUtils.updateProjectDependencies(user, projectId, validEngineIds);
-	 
-	    // build final result map to return
-	    result.put("success", success);
-	    result.put("failed", failed);
-	    
-	    return result;
 	}
 	
 	@Override

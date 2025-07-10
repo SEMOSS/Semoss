@@ -2,11 +2,17 @@ package prerna.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,6 +20,10 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.om.FileReference;
 import prerna.om.Insight;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -41,7 +51,7 @@ public final class UploadInputUtility {
 	public static final String REMOVE_DUPLICATE_ROWS = ReactorKeysEnum.DEDUPLICATE.getKey();
 	public static final String REPLACE_EXISTING = ReactorKeysEnum.REPLACE.getKey();
 	// this is really a dumb format... not sure why we have this
-	@Deprecated 
+	@Deprecated
 	public static final String METAMODEL = ReactorKeysEnum.METAMODEL.getKey();
 	// basic {tablename:{columnname:columntype}}
 	public static final String METAMODEL_ADDITIONS = ReactorKeysEnum.METAMODEL_ADDITIONS.getKey();
@@ -58,11 +68,11 @@ public final class UploadInputUtility {
 	public static final String DATA_TYPE_MAP = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
 	public static final String ADDITIONAL_DATA_TYPES = ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey();
 	public static final String NEW_HEADERS = ReactorKeysEnum.NEW_HEADER_NAMES.getKey();
-	
+
 	// additional metadata fields on OWL
 	public static final String DESCRIPTION_MAP = "descriptionMap";
 	public static final String LOGICAL_NAMES_MAP = "logicalNamesMap";
-	
+
 	// defaults
 	public static final int START_ROW_INT = 2;
 	public static final int END_ROW_INT = 2_000_000_000;
@@ -71,18 +81,24 @@ public final class UploadInputUtility {
 	// only applies for "csv" uploading - doesn't need to be ","
 	public static final String DELIMITER = ReactorKeysEnum.DELIMITER.getKey();
 
+	// regex pattern for UUIDs
+	private static final String UUID_PATTERN_STRING = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
+
+	// list of file extensions to search UUIDs from
+	private static final String[] LIST_FILE_EXTENSIONS = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx" };
+
 	public static String getEngineNameOrId(NounStore store) {
 		GenRowStruct grs = store.getNoun(ENGINE);
 		if (grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the new engine id or name using key " + ENGINE);
 		}
-		
+
 		NounMetadata noun = grs.getNoun(0);
 		if(noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
 			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
 			if(uploadMap.get("engine_id") != null) {
 				return uploadMap.get("engine_id").toString();
-			} 
+			}
 			// support legacy
 			else if(uploadMap.get("database_id") != null) {
 				return uploadMap.get("database_id").toString();
@@ -90,13 +106,13 @@ public final class UploadInputUtility {
 		}
 		return noun.getValue().toString();
 	}
-	
+
 	public static String getDatabaseNameOrId(NounStore store) {
 		GenRowStruct grs = store.getNoun(DATABASE);
 		if (grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the new database id or name using key " + DATABASE);
 		}
-		
+
 		NounMetadata noun = grs.getNoun(0);
 		if(noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
 			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
@@ -104,13 +120,13 @@ public final class UploadInputUtility {
 		}
 		return noun.getValue().toString();
 	}
-	
+
 	public static String getProjectNameOrId(NounStore store) {
 		GenRowStruct grs = store.getNoun(PROJECT);
 		if (grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the new project id or name using key " + PROJECT);
 		}
-		
+
 		NounMetadata noun = grs.getNoun(0);
 		if(noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
 			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
@@ -136,7 +152,7 @@ public final class UploadInputUtility {
 						return insight.getExportFileLocation((String)grs.getNoun(0).getValue());
 					}
 				}
-			} 
+			}
 		}
 		// did a file reference get piped into this reactor?
 		{
@@ -144,13 +160,13 @@ public final class UploadInputUtility {
 			if (grs != null) {
 				FileReference fileRef = (FileReference) grs.getNoun(0).getValue();
 				return UploadInputUtility.getFilePath(insight, fileRef);
-			} 
+			}
 		}
-		
+
 		// TODO: should look at adding the above into this method in general
 		return UploadInputUtility.getFilePath(store, insight);
 	}
-	
+
 	/**
 	 * 
 	 * @param store
@@ -176,18 +192,18 @@ public final class UploadInputUtility {
 		String fileLocation =  fileGrs.get(0).toString();
 		//normalize
 		fileLocation = Utility.normalizePath(fileLocation);
-		
+
 		String space = null;
 		GenRowStruct spaceGrs = store.getNoun(SPACE);
 		// grabbing the space
 		// and using the asset utility to get the location
 		if (spaceGrs != null && !spaceGrs.isEmpty()) {
 			space = spaceGrs.get(0).toString();
-		} 
+		}
 
 		return getFilePath(insight, fileLocation, space);
 	}
-	
+
 	/**
 	 * 
 	 * @param store
@@ -197,7 +213,7 @@ public final class UploadInputUtility {
 	public static String getFilePath(Insight in, FileReference fileRef) {
 		return getFilePath(in, fileRef.getFilePath(), fileRef.getSpace());
 	}
-	
+
 	/**
 	 * 
 	 * @param fileLocation
@@ -224,7 +240,7 @@ public final class UploadInputUtility {
 
 		return fileLocation;
 	}
-	
+
 	public static boolean getExisting(NounStore store) {
 		GenRowStruct grs = store.getNoun(ADD_TO_EXISTING);
 		if (grs == null || grs.isEmpty()) {
@@ -240,7 +256,7 @@ public final class UploadInputUtility {
 		}
 		return (boolean) grs.get(0);
 	}
-	
+
 	public static boolean getReplace(NounStore store) {
 		GenRowStruct grs = store.getNoun(REPLACE_EXISTING);
 		if (grs == null || grs.isEmpty()) {
@@ -322,7 +338,7 @@ public final class UploadInputUtility {
 		}
 		return (Map<String, String>) grs.get(0);
 	}
-	
+
 	public static Map<String, List<String>> getCsvLogicalNames(NounStore store) {
 		GenRowStruct grs = store.getNoun(LOGICAL_NAMES_MAP);
 		if (grs == null || grs.isEmpty()) {
@@ -339,7 +355,7 @@ public final class UploadInputUtility {
 		}
 		return tableName.get(0).toString();
 	}
-	
+
 	public static String getUniqueColumn(NounStore store, Insight in) {
 		GenRowStruct uniqueColumn = store.getNoun(UNIQUE_COLUMN);
 
@@ -348,7 +364,7 @@ public final class UploadInputUtility {
 		}
 		return uniqueColumn.get(0).toString();
 	}
-	
+
 	/**
 	 * Figure out the end row count from the csv file
 	 * 
@@ -364,7 +380,7 @@ public final class UploadInputUtility {
 		}
 		return false;
 	}
-	
+
 	public Map<String, String> getDescriptionMap(NounStore store) {
 		GenRowStruct grs = store.getNoun(DESCRIPTION_MAP);
 		if (grs == null || grs.isEmpty()) {
@@ -372,7 +388,7 @@ public final class UploadInputUtility {
 		}
 		return (Map<String, String>) grs.get(0);
 	}
-	
+
 	public Map<String, List<String>> getLogicalNamesMap(NounStore store) {
 		GenRowStruct grs = store.getNoun(LOGICAL_NAMES_MAP);
 		if (grs == null || grs.isEmpty()) {
@@ -428,7 +444,7 @@ public final class UploadInputUtility {
 		}
 		return (Map<String, Object>) grs.get(0);
 	}
-	
+
 	public static Map<String, Map<String, String>> getMetamodelAdditions(NounStore store) {
 		GenRowStruct grs = store.getNoun(METAMODEL_ADDITIONS);
 		if (grs == null || grs.isEmpty()) {
@@ -547,6 +563,76 @@ public final class UploadInputUtility {
 			return null;
 		}
 		return (int) grs.get(0);
+	}
+
+	// extracts and returns engineIds from the files with the given extensions
+	// in the project folder.
+	public static String[] getEngineIdsFromProject(File finalProjectFolderF) {
+		Set<String> engineIds = new HashSet<>();
+        Pattern UUID_PATTERN = Pattern.compile(UUID_PATTERN_STRING);
+		String folderPath = finalProjectFolderF.getAbsolutePath();
+
+		try (java.util.stream.Stream<java.nio.file.Path> stream = Files.walk(Paths.get(folderPath))) {
+			stream.filter(Files::isRegularFile).filter(path -> {
+				String fileName = path.getFileName().toString().toLowerCase();
+				for (String extension : LIST_FILE_EXTENSIONS) {
+					if (fileName.endsWith(extension)) {
+						return true;
+					}
+				}
+				return false;
+			}).forEach(path -> {
+				try (java.util.stream.Stream<String> lines = Files.lines(path)) {
+					lines.forEach(line -> {
+						String[] tokens = line.split("[^a-zA-Z0-9-]+");
+						for (String token : tokens) {
+							Matcher matcher = UUID_PATTERN.matcher(token.trim());
+							if (matcher.matches()) {
+								engineIds.add(token.trim());
+							}
+						}
+					});
+				} catch (IOException e) {
+					classLogger.error("Error reading file: " + path);
+				}
+			});
+
+		} catch (IOException e) {
+			classLogger.error("Error reading file: {}", folderPath, e);
+		}
+
+		return engineIds.toArray(new String[0]);
+	}
+
+	// check if the extracted engineIds are present in the engine table or not
+	// adding the info of the existing engineIds into the projectdependencies table
+	// returning a list of added (success) and not added (failed) engineIds
+	public static Map<String, Object> processAndSetProjectDependencies(String[] engineIds, String projectId, User user) {
+
+		// User user = this.insight.getUser();
+
+		Map<String, Object> result = new HashMap<>();
+		Map<String, String> success = new HashMap<>();
+		Set<String> failed = new HashSet<>();
+
+		for (String engineId : engineIds) {
+			if (SecurityEngineUtils.containsEngineId(engineId)) {
+				IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
+				success.put(engineId, engineType.toString());
+			} else {
+				failed.add(engineId);
+			}
+		}
+
+		// update the project dependencies table only with valid engineIds
+		List<String> validEngineIds = new ArrayList<>(success.keySet());
+		SecurityProjectUtils.updateProjectDependencies(user, projectId, validEngineIds);
+
+		// build final result map to return
+		result.put("success", success);
+		result.put("failed", failed);
+
+		return result;
 	}
 
 }

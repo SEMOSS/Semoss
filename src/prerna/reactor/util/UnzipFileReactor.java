@@ -2,6 +2,8 @@ package prerna.reactor.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -10,9 +12,11 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
@@ -72,7 +76,33 @@ public class UnzipFileReactor extends AbstractReactor {
 			}
 		}
 		
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		// extract engineIds from project
+		// then process and set project dependencies
+		File finalProjectFolder = new File(zipFile.getParent());
+		
+		String[] engineIds = UploadInputUtility.getEngineIdsFromProject(finalProjectFolder);
+		Map<String, Object> engineInfo = UploadInputUtility.processAndSetProjectDependencies(engineIds, space, user);
+		
+		Map<String, Object> retMap = new HashMap<>();
+		retMap.put("success", true);
+		retMap.put("engineIds", engineInfo);
+		
+		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+	}
+	
+	@Override
+	public String getReactorDescription() {
+	    return "Unzips the updated project and routes the extracted files";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+	        return "This is a required value containing the relative file path of the single zip file to be imported";
+	    } else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
+	        return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 	
 }
