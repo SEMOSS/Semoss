@@ -2,7 +2,6 @@ package prerna.reactor.json;
 
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
-import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -84,7 +83,6 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 	
 	public PixelPlanner planner;
 	protected Insight insight;
-	protected String jobId;
 	protected IReactor curReactor = null;
 	protected IReactor prevReactor = null;
 	protected boolean isMeta = false;
@@ -110,14 +108,12 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 	
 	public LazyJsonTranslation() {
 		this.planner = new PixelPlanner();
-		this.jobId = UUID.randomUUID().toString();
 	}
 	
-	public LazyJsonTranslation(Insight insight, String jobId) {
+	public LazyJsonTranslation(Insight insight) {
 		this.insight = insight;
 		this.planner = new PixelPlanner();
 		this.planner.setVarStore(this.insight.getVarStore());
-		this.jobId = jobId;
 	}
 	
 	protected void postProcess(String pkslExpression) {
@@ -160,7 +156,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     public void inAEmbeddedScriptchainExprComponent(AEmbeddedScriptchainExprComponent node) {
     	defaultIn(node);
 		EmbeddedScriptReactor embeddedScriptReactor = new EmbeddedScriptReactor();
-		embeddedScriptReactor.setPixel(node.getMandatoryScriptchain().toString().trim(), node.toString().trim(), this.jobId);
+		embeddedScriptReactor.setPixel(node.getMandatoryScriptchain().toString().trim(), node.toString().trim());
     	initReactor(embeddedScriptReactor);
     }
     
@@ -248,7 +244,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
         }
 		defaultIn(node);
     	IReactor negReactor = new NegReactor();
-    	negReactor.setPixel(node.getTerm().toString().trim(), node.toString().trim(), this.jobId);
+    	negReactor.setPixel(node.getTerm().toString().trim(), node.toString().trim());
     	initReactor(negReactor);
 	}
 	
@@ -271,7 +267,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     		opReactor = new prerna.reactor.AsReactor();
     	}
     	LOGGER.debug("In the AS Component of frame op");
-    	opReactor.setPixel("as", node.getAsOp() + "", this.jobId);
+    	opReactor.setPixel("as", node.getAsOp() + "");
     	initReactor(opReactor);
     }
 
@@ -301,7 +297,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     {
     	defaultIn(node);
     	IReactor assignmentReactor = new AssignmentReactor();
-        assignmentReactor.setPixel(node.getId().toString().trim(), node.toString().trim(), this.jobId);
+        assignmentReactor.setPixel(node.getId().toString().trim(), node.toString().trim());
     	initReactor(assignmentReactor);
     }
 
@@ -322,7 +318,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     public void inANoun(ANoun node) {
     	defaultIn(node);
     	IReactor genReactor = new GenericReactor();
-        genReactor.setPixel("PKSL", (node + "").trim(), this.jobId);
+        genReactor.setPixel("PKSL", (node + "").trim());
         genReactor.setProp("KEY", node.getId().toString().trim());
         initReactor(genReactor);
     }
@@ -649,7 +645,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     	 defaultIn(node);
          IReactor opReactor = new VectorReactor();
          opReactor.setName("Vector");
-         opReactor.setPixel("Vector", node.toString().trim(), this.jobId);
+         opReactor.setPixel("Vector", node.toString().trim());
          initReactor(opReactor);
     }
     
@@ -680,7 +676,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
         } else if(curReactor instanceof AbstractQueryStructReactor) {
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr("+");
-        	qAssm.setPixel("EXPR", node.toString().trim(), this.jobId);
+        	qAssm.setPixel("EXPR", node.toString().trim());
     		initReactor(qAssm);	
         	return;
         }
@@ -692,7 +688,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "+");
 		
-		assm.setPixel("EXPR", node.toString().trim(), this.jobId);
+		assm.setPixel("EXPR", node.toString().trim());
 		initReactor(assm);	
     }
     
@@ -713,7 +709,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
         } else if(curReactor instanceof AbstractQueryStructReactor) {
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr("-");
-        	qAssm.setPixel("EXPR", node.toString().trim(), this.jobId);
+        	qAssm.setPixel("EXPR", node.toString().trim());
     		initReactor(qAssm);	
         	return;
         }
@@ -734,7 +730,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "-");
 		
-		assm.setPixel("EXPR", node.toString().trim(), this.jobId);
+		assm.setPixel("EXPR", node.toString().trim());
 		initReactor(assm);
     }
     
@@ -754,7 +750,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
         } else if(curReactor instanceof AbstractQueryStructReactor) {
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr("/");
-        	qAssm.setPixel("EXPR", node.toString().trim(), this.jobId);
+        	qAssm.setPixel("EXPR", node.toString().trim());
     		initReactor(qAssm);	
         	return;
         }
@@ -766,7 +762,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "/");
 		
-		assm.setPixel("EXPR", node.toString().trim(), this.jobId);
+		assm.setPixel("EXPR", node.toString().trim());
 		initReactor(assm);
     }
     
@@ -786,7 +782,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
         } else if(curReactor instanceof AbstractQueryStructReactor) {
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr("*");
-        	qAssm.setPixel("EXPR", node.toString().trim(), this.jobId);
+        	qAssm.setPixel("EXPR", node.toString().trim());
     		initReactor(qAssm);	
         	return;
         }
@@ -798,7 +794,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "*");
 		
-		assm.setPixel("EXPR", node.toString().trim(), this.jobId);
+		assm.setPixel("EXPR", node.toString().trim());
 		initReactor(assm);
     }
     
@@ -819,7 +815,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	PowAssimilator powAssm = new PowAssimilator();
     	powAssm.setExpressions(node.getBase().toString().trim(), node.getExponent().toString().trim());
-    	powAssm.setPixel("EXPR", node.toString().trim(), this.jobId);
+    	powAssm.setPixel("EXPR", node.toString().trim());
     	initReactor(powAssm);	
     }
     
@@ -839,7 +835,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
         } else if(curReactor instanceof AbstractQueryStructReactor) {
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr("%");
-        	qAssm.setPixel("EXPR", node.toString().trim(), this.jobId);
+        	qAssm.setPixel("EXPR", node.toString().trim());
     		initReactor(qAssm);	
         	return;
         }
@@ -860,7 +856,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "-");
 		
-		assm.setPixel("EXPR", node.toString().trim(), this.jobId);
+		assm.setPixel("EXPR", node.toString().trim());
 		initReactor(assm);
     }
     
@@ -990,7 +986,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     		GenRowStruct msg = new GenRowStruct();
     		msg.add(node.toString(), PixelDataType.CONST_STRING);
     		newReactor.getNounStore().addNoun(GreedyJsonReactor.FULL_MESSAGE, msg);
-    		newReactor.setPixel(processNode, node.toString().trim(), this.jobId);
+    		newReactor.setPixel(processNode, node.toString().trim());
 			Vector <String>childVector = null;
 			if(newReactor.hasProp("CHILDS"))
 				childVector = (Vector<String>)newReactor.getProp("CHILDS");
@@ -1044,7 +1040,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     	// i.e. hash from the sibling / from the parent
     	if(thisReactor != null)
     	{
-    		thisReactor.setPixel(processNode, node.toString().trim(), this.jobId);
+    		thisReactor.setPixel(processNode, node.toString().trim());
     		// need to find a way to continue the nounstore
     		if(curReactor != null)
     		{
@@ -1084,7 +1080,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     	if(thisReactor == null)
     	{
     		IReactor newReactor = new LevelMaker();
-    		newReactor.setPixel(processNode, node.toString().trim(), this.jobId);
+    		newReactor.setPixel(processNode, node.toString().trim());
 			Vector <String>childVector = null;
 			if(curReactor.hasProp("CHILDS"))
 				childVector = (Vector<String>)curReactor.getProp("CHILDS");
@@ -1180,7 +1176,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     	// i.e. hash from the sibling / from the parent
     	if(thisReactor != null)
     	{
-    		thisReactor.setPixel(processNode, node.toString().trim(), this.jobId);
+    		thisReactor.setPixel(processNode, node.toString().trim());
     		// need to find a way to continue the nounstore
     		if(curReactor != null)
     		{
@@ -1220,7 +1216,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     	if(thisReactor == null)
     	{
     		IReactor newReactor = new MapListReactor();
-    		newReactor.setPixel(processNode, node.toString().trim(), this.jobId);
+    		newReactor.setPixel(processNode, node.toString().trim());
 			Vector <String>childVector = null;
 			if(curReactor.hasProp("CHILDS"))
 				childVector = (Vector<String>)curReactor.getProp("CHILDS");
@@ -1298,7 +1294,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
      * Sets the PKSL operations in the reactor
      */
     private IReactor getReactor(String reactorId, String nodeString) {
-    	return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) getDataMaker(), curReactor, this.jobId);
+    	return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) getDataMaker(), curReactor);
     }
     
     public void defaultIn(Node node)

@@ -20,7 +20,7 @@ public class GetParamsReactor extends AbstractReactor {
 		// instantiate the reactor and make the call to get Params
 		IReactor reactor = this.insight.getReactor(keyValue.get(keysToGet[0]));
 		if(reactor == null) // try reactor factory
-			reactor = ReactorFactory.getReactor(keyValue.get(keysToGet[0]), "random", null, null, this.jobId);
+			reactor = ReactorFactory.getReactor(keyValue.get(keysToGet[0]), "random", null, null);
 		Map <String, Map<String, String>> retMap = null;
 		if(reactor instanceof AbstractReactor) {
 			retMap = ((AbstractReactor)reactor).getReactorParams();

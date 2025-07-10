@@ -33,8 +33,8 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 	private List<Map<String, Object>> datasourcePixels = new ArrayList<Map<String, Object>>();
 	private Map<String, Object> currentSourceStatement = null;
 	
-	public DatasourceTranslation(Insight insight, String jobId) {
-		super(insight, jobId);
+	public DatasourceTranslation(Insight insight) {
+		super(insight);
 	}
 	
 	@Override

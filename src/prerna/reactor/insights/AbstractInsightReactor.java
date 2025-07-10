@@ -470,7 +470,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			// that needs to be modified
 			if(p.isFileRead()) {
 				// shift any csv files to be moved into the insight folder for the new insight
-				List<Map<String, Object>> datasources = PixelUtility.getDatasourcesMetadata(this.insight.getUser(), p.getPixelString(), this.jobId);
+				List<Map<String, Object>> datasources = PixelUtility.getDatasourcesMetadata(this.insight.getUser(), p.getPixelString());
 				for(int i = 0; i < datasources.size(); i++) {
 					Map<String, Object> datasourceMap = datasources.get(i);
 					String datasourceType = datasourceMap.get("type").toString().toUpperCase();
