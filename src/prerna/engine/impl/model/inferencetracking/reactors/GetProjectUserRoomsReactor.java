@@ -24,10 +24,8 @@ public class GetProjectUserRoomsReactor extends AbstractReactor {
       throw new IllegalArgumentException("You are not properly logged in");
     }
 
-    String projectId = insight.getContextProjectId();
-    if (projectId == null) {
-      projectId = insight.getProjectId();
-    }
+    String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+
     List<Map<String, Object>> userRooms =
         ModelInferenceLogsUtils.getUserRoomsMetadataPerProject(
             projectId, user.getPrimaryLoginToken().getId());
