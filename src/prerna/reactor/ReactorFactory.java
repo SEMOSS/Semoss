@@ -1344,7 +1344,7 @@ public class ReactorFactory {
 	 *         reactor when executed will use that reducing expression reactor
 	 *         to evaluate
 	 */
-	public static IReactor getReactor(String reactorId, String nodeString, ITableDataFrame frame, IReactor parentReactor, String jobId) {
+	public static IReactor getReactor(String reactorId, String nodeString, ITableDataFrame frame, IReactor parentReactor) {
 		IReactor reactor = null;
 
 		try {
@@ -1356,7 +1356,7 @@ public class ReactorFactory {
 				if (!(parentReactor instanceof AbstractQueryStructReactor) && 
 						!(parentReactor instanceof QuerySelectorExpressionAssimilator)) {
 					reactor = (IReactor) expressionHash.get(reactorId.toUpperCase()).newInstance();
-					reactor.setPixel(reactorId, nodeString, jobId);
+					reactor.setPixel(reactorId, nodeString);
 					return reactor;
 				}
 			}
@@ -1389,7 +1389,7 @@ public class ReactorFactory {
 				
 				// if we have retrieved a reactor from a frame hash
 				if (reactor != null) {
-					reactor.setPixel(reactorId, nodeString, jobId);
+					reactor.setPixel(reactorId, nodeString);
 					return reactor;
 				}
 			}
@@ -1400,7 +1400,7 @@ public class ReactorFactory {
 			// search in the normal reactor hash
 			if (reactorHash.containsKey(reactorId)) {
 				reactor = (IReactor) reactorHash.get(reactorId).newInstance();
-				reactor.setPixel(reactorId, nodeString, jobId);
+				reactor.setPixel(reactorId, nodeString);
 				return reactor;
 			}
 		} catch (InstantiationException | IllegalAccessException e) {
@@ -1414,7 +1414,7 @@ public class ReactorFactory {
 		 */
 		if (parentReactor instanceof AbstractQueryStructReactor || parentReactor instanceof QuerySelectorExpressionAssimilator) {
 			reactor = new GenericSelectorFunctionReactor();
-			reactor.setPixel(reactorId, nodeString, jobId);
+			reactor.setPixel(reactorId, nodeString);
 			// set the fuction name
 			((GenericSelectorFunctionReactor) reactor).setFunction(reactorId);
 			return reactor;

@@ -63,9 +63,8 @@ public interface IReactor {
 	 * full operation includes the nouns
 	 * @param operation
 	 * @param fullOperation
-	 * @param jobId
 	 */
-	void setPixel(String operation, String fullOperation, String jobId);
+	void setPixel(String operation, String fullOperation);
 	
 	String[] getPixel();
 	

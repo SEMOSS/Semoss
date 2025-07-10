@@ -425,7 +425,7 @@ public class PipelineTranslation extends LazyTranslation {
     	}
     	
     	UndeterminedPipelineReactor reactor = new UndeterminedPipelineReactor();
-    	reactor.setPixel(reactorId, nodeString, this.jobId);
+    	reactor.setPixel(reactorId, nodeString);
     	return reactor;
     }
     

@@ -314,11 +314,6 @@ public class Insight implements Serializable {
 	}
 	
 	public PixelRunner runPixel(PixelRunner runner, List<String> pixelList) {
-		String jobId = ThreadStore.getJobId();
-		if(jobId == null) {
-			logger.warn("The job id is null. Defaulting to insight id");
-			jobId = this.insightId;
-		}
 		int size = pixelList.size();
 		if(size == 0) {
 			// set the insight in the runner as it is used
@@ -333,7 +328,7 @@ public class Insight implements Serializable {
 					logger.info("No User Running >>> " + Utility.cleanLogString(pixelString));
 				}
 				try {
-					runner.runPixel(pixelString, jobId, this);
+					runner.runPixel(pixelString, this);
 				} catch(SemossPixelException e) {
 					logger.error(Constants.ERROR_MESSAGE, e);
 					if(!e.isContinueThreadOfExecution()) {

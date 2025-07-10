@@ -56,7 +56,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		PixelList pixelList = this.insight.getPixelList();
 		
 		Insight tempInsight = new Insight();
-		ImportQueryTranslation translation = new ImportQueryTranslation(tempInsight, this.jobId);
+		ImportQueryTranslation translation = new ImportQueryTranslation(tempInsight);
 		// loop through recipe
 		for(Pixel pixel : pixelList) {
 			try {

@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
@@ -120,7 +119,6 @@ public class LazyTranslation extends DepthFirstAdapter {
 	
 	protected PixelPlanner planner;
 	protected Insight insight;
-	protected String jobId;
 	protected IReactor curReactor = null;
 	protected IReactor prevReactor = null;
 
@@ -143,16 +141,14 @@ public class LazyTranslation extends DepthFirstAdapter {
 	
 	public LazyTranslation() {
 		this.planner = new PixelPlanner();
-		this.jobId = UUID.randomUUID().toString();
 	}
 	
-	public LazyTranslation(Insight insight, String jobId) {
+	public LazyTranslation(Insight insight) {
 		this();
 		this.insight = insight;
 		if(this.insight != null) {
 			this.planner.setVarStore(this.insight.getVarStore());
 		}
-		this.jobId = jobId;
 	}
 	
 	public Pixel getPixelObj() {
@@ -360,7 +356,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 //    	}
     	
     	AssignmentReactor assignmentReactor = new AssignmentReactor(this.resultKey);
-        assignmentReactor.setPixel(var, node.toString().trim(), this.jobId);
+        assignmentReactor.setPixel(var, node.toString().trim());
     	initReactor(assignmentReactor);
     	assignmentReactor.getCurRow().addLiteral(var);
     }
@@ -375,7 +371,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	public void inASubRoutine(ASubRoutine node) {
 		defaultIn(node);
 		EmbeddedRoutineReactor embeddedScriptReactor = new EmbeddedRoutineReactor();
-		embeddedScriptReactor.setPixel(node.getSubRoutineOptions().toString().trim(), node.toString().trim(), this.jobId);
+		embeddedScriptReactor.setPixel(node.getSubRoutineOptions().toString().trim(), node.toString().trim());
     	initReactor(embeddedScriptReactor);
 	}
 	
@@ -408,7 +404,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void inAEmbeddedScriptchainExprComponent(AEmbeddedScriptchainExprComponent node) {
     	defaultIn(node);
 		EmbeddedScriptReactor embeddedScriptReactor = new EmbeddedScriptReactor();
-		embeddedScriptReactor.setPixel(node.getMandatoryScriptchain().toString().trim(), node.toString().trim(), this.jobId);
+		embeddedScriptReactor.setPixel(node.getMandatoryScriptchain().toString().trim(), node.toString().trim());
     	initReactor(embeddedScriptReactor);
     }
     
@@ -501,7 +497,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         }
 		defaultIn(node);
     	IReactor negReactor = new NegReactor();
-    	negReactor.setPixel(node.getTerm().toString().trim(), node.toString().trim(), this.jobId);
+    	negReactor.setPixel(node.getTerm().toString().trim(), node.toString().trim());
     	initReactor(negReactor);
 	}
 	
@@ -523,7 +519,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     		opReactor = new prerna.reactor.AsReactor();
     	}
     	classLogger.debug("In the AS Component of frame op");
-    	opReactor.setPixel("as", node.getAsOp() + "", this.jobId);
+    	opReactor.setPixel("as", node.getAsOp() + "");
     	initReactor(opReactor);
     }
 
@@ -555,7 +551,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void inANoun(ANoun node) {
     	defaultIn(node);
     	IReactor genReactor = new GenericReactor();
-        genReactor.setPixel("PKSL", (node + "").trim(), this.jobId);
+        genReactor.setPixel("PKSL", (node + "").trim());
         genReactor.getNounStore().makeNoun("KEY").addLiteral(node.getId().toString().trim());
         initReactor(genReactor);
     }
@@ -799,7 +795,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void inAProp(AProp node) {
     	defaultIn(node);
     	IReactor genReactor = new GenericReactor();
-        genReactor.setPixel("PKSL", (node + "").trim(), this.jobId);
+        genReactor.setPixel("PKSL", (node + "").trim());
         genReactor.getNounStore().makeNoun("KEY").addLiteral(node.getId().toString().trim());
         initReactor(genReactor);
     }
@@ -914,7 +910,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void inAComplexAndComparisonExpr(AComplexAndComparisonExpr node) {
     	defaultIn(node);
     	IReactor newReactor = getAndComparison();
-    	newReactor.setPixel("AND_FILTER", node.toString().trim(), this.jobId);
+    	newReactor.setPixel("AND_FILTER", node.toString().trim());
     }
     
     @Override
@@ -927,7 +923,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void inAComplexOrComparisonExpr(AComplexOrComparisonExpr node) {
     	defaultIn(node);
     	IReactor newReactor = getOrComparison();
-    	newReactor.setPixel("OR_FILTER", node.toString().trim(), this.jobId);
+    	newReactor.setPixel("OR_FILTER", node.toString().trim());
     }
     
     @Override
@@ -940,7 +936,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void inABasicAndComparisonTerm(ABasicAndComparisonTerm node) {
     	defaultIn(node);
     	IReactor newReactor = getAndComparison();
-    	newReactor.setPixel("AND_FILTER", node.toString().trim(), this.jobId);
+    	newReactor.setPixel("AND_FILTER", node.toString().trim());
     }
     
     @Override
@@ -953,7 +949,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void inABasicOrComparisonTerm(ABasicOrComparisonTerm node) {
     	defaultIn(node);
     	IReactor newReactor = getOrComparison();
-    	newReactor.setPixel("OR_FILTER", node.toString().trim(), this.jobId);
+    	newReactor.setPixel("OR_FILTER", node.toString().trim());
     }
     
     @Override
@@ -977,7 +973,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	}
     	
     	initReactor(newReactor);
-    	newReactor.setPixel("BASIC_FILTER", node.toString(), this.jobId);
+    	newReactor.setPixel("BASIC_FILTER", node.toString());
     	syncResult();
     }
 
@@ -1011,7 +1007,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	 defaultIn(node);
          IReactor opReactor = new VectorReactor();
          opReactor.setName("Vector");
-         opReactor.setPixel("Vector", node.toString().trim(), this.jobId);
+         opReactor.setPixel("Vector", node.toString().trim());
          initReactor(opReactor);
     }
     
@@ -1050,7 +1046,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	    	String leftKey = node.getLeft().toString().trim();
 			String rightKey = node.getRight().toString().trim();
 			initExpressionToReactor(assm, leftKey, rightKey, "+");
-			assm.setPixel("EXPR", nodeExpr, this.jobId);
+			assm.setPixel("EXPR", nodeExpr);
 			initReactor(assm);
     	}
     }
@@ -1084,7 +1080,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 			}
 			String rightKey = node.getRight().toString().trim();
 			initExpressionToReactor(assm, leftKey, rightKey, "-");
-			assm.setPixel("EXPR", nodeExpr, this.jobId);
+			assm.setPixel("EXPR", nodeExpr);
 			initReactor(assm);
     	}
     }
@@ -1108,7 +1104,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	    	String leftKey = node.getLeft().toString().trim();
 			String rightKey = node.getRight().toString().trim();
 			initExpressionToReactor(assm, leftKey, rightKey, "/");
-			assm.setPixel("EXPR", nodeExpr, this.jobId);
+			assm.setPixel("EXPR", nodeExpr);
 			initReactor(assm);
     	}
     }
@@ -1132,7 +1128,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	    	String leftKey = node.getLeft().toString().trim();
 			String rightKey = node.getRight().toString().trim();
 			initExpressionToReactor(assm, leftKey, rightKey, "*");
-			assm.setPixel("EXPR", nodeExpr, this.jobId);
+			assm.setPixel("EXPR", nodeExpr);
 			initReactor(assm);
     	}
     }
@@ -1156,7 +1152,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	    	String leftKey = node.getLeft().toString().trim();
 			String rightKey = node.getRight().toString().trim();
 			initExpressionToReactor(assm, leftKey, rightKey, "%");
-			assm.setPixel("EXPR", nodeExpr, this.jobId);
+			assm.setPixel("EXPR", nodeExpr);
 			initReactor(assm);
     	}
     }
@@ -1184,13 +1180,13 @@ public class LazyTranslation extends DepthFirstAdapter {
     		QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr(math);
         	qAssm.setEncapsulated(encapsulated);
-        	qAssm.setPixel("EXPR", nodeExpr, this.jobId);
+        	qAssm.setPixel("EXPR", nodeExpr);
     		initReactor(qAssm);	
         	return false;
     	} else if(curReactor instanceof SelectReactor) {  
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr(math);
-        	qAssm.setPixel("EXPR", nodeExpr, this.jobId);
+        	qAssm.setPixel("EXPR", nodeExpr);
     		initReactor(qAssm);	
         	return false;
         } 
@@ -1199,7 +1195,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	else if(curReactor != null && curReactor.getParentReactor() instanceof FilterReactor) {
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr(math);
-        	qAssm.setPixel("EXPR", nodeExpr, this.jobId);
+        	qAssm.setPixel("EXPR", nodeExpr);
     		initReactor(qAssm);	
         	return false;
         }
@@ -1208,7 +1204,7 @@ public class LazyTranslation extends DepthFirstAdapter {
       			{
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr(math);
-        	qAssm.setPixel("EXPR", nodeExpr, this.jobId);
+        	qAssm.setPixel("EXPR", nodeExpr);
     		initReactor(qAssm);	
         	return false;
         }
@@ -1216,7 +1212,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 		{
 			QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
 			qAssm.setMathExpr(math);
-			qAssm.setPixel("EXPR", nodeExpr, this.jobId);
+			qAssm.setPixel("EXPR", nodeExpr);
 			initReactor(qAssm);	
 			return false;
 		}
@@ -1236,7 +1232,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	PowAssimilator powAssm = new PowAssimilator();
     	powAssm.setExpressions(node.getBase().toString().trim(), node.getExponent().toString().trim());
-    	powAssm.setPixel("EXPR", node.toString().trim(), this.jobId);
+    	powAssm.setPixel("EXPR", node.toString().trim());
     	initReactor(powAssm);	
     }
     
@@ -1354,7 +1350,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	IReactor insightReactor = insight.getReactor(reactorId);
     	if(insightReactor != null)
     	{
-    		insightReactor.setPixel(reactorId, nodeString, this.jobId);
+    		insightReactor.setPixel(reactorId, nodeString);
     		return insightReactor;
     	}
     	/*
@@ -1370,16 +1366,16 @@ public class LazyTranslation extends DepthFirstAdapter {
     	} */
     	
     	if(this.currentFrame != null) {
-    		return ReactorFactory.getReactor(reactorId, nodeString, this.currentFrame, curReactor, this.jobId);
+    		return ReactorFactory.getReactor(reactorId, nodeString, this.currentFrame, curReactor);
     	}
     	IDataMaker dataTable = null;
     	if(this.insight != null) {
     		dataTable = this.insight.getDataMaker();
     	}
     	if(dataTable != null) {
-    		return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) dataTable, curReactor, this.jobId);
+    		return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) dataTable, curReactor);
     	} else {
-    		return ReactorFactory.getReactor(reactorId, nodeString, null, curReactor, this.jobId);
+    		return ReactorFactory.getReactor(reactorId, nodeString, null, curReactor);
     	}
     }
     
