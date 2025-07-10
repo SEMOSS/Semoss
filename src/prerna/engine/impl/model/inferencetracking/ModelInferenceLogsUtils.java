@@ -1474,7 +1474,7 @@ public class ModelInferenceLogsUtils {
 		ResultSet rs = ps.executeQuery();
 		if (rs.next()) {
 		  try {
-			return AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) rs.getClob("OPTIONS"));	
+			return AbstractSqlQueryUtil.flushClobToString(rs.getClob("OPTIONS"));	
 		  } catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		  }
