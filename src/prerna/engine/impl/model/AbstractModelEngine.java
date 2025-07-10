@@ -31,7 +31,7 @@ import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.Insight;
-import prerna.project.api.IProject;
+import prerna.om.ThreadStore;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
@@ -143,7 +143,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageMethod*/"ask", 
 					/*engine*/this, 
 					/*insight*/room.getInsight(),
-					/*roomId*/room.getId(), //legacy adapter
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/room.getId(),
 					/*context*/context, 
 					/*prompt*/question,
 					/*fullPrompt*/fullPrompt,
@@ -191,7 +192,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageMethod*/"ask", 
 					/*engine*/this, 
 					/*insight*/insight,
-					/*room id*/insight.getInsightId(), //legacy calls
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/context, 
 					/*prompt*/question,
 					/*fullPrompt*/fullPrompt,
@@ -244,8 +246,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageId*/messageId, 
 					/*messageMethod*/"instruct", 
 					/*engine*/this, 
-					/*insight*/insight, 
-					/*roomId*/insight.getInsightId(), //legacy adapter
+					/*insight*/insight,
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/context,
 					/*prompt*/null,
 					/*fullPrompt*/task,
@@ -289,8 +292,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageId*/messageId, 
 					/*messageMethod*/"embeddings", 
 					/*engine*/this, 
-					/*insight*/insight, 
-					/*room id*/insight.getInsightId(), // legacy adapter
+					/*insight*/insight,
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null,
 					/*prompt*/null,
 					/*fullPrompt*/stringsToEmbed,
@@ -334,7 +338,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageMethod*/"embeddings", 
 					/*engine*/this, 
 					/*insight*/insight, 
-					/*roomId*/insight.getInsightId(), //legacy adapter
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null,
 					/*prompt*/null,
 					/*fullPrompt*/imagesToEmbed,

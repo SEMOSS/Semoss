@@ -29,7 +29,6 @@ import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
-import prerna.reactor.job.JobReactor;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
@@ -62,7 +61,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             "method",
             engine,
             insight,
-            insight.getInsightId(), //mocking room id for now
+            "sessionId",
+			"roomId",
             "context",
             "",
             new ArrayList(){{add("full prompt");}},
@@ -77,11 +77,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
-        when(insight.getVarStore()).thenReturn(varStore);
-        when(insight.getVarStore().containsKey(JobReactor.SESSION_KEY)).thenReturn(true);
-        when(varStore.get(JobReactor.SESSION_KEY)).thenReturn(metadata);
-        when(insight.getVarStore().get(JobReactor.SESSION_KEY).getValue()).thenReturn(sessionId);
-
+		String roomId = "roomId";
         String projectId = "projectId";
         when(insight.getContextProjectId()).thenReturn(null);
         when(insight.getProjectId()).thenReturn(projectId);
@@ -138,8 +134,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
-                eq(insightId), //room id 
                 eq(sessionId),
+				eq(insightId), //room id 
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -154,8 +150,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
-                eq(insightId), //room id 
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -200,8 +196,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
-                eq(insightId), //room id 
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -217,8 +213,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     any(ZonedDateTime.class),
                     eq(engineId),
                     eq(insightId),
-                    eq(insightId), //room id 
                     eq(sessionId),
+					eq(insightId), //room id
                     eq("userId"),
                     eq("userUserName"),
                     eq(userEmail)
@@ -235,7 +231,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             "method",
             engine,
             insight,
-			/*roomId*/insight.getInsightId(), //legacy adapter
+            "sessionId",
+			"roomId",
             "context",
             "",
             new ArrayList(){{add(new JSONObject());}},
@@ -250,11 +247,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
-        when(insight.getVarStore()).thenReturn(varStore);
-        when(insight.getVarStore().containsKey(JobReactor.SESSION_KEY)).thenReturn(true);
-        when(varStore.get(JobReactor.SESSION_KEY)).thenReturn(metadata);
-        when(insight.getVarStore().get(JobReactor.SESSION_KEY).getValue()).thenReturn(sessionId);
-
+		String roomId = "roomId";
         String projectId = "projectId";
         when(insight.getContextProjectId()).thenReturn(null);
         when(insight.getProjectId()).thenReturn(projectId);
@@ -311,8 +304,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
-                eq(insightId), //room id 
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -327,8 +320,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
-                eq(insightId), //room id 
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -373,8 +366,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
-                eq(insightId), //room id 
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -390,8 +383,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     any(ZonedDateTime.class),
                     eq(engineId),
                     eq(insightId),
-                    eq(insightId), //room id 
                     eq(sessionId),
+					eq(insightId), //room id
                     eq("userId"),
                     eq("userUserName"),
                     eq(userEmail)
@@ -408,7 +401,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             "method",
             engine,
             insight,
-			/*roomId*/insight.getInsightId(), //legacy adapter
+            "sessionId",
+			"roomId",
             "context",
             "",
             new JSONObject(),
@@ -423,11 +417,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
-        when(insight.getVarStore()).thenReturn(varStore);
-        when(insight.getVarStore().containsKey(JobReactor.SESSION_KEY)).thenReturn(true);
-        when(varStore.get(JobReactor.SESSION_KEY)).thenReturn(metadata);
-        when(insight.getVarStore().get(JobReactor.SESSION_KEY).getValue()).thenReturn(sessionId);
-
+		String roomId = "roomId";
         String projectId = "projectId";
         when(insight.getContextProjectId()).thenReturn(null);
         when(insight.getProjectId()).thenReturn(projectId);
@@ -484,8 +474,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
-                eq(insightId), //room id 
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -500,8 +490,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
-                eq(insightId), //room id 
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -546,8 +536,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(ZonedDateTime.class),
                 eq(engineId),
                 eq(insightId),
-                eq(insightId), //room id 
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -563,8 +553,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     any(ZonedDateTime.class),
                     eq(engineId),
                     eq(insightId),
-                    eq(insightId), //room id 
                     eq(sessionId),
+					eq(insightId), //room id
                     eq("userId"),
                     eq("userUserName"),
                     eq(userEmail)

@@ -1,6 +1,5 @@
 package prerna.auth;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
@@ -25,7 +24,6 @@ import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
-import prerna.engine.api.IStorageMount;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
@@ -35,7 +33,6 @@ import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
-import prerna.util.SemossClassloader;
 import prerna.util.Settings;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
@@ -44,14 +41,15 @@ public class User implements Serializable {
 
 	private static Logger classLogger = LogManager.getLogger(User.class);
 	
-	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-
+	protected static final String DIR_SEPARATOR = "/";
+	
 	// main object storing the users access tokens
 	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
 	private List<AuthProvider> loggedInProfiles = new Vector<>();
 	// storing the timezone the user is in
 	private ZoneId zoneId;
 	
+	// store model conversation rooms
 	public Map<String,Object> roomHash = new HashMap<>();
 	
 	// store the users insights
@@ -70,12 +68,9 @@ public class User implements Serializable {
 	private transient ClientProcessWrapper rCPW = new ClientProcessWrapper();
 	private transient Process rProcess = null;
 
-	private transient SymlinkHelper symlinkHelper = null;
 	private String chrootPath = null;
+	private transient SymlinkHelper symlinkHelper = null;
 
-	// keeping this for a later time when personal experimental stuff
-	private transient ClassLoader customLoader = null;
-	
 	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
 	private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
 	private AuthProvider primaryLogin;
@@ -83,39 +78,25 @@ public class User implements Serializable {
 	private transient Object assetSyncObject = null;
 	private transient Object workspaceSyncObject = null;
 
-	// keeps the secret for every insight
-	private Hashtable <String, InsightToken> insightSecret = new Hashtable <>();
-	// shared sessions
-	private List<String> sharedSessions = new Vector<>();
-	
-	private transient Map<String, IStorageMount> externalMounts = new HashMap<>();
-	
-	private boolean anonymous;
-	private String anonymousId;
-	
 	public transient CopyObject cp = null;
 	private transient CmdExecUtil cmdUtil = null;
 	
 	private int rPort = -1;
 	private int pyPort = -1;
 	
-	private int forcePort = -1;
-	
 	// need to move everything here
 	// since on reconnect we need to redo serialization. 
 	private Map<String, Boolean> insightSerializedMap = new HashMap<String, Boolean>();
 	
-	// this is the prefix used for streamers in transformers
-	// this is what will distinguish between output vs. stdout
-	public String prefix = "";
-	
 	// this is a unique identifier for this user instance
 	private String userEpoch = null;
+	
+	private boolean anonymous;
+	private String anonymousId;
 	
 	public User() {
 		// transient objects should be defined in the constructor
 		// since if this is serialized we dont want these values to be null
-		this.customLoader = new SemossClassloader(this.getClass().getClassLoader());
 		this.openInsights = new HashMap<>();
 		this.assetSyncObject = new Object();
 		this.workspaceSyncObject = new Object();
@@ -337,48 +318,17 @@ public class User implements Serializable {
 		this.rconRemote = rconRemote;
 	}
 	
-	// add the insight instance id
-	public void addInsight(String id, InsightToken token)
-	{
-		insightSecret.put(id, token);
-	}
-	
-	// get insight token
-	public InsightToken getInsight(String id)
-	{
-		return insightSecret.get(id);
-	}
-	
-	public void addShare(String sessionId)
-	{
-		if(!sharedSessions.contains(sessionId))
-			sharedSessions.add(sessionId);
-	}	
-	
-	public void removeShare(String sessionId)
-	{
-		sharedSessions.remove(sessionId);
-	}
-	
-	public boolean isShareSession(String sessionId)
-	{
-		return sharedSessions.contains(sessionId);
-	}
-	
-	public void ctrlC(String source, String showSource)
-	{
+	public void ctrlC(String source, String showSource) {
 		this.cp = new CopyObject();
 		cp.source = source;
 		cp.showSource = showSource;
 	}
 	
-	public CopyObject getCtrlC()
-	{
+	public CopyObject getCtrlC() {
 		return cp;
 	}
 	
-	public void ctrlX(String source, String showSource)
-	{
+	public void ctrlX(String source, String showSource) {
 		this.cp = new CopyObject();
 		cp.source = source;
 		cp.showSource = showSource;
@@ -669,34 +619,6 @@ public class User implements Serializable {
 		this.insightSerializedMap.clear();
 
 		return this.pythonCPW.getSocketClient();
-	}
-
-	public void addExternalMount(String name, IStorageMount mountHelper)
-	{
-		// name is what is recorded
-		externalMounts.put(name, mountHelper);
-		// get the user asset folder
-		AuthProvider provider = getPrimaryLogin();
-		String appId = getAssetProjectId(provider);
-		String appName = "Asset";
-		String userAssetFolder = AssetUtility.getProjectAssetsFolder(appName, appId);
-
-		// if this folder does not exist create it
-		File file = new File(userAssetFolder);
-		if (!file.exists()) {
-			file.mkdir();
-		}
-		
-		// add this mount point to the asset folder
-		File mountFile = new File(userAssetFolder + DIR_SEPARATOR + name);
-		if(!mountFile.exists())
-			mountFile.mkdir();
-
-		// at some point I need to also set a watcher to ferret things back and forth
-	}
-	
-	public Map<String, IStorageMount> getExternalMounts() {
-		return this.externalMounts;
 	}
 
 	/**

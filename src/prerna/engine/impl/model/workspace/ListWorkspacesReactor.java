@@ -71,7 +71,7 @@ public class ListWorkspacesReactor extends AbstractReactor {
     projectMetadataFilter.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
     List<Map<String, Object>> projectInfo =
         SecurityProjectUtils.getUserProjectList(
-            user, null, false, false, projectMetadataFilter, null, null, null, null);
+            user, null, null, false, false, projectMetadataFilter, null, null, null, null);
     Set<String> sharedWorkspaceIds =
         projectInfo.stream()
             .map(info -> (String) info.get("project_id"))

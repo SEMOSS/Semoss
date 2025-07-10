@@ -1128,8 +1128,8 @@ public class ModelInferenceLogsUtils {
         dateCreated,
         agentId,
         insightId,
-        insightId, //roomId
         sessionId,
+        insightId, //roomId
         userId,
         userName,
         userEmail);
@@ -1145,8 +1145,8 @@ public class ModelInferenceLogsUtils {
    * @param dateCreated
    * @param agentId
    * @param insightId
-   * @param roomId
    * @param sessionId
+   * @param roomId
    * @param userId
    * @param userName
    * @param userEmail
@@ -1161,8 +1161,8 @@ public class ModelInferenceLogsUtils {
       ZonedDateTime dateCreated,
       String agentId,
       String insightId,
-      String roomId,
       String sessionId,
+      String roomId,
       String userId,
       String userName,
       String userEmail) {

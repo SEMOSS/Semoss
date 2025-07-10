@@ -54,6 +54,7 @@ import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVWriter;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -1122,7 +1123,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					/*messageMethod*/"nearestNeighbor", 
 					/*engine*/this, 
 					/*insight*/insight,
-					/*roomId*/insight.getInsightId(), //legacy adapter
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null, 
 					/*prompt*/searchStatement,
 					/*fullPrompt*/null,
