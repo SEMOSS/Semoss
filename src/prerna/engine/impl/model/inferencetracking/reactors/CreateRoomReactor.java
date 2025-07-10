@@ -31,25 +31,30 @@ public class CreateRoomReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		
-		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+		organizeKeys();
+		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()); // think we should remove this tbh
 		String roomName = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 		
-		Map<String, Object> context = null;
 		Map<String, Object> options = null;
 		
 		if (workspaceId == null) {
 			List<String> vectorDbs = getVectorDbs();
 			List<String> tools = getTools();
-			context = getContext();
-			options = new HashMap<>();
-			options.put("tools", tools);
-			options.put("vectorDbs", vectorDbs);
+			if (!tools.isEmpty() || !vectorDbs.isEmpty()) {
+				options = new HashMap<>();
+				if (!tools.isEmpty()) {
+					options.put("tools", tools);
+				}
+				if (!vectorDbs.isEmpty()) {
+					options.put("vectorDbs", vectorDbs);
+				}
+			}
 		}
 		
 		if (roomId == null) roomId = UUID.randomUUID().toString();
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, null, null, options);
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, null, roomName, options, context);
 
 		return new NounMetadata(room.getId(), PixelDataType.CONST_STRING);
 	}
@@ -79,19 +84,4 @@ public class CreateRoomReactor extends AbstractReactor {
         for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
         return inputStrings;
     }
-	
-	private Map<String, Object> getContext() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.CONTEXT.getKey());
-		if(mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if(mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
-			}
-		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
-		}
-		return null;
-	}
 }

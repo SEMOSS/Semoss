@@ -50,7 +50,7 @@ public class RoomUtils {
      * @return the existing or newly created Room
      */
     public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question) {
-    	return createRoomIfNotExists(roomId, insight, modelEngine, question, null);
+    	return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null);
     }
     /**
      * Ensures a Room exists: creates it if necessary, then loads it for the given user/insight.
@@ -66,7 +66,8 @@ public class RoomUtils {
             Insight insight,
             IModelEngine modelEngine,
             String question,
-            Map<String, Object> options
+            Map<String, Object> options,
+            String context
     ) {
         // Use the passed roomId or fallback to the insightId if null/empty
         if (roomId == null || roomId.trim().isEmpty()) {
@@ -97,10 +98,10 @@ public class RoomUtils {
             }
             String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : "untitled";
             ModelInferenceLogsUtils.doCreateNewConversation(
+            		roomId, // change to insight id once it is no longer the PK
                     roomId,
-                    insight.getInsightId(),
                     roomName,
-                    null,
+                    context,
                     userToken.getId(),
                     userName,
                     userEmail,
