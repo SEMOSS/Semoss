@@ -16,8 +16,6 @@ import prerna.util.Utility;
 
 public class SetContextReactor extends AbstractReactor {
 
-	private static final String CLASS_NAME = SetContextReactor.class.getName();
-
 	// takes in a the name and engine and mounts the engine assets as that variable
 	// name in both python and R
 	// I need to accomodate for when I should over ride
