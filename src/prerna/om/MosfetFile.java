@@ -13,6 +13,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
+import prerna.util.gson.ZonedDateTimeAdapter;
 
 public class MosfetFile {
 
@@ -71,7 +72,9 @@ public class MosfetFile {
 			mosfet.delete();
 		}
 		
-		GsonUtility.writeObjectToJsonFile(mosfet, new GsonBuilder().setPrettyPrinting().create(), this);
+		GsonUtility.writeObjectToJsonFile(mosfet, new GsonBuilder()
+				.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
+				.setPrettyPrinting().create(), this);
 	}
 	
 	/////////////////////////////////////////////////////////////////////

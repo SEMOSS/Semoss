@@ -38,6 +38,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
 import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyTransporter;
+import prerna.om.Insight;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.PortAllocator;
@@ -245,8 +247,11 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 			// start a base python
 			
 			socketClient = connect2Py(null);
+			PyTransporter pyTransporter = new PyTransporter();
+			pyTransporter.setSocketClient(socketClient);
 			pyt = new PyTranslator();
-			pyt.setSocketClient(socketClient);
+			pyt.setInsight(new Insight());
+			pyt.setPyTransporter(pyTransporter);
 			
 			// publish this node ? - do we even need to ?
 			addServer();
@@ -523,8 +528,7 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 	
 	public Map getCurrentCapabilities()
 	{
-		boolean initialized = (Boolean)pyt.runScript("'hardware_util' in globals()");
-		
+		boolean initialized = pyt.getBoolean("'hardware_util' in globals()");
 		if(!initialized)
 		{
 			pyt.runScript("import gaas_hardware_util as ghu");

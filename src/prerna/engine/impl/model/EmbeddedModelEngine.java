@@ -9,6 +9,7 @@ import prerna.ds.py.PyUtils;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 
 public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 	
@@ -28,7 +29,7 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 		}
 		callMaker.append(")");
 		
-		List<String> output = (List<String>) pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		List<String> output = (List<String>) pyTranslator.runDirectPy(callMaker.toString());
 		return output;
 	}
 	
@@ -44,6 +45,7 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 					/*messageMethod*/"textKeywords", 
 					/*engine*/this,
 					/*insight*/insight,
+					/*sessionId*/ThreadStore.getSessionId(),
 					/*context*/null,
 					/*prompt*/input + "",
 					/*fullPrompt*/null,
