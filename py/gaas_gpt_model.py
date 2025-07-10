@@ -174,55 +174,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return pixelReturn
 
-    def instruct(
-        self,
-        task: str,
-        context: Optional[str] = None,
-        param_dict: Optional[Dict] = None,
-        insight_id: Optional[str] = None,
-    ) -> List[Dict]:
-        """This method is responsible for interacting with models that can perform instruction based text-generation.
-        This is basically the same thing as the ask() method but it will include an OPERATION key in the parma_dict that will be set to "INSTRUCT".
-
-        Args:
-            - task (str): The task to instruct.
-            - context (Optional[str]): Context for the task.
-            - insight_id (Optional[str]): Identifier for insights.
-            - param_dict (Optional[Dict]): Additional parameters.
-
-        Returns:
-            `List[Dict]`: A dictionary with the response from the text-generation model. The dictionary in the response will contain the following keys:
-            - response
-            - numberOfTokensInPrompt
-            - numberOfTokensInResponse
-            - messageId
-            - roomId
-        """
-
-        if insight_id is None:
-            insight_id = self.insight_id
-
-        if param_dict is None:
-            param_dict = {}
-
-        epoc = super().get_next_epoc()
-
-        context_str = f'context="{context}",' if context is not None else ""
-
-        pixel = f'LLMInstruct(engine="{self.engine_id}", command="{task}", {context_str} insight_id="{insight_id}");'
-
-        pixelReturn = super().callReactor(
-            epoc=epoc,
-            pixel=pixel,
-            insight_id=insight_id,
-        )
-
-        if pixelReturn is not None and len(pixelReturn) > 0:
-            output = pixelReturn[0]["pixelReturn"][0]
-            return output["output"]
-
-        return pixelReturn
-
     def get_conversation_history(self, insight_id: Optional[str] = None) -> List[Dict]:
         """This method is responsible to get message history back from the model logs database.
 

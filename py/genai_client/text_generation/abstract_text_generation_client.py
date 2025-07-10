@@ -45,6 +45,7 @@ class AbstractTextGenerationClient(ABC):
         **kwargs: Any,
     ):
         self.model_name = kwargs.get("model_name", None)
+        # On V2 this will get moved to the message builders
         self.model_limits = self._get_model_limits(kwargs)
 
         self.template_name = template_name
@@ -95,7 +96,7 @@ class AbstractTextGenerationClient(ABC):
         """
         Get the ask settings from the provided keyword arguments.
         These are all settings that typically affect HOW I call the model.
-        Not things I necissarily pass to the model call itself.
+        Not things I necessarily pass to the model call itself.
         """
         full_prompt = kwargs.pop(FULL_PROMPT, None)
         if full_prompt:

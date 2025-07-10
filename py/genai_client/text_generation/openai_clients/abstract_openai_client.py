@@ -1,8 +1,23 @@
-from typing import Any
+from typing import Any, Optional
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from abc import ABC, abstractmethod
 from ...constants import AskModelEngineResponse
+from pydantic import BaseModel
+
+
+class ModelSettings(BaseModel):
+    """These are attributes I want set in the SMSS file for each model"""
+
+    model_name: Optional[str] = None
+    context_window: Optional[int] = None
+    max_completion_tokens: Optional[int] = None
+    max_input_tokens: Optional[int] = None
+    ai_role: Optional[str] = None
+    user_role: Optional[str] = None
+    system_role: Optional[str] = None
+    model_type: Optional[str] = None
+    chat_type: Optional[str] = None
 
 
 class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
@@ -16,9 +31,22 @@ class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
     ):
         assert api_key != None
 
+        self.model_settings = ModelSettings(
+            model_name=model_name,
+            context_window=kwargs.get("context_window", None),
+            max_completion_tokens=kwargs.get("max_completion_tokens", None),
+            max_input_tokens=kwargs.get("max_input_tokens", None),
+            ai_role=kwargs.pop("ai_role", None),
+            user_role=kwargs.pop("user_role", None),
+            system_role=kwargs.pop("system_role", None),
+            chat_type=kwargs.pop("chat_type", None),
+            model_type=model_type,
+        )
+
         super().__init__(
             template=kwargs.pop("template", None),
             template_name=kwargs.pop("template_name", None),
+            **kwargs
         )
 
         self.model_name = model_name
