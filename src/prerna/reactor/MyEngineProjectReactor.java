@@ -32,7 +32,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	    //Determine types to process
 	    List<String> type = this.getEngineTypes();
 	    List<String> typesToGet = (type == null || type.isEmpty())
-	            ? Arrays.asList("CODE", "BLOCKS", "DATABASE", "STORAGE", "FUNCTION", "MODEL", "VECTOR")
+	            ? Arrays.asList("PROJECT", "DATABASE", "STORAGE", "FUNCTION", "MODEL", "VECTOR")
 	            : new ArrayList<>(type);
 	   
 	    
@@ -55,7 +55,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	        int limitForType = baseLimit + (i < remainder ? 1 : 0); // even distribution
 
 	        List<Map<String, Object>> result;
-	        if ("CODE".equalsIgnoreCase(currentType) || "BLOCKS".equalsIgnoreCase(currentType)) {
+	        if ("PROJECT".equalsIgnoreCase(currentType)) {
 	        	result = getProjects(
 	        			Collections.singletonList(currentType),
 		                favoritesOnly,
