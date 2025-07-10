@@ -801,6 +801,23 @@ public class ModelInferenceLogsUtils {
     List<String> insightIdList = QueryExecutionUtility.flushToListString(modelInferenceLogsDb, qs);
     return insightIdList;
   }
+  
+  /**
+   * @param projectId
+   * @return
+   */
+  public static List<Map<String, Object>> getUserRoomsMetadataPerProject(String projectId, String userId) {
+    SelectQueryStruct qs = new SelectQueryStruct();
+    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
+    qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
+    qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
+    qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
+    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true));
+    List<Map<String, Object>> roomsMetadata = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+    return roomsMetadata;
+  }
 
   /** @param user */
   public static void doCreateNewUser(User user) {
