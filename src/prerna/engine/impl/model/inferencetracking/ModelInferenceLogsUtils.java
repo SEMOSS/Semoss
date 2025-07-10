@@ -3,6 +3,7 @@ package prerna.engine.impl.model.inferencetracking;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -801,6 +802,24 @@ public class ModelInferenceLogsUtils {
     List<String> insightIdList = QueryExecutionUtility.flushToListString(modelInferenceLogsDb, qs);
     return insightIdList;
   }
+  
+  /**
+   * @param projectId
+   * @param userId
+   * @return
+   */
+  public static List<Map<String, Object>> getUserRoomsMetadataPerProject(String projectId, String userId) {
+    SelectQueryStruct qs = new SelectQueryStruct();
+    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
+    qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
+    qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
+    qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
+    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+    List<Map<String, Object>> roomsMetadata = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+    return roomsMetadata;
+  }
 
   /** @param user */
   public static void doCreateNewUser(User user) {
@@ -1445,7 +1464,7 @@ public class ModelInferenceLogsUtils {
    * @param roomId
    * @return
    */
-  public static Blob getRoomOptions(String roomId, String userId) {
+  public static String getRoomOptions(String roomId, String userId) {
 	String query = "SELECT OPTIONS FROM ROOM WHERE ROOM_ID = ? AND USER_ID = ?";
 	PreparedStatement ps = null;
 	try {
@@ -1454,7 +1473,11 @@ public class ModelInferenceLogsUtils {
 		ps.setString(2, userId);
 		ResultSet rs = ps.executeQuery();
 		if (rs.next()) {
-			return rs.getBlob("OPTIONS");
+		  try {
+			return AbstractSqlQueryUtil.flushClobToString(rs.getClob("OPTIONS"));	
+		  } catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		  }
 		}
 	} catch (Exception e) {
 	    classLogger.error(Constants.STACKTRACE, e);
