@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.Vector;
 
+import prerna.om.Insight;
 import prerna.sablecc2.PixelRunner;
 
 public class PixelJobManager {
@@ -58,15 +59,15 @@ public class PixelJobManager {
 		return manager;
 	}
 	
-	public PixelJobThread makeJob() {
+	public PixelJobThread makeJob(Insight insight, String sessionId, String routeId) {
 		String jobId = UUID.randomUUID().toString();
-		PixelJobThread jt = new PixelJobThread(jobId);
+		PixelJobThread jt = new PixelJobThread(jobId, insight, sessionId, routeId);
 		threadPool.put(jobId, jt);
 		return jt;
 	}
 	
-	public PixelJobThread makeJob(String jobId) {
-		PixelJobThread jt = new PixelJobThread(jobId);
+	public PixelJobThread makeJob(String jobId, Insight insight, String sessionId, String routeId) {
+		PixelJobThread jt = new PixelJobThread(jobId, insight, sessionId, routeId);
 		threadPool.put(jobId, jt);
 		return jt;
 	}

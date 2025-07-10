@@ -224,7 +224,6 @@ import prerna.reactor.insights.save.SetInsightCacheableReactor;
 import prerna.reactor.insights.save.SetInsightNameReactor;
 import prerna.reactor.insights.save.UpdateInsightImageReactor;
 import prerna.reactor.insights.save.UpdateInsightReactor;
-import prerna.reactor.job.JobReactor;
 import prerna.reactor.masterdatabase.AllConceptualNamesReactor;
 import prerna.reactor.masterdatabase.CLPModelReactor;
 import prerna.reactor.masterdatabase.GetConceptPropertiesReactor;
@@ -636,9 +635,6 @@ public class ReactorFactory {
 */	
 	// populates the frame agnostic reactors used by pixel
 	private static void createReactorHash(Map<String, Class> reactorHash) {
-		// used to generate the base Job for the pksl commands being executed
-		reactorHash.put("Job", JobReactor.class); // defines the job
-
 		// Import Reactors
 		// takes in a query struct and imports data to a new frame
 		reactorHash.put("Import", ImportReactor.class);
@@ -1348,7 +1344,7 @@ public class ReactorFactory {
 	 *         reactor when executed will use that reducing expression reactor
 	 *         to evaluate
 	 */
-	public static IReactor getReactor(String reactorId, String nodeString, ITableDataFrame frame, IReactor parentReactor) {
+	public static IReactor getReactor(String reactorId, String nodeString, ITableDataFrame frame, IReactor parentReactor, String jobId) {
 		IReactor reactor = null;
 
 		try {
@@ -1360,7 +1356,7 @@ public class ReactorFactory {
 				if (!(parentReactor instanceof AbstractQueryStructReactor) && 
 						!(parentReactor instanceof QuerySelectorExpressionAssimilator)) {
 					reactor = (IReactor) expressionHash.get(reactorId.toUpperCase()).newInstance();
-					reactor.setPixel(reactorId, nodeString);
+					reactor.setPixel(reactorId, nodeString, jobId);
 					return reactor;
 				}
 			}
@@ -1393,7 +1389,7 @@ public class ReactorFactory {
 				
 				// if we have retrieved a reactor from a frame hash
 				if (reactor != null) {
-					reactor.setPixel(reactorId, nodeString);
+					reactor.setPixel(reactorId, nodeString, jobId);
 					return reactor;
 				}
 			}
@@ -1404,7 +1400,7 @@ public class ReactorFactory {
 			// search in the normal reactor hash
 			if (reactorHash.containsKey(reactorId)) {
 				reactor = (IReactor) reactorHash.get(reactorId).newInstance();
-				reactor.setPixel(reactorId, nodeString);
+				reactor.setPixel(reactorId, nodeString, jobId);
 				return reactor;
 			}
 		} catch (InstantiationException | IllegalAccessException e) {
@@ -1418,7 +1414,7 @@ public class ReactorFactory {
 		 */
 		if (parentReactor instanceof AbstractQueryStructReactor || parentReactor instanceof QuerySelectorExpressionAssimilator) {
 			reactor = new GenericSelectorFunctionReactor();
-			reactor.setPixel(reactorId, nodeString);
+			reactor.setPixel(reactorId, nodeString, jobId);
 			// set the fuction name
 			((GenericSelectorFunctionReactor) reactor).setFunction(reactorId);
 			return reactor;

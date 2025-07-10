@@ -19,7 +19,7 @@ public class GetInsightDatasourcesReactor extends AbstractReactor {
 		}
 		String fullRecipe = b.toString();
 		
-		List<Map<String, Object>> sourcePixels = PixelUtility.getDatasourcesMetadata(this.insight.getUser(), fullRecipe);
+		List<Map<String, Object>> sourcePixels = PixelUtility.getDatasourcesMetadata(this.insight.getUser(), fullRecipe, this.jobId);
 		return new NounMetadata(sourcePixels, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
