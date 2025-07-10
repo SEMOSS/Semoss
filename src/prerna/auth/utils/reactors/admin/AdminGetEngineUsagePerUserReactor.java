@@ -50,7 +50,7 @@ public class AdminGetEngineUsagePerUserReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor returns the number of tokens usage per engine. The fields for this report include: user_name, user_id, number_of_messages, number_of_rooms, number_of_tokens.";
+		return "This reactor returns the number of tokens usage for an engine. The fields for this report include: user_name, user_id, number_of_messages, number_of_rooms, number_of_tokens.";
 	}
 
 	@Override
