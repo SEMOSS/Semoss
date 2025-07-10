@@ -25,7 +25,7 @@ import prerna.util.insight.InsightUtility;
 public class CreateRoomReactor extends AbstractReactor {
 	
 	public CreateRoomReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.WORKSPACE_ID.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.WORKSPACE_ID.getKey()};
 		this.keyRequired = new int [] {0,0,0,0,0};
 	}
 	

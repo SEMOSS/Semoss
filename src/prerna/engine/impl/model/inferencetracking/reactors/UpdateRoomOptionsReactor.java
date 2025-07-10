@@ -23,7 +23,7 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(UpdateRoomOptionsReactor.class);
 
 	public UpdateRoomOptionsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.VECTORDB.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey()};
 		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
