@@ -1442,9 +1442,6 @@ public class ModelInferenceLogsUtils {
         SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
     subQs.addExplicitFilter(
         SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
-    //testing purposes
-    subQs.addExplicitFilter(
-            SimpleQueryFilter.makeColToValFilter("ROOM__OPTIONS", "!=", null));
     if (projectId != null) {
       subQs.addExplicitFilter(
           SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
