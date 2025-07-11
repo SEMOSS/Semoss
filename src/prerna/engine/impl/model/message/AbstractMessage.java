@@ -1,19 +1,17 @@
 package prerna.engine.impl.model.message;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Map;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 
 import com.google.gson.Gson;
 
+import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.Room;
-import prerna.om.Insight;
 
 public abstract class AbstractMessage {
-
 
 	protected String modelId;
 	protected ModelTypeEnum modelType;
@@ -23,16 +21,13 @@ public abstract class AbstractMessage {
 	protected int tokens;
 	
     protected boolean visible = true;
-
-//	protected Map<String, Object> formattedMessage;
-//	protected transient Insight insight;
 	protected transient Room room;
 
-    private String dateCreated;
+    private SemossDate dateCreated;
     
 	public AbstractMessage() {
 		this.messageId = UUID.randomUUID().toString();
-        this.dateCreated = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        this.dateCreated = new SemossDate(ZonedDateTime.now(ZoneOffset.UTC));
 	}
 
 	public abstract MessageType getMessageType();
@@ -54,13 +49,11 @@ public abstract class AbstractMessage {
 		this.transactionId = transction;
 	}
 
-	
 	public void setModel(IModelEngine modelEngine) {
 		this.modelType = modelEngine.getModelType();
 		this.modelId = modelEngine.getEngineId();
 		
 	}
-	
 
 	public String getModelId() {
 		return modelId;
@@ -78,23 +71,6 @@ public abstract class AbstractMessage {
 		return this.modelType;
 	};
 
-//	public Map<String, Object> getFormattedMessage() {
-////		if (formattedMessage == null) {
-////			formattedMessage = MessageFormatterFactory.getFormatter(this.modelType).format(this);
-////		}
-////		System.out.println("KUNAL MESSAGE ::: " + formattedMessage);
-//		return formattedMessage;
-//	}
-
-//	public void setFormattedMessage(Map<String, Object> formattedMessage) {
-//		this.formattedMessage = formattedMessage;
-//	}
-
-//	public Map<String, Object> getFormattedMessage() {
-//		IMessageFormatter formatter = MessageFormatterFactory.getFormatter(getMessageType(), this.modelType);
-//		return formatter.format(this);
-//	}
-
 	public String toJson() {
 		Gson gson = new Gson();
 		// This will use Gson's defaults for fields; if you want to control the exact
@@ -111,16 +87,6 @@ public abstract class AbstractMessage {
 		this.parentMessageId = parentMessageId;
 	}
 
-	
-//	public void setInsight(Insight insight) {
-//		this.insight = insight;
-//	}
-//
-//	public Insight getInsight() {
-//		return this.insight;
-//	}
-	
-	
 	public void setRoom(Room room) {
 		this.room = room;
 	}
@@ -128,7 +94,6 @@ public abstract class AbstractMessage {
 	public Room getRoom() {
 		return this.room;
 	}
-	
 
 	public boolean isVisible() {
 		return visible;
@@ -138,24 +103,21 @@ public abstract class AbstractMessage {
 		this.visible = visibile;
 	}
 
-	public String getDateCreated() {
+	public SemossDate getDateCreated() {
 		return dateCreated;
 	}
 	
 	//ONLY TO BE USED FOR UPDATED LEGACY MESSAGES.
-	public void setDateCreated(String formattedDate) {
-		this.dateCreated=formattedDate;
+	public void setDateCreated(SemossDate dateCreated) {
+		this.dateCreated = dateCreated;
 	}
 
-	
 	public int getTokensInMessage() {
 		return tokens;
 	}
-	
+
 	public void setTokensInMessage(int tokens) {
 		this.tokens=tokens;
 	}
-
-	
 
 }

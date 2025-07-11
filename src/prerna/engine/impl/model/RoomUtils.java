@@ -224,7 +224,7 @@ public class RoomUtils {
                 .withInputPrompt(data)
                 .withType(MessageType.INPUT_TEXT)
                 .build();
-            im.setDateCreated(dateCreated.getFormattedDate());
+            im.setDateCreated(dateCreated);
             im.setModelId(room.getModelId());
             return im;
         } else if ("RESPONSE".equals(type)) {
@@ -233,7 +233,7 @@ public class RoomUtils {
                 .withType(MessageType.RESPONSE_TEXT)
                 .build();
             rm.setTransactionId(messageId);
-            rm.setDateCreated(dateCreated.getFormattedDate());
+            rm.setDateCreated(dateCreated);
             rm.setModelId(room.getModelId());
 
             return rm;

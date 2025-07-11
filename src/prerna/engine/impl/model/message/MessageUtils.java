@@ -23,8 +23,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import prerna.date.SemossDate;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
+import prerna.util.gson.SemossDateAdapter;
 
 public class MessageUtils {
 
@@ -53,6 +55,7 @@ public class MessageUtils {
 
 	// For DB: skips "room", "insight", "socket", and "base64Data"
 	private static final Gson gsonForDB = new GsonBuilder()
+			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
 				@Override
@@ -68,6 +71,7 @@ public class MessageUtils {
 
 	// For Python: skips "room", "insight", "socket", "paramMap", includes base64Data
 	private static final Gson gsonForPy = new GsonBuilder()
+			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
 				@Override
