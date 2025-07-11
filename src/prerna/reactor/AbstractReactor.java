@@ -22,7 +22,6 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
-import prerna.reactor.job.JobReactor;
 import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -389,10 +388,11 @@ public abstract class AbstractReactor implements IReactor {
 	 */
 	
 	@Override
-	public void setPixel(String operation, String fullOperation) {
+	public void setPixel(String operation, String fullOperation, String jobId) {
 		this.operationName = operation;
 		this.signature = fullOperation;
 		this.originalSignature = fullOperation;
+		this.jobId = jobId;
 	}
 	
 	@Override
@@ -629,10 +629,6 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return
 	 */
 	protected String getSessionId() {
-		NounMetadata session = planner.getVariable(JobReactor.SESSION_KEY);
-		if(session != null) {
-			return session.getValue() +"";
-		}
 		return ThreadStore.getSessionId();
 	}
 	
@@ -641,11 +637,15 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return
 	 */
 	protected String getRouteId() {
-		NounMetadata route = planner.getVariable(JobReactor.ROUTE_KEY);
-		if(route != null) {
-			return route.getValue() +"";
-		}
 		return ThreadStore.getRouteId();
+	}
+	
+	/**
+	 * Set the job id for this pixel execution
+	 * @param jobId
+	 */
+	public void setJobId(String jobId) {
+		this.jobId = jobId;
 	}
 	
 	/**
@@ -653,11 +653,7 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return
 	 */
 	protected String getJobId() {
-		NounMetadata job = planner.getVariable(JobReactor.JOB_KEY);
-		if(job != null) {
-			return job.getValue() +"";
-		}
-		return ThreadStore.getRouteId();
+		return this.jobId;
 	}
 	
 	/**

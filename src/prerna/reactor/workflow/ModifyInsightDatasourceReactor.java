@@ -35,7 +35,7 @@ public class ModifyInsightDatasourceReactor extends AbstractReactor {
 		Insight cInsight = new Insight();
 		cInsight.setInsightId(this.insight.getInsightId());
 		InsightUtility.transferDefaultVars(this.insight, cInsight);
-		List<String> newRecipe = PixelUtility.modifyInsightDatasource(cInsight, fullRecipe, replacementOptions);
+		List<String> newRecipe = PixelUtility.modifyInsightDatasource(cInsight, fullRecipe, replacementOptions, this.jobId);
 		
 		return new NounMetadata(newRecipe, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}

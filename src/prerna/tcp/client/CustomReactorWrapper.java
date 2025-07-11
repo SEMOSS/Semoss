@@ -23,7 +23,7 @@ public class CustomReactorWrapper extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		sc = (SocketClient)this.insight.getUser().getSocketClient(true);
+		sc = (SocketClient)this.insight.getUser().getPythonSocketClient(true);
 		
 		InsightSerializer is = new InsightSerializer(this.insight);
 		is.serializeInsight(false);

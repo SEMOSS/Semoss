@@ -58,9 +58,14 @@ public interface IReactor {
 	/*******************************************
 	 * Implemented by the Absract
 	 *******************************************/
-	// sets the name of the operation and the signature
-	// full operation includes the nouns
-	void setPixel(String operation, String fullOperation);
+	/**
+	 * sets the name of the operation and the signature
+	 * full operation includes the nouns
+	 * @param operation
+	 * @param fullOperation
+	 * @param jobId
+	 */
+	void setPixel(String operation, String fullOperation, String jobId);
 	
 	String[] getPixel();
 	

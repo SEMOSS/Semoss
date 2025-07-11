@@ -63,8 +63,8 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 	
 	public String currentPixelId = "";
 	
-	public ParamStructSaveRecipeTranslation(Insight insight) {
-		super(insight);
+	public ParamStructSaveRecipeTranslation(Insight insight, String jobId) {
+		super(insight, jobId);
 		this.isTimeTracking = false;
 	}
 	
