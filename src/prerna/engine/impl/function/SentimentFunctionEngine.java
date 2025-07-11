@@ -13,6 +13,7 @@ import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -137,7 +138,9 @@ public class SentimentFunctionEngine extends AbstractReactorFunctionEngine {
 		PyTransporter pyTransporter = new PyTransporter();
 		pyTransporter.setSocketClient(socketClient);
 		pyTranslator = new PyTranslator();
-		pyTranslator.setInsight(new Insight());
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		pyTranslator.setGlobalStoreInsight(processInsight);
 		pyTranslator.setPyTransporter(pyTransporter);
 		
 		// run a prefix command

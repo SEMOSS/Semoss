@@ -866,7 +866,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		PyTransporter pyTransporter = new PyTransporter();
 		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
 		pyTranslator = new PyTranslator();
-		pyTranslator.setInsight(new Insight());
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		pyTranslator.setGlobalStoreInsight(processInsight);
 		pyTranslator.setPyTransporter(pyTransporter);
 		
 		try {
@@ -945,7 +947,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 //			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 //		}
 		
-		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
+		Insight insight = getInsight(parameters.get(Constants.INSIGHT));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -1122,7 +1124,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					/*messageId*/UUID.randomUUID().toString(), 
 					/*messageMethod*/"nearestNeighbor", 
 					/*engine*/this, 
-					/*insight*/insight,
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
 					/*sessionId*/ThreadStore.getSessionId(),
 					/*context*/null, 
 					/*prompt*/searchStatement,

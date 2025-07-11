@@ -32,6 +32,7 @@ import com.amazonaws.services.textract.model.StartDocumentTextDetectionRequest;
 import com.amazonaws.services.textract.model.StartDocumentTextDetectionResult;
 
 import prerna.engine.api.IStorageEngine;
+import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -88,6 +89,8 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
+		Insight executingInsight = (Insight) parameterValues.remove(Constants.INSIGHT);
+		
 		Object output = null;
 		String documentKeyName = null;		
 		String S3BucketEngineId = null;

@@ -27,6 +27,7 @@ import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
 import prerna.util.Settings;
@@ -167,7 +168,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		PyTransporter pyTransporter = new PyTransporter();
 		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
 		pyTranslator = new PyTranslator();
-		pyTranslator.setInsight(new Insight());
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		pyTranslator.setGlobalStoreInsight(processInsight);
 		pyTranslator.setPyTransporter(pyTransporter);
 		
 		try {

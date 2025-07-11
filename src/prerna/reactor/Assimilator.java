@@ -200,6 +200,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 					}
 				}
 			} else {
+				this.containsStringValue = true;
 				expressionBuilder.append("String ").append(input).append(" = ").append("(String)(super.vars.get("+"\""+input+"\")+\"\")").append(";");
 				vars.put(input, value);
 				//throw new IllegalArgumentException("Unable to handle this type of input");
