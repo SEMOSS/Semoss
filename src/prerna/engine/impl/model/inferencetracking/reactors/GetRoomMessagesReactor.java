@@ -10,7 +10,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;

@@ -52,7 +52,7 @@ public class RoomUtils {
      * @return the existing or newly created Room
      */
     public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question) {
-    	return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null);
+    	return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null);
     }
     /**
      * Ensures a Room exists: creates it if necessary, then loads it for the given user/insight.
@@ -60,7 +60,9 @@ public class RoomUtils {
      * @param insight
      * @param modelEngine
      * @param question
+     * @param workspaceId
      * @param options
+     * @param context
      * @return the existing or newly created Room
      */
     public static Room createRoomIfNotExists(
@@ -68,6 +70,7 @@ public class RoomUtils {
             Insight insight,
             IModelEngine modelEngine,
             String question,
+            String workspaceId,
             Map<String, Object> options,
             String context
     ) {
@@ -112,6 +115,7 @@ public class RoomUtils {
                     true,
                     projectId,
                     projectName,
+                    workspaceId,
                     options
             );
             // Always get the loaded room object (avoiding any skipping, ensures in-memory cache is filled)
