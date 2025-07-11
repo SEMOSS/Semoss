@@ -5,22 +5,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.Vector;
 
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.om.Insight;
-import prerna.om.InsightStore;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.insights.AbstractInsightReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
-import prerna.util.insight.InsightUtility;
 
 public class CreateRoomReactor extends AbstractReactor {
 	
@@ -52,7 +44,7 @@ public class CreateRoomReactor extends AbstractReactor {
 			}
 		}
 		
-		Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, null, roomName, options, context);
+		Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, null, roomName, workspaceId, options, context);
 
 		return new NounMetadata(room.getId(), PixelDataType.CONST_STRING);
 	}
