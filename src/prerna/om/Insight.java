@@ -592,6 +592,9 @@ public class Insight implements Serializable {
 	}
 
 	public User getUser() {
+		if(this.user == null) {
+			return ThreadStore.getUser();
+		}
 		return this.user;
 	}
 
@@ -1578,7 +1581,7 @@ public class Insight implements Serializable {
 			throw new NullPointerException("Could not create python translator");
 		}
 		this.pyTranslator = new PyTranslator();
-		this.pyTranslator.setInsight(this);
+		this.pyTranslator.setGlobalStoreInsight(this);
 		this.pyTranslator.setPyTransporter(pyTransporter);
 		return this.pyTranslator;
 	}
