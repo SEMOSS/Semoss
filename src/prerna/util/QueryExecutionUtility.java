@@ -354,17 +354,17 @@ public class QueryExecutionUtility {
 				Object[] values = headerRow.getValues();
 				Map<String, Object> map = new HashMap<String, Object>();
 				for(int i = 0; i < headers.length; i++) {
-					if (mapKeys != null && mapKeys.contains(headers[i])) {
-						Map<String, Object> processedValue = convertJsonString(values[i]);
-						map.put(headers[i], processedValue == null ? values[i] : processedValue);
-					} else if(values[i] instanceof java.sql.Clob) {
-						String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]);
-						map.put(headers[i], value);
+					String value = null;
+					if(values[i] instanceof java.sql.Clob) {
+						value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]);
 					} else if(values[i] instanceof java.sql.Blob) {
-						String value = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]);
-						map.put(headers[i], value);
+						value = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]);
+					} 
+					if (mapKeys != null && mapKeys.contains(headers[i])) {
+						Map<String, Object> processedValue = convertJsonString(value == null ? values[i] : value);
+						map.put(headers[i], processedValue == null ? values[i] : processedValue);
 					} else {
-						map.put(headers[i], values[i]);
+						map.put(headers[i], value == null ? values[i] : value);
 					}
 				}
 				result.add(map);
