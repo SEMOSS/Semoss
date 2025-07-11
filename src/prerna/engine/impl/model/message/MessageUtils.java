@@ -176,8 +176,45 @@ public class MessageUtils {
 		return toJsonArrayWithImageData(msgs);
 	}
 
-	// ---- Image copy utilities (unchanged) ----
+	
+	// ---- Image move utilities  ---- This should be used over copy
 
+	public static List<String> moveFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
+	    List<String> roomFilePaths = new ArrayList<>();
+	    if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
+	        logger.info("No file paths provided to move.");
+	        return roomFilePaths;
+	    }
+	    String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
+	    String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
+	    Path targetDir = Paths.get(roomFolder);
+	    try {
+	        Files.createDirectories(targetDir);
+	    } catch (IOException e) {
+	        logger.warn("Failed to create room folder: " + targetDir, e);
+	        return roomFilePaths;
+	    }
+	    for (String relPath : relativePathToFiles) {
+	        File srcFile = new File(insightFolder, relPath);
+	        if (!srcFile.exists() || !srcFile.isFile()) {
+	            logger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
+	            continue;
+	        }
+	        String fileName = srcFile.getName();
+	        Path destination = targetDir.resolve(fileName);
+	        try {
+	            Files.move(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
+	        } catch (IOException e) {
+	            logger.warn("Failed to move file: " + srcFile.getAbsolutePath() + " to " + destination, e);
+	            continue;
+	        }
+	        roomFilePaths.add(destination.toString());
+	    }
+	    return roomFilePaths;
+	}
+	
+	
+	// ---- Image copy utilities  ----
 	public static List<String> copyFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
 		List<String> roomFilePaths = new ArrayList<>();
 		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
