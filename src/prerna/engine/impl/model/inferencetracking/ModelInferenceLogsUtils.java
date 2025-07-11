@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1429,6 +1430,9 @@ public class ModelInferenceLogsUtils {
     qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
     qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
     qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
+    qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
+    qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
+    qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
 
     SelectQueryStruct subQs = new SelectQueryStruct();
     subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
@@ -1444,9 +1448,13 @@ public class ModelInferenceLogsUtils {
     }
     qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
 
+    // maybe order by pinned as well?
     qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", "DESC"));
     
-    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+    Set<String> mapKeys = new HashSet<>();
+    mapKeys.add("OPTIONS");
+    
+    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
   }
 
   /** @param messageId */
@@ -1887,6 +1895,8 @@ public class ModelInferenceLogsUtils {
    */
   public static List<Map<String, Object>> getUserActiveRooms(String roomId, String userId) {
     SelectQueryStruct qs = new SelectQueryStruct();
+	qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "IS_ACTIVE"));
+
     qs.addExplicitFilter(
         SimpleQueryFilter.makeColToValFilter(
             ROOM_TABLE_NAME + "IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));

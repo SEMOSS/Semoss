@@ -45,8 +45,9 @@ public class CreateRoomReactor extends AbstractReactor {
 		}
 		
 		Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, null, roomName, workspaceId, options, context);
-
-		return new NounMetadata(room.getId(), PixelDataType.CONST_STRING);
+		Map<String, Object> output = new HashMap<String, Object>();
+		output.put("roomId", room.getId());
+		return new NounMetadata(output, PixelDataType.MAP);
 	}
 	
 	private List<String> getVectorDbs() {
