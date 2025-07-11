@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
 import org.apache.logging.log4j.LogManager;
@@ -141,6 +142,10 @@ public class GsonUtility {
 				// pixel objects
 				.registerTypeAdapter(Pixel.class, new PixelAdapter())
 				.registerTypeAdapter(PixelList.class, new PixelListAdapter())
+				
+				// dates
+				.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+				.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
 				;
 		
 		if(pretty) {
