@@ -115,7 +115,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	
 	@Override
-	public AskModelEngineResponse askRoom(String question, String context,Room room, Map<String, Object> parameters) {
+	public AskModelEngineResponse askRoom(String question, String context, Room room, Map<String, Object> parameters) {
 		/*
 		 * We will check if there are any restrictions for the user's current token usage
 		 * There might be a value set on the user-engine permission which takes priority 
@@ -137,12 +137,16 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		askModelResponse.setMessageId(UUID.randomUUID().toString());
 		askModelResponse.setRoomId(room.getId());
 		
+		String insightId = room.getInsight().getInsightId();		
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/askModelResponse.getMessageId(), 
 					/*messageMethod*/"ask", 
-					/*engine*/this, 
-					/*insight*/room.getInsight(),
+					/*engine*/this,
+					/*insightId*/room.getInsight().getInsightId(),
+					/*projectContextId*/room.getInsight().getContextProjectId(),
+					/*projectId*/room.getInsight().getProjectId(),
+					/*user*/room.getInsight().getUser(),
 					/*sessionId*/ThreadStore.getSessionId(),
 					/*roomId*/room.getId(),
 					/*context*/context, 
