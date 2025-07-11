@@ -167,11 +167,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		// create the py translator
 		PyTransporter pyTransporter = new PyTransporter();
 		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		pyTranslator = new PyTranslator();
 		Insight processInsight = new Insight();
 		InsightStore.getInstance().put(processInsight);
-		pyTranslator.setGlobalStoreInsight(processInsight);
-		pyTranslator.setPyTransporter(pyTransporter);
+		this.pyTranslator = new PyTranslator(pyTransporter, processInsight);
 		
 		try {
 			// execute all the basic commands
@@ -182,7 +180,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
 				commands[commandIndex] = fillVars(commands[commandIndex]);
 			}
-			pyTranslator.runEmptyPy(commands);
+			this.pyTranslator.runEmptyPy(commands);
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", commands));	

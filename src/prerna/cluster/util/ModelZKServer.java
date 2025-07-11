@@ -250,11 +250,9 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 			socketClient = connect2Py(null);
 			PyTransporter pyTransporter = new PyTransporter();
 			pyTransporter.setSocketClient(socketClient);
-			pyTranslator = new PyTranslator();
 			Insight processInsight = new Insight();
 			InsightStore.getInstance().put(processInsight);
-			pyTranslator.setGlobalStoreInsight(processInsight);
-			pyTranslator.setPyTransporter(pyTransporter);
+			this.pyTranslator = new PyTranslator(pyTransporter, processInsight);
 			
 			// publish this node ? - do we even need to ?
 			addServer();

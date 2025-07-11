@@ -1580,9 +1580,7 @@ public class Insight implements Serializable {
 		if(pyTransporter == null) {
 			throw new NullPointerException("Could not create python translator");
 		}
-		this.pyTranslator = new PyTranslator();
-		this.pyTranslator.setGlobalStoreInsight(this);
-		this.pyTranslator.setPyTransporter(pyTransporter);
+		this.pyTranslator = new PyTranslator(pyTransporter, this);
 		return this.pyTranslator;
 	}
 	

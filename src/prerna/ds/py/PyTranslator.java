@@ -12,20 +12,18 @@ public class PyTranslator {
 	private PyTransporter pyTransporter = null;
 	private Insight globalStoreInsight = null;
 
-	public void setGlobalStoreInsight(Insight insight) {
-		this.globalStoreInsight = insight;
+	/**
+	 * 
+	 * @param pyTransporter
+	 * @param globalStoreInsight
+	 */
+	public PyTranslator(PyTransporter pyTransporter, Insight globalStoreInsight) {
+		this.pyTransporter = pyTransporter;
+		this.globalStoreInsight = globalStoreInsight;
 	}
 	
 	public Insight getGlobalStoreInsight() {
-		return this.globalStoreInsight;
-	}
-	
-	public void setPyTransporter(PyTransporter pyTransporter) {
-		this.pyTransporter = pyTransporter;
-	}
-	
-	public PyTransporter getPyTransporter() {
-		return this.pyTransporter;
+		return globalStoreInsight;
 	}
 	
 	public void setLogger(Logger logger) {

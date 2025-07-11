@@ -119,12 +119,10 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		// create the py translator
 		PyTransporter pyTransporter = new PyTransporter();
 		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		pyTranslator = new PyTranslator();
 		Insight processInsight = new Insight();
 		InsightStore.getInstance().put(processInsight);
-		pyTranslator.setGlobalStoreInsight(processInsight);
-		pyTranslator.setPyTransporter(pyTransporter);
-		
+		this.pyTranslator = new PyTranslator(pyTransporter, processInsight);
+
 		try {
 			String execCommand = "import sys\n" 
 					+ "import os\n" 

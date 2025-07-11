@@ -137,11 +137,9 @@ public class SentimentFunctionEngine extends AbstractReactorFunctionEngine {
 		// create the py translator
 		PyTransporter pyTransporter = new PyTransporter();
 		pyTransporter.setSocketClient(socketClient);
-		pyTranslator = new PyTranslator();
 		Insight processInsight = new Insight();
 		InsightStore.getInstance().put(processInsight);
-		pyTranslator.setGlobalStoreInsight(processInsight);
-		pyTranslator.setPyTransporter(pyTransporter);
+		pyTranslator = new PyTranslator(pyTransporter, processInsight);
 		
 		// run a prefix command
 		setPrefix(this.prefix);
