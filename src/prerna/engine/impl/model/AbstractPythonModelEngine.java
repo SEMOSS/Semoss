@@ -28,6 +28,7 @@ import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
 import prerna.util.Settings;
@@ -167,9 +168,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		// create the py translator
 		PyTransporter pyTransporter = new PyTransporter();
 		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		pyTranslator = new PyTranslator();
-		pyTranslator.setInsight(new Insight());
-		pyTranslator.setPyTransporter(pyTransporter);
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(pyTransporter, processInsight);
 		
 		try {
 			// execute all the basic commands
@@ -180,7 +181,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
 				commands[commandIndex] = fillVars(commands[commandIndex]);
 			}
-			pyTranslator.runEmptyPy(commands);
+			this.pyTranslator.runEmptyPy(commands);
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", commands));	
