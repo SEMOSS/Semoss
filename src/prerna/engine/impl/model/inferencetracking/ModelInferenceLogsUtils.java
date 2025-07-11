@@ -2,8 +2,6 @@ package prerna.engine.impl.model.inferencetracking;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Blob;
-import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,15 +34,11 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.DeleteEngineRunner;
 import prerna.cluster.util.DeleteProjectRunner;
 import prerna.date.SemossDate;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.IVectorDatabaseEngine;
-import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -76,7 +71,6 @@ import prerna.usertracking.UserTrackingUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.EngineSyncUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -304,8 +298,7 @@ public class ModelInferenceLogsUtils {
       for (int i = 0; i < primaryKeyNames.size(); i++) {
         String name = primaryKeyNames.get(i);
         String type = primaryKeyTypes.get(i);
-        String notNullQuery =
-            "ALTER TABLE " + tableName + " ALTER COLUMN " + name + " " + type + ", ALTER COLUMN " + name + " SET NOT NULL;";
+        String notNullQuery = queryUtil.modColumnNotNull(tableName, name, type);
         try {
           executeSql(conn, notNullQuery);
         } catch (SQLException se) {
@@ -802,24 +795,6 @@ public class ModelInferenceLogsUtils {
     List<String> insightIdList = QueryExecutionUtility.flushToListString(modelInferenceLogsDb, qs);
     return insightIdList;
   }
-  
-  /**
-   * @param projectId
-   * @param userId
-   * @return
-   */
-  public static List<Map<String, Object>> getUserRoomsMetadataPerProject(String projectId, String userId) {
-    SelectQueryStruct qs = new SelectQueryStruct();
-    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
-    qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
-    qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
-    qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
-    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
-    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-    List<Map<String, Object>> roomsMetadata = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-    return roomsMetadata;
-  }
 
   /** @param user */
   public static void doCreateNewUser(User user) {
@@ -908,9 +883,8 @@ public class ModelInferenceLogsUtils {
       String projectId,
       String projectName) {
 	  
-	   doCreateNewConversation(insightId,insightId, roomName, roomContext, userId, userName, userEmail, agentType, agentId, isActive, projectId, projectName, null);
+	   doCreateNewConversation(insightId, insightId, roomName, roomContext, userId, userName, userEmail, agentType, agentId, isActive, projectId, projectName, null, null);
   }
-   
   
   /**
    * @param insightId
@@ -941,12 +915,47 @@ public class ModelInferenceLogsUtils {
       String projectId,
       String projectName,
       Map<String, Object> options) {
+	  
+	  doCreateNewConversation(insightId, insightId, roomName, roomContext, userId, userName, userEmail, agentType, agentId, isActive, projectId, projectName, null, null);
+  }
+  
+  /**
+   * @param insightId
+   * @param roomId
+   * @param roomName
+   * @param roomContext
+   * @param userId
+   * @param userName
+   * @param userEmail
+   * @param agentType
+   * @param agentId
+   * @param isActive
+   * @param projectId
+   * @param projectName
+   * @param workspaceId
+   * @param options
+   */
+  public static void doCreateNewConversation(
+      String insightId,
+      String roomId,
+      String roomName,
+      String roomContext,
+      String userId,
+      String userName,
+      String userEmail,
+      String agentType,
+      String agentId,
+      Boolean isActive,
+      String projectId,
+      String projectName,
+      String workspaceId,
+      Map<String, Object> options) {
     String query =
         "INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, "
             + "ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, "
             + "AGENT_TYPE, AGENT_ID, IS_ACTIVE, "
-            + "DATE_CREATED, PROJECT_ID, PROJECT_NAME, OPTIONS) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            + "DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     // boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
     PreparedStatement ps = null;
     try {
@@ -991,6 +1000,11 @@ public class ModelInferenceLogsUtils {
       ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
       ps.setString(index++, projectId);
       ps.setString(index++, projectName);
+	  if (workspaceId != null) {
+        ps.setString(index++, workspaceId);
+      } else {
+        ps.setNull(index++, java.sql.Types.VARCHAR);
+      }
       if (options != null) {
           modelInferenceLogsDb
               .getQueryUtil()
@@ -1416,6 +1430,9 @@ public class ModelInferenceLogsUtils {
     qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
     qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
     qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
+    qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
+    qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
+    qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
 
     SelectQueryStruct subQs = new SelectQueryStruct();
     subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
@@ -1431,8 +1448,13 @@ public class ModelInferenceLogsUtils {
     }
     qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
 
+    // maybe order by pinned as well?
     qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", "DESC"));
-    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+    
+    Set<String> mapKeys = new HashSet<>();
+    mapKeys.add("OPTIONS");
+    
+    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
   }
 
   /** @param messageId */
@@ -1489,8 +1511,8 @@ public class ModelInferenceLogsUtils {
   }
 
   /**
-   * @param userId
    * @param roomId
+   * @param userId
    * @param options
    * @return
    */
@@ -1506,6 +1528,38 @@ public class ModelInferenceLogsUtils {
           modelInferenceLogsDb
               .getQueryUtil()
               .handleInsertionOfClob(ps.getConnection(), ps, options, index++, new Gson());
+        } else {
+          ps.setNull(index++, java.sql.Types.NULL);
+        }
+      ps.setString(index++, userId);
+      ps.setString(index++, roomId);
+      ps.executeUpdate();
+      if (!ps.getConnection().getAutoCommit()) {
+        ps.getConnection().commit();
+      }
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    } finally {
+      ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+    }
+  }
+
+  /**
+   * @param roomId
+   * @param userId
+   * @param workspaceId
+   * @return
+   */
+  public static void setRoomWorkspaceId(String roomId, String userId, String workspaceId) {
+    String query =
+        "UPDATE ROOM SET WORKSPACE_ID = ? WHERE USER_ID = ? AND ROOM_ID = ?";
+
+    PreparedStatement ps = null;
+    try {
+      ps = modelInferenceLogsDb.getPreparedStatement(query);
+      int index = 1;
+      if (workspaceId != null) {
+          ps.setString(index++, workspaceId);;
         } else {
           ps.setNull(index++, java.sql.Types.NULL);
         }
@@ -1867,8 +1921,6 @@ public class ModelInferenceLogsUtils {
     }
     return true;
   }
-
-  
   
   
   /* -------- WORKSPACE PIECES -------*/
@@ -1882,9 +1934,10 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceDescription
 	 * @param systemPrompt
 	 * @param sharingEnabled
+	 * @param resources
 	 */
 	public static void createNewWorkspaceEntry(String workspaceId, String ownerId, String workspaceName,
-			String workspaceDescription, String systemPrompt, boolean sharingEnabled) throws Exception {
+			String workspaceDescription, String systemPrompt, boolean sharingEnabled, List<Map<String, String>> resources) throws Exception {
 		Gson gson = new Gson();
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
@@ -1892,7 +1945,7 @@ public class ModelInferenceLogsUtils {
 		try {
 			con = modelInferenceLogsDb.getConnection();
 			try(
-				PreparedStatement ps = con.prepareStatement("INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, SHARING_ENABLED, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?)")
+				PreparedStatement ps = con.prepareStatement("INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, SHARING_ENABLED, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?,?)")
 			) {
 				int index = 1;
 				ps.setString(index++, workspaceId);
@@ -1902,10 +1955,32 @@ public class ModelInferenceLogsUtils {
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++,
 						gson);
 				ps.setString(index++, ownerId);
-				ps.setBoolean(index++, sharingEnabled);;
+				ps.setBoolean(index++, sharingEnabled);
+				ps.setBoolean(index++, true);
 				ps.setTimestamp(index++, now);
 				ps.setTimestamp(index++, now);
 				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+			
+			if(resources == null || resources.isEmpty()) {
+				return;
+			}
+			try(
+				PreparedStatement ps = con.prepareStatement("INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)")
+			) {
+				for(Map<String, String> res : resources) {
+					int index = 1;
+					ps.setString(index++, res.get("workspace_resource_id"));
+					ps.setString(index++, res.get("workspace_id"));
+					ps.setString(index++, res.get("resource_id"));
+					ps.setString(index++, res.get("resource_type"));
+					ps.setString(index++, res.get("resource_subtype"));
+					ps.addBatch();
+				}
+				ps.executeBatch();
 				if (!con.getAutoCommit()) {
 					con.commit();
 				}
@@ -1925,9 +2000,11 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceDescription
 	 * @param systemPrompt
 	 * @param sharingEnabled
+	 * @param isActive
+	 * @param resources
 	 */
 	public static void updateWorkspaceEntry(String workspaceId, String workspaceName,
-			String workspaceDescription, String systemPrompt, boolean sharingEnabled) throws Exception {
+			String workspaceDescription, String systemPrompt, boolean sharingEnabled, boolean isActive, List<Map<String, String>> resources) throws Exception {
 		Gson gson = new Gson();
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
@@ -1935,7 +2012,7 @@ public class ModelInferenceLogsUtils {
 		try {
 			con = modelInferenceLogsDb.getConnection();
 			try(
-				PreparedStatement ps = con.prepareStatement("UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, SHARING_ENABLED = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")
+				PreparedStatement ps = con.prepareStatement("UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, SHARING_ENABLED = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")
 			) {
 				int index = 1;
 				ps.setString(index++, workspaceName);
@@ -1944,9 +2021,42 @@ public class ModelInferenceLogsUtils {
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++,
 						gson);
 				ps.setBoolean(index++, sharingEnabled);
+				ps.setBoolean(index++, isActive);
 				ps.setTimestamp(index++, now);
 				ps.setString(index++, workspaceId);
 				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+			
+			try(
+				PreparedStatement ps = con.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?")
+			) {
+				int index = 1;
+				ps.setString(index++, workspaceId);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+			
+			if(resources == null || resources.isEmpty()) {
+				return;
+			}
+			try(
+				PreparedStatement ps = con.prepareStatement("INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)")
+			) {
+				for(Map<String, String> res : resources) {
+					int index = 1;
+					ps.setString(index++, res.get("workspace_resource_id"));
+					ps.setString(index++, res.get("workspace_id"));
+					ps.setString(index++, res.get("resource_id"));
+					ps.setString(index++, res.get("resource_type"));
+					ps.setString(index++, res.get("resource_subtype"));
+					ps.addBatch();
+				}
+				ps.executeBatch();
 				if (!con.getAutoCommit()) {
 					con.commit();
 				}
@@ -1968,7 +2078,7 @@ public class ModelInferenceLogsUtils {
 		try {
 			con = modelInferenceLogsDb.getConnection();
 			try(
-				PreparedStatement ps1 = con.prepareStatement("DELETE FROM WORKSPACE_KNOWLEDGE WHERE WORKSPACE_ID = ?");
+				PreparedStatement ps1 = con.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?");
 				PreparedStatement ps2 = con.prepareStatement("UPDATE ROOM SET WORKSPACE_ID = NULL WHERE WORKSPACE_ID = ?");
 				PreparedStatement ps3 = con.prepareStatement("DELETE FROM WORKSPACE WHERE WORKSPACE_ID = ?");
 			) {
@@ -2001,8 +2111,8 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DESCRIPTION", "description"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__SYSTEM_PROMPT", "system_prompt"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
-		
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
 		
 		QueryFunctionSelector createdSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR", "WORKSPACE__DATE_CREATED", "date_created");
 		createdSelector.addAdditionalParam(new String[] {"'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'"});
@@ -2164,6 +2274,7 @@ public class ModelInferenceLogsUtils {
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__SYSTEM_PROMPT", "system_prompt"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
+		subQs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
 		
 		QueryFunctionSelector createdSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR", "WORKSPACE__DATE_CREATED", "date_created");
 		createdSelector.addAdditionalParam(new String[] {"'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'"});
@@ -2193,6 +2304,7 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryTypedColumnSelector("subquery__system_prompt", "system_prompt", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__owner", "owner", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__sharing_enabled", "sharing_enabled", SemossDataType.BOOLEAN));
+		qs.addSelector(new QueryTypedColumnSelector("subquery__is_active", "is_active", SemossDataType.BOOLEAN));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__date_created", "date_created", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__date_updated", "date_updated", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__is_creator", "is_creator", SemossDataType.BOOLEAN));
@@ -2264,13 +2376,17 @@ public class ModelInferenceLogsUtils {
 		return filters;
 	}
 	
-	public static List<Map<String, Object>> getWorkspaceKnowledge(String workspaceId) {
+	public static List<Map<String, Object>> getWorkspaceResourcesByType(String workspaceId, String resourceType) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("WORKSPACE_KNOWLEDGE__WORKSPACE_KNOWLEDGE_ID", "workspace_knowledge_id"));
-		qs.addSelector(new QueryColumnSelector("WORKSPACE_KNOWLEDGE__WORKSPACE_ID", "workspace_id"));
-		qs.addSelector(new QueryColumnSelector("WORKSPACE_KNOWLEDGE__KNOWLEDGE_ID", "knowledge_id"));
-		qs.addSelector(new QueryColumnSelector("WORKSPACE_KNOWLEDGE__KNOWLEDGE_TYPE", "knowledge_type"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE_KNOWLEDGE__WORKSPACE_ID", "==", workspaceId));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE_RESOURCE__WORKSPACE_RESOURCE_ID", "workspace_resource_id"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE_RESOURCE__WORKSPACE_ID", "workspace_id"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE_RESOURCE__RESOURCE_ID", "resource_id"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE_RESOURCE__RESOURCE_TYPE", "resource_type"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE_RESOURCE__RESOURCE_SUBTYPE", "resource_subtype"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE_RESOURCE__WORKSPACE_ID", "==", workspaceId));
+		if(resourceType != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE_RESOURCE__RESOURCE_TYPE", "==", resourceType));
+		}
 		
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			List<Map<String, Object>> results = new ArrayList<>();
@@ -2299,18 +2415,19 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 	
-	public static void createNewWorkspaceKnowledge(String workspaceKnowledgeId, String workspaceId, String knowledgeId, String knowledgeType) throws Exception {
+	public static void createNewWorkspaceResource(String workspaceResourceId, String workspaceId, String resourceId, String resourceType, String resourceSubType) throws Exception {
 		Connection con = null;
 		try {
 			con = modelInferenceLogsDb.getConnection();
 			try(
-				PreparedStatement ps = con.prepareStatement("INSERT INTO WORKSPACE_KNOWLEDGE (WORKSPACE_KNOWLEDGE_ID, WORKSPACE_ID, KNOWLEDGE_ID, KNOWLEDGE_TYPE) VALUES (?,?,?,?)")
+				PreparedStatement ps = con.prepareStatement("INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)")
 			) {
 				int index = 1;
-				ps.setString(index++, workspaceKnowledgeId);
+				ps.setString(index++, workspaceResourceId);
 				ps.setString(index++, workspaceId);
-				ps.setString(index++, knowledgeId);
-				ps.setString(index++, knowledgeType);
+				ps.setString(index++, resourceId);
+				ps.setString(index++, resourceType);
+				ps.setString(index++, resourceSubType);
 				ps.execute();
 				if (!con.getAutoCommit()) {
 					con.commit();
@@ -2318,7 +2435,7 @@ public class ModelInferenceLogsUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error creating workspace knowledge: " + e.getMessage(), e);
+			throw new IllegalArgumentException("Error creating workspace resource: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
@@ -2326,16 +2443,16 @@ public class ModelInferenceLogsUtils {
 
 	/**
 	 * 
-	 * @param workspaceKnowledgeId
+	 * @param workspaceResourceId
 	 */
-	public static void deleteWorkspaceKnowledge(String workspaceKnowledgeId) {
+	public static void deleteWorkspaceResource(String workspaceResourceId) {
 		Connection con = null;
 		try {
 			con = modelInferenceLogsDb.getConnection();
 			try(
-				PreparedStatement ps = con.prepareStatement("DELETE FROM WORKSPACE_KNOWLEDGE WHERE WORKSPACE_KNOWLEDGE_ID = ?");
+				PreparedStatement ps = con.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_RESOURCE_ID = ?");
 			) {
-				ps.setString(1, workspaceKnowledgeId);
+				ps.setString(1, workspaceResourceId);
 				ps.execute();
 				if (!con.getAutoCommit()) {
 					con.commit();
@@ -2343,11 +2460,37 @@ public class ModelInferenceLogsUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error deleting workspace knowledge: " + e.getMessage(), e);
+			throw new IllegalArgumentException("Error deleting workspace resource: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 	}
+	
+	/**
+	   * @param workspaceId
+	   */
+	  public static void doSetWorkspaceToInactive(String workspaceId) {
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try(
+				PreparedStatement ps = con.prepareStatement("UPDATE WORKSPACE SET IS_ACTIVE = ? WHERE WORKSPACE_ID = ?");
+			) {
+				ps.setBoolean(1, false);
+				ps.setString(2, workspaceId);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error deactivating workspace: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	  }
+	
 	
 	public static void enableWorkspaceProject(User user, String projectId) {
 		if(!SecurityProjectUtils.userIsOwner(user, projectId)) {
@@ -2356,35 +2499,6 @@ public class ModelInferenceLogsUtils {
 				SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
 			}
 		}
-		
-		boolean needsMetaUpdate = true;
-		Map<String, Object> currentTags = SecurityProjectUtils.getAggregateProjectMetadata(projectId, Arrays.asList("tag"), true);
-		Object oldTagObject = currentTags.get("tag");
-		Object newTagObject = oldTagObject;
-		if(oldTagObject != null) {
-			if(oldTagObject instanceof List) {
-				List<String> tags = (List<String>) oldTagObject;
-				if(!tags.contains(ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG)) {
-					tags.add(ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
-				} else {
-					needsMetaUpdate = false;
-				}
-			} else {
-				String tag = (String) oldTagObject;
-				if(!ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG.equals(tag)) {
-					newTagObject = Arrays.asList(tag, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
-				} else {
-					needsMetaUpdate = false;
-				}
-			}
-		} else {
-			newTagObject = Arrays.asList(ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
-		}
-		if(needsMetaUpdate) {
-			Map<String, Object> metadata = new HashMap<>();
-			metadata.put("tag", newTagObject);
-			SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
-		}
 	}
 	
 	public static void disableWorkspaceProject(String projectId) {
@@ -2392,31 +2506,6 @@ public class ModelInferenceLogsUtils {
 			SecurityProjectUtils.copyProjectPermissions(null, projectId);
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		}
-		
-		boolean needsMetaUpdate = true;
-		Map<String, Object> currentTags = SecurityProjectUtils.getAggregateProjectMetadata(projectId, Arrays.asList("tag"), true);
-		Object oldTagObject = currentTags.get("tag");
-		Object newTagObject = oldTagObject;
-		if(oldTagObject != null) {
-			if(oldTagObject instanceof List) {
-				List<String> tags = (List<String>) oldTagObject;
-				needsMetaUpdate = tags.remove(ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
-			} else {
-				String tag = (String) oldTagObject;
-				if(ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG.equals(tag)) {
-					newTagObject = new ArrayList<>();
-				} else {
-					needsMetaUpdate = false;
-				}
-			}
-		} else {
-			newTagObject = new ArrayList<>();
-		}
-		if(needsMetaUpdate) {
-			Map<String, Object> metadata = new HashMap<>();
-			metadata.put("tag", newTagObject);
-			SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
 		}
 	}
 	
@@ -2499,94 +2588,6 @@ public class ModelInferenceLogsUtils {
 		if (ClusterUtil.IS_CLUSTER) {
 			Thread deleteThread = new Thread(new DeleteProjectRunner(projectId));
 			deleteThread.start();
-		}
-	}
-	
-	public static IVectorDatabaseEngine createWorkspaceVectorDb(User user, String vectorDbId, String vectorDbName, Map<String, Object> vectorDbDetails, VectorDatabaseTypeEnum vectorDbType) throws IllegalAccessException, Exception {
-		IVectorDatabaseEngine vectorDb = null;
-		File vectorDbFolder = null;
-		File vectorDbTempSmss = null;
-		File vectorDbSmssFile = null;
-		
-		try {
-			classLogger.info("Creating workspace db");
-			
-			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.VECTOR, user, vectorDbName, vectorDbId);
-			vectorDbFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.VECTOR, vectorDbId, vectorDbName);
-			
-			String vectorDbClass = vectorDbType.getVectorDatabaseClass();
-			vectorDb = (IVectorDatabaseEngine) Class.forName(vectorDbClass).getDeclaredConstructor().newInstance();
-			
-			vectorDbTempSmss = UploadUtilities.createTemporaryVectorDatabaseSmss(vectorDbId, vectorDbName, vectorDbClass, vectorDbDetails);
-			DIHelper.getInstance().setEngineProperty(vectorDbId + "_" + Constants.STORE, vectorDbTempSmss.getAbsolutePath());
-			
-			DIHelper.getInstance().setEngineProperty(vectorDbId, vectorDb);
-			String engines = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-			engines = engines + ";" + vectorDbId;
-			DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engines);
-			
-			vectorDbSmssFile = new File(vectorDbTempSmss.getAbsolutePath().replace(".temp", ".smss"));
-			FileUtils.copyFile(vectorDbTempSmss, vectorDbSmssFile);
-			vectorDbTempSmss.delete();
-			
-			vectorDb.open(vectorDbSmssFile.getAbsolutePath());
-			
-			DIHelper.getInstance().setEngineProperty(vectorDbId + "_" + Constants.STORE, vectorDbSmssFile.getAbsolutePath());
-			
-			if (ClusterUtil.IS_CLUSTER) {
-				classLogger.info("Syncing workspace db for cloud backup");
-				ClusterUtil.pushEngine(vectorDbId);
-			}
-			
-			SecurityEngineUtils.addEngine(vectorDbId, false, user);
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(vectorDbId, user.getAccessToken(ap).getId());
-			}
-			Map<String, Object> metadata = new HashMap<>();
-			metadata.put("tag", ModelInferenceLogsUtils.WORKSPACE_DATABASE_TAG);
-			SecurityEngineUtils.updateEngineMetadata(vectorDbId, metadata);
-			
-			classLogger.info("Finished creating workspace db");
-			
-			return vectorDb;
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			
-			for(File file : Arrays.asList(vectorDbTempSmss, vectorDbSmssFile, vectorDbFolder)) {
-				try {
-					if(file != null && file.exists()) {
-						FileUtils.forceDelete(file);
-					}
-				} catch(Exception e2) {
-					classLogger.error("Failed to delete file", e2);
-				}
-			}
-			deleteWorkspaceVectorDb(vectorDbId, vectorDb);
-			
-			throw new SemossPixelException(e);
-		}
-	}
-	
-	
-	
-	public static void deleteWorkspaceVectorDb(String dbId, IEngine db) {
-		UploadUtilities.removeEngineFromDIHelper(dbId);
-		SecurityEngineUtils.deleteEngine(dbId);
-		UserTrackingUtils.deleteEngine(dbId);
-		
-		if(db != null) {
-			try {
-				db.delete();;
-			} catch(Exception e) {
-				classLogger.error("Error deleting db during workspace exception clean-up", e);
-			}
-		}
-		
-		EngineSyncUtility.clearEngineCache(dbId);
-		if (ClusterUtil.IS_CLUSTER) {
-			Thread deleteAppThread = new Thread(new DeleteEngineRunner(dbId, IEngine.CATALOG_TYPE.VECTOR));
-			deleteAppThread.start();
 		}
 	}
 	

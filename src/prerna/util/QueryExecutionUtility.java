@@ -19,6 +19,10 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+
 public class QueryExecutionUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(QueryExecutionUtility.class);
@@ -311,10 +315,37 @@ public class QueryExecutionUtility {
 	
 	/**
 	 * 
+	 * @param engine
+	 * @param qs
+	 * @param mapKeys
+	 * @return
+	 */
+	public static List<Map<String, Object>> flushRsToMap(IDatabaseEngine engine, SelectQueryStruct qs, Set<String> mapKeys) {
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			return flushWrapperToMap(wrapper, mapKeys);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return new ArrayList<>();
+	}
+	
+	/**
+	 * 
 	 * @param wrapper
 	 * @return
 	 */
 	public static List<Map<String, Object>> flushWrapperToMap(IRawSelectWrapper wrapper) {
+		return flushWrapperToMap(wrapper, null);
+	}
+	
+	/**
+	 * 
+	 * @param wrapper
+	 * @return
+	 */
+	public static List<Map<String, Object>> flushWrapperToMap(IRawSelectWrapper wrapper, Set<String> mapKeys) {
 		List<Map<String, Object>> result = new ArrayList<>();
 		try {
 			while(wrapper.hasNext()) {
@@ -323,7 +354,10 @@ public class QueryExecutionUtility {
 				Object[] values = headerRow.getValues();
 				Map<String, Object> map = new HashMap<String, Object>();
 				for(int i = 0; i < headers.length; i++) {
-					if(values[i] instanceof java.sql.Clob) {
+					if (mapKeys != null && mapKeys.contains(headers[i])) {
+						Map<String, Object> processedValue = convertJsonString(values[i]);
+						map.put(headers[i], processedValue == null ? values[i] : processedValue);
+					} else if(values[i] instanceof java.sql.Clob) {
 						String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]);
 						map.put(headers[i], value);
 					} else if(values[i] instanceof java.sql.Blob) {
@@ -349,4 +383,24 @@ public class QueryExecutionUtility {
 		
 		return result;
 	}
+	
+	/**
+	 * 
+	 * @param jsonString
+	 * @return
+	 */
+	private static Map<String, Object> convertJsonString (Object jsonString) {
+		if (jsonString == null) {
+			return null;
+		}
+        try {
+        	String json = (String) jsonString;
+            Gson gson = new Gson();
+            Type type = new TypeToken<Map<String, Object>>(){}.getType();
+            return gson.fromJson(json, type);
+        } catch (Exception e) {
+            // Not a valid JSON object return null
+        	return null;
+        }
+    }
 }

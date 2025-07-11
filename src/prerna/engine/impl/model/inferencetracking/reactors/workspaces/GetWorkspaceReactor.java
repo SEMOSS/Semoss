@@ -1,20 +1,23 @@
-package prerna.engine.impl.model.workspace;
+package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
+import java.util.List;
 import java.util.Map;
+
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetWorkspaceReactor extends AbstractReactor {
-
-  public static final String WORKSPACE_ID = "workspaceId";
-
+	
+	public static final String WITH_RESOURCES = "withResources";
+	
   public GetWorkspaceReactor() {
-    this.keysToGet = new String[] {WORKSPACE_ID};
-    this.keyRequired = new int[] {1};
+    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey(), WITH_RESOURCES};
+    this.keyRequired = new int[] {1, 0};
   }
 
   @Override
@@ -23,8 +26,9 @@ public class GetWorkspaceReactor extends AbstractReactor {
 
     User user = this.insight.getUser();
 
-    String workspaceId = this.keyValue.get(WORKSPACE_ID);
-
+    String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
+    boolean withResources = !"false".equalsIgnoreCase(this.keyValue.get(WITH_RESOURCES));
+    
     Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
     if (current == null) {
       throw new IllegalArgumentException("Workspace not found");
@@ -48,7 +52,12 @@ public class GetWorkspaceReactor extends AbstractReactor {
             || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user))) {
       throw new IllegalArgumentException("User unauthorized to perform this operation");
     }
-
+    
+    if(withResources) {
+    	List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, null);
+    	current.put("resources", resources);
+    }
+    
     return new NounMetadata(current, PixelDataType.MAP);
   }
 }

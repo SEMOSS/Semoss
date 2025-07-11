@@ -1,17 +1,19 @@
-package prerna.engine.impl.model.workspace;
+package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
 import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -19,10 +21,8 @@ import prerna.util.Utility;
 public class DeleteWorkspaceReactor extends AbstractReactor {
   private static final Logger LOGGER = LogManager.getLogger(DeleteWorkspaceReactor.class);
 
-  public static final String WORKSPACE_ID = "workspaceId";
-
   public DeleteWorkspaceReactor() {
-    this.keysToGet = new String[] {WORKSPACE_ID};
+    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey()};
     this.keyRequired = new int[] {1};
   }
 
@@ -32,7 +32,7 @@ public class DeleteWorkspaceReactor extends AbstractReactor {
 
     User user = this.insight.getUser();
 
-    String workspaceId = this.keyValue.get(WORKSPACE_ID);
+    String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 
     Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
     if (current == null) {
@@ -64,10 +64,6 @@ public class DeleteWorkspaceReactor extends AbstractReactor {
       if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
         IProject project = Utility.getProject(workspaceId);
         ModelInferenceLogsUtils.deleteWorkspaceProject(workspaceId, project);
-      }
-      if (AbstractSecurityUtils.containsEngineId(workspaceId)) {
-        IEngine engine = Utility.getEngine(workspaceId);
-        ModelInferenceLogsUtils.deleteWorkspaceVectorDb(workspaceId, engine);
       }
     } catch (Exception e) {
       LOGGER.error(Constants.STACKTRACE, e);

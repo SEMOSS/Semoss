@@ -107,7 +107,6 @@ class AbstractTextGenerationClient(ABC):
 
         message_json = kwargs.pop("message_json", None)
         semoss_messages = None
-        json_messages_param_map = {}
         if message_json:
             try:
                 message_json = json.loads(message_json)
@@ -133,9 +132,7 @@ class AbstractTextGenerationClient(ABC):
         # This is a mess but can be cleaned up after we switch to supporting only semoss_messages
         streaming = json_messages_param_map.pop("streaming", None)
         if streaming is None:
-            streaming = kwargs.pop("streaming", True)
-            if not streaming:
-                streaming = kwargs.pop("stream", True)
+            streaming = json_messages_param_map.pop("stream", True)
 
         # After switch we can remove this
         image_url = json_messages_param_map.pop("image_url", None)
