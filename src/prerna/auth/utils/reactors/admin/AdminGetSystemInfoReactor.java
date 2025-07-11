@@ -27,7 +27,15 @@ public class AdminGetSystemInfoReactor extends AbstractReactor {
         organizeKeys();
 
 
-		String hostname = System.getenv("hostname");
+        String hostname;
+        try {
+            hostname = System.getenv("hostname");
+            if (hostname == null || hostname.isEmpty()) {
+                hostname = java.net.InetAddress.getLocalHost().getHostName();
+            }
+        } catch (Exception e) {
+            hostname = "unknown-host";
+        }
 
         Map<String, Object> systemInfoMap = AdminGetSystemInfoReactor.getSystemInfoDetailsMap(hostname);
         return new NounMetadata(systemInfoMap, PixelDataType.MAP);
