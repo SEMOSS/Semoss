@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1398,6 +1399,9 @@ public class ModelInferenceLogsUtils {
     qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
     qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
     qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
+    qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
+    qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
+    qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
 
     SelectQueryStruct subQs = new SelectQueryStruct();
     subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
@@ -1407,15 +1411,22 @@ public class ModelInferenceLogsUtils {
         SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
     subQs.addExplicitFilter(
         SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
+    //testing purposes
+    subQs.addExplicitFilter(
+            SimpleQueryFilter.makeColToValFilter("ROOM__OPTIONS", "!=", null));
     if (projectId != null) {
       subQs.addExplicitFilter(
           SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
     }
     qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
 
+    // maybe order by pinned as well?
     qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", "DESC"));
     
-    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+    Set<String> mapKeys = new HashSet<>();
+    mapKeys.add("OPTIONS");
+    
+    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
   }
 
   /** @param messageId */
