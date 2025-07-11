@@ -1895,6 +1895,8 @@ public class ModelInferenceLogsUtils {
    */
   public static List<Map<String, Object>> getUserActiveRooms(String roomId, String userId) {
     SelectQueryStruct qs = new SelectQueryStruct();
+	qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "IS_ACTIVE"));
+
     qs.addExplicitFilter(
         SimpleQueryFilter.makeColToValFilter(
             ROOM_TABLE_NAME + "IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
