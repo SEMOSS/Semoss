@@ -40,6 +40,7 @@ import com.google.gson.JsonSyntaxException;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyTransporter;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.PortAllocator;
@@ -89,7 +90,7 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 	public static final String SERVER_PATH = "/server";
 	String workingDirectoryBasePath = null;
 	NativePySocketClient socketClient = null;
-	PyTranslator pyt = null;
+	PyTranslator pyTranslator = null;
 	Process process = null;
 	String workingDirectory = null;
 	String prefix = null;
@@ -249,9 +250,9 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 			socketClient = connect2Py(null);
 			PyTransporter pyTransporter = new PyTransporter();
 			pyTransporter.setSocketClient(socketClient);
-			pyt = new PyTranslator();
-			pyt.setInsight(new Insight());
-			pyt.setPyTransporter(pyTransporter);
+			Insight processInsight = new Insight();
+			InsightStore.getInstance().put(processInsight);
+			this.pyTranslator = new PyTranslator(pyTransporter, processInsight);
 			
 			// publish this node ? - do we even need to ?
 			addServer();
@@ -528,13 +529,13 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 	
 	public Map getCurrentCapabilities()
 	{
-		boolean initialized = pyt.getBoolean("'hardware_util' in globals()");
+		boolean initialized = pyTranslator.getBoolean("'hardware_util' in globals()");
 		if(!initialized)
 		{
-			pyt.runScript("import gaas_hardware_util as ghu");
-			pyt.runScript("hardware_util = ghu.HardwareUtil()");
+			pyTranslator.runScript("import gaas_hardware_util as ghu");
+			pyTranslator.runScript("hardware_util = ghu.HardwareUtil()");
 		}		
-		String capString = ""+ pyt.runScript("hardware_util.get_all()");
+		String capString = ""+ pyTranslator.runScript("hardware_util.get_all()");
 		System.err.println("Cap String ..  " + capString);
 		Object cap = gson.fromJson(capString, Object.class);
 		if(cap instanceof Map)

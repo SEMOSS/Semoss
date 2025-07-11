@@ -103,7 +103,7 @@ public class RoomUtils {
             }
             String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : "untitled";
             ModelInferenceLogsUtils.doCreateNewConversation(
-            		roomId, // change to insight id once it is no longer the PK
+            		insight.getInsightId(), 
                     roomId,
                     roomName,
                     context,
