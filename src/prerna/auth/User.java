@@ -1,6 +1,5 @@
 package prerna.auth;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
@@ -23,9 +22,8 @@ import org.javatuples.Pair;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
-import prerna.engine.api.IStorageMount;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
@@ -35,7 +33,6 @@ import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
-import prerna.util.SemossClassloader;
 import prerna.util.Settings;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
@@ -44,15 +41,13 @@ public class User implements Serializable {
 
 	private static Logger classLogger = LogManager.getLogger(User.class);
 	
-	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-
+	protected static final String DIR_SEPARATOR = "/";
+	
 	// main object storing the users access tokens
 	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
 	private List<AuthProvider> loggedInProfiles = new Vector<>();
 	// storing the timezone the user is in
 	private ZoneId zoneId;
-	
-	public Map<String,Object> roomHash = new HashMap<>();
 	
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
@@ -63,19 +58,16 @@ public class User implements Serializable {
 
 	// python related stuff
 	private transient ClientProcessWrapper pythonCPW = new ClientProcessWrapper();
-	private transient PyTranslator pyt = null;
+	private transient PyTransporter pyTransporter = null;
 	private transient Process pyProcess = null;
 
 	// r
 	private transient ClientProcessWrapper rCPW = new ClientProcessWrapper();
 	private transient Process rProcess = null;
 
-	private transient SymlinkHelper symlinkHelper = null;
 	private String chrootPath = null;
+	private transient SymlinkHelper symlinkHelper = null;
 
-	// keeping this for a later time when personal experimental stuff
-	private transient ClassLoader customLoader = null;
-	
 	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
 	private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
 	private AuthProvider primaryLogin;
@@ -83,39 +75,25 @@ public class User implements Serializable {
 	private transient Object assetSyncObject = null;
 	private transient Object workspaceSyncObject = null;
 
-	// keeps the secret for every insight
-	private Hashtable <String, InsightToken> insightSecret = new Hashtable <>();
-	// shared sessions
-	private List<String> sharedSessions = new Vector<>();
-	
-	private transient Map<String, IStorageMount> externalMounts = new HashMap<>();
-	
-	private boolean anonymous;
-	private String anonymousId;
-	
 	public transient CopyObject cp = null;
 	private transient CmdExecUtil cmdUtil = null;
 	
 	private int rPort = -1;
 	private int pyPort = -1;
 	
-	private int forcePort = -1;
-	
 	// need to move everything here
 	// since on reconnect we need to redo serialization. 
 	private Map<String, Boolean> insightSerializedMap = new HashMap<String, Boolean>();
 	
-	// this is the prefix used for streamers in transformers
-	// this is what will distinguish between output vs. stdout
-	public String prefix = "";
-	
 	// this is a unique identifier for this user instance
 	private String userEpoch = null;
+	
+	private boolean anonymous;
+	private String anonymousId;
 	
 	public User() {
 		// transient objects should be defined in the constructor
 		// since if this is serialized we dont want these values to be null
-		this.customLoader = new SemossClassloader(this.getClass().getClassLoader());
 		this.openInsights = new HashMap<>();
 		this.assetSyncObject = new Object();
 		this.workspaceSyncObject = new Object();
@@ -337,48 +315,17 @@ public class User implements Serializable {
 		this.rconRemote = rconRemote;
 	}
 	
-	// add the insight instance id
-	public void addInsight(String id, InsightToken token)
-	{
-		insightSecret.put(id, token);
-	}
-	
-	// get insight token
-	public InsightToken getInsight(String id)
-	{
-		return insightSecret.get(id);
-	}
-	
-	public void addShare(String sessionId)
-	{
-		if(!sharedSessions.contains(sessionId))
-			sharedSessions.add(sessionId);
-	}	
-	
-	public void removeShare(String sessionId)
-	{
-		sharedSessions.remove(sessionId);
-	}
-	
-	public boolean isShareSession(String sessionId)
-	{
-		return sharedSessions.contains(sessionId);
-	}
-	
-	public void ctrlC(String source, String showSource)
-	{
+	public void ctrlC(String source, String showSource) {
 		this.cp = new CopyObject();
 		cp.source = source;
 		cp.showSource = showSource;
 	}
 	
-	public CopyObject getCtrlC()
-	{
+	public CopyObject getCtrlC() {
 		return cp;
 	}
 	
-	public void ctrlX(String source, String showSource)
-	{
+	public void ctrlX(String source, String showSource) {
 		this.cp = new CopyObject();
 		cp.source = source;
 		cp.showSource = showSource;
@@ -616,7 +563,7 @@ public class User implements Serializable {
 	 * 
 	 * @return
 	 */
-	public ClientProcessWrapper getClientProcessWrapper() {
+	public ClientProcessWrapper getPythonClientProcessWrapper() {
 		return this.pythonCPW;
 	}
 	
@@ -625,8 +572,8 @@ public class User implements Serializable {
 	 * @param create
 	 * @return
 	 */
-	public SocketClient getSocketClient(boolean create) {
-		return getSocketClient(create, -1, null);
+	public SocketClient getPythonSocketClient(boolean create) {
+		return getPythonSocketClient(create, -1, null);
 	}
 	
 	/**
@@ -635,8 +582,8 @@ public class User implements Serializable {
 	 * @param venvName
 	 * @return
 	 */
-	public SocketClient getSocketClient(boolean create, String venvEngineId) {
-		return getSocketClient(create, -1, venvEngineId);
+	public SocketClient getPythonSocketClient(boolean create, String venvEngineId) {
+		return getPythonSocketClient(create, -1, venvEngineId);
 	}
 	
 	/**
@@ -645,7 +592,7 @@ public class User implements Serializable {
 	 * @param port
 	 * @return
 	 */
-	public SocketClient getSocketClient(boolean create, int port, String venvEngineId) {
+	public SocketClient getPythonSocketClient(boolean create, int port, String venvEngineId) {
 		if(!create) {
 			if(this.pythonCPW == null) {
 				return null;
@@ -653,7 +600,7 @@ public class User implements Serializable {
 			return this.pythonCPW.getSocketClient();
 		}
 		if(this.pythonCPW == null || this.pythonCPW.getSocketClient() == null) {
-			startSocketServerAndClient(-1, venvEngineId);
+			startPythonSocketServerAndClient(-1, venvEngineId);
 			this.pythonCPW.getSocketClient().setUser(this);
 		} else if(!this.pythonCPW.getSocketClient().isConnected()) {
 			this.pythonCPW.shutdown(false);
@@ -671,68 +618,55 @@ public class User implements Serializable {
 		return this.pythonCPW.getSocketClient();
 	}
 
-	public void addExternalMount(String name, IStorageMount mountHelper)
-	{
-		// name is what is recorded
-		externalMounts.put(name, mountHelper);
-		// get the user asset folder
-		AuthProvider provider = getPrimaryLogin();
-		String appId = getAssetProjectId(provider);
-		String appName = "Asset";
-		String userAssetFolder = AssetUtility.getProjectAssetsFolder(appName, appId);
-
-		// if this folder does not exist create it
-		File file = new File(userAssetFolder);
-		if (!file.exists()) {
-			file.mkdir();
-		}
-		
-		// add this mount point to the asset folder
-		File mountFile = new File(userAssetFolder + DIR_SEPARATOR + name);
-		if(!mountFile.exists())
-			mountFile.mkdir();
-
-		// at some point I need to also set a watcher to ferret things back and forth
+	/**
+	 * 
+	 * @return
+	 */
+	public PyTransporter getPyTransporter() {
+		return getPyTransporter(true);
 	}
 	
-	public Map<String, IStorageMount> getExternalMounts() {
-		return this.externalMounts;
-	}
-
-	public PyTranslator getPyTranslator() {
-		return getPyTranslator(true);
-	}
-	
-	public PyTranslator getPyTranslator(boolean create) {
-		return getPyTranslator(create, null);
+	/**
+	 * 
+	 * @param create
+	 * @return
+	 */
+	public PyTransporter getPyTransporter(boolean create) {
+		return getPyTransporter(create, null);
 	}
 	
-	public PyTranslator getPyTranslator(boolean create, String venvEngineId) {
+	/**
+	 * 
+	 * @param create
+	 * @param venvEngineId
+	 * @return
+	 */
+	public PyTransporter getPyTransporter(boolean create, String venvEngineId) {
 		if(!PyUtils.pyEnabled()) {
-			throw new IllegalArgumentException("Python is set to false for this instance");
+			throw new IllegalArgumentException("Python is not enabled for this instance");
 		}
-		if(this.pyt == null && create) {
+		if(this.pyTransporter == null && create) {
 			// all of the logic should go here now ?
 			synchronized(this) {
-				SocketClient sc = getSocketClient(create, -1, venvEngineId);
+				SocketClient sc = getPythonSocketClient(create, -1, venvEngineId);
 				if(sc != null) {
-					PyTranslator pyJavaTranslator = new PyTranslator();
-					pyJavaTranslator.setSocketClient(sc);
-					this.pyt = pyJavaTranslator;
+					PyTransporter pyTransporter = new PyTransporter();
+					pyTransporter.setSocketClient(sc);
+					this.pyTransporter = pyTransporter;
 				}
 			}
 		}
 		else {
-			SocketClient sc = getSocketClient(create, -1, venvEngineId);
+			SocketClient sc = getPythonSocketClient(create, -1, venvEngineId);
 			if(sc != null) {
-				PyTranslator pyJavaTranslator = new PyTranslator();
-				pyJavaTranslator.setSocketClient(sc);
-				this.pyt = pyJavaTranslator;
+				PyTransporter pyTransporter = new PyTransporter();
+				pyTransporter.setSocketClient(sc);
+				this.pyTransporter = pyTransporter;
 			}
 		}
 		
 		// return the translator reference
-		return this.pyt;
+		return this.pyTransporter;
 	}
 	
 	/**
@@ -755,7 +689,7 @@ public class User implements Serializable {
 	
 	public CmdExecUtil getCmdUtil() {
 	    if (this.pythonCPW.getSocketClient() == null) {
-	        this.getPyTranslator();
+	        this.getPyTransporter();
 	    }
 	    if (cmdUtil != null) {
 	        if (this.pythonCPW.getSocketClient() != null && !this.pythonCPW.getSocketClient().isConnected()) {
@@ -780,7 +714,7 @@ public class User implements Serializable {
 		}
 	}
 	
-	public void startSocketServerAndClient(int port, String venvEngineId) {
+	public void startPythonSocketServerAndClient(int port, String venvEngineId) {
 		if(this.pythonCPW == null) {
 			this.pythonCPW = new ClientProcessWrapper();
 		}

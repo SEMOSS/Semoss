@@ -9,14 +9,14 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.py.PyTranslator;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.model.AbstractPythonModelEngine;
 
 public class EnginePyReactor extends AbstractReactor  {
 	
@@ -53,17 +53,13 @@ public class EnginePyReactor extends AbstractReactor  {
 		AbstractPythonModelEngine engine = (AbstractPythonModelEngine) rawEngine;
 		
 		PyTranslator enginePyTranslator = null;
-		String output = null;
-		
+		Object output = null;
 		try {
-			enginePyTranslator = engine.getEnginePyTranslator(this.insight);
-			
-			output = enginePyTranslator.runSingle(code, this.insight);
-			
+			enginePyTranslator = engine.getEnginePyTranslator();
+			output = enginePyTranslator.runScript(code);
 		} catch (IllegalArgumentException e) {
 			classLogger.warn("Invalid argument when getting PyTranslator for engine {}: {}", engineId, e.getMessage());
 			throw e;
-			
 		} catch (IllegalStateException e) {
 			classLogger.error("Engine {} is not properly initialized or connection failed: {}", engineId, e.getMessage());
 			throw new IllegalArgumentException("Engine " + engineId + " is currently unavailable. Please try again later.", e);
@@ -79,7 +75,7 @@ public class EnginePyReactor extends AbstractReactor  {
 		}
 		
 		List<NounMetadata> outputs = new ArrayList<>(1);
-		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
+		outputs.add(new NounMetadata(output+"", PixelDataType.CONST_STRING));
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 	}
 }
