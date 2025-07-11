@@ -66,6 +66,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
@@ -1792,9 +1793,9 @@ public class Project implements IProject {
 		// create the py translator
 		PyTransporter pyTransporter = new PyTransporter();
 		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		this.pyTranslator = new PyTranslator();
-		this.pyTranslator.setInsight(new Insight());
-		this.pyTranslator.setPyTransporter(pyTransporter);
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		pyTranslator = new PyTranslator(pyTransporter, processInsight);
 		// finally set the cpw in the class
 		this.cpw = cpwToInit;
 	}

@@ -76,7 +76,7 @@ public class PyTransporter {
 	 */
 	public String getCurEncoding(Insight insight) {
 		if (curEncoding == null) {
-			curEncoding = (String) executePyDirect(insight, "sys.stdout.encoding");
+			curEncoding = (String) transportScript(insight, null, "sys.stdout.encoding");
 		}
 		return curEncoding;
 	}
@@ -87,32 +87,35 @@ public class PyTransporter {
 	/**
 	 * Get list of Objects from py script
 	 * 
+	 * @param globalStoreInsight
 	 * @param script
 	 * @return
 	 */
-	public List<Object> getList(Insight insight, String script) {
-		return (List<Object>) transportScript(insight, script);
+	public List<Object> getList(Insight globalStoreInsight, String script) {
+		return (List<Object>) transportScript(globalStoreInsight, null, script);
 	}
 
 	/**
 	 * Get String[] from py script
 	 * 
+	 * @param globalStoreInsight
 	 * @param script
 	 * @return
 	 */
-	public List<String> getStringList(Insight insight, String script) {
-		List<String> val = (List<String>) transportScript(insight, script);
+	public List<String> getStringList(Insight globalStoreInsight, String script) {
+		List<String> val = (List<String>) transportScript(globalStoreInsight, null, script);
 		return val;
 	}
 
 	/**
 	 * Get String[] from py script
 	 * 
+	 * @param globalStoreInsight
 	 * @param script
 	 * @return
 	 */
-	public String[] getStringArray(Insight insight, String script) {
-		List<String> val = getStringList(insight, script);
+	public String[] getStringArray(Insight globalStoreInsight, String script) {
+		List<String> val = getStringList(globalStoreInsight, script);
 		String[] retString = new String[val.size()];
 		val.toArray(retString);
 		return retString;
@@ -121,67 +124,72 @@ public class PyTransporter {
 	/**
 	 * Get boolean from py script
 	 * 
+	 * @param globalStoreInsight
 	 * @param script
 	 * @return
 	 */
-	public boolean getBoolean(Insight insight, String script) {
-		Boolean x = (Boolean) transportScript(insight, script);
+	public boolean getBoolean(Insight globalStoreInsight, String script) {
+		Boolean x = (Boolean) transportScript(globalStoreInsight, null, script);
 		return x.booleanValue();
 	}
 
 	/**
 	 * Get integer from py script
 	 * 
+	 * @param globalStoreInsight
 	 * @param script
 	 * @return
 	 */
-	public int getInt(Insight insight, String script) {
-		Number x = (Number) transportScript(insight, script);
+	public int getInt(Insight globalStoreInsight, String script) {
+		Number x = (Number) transportScript(globalStoreInsight, null, script);
 		return x.intValue();
 	}
 
 	/**
 	 * Get Long from py script
 	 * 
+	 * @param globalStoreInsight
 	 * @param script
 	 * @return
 	 */
-	public Long getLong(Insight insight, String script) {
-		Number x = (Number) transportScript(insight, script);
+	public Long getLong(Insight globalStoreInsight, String script) {
+		Number x = (Number) transportScript(globalStoreInsight, null, script);
 		return x.longValue();
 	}
 
 	/**
 	 * Get double from py script
 	 * 
+	 * @param globalStoreInsight
 	 * @param script
 	 * @return
 	 */
-	public double getDouble(Insight insight, String script) {
-		Number x = (Number) transportScript(insight, script);
+	public double getDouble(Insight globalStoreInsight, String script) {
+		Number x = (Number) transportScript(globalStoreInsight, null, script);
 		return x.doubleValue();
 	}
 
 	/**
 	 * Get String from py script
 	 * 
+	 * @param globalStoreInsight
 	 * @param script
 	 * @return
 	 */
-	public String getString(Insight insight, String script) {
-		return (String) transportScript(insight, script);
+	public String getString(Insight globalStoreInsight, String script) {
+		return (String) transportScript(globalStoreInsight, null, script);
 	}
 
 	/*
 	 * This method is used to get the column names of a frame
 	 * 
-	 * @param insight
+	 * @param globalStoreInsight
 	 * @param frameName
 	 * @return
 	 */
-	public String[] getColumns(Insight insight, String frameName) {
+	public String[] getColumns(Insight globalStoreInsight, String frameName) {
 		String script = "list(" + frameName + ".columns)";
-		List<String> colNames = (List<String>) transportScript(insight, script);
+		List<String> colNames = (List<String>) transportScript(globalStoreInsight, null, script);
 		String[] colNamesArray = new String[colNames.size()];
 		colNamesArray = colNames.toArray(colNamesArray);
 		return colNamesArray;
@@ -189,27 +197,27 @@ public class PyTransporter {
 	
 	/**
 	 * 
-	 * @param insight
-	 * @param script
-	 */
-	public Object executePyDirect(Insight insight, String ... script) {
-		String singleScript = convertArrayToString(script);
-		return transportScript(insight, singleScript);
-	}
-
-	/**
-	 * 
-	 * @param insight
+	 * @param globalStoreInsight
 	 * @param inscript
 	 * @return
 	 */
-	public Object executePyWithDefualtVars(Insight insight, String... script) {
-		String[] paths = getDefaultPaths(insight);
+	public Object executePyWithDefualtVars(Insight globalStoreInsight, String script) {
+		return executePyWithDefualtVars(globalStoreInsight, null, script);
+	}
+	
+	/**
+	 * 
+	 * @param globalStoreInsight
+	 * @param executionInsight
+	 * @param script
+	 * @return
+	 */
+	public Object executePyWithDefualtVars(Insight globalStoreInsight, Insight executionInsight, String script) {
+		String[] paths = getDefaultPaths(globalStoreInsight);
 		StringBuilder pathVars = generateDefaultVars(paths);
-		transportScript(insight, pathVars.toString());
+		transportScript(globalStoreInsight, executionInsight, pathVars.toString());
 
-		String singleScript = convertArrayToString(script);
-		Object output = transportScript(insight, singleScript);
+		Object output = transportScript(globalStoreInsight, executionInsight, script);
 		if(output instanceof String) {
 			String strOutput = (String) output;
 			// clean up the output
@@ -274,26 +282,12 @@ public class PyTransporter {
 
 	/**
 	 * 
+	 * @param globalStoreInsight
+	 * @param executionInsight
 	 * @param script
 	 * @return
 	 */
-	protected String convertArrayToString(String... script) {
-		StringBuilder retString = new StringBuilder();
-		for (int lineIndex = 0; lineIndex < script.length; lineIndex++) {
-			if (script[lineIndex] != null) {
-				retString.append(script[lineIndex]).append("\n");
-			}
-		}
-		return retString.toString();
-	}
-
-	/**
-	 * 
-	 * @param insight
-	 * @param script
-	 * @return
-	 */
-	public Object transportScript(Insight insight, String script) {
+	public Object transportScript(Insight globalStoreInsight, Insight executionInsight, String script) {
 		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 
 		PayloadStruct ps = new PayloadStruct();
@@ -303,8 +297,11 @@ public class PyTransporter {
 		ps.payloadClasses = new Class[] {String.class};
 		ps.longRunning = true;
 		// we always need an insight
-		ps.insightId = insight.getInsightId();
+		ps.insightId = globalStoreInsight.getInsightId();
 		ps.jobId = ThreadStore.getJobId();
+		if(executionInsight != null) {
+        	ps.executionInsightId = executionInsight.getInsightId();
+        }
 		
 		if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
@@ -322,13 +319,13 @@ public class PyTransporter {
 	
 	/**
 	 * 
-	 * @param insight
+	 * @param globalStoreInsight
 	 */
-    public void clearInsightGlobals(Insight insight) {
+    public void clearInsightGlobals(Insight globalStoreInsight) {
         PayloadStruct ps = new PayloadStruct();
         ps.operation = PayloadStruct.OPERATION.INSIGHT;
         ps.payload = new Object[]{"CLEAR_NON_MODULE_GLOBALS"};
-        ps.insightId = insight.getInsightId();
+        ps.insightId = globalStoreInsight.getInsightId();
         if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(ps != null && ps.ex != null) {
@@ -343,13 +340,13 @@ public class PyTransporter {
 
     /**
      * 
-     * @param insight
+     * @param globalStoreInsight
      */
-    public void removeInsightGlobals(Insight insight) {
+    public void removeInsightGlobals(Insight globalStoreInsight) {
         PayloadStruct ps = new PayloadStruct();
         ps.operation = PayloadStruct.OPERATION.INSIGHT;
         ps.payload = new Object[]{"REMOVE_INSIGHT_GLOBALS"};
-        ps.insightId = insight.getInsightId();
+        ps.insightId = globalStoreInsight.getInsightId();
         if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(ps != null && ps.ex != null) {
