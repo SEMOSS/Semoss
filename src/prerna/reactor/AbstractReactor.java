@@ -71,8 +71,6 @@ public abstract class AbstractReactor implements IReactor {
 	protected String[] defaultOutputAlias;
 	boolean evaluate = false;
 	
-	protected String jobId;
-	
 	// all the different keys to get
 	public String[] keysToGet = new String[]{"no keys defined"};
 	// which of these are optional : 1 means required, 0 means optional
@@ -388,11 +386,10 @@ public abstract class AbstractReactor implements IReactor {
 	 */
 	
 	@Override
-	public void setPixel(String operation, String fullOperation, String jobId) {
+	public void setPixel(String operation, String fullOperation) {
 		this.operationName = operation;
 		this.signature = fullOperation;
 		this.originalSignature = fullOperation;
-		this.jobId = jobId;
 	}
 	
 	@Override
@@ -603,8 +600,7 @@ public abstract class AbstractReactor implements IReactor {
 	public Logger getLogger(String className) {
 		String jobId = ThreadStore.getJobId();
 		if(jobId != null) {
-			this.jobId = jobId;
-			Logger retLogger = new InMemoryConsole(className, this.jobId);
+			Logger retLogger = new InMemoryConsole(className, ThreadStore.getJobId());
 			return retLogger;
 		}
 		
@@ -615,8 +611,7 @@ public abstract class AbstractReactor implements IReactor {
 	public Logger getLogger(String className, boolean partial) {
 		String jobId = ThreadStore.getJobId();
 		if(jobId != null) {
-			this.jobId = jobId;
-			InMemoryConsole retLogger = new InMemoryConsole(className, this.jobId);
+			InMemoryConsole retLogger = new InMemoryConsole(className, ThreadStore.getJobId());
 			retLogger.setPartial(true);
 			return retLogger;
 		}
@@ -638,22 +633,6 @@ public abstract class AbstractReactor implements IReactor {
 	 */
 	protected String getRouteId() {
 		return ThreadStore.getRouteId();
-	}
-	
-	/**
-	 * Set the job id for this pixel execution
-	 * @param jobId
-	 */
-	public void setJobId(String jobId) {
-		this.jobId = jobId;
-	}
-	
-	/**
-	 * Get the job id for this pixel execution
-	 * @return
-	 */
-	protected String getJobId() {
-		return this.jobId;
 	}
 	
 	/**

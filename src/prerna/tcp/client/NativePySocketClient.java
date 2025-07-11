@@ -25,6 +25,7 @@ import com.google.gson.JsonParser;
 
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.comm.PixelJobManager;
@@ -276,6 +277,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						// this is a request for a reactor
 						else if(ps.operation == PayloadStruct.OPERATION.REACTOR) {
 							final PayloadStruct finalPs = ps;
+							final String jobId = ps.jobId;
+							final String sessionId = ThreadStore.getSessionId();
+							final String routeId = ThreadStore.getRouteId();
 							// I'm creating a new thread to run the pixel
 						    new Thread(() -> {
 						        classLogger.debug("Starting reactor operation for epoc: {}", finalPs.epoc);
@@ -286,6 +290,13 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						            if(insight == null) {
 						            	throw new IllegalArgumentException("Could not find the insight id");
 						            }
+						            // set in thread
+						    		ThreadStore.setInsightId(insight.getInsightId());
+						    		ThreadStore.setSessionId(sessionId);
+						    		ThreadStore.setRouteId(routeId);
+						    		ThreadStore.setJobId(jobId);
+						    		ThreadStore.setUser(insight.getUser());
+						    		
 						            String pixelOp = (String) finalPs.payload[0];
 						            if(!(pixelOp=pixelOp.trim()).endsWith(";")) {
 						                pixelOp+=";";

@@ -18,14 +18,11 @@ import prerna.util.AssetUtility;
 public class PyTransporter {
 
 	private static final Logger classLogger = LogManager.getLogger(PyTransporter.class);
-
-	public static final String METHOD_DELIMITER = "$$##";
-	public static String curEncoding = null;
-
 	protected Logger logger = null;
 
+	public static String curEncoding = null;
+
 	private SocketClient sc = null;
-	private String method = null;
 	
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
@@ -297,14 +294,12 @@ public class PyTransporter {
 	 * @return
 	 */
 	public Object transportScript(Insight insight, String script) {
-		if(method != null) {
-			script = method + METHOD_DELIMITER + script;
-			method = null;
-		}
-
 		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 
-		PayloadStruct ps = constructPayload(methodName, script);
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = PayloadStruct.OPERATION.PYTHON;
+		ps.methodName = methodName;
+		ps.payload = new Object[] {script};
 		ps.payloadClasses = new Class[] {String.class};
 		ps.longRunning = true;
 		// we always need an insight
@@ -327,16 +322,44 @@ public class PyTransporter {
 	
 	/**
 	 * 
-	 * @param methodName
-	 * @param objects
-	 * @return
+	 * @param insight
 	 */
-	private PayloadStruct constructPayload(String methodName, Object...objects ) {
-		PayloadStruct ps = new PayloadStruct();
-		ps.operation = PayloadStruct.OPERATION.PYTHON;
-		ps.methodName = methodName;
-		ps.payload = objects;
-		return ps;
-	}	
+    public void clearInsightGlobals(Insight insight) {
+        PayloadStruct ps = new PayloadStruct();
+        ps.operation = PayloadStruct.OPERATION.INSIGHT;
+        ps.payload = new Object[]{"CLEAR_NON_MODULE_GLOBALS"};
+        ps.insightId = insight.getInsightId();
+        if(sc.isConnected()) {
+			ps = (PayloadStruct)sc.executeCommand(ps);
+			if(ps != null && ps.ex != null) {
+				logger.info("Exception " + ps.ex);
+				throw new SemossPixelException(ps.ex);
+			}
+		} else {
+			logger.info("Py engine is not available anymore ");
+        	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+		}
+    }
 
+    /**
+     * 
+     * @param insight
+     */
+    public void removeInsightGlobals(Insight insight) {
+        PayloadStruct ps = new PayloadStruct();
+        ps.operation = PayloadStruct.OPERATION.INSIGHT;
+        ps.payload = new Object[]{"REMOVE_INSIGHT_GLOBALS"};
+        ps.insightId = insight.getInsightId();
+        if(sc.isConnected()) {
+			ps = (PayloadStruct)sc.executeCommand(ps);
+			if(ps != null && ps.ex != null) {
+				logger.info("Exception " + ps.ex);
+				throw new SemossPixelException(ps.ex);
+			}
+		} else {
+			logger.info("Py engine is not available anymore ");
+        	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+		}
+    }
+	
 }

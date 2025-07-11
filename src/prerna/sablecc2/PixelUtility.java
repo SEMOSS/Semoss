@@ -456,7 +456,7 @@ public class PixelUtility {
 	 * @param jobId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getDatasourcesMetadata(User user, String expression, String jobId) {
+	public static List<Map<String, Object>> getDatasourcesMetadata(User user, String expression) {
 		/*
 		 * Using a translation object to go through and figure out all 
 		 * the datasources and how we would want to manipulate
@@ -466,7 +466,7 @@ public class PixelUtility {
 		
 		Insight in = new Insight();
 		in.setUser(user);
-		DatasourceTranslation translation = new DatasourceTranslation(in, jobId);
+		DatasourceTranslation translation = new DatasourceTranslation(in);
 		try {
 			expression = PixelPreProcessor.preProcessPixel(expression, new ArrayList<String>(), new HashMap<String, String>());
 			Parser p = new Parser(
@@ -491,10 +491,10 @@ public class PixelUtility {
 	 * @param jobId
 	 * @return
 	 */
-	public static Set<String> getDatabaseIds(User user, List<String> expression, String jobId) {
+	public static Set<String> getDatabaseIds(User user, List<String> expression) {
 		StringBuilder finalExpression = new StringBuilder();
 		expression.forEach(s -> finalExpression.append(s));
-		return getDatabaseIds(user, finalExpression.toString(), jobId);
+		return getDatabaseIds(user, finalExpression.toString());
 	}
 	
 	/**
@@ -505,7 +505,7 @@ public class PixelUtility {
 	 * @param jobId
 	 * @return
 	 */
-	public static Set<String> getDatabaseIds(User user, String expression, String jobId) {
+	public static Set<String> getDatabaseIds(User user, String expression) {
 		/*
 		 * Using a translation object to go through and figure out all 
 		 * the datasources and how we would want to manipulate
@@ -515,7 +515,7 @@ public class PixelUtility {
 		
 		Insight in = new Insight();
 		in.setUser(user);
-		DatasourceTranslation translation = new DatasourceTranslation(in, jobId);
+		DatasourceTranslation translation = new DatasourceTranslation(in);
 		try {
 			expression = PixelPreProcessor.preProcessPixel(expression, new ArrayList<String>(), new HashMap<String, String>());
 			Parser p = new Parser(
@@ -562,12 +562,10 @@ public class PixelUtility {
 	 * @param replacementOptions			List of maps containing "index" and "pixel" which represents the pixel step to change 
 	 * 										and the new pixel to put in its place
 	 * 										If no index is found and the size of the list is 1, we will replace the first datasource
-
-	 * @param jobId
 	 * @return
 	 */
-	public static List<String> modifyInsightDatasource(Insight in, String fullRecipe, List<Map<String, Object>> replacementOptions, String jobId) {
-		ReplaceDatasourceTranslation translation = new ReplaceDatasourceTranslation(in, jobId);
+	public static List<String> modifyInsightDatasource(Insight in, String fullRecipe, List<Map<String, Object>> replacementOptions) {
+		ReplaceDatasourceTranslation translation = new ReplaceDatasourceTranslation(in);
 		translation.setReplacements(replacementOptions);
 		try {
 			fullRecipe = PixelPreProcessor.preProcessPixel(fullRecipe, translation.encodingList, translation.encodedToOriginal);
@@ -605,13 +603,12 @@ public class PixelUtility {
 	 * @param recipeIds
 	 * @param params
 	 * @param insightName
-	 * @param jobId
 	 * @return
 	 */
 	public static List<String> parameterizeRecipe(Insight currentInsight, List<String> recipe, List<String> recipeIds, 
-			List<ParamStruct> params, String insightName, String jobId) {
+			List<ParamStruct> params, String insightName) {
 		Insight in = new Insight();
-		ParamStructSaveRecipeTranslation translation = new ParamStructSaveRecipeTranslation(in, jobId);
+		ParamStructSaveRecipeTranslation translation = new ParamStructSaveRecipeTranslation(in);
 		translation.setInputsToParameterize(params);
 		
 		// loop through recipe
@@ -1253,7 +1250,7 @@ public class PixelUtility {
 	 * @return
 	 */
 	@Deprecated
-	public static List<String> getParameterizedRecipe(User user, List<String> recipe, List<Map<String, Object>> paramsMap, String insightName, String jobId) {
+	public static List<String> getParameterizedRecipe(User user, List<String> recipe, List<Map<String, Object>> paramsMap, String insightName) {
 		int numParams = paramsMap.size();
 		List<String> params = new ArrayList<>(numParams);
 		for(Map<String, Object> pMap : paramsMap) {
@@ -1266,7 +1263,7 @@ public class PixelUtility {
 		
 		Insight in = new Insight();
 		in.setUser(user);
-		ParameterizeSaveRecipeTranslation translation = new ParameterizeSaveRecipeTranslation(in, jobId);
+		ParameterizeSaveRecipeTranslation translation = new ParameterizeSaveRecipeTranslation(in);
 		translation.setInputsToParameterize(params);
 		
 		// loop through recipe

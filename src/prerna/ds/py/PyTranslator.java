@@ -192,5 +192,21 @@ public class PyTranslator {
 	public String runSingle(String... script) {
 		return this.pyTransporter.executePyWithDefualtVars(this.insight, script) + "";
 	}
+	
+	/**
+	 * 
+	 * @param insight
+	 */
+    public void clearInsightGlobals() {
+    	this.pyTransporter.clearInsightGlobals(this.insight);
+    }
+
+    /**
+     * 
+     * @param insight
+     */
+    public void removeInsightGlobals() {
+    	this.pyTransporter.removeInsightGlobals(this.insight);
+    }
 
 }

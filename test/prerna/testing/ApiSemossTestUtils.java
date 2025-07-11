@@ -98,8 +98,7 @@ public class ApiSemossTestUtils {
 	private static NounMetadata processRawPixel(String pixel, PixelRunner pr) {
 		try {
 			System.out.println(pixel);
-			// set the jobId to be the insightId
-			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight().getInsightId(), ApiSemossTestInsightUtils.getInsight());
+			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
 		} catch(SemossPixelException e) {
 			classLogger.error(Constants.ERROR_MESSAGE, e);
 			throw e;
@@ -118,8 +117,7 @@ public class ApiSemossTestUtils {
 		boolean errorChecked = false;
 		try {
 			classLogger.info(pixel);
-			// set the jobId to be the insightId
-			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight().getInsightId(), ApiSemossTestInsightUtils.getInsight());
+			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
 
 			NounMetadata ret = pr.getResults().get(0);
 			assertEquals(PixelDataType.ERROR, ret.getNounType(),
@@ -148,8 +146,7 @@ public class ApiSemossTestUtils {
 
 		classLogger.info(pixel);
 		try {
-			// set the jobId to be the insightId
-			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight().getInsightId(), ApiSemossTestInsightUtils.getInsight());
+			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
 			fail();
 		} catch (SemossPixelException e) {
 			assertEquals(e.getMessage(), error);
