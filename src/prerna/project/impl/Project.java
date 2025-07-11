@@ -1793,11 +1793,9 @@ public class Project implements IProject {
 		// create the py translator
 		PyTransporter pyTransporter = new PyTransporter();
 		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		this.pyTranslator = new PyTranslator();
 		Insight processInsight = new Insight();
 		InsightStore.getInstance().put(processInsight);
-		this.pyTranslator.setGlobalStoreInsight(processInsight);
-		this.pyTranslator.setPyTransporter(pyTransporter);
+		pyTranslator = new PyTranslator(pyTransporter, processInsight);
 		// finally set the cpw in the class
 		this.cpw = cpwToInit;
 	}

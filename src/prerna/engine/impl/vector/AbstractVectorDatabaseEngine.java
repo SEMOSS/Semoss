@@ -753,11 +753,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		// create the py translator
 		PyTransporter pyTransporter = new PyTransporter();
 		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		pyTranslator = new PyTranslator();
 		Insight processInsight = new Insight();
 		InsightStore.getInstance().put(processInsight);
-		pyTranslator.setGlobalStoreInsight(processInsight);
-		pyTranslator.setPyTransporter(pyTransporter);
+		this.pyTranslator = new PyTranslator(pyTransporter, processInsight);
 		
 		try {
 			// this is engine specific... or can be
@@ -773,7 +771,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", commands));
 			
-			pyTranslator.runEmptyPy(commands);
+			this.pyTranslator.runEmptyPy(commands);
 			
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;

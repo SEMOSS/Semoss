@@ -865,11 +865,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		// create the py translator
 		PyTransporter pyTransporter = new PyTransporter();
 		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		pyTranslator = new PyTranslator();
 		Insight processInsight = new Insight();
 		InsightStore.getInstance().put(processInsight);
-		pyTranslator.setGlobalStoreInsight(processInsight);
-		pyTranslator.setPyTransporter(pyTransporter);
+		pyTranslator = new PyTranslator(pyTransporter, processInsight);
 		
 		try {
 			String[] commands = getServerStartCommands();
