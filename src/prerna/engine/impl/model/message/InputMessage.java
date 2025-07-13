@@ -33,9 +33,6 @@ public class InputMessage extends AbstractMessage {
     @SerializedName("tool_name")
     private String toolName;     // For tool result messages only
 
-    @SerializedName("ornaments")
-    private Map<String, Object> ornaments = new HashMap<>();
-
     private Map<String, Object> paramMap = new HashMap<>();
     private List<ImageInfo> imageInfos = new ArrayList<>();
     // Make room package-private for builder, private for rest
@@ -207,19 +204,6 @@ public class InputMessage extends AbstractMessage {
     }
     public void setToolName(String toolName) {
         this.toolName = toolName;
-    }
-
-    // ----------- Ornaments -----------
-    public Map<String, Object> getOrnaments() {
-        return new HashMap<>(ornaments);
-    }
-
-    public void setOrnament(String key, Object value) {
-        if (ornaments == null) ornaments = new HashMap<>();
-        ornaments.put(key, value);
-    }
-    public Object getOrnament(String key) {
-        return ornaments != null ? ornaments.get(key) : null;
     }
 
     public Map<String, Object> getParamMap() {

@@ -2,9 +2,12 @@ package prerna.engine.impl.model.message;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
 
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
@@ -25,6 +28,9 @@ public abstract class AbstractMessage {
 
     private SemossDate dateCreated;
     
+    @SerializedName("ornaments")
+    protected Map<String, Object> ornaments = new HashMap<>();
+
 	public AbstractMessage() {
 		this.messageId = UUID.randomUUID().toString();
         this.dateCreated = new SemossDate(ZonedDateTime.now(ZoneOffset.UTC));
@@ -120,4 +126,16 @@ public abstract class AbstractMessage {
 		this.tokens=tokens;
 	}
 
+    // ----------- Ornaments -----------
+    public Map<String, Object> getOrnaments() {
+        return new HashMap<>(ornaments);
+    }
+
+    public void setOrnament(String key, Object value) {
+        if (ornaments == null) ornaments = new HashMap<>();
+        ornaments.put(key, value);
+    }
+    public Object getOrnament(String key) {
+        return ornaments != null ? ornaments.get(key) : null;
+    }
 }

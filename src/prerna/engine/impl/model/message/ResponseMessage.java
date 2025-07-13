@@ -1,11 +1,13 @@
 package prerna.engine.impl.model.message;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
 
+import prerna.engine.impl.model.message.InputMessage.Builder;
 import prerna.engine.impl.model.responses.AskImageModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
@@ -105,6 +107,24 @@ public class ResponseMessage extends AbstractMessage {
 			message.modelEngineResponse = response;
 			return this;
 		}
+		
+        public Builder withRAGChunks(List<Map<String, Object>> chunks) {
+            message.setOrnament("chunks", chunks);
+            return this;
+        }
+        
+        public Builder withMetadata(String key, Object value) {
+            message.setOrnament(key, value);
+            return this;
+        }
+
+        public Builder withOrnaments(Map<String, Object> orn) {
+            if (orn != null) {
+                message.ornaments = new HashMap<>(orn);
+            }
+            return this;
+        }
+
 
 		public static Builder fromAskModelEngineResponse(AskModelEngineResponse<?> llmResponse) {
 
