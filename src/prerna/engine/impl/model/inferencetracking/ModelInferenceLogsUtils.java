@@ -173,7 +173,7 @@ public class ModelInferenceLogsUtils {
               roomIdColumnWasAdded = true;
           }
           
-          // was model id just added? 2025-06-26 addition. if so update w/ insight id
+          // was model id just added? 2025-06-26 addition. if so update w/ agent id
           if (tableName.equalsIgnoreCase("ROOM") && col.equalsIgnoreCase("MODEL_ID")) {
         	  modelIdColumnWasAdded = true;
           }
@@ -1833,7 +1833,7 @@ public class ModelInferenceLogsUtils {
 
       // Prepare statement
       updateStmt.setString(1, messageHistory);
-      updateStmt.setTimestamp(2, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+      updateStmt.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
       updateStmt.setString(3, roomId);
       updateStmt.setString(4, userId);
 
