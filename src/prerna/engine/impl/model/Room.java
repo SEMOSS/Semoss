@@ -28,7 +28,7 @@ public class Room {
 	private String userId;
 	private String roomName;
 	private String shareId;
-	private boolean archived;
+	private boolean isActive;
 	private Timestamp createdAt;
 	private Timestamp updatedAt;
 	private final List<AbstractMessage> messages = new ArrayList<>();
@@ -45,14 +45,14 @@ public class Room {
 	}
 
 	// Use this constructor if you want to load from JSON (as from DB)
-	public Room(String room_id, String userId, String roomName, String systemMessage, String shareId, boolean archived, Timestamp createdAt,
+	public Room(String room_id, String userId, String roomName, String systemMessage, String shareId, boolean isActive, Timestamp createdAt,
 			Timestamp updatedAt, String messagesJson, boolean pinned, String options, String modelId) {
 		this.room_id = room_id;
 		this.userId = userId;
 		this.roomName = roomName;
 		this.systemMessage = systemMessage;
 		this.shareId = shareId;
-		this.archived = archived;
+		this.isActive = isActive;
 		this.createdAt = createdAt;
 		this.updatedAt = updatedAt;
 		this.pinned = pinned;
@@ -268,12 +268,12 @@ public class Room {
 		this.shareId = shareId;
 	}
 
-	public boolean isArchived() {
-		return archived;
+	public boolean isActive() {
+		return isActive;
 	}
 
-	public void setArchived(boolean archived) {
-		this.archived = archived;
+	public void isActive(boolean isActive) {
+		this.isActive = isActive;
 	}
 
 	public Timestamp getCreatedAt() {
