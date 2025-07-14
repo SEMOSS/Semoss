@@ -8,10 +8,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PinRoomReactor extends AbstractReactor {
 	
-	
+	private static final String FAVORITE = "favorite";
 	
 	public PinRoomReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.PINNED.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.ROOM_ID.getKey(), FAVORITE};
 		this.keyRequired = new int [] {1, 1};
 	}
 	
@@ -20,7 +20,7 @@ public class PinRoomReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
-		boolean pinned = Boolean.parseBoolean(this.keyValue.get(this.keyValue.get(ReactorKeysEnum.PINNED.getKey())));
+		boolean pinned = Boolean.parseBoolean(this.keyValue.get(FAVORITE));
 		
 		boolean result = ModelInferenceLogsUtils.doSetRoomToPinned(insight.getUser().getPrimaryLoginToken().getId(), roomId, pinned);
 		

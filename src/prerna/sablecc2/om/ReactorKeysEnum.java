@@ -186,7 +186,6 @@ public enum ReactorKeysEnum {
 	PDF_SIGNATURE_LABEL("pdfSignatureLabel",                	"String containing text to add above the signature block to specify signature label"),
 	PERMISSION("permission", 									"Permission level"),
 	PERMISSION_FILTERS("permissionFilters",						"Additional filter to append based on permission level (1=Owner, 2=Editor, 3=ReadOnly)"),
-	PINNED("pinned",                                            "Boolean for pinned room"),
 	PIXEL("pixel", 												"Pixel script as string"),
 	PIXEL_ID("pixelId", 										"The pixel id for this pixel step"),
 	PLACE_HOLDER_DATA("placeHolderData",						"Updated place holder information of the template"),
