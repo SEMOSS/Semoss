@@ -1286,6 +1286,35 @@ public class ModelInferenceLogsUtils {
   /**
    * @param userId
    * @param roomId
+   * @return
+   */
+  public static boolean doSetRoomToPinned(String userId, String roomId, boolean pinned) {
+    try {
+      UpdateQueryStruct qs = new UpdateQueryStruct();
+      qs.setEngine(modelInferenceLogsDb);
+      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
+      List<IQuerySelector> selectors = new ArrayList<>();
+      List<Object> values = new ArrayList<>();
+      selectors.add(new QueryColumnSelector("ROOM__PINNED"));
+      values.add(pinned);
+      qs.setSelectors(selectors);
+      qs.setValues(values);
+      qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+      UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+      String updateQ = updateInterp.composeQuery();
+
+      modelInferenceLogsDb.insertData(updateQ);
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * @param userId
+   * @param roomId
    * @param roomName
    * @return
    */
