@@ -1127,6 +1127,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					/*projectId*/insight.getProjectId(),
 					/*user*/insight.getUser(),
 					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null, 
 					/*prompt*/searchStatement,
 					/*fullPrompt*/null,

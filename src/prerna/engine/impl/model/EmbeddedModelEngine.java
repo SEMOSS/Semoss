@@ -49,6 +49,7 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 					/*projectId*/insight.getProjectId(),
 					/*user*/insight.getUser(),
 					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null,
 					/*prompt*/input + "",
 					/*fullPrompt*/null,

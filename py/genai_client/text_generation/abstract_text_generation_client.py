@@ -9,6 +9,8 @@ from ..constants import (
     EmbeddingsModelEngineResponse,
     FULL_PROMPT,
 )
+from ..message_builders.semoss_base.semoss_models import SEMOSSMessage
+from ..message_builders.semoss_base.semoss_message_builder import SEMOSSMessageBuilder
 
 
 class ModelLimits(BaseModel):
@@ -29,6 +31,8 @@ class AskSettings(BaseModel):
     history: Optional[List[Dict]] = None
     image_url: Optional[List[str]] = None
     image_encoded: Optional[List[str]] = None
+    semoss_messages: Optional[List[SEMOSSMessage]] = None
+    system_prompt: Optional[str] = None
 
 
 class AbstractTextGenerationClient(ABC):
@@ -86,7 +90,7 @@ class AbstractTextGenerationClient(ABC):
         )
 
     def get_ask_settings(
-        self, history=None, use_history: bool = True, **kwargs
+        self, history=None, use_history: bool = True, context: str = None, **kwargs
     ) -> AskSettings:
         """
         Get the ask settings from the provided keyword arguments.
@@ -94,21 +98,57 @@ class AbstractTextGenerationClient(ABC):
         Not things I necissarily pass to the model call itself.
         """
         full_prompt = kwargs.pop(FULL_PROMPT, None)
+        if full_prompt:
+            if isinstance(full_prompt, List):
+                if isinstance(full_prompt[0], str):
+                    full_prompt = [json.loads(i) for i in full_prompt]
+                elif isinstance(full_prompt[0], dict):
+                    full_prompt = full_prompt
 
-        streaming = kwargs.pop("streaming", True)
-        if not streaming:
-            streaming = kwargs.pop("stream", True)
+        message_json = kwargs.pop("message_json", None)
+        semoss_messages = None
+        if message_json:
+            try:
+                message_json = json.loads(message_json)
+                semoss_messages = SEMOSSMessageBuilder().build_messages(
+                    input_messages=message_json
+                )
+            except json.JSONDecodeError:
+                try:
+                    decoded_string = message_json.replace('\\n",', '",')
+                    decoded_string = decoded_string.encode().decode("unicode_escape")
 
-        image_url = kwargs.pop("image_url", None)
+                    message_json = json.loads(decoded_string)
+                    semoss_messages = SEMOSSMessageBuilder().build_messages(
+                        input_messages=message_json
+                    )
+                except Exception as e:
+                    raise ValueError(f"Invalid JSON format in message_json.: {e}")
+
+        json_messages_param_map = kwargs
+        if semoss_messages:
+            json_messages_param_map = json_messages_param_map | semoss_messages[-1].param_map
+
+        # This is a mess but can be cleaned up after we switch to supporting only semoss_messages
+        streaming = json_messages_param_map.pop("streaming", None)
+        if streaming is None:
+            streaming = json_messages_param_map.pop("stream", True)
+
+        # After switch we can remove this
+        image_url = json_messages_param_map.pop("image_url", None)
         if isinstance(image_url, str):
             image_url = [image_url]
 
-        image_encoded = kwargs.pop("image_encoded", None)
+        # After switch we can remove this
+        image_encoded = json_messages_param_map.pop("image_encoded", None)
         if isinstance(image_encoded, str):
             image_encoded = [image_encoded]
 
         if not use_history:
             history = None
+
+        # After switch we can remove this
+        context = context if context else None
 
         return AskSettings(
             full_prompt=full_prompt,
@@ -116,6 +156,8 @@ class AbstractTextGenerationClient(ABC):
             history=history,
             image_url=image_url,
             image_encoded=image_encoded,
+            semoss_messages=semoss_messages,
+            system_prompt=context,
         )
 
     def get_template(self, template_name=None, **kwargs):

@@ -217,6 +217,7 @@ public enum ReactorKeysEnum {
 	RELOAD("reload", 											"Reload an object or connection"),
 	REPLACE("replace",											"Replace data when adding to existing app"),
 	REPOSITORY("repository", 									"Name of the repository. Usually namespaced to be username\\appname"),
+	ROOM_ID("roomId",												"Room ID used for llm calls"),
 	ROUTE_ID("routeId",											"Id of the route cookie"),
 	ROUTINE("routine",											"The name of the routine"),
 	ROW_COUNT("rowCount",										"Boolean get the number of rows"),
@@ -286,6 +287,7 @@ public enum ReactorKeysEnum {
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
 	WIDTH("width", 											    "The width to use for screenshot capture"),
+	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
 	X("x",		 											    "The X coordiante."),
 	Y("y",		 											    "The Y coordiante.");
 

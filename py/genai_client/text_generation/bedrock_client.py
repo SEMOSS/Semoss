@@ -15,10 +15,7 @@ from ..constants import (
     IMAGE_EXTENSION,
     AskModelEngineResponse,
 )
-
-# from langchain_core.prompts import PromptTemplate
-# from langchain_community.document_loaders.csv_loader import CSVLoader
-# from langchain_text_splitters import CharacterTextSplitter
+from .bedrock_clients.bedrock_client2 import BedrockClient2
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -327,6 +324,23 @@ class BedrockClient(AbstractTextGenerationClient):
         try:
             client = self._get_client()
             model_engine_response = AskModelEngineResponse()
+
+            if "message_json" in kwargs:
+                bedrock_client2 = BedrockClient2(
+                    modelId=self.modelId,
+                    access_key=self.access_key,
+                    secret_key=self.secret_key,
+                    region=self.region,
+                    **kwargs,
+                )
+                return bedrock_client2.ask_call(
+                    question=question,
+                    context=context,
+                    use_history=use_history,
+                    history=history,
+                    prefix=prefix,
+                    **kwargs,
+                )
 
             message_payload = self._prepare_message_payload(
                 question, context, template_name, history, use_history, **kwargs

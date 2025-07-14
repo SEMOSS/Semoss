@@ -47,6 +47,7 @@ import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
+import prerna.query.querystruct.selectors.QueryTypedColumnSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.reactor.export.ClustergramFormatter;
 import prerna.reactor.export.GraphFormatter;
@@ -92,6 +93,7 @@ public class GsonUtility {
 				// selectors
 				.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdapter())
 				.registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter())
+				.registerTypeAdapter(QueryTypedColumnSelector.class, new QueryTypedColumnSelectorAdapter())
 				.registerTypeAdapter(QueryFunctionSelector.class, new QueryFunctionSelectorAdapter())
 				.registerTypeAdapter(QueryArithmeticSelector.class, new QueryArithmeticSelectorAdapter())
 				.registerTypeAdapter(QueryOpaqueSelector.class, new QueryOpaqueSelectorAdapter())
