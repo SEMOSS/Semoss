@@ -256,7 +256,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String script = addDocumentPyCommand.toString();
 		
 		classLogger.info("Running >>>" + script);
-		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyTranslator.runDirectPy(script);
+		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyTranslator.runDirectPy(insight, script);
 
 		if (ClusterUtil.IS_CLUSTER) {
 			// this should already be handled, but just in case...
@@ -274,7 +274,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 							 .append(indexClass)
 							 .append("']")
 							 .append(".datasetsLoaded()");
-		boolean datasetsLoaded = (boolean) pyTranslator.runDirectPy(checkForEmptyDatabase.toString());
+		boolean datasetsLoaded = (boolean) pyTranslator.runDirectPy(insight, checkForEmptyDatabase.toString());
 	}
 	
 	@Override
@@ -569,7 +569,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// close the method
  		callMaker.append(")");
  		classLogger.info("Running >>> " + callMaker.toString());
- 		List<Map<String, Object>> output = (List<Map<String, Object>>) pyTranslator.runDirectPy(callMaker.toString());
+ 		List<Map<String, Object>> output = (List<Map<String, Object>>) pyTranslator.runDirectPy(insight, callMaker.toString());
 		return output;
 	}
 	

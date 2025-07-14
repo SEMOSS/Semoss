@@ -18,7 +18,6 @@ import org.apache.tika.metadata.Metadata;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
-import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.CreateEmbeddingsParamOptions;
 import prerna.sablecc2.om.GenRowStruct;
@@ -70,7 +69,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 		}
 
 		// send the insight so it can be used with IModelEngine call
-		paramMap.put(AbstractVectorDatabaseEngine.INSIGHT, this.insight);
+		paramMap.put(Constants.INSIGHT, this.insight);
 
 		String rootFolder = getRootFolder();
 		// this is coming from an insight so i assume its just the file names

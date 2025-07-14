@@ -10,9 +10,9 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.internal.LinkedTreeMap;
 
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -134,11 +134,9 @@ public class SentimentFunctionEngine extends AbstractReactorFunctionEngine {
 		connectClient();
 		
 		// create the py translator
-		PyTransporter pyTransporter = new PyTransporter();
-		pyTransporter.setSocketClient(socketClient);
-		pyTranslator = new PyTranslator();
-		pyTranslator.setInsight(new Insight());
-		pyTranslator.setPyTransporter(pyTransporter);
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(socketClient, processInsight);
 		
 		// run a prefix command
 		setPrefix(this.prefix);
