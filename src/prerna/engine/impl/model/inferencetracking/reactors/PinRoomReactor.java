@@ -20,7 +20,7 @@ public class PinRoomReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
-		boolean pinned = Boolean.parseBoolean(this.keyValue.get(this.keyValue.get(ReactorKeysEnum.PINNED.getKey())));
+		boolean pinned = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.PINNED.getKey()));
 		
 		boolean result = ModelInferenceLogsUtils.doSetRoomToPinned(insight.getUser().getPrimaryLoginToken().getId(), roomId, pinned);
 		
