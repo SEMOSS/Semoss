@@ -187,7 +187,13 @@ public class PyTranslator {
 	
 	/**
 	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the execution
+	 * @param executionInsight 	 	If we have a User invoking an engine python process
+	 * 								The engine python process has its own unique insight for variable encapsulation
+	 * 								However, we need to know from what insight is the user invoking this request
+	 * 								So that if the engine is making a call back/reactor request
+	 * 								It knows which User invoked for security permissions
 	 * @param script
+	 * @return
 	 */
 	public Object runDirectPy(Insight executionInsight, String... script) {
 		return this.transportScript(executionInsight, convertArrayToString(script));
@@ -204,6 +210,11 @@ public class PyTranslator {
 
 	/**
 	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * @param executionInsight 	 	If we have a User invoking an engine python process
+	 * 								The engine python process has its own unique insight for variable encapsulation
+	 * 								However, we need to know from what insight is the user invoking this request
+	 * 								So that if the engine is making a call back/reactor request
+	 * 								It knows which User invoked for security permissions
 	 * @param script
 	 * @return
 	 */
@@ -244,7 +255,6 @@ public class PyTranslator {
 	
 	/**
 	 * 
-	 * @param this.globalStoreInsight
 	 * @param executionInsight
 	 * @param script
 	 * @return
@@ -319,7 +329,6 @@ public class PyTranslator {
 	
 	/**
 	 * 
-	 * @param this.globalStoreInsight
 	 * @param executionInsight
 	 * @param script
 	 * @return
@@ -356,7 +365,6 @@ public class PyTranslator {
 	
 	/**
 	 * 
-	 * @param this.globalStoreInsight
 	 */
     public void clearInsightGlobals() {
         PayloadStruct ps = new PayloadStruct();
@@ -377,7 +385,6 @@ public class PyTranslator {
 
     /**
      * 
-     * @param this.globalStoreInsight
      */
     public void removeInsightGlobals() {
         PayloadStruct ps = new PayloadStruct();
