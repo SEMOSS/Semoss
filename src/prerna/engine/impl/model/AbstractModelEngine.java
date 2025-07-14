@@ -17,13 +17,9 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.auth.AccessToken;
-import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -111,8 +107,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	 * @return
 	 */
 	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> hyperParameters);
-
-	
 	
 	@Override
 	public AskModelEngineResponse askRoom(String question, String context, Room room, Map<String, Object> parameters) {
