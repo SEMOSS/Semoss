@@ -12,20 +12,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AdminGetSystemInfoReactor extends AbstractReactor {
 
-
     @Override
-	public NounMetadata execute() {
+    public NounMetadata execute() {
         User user = this.insight.getUser();
 
-        
-		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+        SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
 
-		if(adminUtils == null) {
-			throw new IllegalArgumentException("User must be an admin to perform this function");
-		}
+        if (adminUtils == null) {
+            throw new IllegalArgumentException("User must be an admin to perform this function");
+        }
         // parse the user inputs into a 'keyValue' map
         organizeKeys();
-
 
         String hostname;
         try {
@@ -37,24 +34,31 @@ public class AdminGetSystemInfoReactor extends AbstractReactor {
             hostname = "unknown-host";
         }
 
-        Map<String, Object> systemInfoMap = AdminGetSystemInfoReactor.getSystemInfoDetailsMap(hostname);
+        String ipaddress;
+
+        try {
+            ipaddress = java.net.InetAddress.getLocalHost().getHostAddress();
+
+        } catch (Exception e) {
+            ipaddress = "unknown-ipaddress";
+        }
+
+        Map<String, Object> systemInfoMap = AdminGetSystemInfoReactor.getSystemInfoDetailsMap(hostname, ipaddress);
         return new NounMetadata(systemInfoMap, PixelDataType.MAP);
-	}
+    }
 
+    public static Map<String, Object> getSystemInfoDetailsMap(String hostname, String ipaddress) {
 
-    
-    public static Map<String, Object> getSystemInfoDetailsMap(String hostname){
-
-
-        Map<String, Object> systemInfoDetailsmap =  new HashMap<>();
+        Map<String, Object> systemInfoDetailsmap = new HashMap<>();
         systemInfoDetailsmap.put("isClustered", Boolean.valueOf(ClusterUtil.IS_CLUSTER));
         systemInfoDetailsmap.put("STORAGE_PROVIDER", ClusterUtil.STORAGE_PROVIDER);
-        systemInfoDetailsmap.put("REMOTE_RSERVE",ClusterUtil.REMOTE_RSERVE);
+        systemInfoDetailsmap.put("REMOTE_RSERVE", ClusterUtil.REMOTE_RSERVE);
         systemInfoDetailsmap.put("areLoadEnginesLocally", Boolean.valueOf(ClusterUtil.LOAD_ENGINES_LOCALLY));
         systemInfoDetailsmap.put("hostname", hostname);
+        systemInfoDetailsmap.put("IPAddress", ipaddress);
         systemInfoDetailsmap.put("IMAGES_FOLDER_PATH", ClusterUtil.IMAGES_FOLDER_PATH);
         systemInfoDetailsmap.put("IS_CLUSTERED_SCHEDULER", Boolean.valueOf(ClusterUtil.IS_CLUSTERED_SCHEDULER));
         return systemInfoDetailsmap;
-        
+
     }
 }
