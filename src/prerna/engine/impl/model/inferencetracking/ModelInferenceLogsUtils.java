@@ -1911,6 +1911,8 @@ public class ModelInferenceLogsUtils {
     } catch (SQLException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
+    } finally {
+        ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, stmt, resultSet);
     }
     return null;
   }
