@@ -26,7 +26,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *    r (data sits within r, must have r installed to use)
  *     native (leverages the database to execute queries)
  *     
- *  Neel 
  * */
 
 public class FrameToGraphReactor extends AbstractReactor {
@@ -34,7 +33,7 @@ public class FrameToGraphReactor extends AbstractReactor {
 	private static final String CLASS_NAME = FrameToGraphReactor.class.getName();
 	
 	public FrameToGraphReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.MODEL.getKey(), modelId };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.MODEL.getKey(), "userInput"};
 	}
 	
 	@Override
@@ -46,13 +45,15 @@ public class FrameToGraphReactor extends AbstractReactor {
 		ITableDataFrame sourceFrame = getSourceFrame(); // TODO: Remove this function and use the protected function in MergeFrames if this stays in the frame package
 		sourceFrame.setLogger(logger);
 		
+		OPERATION
+		
 		
 		// Parse the sourceFrame
 		
 		// Prompt = Combined data + expected JSON output for graphs or blocks
 		// Build result 
 		
-		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType. );
+		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 	
 	protected ITableDataFrame getSourceFrame() {
