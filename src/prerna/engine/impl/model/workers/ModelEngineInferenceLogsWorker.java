@@ -29,6 +29,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     private String projectId;
     private User user;
     private String sessionId;
+    private String roomId;
     private String context;
     private String prompt;
     private Object fullPrompt;
@@ -47,6 +48,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	    String projectId,
 	    User user,
 		String sessionId,
+		String roomId,
 	   	String context,
 	   	String prompt,
 	   	Object fullPrompt,
@@ -64,6 +66,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     	this.projectId = projectId;
     	this.user = user;
     	this.sessionId = sessionId;
+    	this.roomId = roomId;
     	this.context = context;
         this.prompt = prompt;
         if(this.prompt != null) {
@@ -130,10 +133,11 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					agentType, user.getPrimaryLoginToken().getId());
 		}
 		
-		if (!ModelInferenceLogsUtils.doCheckConversationExists(insightId)) {
+		if (!ModelInferenceLogsUtils.doCheckRoomExists(roomId)) {
 			String roomName = prompt.substring(0, Math.min(prompt.length(), 100));
 			ModelInferenceLogsUtils.doCreateNewConversation(
-				insightId, 
+				insightId,
+				roomId,
 				roomName, 
 				null, 
 				userId,
@@ -143,13 +147,14 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				engine.getEngineId(),
 				true, 
 				projectId, 
-				projectName
+				projectName,
+				null
 			);
 		}
 		
 		if (this.context != null) {
 			// set the context for the room / insight
-			ModelInferenceLogsUtils.setRoomContext(insightId, userId, userName);
+			ModelInferenceLogsUtils.setRoomContext(roomId, userId, context);
 		}
 		
 		boolean keepInputOutput = false;
@@ -174,6 +179,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				this.engine.getEngineId(),
 				insightId,
 				this.sessionId,
+				this.roomId,
 				userId,
 				userName,
 				userEmail
@@ -189,6 +195,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				this.engine.getEngineId(),
 				insightId,
 				this.sessionId,
+				this.roomId,
 				userId,
 				userName,
 				userEmail
@@ -205,6 +212,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				this.engine.getEngineId(),
 				insightId,
 				this.sessionId,
+				this.roomId,
 				userId,
 				userName,
 				userEmail
@@ -220,6 +228,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				this.engine.getEngineId(),
 				insightId,
 				this.sessionId,
+				this.roomId,
 				userId,
 				userName,
 				userEmail

@@ -38,7 +38,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.tcp.client.NativePySocketClient;
@@ -248,11 +247,9 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 			// start a base python
 			
 			socketClient = connect2Py(null);
-			PyTransporter pyTransporter = new PyTransporter();
-			pyTransporter.setSocketClient(socketClient);
 			Insight processInsight = new Insight();
 			InsightStore.getInstance().put(processInsight);
-			this.pyTranslator = new PyTranslator(pyTransporter, processInsight);
+			this.pyTranslator = new PyTranslator(socketClient, processInsight);
 			
 			// publish this node ? - do we even need to ?
 			addServer();
