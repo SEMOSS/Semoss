@@ -82,7 +82,7 @@ public final class UploadInputUtility {
 	public static final String DELIMITER = ReactorKeysEnum.DELIMITER.getKey();
 
 	// regex pattern for UUIDs
-	private static final String UUID_PATTERN_STRING = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
+	private static final String UUID_PATTERN_STRING = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
 
 	// list of file extensions to search UUIDs from
 	private static final String[] LIST_FILE_EXTENSIONS = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx" };
