@@ -43,6 +43,7 @@ public class SecurityOwlCreator {
 		
 		// new group tables
 		conceptsRequired.add("SMSS_GROUP");
+		conceptsRequired.add("GOOGLE_DOCS_PROFILE");
 		conceptsRequired.add("CUSTOMGROUPASSIGNMENT");
 		conceptsRequired.add("GROUPENGINEPERMISSION");
 		conceptsRequired.add("GROUPPROJECTPERMISSION");
@@ -471,10 +472,20 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_GROUP", "ID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "TYPE", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "DESCRIPTION", "CLOB");
-//		owler.addProp("SMSS_GROUP", "IS_CUSTOM_GROUP", "BOOLEAN
 		owler.addProp("SMSS_GROUP", "DATEADDED", "TIMESTAMP");
 		owler.addProp("SMSS_GROUP", "USERID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "USERIDTYPE", "VARCHAR(255)");
+		
+		//docsprofile
+		owler.addConcept("GOOGLE_DOCS_PROFILE", null, null);
+		owler.addProp("GOOGLE_DOCS_PROFILE", "ID", "VARCHAR(255)");
+		owler.addProp("GOOGLE_DOCS_PROFILE", "TYPE", "VARCHAR(255)");
+		owler.addProp("GOOGLE_DOCS_PROFILE", "NAME", "VARCHAR(255)");
+		owler.addProp("GOOGLE_DOCS_PROFILE", "DATECREATED", "TIMESTAMP");
+		owler.addProp("GOOGLE_DOCS_PROFILE", "DOCID", "VARCHAR(255)");
+		owler.addProp("GOOGLE_DOCS_PROFILE", "USERNAME", "VARCHAR(255)");
+		owler.addProp("GOOGLE_DOCS_PROFILE", "USERID", "VARCHAR(255)");
+		owler.addProp("GOOGLE_DOCS_PROFILE", "TITLE", "VARCHAR(255)");
 		
 		// CUSTOMGROUPASSIGNMENT
 		owler.addConcept("CUSTOMGROUPASSIGNMENT", null, null);

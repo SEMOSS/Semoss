@@ -1373,8 +1373,32 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			}
-	
 			
+			//GOOGLE_DOCS
+			colNames = new String[] { "ID", "TYPE", "NAME", "DATECREATED", "DOCID", "USERNAME", "USERID", "TITLE"};
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
+					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+			defaultValues = new Object[]{null, null, null, null, null, null, null, null};
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("GOOGLE_DOCS_PROFILE", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "GOOGLE_DOCS_PROFILE", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("GOOGLE_DOCS_PROFILE", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "GOOGLE_DOCS_PROFILE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+						String addColumnSql = queryUtil.alterTableAddColumn("GOOGLE_DOCS_PROFILE", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
 			/*
 			 * We need to store when a user comes in
 			 * if they are part of a group
@@ -2044,6 +2068,7 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("PROJECTDEPENDENCIES", new String[] {"TYPE"});
 		allValues.put("SESSION_SHARE", new String[] {"TYPE"});
 		allValues.put("SMSS_GROUP", new String[] {"TYPE", "USERIDTYPE"});
+//		allValues.put("GOOGLE_DOCS_PROFILE", new String[] {"TYPE"});
 		allValues.put("SMSS_USER", new String[] {"TYPE"});
 		allValues.put("SMSS_USER_ACCESS_KEYS", new String[] {"TYPE"});
 		allValues.put("USERINSIGHTPERMISSION", new String[] {"PERMISSIONGRANTEDBYTYPE"});
