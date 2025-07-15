@@ -36,13 +36,18 @@ public class EngineProxyFactory {
     }
     
     public static IModelEngine createGuardedModelEngine(IModelEngine realEngine) {
-        PipelineInvocationHandler handler = new PipelineInvocationHandler(realEngine);
 
-        return (IModelEngine) Proxy.newProxyInstance(
-                IEngine.class.getClassLoader(),
-                new Class<?>[] { IEngine.class, IModelEngine.class},
-                handler
-        );
+		if(realEngine != null && realEngine.getSmssProp().containsKey(IEngine.PIPELINE))
+		{
+	        PipelineInvocationHandler handler = new PipelineInvocationHandler(realEngine);
+	        return (IModelEngine) Proxy.newProxyInstance(
+	                IEngine.class.getClassLoader(),
+	                new Class<?>[] { IEngine.class, IModelEngine.class},
+	                handler
+	        );
+		}
+		else
+			return realEngine;
     }
 
     public static IDatabaseEngine createGuardedDatabaseEngine(IDatabaseEngine realEngine) {
