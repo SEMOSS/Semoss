@@ -7,6 +7,7 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.docs.v1.Docs;
 import com.google.api.services.drive.Drive;
 
 import prerna.auth.AccessToken;
@@ -19,12 +20,12 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GoogleDocsDeleteReactor extends AbstractReactor {
+public class GoogleDocsReadReactor extends AbstractReactor {
 
 	private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 	private static final String AppName = "Google Docs";
 
-	public GoogleDocsDeleteReactor() {
+	public GoogleDocsReadReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROMPT_TITLE.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -36,15 +37,29 @@ public class GoogleDocsDeleteReactor extends AbstractReactor {
 
 		try {
 			String accessToken = getGoogleAccessToken();
+			Docs service = getDocsServiceUsingToken(accessToken);
 			Drive getDriveService = getDriveServiceUsingToken(accessToken);
 
-			boolean deleteresult = GoogleDocsHelper.deleteDoc(getDriveService, title);
-			return new NounMetadata(deleteresult, PixelDataType.CUSTOM_DATA_STRUCTURE,
+			String contentValue = GoogleDocsHelper.readDoc(service, getDriveService, title);
+			return new NounMetadata(contentValue, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			throw new SemossPixelException("Issue with input");
 		}
 
+	}
+
+	public static Docs getDocsServiceUsingToken(String token) throws Exception {
+		HttpRequestInitializer requestInitializer = new HttpRequestInitializer() {
+
+			@Override
+			public void initialize(HttpRequest request) throws IOException {
+				request.getHeaders().setAuthorization("Bearer " + token);
+
+			}
+		};
+		return new Docs.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, requestInitializer)
+				.setApplicationName(AppName).build();
 	}
 
 	public static Drive getDriveServiceUsingToken(String token) throws Exception {
@@ -80,7 +95,7 @@ public class GoogleDocsDeleteReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to delete the Google document.";
+		return "This reactor is used to read the Google document.";
 	}
 
 	@Override
