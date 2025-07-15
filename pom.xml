@@ -334,14 +334,6 @@
 			<artifactId>semoss-jdbc</artifactId>
 			<version>0.0.1</version>
 		</dependency>
-		<!--
-		https://mvnrepository.com/artifact/org.apache.tomcat/tomcat-catalina -->
-		<!-- this is the primary tomcat specific jar -->
-		<dependency>
-			<groupId>org.apache.tomcat</groupId>
-			<artifactId>tomcat-catalina</artifactId>
-			<version>9.0.106</version>
-		</dependency>
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>javax.servlet-api</artifactId>
