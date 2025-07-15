@@ -189,6 +189,7 @@ public enum ReactorKeysEnum {
 	PDF_SIGNATURE_LABEL("pdfSignatureLabel",                	"String containing text to add above the signature block to specify signature label"),
 	PERMISSION("permission", 									"Permission level"),
 	PERMISSION_FILTERS("permissionFilters",						"Additional filter to append based on permission level (1=Owner, 2=Editor, 3=ReadOnly)"),
+	PINNED("pinned",                                            "Boolean for pinned room"),
 	PIXEL("pixel", 												"Pixel script as string"),
 	PIXEL_ID("pixelId", 										"The pixel id for this pixel step"),
 	PLACE_HOLDER_DATA("placeHolderData",						"Updated place holder information of the template"),
@@ -220,6 +221,7 @@ public enum ReactorKeysEnum {
 	RELOAD("reload", 											"Reload an object or connection"),
 	REPLACE("replace",											"Replace data when adding to existing app"),
 	REPOSITORY("repository", 									"Name of the repository. Usually namespaced to be username\\appname"),
+	ROOM_ID("roomId",												"Room ID used for llm calls"),
 	ROUTE_ID("routeId",											"Id of the route cookie"),
 	ROUTINE("routine",											"The name of the routine"),
 	ROW_COUNT("rowCount",										"Boolean get the number of rows"),
@@ -290,6 +292,7 @@ public enum ReactorKeysEnum {
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
 	WIDTH("width", 											    "The width to use for screenshot capture"),
+	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
 	X("x",		 											    "The X coordiante."),
 	Y("y",		 											    "The Y coordiante.");
 

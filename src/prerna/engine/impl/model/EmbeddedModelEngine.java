@@ -9,6 +9,7 @@ import prerna.ds.py.PyUtils;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 
 public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 	
@@ -43,7 +44,12 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 					/*messageId*/messageId,
 					/*messageMethod*/"textKeywords", 
 					/*engine*/this,
-					/*insight*/insight,
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null,
 					/*prompt*/input + "",
 					/*fullPrompt*/null,

@@ -58,6 +58,7 @@ function/**
 guardrail/**
 model/**
 project/**
+room/**
 storage/**
 user/**
 vector/**
