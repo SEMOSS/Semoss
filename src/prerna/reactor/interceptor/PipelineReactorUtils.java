@@ -4,7 +4,7 @@ package prerna.reactor.interceptor;
  * A utility class to hold the constant keys for the keyValue map
  * passed to pipeline reactors.
  */
-public class PipelineReactorUtils {
+public final class PipelineReactorUtils {
 
     public static final String ENGINE = "engine";
     public static final String METHOD_NAME = "methodName";
@@ -16,7 +16,7 @@ public class PipelineReactorUtils {
     public static final String INTERCEPTOR = "interceptor";
     public static final String PASS = "pass";
     
-
+    
     private PipelineReactorUtils() {
         // private constructor to prevent instantiation
     }

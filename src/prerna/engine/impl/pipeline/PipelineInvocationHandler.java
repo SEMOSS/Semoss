@@ -27,6 +27,7 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 
 /**
  * The invocation handler for the dynamic proxy. This class intercepts all method calls,
@@ -39,6 +40,10 @@ public class PipelineInvocationHandler implements InvocationHandler {
     private final IEngine realEngine;
     private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
 
+    /**
+     * 
+     * @param realEngine
+     */
     public PipelineInvocationHandler(IEngine realEngine) {
         this.realEngine = realEngine;
         String pipelineJson = getJsonData(realEngine);
@@ -101,7 +106,6 @@ public class PipelineInvocationHandler implements InvocationHandler {
         processedArguments.put(PipelineReactorUtils.RESULT, result);
 
         // === OUTPUT PIPELINE EXECUTION ===
-        Object processedResult = result;
         inputIndex = 0;
         for (IOutputReactor reactor : specificPipeline.getOutputPipeline()) {
             NounStore outputNouns = new NounStore("output-pipeline");
@@ -128,24 +132,28 @@ public class PipelineInvocationHandler implements InvocationHandler {
         return processedArguments.get(PipelineReactorUtils.RESULT);
     }
     
-	private static String getJsonData(IEngine engine)
-	{
+    /**
+     * 
+     * @param engine
+     * @return
+     */
+	private static String getJsonData(IEngine engine) {
 		String jsonString = null;
 		try {
 			String versionFolder = AssetUtility.getProjectVersionFolder(engine.getEngineName(), engine.getEngineId());
 			String pipelineFile = versionFolder + "/" + engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			pipelineFile = pipelineFile.replace("\\", "/");
 			jsonString = FileUtils.readFileToString(new File(pipelineFile));
-			//engine = EngineProxyFactory.createGuardedDatabaseEngine((IDatabaseEngine)engine, jsonString);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+        	classLogger.error(Constants.STACKTRACE, e);
 		}
 		return jsonString;
-		
 	}
 
-
+	/**
+	 * 
+	 * @param pipelineJson
+	 */
     private void parseAndLoadPipelines(String pipelineJson) {
         JSONObject root = new JSONObject(pipelineJson);
         JSONObject pipelines = root.getJSONObject("pipelines");
@@ -204,10 +212,18 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
             return reactor;
         } catch (Exception e) {
+        	classLogger.error(Constants.STACKTRACE, e);
             throw new RuntimeException("Failed to create reactor: " + className, e);
         }
     }
 
+    /**
+     * 
+     * @param reactor
+     * @param method
+     * @param args
+     * @return
+     */
     private Map<String, Object> mapArguments(IReactor reactor, Method method, Object[] args) {
         Map<String, Object> map = new HashMap<>();
         Parameter[] parameters = method.getParameters();
@@ -219,6 +235,12 @@ public class PipelineInvocationHandler implements InvocationHandler {
         return map;
     }
 
+    /**
+     * 
+     * @param method
+     * @param argMap
+     * @return
+     */
     private Object[] unmapArguments(Method method, Map<String, Object> argMap) {
         Parameter[] parameters = method.getParameters();
         Object[] args = new Object[parameters.length];
@@ -232,11 +254,19 @@ public class PipelineInvocationHandler implements InvocationHandler {
      * Helper class to hold the input and output pipelines for a method.
      */
     private static class Pipeline {
+    	
         private final List<IInputReactor> inputPipeline;
         private final List<IOutputReactor> outputPipeline;
         private final List<Map<String, Object>> inputParams; 
         private final List<Map<String, Object>> outputParams; 
 
+        /**
+         * 
+         * @param inputPipeline
+         * @param outputPipeline
+         * @param inputParams
+         * @param outputParams
+         */
         Pipeline(List<IInputReactor> inputPipeline, List<IOutputReactor> outputPipeline, List<Map<String, Object>> inputParams, List<Map<String, Object>> outputParams) {
             this.inputPipeline = inputPipeline;
             this.outputPipeline = outputPipeline;
@@ -245,24 +275,39 @@ public class PipelineInvocationHandler implements InvocationHandler {
             
         }
 
+        /**
+         * 
+         * @return
+         */
         List<IInputReactor> getInputPipeline() {
             return inputPipeline;
         }
 
+        /**
+         * 
+         * @return
+         */
         List<IOutputReactor> getOutputPipeline() {
             return outputPipeline;
         }
         
+        /**
+         * 
+         * @return
+         */
         List<Map<String, Object>> getInputParams()
         {
         		return this.inputParams;
         }
 
+        /**
+         * 
+         * @return
+         */
         List<Map<String, Object>> getOutputParams()
         {
         		return this.outputParams;
         }
-
-        
     }
+    
 }
