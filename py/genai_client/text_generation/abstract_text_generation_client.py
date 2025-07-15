@@ -45,6 +45,7 @@ class AbstractTextGenerationClient(ABC):
         **kwargs: Any,
     ):
         self.model_name = kwargs.get("model_name", None)
+        # On V2 this will get moved to the message builders
         self.model_limits = self._get_model_limits(kwargs)
 
         self.template_name = template_name
@@ -95,7 +96,7 @@ class AbstractTextGenerationClient(ABC):
         """
         Get the ask settings from the provided keyword arguments.
         These are all settings that typically affect HOW I call the model.
-        Not things I necissarily pass to the model call itself.
+        Not things I necessarily pass to the model call itself.
         """
         full_prompt = kwargs.pop(FULL_PROMPT, None)
         if full_prompt:
@@ -107,6 +108,7 @@ class AbstractTextGenerationClient(ABC):
 
         message_json = kwargs.pop("message_json", None)
         semoss_messages = None
+        json_messages_param_map = {}
         if message_json:
             try:
                 message_json = json.loads(message_json)
@@ -125,22 +127,23 @@ class AbstractTextGenerationClient(ABC):
                 except Exception as e:
                     raise ValueError(f"Invalid JSON format in message_json.: {e}")
 
-        json_messages_param_map = kwargs
         if semoss_messages:
-            json_messages_param_map = json_messages_param_map | semoss_messages[-1].param_map
+            json_messages_param_map = semoss_messages[-1].param_map
 
         # This is a mess but can be cleaned up after we switch to supporting only semoss_messages
         streaming = json_messages_param_map.pop("streaming", None)
         if streaming is None:
-            streaming = json_messages_param_map.pop("stream", True)
+            streaming = kwargs.pop("streaming", True)
+            if not streaming:
+                streaming = kwargs.pop("stream", True)
 
         # After switch we can remove this
-        image_url = json_messages_param_map.pop("image_url", None)
+        image_url = kwargs.pop("image_url", None)
         if isinstance(image_url, str):
             image_url = [image_url]
 
         # After switch we can remove this
-        image_encoded = json_messages_param_map.pop("image_encoded", None)
+        image_encoded = kwargs.pop("image_encoded", None)
         if isinstance(image_encoded, str):
             image_encoded = [image_encoded]
 

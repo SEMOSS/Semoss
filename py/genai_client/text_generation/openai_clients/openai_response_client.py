@@ -3,13 +3,11 @@ from typing import List, Tuple, Any
 import json
 from enum import Enum
 from pydantic import BaseModel
-from .operations.instruct import Instruct
 from .operations.chat import Chat
 from .operations.image import Image
 from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import (
     AskModelEngineResponse,
-    InstructModelEngineResponse,
     IMAGE_ENCODED,
     IMAGE_URL,
 )
@@ -24,12 +22,8 @@ class ModelType(StringEnum):
 class OpenAIResponses(AbstractOpenAiClient):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.instruct_operation = Instruct(client=self)
         self.chat_operation = Chat(client=self)
         self.image_client = Image(client=self)
-
-    def instruct(self, **kwargs) -> InstructModelEngineResponse:
-        return self.instruct_operation.instruct(**kwargs)
 
     def ask_call(self, **kwargs) -> AskModelEngineResponse:
 
