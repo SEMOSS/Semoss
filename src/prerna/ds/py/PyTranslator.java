@@ -222,33 +222,36 @@ public class PyTranslator {
 		return this.executePyWithDefualtVars(executionInsight, convertArrayToString(script));
 	}
 	
-	@Deprecated
 	/**
-	 * Switch to runDirectPy
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the execution
+	 * @deprecated This method is deprecated. Use {@link #runDirectPy(String...)} instead.
 	 * @param script
 	 * @param this.globalStoreInsight
 	 * @return
 	 */
+	@Deprecated
 	public Object runSmssWrapperEval(String script) {
 		return this.transportScript(null, script);
 	}
 	
-	@Deprecated
 	/**
-	 * Switch to runScript
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * @deprecated This method is deprecated. Use {@link #runScript(String...)} instead.
 	 * @param script
 	 * @return
 	 */
+	@Deprecated
 	public String runPyAndReturnOutput(String... script) {
 		return this.executePyWithDefualtVars(null, convertArrayToString(script)) + "";
 	}
 	
-	@Deprecated
 	/**
-	 * Switch to runScript
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * @deprecated This method is deprecated. Use {@link #runScript(String...)} instead.
 	 * @param script
 	 * @return
 	 */
+	@Deprecated
 	public String runSingle(String... script) {
 		return this.executePyWithDefualtVars(null, convertArrayToString(script)) + "";
 	}
