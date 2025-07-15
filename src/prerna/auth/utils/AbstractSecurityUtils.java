@@ -523,37 +523,6 @@ public abstract class AbstractSecurityUtils {
 					securityDb.removeData(sql);
 				}
 			}
-			
-			// Define columns and types for Google_USERDB
-			colNames = new String[] { "ID", "TYPE", "NAME", "DATECREATED", "SPID", "USERNAME", "USERID" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
-
-			if(allowIfExistsTable) {
-			    String sql = queryUtil.createTableIfNotExists("Google_USERDB", colNames, types);
-			    classLogger.info("Running sql " + sql);
-			    securityDb.insertData(sql);
-			} else {
-			    if(!queryUtil.tableExists(conn, "Google_USERDB", database, schema)) {
-			        String sql = queryUtil.createTable("Google_USERDB", colNames, types);
-			        classLogger.info("Running sql " + sql);
-			        securityDb.insertData(sql);
-			    }
-			}
-
-			// Ensure all columns exist
-			{
-			    List<String> allCols = queryUtil.getTableColumns(conn, "Google_USERDB", database, schema);
-			    for (int i = 0; i < colNames.length; i++) {
-			        String col = colNames[i];
-			        if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-			            classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
-			            String addColumnSql = queryUtil.alterTableAddColumn("Google_USERDB", col, types[i]);
-			            classLogger.info("Running sql " + addColumnSql);
-			            securityDb.insertData(addColumnSql);
-			        }
-			    }
-			}
-
 	
 			// ENGINE
 			colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", 
@@ -2055,40 +2024,6 @@ public abstract class AbstractSecurityUtils {
 		//		colNames = new String[] { "groupid", "seedid" };
 		//		types = new String[] { "integer", "integer" };
 		//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
-	}
-	
-
-	//Update google user details
-	public static void updateSpId(String spid, String userId) throws SQLException {
-	    String sql = "UPDATE Google_USERDB SET SPID=? WHERE USERID=?";
-	    try (Connection conn = securityDb.getConnection();
-	         PreparedStatement ps = conn.prepareStatement(sql)) {
-	        ps.setString(1, spid);
-	        ps.setString(2, userId);
-	        ps.executeUpdate();
-	        if (!conn.getAutoCommit()) conn.commit();
-	    }
-	}
-
-	//delete user details
-	public static void deleteGoogleUser(String id) throws SQLException {
-	    String sql = "DELETE FROM Google_USERDB WHERE USERID=?";
-	    try (Connection conn = securityDb.getConnection();
-	         PreparedStatement ps = conn.prepareStatement(sql)) {
-	        ps.setString(1, id);
-	        ps.executeUpdate();
-	        if (!conn.getAutoCommit()) conn.commit();
-	    }
-	}
-	
-	//truncate table
-	public static void deleteGoogleUserDB() throws SQLException {
-	    String sql = "DELETE FROM Google_USERDB ";
-	    try (Connection conn = securityDb.getConnection();
-	         PreparedStatement ps = conn.prepareStatement(sql)) {
-	        ps.executeUpdate();
-	        if (!conn.getAutoCommit()) conn.commit();
-	    }
 	}
 	
 	private static void updateUserTypeEnum() {
