@@ -97,6 +97,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
         // === ACTUAL METHOD EXECUTION ===
         Object result = method.invoke(this.realEngine, finalArgs);
+        
+        processedArguments.put(PipelineReactorUtils.RESULT, result);
 
         // === OUTPUT PIPELINE EXECUTION ===
         Object processedResult = result;
@@ -112,7 +114,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
             reactor.setNounStore(outputNouns);
 
             NounMetadata resultNoun = reactor.execute();
-            processedResult = resultNoun.getValue();
+            processedArguments = (Map<String, Object>)resultNoun.getValue();
             inputIndex++;
             
             // eval result	
@@ -123,7 +125,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
         }
 
-        return result;
+        return processedArguments.get(PipelineReactorUtils.RESULT);
     }
     
 	private static String getJsonData(IEngine engine)
