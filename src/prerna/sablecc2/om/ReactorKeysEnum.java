@@ -3,6 +3,7 @@ package prerna.sablecc2.om;
 public enum ReactorKeysEnum {
 	
 	ACCESS("access",											"Boolean to check if access is required."),
+	ACCOUNTNAME("accountname",                                  "Name of the google account."),
 	ADDITIONAL_DATA_TYPE("additionalDataType",					"Additional data types defining specific format"),
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",				"Additional data types defining specific formats"),
 	ADDITIONAL_PIXELS("additionalPixels",						"Additional pixels to be executed in addition to the pixel steps saved within the insight"),
@@ -10,6 +11,7 @@ public enum ReactorKeysEnum {
 	ALL_NUMERIC_KEY("allNumeric", 								"Indicates if only numeric headers should be returned"),
 	ALIAS("alias", 												"An alias to assign for an operation or output - use .as([\"aliasName\"])"), 
 //	APP("app", 													"Name of the app on the local SEMOSS instance"),
+	APPNAME("appname",                                          "Name of the google application"),
 	ANIMATE("animate", 											"Specifies if the ggplot needs to be animated"),
 	API_KEY("apikey", 									    	"API key being used for the specific insight / project"),
 	ARRAY("array", 												"An array of input values"),
@@ -57,6 +59,7 @@ public enum ReactorKeysEnum {
 	DESCRIPTION("description", 									"A description (could be for an app, table/concept, insight, etc.)"),
 	DRY_RUN("dryRun",											"Boolean whether to perform a dry run of the operation without impacting application state (default is true)"),
 	EMAIL_SESSION("emailSession",								"The javax.mail email session object"),
+	ENDINDEX("endindex",                                        "End index for updating a file"),
 	ENABLE("enable",											"Boolean whether to enable"),
 	EVENTS_KEY("events", 										"Events map input"),
 	EXISTING("existing", 										"Add to exisitng app"),
@@ -241,6 +244,7 @@ public enum ReactorKeysEnum {
 	START("start",												"Start value for a between reactor"),
 	START_DATE("startDate",										"Start Date passed in for filter"),		
 	START_ROW("startRow",										"The starting row number to import from a file."),
+	STARTINDEX("startindex",                                    "The starting index for CRUD operation"),
 	STATEMENT("statement", 										"Statement to be evaluated"),
 	STORAGE("storage",											"The id/name of the storage engine to use"),
 	STORAGE_DETAILS("storageDetails", 							"Map containing the necessary details to establish a connection to storage engine"),
