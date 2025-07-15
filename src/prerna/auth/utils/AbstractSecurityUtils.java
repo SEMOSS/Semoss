@@ -1374,6 +1374,7 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 			
+			
 			/*
 			 * We need to store when a user comes in
 			 * if they are part of a group
