@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
+import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
@@ -295,7 +296,13 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						    		ThreadStore.setSessionId(sessionId);
 						    		ThreadStore.setRouteId(routeId);
 						    		ThreadStore.setJobId(jobId);
-						    		ThreadStore.setUser(insight.getUser());
+						    		String executionInsightId = finalPs.executionInsightId;
+						    		if(executionInsightId != null) {
+						    			Insight executionInsight = InsightStore.getInstance().get(executionInsightId);
+							            if(executionInsight != null) {
+							            	ThreadStore.setUser(executionInsight.getUser());
+							            }
+						    		}
 						    		
 						            String pixelOp = (String) finalPs.payload[0];
 						            if(!(pixelOp=pixelOp.trim()).endsWith(";")) {
@@ -390,7 +397,17 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			executeCommand(ps);
 			return;
 		}
-		user = insight.getUser();
+		User user = null;
+		String executionInsightId = ps.executionInsightId;
+		if(executionInsightId != null) {
+			Insight executionInsight = InsightStore.getInstance().get(executionInsightId);
+            if(executionInsight != null) {
+            	ThreadStore.setUser(executionInsight.getUser());
+            }
+		}
+		if(user == null) {
+			user = insight.getUser();
+		}
 		if(user == null) {
 			ps.response = true;
 			ps.ex = "There is no user associated with this insight id";
@@ -398,7 +415,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			executeCommand(ps);
 			return;
 		} else {
-			NativePyEngineWorker worker = new NativePyEngineWorker(this.getUser(), ps, insight);
+			NativePyEngineWorker worker = new NativePyEngineWorker(user, ps, insight);
 			worker.run();
 			executeCommand(worker.getOutput());
 		}

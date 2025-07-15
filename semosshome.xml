@@ -66,6 +66,10 @@
 			<outputDirectory>user</outputDirectory>
 		</fileSet>
 		<fileSet>
+			<directory>room</directory>
+			<outputDirectory>room</outputDirectory>
+		</fileSet>
+		<fileSet>
 			<directory>export</directory>
 			<outputDirectory>export</outputDirectory>
 			<includes>
