@@ -60,7 +60,6 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.project.api.IProject;
 import prerna.query.parsers.GenExpressionWrapper;
@@ -1576,11 +1575,10 @@ public class Insight implements Serializable {
 	 * @return
 	 */
 	public PyTranslator getPyTranslator() {
-		PyTransporter pyTransporter = user.getPyTransporter();
-		if(pyTransporter == null) {
-			throw new NullPointerException("Could not create python translator");
+		if(this.pyTranslator == null) {
+			SocketClient sc = user.getPythonSocketClient(true);
+			this.pyTranslator = new PyTranslator(sc, this);
 		}
-		this.pyTranslator = new PyTranslator(pyTransporter, this);
 		return this.pyTranslator;
 	}
 	

@@ -22,8 +22,6 @@ import org.javatuples.Pair;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.ds.py.PyTransporter;
-import prerna.ds.py.PyUtils;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
@@ -49,6 +47,9 @@ public class User implements Serializable {
 	// storing the timezone the user is in
 	private ZoneId zoneId;
 	
+	// store model conversation rooms
+	public Map<String,Object> roomHash = new HashMap<>();
+	
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
 	
@@ -58,7 +59,6 @@ public class User implements Serializable {
 
 	// python related stuff
 	private transient ClientProcessWrapper pythonCPW = new ClientProcessWrapper();
-	private transient PyTransporter pyTransporter = null;
 	private transient Process pyProcess = null;
 
 	// r
@@ -619,57 +619,6 @@ public class User implements Serializable {
 	}
 
 	/**
-	 * 
-	 * @return
-	 */
-	public PyTransporter getPyTransporter() {
-		return getPyTransporter(true);
-	}
-	
-	/**
-	 * 
-	 * @param create
-	 * @return
-	 */
-	public PyTransporter getPyTransporter(boolean create) {
-		return getPyTransporter(create, null);
-	}
-	
-	/**
-	 * 
-	 * @param create
-	 * @param venvEngineId
-	 * @return
-	 */
-	public PyTransporter getPyTransporter(boolean create, String venvEngineId) {
-		if(!PyUtils.pyEnabled()) {
-			throw new IllegalArgumentException("Python is not enabled for this instance");
-		}
-		if(this.pyTransporter == null && create) {
-			// all of the logic should go here now ?
-			synchronized(this) {
-				SocketClient sc = getPythonSocketClient(create, -1, venvEngineId);
-				if(sc != null) {
-					PyTransporter pyTransporter = new PyTransporter();
-					pyTransporter.setSocketClient(sc);
-					this.pyTransporter = pyTransporter;
-				}
-			}
-		}
-		else {
-			SocketClient sc = getPythonSocketClient(create, -1, venvEngineId);
-			if(sc != null) {
-				PyTransporter pyTransporter = new PyTransporter();
-				pyTransporter.setSocketClient(sc);
-				this.pyTransporter = pyTransporter;
-			}
-		}
-		
-		// return the translator reference
-		return this.pyTransporter;
-	}
-	
-	/**
 	 * Set the context for the user based on the path defined in the varMap
 	 * @param context
 	 */
@@ -689,7 +638,7 @@ public class User implements Serializable {
 	
 	public CmdExecUtil getCmdUtil() {
 	    if (this.pythonCPW.getSocketClient() == null) {
-	        this.getPyTransporter();
+	        this.getPythonSocketClient(true);
 	    }
 	    if (cmdUtil != null) {
 	        if (this.pythonCPW.getSocketClient() != null && !this.pythonCPW.getSocketClient().isConnected()) {
