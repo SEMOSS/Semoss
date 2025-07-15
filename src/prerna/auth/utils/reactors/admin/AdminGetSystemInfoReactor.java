@@ -44,7 +44,7 @@ public class AdminGetSystemInfoReactor extends AbstractReactor {
         }
 
         Map<String, Object> systemInfoDetailsmap = new HashMap<>();
-        systemInfoDetailsmap.put("isClustered", Boolean.valueOf(ClusterUtil.IS_CLUSTER));
+        systemInfoDetailsmap.put("isClusteredZK", Boolean.valueOf(ClusterUtil.IS_CLUSTER_ZK));
         systemInfoDetailsmap.put("STORAGE_PROVIDER", ClusterUtil.STORAGE_PROVIDER);
         systemInfoDetailsmap.put("hostname", hostname);
         systemInfoDetailsmap.put("IPAddress", ipaddress);
