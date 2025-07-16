@@ -70,7 +70,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 		String sysImport = "import sys";
 		String getpath = "print(sys.path)";
 		String setpath = "sys.path.insert(0,'" + pyFolderLoc + "')";
-		String loadLib = "import main";
+		String loadLib = "import smss_driver as smss";
 
 		// this is where we need to compose the method
 		// for every argument I need to know the type
@@ -112,7 +112,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 			}
 		}
 		
-		String runMethod = "main." + functionName + "(" + paramString + ")";
+		String runMethod = "smss." + functionName + "(" + paramString + ")";
 		classLogger.info("Running method..  " + runMethod + "  On project " + projectId);
 		String curPath = insight.getPyTranslator().runScript(sysImport, getpath)+"";
 		curPath = curPath.replace("\\", "/");
