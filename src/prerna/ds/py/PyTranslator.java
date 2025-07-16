@@ -4,9 +4,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -14,7 +11,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 
 public class PyTranslator {
 
@@ -29,8 +25,6 @@ public class PyTranslator {
 	}
 	
 	public static String curEncoding = null;
-	
-	private static final Logger classLogger = LogManager.getLogger(PyTranslator.class);
 	
 	private SocketClient sc = null;
 	private Insight globalStoreInsight = null;
@@ -351,13 +345,11 @@ public class PyTranslator {
 		if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(ps != null && ps.ex != null) {
-				classLogger.error(Constants.STACKTRACE, ps.ex);
 				throw new SemossPixelException(ps.ex);
 			} else {
 				return ps.payload[0];
 			}
 		} else {
-			classLogger.error(Constants.STACKTRACE, "Py engine is not available anymore");
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
 	}
@@ -373,11 +365,9 @@ public class PyTranslator {
         if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(ps != null && ps.ex != null) {
-				classLogger.error(Constants.STACKTRACE, ps.ex);
 				throw new SemossPixelException(ps.ex);
 			} 
 		} else {
-			classLogger.error(Constants.STACKTRACE, "Py engine is not available anymore");
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
     }
@@ -393,11 +383,9 @@ public class PyTranslator {
         if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(ps != null && ps.ex != null) {
-				classLogger.error(Constants.STACKTRACE, ps.ex);
 				throw new SemossPixelException(ps.ex);
 			} 
 		} else {
-			classLogger.error(Constants.STACKTRACE, "Py engine is not available anymore");
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
     }
