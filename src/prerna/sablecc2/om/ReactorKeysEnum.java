@@ -295,13 +295,8 @@ public enum ReactorKeysEnum {
 	LAST_USED("lastused",										"last used passed in for filter"),
 	USERID("userid",											"user id to add in JIRA"),
 	KEY_NAME("keyname",											"key name for each entry in DB for JIRA"),
-	SPREADSHETT_ID("spreadsheetId",								"Spread sheet id for google spread sheets"),
-	SERVICE_JSON("serviceJson",								    "Google spreadsheet service json for authentication"),
-	ROW_NO("rowno",								    			"Row number in spreadsheet"),
-	COLUMN_NO("columnno",								    	"Column number in spreadsheet"),
 	DATA("data",								    			"Data to be entered in spreadsheet"),
 	SHEETNAME("sheetName",								    	"Sheet name to be entered for Google spread sheet operations"),
-	SPREADSHEET_ID("spreadSheetId",								"Sheet id to be entered for Google spread sheet operations"),
 	TITLESHEET_NAME("titleSheetName",							"Title sheet name to be entered for Google spread sheet");
 	
 
