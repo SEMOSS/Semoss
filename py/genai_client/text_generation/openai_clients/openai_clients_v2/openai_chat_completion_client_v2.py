@@ -1,3 +1,4 @@
+from typing import Any, Dict
 from ....message_builders.openai.openai_message_builder import OpenAIMessageBuilder
 from ..abstract_openai_client import AbstractOpenAiClient
 from ....constants import AskModelEngineResponse
@@ -12,14 +13,19 @@ class OpenAIChatCompletionV2(AbstractOpenAiClient):
     def ask_call(self, prefix: str = "", **kwargs) -> AskModelEngineResponse:
         self.ask_settings = self.get_ask_settings(**kwargs)
 
-        data = self.message_builder.build_request(self.ask_settings.semoss_messages)
+        if self.ask_settings.semoss_messages is None:
+            raise ValueError("semoss_messages is required")
 
-        response = self.cfg_client.client.chat.completions.create(
-            model=data.pop("model"), **data
+        request_params = self.message_builder.build_request(
+            self.ask_settings.semoss_messages
         )
 
-        if data.get("stream", False):
-            return self.handle_streaming_response(data, prefix=prefix)
+        if request_params.get("stream", False):
+            return self.handle_streaming_response(request_params, prefix=prefix)
+
+        response = self.cfg_client.client.chat.completions.create(
+            model=self.cfg_client.model_settings.model_name, **request_params
+        )
 
         final_query = response.choices[0].message.content
         response_tokens = response.usage.completion_tokens
@@ -30,11 +36,11 @@ class OpenAIChatCompletionV2(AbstractOpenAiClient):
 
     def handle_streaming_response(
         self,
-        data,
+        request: Dict[str, Any],
         prefix: str = "",
     ) -> AskModelEngineResponse:
         response = self.cfg_client.client.chat.completions.create(
-            model=data.pop("model"), **data
+            model=self.cfg_client.model_settings.model_name, **request
         )
 
         final_query = ""

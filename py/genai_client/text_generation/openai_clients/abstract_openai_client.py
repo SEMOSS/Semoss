@@ -9,7 +9,7 @@ from pydantic import BaseModel
 class ModelSettings(BaseModel):
     """These are attributes I want set in the SMSS file for each model"""
 
-    model_name: Optional[str] = None
+    model_name: str
     context_window: Optional[int] = None
     max_completion_tokens: Optional[int] = None
     max_input_tokens: Optional[int] = None
@@ -23,11 +23,7 @@ class ModelSettings(BaseModel):
 class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
 
     def __init__(
-        self,
-        model_name: str = None,
-        api_key: str = None,
-        model_type: str = None,
-        **kwargs
+        self, model_name: str, api_key: str, model_type: Optional[str] = None, **kwargs
     ):
         assert api_key != None
 

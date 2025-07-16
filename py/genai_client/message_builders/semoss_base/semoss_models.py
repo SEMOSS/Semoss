@@ -59,12 +59,9 @@ class SEMOSSMessage(BaseModel):
     type: SEMOSSMessageType
     content: Optional[str] = None
     image_content: Optional[List[SEMOSSImageContent]] = None
-
-    tool_calls: List[SEMOSSToolCall] = Field(default_factory=list, alias="tool_calls")
-    tool_call_id: Optional[str] = Field(None, alias="tool_call_id")
-    tool_responses: List[SEMOSSToolResponse] = Field(
-        default_factory=list, alias="tool_responses"
-    )
+    tool_calls: Optional[List[SEMOSSToolCall]] = Field(default_factory=list)
+    tool_call_id: Optional[str] = None
+    tool_responses: Optional[List[SEMOSSToolResponse]] = Field(default_factory=list)
 
     param_map: Dict[str, Any] = Field(default_factory=dict)
 
