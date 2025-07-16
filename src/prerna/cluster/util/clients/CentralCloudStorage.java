@@ -1674,7 +1674,11 @@ public class CentralCloudStorage implements ICloudClient {
 
 	public void pushRoomFolderToCloud(String roomId) throws IOException, InterruptedException {
 		String localFolderPath=Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
-		centralStorageEngine.syncLocalToStorage(localFolderPath, ROOM_CONTAINER_PREFIX+ roomId, null);
+		
+		if(Utility.folderHasAnyFiles(localFolderPath)) {
+			centralStorageEngine.syncLocalToStorage(localFolderPath, ROOM_CONTAINER_PREFIX+ roomId, null);
+
+		}
 		}
 	
 	/////////////////////////////////////////////////////////////////////////////////
