@@ -70,22 +70,18 @@ public class FrameFactory {
 			
 			case "PYTHON": {
 				PandasFrame frame = new PandasFrame(alias, insight.getPyTranslator());
-				insight.getPyTranslator().setLogger(logger);
 				return frame;
 			}
 			case "PY": {
 				PandasFrame frame = new PandasFrame(alias, insight.getPyTranslator());
-				insight.getPyTranslator().setLogger(logger);
 				return frame;
 			}
 			case "PYFRAME": {
 				PandasFrame frame = new PandasFrame(alias, insight.getPyTranslator());
-				insight.getPyTranslator().setLogger(logger);
 				return frame;
 			}
 			case "PANDAS": {
 				PandasFrame frame = new PandasFrame(alias, insight.getPyTranslator());
-				insight.getPyTranslator().setLogger(logger);
 				return frame;
 			}
 			
