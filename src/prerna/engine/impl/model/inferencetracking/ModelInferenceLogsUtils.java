@@ -107,11 +107,12 @@ public class ModelInferenceLogsUtils {
     try {
       conn = modelInferenceLogsDb.makeConnection();
       executeInitModelInferenceDatabase(modelInferenceLogsDb, conn, modelInfCreator.getDBSchema());
-      boolean primaryKeysAdded =
-          addAllPrimaryKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBPrimaryKeys());
-      if (primaryKeysAdded) {
-        addAllForeignKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBForeignKeys());
-      }
+
+//      boolean primaryKeysAdded =
+//          addAllPrimaryKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBPrimaryKeys());
+//      if (primaryKeysAdded) {
+//        addAllForeignKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBForeignKeys());
+//      }
 
       if (!conn.getAutoCommit()) {
         conn.commit();
@@ -186,6 +187,7 @@ public class ModelInferenceLogsUtils {
     
     // was roomId just added
     if (roomIdColumnWasAdded) {
+        dropRoomMessageConstraints(conn);
         migrateRoomAndMessageIds(conn);
     }
     
@@ -424,6 +426,9 @@ public class ModelInferenceLogsUtils {
 	    } catch (SQLException ex) {
 	    	classLogger.error("Failed to migrate legacy ROOM_ID fields", ex);
 	    }
+	    
+	    
+	    
 	}
   
   /**
@@ -441,6 +446,21 @@ public class ModelInferenceLogsUtils {
 	        classLogger.info("Room/Message model_id migration updated " + rCount + " ROOM rows and " + mCount + " MESSAGE rows.");
 	    } catch (SQLException ex) {
 	    	classLogger.error("Failed to migrate legacy AGENT_ID fields", ex);
+	    }
+	}
+  
+  private static void dropRoomMessageConstraints(Connection conn) {
+	    String dropMessageFK = "ALTER TABLE MESSAGE DROP CONSTRAINT MESSAGE_INSIGHT_ID_ROOM_INSIGHT_ID_KEY";
+	    String dropRoomPK = "ALTER TABLE ROOM DROP CONSTRAINT ROOM_KEY";
+	    try {
+	        executeSql(conn, dropMessageFK);
+	    } catch (SQLException ex) {
+	        classLogger.warn("Tried to drop MESSAGE_INSIGHT_ID_ROOM_INSIGHT_ID_KEY but it probably does not exist: " + ex.getMessage());
+	    }
+	    try {
+	        executeSql(conn, dropRoomPK);
+	    } catch (SQLException ex) {
+	        classLogger.warn("Tried to drop ROOM_KEY but it probably does not exist: " + ex.getMessage());
 	    }
 	}
 
