@@ -52,8 +52,6 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		this.code = fillVars(this.code);
 		
 		PyTranslator pyTranslator = this.insight.getPyTranslator();
-		pyTranslator.setLogger(logger);
-		//String output = pyTranslator.runPyAndReturnOutput(code);
 		String output = null;
 		
 		if(code.startsWith("sns.")) {

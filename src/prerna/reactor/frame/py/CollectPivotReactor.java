@@ -89,7 +89,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		if(pyt == null) {
 			return getError("Pivot requires Python. Python is not enabled in this instance");
 		}
-		pyt.setLogger(this.getLogger(this.getClass().getName()));
 
 		// this is the payload that is coming
 		// Frame ( frame = [ FRAME890385 ] ) | Select ( Genre , Studio, MovieBudget ) .as ( [ Genre , Studio, MovieBudget ] ) | CollectPivot( rowGroups=["Genre"], columns=["Studio"], values=["sum(MovieBudget)"] ) ;

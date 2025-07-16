@@ -14,6 +14,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 
 public class PyTranslator {
 
@@ -30,7 +31,6 @@ public class PyTranslator {
 	public static String curEncoding = null;
 	
 	private static final Logger classLogger = LogManager.getLogger(PyTranslator.class);
-	protected Logger logger = null;
 	
 	private SocketClient sc = null;
 	private Insight globalStoreInsight = null;
@@ -49,10 +49,6 @@ public class PyTranslator {
 		return this.globalStoreInsight;
 	}
 	
-	public void setLogger(Logger logger) {
-		this.logger = logger;
-	}
-
 	public SemossDataType convertDataType(String pDataType) {
 		return pyS.get(pDataType);
 	}
@@ -355,13 +351,13 @@ public class PyTranslator {
 		if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(ps != null && ps.ex != null) {
-				logger.info("Exception " + ps.ex);
+				classLogger.error(Constants.STACKTRACE, ps.ex);
 				throw new SemossPixelException(ps.ex);
 			} else {
 				return ps.payload[0];
 			}
 		} else {
-			logger.info("Py engine is not available anymore ");
+			classLogger.error(Constants.STACKTRACE, "Py engine is not available anymore");
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
 	}
@@ -377,11 +373,11 @@ public class PyTranslator {
         if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(ps != null && ps.ex != null) {
-				logger.info("Exception " + ps.ex);
+				classLogger.error(Constants.STACKTRACE, ps.ex);
 				throw new SemossPixelException(ps.ex);
-			}
+			} 
 		} else {
-			logger.info("Py engine is not available anymore ");
+			classLogger.error(Constants.STACKTRACE, "Py engine is not available anymore");
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
     }
@@ -397,11 +393,11 @@ public class PyTranslator {
         if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(ps != null && ps.ex != null) {
-				logger.info("Exception " + ps.ex);
+				classLogger.error(Constants.STACKTRACE, ps.ex);
 				throw new SemossPixelException(ps.ex);
-			}
+			} 
 		} else {
-			logger.info("Py engine is not available anymore ");
+			classLogger.error(Constants.STACKTRACE, "Py engine is not available anymore");
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
     }
