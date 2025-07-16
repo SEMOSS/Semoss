@@ -6166,24 +6166,52 @@ public final class Utility {
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
 
-	public static JSONObject httpGetJson(String googledriveUrl, String accessToken) {
-		StringBuilder response = new StringBuilder();
-		try {
-			URL url = new URL(googledriveUrl);
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			conn.setRequestMethod("GET");
-			conn.setRequestProperty("Authorization", "Bearer " + accessToken);
-			BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-			String inputLine;
-			while ((inputLine = in.readLine()) != null) {
-				response.append(inputLine);
-			}
-			in.close();
-			
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		return new JSONObject(response.toString());
-	}
+	public static JSONObject httpGetJson(String googledriveUrl, String accessToken) throws IOException {
+        StringBuilder response = new StringBuilder();
+        HttpURLConnection conn = null;
+        BufferedReader in = null;
+        try {
+            URL url = new URL(googledriveUrl);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                // Read error stream for details
+                String errorMsg = "";
+                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(conn.getErrorStream()))) {
+                    String line;
+                    while ((line = errorReader.readLine()) != null) {
+                        errorMsg += line;
+                    }
+                }
+                classLogger.error("HTTP GET failed: {} - {}", responseCode, errorMsg);
+                throw new IOException("HTTP GET failed with code: " + responseCode + " and body: " + errorMsg);
+            }
+
+            in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String inputLine;
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            return new JSONObject(response.toString());
+
+        } catch (IOException e) {
+            classLogger.error(Constants.STACKTRACE, e);
+            throw e; // Propagate the exception
+        } catch (Exception e) {
+            classLogger.error(Constants.STACKTRACE, e);
+            throw new IOException("Unexpected error during HTTP GET", e);
+        } finally {
+            if (in != null) {
+                try { in.close(); } catch (Exception ignore) {}
+            }
+            if (conn != null) {
+                conn.disconnect();
+            }
+        }
+    }
+
 
     } 
