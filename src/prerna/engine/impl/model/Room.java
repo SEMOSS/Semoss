@@ -61,8 +61,8 @@ public class Room {
 		this.messagesJson = messagesJson;
 		
 	    this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
-	    File folder = new File(this.roomFolderPath);
-	    folder.mkdirs();	 
+//	    File folder = new File(this.roomFolderPath);
+//	    folder.mkdirs();	 
 		parseMessages();
 	}
 

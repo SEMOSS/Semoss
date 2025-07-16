@@ -251,4 +251,26 @@ public class MessageUtils {
 		}
 		return roomFilePaths;
 	}
+	
+	public static void checkFilesExistInInsight(List<String> relativePathToFiles, Insight insight) {
+	    if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
+	        logger.info("No file paths provided to check.");
+	        return;
+	    }
+	    String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
+
+	    boolean anyMissing = relativePathToFiles.parallelStream().anyMatch(relPath -> {
+	        File srcFile = new File(insightFolder, relPath);
+	        boolean missing = !srcFile.exists() || !srcFile.isFile();
+	        if (missing) {
+	            logger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
+	        }
+	        return missing;
+	    });
+	    
+	    if (anyMissing) {
+	    	throw new IllegalArgumentException("Some source files don't exist in the insight");
+	    }
+	}
+	
 }
