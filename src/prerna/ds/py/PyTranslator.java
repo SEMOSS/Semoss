@@ -344,11 +344,13 @@ public class PyTranslator {
 		
 		if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
-			if(ps != null && ps.ex != null) {
-				throw new SemossPixelException(ps.ex);
-			} else {
-				return ps.payload[0];
+			if(ps == null) {
+				throw new SemossPixelException("Received a null PayloadStruct response");
 			}
+			if(ps.ex != null) {
+				throw new SemossPixelException(ps.ex);
+			}
+			return ps.payload[0];
 		} else {
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
@@ -364,7 +366,10 @@ public class PyTranslator {
         ps.insightId = this.globalStoreInsight.getInsightId();
         if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
-			if(ps != null && ps.ex != null) {
+			if(ps == null) {
+				throw new SemossPixelException("Received a null PayloadStruct response");
+			}
+			if(ps.ex != null) {
 				throw new SemossPixelException(ps.ex);
 			} 
 		} else {
@@ -382,9 +387,12 @@ public class PyTranslator {
         ps.insightId = this.globalStoreInsight.getInsightId();
         if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
-			if(ps != null && ps.ex != null) {
+			if(ps == null) {
+				throw new SemossPixelException("Received a null PayloadStruct response");
+			}
+			if(ps.ex != null) {
 				throw new SemossPixelException(ps.ex);
-			} 
+			}
 		} else {
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
