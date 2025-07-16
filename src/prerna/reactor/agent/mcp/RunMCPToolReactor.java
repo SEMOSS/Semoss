@@ -123,7 +123,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 		// do set context
 		
 		// run method
-		output = insight.getPyTranslator().runSingle(runMethod, insight);
+		output = insight.getPyTranslator().runScript(runMethod, insight);
 		
 		classLogger.info(output);
 		
