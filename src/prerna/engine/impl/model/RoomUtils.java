@@ -101,7 +101,7 @@ public class RoomUtils {
                 IProject project = Utility.getProject(projectId);
                 projectName = project != null ? project.getProjectName() : null;
             }
-            String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : "untitled";
+            String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : null;
             ModelInferenceLogsUtils.doCreateNewConversation(
             		insight.getInsightId(), 
                     roomId,
