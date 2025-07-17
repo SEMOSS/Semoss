@@ -1,7 +1,10 @@
 package prerna.theme;
 
 import java.io.IOException;
+import java.sql.Clob;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,13 +13,17 @@ import java.util.Vector;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
+import org.json.JSONObject;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.theme.BlocksThemeUtils;
 
 public abstract class AbstractThemeUtils {
 
@@ -41,10 +48,11 @@ public abstract class AbstractThemeUtils {
 		initialize();
 		initialized = true;
 	}
-
+	
 	private static void initialize() throws SQLException {
-		String[] colNames = null;
-		String[] types = null;
+		String[] adminThemeColNames = null;
+		String[] adminThemeTypes = null;
+		String[] blocksTableTypes = null;
 		/*
 		 * Currently used
 		 */
@@ -52,19 +60,48 @@ public abstract class AbstractThemeUtils {
 		// ADMIN_THEME
 		AbstractSqlQueryUtil queryUtil = themeDb.getQueryUtil();
 		
-		colNames = new String[] { "ID", "THEME_NAME", "THEME_MAP", "IS_ACTIVE" };
-		types = new String[] { "varchar(255)", "varchar(255)", queryUtil.getClobDataTypeName(), queryUtil.getBooleanDataTypeName() };
+		adminThemeColNames = new String[] { "ID", "THEME_NAME", "THEME_MAP", "IS_ACTIVE" };
+		adminThemeTypes = new String[] { "varchar(255)", "varchar(255)", queryUtil.getClobDataTypeName(), queryUtil.getBooleanDataTypeName() };
 		if(queryUtil.allowsIfExistsTableSyntax()) {
-			themeDb.insertData(queryUtil.createTableIfNotExists("ADMIN_THEME", colNames, types));
+			themeDb.insertData(queryUtil.createTableIfNotExists(ThemeDbTable.ADMIN_THEME.getThemeDbTableName(), adminThemeColNames, adminThemeTypes));
 		} else {
-			if(!queryUtil.tableExists(themeDb.getConnection(), "ADMIN_THEME", themeDb.getDatabase(), themeDb.getSchema())) {
-				themeDb.insertData(queryUtil.createTable("ADMIN_THEME", colNames, types));
+			if(!queryUtil.tableExists(themeDb.getConnection(), ThemeDbTable.ADMIN_THEME.getThemeDbTableName(), themeDb.getDatabase(), themeDb.getSchema())) {
+				themeDb.insertData(queryUtil.createTable(ThemeDbTable.ADMIN_THEME.getThemeDbTableName(), adminThemeColNames, adminThemeTypes));
 			}
 		}
+		
+		// BLOCKS_TABLE
+		
+		blocksTableTypes = BlocksThemeUtils.getThemeColTypes(queryUtil);
+		if(queryUtil.allowsIfExistsTableSyntax()) {
+			themeDb.insertData(queryUtil.createTableIfNotExists(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(), BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes));
+		} else {
+			if(!queryUtil.tableExists(themeDb.getConnection(), ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(), themeDb.getDatabase(), themeDb.getSchema())) {
+				themeDb.insertData(queryUtil.createTable(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(), BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes));
+				populateBlocksTemplateTable(BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes, queryUtil);
+			}
+		}
+//			if (!BlocksThemeUtils.getBlockNames().containsAll(BlocksThemeUtils.BASE_BLOCKS)) {
+//				populateBlocksTemplateTable(BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTemplateTypes, queryUtil);
+//			}
 
 		// commit the changes
 		themeDb.commit();
 	}
+
+	private static void populateBlocksTemplateTable(String[] blocksTemplateColNames, String[] blocksTemplateTypes,
+		AbstractSqlQueryUtil queryUtil) throws SQLException {
+		
+			classLogger.info("Rebuilding Blocks_Table Table");
+		
+			//delete the contents of the entire table
+			themeDb.removeData("DELETE FROM " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName());
+			
+//			for (Object[] entry : BlocksThemeUtils.BLOCKS_DEFAULT_ENTRIES) {
+//				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
+//						blocksTemplateColNames, blocksTemplateTypes, entry));
+//			}
+		}
 	
 	/**
 	 * Determine if the theme db is present to be able to set custom themes

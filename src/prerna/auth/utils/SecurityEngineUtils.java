@@ -1501,7 +1501,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
 				// need to update
-				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET FAVORITE=? WHERE USERID=?");
+				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET FAVORITE=? WHERE USERID=? AND ENGINEID=?");
 				if(ps == null) {
 					throw new IllegalArgumentException("Error generating prepared statement to set engine favorites");
 				}
@@ -1512,6 +1512,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						int parameterIndex = 1;
 						ps.setBoolean(parameterIndex++, isFavorite);
 						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, engineId);
 						ps.addBatch();
 					}
 					ps.executeBatch();
@@ -2503,6 +2504,30 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		return QueryExecutionUtility.flushToListString(securityDb, qs1);
 	}
+	
+	/**
+     * Get the latest updated author for the engine
+     * @param engineId
+     * @return a map with the author and date added
+     */
+    public static Map<String, Object> getLatestUpdatedAuthor(String engineId) {
+        SelectQueryStruct qs = new SelectQueryStruct();
+        qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBY"));
+        qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED"));
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+        qs.addOrderBy(new QueryColumnOrderBySelector("ENGINEPERMISSION__DATEADDED","DESC"));
+        qs.setLimit(1);
+ 
+        List<Map<String, Object>> list = (List<Map<String, Object>>) QueryExecutionUtility.flushRsToMap(securityDb, qs);
+        if (list.isEmpty()) {
+			Map<String, Object> map = new HashMap<>();
+			map.put("PERMISSIONGRANTEDBY", null);
+			map.put("DATEADDED", null);
+			return map;
+		}
+ 
+        return list.get(0);
+    }
 	
     /**
      * Get all the available engine metadata and their counts for given keys

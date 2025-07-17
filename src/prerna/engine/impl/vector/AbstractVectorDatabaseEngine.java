@@ -42,6 +42,7 @@ import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -58,7 +59,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			+ "import vector_database;";
 	
 	public static final String LATEST_VECTOR_SEARCH_STATEMENT = "LATEST_VECTOR_SEARCH_STATEMENT";
-	public static final String INSIGHT = "insight";
 	
 	public static final String DIR_SEPARATOR = "/";
 	public static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -113,7 +113,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	protected ClientProcessWrapper cpw = null;
 	// python server
-	protected PyTranslator pyt = null;
+	protected PyTranslator pyTranslator = null;
 	protected File pyDirectoryBasePath = null;
 	
 	protected File schemaFolder;
@@ -163,7 +163,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		
 		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
 		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, getDefaultDistanceMethod());
-		this.defaultChunkingMethod = this.smssProp.getProperty(Constants.DEFAULT_CHUNKING_METHOD, "tokens");
+		this.defaultChunkingMethod = this.smssProp.getProperty(Constants.DEFAULT_CHUNKING_METHOD, "recursive");
 		
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
@@ -243,7 +243,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			chunkingMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNKING_METHOD.getKey());
 		}
         
-		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
+		Insight insight = getInsight(parameters.get(Constants.INSIGHT));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -355,7 +355,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 								.append(extractedFileName)
 								.append("')");
 							setVectorFolderPermissions();
-							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
+							Number rows = (Number) pyTranslator.runDirectPy(extractTextFromDocScript.toString());
 							rowsCreated = rows.intValue();
 							processed = true;
 						} else if(this.customDocumentProcessor) {
@@ -403,7 +403,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							.append(chunkingMethod)
 							.append("', cfg_tokenizer = cfg_tokenizer)");
 						
-						pyt.runScript(splitTextCommand.toString());
+						pyTranslator.runScript(splitTextCommand.toString());
 					}
 
 					// add it to the list of files that need to be pushed to the cloud in a new thread
@@ -559,7 +559,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 					/*messageId*/UUID.randomUUID().toString(), 
 					/*messageMethod*/"nearestNeighbor", 
 					/*engine*/this, 
-					/*insight*/insight,
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null, 
 					/*prompt*/searchStatement,
 					/*fullPrompt*/null,
@@ -746,8 +751,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 
 		// create the py translator
-		pyt = new PyTranslator();
-		pyt.setSocketClient(cpwToInit.getSocketClient());
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		
 		try {
 			// this is engine specific... or can be
@@ -758,11 +764,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				String resolvedString = substitutor.replace(commands[commandIndex]);
 				commands[commandIndex] = resolvedString;
 			}
-			pyt.runEmptyPy(commands);
 			
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", commands));
+			
+			this.pyTranslator.runEmptyPy(commands);
 			
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;

@@ -12,13 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.quartz.CronExpression;
 
 import com.google.common.io.Files;
@@ -39,10 +37,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
-import prerna.util.Constants;
 
 public abstract class AbstractInsightReactor extends AbstractReactor {
 
@@ -487,7 +485,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 						String fileLoc = null;
 						String filePrefix = null;
 						if(space != null) {
-							filePrefix = AssetUtility.getAssetBasePath(this.insight, space, false);
+							filePrefix = AssetUtility.getRootFolderPath(this.insight, space, false);
 						}
 						
 						// this is for legacy recipes

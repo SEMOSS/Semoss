@@ -36,7 +36,7 @@ public class DownloadAssetReactor extends AbstractReactor {
 			filePath = filePath.substring(1);
 		}
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false).replace("\\", "/");
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false).replace("\\", "/");
 
 		File downloadF = null;
 		if(filePath != null) {

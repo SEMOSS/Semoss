@@ -26,6 +26,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.storage.AbstractRCloneStorageEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
@@ -60,6 +61,8 @@ public class CentralCloudStorage implements ICloudClient {
 	public static final String VENV_BLOB = "semoss-venv";
 	public static final String PROJECT_BLOB = "semoss-project";
 	public static final String USER_BLOB = "semoss-user";
+	public static final String ROOM_BLOB = "semoss-room";
+
 	// images
 	public static final String DB_IMAGES_BLOB = "semoss-dbimagecontainer";
 	public static final String STORAGE_IMAGES_BLOB = "semoss-storageimagecontainer";
@@ -86,7 +89,8 @@ public class CentralCloudStorage implements ICloudClient {
 	private static String VENV_CONTAINER_PREFIX = "/" + VENV_BLOB + "/";
 	private static String PROJECT_CONTAINER_PREFIX = "/" + PROJECT_BLOB + "/";
 	private static String USER_CONTAINER_PREFIX = "/" + USER_BLOB + "/";
-	
+	private static String ROOM_CONTAINER_PREFIX = "/" + ROOM_BLOB + "/";
+
 	/**
 	 * 
 	 * @throws Exception
@@ -144,6 +148,8 @@ public class CentralCloudStorage implements ICloudClient {
 			CentralCloudStorage.VENV_CONTAINER_PREFIX = "semoss-venv";
 			CentralCloudStorage.PROJECT_CONTAINER_PREFIX = "project-";
 			CentralCloudStorage.USER_CONTAINER_PREFIX = "user-";
+			CentralCloudStorage.ROOM_CONTAINER_PREFIX = "semoss-room";
+
 			
 		}
 		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AWS") ||
@@ -555,6 +561,106 @@ public class CentralCloudStorage implements ICloudClient {
 		try {
 			centralStorageEngine.copyToLocal(cloudSmssFolder, cloudContainerPrefix);
 		} finally {
+			lock.unlock();
+			classLogger.info("Engine " + aliasAndEngineId + " is unlocked");
+		}
+	}
+	
+	@Override
+	public void pushEngineFolder(String engineId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(engineId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("Engine not found...");
+		}
+		if(storageRelativePath != null) {
+			storageRelativePath = storageRelativePath.replace("\\", "/");
+		}
+		if(storageRelativePath.startsWith("/")) {
+			storageRelativePath = storageRelativePath.substring(1);
+		}
+		
+		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
+
+		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
+		
+		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
+		String localEngineFolder = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId);
+		{
+			// lets make sure this exists
+			File localEngineF = new File(localEngineFolder);
+			if(!localEngineF.exists() || !localEngineF.isDirectory()) {
+				localEngineF.mkdirs();
+			}
+			ClusterUtil.validateFolder(localEngineFolder);
+		}
+		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
+		String cloudEngineFolder = cloudContainerPrefix + engineId;
+		if(storageRelativePath != null) {
+			cloudEngineFolder = cloudEngineFolder + "/" + storageRelativePath;
+		}
+		
+		// TODO: we might not need the lock - these are only assets
+		
+		classLogger.info("Applying lock for engine " + aliasAndEngineId + " to push engine relative folder " + storageRelativePath);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
+		lock.lock();
+		classLogger.info("Engine " + aliasAndEngineId + " is locked");
+		try {
+			classLogger.info("Pushing folder from local=" + localAbsoluteFilePath + " to remote=" + storageRelativePath);
+			centralStorageEngine.syncLocalToStorage(localAbsoluteFilePath, storageRelativePath, null);
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Engine " + aliasAndEngineId + " is unlocked");
+		}
+	}
+
+	@Override
+	public void pullEngineFolder(String engineId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(engineId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("Engine not found...");
+		}
+		if(storageRelativePath != null) {
+			storageRelativePath = storageRelativePath.replace("\\", "/");
+		}
+		if(storageRelativePath.startsWith("/")) {
+			storageRelativePath = storageRelativePath.substring(1);
+		}
+		
+		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
+
+		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
+		
+		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
+		String localEngineFolder = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId);
+		{
+			// lets make sure this exists
+			File localEngineF = new File(localEngineFolder);
+			if(!localEngineF.exists() || !localEngineF.isDirectory()) {
+				localEngineF.mkdirs();
+			}
+			ClusterUtil.validateFolder(localEngineFolder);
+		}
+		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
+		String cloudEngineFolder = cloudContainerPrefix + engineId;
+		if(storageRelativePath != null) {
+			cloudEngineFolder = cloudEngineFolder + "/" + storageRelativePath;
+		}
+		
+		// TODO: we might not need the lock - these are only assets
+		
+		classLogger.info("Applying lock for engine " + aliasAndEngineId + " to pull engine relative folder " + storageRelativePath);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
+		lock.lock();
+		classLogger.info("Engine " + aliasAndEngineId + " is locked");
+		try {
+			classLogger.info("Pulling folder from remote=" + cloudEngineFolder + " to local=" + localAbsoluteFilePath);
+			centralStorageEngine.syncStorageToLocal(cloudEngineFolder, localAbsoluteFilePath);
+		} finally {
+			// always unlock regardless of errors
 			lock.unlock();
 			classLogger.info("Engine " + aliasAndEngineId + " is unlocked");
 		}
@@ -1556,6 +1662,26 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
+	/// Rooms
+
+
+	// pull room - this is using 
+	
+	public void pullRoomFolderFromCloud(String roomId) throws IOException, InterruptedException {
+		String localFolderPath=Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		centralStorageEngine.syncStorageToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);			
+	}
+
+	public void pushRoomFolderToCloud(String roomId) throws IOException, InterruptedException {
+		String localFolderPath=Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		
+		if(Utility.folderHasAnyFiles(localFolderPath)) {
+			centralStorageEngine.syncLocalToStorage(localFolderPath, ROOM_CONTAINER_PREFIX+ roomId, null);
+
+		}
+		}
+	
+	/////////////////////////////////////////////////////////////////////////////////
 
 	// utility methods
 	

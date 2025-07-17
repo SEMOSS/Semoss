@@ -7,14 +7,14 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SetContextReactor extends AbstractReactor {
-
-	private static final String CLASS_NAME = SetContextReactor.class.getName();
 
 	// takes in a the name and engine and mounts the engine assets as that variable
 	// name in both python and R
@@ -29,6 +29,16 @@ public class SetContextReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		User user = insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to set app context", PixelDataType.CONST_STRING,
+					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
+		
 		organizeKeys();
 		String context = keyValue.get(keysToGet[0]);
 		if (context == null || (context=context.trim()).isEmpty()) {
@@ -47,34 +57,32 @@ public class SetContextReactor extends AbstractReactor {
 		// if we have a chroot, mount the project for that user.
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			// get the app_root folder for the project
-			String projectAppRootFolder = AssetUtility.getProjectBaseFolder(context);
+			String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(context);
 			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
 		}
 
 		// if python enabled
 		// set the path
 		if (PyUtils.pyEnabled()) {
-			String assetsDir = AssetUtility.getProjectAssetFolder(context).replace("\\", "/");
+			String assetsDir = AssetUtility.getProjectAssetsFolder(context).replace("\\", "/");
 			String assetsPyDir = assetsDir + "/py";
 			String script = "import sys\n" + "import os\n" 
 					+ "sys.path.append('" + assetsDir + "')\n" 
 					+ "sys.path.append('" + assetsPyDir + "')\n" 
 					+ "os.chdir('"+ assetsDir + "')";
 
-			PyTranslator pyT = null;
-			User user = insight.getUser();
-			if (user != null) {
-				pyT = user.getPyTranslator(false);
-			}
-			if (pyT == null && user != null && load) {
-				pyT = user.getPyTranslator(true);
-			} else if (load) {
-				pyT = insight.getPyTranslator();
-			}
-
-			if (pyT != null) {
-				pyT.setInsight(insight);
-				pyT.runEmptyPy(script);
+			// if load, always grab the insight translator to set the path
+			if (load) {
+				PyTranslator pyTranslator = insight.getPyTranslator();
+				pyTranslator.runEmptyPy(script);
+			} else {
+				// is the user already using python?
+				// if so, set the path
+				SocketClient sc = user.getPythonSocketClient(false);
+				if (sc != null) {
+					PyTranslator pyTranslator = insight.getPyTranslator();
+					pyTranslator.runEmptyPy(script);
+				}
 			}
 		}
 
