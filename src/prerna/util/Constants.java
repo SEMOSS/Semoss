@@ -928,7 +928,6 @@ public class Constants {
 	//vector
 	public static final String API_KEY = "API_KEY";
 	public static final String API_KEY_ID="API_KEY_ID";
-	public static final String AZURE_AI_SEARCH_VECTOR_ID = "id";
 	public static final String INDEX_CLASSES = "INDEX_CLASSES";
 	public static final String CONTENT_LENGTH = "CONTENT_LENGTH";
 	public static final String CONTENT_OVERLAP = "CONTENT_OVERLAP";

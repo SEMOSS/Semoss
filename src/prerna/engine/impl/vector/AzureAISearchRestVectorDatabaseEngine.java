@@ -28,6 +28,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.reflect.TypeToken;
 
 import net.snowflake.client.jdbc.internal.apache.commons.io.FilenameUtils;
@@ -52,6 +53,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 	private static final Logger classLogger = LogManager.getLogger(AzureAISearchRestVectorDatabaseEngine.class);
 
+	public static final String AZURE_AI_SEARCH_VECTOR_ID = "id";
 	public static final String API_VERSION = "API_VERSION";
 	public static final String AZURE_AI_API_KEY = "api-key";
 	public static final String AZURE_API_VERSION = "api-version";
@@ -101,12 +103,19 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		super.open(smssProp);
 
 		this.clusterUrl = this.smssProp.getProperty(Constants.HOSTNAME);
+		if (this.clusterUrl == null || (this.clusterUrl=this.clusterUrl.trim()).isEmpty()) {
+			classLogger.error("Hostname (Cluster URL) is required");
+			throw new IllegalArgumentException("Hostname (Cluster URL) is required");
+		}
 		this.apiKey = this.smssProp.getProperty(Constants.API_KEY);
 		this.apiVersion = this.smssProp.getProperty(API_VERSION);
+		if(this.apiVersion == null || (this.apiVersion=this.apiVersion.trim()).isEmpty()) {
+			this.apiVersion = "2024-07-01";
+		}
 		
-		if (this.apiKey == null || this.apiKey.trim().isEmpty() || this.apiVersion == null || this.apiVersion.trim().isEmpty()) {
-			classLogger.error("API Key or API Version is required");
-			throw new IllegalArgumentException("API Key or API Version is required");
+		if (this.apiKey == null || (this.apiKey=this.apiKey.trim()).isEmpty()) {
+			classLogger.error("API Key is required");
+			throw new IllegalArgumentException("API Key is required");
 		}
 		
 		this.indexName = this.smssProp.getProperty(INDEX_NAME);
@@ -172,7 +181,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		}
 
 		// we need to store our stuff
-		this.otherPropsToType.put(Constants.AZURE_AI_SEARCH_VECTOR_ID, TEXT_DATATYPE);
+		this.otherPropsToType.put(AZURE_AI_SEARCH_VECTOR_ID, TEXT_DATATYPE);
 		this.otherPropsToType.put(VectorDatabaseCSVTable.SOURCE, TEXT_DATATYPE);
 		this.otherPropsToType.put(VectorDatabaseCSVTable.MODALITY, TEXT_DATATYPE);
 		this.otherPropsToType.put(VectorDatabaseCSVTable.DIVIDER, TEXT_DATATYPE);
@@ -218,7 +227,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				// store the actual index details
 				{
 					JsonObject record = new JsonObject();
-					record.addProperty(Constants.AZURE_AI_SEARCH_VECTOR_ID, this.sanitizeKey(source) + "_" + index);
+					record.addProperty(AZURE_AI_SEARCH_VECTOR_ID, this.sanitizeKey(source) + "_" + index);
 					record.addProperty(VectorDatabaseCSVTable.SOURCE, source);
 					record.addProperty(VectorDatabaseCSVTable.MODALITY, row.getModality());
 					record.addProperty(VectorDatabaseCSVTable.DIVIDER, row.getDivider());
@@ -276,7 +285,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		
 		//Get the file name and join it with comma and add to string ex: file1.pdf , file2.pdf , file3.pdf
 		searchArr = String.join(",", sourceNames);
-		getIdRq.addProperty("select", Constants.AZURE_AI_SEARCH_VECTOR_ID + "," + VectorDatabaseCSVTable.SOURCE);
+		getIdRq.addProperty("select", AZURE_AI_SEARCH_VECTOR_ID + "," + VectorDatabaseCSVTable.SOURCE);
 		getIdRq.addProperty("search", searchArr);
 		getIdRq.addProperty("searchFields", VectorDatabaseCSVTable.SOURCE);
 		getIdRq.addProperty("count",true);
@@ -482,6 +491,41 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		return returnSources;
 	}
 	
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		String url = this.clusterUrl + "/" + SEARCH_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName) + "?"
+				+ this.getMustQueryParamString();
+
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(AZURE_AI_API_KEY, this.apiKey);
+		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
+
+		JsonObject search = new JsonObject();
+		{
+			search.addProperty("search", "*");
+			search.addProperty("orderby", AZURE_AI_SEARCH_VECTOR_ID);
+		}
+		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(),
+				ContentType.APPLICATION_JSON, null, null, null);
+		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
+		JsonArray data = responseJson.getAsJsonArray("value");
+
+		List<Map<String, Object>> documentsList = new ArrayList<>();
+		for (JsonElement recordEle : data) {
+			JsonObject record = recordEle.getAsJsonObject();
+			Map<String, Object> document = new HashMap<>();
+			document.put(VectorDatabaseCSVTable.SOURCE, getJsonValue(record.get(VectorDatabaseCSVTable.SOURCE)));
+			document.put(VectorDatabaseCSVTable.MODALITY, getJsonValue(record.get(VectorDatabaseCSVTable.MODALITY)));
+			document.put(VectorDatabaseCSVTable.DIVIDER, getJsonValue(record.get(VectorDatabaseCSVTable.DIVIDER)));
+			document.put(VectorDatabaseCSVTable.PART, getJsonValue(record.get(VectorDatabaseCSVTable.PART)));
+			document.put(VectorDatabaseCSVTable.TOKENS, getJsonValue(record.get(VectorDatabaseCSVTable.TOKENS)));
+			document.put(VectorDatabaseCSVTable.CONTENT, getJsonValue(record.get(VectorDatabaseCSVTable.CONTENT)));
+			document.put(AZURE_AI_SEARCH_VECTOR_ID, getJsonValue(record.get(AZURE_AI_SEARCH_VECTOR_ID))); 
+			documentsList.add(document);
+		}
+		return documentsList;
+	}
+	
 	/**
 	 * 
 	 * @param responseObject
@@ -553,7 +597,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 					if (propType.equals(TEXT_DATATYPE)) {
 						field.addProperty("searchable", true);
 					}
-					if (propName.equals(Constants.AZURE_AI_SEARCH_VECTOR_ID)) {
+					if (propName.equals(AZURE_AI_SEARCH_VECTOR_ID)) {
 						field.addProperty("key", true);
 					}
 					if (propName.equals(this.embeddings)) {
@@ -636,6 +680,28 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		return false;
 	}
+	
+	/**
+	 * Helper method to extract the correct type from JsonElement.
+	 * @param element
+	 * @return
+	 */
+	private Object getJsonValue(JsonElement element) {
+		if (element == null || element.isJsonNull()) {
+			return null;
+		} else if (element.isJsonPrimitive()) {
+			JsonPrimitive primitive = element.getAsJsonPrimitive();
+			if (primitive.isNumber()) {
+				return primitive.getAsInt(); 
+			} else if (primitive.isBoolean()) {
+				return primitive.getAsBoolean();
+			} else {
+				return primitive.getAsString();
+			}
+		} else {
+			return element.toString(); 
+		}
+	}
 
 	/**
 	 * 
@@ -672,14 +738,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
         return key.replaceAll(regex, "_");
     }
 
-	@Override
-	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	
-	
 //	FILTER HELPER FUNCTIONS
 	
 	public String processFilter(IQueryFilter queryFilter, String filterString) {
