@@ -5,7 +5,6 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -28,16 +27,15 @@ public class AdminGetEngineUsagePerUserReactor extends AbstractReactor {
 		}
 		
 		if (!Utility.isModelInferenceLogsEnabled()) {
-			throw new IllegalArgumentException("Model inference logs database must be functioning for this report to be generated");
+			throw new IllegalArgumentException("Model inference logs database must be enabled for create this report");
 		}
 
-		
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if(engineId == null || engineId.isEmpty()) {
-			throw new IllegalArgumentException("Must input an engine id");
+			throw new IllegalArgumentException("Must define the engine id for the usage details");
 		}
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);	
 		String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
@@ -50,7 +48,10 @@ public class AdminGetEngineUsagePerUserReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor returns the number of tokens usage for an engine. The fields for this report include: user_name, user_id, number_of_messages, number_of_rooms, number_of_tokens.";
+		return """
+				This reactor returns the number of tokens usage for an engine. 
+				The fields for this report include: user_name, user_id, number_of_messages, number_of_rooms, number_of_tokens.
+				""";
 	}
 
 	@Override

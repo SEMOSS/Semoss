@@ -555,8 +555,16 @@ public class UserTrackingUtils {
 		}
 	}
 
+	/**
+	 * 
+	 * @param databaseId
+	 * @param limit
+	 * @param offset
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 */
 	public static List<Map<String, Object>> getDatabaseUsage(String databaseId, String limit, String offset, String startDate, String endDate) {
-		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__USERID"));
 		
@@ -575,7 +583,6 @@ public class UserTrackingUtils {
 		qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__QUERY_EXECUTED"));
 		qs.addSelector(new QueryColumnSelector("UT__LAST_LOGON"));
 		qs.addSelector(new QueryColumnSelector("QUERY_TRACKING__FAILED_EXECUTION"));
-
 		
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
@@ -585,8 +592,7 @@ public class UserTrackingUtils {
 			maxCreatedOnSelector.setAlias("LAST_LOGON");
 			subQs.addSelector(maxCreatedOnSelector);
 			subQs.addSelector(new QueryColumnSelector("USER_TRACKING__USERID"));
-			qs.addRelation(new SubqueryRelationship(subQs, "UT", "left.outer.join", 
-					new String[] {"QUERY_TRACKING__USERID", "UT__USERID", "="}));
+			qs.addRelation(new SubqueryRelationship(subQs, "UT", "left.outer.join", new String[] {"QUERY_TRACKING__USERID", "UT__USERID", "="}));
 		}
 		
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUERY_TRACKING__DATABASEID", "==", databaseId));

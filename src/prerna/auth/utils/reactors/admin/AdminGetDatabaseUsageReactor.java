@@ -27,14 +27,15 @@ public class AdminGetDatabaseUsageReactor extends AbstractReactor {
 		}
 		
 		if (!Utility.isUserTrackingEnabled()) {
-			throw new IllegalArgumentException("User Tracking Must be Enabled For this Report");
+			throw new IllegalArgumentException("User tracking must be enabled For this report");
 		}
 		
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		if(databaseId == null || databaseId.isEmpty()) {
-			throw new IllegalArgumentException("Must input a database id");
+			throw new IllegalArgumentException("Must define the database id for the usage details");
 		}
+		
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);	
 		String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
