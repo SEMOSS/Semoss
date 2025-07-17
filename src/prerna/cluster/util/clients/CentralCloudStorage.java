@@ -148,7 +148,7 @@ public class CentralCloudStorage implements ICloudClient {
 			CentralCloudStorage.VENV_CONTAINER_PREFIX = "semoss-venv";
 			CentralCloudStorage.PROJECT_CONTAINER_PREFIX = "project-";
 			CentralCloudStorage.USER_CONTAINER_PREFIX = "user-";
-			CentralCloudStorage.ROOM_CONTAINER_PREFIX = "semoss-room";
+			CentralCloudStorage.ROOM_CONTAINER_PREFIX = "semoss-room-";
 
 			
 		}
