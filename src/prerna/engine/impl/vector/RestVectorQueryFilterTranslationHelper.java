@@ -308,6 +308,12 @@ public final class RestVectorQueryFilterTranslationHelper {
 		}
 		return false;
 	}
+	
+	/**
+	 * 
+	 * @param values
+	 * @return
+	 */
 	private static List<Object> normalizeToList(Object values) {
 		if(values instanceof String || values instanceof Number) {
 			return Collections.singletonList(values);
@@ -316,6 +322,11 @@ public final class RestVectorQueryFilterTranslationHelper {
 		}else {
 			throw new IllegalArgumentException("Unsupported input type");
 		}
+	}
+	
+	
+	private RestVectorQueryFilterTranslationHelper() {
+		
 	}
 
 }

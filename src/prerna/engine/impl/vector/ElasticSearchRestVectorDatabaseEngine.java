@@ -386,9 +386,6 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			search.add("query", query);
 		}
 
-
-		classLogger.info("ELASTIC FINAL SEARCH QUERY : " + search.toString());
-		
 		classLogger.debug("ELASTIC FINAL SEARCH QUERY : " + search.toString());
 
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;

@@ -389,7 +389,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			search.add("query", query);
 		}
 		
-		System.out.println("OPEN_SEARCH :: " + search);
+		classLogger.debug("OPENSEARCH FINAL SEARCH QUERY : " + search.toString());
 
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();
