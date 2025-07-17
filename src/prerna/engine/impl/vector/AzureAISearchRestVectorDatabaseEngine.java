@@ -52,6 +52,10 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 	private static final Logger classLogger = LogManager.getLogger(AzureAISearchRestVectorDatabaseEngine.class);
 
+	public static final String API_VERSION = "API_VERSION";
+	public static final String AZURE_AI_API_KEY = "api-key";
+	public static final String AZURE_API_VERSION = "api-version";
+	
 	public static final String INDEX_NAME = "INDEX_NAME";
 
 	private static final String TEXT_DATATYPE = "Edm.String";
@@ -98,7 +102,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		this.clusterUrl = this.smssProp.getProperty(Constants.HOSTNAME);
 		this.apiKey = this.smssProp.getProperty(Constants.API_KEY);
-		this.apiVersion = this.smssProp.getProperty(Constants.API_VERSION);
+		this.apiVersion = this.smssProp.getProperty(API_VERSION);
 		
 		if (this.apiKey == null || this.apiKey.trim().isEmpty() || this.apiVersion == null || this.apiVersion.trim().isEmpty()) {
 			classLogger.error("API Key or API Version is required");
@@ -208,7 +212,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 					index = sourceId.get(source);
 					sourceId.put(source, index+1);
 				} else {
-					sourceId.put(source, new Integer(0));
+					sourceId.put(source, Integer.valueOf(0));
 				}
 
 				// store the actual index details
@@ -230,7 +234,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		String url = this.clusterUrl + "/" + BULK_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName) + "?" + this.getMustQueryParamString();
 		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
+		headersMap.put(AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, bulkInsert.toString(), ContentType.APPLICATION_JSON, null, null, null);
@@ -239,7 +243,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		}
 
 		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
-		ArrayList<Object> insertions = (ArrayList<Object>) responseMap.get("value");
+		List<Object> insertions = (List<Object>) responseMap.get("value");
 		classLogger.info("Inserted " + insertions.size() + " bulk inserts (create index + record value) into azure ai search index " + this.indexName);
 
 		Boolean errors = (Boolean) responseMap.get("errors");
@@ -268,10 +272,10 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		
 		//Logic to retrieve Id's against all file names
 		JsonObject getIdRq = new JsonObject();
-		String searchArr= new String();
+		String searchArr = new String();
 		
 		//Get the file name and join it with comma and add to string ex: file1.pdf , file2.pdf , file3.pdf
-		searchArr=String.join(",", sourceNames);
+		searchArr = String.join(",", sourceNames);
 		getIdRq.addProperty("select", Constants.AZURE_AI_SEARCH_VECTOR_ID + "," + VectorDatabaseCSVTable.SOURCE);
 		getIdRq.addProperty("search", searchArr);
 		getIdRq.addProperty("searchFields", VectorDatabaseCSVTable.SOURCE);
@@ -283,7 +287,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		
 		
 		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
+		headersMap.put(AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
 		
 		String responseSearchId = HttpHelperUtility.postRequestStringBody(url, headersMap, getIdRq.toString(),
@@ -314,7 +318,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			JsonObject delRq = new JsonObject();
 			delRq.add("value",valueArr);
 			String urlDel = this.clusterUrl + "/" + DELETE_BY_QUERY_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName)+ "?" + this.getMustQueryParamString();
-			headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
+			headersMap.put(AZURE_AI_API_KEY, this.apiKey);
 			headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
 
 			String response = HttpHelperUtility.postRequestStringBody(urlDel, headersMap, delRq.toString(), ContentType.APPLICATION_JSON, null, null, null);
@@ -401,7 +405,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		String url = this.clusterUrl + "/" + SEARCH_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName) + "?" + this.getMustQueryParamString();
 		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
+		headersMap.put(AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
 		
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
@@ -433,7 +437,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				+ "?" + this.getMustQueryParamString();
  
 		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
+		headersMap.put(AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
  
 		JsonObject search = new JsonObject();
@@ -512,15 +516,12 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	 * @return
 	 */
 	private Boolean doesIndexExsist(String specificIndexName) {
-		System.out.println("AZURE_AI_SEARCH :: Checking does index exists.");
 		String url = this.clusterUrl + "/" + DOES_INDEX_EXISTS.replace("{{INDEX_NAME}}", specificIndexName) + "?" + this.getMustQueryParamString() ;
-		System.out.println("AZURE_AI_SEARCH :: " + url);
 		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
+		headersMap.put(AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
 		try {
 			HttpHelperUtility.getRequest(url, headersMap, null, null, null);
-			System.out.println("AZURE_AI_SEARCH :: Index already exists...");
 			return true;
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -609,10 +610,9 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		String url = this.clusterUrl + "/" + CREATE_INDEX + "?" + this.getMustQueryParamString();
 		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(Constants.AZURE_AI_API_KEY, this.apiKey);
+		headersMap.put(AZURE_AI_API_KEY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, createIndexJson.toString(), ContentType.APPLICATION_JSON, null, null, null);
-		System.out.println("AZURE_AI_search :: " + response);
 		if(!parseResponseForAcknowledged(response, specificIndexName)) {
 			throw new IllegalArgumentException("Did not receive an acknowledgement from the server for creating the index with the embeddings column");
 		}
@@ -651,12 +651,18 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	}
 
 	@Override
+	protected String getDefaultDistanceMethod() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.AZURE_AI_SEARCH;
 	}
 	
 	public String getMustQueryParamString () {
-		return Constants.AZURE_API_VERSION + "=" + this.apiVersion;
+		return AZURE_API_VERSION + "=" + this.apiVersion;
 	}
 
 	public String sanitizeKey(String key) {
@@ -862,9 +868,4 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		}
 	}
 
-	@Override
-	protected String getDefaultDistanceMethod() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }
