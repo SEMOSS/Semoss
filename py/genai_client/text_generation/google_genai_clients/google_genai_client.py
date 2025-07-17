@@ -6,9 +6,13 @@ from ...clients.google_clients import (
     GoogleClientConfig,
     GoogleClientType,
 )
-from ...utils import StringEnum, classify_url
+from ...utils import classify_url
 from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
 from ..abstract_text_generation_client import AbstractTextGenerationClient
+from ...message_builders.google_genai.google_genai_models import GoogleRoles as Roles
+from ...message_builders.google_genai.google_genai_builder import (
+    GoogleGenAIMessageBuilder,
+)
 
 
 # Mimicking Google Gen AI's usage metadata structure
@@ -34,11 +38,6 @@ class ConvertedHistory(BaseModel):
 
     contents: List[types.Content]
     system_instructions: str | None = None
-
-
-class Roles(StringEnum):
-    USER = "user"
-    MODEL = "model"
 
 
 class GoogleGenAiTextClient(AbstractTextGenerationClient):
@@ -81,41 +80,38 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         if self.client is None:
             raise ValueError("Google Gen AI client is not initialized.")
 
-        ask_settings = self.get_ask_settings(history, use_history, **kwargs)
+        self.ask_settings = self.get_ask_settings(
+            history, use_history, context, **kwargs
+        )
 
-        if ask_settings.full_prompt is not None:
-            converted_history = self._convert_history(
-                history=ask_settings.full_prompt,
-            )
+        # Handling new history format through message_json
+        if self.ask_settings.semoss_messages:
+            msg_history = self._handle_semoss_msgs()
+
+        # Handling full prompt from Elsa...
+        elif self.ask_settings.full_prompt:
+            msg_history = self._handle_full_prompt_msgs(**kwargs)
+
+        # Handling standard ask with question and legacy history
         else:
-            converted_history = self._convert_history(
-                history=ask_settings.history,
+            msg_history = self._handle_standard_ask(
                 question=question,
-                image_url=ask_settings.image_url,
-                image_encoded=ask_settings.image_encoded,
+                **kwargs,
             )
-
-        contents = converted_history.contents
-        if converted_history.system_instructions is not None and context is not None:
-            print(
-                "There are multiple sets of system instructions.. Using context passed to ask_call()"
-            )
-        elif converted_history.system_instructions is not None:
-            context = converted_history.system_instructions
 
         config = self._convert_args_to_provider_config(context=context, **kwargs)
 
-        if ask_settings.streaming:
+        if self.ask_settings.streaming:
             # STREAMING
             response = self._handle_streaming(
                 prefix=prefix,
-                contents=contents,
+                contents=msg_history,
                 config=config,
             )
         else:
             # NON-STREAMING
             response = self.client.models.generate_content(
-                model=self.model_name, contents=contents, config=config
+                model=self.model_name, contents=msg_history, config=config
             )
 
         response_tokens = response.usage_metadata.candidates_token_count
@@ -137,6 +133,57 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         )
 
         return model_engine_response
+
+    def _handle_semoss_msgs(self):
+
+        try:
+            msg_history, param_map = GoogleGenAIMessageBuilder().build_messages(
+                self.ask_settings.semoss_messages
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to build messages from SEMOSS messages: {e}")
+
+        self.request_config = self._convert_args_to_provider_config(
+            context=self.ask_settings.system_prompt, history=msg_history, **param_map
+        )
+
+        return msg_history
+
+    def _handle_full_prompt_msgs(self, **kwargs):
+        """
+        This method will change when we go to the new history format.
+        In the future we will not do this conversion
+        Right now it is required for Elsa support
+        But eventually full_prompt will assume the structure of the messages matches the Anthropic API
+        """
+        self.ask_settings.history = self.ask_settings.full_prompt
+        msg_history, system_prompt_from_history = self._convert_history()
+        if system_prompt_from_history and not self.ask_settings.system_prompt:
+            self.ask_settings.system_prompt = system_prompt_from_history
+
+        self.request_config = self._convert_args_to_provider_config(
+            context=self.ask_settings.system_prompt,
+            history=msg_history,
+            **kwargs,
+        )
+
+        return msg_history
+
+    def _handle_standard_ask(self, question: str, **kwargs):
+        """This method will change when we go to the new history format"""
+        msg_history, system_prompt_from_history = self._convert_history(
+            question=question,
+        )
+        if system_prompt_from_history and not self.ask_settings.system_prompt:
+            self.ask_settings.system_prompt = system_prompt_from_history
+
+        self.request_config = self._convert_args_to_provider_config(
+            context=self.ask_settings.system_prompt,
+            history=msg_history,
+            **kwargs,
+        )
+
+        return msg_history
 
     def _parse_tools_call_response(
         self,

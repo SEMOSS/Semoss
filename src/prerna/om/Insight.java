@@ -60,7 +60,6 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.project.api.IProject;
 import prerna.query.parsers.GenExpressionWrapper;
@@ -173,11 +172,7 @@ public class Insight implements Serializable {
 
 	private transient boolean deleteFilesOnDropInsight = true;
 	private transient boolean deleteREnvOnDropInsight = true;
-	
-	//TODO: rename to delete python globals
-	//TODO: rename to delete python globals
-	//TODO: rename to delete python globals
-	private transient boolean deletePythonTupleOnDropInsight = true;
+	private transient boolean deletePythonGlobalsOnDropInsight = true;
 
 	private transient boolean isTemporaryInsight = false;
 	private transient boolean isSchedulerMode = false;
@@ -596,6 +591,9 @@ public class Insight implements Serializable {
 	}
 
 	public User getUser() {
+		if(this.user == null) {
+			return ThreadStore.getUser();
+		}
 		return this.user;
 	}
 
@@ -839,12 +837,12 @@ public class Insight implements Serializable {
 		this.deleteREnvOnDropInsight = deleteREnvOnDropInsight;
 	}
 	
-	public boolean isDeletePythonTupleOnDropInsight() {
-		return this.deletePythonTupleOnDropInsight;
+	public boolean isDeletePythonGlobalsOnDropInsight() {
+		return this.deletePythonGlobalsOnDropInsight;
 	}
 	
-	public void setDeletePythonTupleOnDropInsight(boolean deletePythonTupleOnDropInsight) {
-		this.deletePythonTupleOnDropInsight = deletePythonTupleOnDropInsight;
+	public void setDeletePythonGlobalsOnDropInsight(boolean deletePythonGlobalsOnDropInsight) {
+		this.deletePythonGlobalsOnDropInsight = deletePythonGlobalsOnDropInsight;
 	}
 	
 	public void setRunSavedInsightMode(boolean isSavedInsightMode) {
@@ -1577,13 +1575,10 @@ public class Insight implements Serializable {
 	 * @return
 	 */
 	public PyTranslator getPyTranslator() {
-		PyTransporter pyTransporter = user.getPyTransporter();
-		if(pyTransporter == null) {
-			throw new NullPointerException("Could not create python translator");
+		if(this.pyTranslator == null) {
+			SocketClient sc = user.getPythonSocketClient(true);
+			this.pyTranslator = new PyTranslator(sc, this);
 		}
-		this.pyTranslator = new PyTranslator();
-		this.pyTranslator.setInsight(this);
-		this.pyTranslator.setPyTransporter(pyTransporter);
 		return this.pyTranslator;
 	}
 	

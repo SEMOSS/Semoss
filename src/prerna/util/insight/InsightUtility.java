@@ -383,6 +383,11 @@ public class InsightUtility {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
+			// if Python is instantiated
+			// clear all vars that are not modules from the globals() dict for the insight
+			if(insight.isDeletePythonGlobalsOnDropInsight()) {
+				insight.getPyTranslator().clearInsightGlobals();
+			}
 			
 			classLogger.info("Successfully cleared insight " + Utility.cleanLogString(insight.getInsightId()));
 			Map<String, Object> retMap = new HashMap<>();
@@ -453,25 +458,10 @@ public class InsightUtility {
 				}
 			}
 			// if Python is instantiated
-			// remove the watcher
-			if(insight.isDeletePythonTupleOnDropInsight()) {
-				//TODO: delete the python env
-				//TODO: delete the python env
-				//TODO: delete the python env
-				//TODO: delete the python env
-				if(insight.getPyTranslator() != null) {
-
-				}
+			// remove the globals() dict for the insight
+			if(insight.isDeletePythonGlobalsOnDropInsight()) {
+				insight.getPyTranslator().removeInsightGlobals();
 			}
-			
-//			NounMetadata sessionNoun = insight.getVarStore().get(JobReactor.SESSION_KEY);
-//			if(sessionNoun != null) {
-//				String sessionId = sessionNoun.getValue().toString();
-//				Set<String> insightIdsForSesh = InsightStore.getInstance().getInsightIDsForSession(sessionId);
-//				if(insightIdsForSesh != null) {
-//					insightIdsForSesh.remove(insightId);
-//				}
-//			}
 			
 			classLogger.info("Successfully dropped insight " + insight.getInsightId());
 			// also remove from the user object as an open insight
