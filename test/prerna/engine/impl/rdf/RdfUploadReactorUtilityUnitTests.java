@@ -1,5 +1,13 @@
 package prerna.engine.impl.rdf;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.net.URI;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Properties;
+import java.util.concurrent.Semaphore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openrdf.repository.Repository;
@@ -8,18 +16,9 @@ import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDFDatabase;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Constants;
-
-import java.net.URI;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Properties;
-import java.util.concurrent.Semaphore;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RdfUploadReactorUtilityUnitTests {
 
@@ -67,7 +66,7 @@ public class RdfUploadReactorUtilityUnitTests {
         return woe;
     }
 
-    private IDatabaseEngine setupDatabaseEngine() throws RepositoryException {
+    private IRDFDatabase setupDatabaseEngine() throws RepositoryException {
         InMemorySesameEngine engine = new InMemorySesameEngine();
         Repository myRepository = new SailRepository(
                 new ForwardChainingRDFSInferencer(
@@ -79,7 +78,7 @@ public class RdfUploadReactorUtilityUnitTests {
 
     @Test
     void testLoadMetadataIntoEngine(@TempDir Path tempDir) throws Exception {
-        IDatabaseEngine engine = setupDatabaseEngine();
+        IRDFDatabase engine = setupDatabaseEngine();
         try (WriteOWLEngine woe = setupWriteOwlEngine(tempDir)) {
             RdfUploadReactorUtility.loadMetadataIntoEngine(engine, woe);
         }
@@ -92,7 +91,7 @@ public class RdfUploadReactorUtilityUnitTests {
 
     @Test
     void testCreateRelationship(@TempDir Path tempDir) throws Exception {
-        IDatabaseEngine engine = setupDatabaseEngine();
+        IRDFDatabase engine = setupDatabaseEngine();
         try (WriteOWLEngine woe = setupWriteOwlEngine(tempDir)) {
             RdfUploadReactorUtility.loadMetadataIntoEngine(engine, woe);
         }
