@@ -2,7 +2,10 @@ package prerna.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +49,8 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(UploadProjectAppReactor.class);
 
 	private static final String CLASS_NAME = UploadProjectAppReactor.class.getName();
+	
+	private static final String[] DEPENDENCIES_FILE_EXTENSIONS = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx" };
 	
 	public UploadProjectAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
@@ -323,6 +328,17 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		// push new project to cloud
 		ClusterUtil.pushProject(projectId);
 		
+		// check if any dependency file is present in the uploaded project
+		String folderPath = finalProjectFolderF.getAbsolutePath();
+		boolean hasDependencyFile;
+		try {
+			hasDependencyFile = Files.walk(Paths.get(folderPath))
+			    .anyMatch(p -> Files.isRegularFile(p) &&
+			                   Arrays.stream(DEPENDENCIES_FILE_EXTENSIONS).anyMatch(ext -> p.toString().endsWith(ext)));
+		} catch (IOException e) {
+			logger.error("Error while checking for dependency files", e);
+		}
+		 
 		// extract engineIds from project
 	    // then process and set project dependencies
 		String[] engineIds = UploadInputUtility.getEngineIdsFromProject(finalProjectFolderF);
