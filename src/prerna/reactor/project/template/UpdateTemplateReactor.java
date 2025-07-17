@@ -39,7 +39,7 @@ public class UpdateTemplateReactor extends AbstractReactor {
 		String templateName = this.keyValue.get(ReactorKeysEnum.TEMPLATE_NAME.getKey());
 		
 		IProject project = Utility.getProject(projectId);
-		String versionFolder = AssetUtility.getProjectAssetFolder(project.getProjectName(), projectId);
+		String versionFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), projectId);
 		String fileToMove = versionFolder;
 		if(templateFile.startsWith("/") || templateFile.startsWith("\\")) {
 			fileToMove += templateFile;

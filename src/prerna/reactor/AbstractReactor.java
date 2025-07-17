@@ -22,7 +22,6 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
-import prerna.reactor.job.JobReactor;
 import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -36,7 +35,7 @@ public abstract class AbstractReactor implements IReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractReactor.class);
 	// get the directory separator
-	public static final String DIR_SEPARATOR = "/";//java.nio.file.FileSystems.getDefault().getSeparator();
+	public static final String DIR_SEPARATOR = "/";
 	protected static final String ALL_NOUN_STORE = "all";
 	
 	protected Insight insight = null;
@@ -71,8 +70,6 @@ public abstract class AbstractReactor implements IReactor {
 	
 	protected String[] defaultOutputAlias;
 	boolean evaluate = false;
-	
-	protected String jobId;
 	
 	// all the different keys to get
 	public String[] keysToGet = new String[]{"no keys defined"};
@@ -603,8 +600,7 @@ public abstract class AbstractReactor implements IReactor {
 	public Logger getLogger(String className) {
 		String jobId = ThreadStore.getJobId();
 		if(jobId != null) {
-			this.jobId = jobId;
-			Logger retLogger = new InMemoryConsole(className, this.jobId);
+			Logger retLogger = new InMemoryConsole(className, ThreadStore.getJobId());
 			return retLogger;
 		}
 		
@@ -615,8 +611,7 @@ public abstract class AbstractReactor implements IReactor {
 	public Logger getLogger(String className, boolean partial) {
 		String jobId = ThreadStore.getJobId();
 		if(jobId != null) {
-			this.jobId = jobId;
-			InMemoryConsole retLogger = new InMemoryConsole(className, this.jobId);
+			InMemoryConsole retLogger = new InMemoryConsole(className, ThreadStore.getJobId());
 			retLogger.setPartial(true);
 			return retLogger;
 		}
@@ -629,10 +624,6 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return
 	 */
 	protected String getSessionId() {
-		NounMetadata session = planner.getVariable(JobReactor.SESSION_KEY);
-		if(session != null) {
-			return session.getValue() +"";
-		}
 		return ThreadStore.getSessionId();
 	}
 	
@@ -641,22 +632,6 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return
 	 */
 	protected String getRouteId() {
-		NounMetadata route = planner.getVariable(JobReactor.ROUTE_KEY);
-		if(route != null) {
-			return route.getValue() +"";
-		}
-		return ThreadStore.getRouteId();
-	}
-	
-	/**
-	 * Get the job id for this pixel execution
-	 * @return
-	 */
-	protected String getJobId() {
-		NounMetadata job = planner.getVariable(JobReactor.JOB_KEY);
-		if(job != null) {
-			return job.getValue() +"";
-		}
 		return ThreadStore.getRouteId();
 	}
 	
@@ -896,19 +871,38 @@ public abstract class AbstractReactor implements IReactor {
 		return null;
 	}
 	
-	// gets the success message
+	/**
+	 * Gets a success message noun
+	 * @param message
+	 * @return
+	 */
 	public static NounMetadata getSuccess(String message) {
 		return NounMetadata.getSuccessNounMessage(message);
 	}
 
+	/**
+	 * Returns a error message noun
+	 * @param message
+	 * @return
+	 */
 	public static NounMetadata getError(String message) {
 		return NounMetadata.getErrorNounMessage(message);
 	}
 
+	/**
+	 * Returns a warning message noun
+	 * @param message
+	 * @return
+	 */
 	public static NounMetadata getWarning(String message) {
 		return NounMetadata.getWarningNounMessage(message);
 	}
 	
+	/**
+	 * 
+	 * @param key
+	 * @return
+	 */
 	public List<String> getNounAsStringList(String key) {
 		List<String> columns = new Vector<String>();
 
@@ -932,6 +926,11 @@ public abstract class AbstractReactor implements IReactor {
 		return columns;
 	}
 	
+	/**
+	 * 
+	 * @param input
+	 * @return
+	 */
 	public String fillVars(String input)
 	{
 		// ${i} - insight id

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -165,9 +166,10 @@ public class FaissDatabaseEngineUnitTests {
 						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class,
 						(mock, context) -> {
-							doNothing().when(mock).setSocketClient(scMock);
+							//doNothing().when(mock).setSocketClient(scMock);
+							when(mock.runDirectPy(anyString())).thenReturn(null).thenReturn(false);
 							doNothing().when(mock).runEmptyPy(any());
-							when(mock.runScript(any())).thenReturn(true);
+							when(mock.runScript(any())).thenReturn("true");
 						})) {
 			// used in verifyModelProps & addEmbeddings
 			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
@@ -261,9 +263,9 @@ public class FaissDatabaseEngineUnitTests {
 						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class,
 						(mock, context) -> {
-							doNothing().when(mock).setSocketClient(scMock);
+							//doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
-							when(mock.runScript(any())).thenReturn(true);
+							when(mock.runScript(any())).thenReturn("true");
 						})) {
 			// used in verifyModelProps & addEmbeddings
 			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
@@ -323,10 +325,11 @@ public class FaissDatabaseEngineUnitTests {
 
 						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, (mock, context) -> {
-					doNothing().when(mock).setSocketClient(scMock);
+					//doNothing().when(mock).setSocketClient(scMock);
+					when(mock.runDirectPy(anyString())).thenReturn(expectedOutput);
 					doNothing().when(mock).runEmptyPy(any());
-					when(mock.runScript(any())).thenReturn(true);
-					when(mock.runSmssWrapperEval(any(String.class), any(Insight.class))).thenReturn(expectedOutput);
+					when(mock.runScript(any())).thenReturn("true");
+					when(mock.runSmssWrapperEval(any(String.class))).thenReturn(expectedOutput);
 				})) {
 			
 			// used in verifyModelProps()
@@ -401,9 +404,9 @@ public class FaissDatabaseEngineUnitTests {
 						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class,
 						(mock, context) -> {
-							doNothing().when(mock).setSocketClient(scMock);
+							//doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
-							when(mock.runScript(any())).thenReturn(scriptOutput);
+							when(mock.runDirectPy(anyString())).thenReturn(scriptOutput);
 						})) {
 
 			// used in verifyModelProps()
@@ -467,9 +470,10 @@ public class FaissDatabaseEngineUnitTests {
 
 						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, (mock, context) -> {
-					doNothing().when(mock).setSocketClient(scMock);
+					//doNothing().when(mock).setSocketClient(scMock);
+					when(mock.runDirectPy(anyString())).thenReturn(fileNames);
 					doNothing().when(mock).runEmptyPy(any());
-					when(mock.runSmssWrapperEval(any(String.class), nullable(Insight.class))).thenReturn(fileNames);
+					when(mock.runSmssWrapperEval(any(String.class))).thenReturn(fileNames);
 
 				})) {
 			
@@ -544,10 +548,11 @@ public class FaissDatabaseEngineUnitTests {
 
 						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, (mock, context) -> {
-					doNothing().when(mock).setSocketClient(scMock);
+					//doNothing().when(mock).setSocketClient(scMock);
 					doNothing().when(mock).runEmptyPy(any());
-					when(mock.runScript(any())).thenReturn(true);
-					when(mock.runSmssWrapperEval(any(String.class), nullable(Insight.class))).thenReturn(expectedOutput);
+					when(mock.runScript(any())).thenReturn("true");
+					when(mock.runSmssWrapperEval(any(String.class))).thenReturn(expectedOutput);
+					when(mock.runDirectPy(anyString())).thenReturn(expectedOutput);
 				})) {
 			
 			// used in verifyModelProps & addEmbeddings

@@ -823,7 +823,7 @@ public class PGVectorDatabaseEngineUnitTests {
 
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
-		parameters.put(AbstractVectorDatabaseEngine.INSIGHT, insight);
+		parameters.put(Constants.INSIGHT, insight);
 
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ENGINE_ALIAS";
@@ -866,9 +866,9 @@ public class PGVectorDatabaseEngineUnitTests {
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
 																										// addDocument()->checkSocketStatus()->startServer()
 						(mock, context) -> {
-							doNothing().when(mock).setSocketClient(scMock);
+							//doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
-							when(mock.runScript(any())).thenReturn(true);
+							when(mock.runScript(any())).thenReturn("true");
 						});
 				MockedStatic<VectorDatabaseCSVTable> vdcsvt = Mockito.mockStatic(VectorDatabaseCSVTable.class);) {
 

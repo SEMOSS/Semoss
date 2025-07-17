@@ -62,7 +62,7 @@ public class PushAssetToS3Reactor extends AbstractReactor {
 		organizeKeys();
 		// get base asset folder
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String pushPath = assetFolder;
 		// if a specific file is specified for download
 		String relativeAssetPath = keyValue.get(keysToGet[0]);

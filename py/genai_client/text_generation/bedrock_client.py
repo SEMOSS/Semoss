@@ -15,10 +15,7 @@ from ..constants import (
     IMAGE_EXTENSION,
     AskModelEngineResponse,
 )
-
-# from langchain_core.prompts import PromptTemplate
-# from langchain_community.document_loaders.csv_loader import CSVLoader
-# from langchain_text_splitters import CharacterTextSplitter
+from .bedrock_clients.bedrock_client2 import BedrockClient2
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -146,7 +143,13 @@ class BedrockClient(AbstractTextGenerationClient):
         return context
 
     def _create_request_params(
-        self, messages, inference_config, guardrail_config=None, system_prompt=None
+        self,
+        messages,
+        inference_config,
+        guardrail_config=None,
+        system_prompt=None,
+        tools=None,
+        tool_choice=None,
     ):
         """Create the request parameters for the Bedrock API."""
         params = {
@@ -159,6 +162,10 @@ class BedrockClient(AbstractTextGenerationClient):
             params["guardrailConfig"] = guardrail_config
         if system_prompt:
             params["system"] = system_prompt
+        if tools is not None:
+            params["tools"] = tools
+        if tool_choice is not None:
+            params["toolChoice"] = tool_choice
         return params
 
     def _handle_stream_response(self, prefix: str, stream_response):
@@ -318,6 +325,23 @@ class BedrockClient(AbstractTextGenerationClient):
             client = self._get_client()
             model_engine_response = AskModelEngineResponse()
 
+            if "message_json" in kwargs:
+                bedrock_client2 = BedrockClient2(
+                    modelId=self.modelId,
+                    access_key=self.access_key,
+                    secret_key=self.secret_key,
+                    region=self.region,
+                    **kwargs,
+                )
+                return bedrock_client2.ask_call(
+                    question=question,
+                    context=context,
+                    use_history=use_history,
+                    history=history,
+                    prefix=prefix,
+                    **kwargs,
+                )
+
             message_payload = self._prepare_message_payload(
                 question, context, template_name, history, use_history, **kwargs
             )
@@ -330,7 +354,7 @@ class BedrockClient(AbstractTextGenerationClient):
             raw_content = kwargs.get(FULL_PROMPT) or self._get_raw_content(
                 message_payload
             )
-
+            # TODO - THIS CAN BE REMOVED NOW?
             model_engine_response.prompt_tokens = self.tokenizer.count_tokens(
                 raw_content
             )
@@ -355,6 +379,43 @@ class BedrockClient(AbstractTextGenerationClient):
                 messages, inference_config, guardrail_config, system_prompt
             )
 
+            ### Detect tools/tool_choice
+            tool_choice = kwargs.get("tool_choice", None)
+            tool_config = kwargs.get("tools", None)
+            if tool_config is not None:
+                if not (
+                    isinstance(tool_config, dict)
+                    and "tools" in tool_config
+                    and isinstance(tool_config["tools"], list)
+                ):
+                    raise ValueError(
+                        'Expected "tools" to be a dict with key "tools" mapping to a list of toolSpecs. '
+                        'Example: {"tools": [ ... ]}'
+                    )
+                # Remove any extra fields from user input - only allow "tools" and "toolChoice"
+                new_tool_config = {
+                    "tools": tool_config["tools"],
+                }
+                # Add toolChoice
+                tc = tool_config.get("toolChoice")
+                # Prefer explicit kwarg if present
+                if tool_choice is not None:
+                    if isinstance(tool_choice, dict):
+                        new_tool_config["toolChoice"] = tool_choice
+                    elif isinstance(tool_choice, str):
+                        new_tool_config["toolChoice"] = {tool_choice: {}}
+                    else:
+                        raise ValueError("tool_choice must be a dict or string")
+                elif tc is not None:
+                    if isinstance(tc, dict):
+                        new_tool_config["toolChoice"] = tc
+                    else:
+                        raise ValueError('"toolChoice" in tools dict must be a dict')
+                else:
+                    new_tool_config["toolChoice"] = {"auto": {}}
+                request_params["toolConfig"] = new_tool_config
+                should_stream = False
+
             if should_stream:
                 try:
                     response = client.converse_stream(**request_params)
@@ -373,14 +434,37 @@ class BedrockClient(AbstractTextGenerationClient):
                 model_engine_response.response_tokens = self.tokenizer.count_tokens(
                     final_response
                 )
+                model_engine_response.messageType = "CHAT"
             else:
                 response = client.converse(**request_params)
+                # -- Handle tool use and regular completion. Note multiple responses can be had in messages
+                output = response.get("output", {})
+                message = output.get("message", {})
+                content_list = message.get("content", [])
+                tool_uses = []
+                texts = []
+                for content in content_list:
+                    if "toolUse" in content:
+                        tool_use_block = content["toolUse"]
+                        tool_uses.append(
+                            {
+                                "id": tool_use_block.get("toolUseId"),
+                                "type": None,
+                                "name": tool_use_block.get("name"),
+                                "arguments": tool_use_block.get("input", {}),
+                            }
+                        )
+                    elif "text" in content:
+                        texts.append(content["text"])
+                if tool_uses:
+                    final_response = tool_uses
+                    model_engine_response.messageType = "TOOL"
+                else:
+                    final_response = "\n".join(
+                        texts
+                    )  # appending for new if multiple texts are returned
+                    model_engine_response.messageType = "CHAT"
 
-                final_response = (
-                    response["output"]["message"]["content"][0]["text"]
-                    if response["output"]["message"]["content"]
-                    else ""
-                )
                 model_engine_response.response_tokens = response["usage"][
                     "outputTokens"
                 ]

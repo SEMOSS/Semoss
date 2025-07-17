@@ -65,7 +65,7 @@ public class LLMInstructReactor extends AbstractReactor {
 	private List<Map<String, Object>> getProjectData() {
 		try {
 			List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), null, 
-					false, true, null, null, null, null, null);
+					null, false, true, null, null, null, null, null);
 			// Create the keySet of project ids
 			if(!projectInfo.isEmpty()) {
 				Map<String, Integer> index = new HashMap<>(projectInfo.size());

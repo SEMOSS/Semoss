@@ -26,6 +26,24 @@ def __getattr__(name: str) -> Any:
         )
 
         return VertexClient
+    elif name == "AnthropicClient":
+        from .text_generation.anthropic_client.anthropic_text_client import (
+            AnthropicTextClient as AnthropicClient,
+        )
+
+        return AnthropicClient
+    elif name == "GoogleGenAiTextClient":
+        from .text_generation.google_genai_clients.google_genai_client import (
+            GoogleGenAiTextClient,
+        )
+
+        return GoogleGenAiTextClient
+    elif name == "GoogleGenAiImageClient":
+        from .text_generation.google_genai_clients.google_genai_image_client import (
+            GoogleGenAiImageClient,
+        )
+
+        return GoogleGenAiImageClient
 
     elif name == "LocalEmbedder":
         from .embedders.local_embedder import LocalEmbedder
@@ -158,6 +176,9 @@ __all__ = [
     "TextGenClient",
     "BedrockClient",
     "VertexClient",
+    "AnthropicClient",
+    "GoogleGenAiTextClient",
+    "GoogleGenAiImageClient",
     "LocalEmbedder",
     "OpenAiEmbedder",
     "AzureOpenAiEmbedder",

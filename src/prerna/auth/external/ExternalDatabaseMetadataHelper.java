@@ -4,7 +4,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.http.entity.ContentType;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
