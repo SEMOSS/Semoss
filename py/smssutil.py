@@ -988,8 +988,10 @@ def gen_mcp(src_file=None, dest_file=None):
             docstring = ast.get_docstring(node)
             if docstring is not None and len(docstring) > 0:
                 function.update({"description": docstring})
+
             properties = {}
             required = []
+
             # for  arg, default in zip(node.args.args, node.args.defaults):
             for arg in node.args.args:
                 this_arg = {}
@@ -1010,12 +1012,13 @@ def gen_mcp(src_file=None, dest_file=None):
                 else:
                     arg_type = "string"  ## catch all
 
-                ## add default
-                # if default is not None:
-                #    this_arg.update({"default": ast.unparse(default)})
+                if arg_type == "str":
+                    arg_type = "string"
+
                 this_arg.update({"type": arg_type})
                 required.append(arg_name)
                 properties.update({arg_name: this_arg})
+
             input_schema.update({"properties": properties})
             input_schema.update({"required": required})
             # input_schema.update({f"{function_name}Arguments": node.returns.id})
@@ -1025,6 +1028,7 @@ def gen_mcp(src_file=None, dest_file=None):
 
             # print(json.dumps((function)))
             tools.append(function)
+
     tools_block.update({"tools": tools})
     # also add other details like when it was created etc.
     today = datetime.date.today()
