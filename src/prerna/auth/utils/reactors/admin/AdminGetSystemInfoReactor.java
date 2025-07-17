@@ -44,11 +44,11 @@ public class AdminGetSystemInfoReactor extends AbstractReactor {
         }
 
         Map<String, Object> systemInfoDetailsmap = new HashMap<>();
-        systemInfoDetailsmap.put("isClusteredZK", Boolean.valueOf(ClusterUtil.IS_CLUSTER_ZK));
+        systemInfoDetailsmap.put("isClusteredZK", ClusterUtil.IS_CLUSTER_ZK);
         systemInfoDetailsmap.put("STORAGE_PROVIDER", ClusterUtil.STORAGE_PROVIDER);
         systemInfoDetailsmap.put("hostname", hostname);
         systemInfoDetailsmap.put("IPAddress", ipaddress);
-        systemInfoDetailsmap.put("IS_CLUSTERED_SCHEDULER", Boolean.valueOf(ClusterUtil.IS_CLUSTERED_SCHEDULER));
+        systemInfoDetailsmap.put("IS_CLUSTERED_SCHEDULER", ClusterUtil.IS_CLUSTERED_SCHEDULER);
 
         return new NounMetadata(systemInfoDetailsmap, PixelDataType.MAP);
     }
