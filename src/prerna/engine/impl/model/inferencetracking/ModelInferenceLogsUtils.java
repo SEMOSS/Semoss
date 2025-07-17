@@ -499,29 +499,29 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getTokenUsagePerProjectForEngine(String engineId, String limit, String offset, String startDate, String endDate) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+        SelectQueryStruct qs = new SelectQueryStruct();
 		
-		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("Total Tokens");
-		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
-		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(sumTokenSelector);
+		QueryFunctionSelector countTokenSelector = new QueryFunctionSelector();
+		countTokenSelector.setAlias("number_of_tokens");
+		countTokenSelector.setFunction(QueryFunctionHelper.COUNT);
+		countTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS","message_tokens"));
+		qs.addSelector(countTokenSelector);
 		
 		QueryFunctionSelector countNumberRequestSelector = new QueryFunctionSelector();
-		countNumberRequestSelector.setAlias("Total Requests");
+		countNumberRequestSelector.setAlias("number_of_requests");
 		countNumberRequestSelector.setFunction(QueryFunctionHelper.COUNT);
-		countNumberRequestSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		countNumberRequestSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID","message_id"));
 		qs.addSelector(countNumberRequestSelector);
 		
-		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME","project_name"));
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID","project_id"));
 		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
 		addStartDateEndDateFitler(qs, startDate, endDate);
 
 		addLimitAndOffSet(qs, limit, offset);
-		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
-		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
+		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME","project_name"));
+		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID","project_id"));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
@@ -554,25 +554,25 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getUserUsagePerEngine(String engineId, String limit, String offset, String startDate, String endDate) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
-		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME","user_name"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID","user_id"));
 		
-		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("Total Tokens");
-		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
-		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(sumTokenSelector);
+		QueryFunctionSelector countTokenSelector = new QueryFunctionSelector();
+		countTokenSelector.setAlias("number_of_tokens");
+		countTokenSelector.setFunction(QueryFunctionHelper.COUNT);
+		countTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS","message_tokens"));
+		qs.addSelector(countTokenSelector);
 		
 		QueryFunctionSelector totalMessages = new QueryFunctionSelector();
-		totalMessages.setAlias("Total Messages");
+		totalMessages.setAlias("number_of_messages");
 		totalMessages.setFunction(QueryFunctionHelper.COUNT);
-		totalMessages.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		totalMessages.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID","message_id"));
 		qs.addSelector(totalMessages);
 		
 		QueryFunctionSelector countNumberOfRooms = new QueryFunctionSelector();
-		countNumberOfRooms.setAlias("Number of Rooms");
+		countNumberOfRooms.setAlias("number_of_rooms");
 		countNumberOfRooms.setFunction(QueryFunctionHelper.COUNT);
-		countNumberOfRooms.addInnerSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "INSIGHT_ID"));
+		countNumberOfRooms.addInnerSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "INSIGHT_ID","insight_id"));
 		qs.addSelector(countNumberOfRooms);
 		
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
@@ -580,10 +580,9 @@ public class ModelInferenceLogsUtils {
 		
 		qs.addRelation(MESSAGE_TABLE_NAME + "INSIGHT_ID", ROOM_TABLE_NAME + "INSIGHT_ID", "left.join");
 		
-		
 		addLimitAndOffSet(qs, limit, offset);
-		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
-		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME","user_name"));
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID","user_id"));
 		
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}

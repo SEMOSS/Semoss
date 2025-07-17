@@ -23,7 +23,7 @@ public class GetEngineUsagePerUserReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		
 		if (!Utility.isModelInferenceLogsEnabled()) {
-			throw new IllegalArgumentException("Model Inference Logs Database Must be functioning for this report to be generated");
+			throw new IllegalArgumentException("Model inference logs database must be functioning for this report to be generated");
 		}
 
 		
@@ -34,7 +34,7 @@ public class GetEngineUsagePerUserReactor extends AbstractReactor {
 		}
 		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
 		if(!SecurityEngineUtils.userIsOwner(user, engineId)) {
-			throw new IllegalArgumentException("Engine does not exist or user is not an owner of Engine");
+			throw new IllegalArgumentException("Engine does not exist or user is not an owner of engine");
 		}
 		
 		
@@ -46,6 +46,27 @@ public class GetEngineUsagePerUserReactor extends AbstractReactor {
 		List<Map<String, Object>> tokenUsagePerUserList = ModelInferenceLogsUtils.getUserUsagePerEngine(engineId, limit, offset, startDate, endDate);
 
 		return new NounMetadata(tokenUsagePerUserList, PixelDataType.FORMATTED_DATA_SET);
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "This reactor returns the number of tokens usage for an engine. The fields for this report include: user_name, user_id, number_of_messages, number_of_rooms, number_of_tokens.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) { 
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The engine id for the report";
+		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "Limit to the number of results to be returned";
+		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
+			return "Offset to the number of results to be returned";
+		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
+			return "Start date filter on the query executed";
+		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
+			return "End date filter on the query executed";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

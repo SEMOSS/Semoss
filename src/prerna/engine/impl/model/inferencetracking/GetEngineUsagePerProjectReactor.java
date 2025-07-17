@@ -27,7 +27,7 @@ public class GetEngineUsagePerProjectReactor extends AbstractReactor {
 		}
 		
 		if (!Utility.isModelInferenceLogsEnabled()) {
-			throw new IllegalArgumentException("Model Inference Logs Database Must be functioning for this report to be generated");
+			throw new IllegalArgumentException("Model inference logs database must be functioning for this report to be generated");
 		}
 
 		
@@ -45,6 +45,27 @@ public class GetEngineUsagePerProjectReactor extends AbstractReactor {
 		List<Map<String, Object>> tokenUsagePerProjectList = ModelInferenceLogsUtils.getTokenUsagePerProjectForEngine(engineId, limit, offset, startDate, endDate);
 
 		return new NounMetadata(tokenUsagePerProjectList, PixelDataType.FORMATTED_DATA_SET);
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "This reactor returns the number of tokens usage per project for an engine. The fields for this report include: number_of_tokens, number_of_requests, project_name, project_id.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) { 
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The engine id for the report";
+		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "Limit to the number of results to be returned";
+		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
+			return "Offset to the number of results to be returned";
+		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
+			return "Start date filter on the query executed";
+		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
+			return "End date filter on the query executed";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }
