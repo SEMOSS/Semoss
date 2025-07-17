@@ -27,7 +27,7 @@ public class AdminGetEngineUsagePerUserReactor extends AbstractReactor {
 		}
 		
 		if (!Utility.isModelInferenceLogsEnabled()) {
-			throw new IllegalArgumentException("Model inference logs database must be enabled for create this report");
+			throw new IllegalArgumentException("Model inference logs database must be enabled to create this report");
 		}
 
 		organizeKeys();
