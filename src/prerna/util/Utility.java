@@ -2129,13 +2129,7 @@ public final class Utility {
 					|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core")+"")) {
 				// for database, load into local master as well
 				if(engine.getCatalogType() == IEngine.CATALOG_TYPE.DATABASE) {
-					boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB);
-					boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
-					boolean isScheduler = engineId.equals(Constants.SCHEDULER_DB);
-					boolean isThemes = engineId.equals(Constants.THEMING_DB);
-					boolean isUserTracking = engineId.equals(Constants.USER_TRACKING_DB);
-
-					if (!isLocal && !isSecurity && !isScheduler && !isThemes && !isUserTracking) {
+					if (!SemossDefaultEngines.getDatabaseIgnoreLocalMaster().contains(engineId)) {
 						synchronizeEngineMetadata(engineId);
 					}
 				}
@@ -5826,6 +5820,9 @@ public final class Utility {
 		options.add("-cp");
 		options.add(classpath);
 		options.add("-proc:none");
+		options.add("-g:source,lines,vars");
+		options.add("-Xlint:all");
+//		options.add("-verbose");
 
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
@@ -6164,5 +6161,15 @@ public final class Utility {
 		
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
+    
+    public static boolean folderHasAnyFiles(String folderPath) {
+        File folder = new File(folderPath);
+        if (!folder.exists() || !folder.isDirectory()) {
+            return false;
+        }
+        // Check for at least one non-directory file
+        File[] files = folder.listFiles(f -> f.isFile());
+        return files != null && files.length > 0;
+    }
 
     } 
