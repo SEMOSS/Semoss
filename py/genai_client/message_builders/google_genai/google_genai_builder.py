@@ -74,7 +74,13 @@ class GoogleGenAIMessageBuilder:
             if image.type == SEMOSSImageType.URL and image.url:
                 google_image_parts.append(Part.from_uri(file_uri=image.url))
             elif image.type == SEMOSSImageType.BASE64:
-                google_image_parts.append(Part.from_bytes(data=image.data))
+                if not image.mime_type or not image.data:
+                    raise ValueError(
+                        f"Missing required base64 data or mime type when building Google GenAI image part."
+                    )
+                google_image_parts.append(
+                    Part.from_bytes(data=image.data, mime_type=image.mime_type)
+                )
             else:
                 raise ValueError(f"Unsupported SEMOSSImageContent type: {image.type}")
         return google_image_parts
