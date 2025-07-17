@@ -19,6 +19,7 @@ import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
+@Deprecated
 public class ReloadInsightClassesReactor extends AbstractReactor {
 
 	public ReloadInsightClassesReactor() {
@@ -121,5 +122,9 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 		}
 	}
 	
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is deprecated. Please use CompileAppReactors(project='', release='') instead";
+	}
 	
 }

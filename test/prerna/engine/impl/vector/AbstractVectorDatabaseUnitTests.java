@@ -266,7 +266,7 @@ public class AbstractVectorDatabaseUnitTests {
 		
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
-		parameters.put(AbstractVectorDatabaseEngine.INSIGHT, insight);
+		parameters.put(Constants.INSIGHT, insight);
 		
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine)); 
 		Path schemaDir = engineFolder.resolve("schema");
@@ -735,7 +735,7 @@ public class AbstractVectorDatabaseUnitTests {
 		
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
-		parameters.put(AbstractVectorDatabaseEngine.INSIGHT, insight);
+		parameters.put(Constants.INSIGHT, insight);
 		
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
 		Path schemaPath = engineFolder.resolve("schema");

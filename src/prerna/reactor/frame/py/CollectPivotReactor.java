@@ -89,7 +89,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		if(pyt == null) {
 			return getError("Pivot requires Python. Python is not enabled in this instance");
 		}
-		pyt.setLogger(this.getLogger(this.getClass().getName()));
 
 		// this is the payload that is coming
 		// Frame ( frame = [ FRAME890385 ] ) | Select ( Genre , Studio, MovieBudget ) .as ( [ Genre , Studio, MovieBudget ] ) | CollectPivot( rowGroups=["Genre"], columns=["Studio"], values=["sum(MovieBudget)"] ) ;
@@ -234,7 +233,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			// get the values of the section and pass it in
 			// mv[['Genre']].drop_duplicates().to_dict('list')	
 			String sectionNames = pivotFrameName + "[['" + sections.get(0) + "']].drop_duplicates().to_dict('list')";
-			Map nameToList = (Map) pyt.transportScript(sectionNames);
+			Map nameToList = (Map) pyt.runDirectPy(sectionNames);
 			//makeFrame = ""; // null the make frame it has been made now
 			Object objList = nameToList.get(sectionColumnName);
 			List <String> allSections = new Vector<String>();
@@ -255,7 +254,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		}
 		
 		pivotMap.put(keysToGet[2], valuesList);
-		String jsonOutput = pyt.runPyAndReturnOutput(commands); 
+		String jsonOutput = pyt.runDirectPy(commands)+""; 
 		
 		/*** check to see if the pivot is within limits **/
 		NounMetadata pivotCheck = checkPivotLimits(pivotFrameName, colGroups, pivotNames);

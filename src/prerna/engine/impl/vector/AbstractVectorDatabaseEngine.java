@@ -28,7 +28,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
@@ -43,6 +42,7 @@ import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -59,7 +59,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			+ "import vector_database;";
 	
 	public static final String LATEST_VECTOR_SEARCH_STATEMENT = "LATEST_VECTOR_SEARCH_STATEMENT";
-	public static final String INSIGHT = "insight";
 	
 	public static final String DIR_SEPARATOR = "/";
 	public static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -244,7 +243,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			chunkingMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNKING_METHOD.getKey());
 		}
         
-		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
+		Insight insight = getInsight(parameters.get(Constants.INSIGHT));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -356,7 +355,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 								.append(extractedFileName)
 								.append("')");
 							setVectorFolderPermissions();
-							Number rows = (Number) pyTranslator.transportScript(extractTextFromDocScript.toString());
+							Number rows = (Number) pyTranslator.runDirectPy(extractTextFromDocScript.toString());
 							rowsCreated = rows.intValue();
 							processed = true;
 						} else if(this.customDocumentProcessor) {
@@ -560,7 +559,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 					/*messageId*/UUID.randomUUID().toString(), 
 					/*messageMethod*/"nearestNeighbor", 
 					/*engine*/this, 
-					/*insight*/insight,
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null, 
 					/*prompt*/searchStatement,
 					/*fullPrompt*/null,
@@ -747,11 +751,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 
 		// create the py translator
-		PyTransporter pyTransporter = new PyTransporter();
-		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		pyTranslator = new PyTranslator();
-		pyTranslator.setInsight(new Insight());
-		pyTranslator.setPyTransporter(pyTransporter);
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		
 		try {
 			// this is engine specific... or can be
@@ -767,7 +769,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", commands));
 			
-			pyTranslator.runEmptyPy(commands);
+			this.pyTranslator.runEmptyPy(commands);
 			
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;

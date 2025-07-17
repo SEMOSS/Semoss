@@ -188,7 +188,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String newFileLoc = Utility.getInsightCacheDir() + "/" + Utility.getRandomString(6) + ".json";
 			
 			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-				Insight in = this.pyTranslator.insight;
+				Insight in = this.pyTranslator.getGlobalStoreInsight();
 				String insightFolder = in.getInsightFolder();
 				new File(Utility.normalizePath(insightFolder)).mkdirs();
 				if(in.getUser() != null) {
@@ -728,7 +728,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		if(!queryCache.containsKey(query) || !cache)
 		{			
 			// run the query
-			Object output = pyTranslator.runScript(query);
+			Object output = pyTranslator.runDirectPy(query);
 			
 			// if using native py server, and cant'structure output, try convert.
 			if (Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER) != null
@@ -971,15 +971,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String wrapperName = PandasSyntaxHelper.createFrameWrapperName(tableName);
 		String command = "( ('"+wrapperName+"' in vars() or '"+wrapperName+"' in globals()) and len("+wrapperName+".cache['data'])>=0 )";
 		
-		Object notEmpty = pyTranslator.runScript(command);
-		Boolean notEmptyResult = null;
-		try {
-			notEmptyResult = (Boolean) notEmpty;
-		} catch (java.lang.ClassCastException e) {
-			notEmptyResult = Boolean.valueOf((String) notEmpty);
-		}
-		
-		return !notEmptyResult;
+		boolean notEmpty = pyTranslator.getBoolean(command);
+		return !notEmpty;
 	}
 	
 	@Override
@@ -1239,7 +1232,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				{
 					List <Object> row = new ArrayList <Object>();
 					String thisCommand = commands[commandIndex];
-					Object output = this.pyTranslator.runPyAndReturnOutput(thisCommand);
+					Object output = this.pyTranslator.runDirectPy(thisCommand);
 					
 					bw.write(thisCommand);
 					bw.print(", ");

@@ -256,7 +256,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String script = addDocumentPyCommand.toString();
 		
 		classLogger.info("Running >>>" + script);
-		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyTranslator.transportScript(script);
+		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyTranslator.runDirectPy(insight, script);
 
 		if (ClusterUtil.IS_CLUSTER) {
 			// this should already be handled, but just in case...
@@ -274,7 +274,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 							 .append(indexClass)
 							 .append("']")
 							 .append(".datasetsLoaded()");
-		boolean datasetsLoaded = (boolean) pyTranslator.transportScript(checkForEmptyDatabase.toString());
+		boolean datasetsLoaded = (boolean) pyTranslator.runDirectPy(insight, checkForEmptyDatabase.toString());
 	}
 	
 	@Override
@@ -569,7 +569,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// close the method
  		callMaker.append(")");
  		classLogger.info("Running >>> " + callMaker.toString());
- 		List<Map<String, Object>> output = (List<Map<String, Object>>) pyTranslator.transportScript(callMaker.toString());
+ 		List<Map<String, Object>> output = (List<Map<String, Object>>) pyTranslator.runDirectPy(insight, callMaker.toString());
 		return output;
 	}
 	
@@ -603,7 +603,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					   .append("')");
 		
 		@SuppressWarnings("unchecked")
-		Map<String, String> corruptedFilesToReason = (Map<String, String>) this.pyTranslator.transportScript(executionScript.toString());
+		Map<String, String> corruptedFilesToReason = (Map<String, String>) this.pyTranslator.runDirectPy(executionScript.toString());
 		
 		if (ClusterUtil.IS_CLUSTER) {
 			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), corruptedFilesToReason.keySet().stream().toArray(String[]::new)));
@@ -633,7 +633,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				.append(indexClass)
 				.append("') else []");
 		
-		List<String> sources = (List<String>) pyTranslator.transportScript(listDocumentsCommand.toString());
+		List<String> sources = (List<String>) pyTranslator.runDirectPy(listDocumentsCommand.toString());
 		
 		List<Map<String, Object>> fileList = new ArrayList<>();
 		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
@@ -667,7 +667,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		getAllRecordsCommand.append(this.vectorDatabaseSearcher)
 				.append(".list_all_records()");
 		
-		List<Map<String, Object>> allRecords = (List<Map<String, Object>>) pyTranslator.transportScript(getAllRecordsCommand.toString());
+		List<Map<String, Object>> allRecords = (List<Map<String, Object>>) pyTranslator.runDirectPy(getAllRecordsCommand.toString());
 		return allRecords;
 	}
 	

@@ -52,8 +52,6 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		this.code = fillVars(this.code);
 		
 		PyTranslator pyTranslator = this.insight.getPyTranslator();
-		pyTranslator.setLogger(logger);
-		//String output = pyTranslator.runPyAndReturnOutput(code);
 		String output = null;
 		
 		if(code.startsWith("sns.")) {
@@ -78,7 +76,7 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 //					output = pyTranslator.runScript(code, this.insight) + "";
 //				}
 //				else
-					output = pyTranslator.runSingle(code) + "";
+					output = pyTranslator.runScript(code) + "";
 					execNoun = new NounMetadata(output, PixelDataType.CONST_STRING);
 			} 
 			/*else {
