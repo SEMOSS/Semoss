@@ -572,6 +572,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         if "insightId" in self.thread_local.payload:
             payload.update({"insightId": self.thread_local.payload["insightId"]})
+        if "executionInsightId" in self.thread_local.payload:
+            payload.update(
+                {"executionInsightId": self.thread_local.payload["executionInsightId"]}
+            )
 
         if exception:
             payload.update(

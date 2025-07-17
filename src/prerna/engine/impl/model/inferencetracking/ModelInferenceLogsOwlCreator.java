@@ -18,6 +18,8 @@ public class ModelInferenceLogsOwlCreator {
 	private List<Pair<String, String>> roomColumns = null;
 	private List<Pair<String, String>> messageColumns = null;
 	private List<Pair<String, String>> feedbackColumns = null;
+	private List<Pair<String, String>> workspaceColumns = null;
+	private List<Pair<String, String>> workspaceResourceColumns = null;
 
 	// pairs table name with table's primary keys 
 	private List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys = null;
@@ -35,6 +37,8 @@ public class ModelInferenceLogsOwlCreator {
 		conceptsRequired.add("ROOM");
 		conceptsRequired.add("MESSAGE");
 		conceptsRequired.add("FEEDBACK");
+		conceptsRequired.add("WORKSPACE");
+		conceptsRequired.add("WORKSPACE_RESOURCE");
 	}
 	
 	private IRDBMSEngine modelInferenceDb;
@@ -63,20 +67,43 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME)
 			);
 		
+//		this.roomColumns = Arrays.asList(
+//				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
+//				Pair.with("ROOM_NAME", "VARCHAR(255)"),
+//				Pair.with("ROOM_CONTEXT", CLOB_DATATYPE_NAME),
+//				//Pair.with("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
+//				Pair.with("USER_ID", "VARCHAR(255)"),
+//				Pair.with("USER_NAME", "VARCHAR(255)"),
+//                Pair.with("USER_EMAIL_ID", "VARCHAR(50)"),
+//				Pair.with("AGENT_TYPE", "VARCHAR(50)"),
+//                Pair.with("AGENT_ID", "VARCHAR(50)"),
+//				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
+//				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+//				Pair.with("PROJECT_ID", "VARCHAR(50)"),
+//				Pair.with("PROJECT_NAME", "VARCHAR(255)")
+//			);
+		
 		this.roomColumns = Arrays.asList(
-				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
-				Pair.with("ROOM_NAME", "VARCHAR(255)"),
-				Pair.with("ROOM_CONTEXT", CLOB_DATATYPE_NAME),
-				//Pair.with("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
-				Pair.with("USER_ID", "VARCHAR(255)"),
-				Pair.with("USER_NAME", "VARCHAR(255)"),
-                Pair.with("USER_EMAIL_ID", "VARCHAR(50)"),
-				Pair.with("AGENT_TYPE", "VARCHAR(50)"),
-                Pair.with("AGENT_ID", "VARCHAR(50)"),
-				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
-				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("PROJECT_ID", "VARCHAR(50)"),
-				Pair.with("PROJECT_NAME", "VARCHAR(255)")
+			    Pair.with("INSIGHT_ID", "VARCHAR(50)"),  //insight id the room was made with
+			    Pair.with("ROOM_ID", "VARCHAR(50)"), 
+			    Pair.with("ROOM_NAME", "VARCHAR(255)"),
+			    Pair.with("ROOM_CONTEXT", CLOB_DATATYPE_NAME),
+			    Pair.with("USER_ID", "VARCHAR(255)"),
+			    Pair.with("USER_NAME", "VARCHAR(255)"),
+			    Pair.with("USER_EMAIL_ID", "VARCHAR(50)"),
+			    Pair.with("AGENT_TYPE", "VARCHAR(50)"),
+			    Pair.with("AGENT_ID", "VARCHAR(50)"),
+			    Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
+			    Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+			    Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),     
+			    Pair.with("PROJECT_ID", "VARCHAR(50)"),
+			    Pair.with("PROJECT_NAME", "VARCHAR(255)"),
+			    Pair.with("MODEL_ID", "VARCHAR(255)")    ,             // NEW
+			    Pair.with("MESSAGES", CLOB_DATATYPE_NAME),            // NEW
+			    Pair.with("PINNED", BOOLEAN_DATATYPE_NAME),           // NEW
+			    Pair.with("OPTIONS", CLOB_DATATYPE_NAME),             // NEW
+			    Pair.with("SHARE_ID", "VARCHAR(255)"),               // NEW
+			    Pair.with("WORKSPACE_ID", "VARCHAR(255)")               // NEW
 			);
 		
 		this.messageColumns = Arrays.asList(
@@ -89,7 +116,9 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("RESPONSE_TIME", DOUBLE_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("AGENT_ID", "VARCHAR(50)"),
+				Pair.with("MODEL_ID", "VARCHAR(50)"),
 				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
+			    Pair.with("ROOM_ID", "VARCHAR(50)"), 
 				Pair.with("SESSIONID", "VARCHAR(255)"),
 				Pair.with("USER_ID", "VARCHAR(255)"),
 				Pair.with("USER_NAME", "VARCHAR(255)"),
@@ -104,11 +133,33 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("RATING", BOOLEAN_DATATYPE_NAME)
 			);
 		
+		this.workspaceColumns = Arrays.asList(
+				Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
+				Pair.with("OWNER", "VARCHAR(255)"),
+				Pair.with("NAME", "VARCHAR(255)"),
+				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
+				Pair.with("SYSTEM_PROMPT", CLOB_DATATYPE_NAME),
+				Pair.with("SHARING_ENABLED", BOOLEAN_DATATYPE_NAME),
+				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
+			);
+		
+		this.workspaceResourceColumns = Arrays.asList(
+				Pair.with("WORKSPACE_RESOURCE_ID", "VARCHAR(255)"),
+				Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
+				Pair.with("RESOURCE_ID", "VARCHAR(255)"),
+				Pair.with("RESOURCE_TYPE", "VARCHAR(255)"),
+				Pair.with("RESOURCE_SUBTYPE", "VARCHAR(255)")
+			);
+		
 		this.allSchemas = Arrays.asList(
 				Pair.with("AGENT", agentColumns),
 				Pair.with("ROOM", roomColumns),
 				Pair.with("MESSAGE", messageColumns),
-				Pair.with("FEEDBACK", feedbackColumns)
+				Pair.with("FEEDBACK", feedbackColumns),
+				Pair.with("WORKSPACE", workspaceColumns),
+				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns)
 			);
 	}
 	
@@ -117,7 +168,9 @@ public class ModelInferenceLogsOwlCreator {
 		this.primaryKeys = Arrays.asList(
 				Pair.with("AGENT", Pair.with(Arrays.asList("AGENT_ID"), Arrays.asList("VARCHAR(50)"))),
 				Pair.with("ROOM", Pair.with(Arrays.asList("INSIGHT_ID"), Arrays.asList("VARCHAR(50)"))),
-				Pair.with("MESSAGE", Pair.with(Arrays.asList("MESSAGE_ID","MESSAGE_TYPE"), Arrays.asList("VARCHAR(50)","VARCHAR(50)")))
+				Pair.with("MESSAGE", Pair.with(Arrays.asList("MESSAGE_ID","MESSAGE_TYPE"), Arrays.asList("VARCHAR(50)","VARCHAR(50)"))),
+				Pair.with("WORKSPACE", Pair.with(Arrays.asList("WORKSPACE_ID"), Arrays.asList("VARCHAR(255)"))),
+				Pair.with("WORKSPACE_RESOURCE", Pair.with(Arrays.asList("WORKSPACE_RESOURCE_ID"), Arrays.asList("VARCHAR(255)")))
 			);
 	}
 	
@@ -126,7 +179,8 @@ public class ModelInferenceLogsOwlCreator {
 				// remove this so that UI joins are clean
 				//Pair.with("ROOM", Pair.with(Arrays.asList("AGENT_ID"), Pair.with(Arrays.asList("AGENT"), Arrays.asList("AGENT_ID")))),
 				Pair.with("MESSAGE", Pair.with(Arrays.asList("INSIGHT_ID","AGENT_ID"), Pair.with(Arrays.asList("ROOM","AGENT"), Arrays.asList("INSIGHT_ID","AGENT_ID")))),
-				Pair.with("FEEDBACK", Pair.with(Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"), Pair.with(Arrays.asList("MESSAGE"), Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"))))
+				Pair.with("FEEDBACK", Pair.with(Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"), Pair.with(Arrays.asList("MESSAGE"), Arrays.asList("MESSAGE_ID,MESSAGE_TYPE")))),
+				Pair.with("WORKSPACE_RESOURCE", Pair.with(Arrays.asList("WORKSPACE_ID"), Pair.with(Arrays.asList("WORKSPACE"), Arrays.asList("WORKSPACE_ID"))))
 			);
 	}
 	
