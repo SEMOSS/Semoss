@@ -1900,6 +1900,39 @@ public class ModelInferenceLogsUtils {
       ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
     }
   }
+  
+
+	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory, String roomName,
+			String engineId) {
+	    PreparedStatement updateStmt = null;
+	    try {
+	      // Update messages and timestamp where room and user match
+	      String query =
+	          "UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? , ROOM_NAME = ?, MODEL_ID = ?  WHERE ROOM_ID = ? AND USER_ID = ?";
+	      updateStmt = modelInferenceLogsDb.getPreparedStatement(query);
+
+	      // Prepare statement
+	      updateStmt.setString(1, messageHistory);
+	      updateStmt.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
+	      updateStmt.setString(3, roomName);
+	      updateStmt.setString(4, engineId);
+	      updateStmt.setString(5, roomId);
+	      updateStmt.setString(6, userId);
+
+	      // Execute update
+	      int rows = updateStmt.executeUpdate();
+	      if (!updateStmt.getConnection().getAutoCommit()) {
+	        updateStmt.getConnection().commit();
+	      }
+	      return rows > 0;
+
+	    } catch (Exception e) {
+	      classLogger.error("Error updating room messages: ", e);
+	      throw new IllegalArgumentException("Error updating room messages: " + e.getMessage());
+	    } finally {
+	      ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
+	    }		
+	}
 
   public static Room getRoomById(String room_id, String user_id) {
     String query = "SELECT *  " + "FROM ROOM WHERE ROOM_ID = ? and USER_ID = ? ";
