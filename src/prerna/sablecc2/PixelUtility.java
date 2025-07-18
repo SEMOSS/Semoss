@@ -450,8 +450,10 @@ public class PixelUtility {
 	}
 	
 	/**
-	 * Get the data sources within the full expression
+	 * 
+	 * @param user
 	 * @param expression
+	 * @param jobId
 	 * @return
 	 */
 	public static List<Map<String, Object>> getDatasourcesMetadata(User user, String expression) {
@@ -486,6 +488,7 @@ public class PixelUtility {
 	 * 
 	 * @param user
 	 * @param expression
+	 * @param jobId
 	 * @return
 	 */
 	public static Set<String> getDatabaseIds(User user, List<String> expression) {
@@ -496,7 +499,10 @@ public class PixelUtility {
 	
 	/**
 	 * Get the data sources within the full expression
+	 * 
+	 * @param user
 	 * @param expression
+	 * @param jobId
 	 * @return
 	 */
 	public static Set<String> getDatabaseIds(User user, String expression) {
@@ -550,7 +556,8 @@ public class PixelUtility {
 	}
 	
 	/**
-	 * Modify the file datasources in a given recipe
+	 * 
+	 * @param in
 	 * @param fullRecipe					String containing the original recipe to change
 	 * @param replacementOptions			List of maps containing "index" and "pixel" which represents the pixel step to change 
 	 * 										and the new pixel to put in its place
@@ -590,7 +597,7 @@ public class PixelUtility {
 	}
 
 	/**
-	 *
+	 * 
 	 * @param currentInsight
 	 * @param recipe
 	 * @param recipeIds
@@ -598,7 +605,8 @@ public class PixelUtility {
 	 * @param insightName
 	 * @return
 	 */
-	public static List<String> parameterizeRecipe(Insight currentInsight, List<String> recipe, List<String> recipeIds, List<ParamStruct> params, String insightName) {
+	public static List<String> parameterizeRecipe(Insight currentInsight, List<String> recipe, List<String> recipeIds, 
+			List<ParamStruct> params, String insightName) {
 		Insight in = new Insight();
 		ParamStructSaveRecipeTranslation translation = new ParamStructSaveRecipeTranslation(in);
 		translation.setInputsToParameterize(params);
