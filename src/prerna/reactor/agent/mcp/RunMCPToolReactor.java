@@ -68,7 +68,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 		Map<String, Object> paramMap = getMap();
 
 		String sysImport = "import sys";
-		String getpath = "print(sys.path)";
+		String getpath = "sys.path";
 		String setpath = "sys.path.insert(0,'" + pyFolderLoc + "')";
 		String loadLib = "import smss_driver as smss";
 
