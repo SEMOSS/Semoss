@@ -15,14 +15,10 @@ public class AdminGetSystemInfoReactor extends AbstractReactor {
     @Override
     public NounMetadata execute() {
         User user = this.insight.getUser();
-
         SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-
         if (adminUtils == null) {
             throw new IllegalArgumentException("User must be an admin to perform this function");
         }
-        // parse the user inputs into a 'keyValue' map
-        organizeKeys();
 
         String hostname;
         try {
@@ -35,22 +31,28 @@ public class AdminGetSystemInfoReactor extends AbstractReactor {
         }
 
         String ipaddress;
-
         try {
             ipaddress = java.net.InetAddress.getLocalHost().getHostAddress();
-
         } catch (Exception e) {
             ipaddress = "unknown-ipaddress";
         }
 
         Map<String, Object> systemInfoDetailsmap = new HashMap<>();
-        systemInfoDetailsmap.put("isClusteredZK", ClusterUtil.IS_CLUSTER_ZK);
-        systemInfoDetailsmap.put("STORAGE_PROVIDER", ClusterUtil.STORAGE_PROVIDER);
         systemInfoDetailsmap.put("hostname", hostname);
-        systemInfoDetailsmap.put("IPAddress", ipaddress);
-        systemInfoDetailsmap.put("IS_CLUSTERED_SCHEDULER", ClusterUtil.IS_CLUSTERED_SCHEDULER);
-
+        systemInfoDetailsmap.put("ipaddress", ipaddress);
+        systemInfoDetailsmap.put("isCluster", ClusterUtil.IS_CLUSTER);
+        systemInfoDetailsmap.put("storageProvider", ClusterUtil.STORAGE_PROVIDER);
+        systemInfoDetailsmap.put("isClusterScheduler", ClusterUtil.IS_CLUSTERED_SCHEDULER);
+        systemInfoDetailsmap.put("isClusterZK", ClusterUtil.IS_CLUSTER_ZK);
         return new NounMetadata(systemInfoDetailsmap, PixelDataType.MAP);
+    }
+    
+    @Override
+    public String getReactorDescription() {
+    	return """
+	    			Admin only reactor returning a map with properties about the instance including: 
+	    			hostname, ipaddress, isCluster, storageProvider, isClusterScheduler, isClusterZK
+    			""";
     }
  
 }
