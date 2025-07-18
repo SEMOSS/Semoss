@@ -29,7 +29,6 @@ import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
-import prerna.reactor.job.JobReactor;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
@@ -61,7 +60,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             "id",
             "method",
             engine,
-            insight,
+            insight.getInsightId(),
+			insight.getContextProjectId(),
+			insight.getProjectId(),
+			insight.getUser(),
+            "sessionId",
+			"roomId",
             "context",
             "",
             new ArrayList(){{add("full prompt");}},
@@ -76,11 +80,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
-        when(insight.getVarStore()).thenReturn(varStore);
-        when(insight.getVarStore().containsKey(JobReactor.SESSION_KEY)).thenReturn(true);
-        when(varStore.get(JobReactor.SESSION_KEY)).thenReturn(metadata);
-        when(insight.getVarStore().get(JobReactor.SESSION_KEY).getValue()).thenReturn(sessionId);
-
+		String roomId = "roomId";
         String projectId = "projectId";
         when(insight.getContextProjectId()).thenReturn(null);
         when(insight.getProjectId()).thenReturn(projectId);
@@ -108,7 +108,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId")).thenAnswer((Answer<Void>) invocation -> null);
 
-            milUtils.when(() -> ModelInferenceLogsUtils.doCheckConversationExists(insightId)).thenReturn(false);
+            milUtils.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(insightId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewConversation(
                 insightId,
                 "full prompt",
@@ -138,6 +138,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(engineId),
                 eq(insightId),
                 eq(sessionId),
+				eq(insightId), //room id 
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -153,6 +154,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(engineId),
                 eq(insightId),
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -169,7 +171,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId");
 
-                ModelInferenceLogsUtils.doCheckConversationExists(insightId);
+                ModelInferenceLogsUtils.doCheckRoomExists(insightId);
 
                 ModelInferenceLogsUtils.doCreateNewConversation(
                     insightId,
@@ -198,6 +200,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(engineId),
                 eq(insightId),
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -214,6 +217,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     eq(engineId),
                     eq(insightId),
                     eq(sessionId),
+					eq(insightId), //room id
                     eq("userId"),
                     eq("userUserName"),
                     eq(userEmail)
@@ -229,7 +233,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             "id",
             "method",
             engine,
-            insight,
+            insight.getInsightId(),
+			insight.getContextProjectId(),
+			insight.getProjectId(),
+			insight.getUser(),
+            "sessionId",
+			"roomId",
             "context",
             "",
             new ArrayList(){{add(new JSONObject());}},
@@ -244,11 +253,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
-        when(insight.getVarStore()).thenReturn(varStore);
-        when(insight.getVarStore().containsKey(JobReactor.SESSION_KEY)).thenReturn(true);
-        when(varStore.get(JobReactor.SESSION_KEY)).thenReturn(metadata);
-        when(insight.getVarStore().get(JobReactor.SESSION_KEY).getValue()).thenReturn(sessionId);
-
+		String roomId = "roomId";
         String projectId = "projectId";
         when(insight.getContextProjectId()).thenReturn(null);
         when(insight.getProjectId()).thenReturn(projectId);
@@ -276,7 +281,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId")).thenAnswer((Answer<Void>) invocation -> null);
 
-            milUtils.when(() -> ModelInferenceLogsUtils.doCheckConversationExists(insightId)).thenReturn(false);
+            milUtils.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(insightId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewConversation(
                 insightId,
                 "full prompt",
@@ -306,6 +311,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(engineId),
                 eq(insightId),
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -321,6 +327,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(engineId),
                 eq(insightId),
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -337,7 +344,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId");
 
-                ModelInferenceLogsUtils.doCheckConversationExists(insightId);
+                ModelInferenceLogsUtils.doCheckRoomExists(insightId);
 
                 ModelInferenceLogsUtils.doCreateNewConversation(
                     insightId,
@@ -366,6 +373,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(engineId),
                 eq(insightId),
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -382,6 +390,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     eq(engineId),
                     eq(insightId),
                     eq(sessionId),
+					eq(insightId), //room id
                     eq("userId"),
                     eq("userUserName"),
                     eq(userEmail)
@@ -397,7 +406,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             "id",
             "method",
             engine,
-            insight,
+            insight.getInsightId(),
+			insight.getContextProjectId(),
+			insight.getProjectId(),
+			insight.getUser(),
+            "sessionId",
+			"roomId",
             "context",
             "",
             new JSONObject(),
@@ -412,11 +426,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
-        when(insight.getVarStore()).thenReturn(varStore);
-        when(insight.getVarStore().containsKey(JobReactor.SESSION_KEY)).thenReturn(true);
-        when(varStore.get(JobReactor.SESSION_KEY)).thenReturn(metadata);
-        when(insight.getVarStore().get(JobReactor.SESSION_KEY).getValue()).thenReturn(sessionId);
-
+		String roomId = "roomId";
         String projectId = "projectId";
         when(insight.getContextProjectId()).thenReturn(null);
         when(insight.getProjectId()).thenReturn(projectId);
@@ -444,7 +454,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId")).thenAnswer((Answer<Void>) invocation -> null);
 
-            milUtils.when(() -> ModelInferenceLogsUtils.doCheckConversationExists(insightId)).thenReturn(false);
+            milUtils.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(insightId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewConversation(
                 insightId,
                 "full prompt",
@@ -474,6 +484,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(engineId),
                 eq(insightId),
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -489,6 +500,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(engineId),
                 eq(insightId),
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -505,7 +517,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId");
 
-                ModelInferenceLogsUtils.doCheckConversationExists(insightId);
+                ModelInferenceLogsUtils.doCheckRoomExists(insightId);
 
                 ModelInferenceLogsUtils.doCreateNewConversation(
                     insightId,
@@ -534,6 +546,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 eq(engineId),
                 eq(insightId),
                 eq(sessionId),
+				eq(insightId), //room id
                 eq("userId"),
                 eq("userUserName"),
                 eq(userEmail)
@@ -550,6 +563,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     eq(engineId),
                     eq(insightId),
                     eq(sessionId),
+					eq(insightId), //room id
                     eq("userId"),
                     eq("userUserName"),
                     eq(userEmail)

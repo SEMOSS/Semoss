@@ -34,7 +34,7 @@ public class AddOpenAIKeyReactor extends AbstractReactor {
 			pt.runEmptyPy("import openai", "openai.api_key='"+ api_key + "'", OPENAI_DEFINED + "= True");
 		}
 
-		boolean output = (Boolean)pt.runScript("'" + OPENAI_DEFINED + "' in globals()");
+		boolean output = (Boolean)pt.runDirectPy("'" + OPENAI_DEFINED + "' in globals()");
 	
 		Map<String, Object> outMap = new HashMap<>();
 		outMap.put(OPENAI_DEFINED, output);

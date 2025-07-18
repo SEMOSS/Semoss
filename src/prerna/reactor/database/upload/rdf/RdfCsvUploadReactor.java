@@ -16,7 +16,8 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISesameRdfEngine;
+import prerna.engine.api.IRDFDatabase;
+import prerna.engine.api.ISesameRDFEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdf.RDFDefaultDatabaseTypeFactory;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
@@ -60,7 +61,7 @@ public class RdfCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		stepCounter++;
 
 		// need instance to write to smss
-		this.database = RDFDefaultDatabaseTypeFactory.getDefaultSesameEngine();
+		this.database = RDFDefaultDatabaseTypeFactory.getDefaultRdfEngine();
 
 		logger.info(stepCounter + ". Create properties file for database...");
 		this.tempSmss = UploadUtilities.createTemporaryRdfSmss(this.database, this.databaseId, newDatabaseName, owlFile, baseUri);
@@ -93,7 +94,7 @@ public class RdfCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		logger.info(stepCounter + ". Start loading data..");
 		Configurator.setLevel(logger.getName(), Level.WARN);
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
-		
+
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		owlEngine.addCustomBaseURI(baseUri);
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
@@ -105,17 +106,18 @@ public class RdfCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Commit database metadata...");
-		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owlEngine);
+		RdfUploadReactorUtility.loadMetadataIntoEngine((IRDFDatabase) this.database, owlEngine);
 		// add the owl metadata
 		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
-				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
+		UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
-		// commit the created database
-		this.database.commit();
-		((ISesameRdfEngine) this.database).infer();
-		((ISesameRdfEngine) this.database).exportDB();
+
+		logger.info("Applying inferencing");
+		((IRDFDatabase) this.database).infer();
+		logger.info("Done with inferencing");
+		((IRDFDatabase) this.database).exportDB();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -131,7 +133,7 @@ public class RdfCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 	public void addToExistingDatabase(String filePath) throws Exception {
 		// get existing database
 		int stepCounter = 1;
-		if (!(this.database instanceof ISesameRdfEngine)) {
+		if (!(this.database instanceof IRDFDatabase)) {
 			throw new IllegalArgumentException("Invalid database type");
 		}
 
@@ -162,18 +164,18 @@ public class RdfCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		stepCounter++;
 
 		logger.warn(stepCounter + ". Committing database metadata....");
-		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owlEngine);
+		RdfUploadReactorUtility.loadMetadataIntoEngine((IRDFDatabase) this.database, owlEngine);
 		// add the owl metadata
 		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
-				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
+		UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
-		
-		// commit the created database
-		this.database.commit();
-		((ISesameRdfEngine) this.database).infer();
-		((ISesameRdfEngine) this.database).exportDB();
+
+		logger.info("Applying inferencing");
+		((IRDFDatabase) this.database).infer();
+		logger.info("Done with inferencing");
+		((IRDFDatabase) this.database).exportDB();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -226,7 +228,7 @@ public class RdfCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 			}
 		}
 	}
-	
+
 	///////////////////////////////////////////////////////////////////
 	//////////////Methods to insert data///////////////////////////////
 	///////////////////////////////////////////////////////////////////
@@ -254,6 +256,9 @@ public class RdfCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		if (endRow == null) {
 			endRow = UploadInputUtility.END_ROW_INT;
 		}
+
+		List<Object[]> allInsertStatements = new ArrayList<>();
+
 		while ((values = helper.getNextRow()) != null && count < endRow) {
 			// process all relationships in row
 			for (int relIndex = 0; relIndex < relationList.size(); relIndex++) {
@@ -332,7 +337,15 @@ public class RdfCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 						}
 					}
 				}
-				RdfUploadReactorUtility.createRelationship(database, owlEngine, customBaseURI, subject, object, subjectValue, objectValue, predicate, propHash);
+				RdfUploadReactorUtility.createRelationship(owlEngine, 
+						customBaseURI, 
+						subject, 
+						object, 
+						subjectValue, 
+						objectValue, 
+						predicate, 
+						propHash,
+						allInsertStatements);
 			}
 
 			// look through all node properties
@@ -384,17 +397,34 @@ public class RdfCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 					}
 					nodePropHash.put(property, propObj);
 				}
-				RdfUploadReactorUtility.addNodeProperties(database, owlEngine, customBaseURI, subject, subjectValue, nodePropHash);
+				RdfUploadReactorUtility.addNodeProperties(owlEngine, 
+						customBaseURI, 
+						subject, 
+						subjectValue, 
+						nodePropHash,
+						allInsertStatements
+						);
 			}
-			
+
 			if (++count % 1000 == 0) {
-				logger.info("Done inserting " + count + " number of rows");
+				logger.info("Done processing " + count + " number of rows");
 			}
+
+			if(allInsertStatements.size() > 1000) {
+				((IRDFDatabase) database).bulkInsert(allInsertStatements);
+				logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+				allInsertStatements.clear();
+			}
+		}
+		if(!allInsertStatements.isEmpty()) {
+			((IRDFDatabase) database).bulkInsert(allInsertStatements);
+			logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+			allInsertStatements.clear();
 		}
 		logger.info("Completed " + count + " number of rows");
 		metamodel.put(Constants.END_ROW, count);
 	}
-	
+
 	/**
 	 * Gets the instance value for a given subject.  The subject can be a concatenation. Note that we do 
 	 * not care about the data type for this since a URI is always a string
@@ -433,8 +463,6 @@ public class RdfCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		}
 		return retString;
 	}
-	
-	
 
 	private String processAutoConcat(String input) {
 		String[] split = input.split("\\+");

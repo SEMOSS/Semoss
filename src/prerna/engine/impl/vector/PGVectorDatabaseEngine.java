@@ -53,6 +53,7 @@ import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVWriter;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -98,10 +99,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private String defaultIndexClass;
 	private	List<String> indexClasses;
 
-	// python server
-	private PyTranslator pyt = null;
-	private File pyDirectoryBasePath;
 	private ClientProcessWrapper cpw = null;
+	// python server
+	private PyTranslator pyTranslator = null;
+	private File pyDirectoryBasePath;
 	
 	private boolean modelPropsLoaded = false;
 	
@@ -861,8 +862,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 
 		// create the py translator
-		pyt = new PyTranslator();
-		pyt.setSocketClient(cpwToInit.getSocketClient());
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		
 		try {
 			String[] commands = getServerStartCommands();
@@ -872,7 +874,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				String resolvedString = substitutor.replace(commands[commandIndex]);
 				commands[commandIndex] = resolvedString;
 			}
-			pyt.runEmptyPy(commands);
+			pyTranslator.runEmptyPy(commands);
 			
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
@@ -940,7 +942,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 //			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 //		}
 		
-		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
+		Insight insight = getInsight(parameters.get(Constants.INSIGHT));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -1068,7 +1070,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 							.append(chunkingStrategy)
 							.append(", cfg_tokenizer = cfg_tokenizer)");
 						
-						pyt.runScript(splitTextCommand.toString());
+						pyTranslator.runScript(splitTextCommand.toString());
 					}
 
 					// add it to the list of files that need to be pushed to the cloud in a new thread
@@ -1117,7 +1119,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					/*messageId*/UUID.randomUUID().toString(), 
 					/*messageMethod*/"nearestNeighbor", 
 					/*engine*/this, 
-					/*insight*/insight,
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null, 
 					/*prompt*/searchStatement,
 					/*fullPrompt*/null,
