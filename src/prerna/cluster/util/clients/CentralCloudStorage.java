@@ -26,6 +26,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.storage.AbstractRCloneStorageEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
@@ -60,6 +61,8 @@ public class CentralCloudStorage implements ICloudClient {
 	public static final String VENV_BLOB = "semoss-venv";
 	public static final String PROJECT_BLOB = "semoss-project";
 	public static final String USER_BLOB = "semoss-user";
+	public static final String ROOM_BLOB = "semoss-room";
+
 	// images
 	public static final String DB_IMAGES_BLOB = "semoss-dbimagecontainer";
 	public static final String STORAGE_IMAGES_BLOB = "semoss-storageimagecontainer";
@@ -86,7 +89,8 @@ public class CentralCloudStorage implements ICloudClient {
 	private static String VENV_CONTAINER_PREFIX = "/" + VENV_BLOB + "/";
 	private static String PROJECT_CONTAINER_PREFIX = "/" + PROJECT_BLOB + "/";
 	private static String USER_CONTAINER_PREFIX = "/" + USER_BLOB + "/";
-	
+	private static String ROOM_CONTAINER_PREFIX = "/" + ROOM_BLOB + "/";
+
 	/**
 	 * 
 	 * @throws Exception
@@ -144,6 +148,8 @@ public class CentralCloudStorage implements ICloudClient {
 			CentralCloudStorage.VENV_CONTAINER_PREFIX = "semoss-venv";
 			CentralCloudStorage.PROJECT_CONTAINER_PREFIX = "project-";
 			CentralCloudStorage.USER_CONTAINER_PREFIX = "user-";
+			CentralCloudStorage.ROOM_CONTAINER_PREFIX = "semoss-room-";
+
 			
 		}
 		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AWS") ||
@@ -1656,6 +1662,26 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
+	/// Rooms
+
+
+	// pull room - this is using 
+	
+	public void pullRoomFolderFromCloud(String roomId) throws IOException, InterruptedException {
+		String localFolderPath=Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		centralStorageEngine.syncStorageToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);			
+	}
+
+	public void pushRoomFolderToCloud(String roomId) throws IOException, InterruptedException {
+		String localFolderPath=Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		
+		if(Utility.folderHasAnyFiles(localFolderPath)) {
+			centralStorageEngine.syncLocalToStorage(localFolderPath, ROOM_CONTAINER_PREFIX+ roomId, null);
+
+		}
+		}
+	
+	/////////////////////////////////////////////////////////////////////////////////
 
 	// utility methods
 	
