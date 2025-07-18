@@ -40,7 +40,7 @@ public class GoogleDocsListReactor extends AbstractReactor{
 			res.put("DocTitleList", docTitleList);
 			return new NounMetadata(res, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Issue with input");
+		    throw new SemossPixelException("Issue with input", e);
 		}
 
 	}

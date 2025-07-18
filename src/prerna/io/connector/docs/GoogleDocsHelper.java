@@ -18,8 +18,8 @@ public class GoogleDocsHelper {
 
 	public static Document createDoc(Docs service, Drive driveService, String title, String content) throws Exception {
 
-		if (titleExists(driveService, title) || title == null) {
-			throw new IllegalArgumentException("Title " + title + " already exist");
+		if (title == null || titleExists(driveService, title)) {
+		    throw new IllegalArgumentException("Title " + title + " already exists");
 		}
 		Document doc = new Document().setTitle(title);
 		doc = service.documents().create(doc).execute();

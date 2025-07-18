@@ -39,7 +39,7 @@ public class GoogleDocsCreateReactor extends AbstractReactor {
 		String title = this.keyValue.get(this.keysToGet[0]);
 		String content = null;
 
-		if (this.keyValue.get(this.keysToGet[1]) != null && this.keyValue.get(this.keysToGet[1]) != "") {
+		if (this.keyValue.get(this.keysToGet[1]) != null && !this.keyValue.get(this.keysToGet[1]).isEmpty()) {
 			content = this.keyValue.get(this.keysToGet[1]);
 		}
 
@@ -64,7 +64,7 @@ public class GoogleDocsCreateReactor extends AbstractReactor {
 			res.put(SUCCESS, success);
 			return new NounMetadata(res, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Issue with input");
+		    throw new SemossPixelException("Issue with input", e);
 		}
 
 	}

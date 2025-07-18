@@ -45,7 +45,7 @@ public class GoogleDocsUpdateReactor extends AbstractReactor {
 			return new NounMetadata(updateresult, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Issue with input");
+		    throw new SemossPixelException("Issue with input", e);
 		}
 
 	}
