@@ -305,7 +305,15 @@ public class NotebookHelper implements INotebookHelper {
 				if(type.equals("py")) {
 					function.setCode(transformedCode);
 				} else if(type.equals("pixel")) {
-					
+					if(!codeParameters.contains("insight_id")) {
+			        	codeParameters.add("insight_id");
+					}
+					String pythonRunPixel = """
+							from semoss import Insight
+							insight = Insight(insight_id)
+							""";
+					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + transformedCode.replace("\"", "\\\"")+"\"\"\")";
+					function.setCode(pythonRunPixel);
 				}
 				
 				functions.add(function);
@@ -330,7 +338,10 @@ public class NotebookHelper implements INotebookHelper {
 				    	AskModelEngineResponse llmResponse = model.ask(
 				    			PythonFunction.defaultLLMImprovePrompt() + function.createPythonFunctionSyntax(), 
 				    			null, insight, new HashMap<>());
-				    	writer.write(llmResponse.getStringResponse());
+				    	String response = llmResponse.getStringResponse();
+				    	response = response.substring("```python".length());
+				    	response = response.substring(0, response.length()-1-"```".length());
+				    	writer.write(response);
 			    	}
 			    	writer.write("\n\n");
 		    	}
@@ -413,10 +424,10 @@ public class NotebookHelper implements INotebookHelper {
 		
 		public static String defaultLLMImprovePrompt() {
 			String prompt = """
-					You are a coding assistant. Inspect the provided python function. 
+					You are a python coding assistant. Inspect the provided python function. 
 					Please break out the inputs into variables in case they are within string inputs. 
 					Please provide a docstring and input types for the function. 
-					Only reply with the code and not in markdown and make sure the syntax is executable :  
+					Only reply with the code in markdown and make sure the syntax is executable with proper spacing:  
 					""";
 			return prompt;
 		}
