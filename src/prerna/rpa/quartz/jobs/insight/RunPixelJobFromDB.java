@@ -5,19 +5,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.CookieStore;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.ClientProtocolException;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.cookie.BasicCookieStore;
+import org.apache.hc.client5.http.cookie.CookieStore;
+import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.NameValuePair;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.InterruptableJob;
@@ -88,7 +89,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				CloseableHttpResponse response = null;
 				try {
 					response = httpclient.execute(httpget);
-					Header[] allheaders = response.getAllHeaders();
+					Header[] allheaders = response.getHeaders();
 					for(Header h : allheaders) {
 						if(h.getName().equals("X-CSRF-Token")) {
 							csrfToken = h.getValue();
@@ -153,10 +154,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			try {
 				httppost.setEntity(new UrlEncodedFormEntity(paramList));
 				response = httpclient.execute(httppost);
-				if(response != null && response.getStatusLine() != null) {
-					status = response.getStatusLine().getStatusCode();
-				}
-				
+				status = response.getCode();
 				if (status == 200 ) {
 					success = true;
 				}
@@ -166,6 +164,8 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			} catch (ClientProtocolException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} catch (ParseException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				// consume will release the entity

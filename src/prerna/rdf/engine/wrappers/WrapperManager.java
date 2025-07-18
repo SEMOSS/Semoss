@@ -113,6 +113,10 @@ public class WrapperManager {
 			IRawSelectWrapper returnWrapper = null;
 			boolean genQueryString = true;
 			switch(engine.getDatabaseType()) {
+				case RDBMS : {
+					returnWrapper = new RawRDBMSSelectWrapper();
+					break;
+				}
 				case SESAME : {
 					returnWrapper = new RawSesameSelectWrapper();
 					break;
@@ -121,8 +125,12 @@ public class WrapperManager {
 					returnWrapper = new RawJenaSelectWrapper();
 					break;
 				}
-				case RDBMS : {
-					returnWrapper = new RawRDBMSSelectWrapper();
+				case RDF4J : {
+					returnWrapper = new RawRDF4JSelectWrapper();
+					break;
+				}
+				case JENA_TDB: {
+					returnWrapper = new RawJenaTDBSelectWrapper();
 					break;
 				}
 				case IMPALA : {
@@ -323,6 +331,10 @@ public class WrapperManager {
 		try {
 			IRawSelectWrapper returnWrapper = null;
 			switch(engine.getDatabaseType()) {
+				case RDBMS : {
+					returnWrapper = new RawRDBMSSelectWrapper();
+					break;
+				}
 				case SESAME : {
 					returnWrapper = new RawSesameSelectWrapper();
 					break;
@@ -331,8 +343,12 @@ public class WrapperManager {
 					returnWrapper = new RawJenaSelectWrapper();
 					break;
 				}
-				case RDBMS : {
-					returnWrapper = new RawRDBMSSelectWrapper();
+				case RDF4J : {
+					returnWrapper = new RawRDF4JSelectWrapper();
+					break;
+				}
+				case JENA_TDB: {
+					returnWrapper = new RawJenaTDBSelectWrapper();
 					break;
 				}
 				case IMPALA : {

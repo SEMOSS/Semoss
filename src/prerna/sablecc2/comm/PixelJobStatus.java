@@ -3,7 +3,8 @@ package prerna.sablecc2.comm;
 public enum PixelJobStatus {
 
 	CREATED ("Created"), 
-	SUBMITTED ("Submitted"), 
+	SUBMITTED ("Submitted"),
+	CANCELED ("Canceled"),
 	IN_PROGRESS ("InProgress"),
 	PROGRESS_COMPLETE ("ProgressComplete"), 
 	STREAMING ("Streaming"), 
