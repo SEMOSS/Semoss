@@ -319,6 +319,18 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "MODELMAXTOKENS", "INT");
 		owler.addProp("SMSS_USER", "MODELMAXRESPONSETIME", "DOUBLE");
 		
+
+		// JIRA_USER
+		owler.addConcept("JIRA_USER", null, null);
+		owler.addProp("SMSS_USER", "ID", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "KEY_NAME", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "API_KEY", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "CREATED_BY", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "DATE_CREATED", "TIMESTAMP");
+		owler.addProp("SMSS_USER", "DATE_LAST_USED", "TIMESTAMP");
+		owler.addProp("SMSS_USER", "URL", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "USER_ID", "VARCHAR(255");
+		
 		// SMSS_USER_ACCESS_KEYS
 		owler.addConcept("SMSS_USER_ACCESS_KEYS", null, null);
 		// TODO: DELETE ID AFTER SOME TIME, REPLACED WITH USERID ... 2023-09-19

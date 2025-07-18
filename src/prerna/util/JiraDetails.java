@@ -4,7 +4,6 @@ import java.sql.Timestamp;
 
 public class JiraDetails {
 
-	private String name;
 	private String url;
 	private String userId;
 	private String createdBy;
@@ -12,12 +11,6 @@ public class JiraDetails {
 	private String dateLastUsed;
 	private String primaryId;
 	private String keyName;
-	public String getName() {
-		return name;
-	}
-	public void setName(String name) {
-		this.name = name;
-	}
 	public String getUrl() {
 		return url;
 	}
@@ -62,8 +55,8 @@ public class JiraDetails {
 	}
 	@Override
 	public String toString() {
-		return "JiraDetails [name=" + name + ", url=" + url + ", userId=" + userId + ", createdBy=" + createdBy
-				+ ", dateCreated=" + dateCreated + ", dateLastUsed=" + dateLastUsed + ", primaryId=" + primaryId
-				+ ", keyName=" + keyName + "]";
+		return "JiraDetails [url=" + url + ", userId=" + userId + ", createdBy=" + createdBy + ", dateCreated="
+				+ dateCreated + ", dateLastUsed=" + dateLastUsed + ", primaryId=" + primaryId + ", keyName=" + keyName
+				+ "]";
 	}
 }
