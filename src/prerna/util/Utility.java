@@ -170,6 +170,7 @@ import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.IVenvEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.pipeline.EngineProxyFactory;
 import prerna.masterdatabase.AddToMasterDB;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
@@ -2487,7 +2488,8 @@ public final class Utility {
 			}
 		}
 		
-		return project;
+		// pipeline
+		return EngineProxyFactory.createGuardedProject(project);
 	}
 	
 	public static IProject getUserAssetWorkspaceProject(String projectId, boolean isAsset) {
@@ -2747,7 +2749,10 @@ public final class Utility {
 	 * @return
 	 */
 	public static IDatabaseEngine getDatabase(String engineId, boolean pullIfNeeded) {
-		return (IDatabaseEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedDatabaseEngine((IDatabaseEngine) engine);
+		return (IDatabaseEngine) engine;
 	}
 	
 	/**
@@ -2766,7 +2771,10 @@ public final class Utility {
 	 * @return
 	 */
 	public static IStorageEngine getStorage(String engineId, boolean pullIfNeeded) {
-		return (IStorageEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedStorageEngine((IStorageEngine) engine);
+		return (IStorageEngine) engine;
 	}
 
 	/**
@@ -2785,9 +2793,11 @@ public final class Utility {
 	 * @return
 	 */
 	public static IModelEngine getModel(String engineId, boolean pullIfNeeded) {
-		return (IModelEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedModelEngine((IModelEngine) engine);
+		return (IModelEngine) engine;
 	}
-	
 	
 	/**
 	 * 
@@ -2805,7 +2815,10 @@ public final class Utility {
 	 * @return
 	 */
 	public static IVectorDatabaseEngine getVectorDatabase(String engineId, boolean pullIfNeeded) {
-		return (IVectorDatabaseEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedVectorEngine((IVectorDatabaseEngine) engine);
+		return (IVectorDatabaseEngine) engine;
 	}
 	
 	/**
@@ -2824,7 +2837,10 @@ public final class Utility {
 	 * @return
 	 */
 	public static IReactorFunctionEngine getReactorEngine(String engineId, boolean pullIfNeeded) {
-		return (IReactorFunctionEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedReactorEngine((IReactorFunctionEngine) engine);
+		return (IReactorFunctionEngine) engine;
 	}
 	
 	/**
@@ -2843,7 +2859,10 @@ public final class Utility {
 	 * @return
 	 */
 	public static IFunctionEngine getFunctionEngine(String engineId, boolean pullIfNeeded) {
-		return (IFunctionEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedFunctionEngine((IFunctionEngine) engine);
+		return (IFunctionEngine) engine;
 	}
 	
 	/**
@@ -2862,7 +2881,10 @@ public final class Utility {
 	 * @return
 	 */
 	public static IVenvEngine getVenvEngine(String engineId, boolean pullIfNeeded) {
-		return (IVenvEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedVenvEngine((IVenvEngine) engine);
+		return (IVenvEngine) engine;
 	}
 	
 	/**

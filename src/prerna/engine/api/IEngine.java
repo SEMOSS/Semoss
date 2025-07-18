@@ -9,6 +9,8 @@ public interface IEngine extends Closeable {
 
 	String METADATA_FILE_SUFFIX = "_metadata.json";
 	
+	String PIPELINE = "PIPELINE";
+	
 	enum CATALOG_TYPE {
 		DATABASE,
 		STORAGE,
