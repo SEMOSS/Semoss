@@ -113,12 +113,13 @@ public class GoogleCalendarHelper {
 	}
 	
 	public static Event recurringEvent(Calendar service, String summary, String location, String description, String startdatetime, String enddatetime, List<String> attendeeEmails, String frequency, String Until, Boolean enableVideoConferencing) throws Exception {
-		if(frequency != null) {
-			frequency = frequency.trim().toUpperCase();
+		if (frequency == null) {
+		    throw new IllegalArgumentException("Frequency must not be null and must be 'DAILY' or 'WEEKLY'");
 		}
+		frequency = frequency.trim().toUpperCase();
 		if (!frequency.equals("DAILY") && !frequency.equals("WEEKLY")) {
-	        throw new IllegalArgumentException("Frequency must be 'DAILY' or 'WEEKLY'");
-	    }
+		    throw new IllegalArgumentException("Frequency must be 'DAILY' or 'WEEKLY'");
+		}
 		Event event = new Event();
 
 		event.setSummary(summary);
