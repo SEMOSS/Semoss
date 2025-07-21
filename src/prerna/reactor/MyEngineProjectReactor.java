@@ -1,9 +1,11 @@
 package prerna.reactor;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.GenRowStruct;
@@ -13,6 +15,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class MyEngineProjectReactor extends AbstractReactor {
+	
 	public MyEngineProjectReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.TYPE.getKey(),
@@ -57,6 +60,9 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	        List<Map<String, Object>> result;
 	        if ("PROJECT".equalsIgnoreCase(currentType)) {
 	        	result = getProjects(
+	        			// List.of("CODE", "BLOCKS"),
+	        			// for right now, do not apply filter on project type since it is not properly in some smss files
+	        			null, 
 		                favoritesOnly,
 		                portalsOnly,
 		                engineProjectMetadataFilter,
@@ -85,14 +91,38 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	    return new NounMetadata(combinedInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 
-	private List<Map<String, Object>> getProjects( boolean favoritesOnly, boolean portalsOnly,Map<String, Object> engineProjectMetadataFilter, List<Integer> permissionFilters, String searchTerm,
+	/**
+	 * 
+	 * @param projectTypes
+	 * @param favoritesOnly
+	 * @param portalsOnly
+	 * @param engineProjectMetadataFilter
+	 * @param permissionFilters
+	 * @param searchTerm
+	 * @param limit
+	 * @param offSet
+	 * @return
+	 */
+	private List<Map<String, Object>> getProjects(List<String> projectTypes, boolean favoritesOnly, boolean portalsOnly,Map<String, Object> engineProjectMetadataFilter, List<Integer> permissionFilters, String searchTerm,
 			String limit, String offSet) {
 		List<String> projectIdFilters = getProjectIdFilters();
-		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), null,
+		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectTypes,
 				projectIdFilters, favoritesOnly, portalsOnly, engineProjectMetadataFilter, permissionFilters,
 				searchTerm, limit, offSet);
 		return projectInfo;
 	}
+	
+	/**
+	 * 
+	 * @param engineTypes
+	 * @param noMeta
+	 * @param engineProjectMetadataFilter
+	 * @param permissionFilters
+	 * @param searchTerm
+	 * @param limit
+	 * @param offSet
+	 * @return
+	 */
 	private List<Map<String, Object>> getEngines(List<String> engineTypes, Boolean noMeta,
 			Map<String, Object> engineProjectMetadataFilter, List<Integer> permissionFilters, String searchTerm,
 			String limit, String offSet) {
@@ -102,6 +132,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 				limit, offSet);
 		return engineInfo;
 	}
+	
 	/**
 	 *
 	 * @return
@@ -113,6 +144,11 @@ public class MyEngineProjectReactor extends AbstractReactor {
 		}
 		return null;
 	}
+	
+	/**
+	 * 
+	 * @return
+	 */
 	private List<String> getEngineTypes() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.TYPE.getKey());
 		if (grs != null && !grs.isEmpty()) {
@@ -120,6 +156,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 		}
 		return null;
 	}
+	
 	/**
 	 *
 	 * @return
@@ -131,6 +168,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 		}
 		return null;
 	}
+	
 	/**
 	 *
 	 * @return
@@ -142,6 +180,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 		}
 		return null;
 	}
+	
 	/**
 	 *
 	 * @return
@@ -160,6 +199,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 		}
 		return null;
 	}
+	
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
