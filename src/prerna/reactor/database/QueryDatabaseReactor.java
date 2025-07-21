@@ -11,12 +11,20 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -27,6 +35,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class QueryDatabaseReactor extends AbstractReactor {
+	
+  private static Logger logger = LogManager.getLogger(QueryDatabaseReactor.class);
+  private static final Gson gson = new Gson();
 
   public QueryDatabaseReactor() {
     this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
@@ -38,20 +49,23 @@ public class QueryDatabaseReactor extends AbstractReactor {
     organizeKeys();
     User user = this.insight.getUser();
     
+    // check database permissions
     String databaseId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
     if (!SecurityEngineUtils.userCanViewEngine(user, databaseId)) {
 		throw new IllegalArgumentException(
 				"Database " + databaseId + " does not exist or user does not have access to this database");
 	}
     
+    // check model permissions
     String engine = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
     if (!SecurityEngineUtils.userCanViewEngine(user, engine)) {
 		throw new IllegalArgumentException(
 				"Model " + engine + " does not exist or user does not have access to this model");
 	}
-    IDatabaseEngine database = Utility.getDatabase(databaseId);
+    IRDBMSEngine database = (RDBMSNativeEngine) Utility.getDatabase(databaseId);
     IModelEngine modelEngine = Utility.getModel(engine);
 	
+    // get relation info about the database
     List<String> concepts = database.getPixelConcepts();
     Map<String, Object[]> metamodel = database.getMetamodel();
     Object[] edges = metamodel.get("edges");
@@ -60,16 +74,22 @@ public class QueryDatabaseReactor extends AbstractReactor {
     List<Map<String, String>> edgeInfo = new ArrayList<>();
     for (Object edge : edges) {
     	Map<String, String> e = (Map<String, String>) edge;
-    	String[] splitRel = e.get("rel").split("\\.");
-    	Map<String, String> relInfo = new HashMap<>();
-    	relInfo.put("source_table", splitRel[0]);
-    	relInfo.put("source_table_column", splitRel[1]);
-    	relInfo.put("target_table", splitRel[2]);
-    	relInfo.put("target_table_column", splitRel[3]);
-    	edgeInfo.add(relInfo);
+    	if (e.containsKey("rel")) {
+    		String[] splitRel = e.get("rel").split("\\.");
+        	if (splitRel.length == 4) {
+        		Map<String, String> relInfo = new HashMap<>();
+            	relInfo.put("source_table", splitRel[0]);
+            	relInfo.put("source_table_column", splitRel[1]);
+            	relInfo.put("target_table", splitRel[2]);
+            	relInfo.put("target_table_column", splitRel[3]);
+            	edgeInfo.add(relInfo);
+        	} else {
+        		logger.warn("Could not determine relation for " + e.get("rel"));
+        	}
+    	}
     }
     
-    
+    // get descriptions, logical names, and relation info for columns and put in map
     for (String concept : concepts) {
     	List<String> properties = database.getPixelSelectors(concept);
     	String databaseUri = database.getPhysicalUriFromPixelSelector(concept);
@@ -104,6 +124,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
     	conceptInfo.put(concept, conceptJson);
     }
     
+    // generate context for llm
     String sqlContext = 
     	"""
 		You are an expert SQL assistant. You are provided with a database schema in JSON format, which includes tables, table-level descriptions, columns, and metadata such as descriptions, logical names, and foreign key relationships.
@@ -121,6 +142,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
 		You may use column descriptions, logical names, and foreign key metadata to infer the meaning and appropriate usage of columns.
 		If the user's question requires information not available in the schema, leave the "sql" field blank and explain why in the "explanation" field.
 		Do not use any columns, tables, or relationships that are not present or described in the schema.
+		Only allow select statements, no insert, updates, or deletes.
 		The SQL query should be valid and as efficient as possible.
 		If you use a column or table based on its description or logical name, briefly explain your reasoning in the "explanation" field.
 		Do not surround your response in a code block and make sure the JSON string can be parsed with GSON.
@@ -129,22 +151,53 @@ public class QueryDatabaseReactor extends AbstractReactor {
 		%s
     	""";
 
-    String context = String.format(sqlContext, conceptInfo.toString());
+    String context = String.format(sqlContext, gson.toJson(conceptInfo));
     String prompt = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
     Map<String, Object> paramMap = getParamMap();
     if (paramMap == null) {
 		paramMap = new HashMap<String, Object>();
 	}
+    
+    // add response format to ensure json schema
+    // still need to make sure this works
     paramMap.put("response_format", getJsonSchema());
     
+    // ask model and parse response
     Map<String, Object> queryResponse = modelEngine.ask(prompt, context, this.insight, paramMap).toMap();
     String responseString = (String) queryResponse.get("response");
-    Map<String, String> responseMap = parseResponse(responseString.trim());
-    if (responseMap == null) {
+    String cleanedResponse = responseString.trim().replace("\\n", "").replace("\\\"", "\"");
+    Map<String, String> responseMap = parseResponse(cleanedResponse);
+    if (responseMap == null || responseMap.containsKey("question") || responseMap.containsKey("sql") || responseMap.containsKey("explanation")) {
     	throw new SemossPixelException("LLM could not generate proper response");
     }
     
-    return new NounMetadata(responseMap, PixelDataType.MAP);
+    if (responseMap.get("sql").trim().isEmpty()) {
+    	return new NounMetadata(responseMap.get("explanation"), PixelDataType.MAP);
+    }
+    
+    // TODO connect to db and add query to prepared statement, get results and return to FE
+    Connection con = null;
+	try {
+		con = database.makeConnection();
+		String sql = responseMap.get("sql");
+	    
+	    try (PreparedStatement ps = con.prepareStatement(sql)) {
+	    	ResultSet rs = ps.executeQuery();
+	    	return new NounMetadata(rs, PixelDataType.MAP);
+	    } catch (SQLException e) {
+	    	throw new SemossPixelException("Could not run generated SQL");
+	    }
+	} catch (Exception e) {
+		throw new IllegalArgumentException("Error occured establishing connection to database: " + e.getMessage());
+	} finally {
+		try {
+			con.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+    
+//    return new NounMetadata(responseMap, PixelDataType.MAP);
   }
   
   private Map<String, Object> getParamMap() {
@@ -164,14 +217,14 @@ public class QueryDatabaseReactor extends AbstractReactor {
   
   private Map<String, String> parseResponse(String jsonString) {
 	  System.out.println(jsonString);
-	  Gson gson = new Gson();
       Type type = new TypeToken<Map<String, String>>(){}.getType();
       Map<String, String> map = null;
 
       try {
           map = gson.fromJson(jsonString, type);
       } catch (JsonSyntaxException e) {
-          System.err.println("Failed to parse JSON: " + e.getMessage());
+    	  logger.error("Failed to parse JSON response");
+          throw new SemossPixelException("Failed to parse JSON response: " + jsonString, e);
       }
       return map;
   }
