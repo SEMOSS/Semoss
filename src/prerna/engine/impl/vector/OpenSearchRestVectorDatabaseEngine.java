@@ -342,7 +342,38 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 									JsonObject embedding = new JsonObject();
 									embedding.add("vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
 									embedding.addProperty("k", limit);
-									// store key using the field name for the vector in parent
+
+									JsonObject filterParent = new JsonObject();
+									{
+										JsonObject filterBool = new JsonObject();
+										{
+											//Filtration logic starts here
+											//filter contains simple or AND conditions
+											JsonArray filter = new JsonArray();
+
+											//should contains OR condition filters
+											JsonArray should = new JsonArray();
+
+											//must not contains not equals to filters
+											JsonArray must_not = new JsonArray();
+
+											List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
+											for(IQueryFilter queryFilter : filters) {
+												RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
+											}
+
+											//call to process filter
+											filterBool.add("filter", filter);
+											filterBool.add("should", should);
+											filterBool.add("must_not", must_not);
+
+											if (should.size() > 1) {
+												filterBool.addProperty("minimum_should_match", 1);
+											}
+										}
+										filterParent.add("bool", filterBool);
+									}
+									embedding.add("filter", filterParent);
 									knn.add(this.embeddings, embedding);
 								}
 								knnParent.add("knn", knn);
@@ -350,30 +381,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 							must.add(knnParent);
 						}
 						bool.add("must", must);
-
-						//filteration logic starts here
-						//filter contains simple or AND conditions
-						JsonArray filter = new JsonArray();
-
-						//should contains OR condition filters
-						JsonArray should = new JsonArray();
-
-						//must not contains not equals to filters
-						JsonArray must_not = new JsonArray();
-
-						List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
-						for(IQueryFilter queryFilter : filters) {
-							RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
-						}
-
-						//call to process filter
-						bool.add("filter", filter);
-						bool.add("should", should);
-						bool.add("must_not", must_not);
-
-						if (should.size() > 1) {
-							bool.addProperty("minimum_should_match", 1);
-						}
 					}
 					query.add("bool", bool);
 				}
@@ -381,6 +388,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			// add to parent
 			search.add("query", query);
 		}
+		
+		classLogger.debug("OPENSEARCH FINAL SEARCH QUERY : " + search.toString());
 
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();

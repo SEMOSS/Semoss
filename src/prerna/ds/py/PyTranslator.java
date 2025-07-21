@@ -4,9 +4,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -29,9 +26,6 @@ public class PyTranslator {
 	
 	public static String curEncoding = null;
 	
-	private static final Logger classLogger = LogManager.getLogger(PyTranslator.class);
-	protected Logger logger = null;
-	
 	private SocketClient sc = null;
 	private Insight globalStoreInsight = null;
 
@@ -49,10 +43,6 @@ public class PyTranslator {
 		return this.globalStoreInsight;
 	}
 	
-	public void setLogger(Logger logger) {
-		this.logger = logger;
-	}
-
 	public SemossDataType convertDataType(String pDataType) {
 		return pyS.get(pDataType);
 	}
@@ -354,14 +344,14 @@ public class PyTranslator {
 		
 		if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
-			if(ps != null && ps.ex != null) {
-				logger.info("Exception " + ps.ex);
-				throw new SemossPixelException(ps.ex);
-			} else {
-				return ps.payload[0];
+			if(ps == null) {
+				throw new SemossPixelException("Received a null PayloadStruct response");
 			}
+			if(ps.ex != null) {
+				throw new SemossPixelException(ps.ex);
+			}
+			return ps.payload[0];
 		} else {
-			logger.info("Py engine is not available anymore ");
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
 	}
@@ -376,12 +366,13 @@ public class PyTranslator {
         ps.insightId = this.globalStoreInsight.getInsightId();
         if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
-			if(ps != null && ps.ex != null) {
-				logger.info("Exception " + ps.ex);
-				throw new SemossPixelException(ps.ex);
+			if(ps == null) {
+				throw new SemossPixelException("Received a null PayloadStruct response");
 			}
+			if(ps.ex != null) {
+				throw new SemossPixelException(ps.ex);
+			} 
 		} else {
-			logger.info("Py engine is not available anymore ");
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
     }
@@ -396,12 +387,13 @@ public class PyTranslator {
         ps.insightId = this.globalStoreInsight.getInsightId();
         if(sc.isConnected()) {
 			ps = (PayloadStruct)sc.executeCommand(ps);
-			if(ps != null && ps.ex != null) {
-				logger.info("Exception " + ps.ex);
+			if(ps == null) {
+				throw new SemossPixelException("Received a null PayloadStruct response");
+			}
+			if(ps.ex != null) {
 				throw new SemossPixelException(ps.ex);
 			}
 		} else {
-			logger.info("Py engine is not available anymore ");
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
     }

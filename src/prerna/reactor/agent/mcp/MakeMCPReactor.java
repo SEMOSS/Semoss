@@ -45,10 +45,10 @@ public class MakeMCPReactor extends AbstractReactor {
 			return new NounMetadata(output, PixelDataType.CONST_STRING);
 		}
 
-		String mcpPyFileLoc = pyFolderLoc + "/main.py";
+		String mcpPyFileLoc = pyFolderLoc + "/smss_driver.py";
 		File mcpPyFile = new File(mcpPyFileLoc);
 		if(!mcpPyFile.exists() || !mcpPyFile.isFile()) {
-			output = "There is no py/main.py that exists. Please create this file and then try. "
+			output = "There is no py/smss_driver.py that exists. Please create this file and then try. "
 					+ "File main.py is the main driver which is utilized in terms of creating the MCP tools.";
 			return new NounMetadata(output, PixelDataType.CONST_STRING);
 		
