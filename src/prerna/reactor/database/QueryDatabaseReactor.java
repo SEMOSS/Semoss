@@ -108,7 +108,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
     	"""
 		You are an expert SQL assistant. You are provided with a database schema in JSON format, which includes tables, table-level descriptions, columns, and metadata such as descriptions, logical names, and foreign key relationships.
 		Your task is to generate an SQL query that answers the user's question, using only the information explicitly available in the schema.
-		Return your answer as a JSON object with the following fields:
+		Return your answer as a JSON string with the following fields:
 		
 		"question": The user's question, verbatim.
 		"sql": The SQL query that answers the question, or an empty string if the schema does not provide enough information to generate the query.
@@ -123,7 +123,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
 		Do not use any columns, tables, or relationships that are not present or described in the schema.
 		The SQL query should be valid and as efficient as possible.
 		If you use a column or table based on its description or logical name, briefly explain your reasoning in the "explanation" field.
-		Do not surround your response in a code block.
+		Do not surround your response in a code block and make sure the JSON string can be parsed with GSON.
 		
 		Schema:
 		%s
