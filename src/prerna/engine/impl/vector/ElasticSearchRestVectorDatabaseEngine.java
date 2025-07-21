@@ -166,7 +166,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	}
 
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -182,10 +182,11 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 
 		List<JsonObject> bulkInsert = new ArrayList<>();
-
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
 		Map<String, Integer> sourceId = new HashMap<>();
 		for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
 			String source = row.getSource();
+			fileRecordCountMap.put(source, fileRecordCountMap.getOrDefault(source, 0) + 1);
 			int index = 0;
 			if(sourceId.containsKey(source)) {
 				index = sourceId.get(source);
@@ -232,11 +233,46 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
 		Number insertions = (Number) responseMap.get("took");
 		classLogger.info("Inserted " + insertions.intValue() + " bulk inserts (create index + record value) into elastic search index " + this.indexName);
-
 		Boolean errors = (Boolean) responseMap.get("errors");
+		List<Map<String, Object>> items = (List<Map<String, Object>>) responseMap.get("items");
+		Map<String, Long> successCountMap = new HashMap<>();
+		List<FileEmbeddingStatus> fileStatusMap = new ArrayList<>();
+		for (int i = 0; i < items.size(); i++) {
+			Map<String, Object> item = items.get(i);
+			Map<String, Object> indexResult = (Map<String, Object>) item.get("index");
+			String docId = (String) indexResult.get("_id");
+
+			String sourceName = docId.substring(0, docId.lastIndexOf("_"));
+			boolean isOk = !indexResult.containsKey("error");
+
+			if (isOk) {
+				successCountMap.put(sourceName, successCountMap.getOrDefault(sourceName, 0L) + 1);
+			}
+		}
+
+		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+			String file = entry.getKey();
+			int totalRecords = entry.getValue();
+			long inserted = successCountMap.getOrDefault(file, 0L);
+			long failed = totalRecords - inserted;
+
+			String status;
+			if (inserted == totalRecords) {
+				status = "SUCCESS";
+			} else if (inserted > 0 && inserted < totalRecords) {
+				status = "PARTIAL";
+			} else {
+				status = "FAILED";
+			}
+			fileStatusMap.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+		}
 		if(errors) {
 			classLogger.warn("There were errors with some of the bulk insertions in the elastic search index " + this.indexName);
+		}else {
+			classLogger.info("All records inserted successfully into Elasticsearch index '{}'", this.indexName);
 		}
+		
+		return fileStatusMap;
 	}
 
 	@Override
