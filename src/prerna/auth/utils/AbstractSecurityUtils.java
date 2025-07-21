@@ -2606,15 +2606,28 @@ public abstract class AbstractSecurityUtils {
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 
+	/**
+	 * 
+	 * @param email
+	 * @param isNewUser
+	 * @throws Exception
+	 */
 	public static void validEmail(String email, boolean isNewUser) throws Exception {
 		if(email == null || !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
 			throw new IllegalArgumentException(email + " is not a valid email address. ");
 		}
 		if(isNewUser && SecurityNativeUserUtils.userEmailExists(email)) {
-			throw new IllegalArgumentException("This email already exists. Please login");
+			throw new IllegalArgumentException("This email already exists. Please login. ");
 		}
 	}
 
+	/**
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param password
+	 * @throws Exception
+	 */
 	public static void validPassword(String userId, AuthProvider type, String password) throws Exception {
 		if(password == null || password.isEmpty()) {
 			throw new IllegalArgumentException("Password cannot be empty. ");
@@ -2625,6 +2638,12 @@ public abstract class AbstractSecurityUtils {
 		}
 	}
 
+	/**
+	 * 
+	 * @param phone
+	 * @return
+	 * @throws Exception
+	 */
 	public static String formatPhone(String phone) throws Exception {
 		if (phone != null && !phone.isEmpty()) {
 			if (!phone.matches("[\\d\\s.()-]+")) {
@@ -2637,6 +2656,20 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		return phone;
+	}
+	
+	/**
+	 * 
+	 * @param username
+	 * @throws IllegalArgumentException
+	 */
+	public static void validUsername(String username) throws IllegalArgumentException {
+		if (username == null || username.trim().isEmpty()) {
+			throw new IllegalArgumentException("Username cannot be empty. ");
+		}
+		if (SecurityQueryUtils.checkUsernameExist(username)) {
+			throw new IllegalArgumentException("Username already exists. ");
+		}
 	}
 
 	/**
@@ -2680,4 +2713,5 @@ public abstract class AbstractSecurityUtils {
 		LocalDateTime formattedEndDate = endDate.getLocalDateTime();
 		return formattedEndDate.isBefore(currentTime);
 	}
+	
 }

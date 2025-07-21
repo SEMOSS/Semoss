@@ -28,30 +28,23 @@ public class GenerateFrameFromPyVariableReactor extends AbstractPyFrameReactor {
 		//init();
 		organizeKeys();
 		String varName = getVarName();
-		PyTranslator pyT = this.insight.getPyTranslator();
+		PyTranslator pyTranslator = this.insight.getPyTranslator();
 		logger.info("Getting the columns for :" + varName);
-		String[] colNames = pyT.getStringArray(PandasSyntaxHelper.getColumns(varName));
+		String[] colNames = pyTranslator.getStringArray(PandasSyntaxHelper.getColumns(varName));
 		
 		// I bet this is being done for pixel.. I will keep the same
 		logger.info("Cleaning the columns for :" + varName);
-		pyT.runScript(PandasSyntaxHelper.cleanFrameHeaders(varName, colNames));
-		colNames = pyT.getStringArray(PandasSyntaxHelper.getColumns(varName));
+		pyTranslator.runScript(PandasSyntaxHelper.cleanFrameHeaders(varName, colNames));
+		colNames = pyTranslator.getStringArray(PandasSyntaxHelper.getColumns(varName));
 		
 		logger.info("Getting the column types for :" + varName);
-		String[] colTypes = pyT.getStringArray(PandasSyntaxHelper.getTypes(varName));
+		String[] colTypes = pyTranslator.getStringArray(PandasSyntaxHelper.getTypes(varName));
 
 		if(colNames == null || colTypes == null) {
 			throw new IllegalArgumentException("Please make sure the variable " + varName + " exists and can be a valid data.table object");
 		}
-		PandasFrame frame = new PandasFrame(varName);
-		//frame.setTranslator(pyT);
-		
-		//switching to runScript
-		//pyT.runPyAndReturnOutput(PandasSyntaxHelper.makeWrapper(frame.getWrapperName(), varName));
-		
-		pyT.runScript(PandasSyntaxHelper.makeWrapper(frame.getWrapperName(), varName));
-		//frame.setJep(this.insight.getPy());
-		frame.setTranslator(this.insight.getPyTranslator());
+		PandasFrame frame = new PandasFrame(varName, pyTranslator);
+		pyTranslator.runScript(PandasSyntaxHelper.makeWrapper(frame.getWrapperName(), varName));
 
 		// create the pandas frame
 		// and set up teverything else

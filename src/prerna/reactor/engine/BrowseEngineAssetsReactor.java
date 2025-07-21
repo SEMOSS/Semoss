@@ -52,9 +52,9 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 			}
 		}
 		
-		String pathSubstring = EngineUtility.getLocalEngineBaseDirectory(engineId);
+		String pathSubstring = EngineUtility.getSpecificEngineBaseFolder(engineId);
 		int pathSubstringIndex = pathSubstring.length();
-		String filePath = EngineUtility.getSpecificEngineBaseFolder(engineId);
+		String filePath = pathSubstring;
 		if(relativeFilePath != null && !relativeFilePath.isEmpty()) {
 			filePath += relativeFilePath;
 		}

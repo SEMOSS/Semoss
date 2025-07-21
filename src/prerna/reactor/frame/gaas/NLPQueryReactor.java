@@ -54,8 +54,7 @@ public class NLPQueryReactor extends AbstractReactor {
 
 		String pipeVar = modelVarName; // setting up so that I dont need to load same model multiple times during the same session
 		
-		boolean modelLoaded = (Boolean)this.insight.getPyTranslator().runScript("'" + modelVarName +"' in globals()");
-		
+		boolean modelLoaded = this.insight.getPyTranslator().getBoolean("'" + modelVarName +"' in globals()");
 		if(!modelLoaded) // load the model
 		{
 			// load the model
@@ -90,7 +89,7 @@ public class NLPQueryReactor extends AbstractReactor {
 			{
 				Object output = this.insight.getPyTranslator().runScript(thisFrame.getName() + "w.get_categorical_values()");
 				if(output instanceof HashMap)
-					columnValues = (HashMap)this.insight.getPyTranslator().runScript(thisFrame.getName() + "w.get_categorical_values()");
+					columnValues = (HashMap)this.insight.getPyTranslator().runDirectPy(thisFrame.getName() + "w.get_categorical_values()");
 			}
 			
 			finalDbString.append(" | ").append(thisFrame.getName()).append(" : ");
@@ -141,18 +140,16 @@ public class NLPQueryReactor extends AbstractReactor {
 		
 		// check to see if the variable was created
 		// if not this is a bad query
-		boolean frameCreated = (Boolean)insight.getPyTranslator().runScript("'" + frameName + "' in globals()");
+		boolean frameCreated = insight.getPyTranslator().getBoolean("'" + frameName + "' in globals()");
 		
 		List<NounMetadata> outputs = new Vector<NounMetadata>(4);
-
-				
 		if(frameCreated)
 		{
 			// now we just need to tell the user here is the frame
 			String frameType = "Py";
 			
 			outputs.add(new NounMetadata("Query Generated : " + sqlDFQuery + " Data : " + frameName, PixelDataType.CONST_STRING));
-			outputs.add(new NounMetadata(this.insight.getPyTranslator().runSingle(frameName + ".head(20)", this.insight), PixelDataType.CONST_STRING));
+			outputs.add(new NounMetadata(this.insight.getPyTranslator().runDirectPy(frameName + ".head(20)"), PixelDataType.CONST_STRING));
 			outputs.add(new NounMetadata("To start working with this frame  GenerateFrameFrom" + frameType + "Variable('" + frameName + "')", PixelDataType.CONST_STRING));
 			
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
