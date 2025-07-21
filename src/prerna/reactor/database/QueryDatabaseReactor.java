@@ -139,7 +139,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
     
     Map<String, Object> queryResponse = modelEngine.ask(prompt, context, this.insight, paramMap).toMap();
     String responseString = (String) queryResponse.get("response");
-    Map<String, String> responseMap = parseResponse(responseString);
+    Map<String, String> responseMap = parseResponse(responseString.trim());
     if (responseMap == null) {
     	throw new SemossPixelException("LLM could not generate proper response");
     }
@@ -163,6 +163,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	}
   
   private Map<String, String> parseResponse(String jsonString) {
+	  System.out.println(jsonString);
 	  Gson gson = new Gson();
       Type type = new TypeToken<Map<String, String>>(){}.getType();
       Map<String, String> map = null;
