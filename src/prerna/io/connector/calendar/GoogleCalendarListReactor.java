@@ -32,7 +32,7 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 			User user = this.insight.getUser();
 			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
 			Calendar CalendarService = GoogleCalendarUtils.getCalendarServiceUsingToken(accessToken);
-			List<String> eventList = getEventList(CalendarService, startdate, enddate);
+			List<List<String>> eventList = getEventList(CalendarService, startdate, enddate);
 			return new NounMetadata(eventList, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
@@ -40,8 +40,8 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 		}
 	}
 	
-	public static List<String> getEventList(Calendar service, String startDateTime, String endDateTime) throws Exception {
-	    List<String> eventList = new ArrayList<>();
+	public static List<List<String>> getEventList(Calendar service, String startDateTime, String endDateTime) throws Exception {
+	    List<List<String>> eventList = new ArrayList<>();
 	    DateTime timeMin = new DateTime(startDateTime);
 	    DateTime timeMax = new DateTime(endDateTime);
 
@@ -59,7 +59,10 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 	        List<Event> items = events.getItems();
 	        if (items != null && !items.isEmpty()) {
 	            for (Event item : items) {
-	                eventList.add(item.getSummary());
+	            	List<String> lst = new ArrayList<>();
+	                lst.add(item.getSummary());
+	                lst.add(item.getId());
+	                eventList.add(lst);
 	            }
 	        }
 	        pageToken = events.getNextPageToken();

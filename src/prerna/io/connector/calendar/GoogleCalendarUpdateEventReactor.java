@@ -20,7 +20,7 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 	public GoogleCalendarUpdateEventReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.SUMMARY.getKey(), ReactorKeysEnum.LOCATION.getKey(),
 				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.STARTDATE.getKey(),
-				ReactorKeysEnum.ENDDATE.getKey(), ReactorKeysEnum.VIDEO.getKey(), ReactorKeysEnum.EMAIL.getKey(), ReactorKeysEnum.OLDSUMMARY.getKey() };
+				ReactorKeysEnum.ENDDATE.getKey(), ReactorKeysEnum.VIDEO.getKey(), ReactorKeysEnum.EMAIL.getKey(), ReactorKeysEnum.ID.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 1, 1, 1 };
 	}
 
@@ -34,7 +34,7 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 		String enddatetime = this.keyValue.get(this.keysToGet[4]);
 		String enablevideo = this.keyValue.get(this.keysToGet[5]);
 		String emailsInput = this.keyValue.get(this.keysToGet[6]);
-		String oldsummary = this.keyValue.get(this.keysToGet[7]);
+		String id = this.keyValue.get(this.keysToGet[7]);
 		
 		
 		try {
@@ -52,10 +52,6 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 			    }
 			}
 			boolean video = Boolean.parseBoolean(enablevideo);
-			String id = getEventID(CalendarService, oldsummary);
-			if (id == null) {
-				throw new SemossPixelException("Event not found for summary: " + oldsummary);
-			}
 			boolean result = GoogleCalendarHelper.updateEvent(CalendarService,id, summary, location, desc, startdatetime,
 					enddatetime, attendeeEmails, video);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -65,34 +61,6 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 
 	}
 
-	public static String getEventID(Calendar service, String summary) throws Exception {
-	    String pageToken = null;
-
-	    while (true) {
-	        Events events = service.events().list("primary")
-	            .setOrderBy("startTime")
-	            .setSingleEvents(true)
-	            .setMaxResults(100)
-	            .setPageToken(pageToken)
-	            .execute();
-
-	        List<Event> items = events.getItems();
-
-	        for (Event item : items) {
-	            if (item.getSummary() != null && item.getSummary().trim().equalsIgnoreCase(summary.trim())) {
-	                return item.getId();
-	            }
-	        }
-
-	        pageToken = events.getNextPageToken();
-	        if (pageToken == null) {
-	            break;
-	        }
-	    }
-
-	    return null;
-	}
-	
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to update an existing event in the Google Calender.";

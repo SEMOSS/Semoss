@@ -6,7 +6,6 @@ import java.util.*;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventAttendee;
-import com.google.api.services.calendar.model.Events;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
@@ -19,22 +18,18 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GoogleCalendarReadEventReactor extends AbstractReactor{
 	
 	public GoogleCalendarReadEventReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.SUMMARY.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey()};
 		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String summary = this.keyValue.get(this.keysToGet[0]);
+		String id = this.keyValue.get(this.keysToGet[0]);
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
 			Calendar CalendarService = GoogleCalendarUtils.getCalendarServiceUsingToken(accessToken);
-			String id = getEventID(CalendarService, summary);
-			if (id == null) {
-				throw new SemossPixelException("Event not found for summary: " + summary);
-			}
 			Event result = GoogleCalendarHelper.readEvent(CalendarService, id);
 			Map<String, Object> mp = new LinkedHashMap<>();
 			mp.put("summary", result.getSummary());
@@ -63,34 +58,6 @@ public class GoogleCalendarReadEventReactor extends AbstractReactor{
 			throw new SemossPixelException("Issue with input: " + e.getMessage(), e);
 		}
 
-	}
-	
-	public static String getEventID(Calendar service, String summary) throws Exception {
-	    String pageToken = null;
-
-	    while (true) {
-	        Events events = service.events().list("primary")
-	            .setOrderBy("startTime")
-	            .setSingleEvents(true)
-	            .setMaxResults(100)
-	            .setPageToken(pageToken)
-	            .execute();
-
-	        List<Event> items = events.getItems();
-
-	        for (Event item : items) {
-	            if (item.getSummary() != null && item.getSummary().trim().equalsIgnoreCase(summary.trim())) {
-	                return item.getId();
-	            }
-	        }
-
-	        pageToken = events.getNextPageToken();
-	        if (pageToken == null) {
-	            break;
-	        }
-	    }
-
-	    return null;
 	}
 	
 	@Override
