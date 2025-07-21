@@ -193,7 +193,7 @@ public final class ZipUtils {
 				File[] files = file.listFiles();
 				for (File subF : files) {
 					String s=subF.toString();
-					if(!(includeData.equals("false") && (s.endsWith("database.mv.db"))))
+					if(!(includeData.equals("false") && (s.endsWith("database.mv.db")||s.endsWith("py")||s.endsWith("schema"))))
 					addAllToZip(subF, zos, subPrefix, ignoreDirs, ignoreFiles, includeData);
 				}
 			}
