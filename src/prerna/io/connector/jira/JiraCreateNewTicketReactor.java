@@ -1,9 +1,8 @@
-package prerna.io.connector.jira.reactor;
+package prerna.io.connector.jira;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.io.connector.jira.reactor.JiraCreateNewTicketReactor;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -12,14 +11,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.JiraHelper;
 
-public class JiraCreateNewTicketReactor extends AbstractReactor{
-	
+public class JiraCreateNewTicketReactor extends AbstractReactor {
+
 	private static final Logger classLogger = LogManager.getLogger(JiraCreateNewTicketReactor.class);
 
 	public JiraCreateNewTicketReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.KEY_NAME.getKey(),
-				ReactorKeysEnum.SUMMARY.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(),
-				ReactorKeysEnum.ISSUETYPE.getKey(), ReactorKeysEnum.PROJECT.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.KEY_NAME.getKey(), ReactorKeysEnum.SUMMARY.getKey(),
+				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.ISSUETYPE.getKey(),
+				ReactorKeysEnum.PROJECT.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1, 1, 1 };
 	}
 

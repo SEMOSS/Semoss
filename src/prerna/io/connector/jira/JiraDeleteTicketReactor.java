@@ -1,4 +1,4 @@
-package prerna.io.connector.jira.reactor;
+package prerna.io.connector.jira;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,13 +11,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.JiraHelper;
 
-public class JiraTruncateDbDataReactor extends AbstractReactor{
-	
-	private static final Logger classLogger = LogManager.getLogger(JiraTruncateDbDataReactor.class);
+public class JiraDeleteTicketReactor extends AbstractReactor {
 
-	public JiraTruncateDbDataReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.KEY_NAME.getKey() };
-		this.keyRequired = new int[] { 1 };
+	private static final Logger classLogger = LogManager.getLogger(JiraDeleteTicketReactor.class);
+
+	public JiraDeleteTicketReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.KEY_NAME.getKey(), ReactorKeysEnum.JIRAID.getKey(),
+				ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
@@ -25,7 +26,9 @@ public class JiraTruncateDbDataReactor extends AbstractReactor{
 		try {
 			this.organizeKeys();
 			String keyName = this.keyValue.get(this.keysToGet[0]);
-			return JiraHelper.truncateData(keyName);
+			String jiraId = this.keyValue.get(this.keysToGet[1]);
+			String project = this.keyValue.get(this.keysToGet[2]);
+			return JiraHelper.deleteIssue(jiraId, keyName, project);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,

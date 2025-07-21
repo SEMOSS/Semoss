@@ -1,5 +1,7 @@
 package prerna.util;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -18,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.Fields;
 import prerna.engine.impl.model.IssueType;
 import prerna.engine.impl.model.JiraRequestBodyModel;
@@ -38,9 +40,24 @@ public class JiraHelper {
 
     private static final Logger classLogger = LogManager.getLogger(JiraHelper.class);
 
-    private static String getTableName(IDatabaseEngine database) {
+    public static IRDBMSEngine jiraDB;
+
+
+    static {
         try {
-            List<String> tables = database.getPixelConcepts();
+            jiraDB = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
+        } catch (Exception e) {
+            classLogger.error("Failed to initialize jiraDB", e);
+        }
+    }
+
+    public static void setJiraDB(IRDBMSEngine db) {
+        jiraDB = db;
+    }
+
+    private static String getTableName() {
+        try {
+            List<String> tables = jiraDB.getPixelConcepts();
             for (String tbl : tables) {
                 if (TABLE.equals(tbl)) {
                     return tbl;
@@ -52,18 +69,15 @@ public class JiraHelper {
         return null;
     }
 
-    private static boolean userExists(IDatabaseEngine database, String keyName) {
-        String tableName = getTableName(database);
+    private static boolean userExists(String keyName) {
+        String tableName = getTableName();
         if (tableName == null) return false;
-        String checkQuery = "SELECT 1 FROM " + tableName + " WHERE " + JIRA_UNIQUE_ID + " = '" + keyName + "'";
-        try {
-            HashMap<String, String> checkResult = (HashMap<String, String>) database.execQuery(checkQuery);
-            Object rsObj = checkResult.get("RESULTSET_OBJECT");
-            if (rsObj instanceof ResultSet) {
-                ResultSet rs = (ResultSet) rsObj;
-                boolean exists = rs.next();
-                rs.close();
-                return exists;
+        String checkQuery = "SELECT 1 FROM " + tableName + " WHERE " + JIRA_UNIQUE_ID + " = ?";
+        try (Connection conn = jiraDB.makeConnection();
+             PreparedStatement pstmt = conn.prepareStatement(checkQuery)) {
+            pstmt.setString(1, keyName);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next();
             }
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);
@@ -71,23 +85,17 @@ public class JiraHelper {
         return false;
     }
 
-    // Get a field value for a user from DB
     private static String getFieldFromDB(String keyName, String field) {
-        try {
-            IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
-            String tableName = getTableName(database);
-            if (tableName == null) return null;
-            String query = "SELECT " + field + " FROM " + tableName + " WHERE " + JIRA_UNIQUE_ID + "='" + keyName + "'";
-            HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
-            Object rsObj = hashmap.get("RESULTSET_OBJECT");
-            if (rsObj instanceof ResultSet) {
-                ResultSet rs = (ResultSet) rsObj;
+        String tableName = getTableName();
+        if (tableName == null) return null;
+        String query = "SELECT " + field + " FROM " + tableName + " WHERE " + JIRA_UNIQUE_ID + " = ?";
+        try (Connection conn = jiraDB.makeConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, keyName);
+            try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    String value = rs.getString(field);
-                    rs.close();
-                    return value;
+                    return rs.getString(field);
                 }
-                rs.close();
             }
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);
@@ -101,8 +109,7 @@ public class JiraHelper {
                     PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
         }
         try {
-            IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
-            if (!userExists(database, keyName)) {
+            if (!userExists(keyName)) {
                 return new NounMetadata(keyName + " is not present in DB",
                         PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
             }
@@ -144,8 +151,7 @@ public class JiraHelper {
                     PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
         }
         try {
-            IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
-            if (!userExists(database, keyName)) {
+            if (!userExists(keyName)) {
                 return new NounMetadata("User id " + keyName + " is not present in DB",
                         PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
             }
@@ -194,8 +200,7 @@ public class JiraHelper {
 
     public static NounMetadata deleteIssue(String jiraId, String keyName, String project) {
         try {
-            IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
-            if (!userExists(database, keyName)) {
+            if (!userExists(keyName)) {
                 return new NounMetadata("User id " + keyName + " is not present in DB",
                         PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
             }
@@ -239,18 +244,20 @@ public class JiraHelper {
 
     public static NounMetadata truncateData(String keyName) {
         try {
-            IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
-            String tableName = getTableName(database);
+            String tableName = getTableName();
             if (tableName == null) {
                 return new NounMetadata("Table not found in database.",
                         PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
             }
-            if (!userExists(database, keyName)) {
+            if (!userExists(keyName)) {
                 return new NounMetadata("User id " + keyName + " is not present in DB. Truncate operation aborted.",
                         PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
             }
             String truncateQuery = "DELETE FROM " + tableName;
-            database.removeData(truncateQuery);
+            try (Connection conn = jiraDB.makeConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(truncateQuery)) {
+                pstmt.executeUpdate();
+            }
             String msg = "Table '" + tableName + "' truncated successfully by user with user id: " + keyName;
             return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
         } catch (Exception e) {
@@ -262,8 +269,7 @@ public class JiraHelper {
 
     public static NounMetadata getAllProjects(String keyName) {
         try {
-            IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
-            if (!userExists(database, keyName)) {
+            if (!userExists(keyName)) {
                 return new NounMetadata("User id " + keyName + " is not present in DB",
                         PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
             }
@@ -296,18 +302,21 @@ public class JiraHelper {
 
     public static NounMetadata deleteRecordForUser(String keyName) {
         try {
-            IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
-            String tableName = getTableName(database);
+            String tableName = getTableName();
             if (tableName == null) {
                 return new NounMetadata("Table not found in database.",
                         PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
             }
-            if (!userExists(database, keyName)) {
+            if (!userExists(keyName)) {
                 return new NounMetadata("User id " + keyName + " is not present in DB",
                         PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
             }
-            String deleteQuery = "DELETE FROM " + tableName + " WHERE " + JIRA_UNIQUE_ID + " = '" + keyName + "'";
-            database.removeData(deleteQuery);
+            String deleteQuery = "DELETE FROM " + tableName + " WHERE " + JIRA_UNIQUE_ID + " = ?";
+            try (Connection conn = jiraDB.makeConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(deleteQuery)) {
+                pstmt.setString(1, keyName);
+                pstmt.executeUpdate();
+            }
             String msg = "Record deleted successfully for user id " + keyName;
             return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
         } catch (Exception e) {
@@ -327,22 +336,18 @@ public class JiraHelper {
         return new NounMetadata(jiraIssues, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
     }
 
-    // Utility: Get all user IDs from DB
     private static List<String> getAllUserIds() {
         List<String> userIds = new ArrayList<>();
         try {
-            IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
-            String tableName = getTableName(database);
+            String tableName = getTableName();
             if (tableName == null) return userIds;
             String query = "SELECT " + JIRA_UNIQUE_ID + " FROM " + tableName;
-            HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
-            Object rsObj = hashmap.get("RESULTSET_OBJECT");
-            if (rsObj instanceof ResultSet) {
-                ResultSet rs = (ResultSet) rsObj;
+            try (Connection conn = jiraDB.makeConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(query);
+                 ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     userIds.add(rs.getString(JIRA_UNIQUE_ID));
                 }
-                rs.close();
             }
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);

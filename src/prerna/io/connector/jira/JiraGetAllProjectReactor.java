@@ -1,4 +1,4 @@
-package prerna.io.connector.jira.reactor;
+package prerna.io.connector.jira;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,13 +11,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.JiraHelper;
 
-public class JiraListAllTicketReactor extends AbstractReactor{
-	
-	private static final Logger classLogger = LogManager.getLogger(JiraListAllTicketReactor.class);
+public class JiraGetAllProjectReactor extends AbstractReactor {
+	private static final Logger classLogger = LogManager.getLogger(JiraGetAllProjectReactor.class);
 
-	public JiraListAllTicketReactor() {
-		this.keysToGet = new String[] {  ReactorKeysEnum.KEY_NAME.getKey(), ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] { 1, 1 };
+	public JiraGetAllProjectReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.KEY_NAME.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
@@ -25,8 +24,7 @@ public class JiraListAllTicketReactor extends AbstractReactor{
 		try {
 			this.organizeKeys();
 			String keyName = this.keyValue.get(this.keysToGet[0]);
-			String project = this.keyValue.get(this.keysToGet[1]);
-			return JiraHelper.listIssue(project, keyName);
+			return JiraHelper.getAllProjects(keyName);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
