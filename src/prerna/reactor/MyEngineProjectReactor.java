@@ -57,7 +57,6 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	        List<Map<String, Object>> result;
 	        if ("PROJECT".equalsIgnoreCase(currentType)) {
 	        	result = getProjects(
-	        			List.of("CODE", "BLOCKS"),
 		                favoritesOnly,
 		                portalsOnly,
 		                engineProjectMetadataFilter,
@@ -86,11 +85,10 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	    return new NounMetadata(combinedInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 
-	private List<Map<String, Object>> getProjects(List<String> projectTypes, boolean favoritesOnly, boolean portalsOnly,Map<String, Object> engineProjectMetadataFilter, List<Integer> permissionFilters, String searchTerm,
+	private List<Map<String, Object>> getProjects( boolean favoritesOnly, boolean portalsOnly,Map<String, Object> engineProjectMetadataFilter, List<Integer> permissionFilters, String searchTerm,
 			String limit, String offSet) {
 		List<String> projectIdFilters = getProjectIdFilters();
-
-		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(),projectTypes,
+		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), null,
 				projectIdFilters, favoritesOnly, portalsOnly, engineProjectMetadataFilter, permissionFilters,
 				searchTerm, limit, offSet);
 		return projectInfo;
