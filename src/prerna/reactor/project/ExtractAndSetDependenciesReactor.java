@@ -1,12 +1,10 @@
 package prerna.reactor.project;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,12 +24,9 @@ public class ExtractAndSetDependenciesReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ExtractAndSetDependenciesReactor.class);
 
-	private static final String[] DEPENDENCIES_FILE_EXTENSIONS = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx" };
-	
 	public ExtractAndSetDependenciesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 		this.keyRequired = new int[] { 1, 1 };
-
 	}
 
 	@Override
@@ -51,25 +46,51 @@ public class ExtractAndSetDependenciesReactor extends AbstractReactor {
 		String baseFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String assetsFileLocation = (baseFolder + "/" + fileRelativePath).replace('\\', '/');
 		File finalProjectAssetFolder = new File(assetsFileLocation);
-
-		// check if any dependency file is present in the uploaded project
-		String folderPath = finalProjectAssetFolder.getAbsolutePath();
-		boolean hasDependencyFile;
-		try {
-			hasDependencyFile = Files.walk(Paths.get(folderPath)).anyMatch(p -> Files.isRegularFile(p)
-					&& Arrays.stream(DEPENDENCIES_FILE_EXTENSIONS).anyMatch(ext -> p.toString().endsWith(ext)));
-		} catch (IOException e) {
-			classLogger.error("Error while checking for dependency files", e);
-		} 
 		
-		// extract engineIds from project
-		// then process and set project dependencies
-		String[] engineIds = UploadInputUtility.getEngineIdsFromProject(finalProjectAssetFolder);
+		// extract engineIds and file mapping from project
+		Map<String, Map<String, Object>> uuidToFiles = UploadInputUtility.getEngineIdsFromProject(finalProjectAssetFolder);
+		 
+		// process engineIds and set project dependencies
+		String[] engineIds = uuidToFiles.keySet().toArray(new String[0]);
 		Map<String, Object> engineInfo = UploadInputUtility.processAndSetProjectDependencies(engineIds, space, user);
-
+		
+		Map<String, String> successMap = (Map<String, String>) engineInfo.get("success");
+		
+		Set<String> failedSet = (Set<String>)engineInfo.get("failed");
+		
+		// final success list of engineIds
+		Map<String, Map<String, Object>> successResult = new HashMap<>();
+		
+		for (Map.Entry<String, String> entry : successMap.entrySet()) {
+		    String engineId = entry.getKey();
+		    String engineType = entry.getValue();
+		 
+		    Map<String, Object> value = new HashMap<>();
+		    value.put("engineType", engineType);
+		    value.put("files", uuidToFiles.get(engineId).get("files"));
+		 
+		    successResult.put(engineId, value);
+		}
+		 
+		// final failed list of engineIds
+		Map<String, Map<String, Object>> failureResult = new HashMap<>();
+		 
+		for (String engineId : failedSet) {
+		    Map<String, Object> value = new HashMap<>();
+		    value.put("files", uuidToFiles.containsKey(engineId) ? uuidToFiles.get(engineId).get("files") : new ArrayList<>());
+		 
+		    failureResult.put(engineId, value);
+		}
+		 
+		// final return map
 		Map<String, Object> retMap = new HashMap<>();
-		retMap.put("engineIds", engineInfo);
 
+		Map<String, Object> engineIdMap = new HashMap<>();
+		engineIdMap.put("success", successResult);
+		engineIdMap.put("failed", failureResult);
+		
+		// sending the success and failed list of engineIds to FE
+		retMap.put("engineIds", engineIdMap);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 

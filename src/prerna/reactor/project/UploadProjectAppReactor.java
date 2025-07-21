@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -340,14 +341,48 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		}
 		 
 		// extract engineIds from project
-	    // then process and set project dependencies
-		String[] engineIds = UploadInputUtility.getEngineIdsFromProject(finalProjectFolderF);
+		Map<String, Map<String, Object>> uuidToFiles = UploadInputUtility.getEngineIdsFromProject(finalProjectFolderF);
+		 
+		// process engineIds and set project dependencies
+		String[] engineIds = uuidToFiles.keySet().toArray(new String[0]);
 		Map<String, Object> engineInfo = UploadInputUtility.processAndSetProjectDependencies(engineIds, projectId, user);
+		
+		Map<String, String> successMap = (Map<String, String>) engineInfo.get("success");
+		
+		Set<String> failedSet = (Set<String>)engineInfo.get("failed");
+		 
+		// final success list of engineIds
+		Map<String, Map<String, Object>> successResult = new HashMap<>();
+		
+		for (Map.Entry<String, String> entry : successMap.entrySet()) {
+		    String engineId = entry.getKey();
+		    String engineType = entry.getValue();
+		 
+		    Map<String, Object> value = new HashMap<>();
+		    value.put("engineType", engineType);
+		    value.put("files", uuidToFiles.get(engineId).get("files"));
+		 
+		    successResult.put(engineId, value);
+		}
+		
+		// final failed list of engineIds
+		Map<String, Map<String, Object>> failureResult = new HashMap<>();
+		
+		for (String engineId : failedSet) {
+		    Map<String, Object> value = new HashMap<>();
+		    value.put("files", uuidToFiles.containsKey(engineId) ? uuidToFiles.get(engineId).get("files") : new ArrayList<>());
+		 
+		    failureResult.put(engineId, value);
+		}
 		
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), projectId);
 		
+		Map<String, Object> engineIdMap = new HashMap<>();
+		engineIdMap.put("success", successResult);
+		engineIdMap.put("failed", failureResult);
+		
 		// sending the success and failed list of engineIds to FE
-		retMap.put("engineIds", engineInfo);
+		retMap.put("engineIds", engineIdMap);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 	

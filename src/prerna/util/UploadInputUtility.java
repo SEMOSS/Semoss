@@ -85,7 +85,7 @@ public final class UploadInputUtility {
 	private static final String UUID_PATTERN_STRING = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
 
 	// list of file extensions to search UUIDs from
-	private static final String[] LIST_FILE_EXTENSIONS = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx" };
+	private static final String[] DEPENDENCIES_FILE_EXTENSIONS = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx", ".json" };
 
 	public static String getEngineNameOrId(NounStore store) {
 		GenRowStruct grs = store.getNoun(ENGINE);
@@ -567,35 +567,64 @@ public final class UploadInputUtility {
 
 	// extracts and returns engineIds from the files with the given extensions
 	// in the project folder.
-	public static String[] getEngineIdsFromProject(File finalProjectFolderF) {
+	public static Map<String, Map<String, Object>> getEngineIdsFromProject(File finalProjectFolderF) {
 		 if (finalProjectFolderF == null || !finalProjectFolderF.isDirectory()) {
-			 return new String[0];
+			 return new HashMap<>();
 	    }
 
-		Set<String> engineIds = new HashSet<>();
+		Map<String, Map<String, Object>> uuidDetailsMap = new HashMap<>();
         Pattern UUID_PATTERN = Pattern.compile(UUID_PATTERN_STRING);
 		String folderPath = finalProjectFolderF.getAbsolutePath();
 
 		try (java.util.stream.Stream<java.nio.file.Path> stream = Files.walk(Paths.get(folderPath))) {
 			stream.filter(Files::isRegularFile).filter(path -> {
 				String fileName = path.getFileName().toString().toLowerCase();
-				for (String extension : LIST_FILE_EXTENSIONS) {
+				for (String extension : DEPENDENCIES_FILE_EXTENSIONS) {
 					if (fileName.endsWith(extension)) {
 						return true;
 					}
 				}
 				return false;
 			}).forEach(path -> {
+				// get the file name
+				String fileName = path.getFileName().toString();
 				try (java.util.stream.Stream<String> lines = Files.lines(path)) {
+					
+					// to keep the count of no of occurrence of a particular uuid in a particular file
+					Map<String, Integer> localCountMap = new HashMap<>();
+					
 					lines.forEach(line -> {
 						String[] tokens = line.split("[^a-zA-Z0-9-]+");
 						for (String token : tokens) {
 							Matcher matcher = UUID_PATTERN.matcher(token.trim());
 							if (matcher.matches()) {
-								engineIds.add(token.trim());
+								String uuid = token.trim();
+								localCountMap.put(uuid, localCountMap.getOrDefault(uuid, 0) + 1);
 							}
 						}
 					});
+					
+					for (Map.Entry<String, Integer> entry : localCountMap.entrySet()) {
+                        String uuid = entry.getKey();
+                        int count = entry.getValue();
+
+                        // get or create the UUID (files) entry
+                        Map<String, Object> uuidEntry = uuidDetailsMap.computeIfAbsent(uuid, k -> {
+                            Map<String, Object> newEntry = new HashMap<>();
+                            newEntry.put("files", new ArrayList<Map<String, Object>>());
+                            return newEntry;
+                        });
+
+                        // get the files list
+						List<Map<String, Object>> filesList = (List<Map<String, Object>>) uuidEntry.get("files");
+
+                        // add the current file info to uuidEntry
+                        Map<String, Object> fileEntry = new HashMap<>();
+                        fileEntry.put("filename", fileName);
+                        fileEntry.put("instances", count);
+                        filesList.add(fileEntry);
+                    }
+					
 				} catch (IOException e) {
 					classLogger.error("Error reading file: " + path);
 				}
@@ -605,16 +634,14 @@ public final class UploadInputUtility {
 			classLogger.error("Error reading file: {}", folderPath, e);
 		}
 
-		return engineIds.toArray(new String[0]);
+		return uuidDetailsMap;
 	}
 
 	// check if the extracted engineIds are present in the engine table or not
 	// adding the info of the existing engineIds into the projectdependencies table
 	// returning a list of added (success) and not added (failed) engineIds
 	public static Map<String, Object> processAndSetProjectDependencies(String[] engineIds, String projectId, User user) {
-
-		// User user = this.insight.getUser();
-
+		
 		Map<String, Object> result = new HashMap<>();
 		Map<String, String> success = new HashMap<>();
 		Set<String> failed = new HashSet<>();
