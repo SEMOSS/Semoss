@@ -24,13 +24,13 @@ public class GoogleDocsHelper {
 		Document doc = new Document().setTitle(title);
 		doc = service.documents().create(doc).execute();
 		if (content != null) {
-			updateDoc(service, driveService, title, content);
+			String id = doc.getDocumentId();
+			updateDoc(service, id, content);
 		}
 		return doc;
 	}
 
-	public static String readDoc(Docs service, Drive driveService, String title) throws Exception {
-		String id = getDocIdByTitle(driveService, title);
+	public static String readDoc(Docs service, String id) throws Exception {
 		Document doc = service.documents().get(id).execute();
 		StringBuilder sb = new StringBuilder();
 
@@ -46,8 +46,7 @@ public class GoogleDocsHelper {
 		return sb.toString();
 	}
 
-	public static Boolean updateDoc(Docs service, Drive driveService, String title, String content) throws Exception {
-		String id = getDocIdByTitle(driveService, title);
+	public static Boolean updateDoc(Docs service, String id, String content) throws Exception {
 		try {
 			List<Request> requests = new ArrayList<>();
 			Document doc = service.documents().get(id).execute();
@@ -72,8 +71,7 @@ public class GoogleDocsHelper {
 		}
 	}
 
-	public static Boolean deleteDoc(Drive driveService, String title) throws Exception {
-		String id = getDocIdByTitle(driveService, title);
+	public static Boolean deleteDoc(Drive driveService, String id) throws Exception {
 		try {
 			driveService.files().delete(id).execute();
 			System.out.println("Document with id " + id + " deleted successfully");
@@ -84,29 +82,14 @@ public class GoogleDocsHelper {
 		}
 
 	}
-	
-	public static String getDocIdByTitle(Drive driveService, String title) {
-		String docId = null;
-		try {
-			String query = String.format("name = '%s' and mimeType = 'application/vnd.google-apps.document'", title);
-
-			FileList result = driveService.files().list().setQ(query).setFields("files(id, name)").execute();
-
-			List<File> files = result.getFiles();
-			if (files != null && !files.isEmpty()) {
-				docId = files.get(0).getId();
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return docId;
-	}
 
 	public static boolean titleExists(Drive driveService, String title) {
+		final String MIME_TYPE = "application/vnd.google-apps.document";
+		final String FIELDS = "files(id)";
 		try {
-			String query = String.format("name = '%s' and mimeType = 'application/vnd.google-apps.document'", title);
+			String query = String.format("name = '%s' and mimeType = '%s'", title, MIME_TYPE);
 
-			FileList result = driveService.files().list().setQ(query).setFields("files(id)").execute();
+			FileList result = driveService.files().list().setQ(query).setFields(FIELDS).execute();
 
 			List<File> files = result.getFiles();
 			return files != null && !files.isEmpty();

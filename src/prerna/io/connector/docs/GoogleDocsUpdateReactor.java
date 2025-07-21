@@ -1,17 +1,6 @@
 package prerna.io.connector.docs;
 
-import java.io.IOException;
-
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.docs.v1.Docs;
-import com.google.api.services.drive.Drive;
-
-import prerna.auth.AccessToken;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -22,76 +11,29 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleDocsUpdateReactor extends AbstractReactor {
 
-	private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
-	private static final String AppName = "Google Docs";
-
 	public GoogleDocsUpdateReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROMPT_TITLE.getKey(), ReactorKeysEnum.CONTENT.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.CONTENT.getKey() };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String title = this.keyValue.get(this.keysToGet[0]);
+		String id = this.keyValue.get(this.keysToGet[0]);
 		String content = this.keyValue.get(this.keysToGet[1]);
 
 		try {
-			String accessToken = getGoogleAccessToken();
-			Docs service = getDocsServiceUsingToken(accessToken);
-			Drive getDriveService = getDriveServiceUsingToken(accessToken);
+			User user = this.insight.getUser();
+			String accessToken = GoogleDocsUtils.getGoogleAccessToken(user);
+			Docs service = GoogleDocsUtils.getDocsServiceUsingToken(accessToken);
 
-			boolean updateresult = GoogleDocsHelper.updateDoc(service, getDriveService, title, content);
+			boolean updateresult = GoogleDocsHelper.updateDoc(service, id, content);
 			return new NounMetadata(updateresult, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
-		    throw new SemossPixelException("Issue with input", e);
+			throw new SemossPixelException("Please provide valid input", e);
 		}
 
-	}
-
-	public static Docs getDocsServiceUsingToken(String token) throws Exception {
-		HttpRequestInitializer requestInitializer = new HttpRequestInitializer() {
-
-			@Override
-			public void initialize(HttpRequest request) throws IOException {
-				request.getHeaders().setAuthorization("Bearer " + token);
-
-			}
-		};
-		return new Docs.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, requestInitializer)
-				.setApplicationName(AppName).build();
-	}
-
-	public static Drive getDriveServiceUsingToken(String token) throws Exception {
-		HttpRequestInitializer requestInitializer = new HttpRequestInitializer() {
-
-			@Override
-			public void initialize(HttpRequest request) throws IOException {
-				request.getHeaders().setAuthorization("Bearer " + token);
-
-			}
-		};
-		return new Drive.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, requestInitializer)
-				.setApplicationName(AppName).build();
-	}
-
-	public String getGoogleAccessToken() throws Exception {
-
-		String accessToken = null;
-		User user = this.insight.getUser();
-
-		if (user == null) {
-			throw new Exception("User not found in session.");
-		}
-
-		AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE);
-
-		if (googleToken == null) {
-			throw new Exception("No Google Access Token fetched.");
-		}
-		accessToken = googleToken.getAccess_token();
-		return accessToken;
 	}
 	
 	@Override
