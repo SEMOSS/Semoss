@@ -11,7 +11,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.impl.SmssUtilities;
@@ -117,11 +116,9 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		}
 		
 		// create the py translator
-		PyTransporter pyTransporter = new PyTransporter();
-		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
 		Insight processInsight = new Insight();
 		InsightStore.getInstance().put(processInsight);
-		this.pyTranslator = new PyTranslator(pyTransporter, processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 
 		try {
 			String execCommand = "import sys\n" 

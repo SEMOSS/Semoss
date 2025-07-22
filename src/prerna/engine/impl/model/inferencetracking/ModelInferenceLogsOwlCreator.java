@@ -46,8 +46,8 @@ public class ModelInferenceLogsOwlCreator {
 	public ModelInferenceLogsOwlCreator(IRDBMSEngine modelInferenceDb) {
 		this.modelInferenceDb = modelInferenceDb;
 		createColumnsAndTypes(this.modelInferenceDb.getQueryUtil());
-		definePrimaryKeys();
-		defineForeignKeys(); // TODO make this generic for all rdms engines
+//		definePrimaryKeys();
+//		defineForeignKeys(); // TODO make this generic for all rdms engines
 	}
 	
 	private void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
@@ -163,26 +163,26 @@ public class ModelInferenceLogsOwlCreator {
 			);
 	}
 	
-	public void definePrimaryKeys() {
-		// returns ArrayList so its ordered
-		this.primaryKeys = Arrays.asList(
-				Pair.with("AGENT", Pair.with(Arrays.asList("AGENT_ID"), Arrays.asList("VARCHAR(50)"))),
-				Pair.with("ROOM", Pair.with(Arrays.asList("INSIGHT_ID"), Arrays.asList("VARCHAR(50)"))),
-				Pair.with("MESSAGE", Pair.with(Arrays.asList("MESSAGE_ID","MESSAGE_TYPE"), Arrays.asList("VARCHAR(50)","VARCHAR(50)"))),
-				Pair.with("WORKSPACE", Pair.with(Arrays.asList("WORKSPACE_ID"), Arrays.asList("VARCHAR(255)"))),
-				Pair.with("WORKSPACE_RESOURCE", Pair.with(Arrays.asList("WORKSPACE_RESOURCE_ID"), Arrays.asList("VARCHAR(255)")))
-			);
-	}
-	
-	public void defineForeignKeys() {
-		this.foreignKeys = Arrays.asList(
-				// remove this so that UI joins are clean
-				//Pair.with("ROOM", Pair.with(Arrays.asList("AGENT_ID"), Pair.with(Arrays.asList("AGENT"), Arrays.asList("AGENT_ID")))),
-				Pair.with("MESSAGE", Pair.with(Arrays.asList("INSIGHT_ID","AGENT_ID"), Pair.with(Arrays.asList("ROOM","AGENT"), Arrays.asList("INSIGHT_ID","AGENT_ID")))),
-				Pair.with("FEEDBACK", Pair.with(Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"), Pair.with(Arrays.asList("MESSAGE"), Arrays.asList("MESSAGE_ID,MESSAGE_TYPE")))),
-				Pair.with("WORKSPACE_RESOURCE", Pair.with(Arrays.asList("WORKSPACE_ID"), Pair.with(Arrays.asList("WORKSPACE"), Arrays.asList("WORKSPACE_ID"))))
-			);
-	}
+//	public void definePrimaryKeys() {
+//		// returns ArrayList so its ordered
+//		this.primaryKeys = Arrays.asList(
+//				Pair.with("AGENT", Pair.with(Arrays.asList("AGENT_ID"), Arrays.asList("VARCHAR(50)"))),
+////				Pair.with("ROOM", Pair.with(Arrays.asList("INSIGHT_ID"), Arrays.asList("VARCHAR(50)"))),
+//				Pair.with("MESSAGE", Pair.with(Arrays.asList("MESSAGE_ID","MESSAGE_TYPE"), Arrays.asList("VARCHAR(50)","VARCHAR(50)"))),
+//				Pair.with("WORKSPACE", Pair.with(Arrays.asList("WORKSPACE_ID"), Arrays.asList("VARCHAR(255)"))),
+//				Pair.with("WORKSPACE_RESOURCE", Pair.with(Arrays.asList("WORKSPACE_RESOURCE_ID"), Arrays.asList("VARCHAR(255)")))
+//			);
+//	}
+//	
+//	public void defineForeignKeys() {
+//		this.foreignKeys = Arrays.asList(
+//				// remove this so that UI joins are clean
+//				//Pair.with("ROOM", Pair.with(Arrays.asList("AGENT_ID"), Pair.with(Arrays.asList("AGENT"), Arrays.asList("AGENT_ID")))),
+//				Pair.with("MESSAGE", Pair.with(Arrays.asList("INSIGHT_ID","AGENT_ID"), Pair.with(Arrays.asList("ROOM","AGENT"), Arrays.asList("INSIGHT_ID","AGENT_ID")))),
+//				Pair.with("FEEDBACK", Pair.with(Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"), Pair.with(Arrays.asList("MESSAGE"), Arrays.asList("MESSAGE_ID,MESSAGE_TYPE")))),
+//				Pair.with("WORKSPACE_RESOURCE", Pair.with(Arrays.asList("WORKSPACE_ID"), Pair.with(Arrays.asList("WORKSPACE"), Arrays.asList("WORKSPACE_ID"))))
+//			);
+//	}
 	
 	/**
 	 * Determine if we need to remake the OWL
