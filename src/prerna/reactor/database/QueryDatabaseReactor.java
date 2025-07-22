@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 import prerna.auth.User;
@@ -114,7 +115,8 @@ public class QueryDatabaseReactor extends AbstractReactor {
     				}
     			}
     		}
-    		propertyMap.put(property, dataMap);
+    		String parsedProperty = property.split("__")[1];
+    		propertyMap.put(parsedProperty, dataMap);
     	}
     	Map<String, Object> conceptJson = new HashMap<>();
     	if (description != null && !description.trim().equals("")) {
@@ -123,7 +125,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
     	conceptJson.put("columns", propertyMap);
     	conceptInfo.put(concept, conceptJson);
     }
-    
+        
     // generate context for llm
     String sqlContext = 
     	"""
@@ -145,10 +147,13 @@ public class QueryDatabaseReactor extends AbstractReactor {
 		Only allow select statements, no insert, updates, or deletes.
 		The SQL query should be valid and as efficient as possible.
 		If you use a column or table based on its description or logical name, briefly explain your reasoning in the "explanation" field.
-		Do not surround your response in a code block and make sure the JSON string can be parsed with GSON.
+		Make sure the JSON string can be parsed with GSON.
 		
 		Schema:
 		%s
+		
+		Your output must be a plain JSON string with the keys: "question", "sql", and "explanation". 
+		Do not wrap your response in any formatting or code blocks.
     	""";
 
     String context = String.format(sqlContext, gson.toJson(conceptInfo));
@@ -167,7 +172,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
     String responseString = (String) queryResponse.get("response");
     String cleanedResponse = responseString.trim().replace("\\n", "").replace("\\\"", "\"");
     Map<String, String> responseMap = parseResponse(cleanedResponse);
-    if (responseMap == null || responseMap.containsKey("question") || responseMap.containsKey("sql") || responseMap.containsKey("explanation")) {
+    if (responseMap == null || !responseMap.containsKey("question") || !responseMap.containsKey("sql") || !responseMap.containsKey("explanation")) {
     	throw new SemossPixelException("LLM could not generate proper response");
     }
     
@@ -183,7 +188,21 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	    
 	    try (PreparedStatement ps = con.prepareStatement(sql)) {
 	    	ResultSet rs = ps.executeQuery();
-	    	return new NounMetadata(rs, PixelDataType.MAP);
+	    	
+	    	// I can't find the Wrapper manager way of converting a result set to a map
+	    	ResultSetMetaData rsmd = rs.getMetaData();
+	        int columnCount = rsmd.getColumnCount();
+	        
+	    	List<Map<String, Object>> resultObject = new ArrayList<>();
+	    	while (rs.next()) {
+	    		Map<String, Object> m = new HashMap<>();
+	    		int columnIndex = 1;
+	    		while (columnIndex < columnCount + 1) {
+	    			m.put(rsmd.getColumnName(columnIndex), rs.getObject(columnIndex++));
+	    		}
+	    		resultObject.add(m);
+	    	}
+	    	return new NounMetadata(resultObject, PixelDataType.VECTOR);
 	    } catch (SQLException e) {
 	    	throw new SemossPixelException("Could not run generated SQL");
 	    }
@@ -195,9 +214,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-	}
-    
-//    return new NounMetadata(responseMap, PixelDataType.MAP);
+	}    
   }
   
   private Map<String, Object> getParamMap() {
@@ -216,7 +233,6 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	}
   
   private Map<String, String> parseResponse(String jsonString) {
-	  System.out.println(jsonString);
       Type type = new TypeToken<Map<String, String>>(){}.getType();
       Map<String, String> map = null;
 
