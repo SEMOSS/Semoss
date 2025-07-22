@@ -176,7 +176,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
     	throw new SemossPixelException("LLM could not generate proper response");
     }
     
-    if (responseMap.get("sql").trim().isEmpty()) {
+    if (responseMap.get("sql") == null || responseMap.get("sql").trim().isEmpty()) {
     	return new NounMetadata(responseMap.get("explanation"), PixelDataType.MAP);
     }
     
@@ -202,7 +202,10 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	    		}
 	    		resultObject.add(m);
 	    	}
-	    	return new NounMetadata(resultObject, PixelDataType.VECTOR);
+	    	Map<String, Object> resultMap = new HashMap<>();
+	    	resultMap.put("sql", sql);
+	    	resultMap.put("result_set", resultObject);
+	    	return new NounMetadata(resultMap, PixelDataType.VECTOR);
 	    } catch (SQLException e) {
 	    	throw new SemossPixelException("Could not run generated SQL");
 	    }
