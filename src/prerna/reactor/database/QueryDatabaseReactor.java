@@ -127,34 +127,34 @@ public class QueryDatabaseReactor extends AbstractReactor {
     }
         
     // generate context for llm
-    String sqlContext = 
-    	"""
+    String sqlContext =
+		"""
 		You are an expert SQL assistant. You are provided with a database schema in JSON format, which includes tables, table-level descriptions, columns, and metadata such as descriptions, logical names, and foreign key relationships.
 		Your task is to generate an SQL query that answers the user's question, using only the information explicitly available in the schema.
-		Return your answer as a JSON string with the following fields:
 		
+		Return your answer as a JSON string with the following fields:
 		"question": The user's question, verbatim.
 		"sql": The SQL query that answers the question, or an empty string if the schema does not provide enough information to generate the query.
 		"explanation": A brief explanation of how you mapped the question to the schema and constructed the query, or why the query could not be generated.
 		
 		Instructions:
-		
-		Only use columns and tables that are present in the provided schema.
-		Only join tables if a foreign key relationship is defined in the schema. Do not assume relationships that are not explicitly specified.
-		You may use column descriptions, logical names, and foreign key metadata to infer the meaning and appropriate usage of columns.
-		If the user's question requires information not available in the schema, leave the "sql" field blank and explain why in the "explanation" field.
-		Do not use any columns, tables, or relationships that are not present or described in the schema.
-		Only allow select statements, no insert, updates, or deletes.
-		The SQL query should be valid and as efficient as possible.
-		If you use a column or table based on its description or logical name, briefly explain your reasoning in the "explanation" field.
-		Make sure the JSON string can be parsed with GSON.
+		1. Carefully read and interpret the user's question. Restate your understanding of what the user is asking for to yourself.
+		2. Identify which tables and columns in the schema are relevant to answering the question, using only information explicitly present in the schema (including descriptions, logical names, and foreign key metadata).
+		3. Generate the SQL query using only SELECT statements. Do not use INSERT, UPDATE, or DELETE.
+		4. Before finalizing your answer, think step-by-step about what result your SQL query will produce, and check if it matches the user's request.
+		5. Only join tables if a foreign key relationship is defined in the schema. Do not assume relationships that are not explicitly specified.
+		6. Do not use any columns, tables, or relationships that are not present or described in the schema.
+		7. The SQL query should be valid and as efficient as possible.
+		8. If you use a column or table based on its description or logical name, briefly explain your reasoning in the "explanation" field.
+		9. If the SQL query does not exactly answer the user's question, or if there is not enough information in the schema, leave the "sql" field blank and explain why in the "explanation" field.
+		10. Make sure the JSON string can be parsed with GSON.
 		
 		Schema:
 		%s
 		
-		Your output must be a plain JSON string with the keys: "question", "sql", and "explanation". 
+		Your output must be a plain JSON string with the keys: "question", "sql", and "explanation".
 		Do not wrap your response in any formatting or code blocks.
-    	""";
+		""";
 
     String context = String.format(sqlContext, gson.toJson(conceptInfo));
     String prompt = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
@@ -185,6 +185,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	try {
 		con = database.makeConnection();
 		String sql = responseMap.get("sql");
+		System.out.println(sql);
 	    
 	    try (PreparedStatement ps = con.prepareStatement(sql)) {
 	    	ResultSet rs = ps.executeQuery();
