@@ -10,9 +10,8 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.SpreadSheetHelper;
@@ -21,7 +20,7 @@ public class GoogleDeleteMainSheetReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GoogleDeleteMainSheetReactor.class);
 
 	public GoogleDeleteMainSheetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_ID.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_ID.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -34,8 +33,7 @@ public class GoogleDeleteMainSheetReactor extends AbstractReactor {
 			return SpreadSheetHelper.deleteTitleSheet(titleSheetID, accessToken);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 
 	}
@@ -61,7 +59,7 @@ public class GoogleDeleteMainSheetReactor extends AbstractReactor {
 		}
 		return accessToken;
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to delete google spreadsheet";

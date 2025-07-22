@@ -10,18 +10,17 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.SpreadSheetHelper;
 
-public class GoogleCreateMainSheetReactor extends AbstractReactor{
+public class GoogleCreateMainSheetReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GoogleCreateMainSheetReactor.class);
 
 	public GoogleCreateMainSheetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_NAME.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_NAME.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -31,15 +30,13 @@ public class GoogleCreateMainSheetReactor extends AbstractReactor{
 			this.organizeKeys();
 			String titleSheetName = this.keyValue.get(this.keysToGet[0]);
 			String accessToken = getAccessToken();
-			return SpreadSheetHelper.createnewSpreadSheet(titleSheetName, accessToken);
+			return SpreadSheetHelper.createNewSpreadSheet(titleSheetName, accessToken);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 
 	}
-
 
 	private String getAccessToken() {
 		String accessToken = null;
@@ -75,6 +72,5 @@ public class GoogleCreateMainSheetReactor extends AbstractReactor{
 		}
 		return super.getDescriptionForKey(key);
 	}
-
 
 }

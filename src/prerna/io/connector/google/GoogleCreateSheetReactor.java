@@ -13,18 +13,18 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.SpreadSheetHelper;
 
-public class GoogleCreateSheetReactor extends AbstractReactor{
+public class GoogleCreateSheetReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GoogleCreateSheetReactor.class);
 
 	public GoogleCreateSheetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_ID.getKey(), ReactorKeysEnum.SHEET_NAME.getKey(), ReactorKeysEnum.DATA.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_ID.getKey(), ReactorKeysEnum.SHEET_NAME.getKey(),
+				ReactorKeysEnum.DATA.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
@@ -35,17 +35,16 @@ public class GoogleCreateSheetReactor extends AbstractReactor{
 			String titleSheetID = this.keyValue.get(this.keysToGet[0]);
 			String sheetName = this.keyValue.get(this.keysToGet[1]);
 			String rawData = this.keyValue.get(this.keysToGet[2]);
-			ObjectMapper mapper=new ObjectMapper();
+			ObjectMapper mapper = new ObjectMapper();
 			List<List<String>> data = mapper.readValue(rawData, List.class);
 			String accessToken = getAccessToken();
-			return SpreadSheetHelper.createnewSheet(titleSheetID, sheetName, accessToken, data);
+			return SpreadSheetHelper.createNewSheet(titleSheetID, sheetName, accessToken, data);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
-	
+
 	private String getAccessToken() {
 		String accessToken = null;
 		User user = this.insight.getUser();
@@ -67,7 +66,7 @@ public class GoogleCreateSheetReactor extends AbstractReactor{
 		}
 		return accessToken;
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
 		return "This reactor will create new sheet in existing google spreadsheet and data in it";
@@ -77,9 +76,9 @@ public class GoogleCreateSheetReactor extends AbstractReactor{
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.TITLESHEET_NAME.getKey())) {
 			return "TitleSheet name of the Google spread sheet" + ReactorKeysEnum.TITLESHEET_NAME.getKey();
-		}else if (key.equals(ReactorKeysEnum.SHEET_NAME.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.SHEET_NAME.getKey())) {
 			return "Sheet name from Google spreadsheet" + ReactorKeysEnum.SHEET_NAME.getKey();
-		}else if (key.equals(ReactorKeysEnum.DATA.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.DATA.getKey())) {
 			return "Data to be updated in Google spreadsheet" + ReactorKeysEnum.DATA.getKey();
 		}
 		return super.getDescriptionForKey(key);
