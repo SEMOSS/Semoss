@@ -2,10 +2,7 @@ package prerna.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,8 +47,6 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(UploadProjectAppReactor.class);
 
 	private static final String CLASS_NAME = UploadProjectAppReactor.class.getName();
-	
-	private static final String[] DEPENDENCIES_FILE_EXTENSIONS = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx" };
 	
 	public UploadProjectAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
@@ -269,7 +264,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				SecurityProjectUtils.addProject(projectId, global, user);
 			}
 			
-			// see if we have any dependencies or metadata to load
+			// see if we have any metadata to load
 			{
 				File metadataFile = new File(finalProjectFolderF.getAbsolutePath() + "/" + projectName + IEngine.METADATA_FILE_SUFFIX);
 				if(metadataFile.exists() && metadataFile.isFile()) {
@@ -277,21 +272,6 @@ public class UploadProjectAppReactor extends AbstractReactor {
 					SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
 					// delete this file since values can update and file is dynamically generated on export
 					metadataFile.delete();
-				}
-				
-				File dependenciesFile = new File(finalProjectFolderF.getAbsolutePath() + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX);
-				if(dependenciesFile.exists() && dependenciesFile.isFile()) {
-					List<Map<String, Object>> projectDependencies = (List<Map<String, Object>>) GsonUtility.readJsonFileToObject(dependenciesFile, new TypeToken<List<Map<String, Object>>>() {}.getType());
-					// List<String> dependentEngineIds = (List<String>) GsonUtility.readJsonFileToObject(dependenciesFile, new TypeToken<List<String>>() {}.getType());
-					if(projectDependencies != null && !projectDependencies.isEmpty()) {
-						List<String> dependentEngineIds = new ArrayList<>();
-						for(Map<String, Object> dep : projectDependencies) {
-							dependentEngineIds.add((String) dep.get("engine_id"));
-						}
-						SecurityProjectUtils.updateProjectDependencies(user, projectId, dependentEngineIds);
-					}
-					// delete this file since values can update and file is dynamically generated on export
-					dependenciesFile.delete();
 				}
 			}
 			
@@ -311,7 +291,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				SecurityProjectUtils.deleteProject(projectId);
 			} else {
 				File[] assetsFilesToDelete = finalProjectAssetF.listFiles(
-						(dir, name) -> name.endsWith(IEngine.METADATA_FILE_SUFFIX) 
+						(dir, name) -> name.endsWith(IEngine.METADATA_FILE_SUFFIX)
 							|| name.endsWith(IProject.DEPENDENCIES_FILE_SUFFIX) 
 							|| name.endsWith(Constants.SEMOSS_EXTENSION));			
 				cleanUpFolders(assetsFilesToDelete);
@@ -329,27 +309,16 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		// push new project to cloud
 		ClusterUtil.pushProject(projectId);
 		
-		// check if any dependency file is present in the uploaded project
-		String folderPath = finalProjectFolderF.getAbsolutePath();
-		boolean hasDependencyFile;
-		try {
-			hasDependencyFile = Files.walk(Paths.get(folderPath))
-			    .anyMatch(p -> Files.isRegularFile(p) &&
-			                   Arrays.stream(DEPENDENCIES_FILE_EXTENSIONS).anyMatch(ext -> p.toString().endsWith(ext)));
-		} catch (IOException e) {
-			logger.error("Error while checking for dependency files", e);
-		}
-		 
-		// extract engineIds from project
+		// extract engineIds from project including project_dependencies.json
 		Map<String, Map<String, Object>> uuidToFiles = UploadInputUtility.getEngineIdsFromProject(finalProjectFolderF);
-		 
-		// process engineIds and set project dependencies
 		String[] engineIds = uuidToFiles.keySet().toArray(new String[0]);
+		
+		// process engineIds and set project dependencies
 		Map<String, Object> engineInfo = UploadInputUtility.processAndSetProjectDependencies(engineIds, projectId, user);
 		
 		Map<String, String> successMap = (Map<String, String>) engineInfo.get("success");
 		
-		Set<String> failedSet = (Set<String>)engineInfo.get("failed");
+	    Set<String> failedSet = (Set<String>)engineInfo.get("failed");
 		 
 		// final success list of engineIds
 		Map<String, Map<String, Object>> successResult = new HashMap<>();
@@ -361,7 +330,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		    Map<String, Object> value = new HashMap<>();
 		    value.put("engineType", engineType);
 		    value.put("files", uuidToFiles.get(engineId).get("files"));
-		 
+		    
 		    successResult.put(engineId, value);
 		}
 		
@@ -371,7 +340,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		for (String engineId : failedSet) {
 		    Map<String, Object> value = new HashMap<>();
 		    value.put("files", uuidToFiles.containsKey(engineId) ? uuidToFiles.get(engineId).get("files") : new ArrayList<>());
-		 
+		    
 		    failureResult.put(engineId, value);
 		}
 		

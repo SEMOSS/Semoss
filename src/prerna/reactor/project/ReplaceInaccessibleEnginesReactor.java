@@ -61,10 +61,12 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
         // tracking replacement success/failure per UUID
         Map<String, Boolean> uuidSuccessStatus = new HashMap<>();
         Map<String, Set<String>> uuidFailedFiles = new HashMap<>();
+        Map<String, Set<String>> uuidSuccessFiles = new HashMap<>();
          
         replacementMap.keySet().forEach(k -> {
            uuidSuccessStatus.put(k, true);
            uuidFailedFiles.put(k, new HashSet<>());
+           uuidSuccessFiles.put(k, new HashSet<>());
         });
         
         try (Stream<Path> stream = Files.walk(Paths.get(finalProjectAssetFolder.getAbsolutePath()))) {
@@ -86,6 +88,8 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
                                 updatedLine = updatedLine.replace(inaccessibleEngineId, accessibleEngineId);
                                 
                                 replacedInThisFile.put(inaccessibleEngineId, true);
+                                
+                                uuidSuccessFiles.get(inaccessibleEngineId).add(path.getFileName().toString());  
                             }
                         }
                         updatedLines.add(updatedLine);
@@ -120,13 +124,13 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
         }
 		
         // final success and failure results
-        Set<String> successList = new HashSet<>();
+        Map<String, Set<String>> successList = new HashMap<>();
         Map<String, Set<String>> failedList = new HashMap<>();
         
         for (Map.Entry<String, Boolean> entry : uuidSuccessStatus.entrySet()) {
         	String uuid = entry.getKey();
         	if (entry.getValue()) {
-        		successList.add(uuid);
+        		successList.put(uuid, uuidSuccessFiles.get(uuid));
         	}else {
         		failedList.put(uuid, uuidFailedFiles.get(uuid));
         	}
