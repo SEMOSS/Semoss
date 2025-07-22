@@ -43,6 +43,7 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
 		// check if user is logged in
 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 			throwAnonymousUserError();
+			classLogger.error("Unauthorized access: you must be logged in to perform this action");
 		}
 		
 		String fileRelativePath = Utility.normalizePath(keyValue.get(keysToGet[0]));
@@ -122,13 +123,13 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
                     }
                     
                 } catch (Exception e) {
+                	classLogger.error("Error processing file: {}", path, e);
                 	throw new IllegalArgumentException("Error processing file: {}"+ path, e);
-                    //classLogger.error("Error processing file: {}", path, e);
                 }
             });
         } catch (Exception e) {
+        	classLogger.error("Error walking through project folder: {}", finalProjectAssetFolder, e);
         	throw new IllegalArgumentException("Error walking through project folder: {}"+ finalProjectAssetFolder, e);
-            //classLogger.error("Error walking through project folder: {}", finalProjectAssetFolder, e);
         }
 		
         // final success and failure results

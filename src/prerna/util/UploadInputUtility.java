@@ -83,6 +83,9 @@ public final class UploadInputUtility {
 
 	// regex pattern for UUIDs
 	private static final String UUID_PATTERN_STRING = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
+	
+	// regex used to split tokens
+	private static final String TOKEN_SPLIT_REGEX = "[^a-zA-Z0-9-]+";
 
 	// list of file extensions to search UUIDs from
 	private static final String[] DEPENDENCIES_FILE_EXTENSIONS = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx", ".json" };
@@ -594,7 +597,7 @@ public final class UploadInputUtility {
 					Map<String, Integer> localCountMap = new HashMap<>();
 					
 					lines.forEach(line -> {
-						String[] tokens = line.split("[^a-zA-Z0-9-]+");
+						String[] tokens = line.split(TOKEN_SPLIT_REGEX);
 						for (String token : tokens) {
 							Matcher matcher = UUID_PATTERN.matcher(token.trim());
 							if (matcher.matches()) {
