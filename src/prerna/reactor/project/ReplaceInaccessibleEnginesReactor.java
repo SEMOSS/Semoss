@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -61,12 +62,18 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
         // tracking replacement success/failure per UUID
         Map<String, Boolean> uuidSuccessStatus = new HashMap<>();
         Map<String, Set<String>> uuidFailedFiles = new HashMap<>();
-        Map<String, Set<String>> uuidSuccessFiles = new HashMap<>();
+        
+        // will include engine name of accessible engine Id as well.
+        Map<String, Map<String, Object>> uuidSuccessFiles = new HashMap<>();
          
         replacementMap.keySet().forEach(k -> {
            uuidSuccessStatus.put(k, true);
            uuidFailedFiles.put(k, new HashSet<>());
-           uuidSuccessFiles.put(k, new HashSet<>());
+           
+           Map<String, Object> successInfo = new HashMap<>();
+           successInfo.put("files", new HashSet<String>());
+           successInfo.put("engineName", SecurityEngineUtils.getEngineAliasForId(replacementMap.get(k)));
+           uuidSuccessFiles.put(k, successInfo);
         });
         
         try (Stream<Path> stream = Files.walk(Paths.get(finalProjectAssetFolder.getAbsolutePath()))) {
@@ -89,7 +96,8 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
                                 
                                 replacedInThisFile.put(inaccessibleEngineId, true);
                                 
-                                uuidSuccessFiles.get(inaccessibleEngineId).add(path.getFileName().toString());  
+                                Set<String> files = (Set<String>) uuidSuccessFiles.get(inaccessibleEngineId).get("files");
+                                files.add(path.getFileName().toString());
                             }
                         }
                         updatedLines.add(updatedLine);
@@ -124,11 +132,12 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
         }
 		
         // final success and failure results
-        Map<String, Set<String>> successList = new HashMap<>();
+        Map<String, Map<String, Object>> successList = new HashMap<>();
         Map<String, Set<String>> failedList = new HashMap<>();
         
         for (Map.Entry<String, Boolean> entry : uuidSuccessStatus.entrySet()) {
         	String uuid = entry.getKey();
+        	
         	if (entry.getValue()) {
         		successList.put(uuid, uuidSuccessFiles.get(uuid));
         	}else {

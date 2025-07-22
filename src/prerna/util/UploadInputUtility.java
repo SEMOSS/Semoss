@@ -643,13 +643,20 @@ public final class UploadInputUtility {
 	public static Map<String, Object> processAndSetProjectDependencies(String[] engineIds, String projectId, User user) {
 		
 		Map<String, Object> result = new HashMap<>();
-		Map<String, String> success = new HashMap<>();
+		Map<String, Map<String, String>> success = new HashMap<>();
 		Set<String> failed = new HashSet<>();
 
 		for (String engineId : engineIds) {
 			if (SecurityEngineUtils.containsEngineId(engineId)) {
 				IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
-				success.put(engineId, engineType.toString());
+				String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+				
+				Map<String, String> engineInfo = new HashMap<>();
+				engineInfo.put("engineType", engineType.toString());
+				engineInfo.put("engineName", engineName);
+				
+				success.put(engineId, engineInfo);
+				
 			} else {
 				failed.add(engineId);
 			}

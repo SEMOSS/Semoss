@@ -54,19 +54,20 @@ public class ExtractAndSetDependenciesReactor extends AbstractReactor {
 		String[] engineIds = uuidToFiles.keySet().toArray(new String[0]);
 		Map<String, Object> engineInfo = UploadInputUtility.processAndSetProjectDependencies(engineIds, space, user);
 		
-		Map<String, String> successMap = (Map<String, String>) engineInfo.get("success");
+		Map<String, Map<String, String>> successMap = (Map<String, Map<String, String>>)engineInfo.get("success");
 		
 		Set<String> failedSet = (Set<String>)engineInfo.get("failed");
 		
 		// final success list of engineIds
 		Map<String, Map<String, Object>> successResult = new HashMap<>();
 		
-		for (Map.Entry<String, String> entry : successMap.entrySet()) {
+		for (Map.Entry<String, Map<String, String>> entry : successMap.entrySet()) {
 		    String engineId = entry.getKey();
-		    String engineType = entry.getValue();
+		    Map<String, String> engineMeta = entry.getValue();
 		 
 		    Map<String, Object> value = new HashMap<>();
-		    value.put("engineType", engineType);
+		    value.put("engineType", engineMeta.get("engineType"));
+		    value.put("engineName", engineMeta.get("engineName"));
 		    value.put("files", uuidToFiles.get(engineId).get("files"));
 		 
 		    successResult.put(engineId, value);
