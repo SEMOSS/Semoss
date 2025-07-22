@@ -65,7 +65,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	}
     IRDBMSEngine database = (RDBMSNativeEngine) Utility.getDatabase(databaseId);
     IModelEngine modelEngine = Utility.getModel(engine);
-	
+    	
     // get relation info about the database
     List<String> concepts = database.getPixelConcepts();
     Map<String, Object[]> metamodel = database.getMetamodel();
@@ -144,6 +144,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
 		4. Only join tables if a foreign key relationship is defined in the schema. Do not assume relationships that are not explicitly specified.
 		5. Do not use any columns, tables, or relationships that are not present or described in the schema.
 		6. The SQL query should be valid and as efficient as possible.
+		7. The SQL query should be compatible for a %s database.
 		7. If you use a column or table based on its description or logical name, briefly explain your reasoning in the "explanation" field.
 		8. Before finalizing your answer, think step-by-step about what result your SQL query will produce, and check if it matches the user's request.
 		9. If the SQL query does not exactly answer the user's question, or if there is not enough information in the schema, leave the "sql" field blank and explain why in the "explanation" field.
@@ -156,7 +157,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
 		Do not wrap your response in any formatting or code blocks.
 		""";
 
-    String context = String.format(sqlContext, gson.toJson(conceptInfo));
+    String context = String.format(sqlContext, database.getDbType(), gson.toJson(conceptInfo));
     String prompt = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
     Map<String, Object> paramMap = getParamMap();
     if (paramMap == null) {
