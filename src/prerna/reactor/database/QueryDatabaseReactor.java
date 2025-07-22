@@ -204,7 +204,6 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	    		}
 	    		resultObject.add(m);
 	    	}
-	    	responseMap.put("sql", sql);
 	    	responseMap.put("result_set", resultObject);
 	    	return new NounMetadata(responseMap, PixelDataType.VECTOR);
 	    } catch (SQLException e) {
