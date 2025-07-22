@@ -36,4 +36,20 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 		}
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is used to delete a Jira ticket/issue by its ID and project.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
+			return "The unique key name for the Jira issue to be deleted.";
+		} else if (key.equals(ReactorKeysEnum.JIRAID.getKey())) {
+			return "The Jira ID of the ticket/issue to be deleted.";
+		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The Jira project key where the issue exists.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

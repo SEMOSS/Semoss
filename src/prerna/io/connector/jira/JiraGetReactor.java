@@ -27,9 +27,9 @@ public class JiraGetReactor extends AbstractReactor {
 	private String getTableName(IDatabaseEngine database) {
 		try {
 			List<String> tables = database.getPixelConcepts();
-			for (String tbl : tables) {
-				if (TABLE.equals(tbl)) {
-					return tbl;
+			for (String tableName : tables) {
+				if (TABLE.equals(tableName)) {
+					return tableName;
 				}
 			}
 		} catch (Exception e) {

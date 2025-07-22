@@ -33,4 +33,16 @@ public class JiraTruncateDbDataReactor extends AbstractReactor {
 		}
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor truncates (removes) all Jira DB data for the specified user key.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
+			return "The key name identifying the Jira user whose data will be truncated from the DB.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

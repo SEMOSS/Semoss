@@ -34,4 +34,18 @@ public class JiraListAllTicketReactor extends AbstractReactor {
 		}
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor lists all Jira tickets/issues for a given project and user key.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
+			return "The key name identifying the Jira user credentials.";
+		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The Jira project key for which to list issues.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

@@ -12,6 +12,7 @@ import prerna.util.Constants;
 import prerna.util.JiraHelper;
 
 public class JiraGetAllProjectReactor extends AbstractReactor {
+
 	private static final Logger classLogger = LogManager.getLogger(JiraGetAllProjectReactor.class);
 
 	public JiraGetAllProjectReactor() {
@@ -32,4 +33,16 @@ public class JiraGetAllProjectReactor extends AbstractReactor {
 		}
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is used to retrieve all Jira projects accessible to the user.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
+			return "The unique key name used for authentication or context.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

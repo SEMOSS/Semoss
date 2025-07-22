@@ -213,23 +213,19 @@ public class JiraInsertReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used for inserting Jira data in DB of the user like Username, Apikey, URL and keyName";
+		return "This reactor is used for inserting Jira data in DB of the user like Username, Apikey, URL and keyName.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.USERNAME.getKey())) {
-			return "username(emaild) of the user who intends to perform Jira operations"
-					+ ReactorKeysEnum.USERNAME.getKey();
+		if (key.equals(ReactorKeysEnum.USERID.getKey())) {
+			return "User ID (email) of the user who intends to perform Jira operations.";
 		} else if (key.equals(ReactorKeysEnum.API_KEY.getKey())) {
-			return "Api key of the user which will be used for authentication for various Jira Operations"
-					+ ReactorKeysEnum.API_KEY.getKey();
+			return "API key of the user which will be used for authentication for various Jira operations.";
 		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "Base URL using which url for create, delete, list issues etc will be created"
-					+ ReactorKeysEnum.URL.getKey();
+			return "Base URL using which URLs for create, delete, list issues etc. will be created.";
 		} else if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
-			return "Key name for each entry to identify userid while performing different Jira operations"
-					+ ReactorKeysEnum.KEY_NAME.getKey();
+			return "Key name for each entry to identify user ID while performing different Jira operations.";
 		}
 		return super.getDescriptionForKey(key);
 	}

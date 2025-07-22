@@ -39,4 +39,24 @@ public class JiraCreateNewTicketReactor extends AbstractReactor {
 		}
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is used to create a new Jira ticket/issue.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
+			return "The unique key name for the Jira issue.";
+		} else if (key.equals(ReactorKeysEnum.SUMMARY.getKey())) {
+			return "A brief summary/title for the Jira issue.";
+		} else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+			return "A detailed description of the Jira issue.";
+		} else if (key.equals(ReactorKeysEnum.ISSUETYPE.getKey())) {
+			return "The type of Jira issue (e.g., Bug, Task, Story).";
+		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The Jira project key where the issue will be created.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

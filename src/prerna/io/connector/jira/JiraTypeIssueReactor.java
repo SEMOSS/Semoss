@@ -11,4 +11,8 @@ public class JiraTypeIssueReactor extends AbstractReactor {
 		return JiraHelper.issueType();
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor retrieves all available Jira issue types.";
+	}
 }

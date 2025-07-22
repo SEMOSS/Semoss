@@ -47,6 +47,7 @@ public enum ReactorKeysEnum {
 	CRON_EXPRESSION("cronExpression",							"The cron expression"),
 	CRON_TZ("cronTz",     	                              		"The timezone for the cron expression"),
 	DATABASE("database",										"The id/name of the database engine to use"),
+	DATE_CREATED("datecreated",									"The creation date of the Jira issue."),
 	DEDUPLICATE("deduplicate",								    "Boolean if we should remove duplicate."),
 	DATA_TYPE("dataType", 										"Data type of the column (STRING, NUMBER, DATE)"),
 	DATA_TYPE_MAP("dataTypeMap", 								"Map of column name to the column data types"),
@@ -115,6 +116,8 @@ public enum ReactorKeysEnum {
 	INSIGHT_NAME("insightName", 								"Name of the insight"),
 	INSIGHT_ORNAMENT("insightOrnament", 						"Insight ornament map"),
 	INSTANCE_KEY("instance", 									"Column representing the objects being used to perform the operation"),
+	ISSUETYPE("issuetype", 										"The type/category of the Jira issue (e.g., Bug, Task, Story)."),
+	JIRAID("jiraid", 											"The unique identifier (ID) of the Jira issue."),
 	JOB_GROUP("jobGroup",										"The name of the job group"),
 	JOB_ID("jobId",		 										"Id of the job"),
 	JOB_NAME("jobName", 	                                    "The name of the job"),
@@ -122,9 +125,11 @@ public enum ReactorKeysEnum {
 	JOINS("joins", 												"Joins on the frame"),
 	JSON("json",     	                        				"JSON that is the equivalent of a map for key-value properties"),
 	JSON_CLEANUP("jsonCleanup",     	                        "Boolean to clean unallowed characters like \n and \t"),
+	KEY_NAME("keyname",											"The key name used to identify each entry in the Jira database."),
 	LAYER("layer", 												"The id for the layer of this visualization"),				
 	LAMBDA("lambda", 											"Name of the lambda transformtion to perform"),				
 	LANGUAGE("language",                    	                "Language in which this expression needs to be interpreted"),
+	LAST_USED("lastused",										"The timestamp when the entry or filter was last used."),
 	LAYOUT_KEY("layout", 										"The layout of the insight, used as a tag"),
 	LIMIT("limit", 												"Limit to add for the query results"),
 	LOGICAL_NAME("logicalNames", 								"Column alias to be added to the master database"),
@@ -254,6 +259,7 @@ public enum ReactorKeysEnum {
 	SYNC_DATABASE("syncDatabase", 								"True/False value to detetermine if the database should be published with the app"),
 	SPLOT("splot", 								                "Seaborn plot expression"),
 	SOURCE("source", 								            "Include source - defaults to False, if you want to include source trigger to true"),
+	SUMMARY("summary", 											"The summary or title of the Jira issue."),
 	TABLE("table", 												"The name of the table"),
 	TABLES("tables",											"List of table names"),
 	TABLE_HEADER("theader", 									"Header specific to this table if any / title"),
@@ -277,6 +283,7 @@ public enum ReactorKeysEnum {
 	USE_APPLICATION_CERT("useApplicationCert",					"Boolean if we should use the default application certificate when making the request"),
 	USE_HISTORY("useHistory",                                   "Boolean to determine whether to include the conversation history in the model ask call"),
 	USE_PANEL("usePanel",                   	                "Boolean to export each panel as a separate sheet on exports instead of the entire dashboard"),
+	USERID("userid",											"The user ID associated with the Jira issue or action."),
 	USE_LABEL("useLabel",										"Boolean to use the label to query a graph database"),
 	VALUE("value", 												"The instance value in a column, or the numeric or string value used in a operation"),
 	VALUES("values", 											"Numeric or string values used as input text or inputs to an operation"),
@@ -290,14 +297,14 @@ public enum ReactorKeysEnum {
 	WIDTH("width", 											    "The width to use for screenshot capture"),
 	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
 	X("x",		 											    "The X coordiante."),
-	Y("y",		 											    "The Y coordiante."),
-	SUMMARY("summary", 											"Summary for JIRA"),
-	ISSUETYPE("issuetype", 										"Issuetype for JIRA"),
-	JIRAID("jiraid", 											"Jira id for JIRA"),
-	DATE_CREATED("datecreated",									"Date created passed in for JIRA"),
-	LAST_USED("lastused",										"last used passed in for filter"),
-	USERID("userid",											"user id to add in JIRA"),
-	KEY_NAME("keyname",											"key name for each entry in DB for JIRA");
+	Y("y",		 											    "The Y coordiante.");
+	
+	
+	
+	
+	
+	
+	
 
 	private String key;
 	private String description;

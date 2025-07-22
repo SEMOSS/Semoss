@@ -33,4 +33,16 @@ public class JiraDeleteDbUserReactor extends AbstractReactor {
 		}
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is used to delete a database user record via Jira integration.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
+			return "The unique key name identifying the database user to delete.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }
