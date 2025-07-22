@@ -580,7 +580,7 @@ public class SpreadSheetHelper {
 	 * @return NounMetadata containing a SpreadSheetResponse object with
 	 *         spreadsheetId, sheetId, and status.
 	 */
-	public static NounMetadata createnewSpreadSheet(String titleSheetName, String accessToken) {
+	public static NounMetadata createNewSpreadSheet(String titleSheetName, String accessToken) {
 		try {
 			boolean isTitleSheetNamePresent = validateTitleSheetName(titleSheetName, accessToken);
 			if (!isTitleSheetNamePresent) {
@@ -708,7 +708,7 @@ public class SpreadSheetHelper {
 	 * @return NounMetadata containing a SpreadSheetResponse object with
 	 *         spreadsheetId, sheetId, and status.
 	 */
-	public static NounMetadata createnewSheet(String titlesheetid, String sheetName, String accessToken,
+	public static NounMetadata createNewSheet(String titlesheetid, String sheetName, String accessToken,
 			List<List<String>> data) {
 
 		SpreadSheetResponse resp = new SpreadSheetResponse();
