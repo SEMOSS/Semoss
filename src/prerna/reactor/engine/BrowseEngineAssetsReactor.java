@@ -78,7 +78,11 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 			}
 			Map<String, Object> fileMap = new HashMap<>();
 			fileMap.put("name", f.getName());
-			fileMap.put("type", FilenameUtils.getExtension(f.getName()));
+			if (f.isDirectory()) {
+				fileMap.put("type", "directory");
+			} else {
+				fileMap.put("type", FilenameUtils.getExtension(f.getName()));
+			}
 			fileMap.put("lastModified", dateFormat.format(f.lastModified()));
 			fileMap.put("path", f.getAbsolutePath().substring(pathSubstringIndex));
 			retObj.add(fileMap);
