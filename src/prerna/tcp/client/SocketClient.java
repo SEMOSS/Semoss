@@ -6,7 +6,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -18,6 +20,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -34,23 +40,27 @@ public class SocketClient implements Runnable, Closeable {
 	
 	private static final Logger classLogger = LogManager.getLogger(SocketClient.class);
 	
-    private String HOST = null;
-    private int PORT = -1;
-    private boolean SSL = false;
+    String HOST = null;
+    int PORT = -1;
+    boolean SSL = false;
     
     Map<String, PayloadStruct> requestMap = new HashMap<>();
     Map<String, PayloadStruct> responseMap = new HashMap<>();
-    private boolean ready = false;
-    private boolean connected = false;
-    private AtomicInteger count = new AtomicInteger(0);
-    private long averageMillis = 200;
-    private boolean killAll = false; // use this if the server is dead or it has crashed
-    private User user;
+    Map<String, Set<String>> insightToEpoc = new HashMap<>();
+    Set<String> cancelledEpocs = new HashSet<>();
+    
+    boolean ready = false;
+    boolean connected = false;
+    AtomicInteger count = new AtomicInteger(0);
+    long averageMillis = 200;
+    boolean killAll = false; // use this if the server is dead or it has crashed
+    User user;
 	
-    private Socket clientSocket = null;
+    Socket clientSocket = null;
 	InputStream is = null;
 	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
+	Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	/**
 	 * 
@@ -65,20 +75,7 @@ public class SocketClient implements Runnable, Closeable {
     }
     
     @Override
-    public void close() {
-    	if(this.requestMap != null) {
-    		this.requestMap.clear();
-    	}
-    	closeStream(this.os);
-    	closeStream(this.is);
-    	closeStream(this.clientSocket);
-    	this.connected = false;
-    	this.killAll = true;
-    }
-
-    @Override
-    public void run()	
-    {
+    public void run() {
         // Configure SSL.git
     	int attempt = 1;
     	int SLEEP_TIME = 800;
@@ -151,8 +148,12 @@ public class SocketClient implements Runnable, Closeable {
     	}
     }	
     
-    public Object executeCommand(PayloadStruct ps)
-    {
+    /**
+     * 
+     * @param ps
+     * @return
+     */
+    public Object executeCommand(PayloadStruct ps) {
     	if(killAll) {
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
     	}
@@ -162,8 +163,7 @@ public class SocketClient implements Runnable, Closeable {
     	}
     	
     	String id = ps.epoc;
-    	if(!ps.response || id == null)
-    	{
+    	if(!ps.response || id == null) {
 	    	id = "ps"+ count.getAndIncrement();
 	    	ps.epoc = id;
     	}
@@ -223,6 +223,10 @@ public class SocketClient implements Runnable, Closeable {
     	}
     }
     
+    /**
+     * 
+     * @param ps
+     */
     private void writePayload(PayloadStruct ps)
     {
     	byte [] psBytes = FstUtil.packBytes(ps);
@@ -234,15 +238,9 @@ public class SocketClient implements Runnable, Closeable {
     	}
     }
     
-    private void writeEmptyPayload()
-    {
-    	PayloadStruct ps = new PayloadStruct();
-    	ps.epoc=Utility.getRandomString(8);
-    	ps.methodName = "EMPTYEMPTYEMPTY";
-    	writePayload(ps);
-    }
-    
-
+    /**
+     * 
+     */
     public void writeReleaseAllPayload()
     {
     	PayloadStruct ps = new PayloadStruct();
@@ -341,11 +339,78 @@ public class SocketClient implements Runnable, Closeable {
     	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
     }
     
+	@Override
+	public void close() {
+		if(this.requestMap != null) {
+			this.requestMap.clear();
+		}
+		if(this.responseMap != null) {
+			this.responseMap.clear();
+		}
+		if(this.insightToEpoc != null) {
+			this.insightToEpoc.clear();
+		}
+		closeStream(this.os);
+		closeStream(this.is);
+		closeStream(this.clientSocket);
+		this.connected = false;
+		this.killAll = true;
+	}
+	
+	/**
+	 * 
+	 * @param insightId
+	 * @param epoc
+	 */
+	void addEpocForInsight(String insightId, String epoc) {
+		Set<String> epocs = null;
+		if(this.insightToEpoc.containsKey(insightId)) {
+			epocs = this.insightToEpoc.get(insightId);
+		} else {
+			epocs = new HashSet<>();
+			this.insightToEpoc.put(insightId, epocs);
+		}
+		epocs.add(epoc);
+	}
+	
+	/**
+	 * 
+	 * @param insightId
+	 * @param epoc
+	 */
+	void removeEpocForInsight(String insightId, String epoc) {
+		Set<String> epocs = this.insightToEpoc.get(insightId);
+		if(epocs != null) {
+			epocs.remove(epoc);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param jobId
+	 */
+	public void interruptInsight(String insightId) {
+		Set<String> epocs = this.insightToEpoc.get(insightId);
+		if(epocs != null) {
+			this.cancelledEpocs.addAll(epocs);
+		}
+		if(epocs != null) {
+			for(String epoc : epocs) {
+				PayloadStruct lock = this.requestMap.remove(epoc);
+				if(lock != null) {
+					synchronized(lock) {
+						lock.notifyAll();
+					}
+				}
+			}
+		}
+	}
+    
     /**
      * 
      * @param closeThis
      */
-    private void closeStream(Closeable closeThis) {
+    void closeStream(Closeable closeThis) {
     	if(closeThis != null) {
 	    	try {
 				closeThis.close();
@@ -394,4 +459,5 @@ public class SocketClient implements Runnable, Closeable {
 	public boolean isReady() {
 		return this.ready;
 	}
+
 }

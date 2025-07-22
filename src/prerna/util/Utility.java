@@ -6160,6 +6160,17 @@ public final class Utility {
 		
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
+    
+    public static boolean folderHasAnyFiles(String folderPath) {
+        File folder = new File(folderPath);
+        if (!folder.exists() || !folder.isDirectory()) {
+            return false;
+        }
+        // Check for at least one non-directory file
+        File[] files = folder.listFiles(f -> f.isFile());
+        return files != null && files.length > 0;
+    }
+    
     //copy an engine and its contents but creates a new engine id
     public static IFunctionEngine copyAndLoadEngine(String originalEngineId, String newEngineId, String originalEnginePath ) throws IOException {
         File originalEngineDir = new File(originalEnginePath);

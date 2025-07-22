@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
@@ -967,6 +968,35 @@ public class ClusterUtil {
 			}
 		}
 	}
+	
+	
+	public static void pushRoom(String roomId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				getCentralStorageClient().pushRoomFolderToCloud(roomId);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to push room to cloud storage");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
+	
+	public static void pullRoom(String roomId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				getCentralStorageClient().pullRoomFolderFromCloud(roomId);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to pull room to cloud storage");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
 
 	/*
 	 * 
@@ -1155,5 +1185,7 @@ public class ClusterUtil {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
+
+
 
 }

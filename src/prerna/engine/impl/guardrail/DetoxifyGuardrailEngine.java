@@ -11,12 +11,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -168,11 +168,9 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 		}
 		
 		// create the py translator
-		PyTransporter pyTransporter = new PyTransporter();
-		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		pyTranslator = new PyTranslator();
-		pyTranslator.setInsight(new Insight());
-		pyTranslator.setPyTransporter(pyTransporter);
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		
 		try {
 			String execCommand = "from detoxify import Detoxify\n" 
