@@ -206,6 +206,8 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	    	}
 	    	Map<String, Object> resultMap = new HashMap<>();
 	    	resultMap.put("sql", sql);
+	    	resultMap.put("explanation", responseMap.get("explanation"));
+	    	resultMap.put("question", responseMap.get("question"));
 	    	resultMap.put("result_set", resultObject);
 	    	return new NounMetadata(resultMap, PixelDataType.VECTOR);
 	    } catch (SQLException e) {
