@@ -17,29 +17,28 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.SpreadSheetHelper;
 
-public class GoogleNewSpreadSheetReactor extends AbstractReactor{
-	private static final Logger classLogger = LogManager.getLogger(GoogleNewSpreadSheetReactor.class);
+public class GoogleReadSheetReactor extends AbstractReactor{
+	private static final Logger classLogger = LogManager.getLogger(GoogleReadSheetReactor.class);
 
-	public GoogleNewSpreadSheetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_NAME.getKey()};
-		this.keyRequired = new int[] { 1 };
+	public GoogleReadSheetReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_ID.getKey(), ReactorKeysEnum.SHEET_ID.getKey()};
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String titleSheetName = this.keyValue.get(this.keysToGet[0]);
+			String titleSheetID = this.keyValue.get(this.keysToGet[0]);
+			String sheetID = this.keyValue.get(this.keysToGet[1]);
 			String accessToken = getAccessToken();
-			return SpreadSheetHelper.createnewSpreadSheet(titleSheetName, accessToken);
+			return SpreadSheetHelper.readData(titleSheetID, sheetID, accessToken);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		}
-
 	}
-	
 	
 	private String getAccessToken() {
 		String accessToken = null;
@@ -62,19 +61,20 @@ public class GoogleNewSpreadSheetReactor extends AbstractReactor{
 		}
 		return accessToken;
 	}
-
+	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to create a new google spreadsheet";
+		return "This reactor is read the data present on Google spread sheet";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.TITLESHEET_NAME.getKey())) {
 			return "TitleSheet name of the Google spread sheet" + ReactorKeysEnum.TITLESHEET_NAME.getKey();
+		}else if (key.equals(ReactorKeysEnum.SHEET_NAME.getKey())) {
+			return "Sheet name from Google spreadsheet" + ReactorKeysEnum.SHEET_NAME.getKey();
 		}
 		return super.getDescriptionForKey(key);
 	}
-	
 
 }

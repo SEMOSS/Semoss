@@ -21,7 +21,7 @@ public class GoogleDeleteSheetReactor extends AbstractReactor{
 	private static final Logger classLogger = LogManager.getLogger(GoogleDeleteSheetReactor.class);
 
 	public GoogleDeleteSheetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_NAME.getKey(), ReactorKeysEnum.SHEET_NAME.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_ID.getKey(), ReactorKeysEnum.SHEET_ID.getKey()};
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -29,10 +29,10 @@ public class GoogleDeleteSheetReactor extends AbstractReactor{
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String titleSheetName = this.keyValue.get(this.keysToGet[0]);
-			String sheetName = this.keyValue.get(this.keysToGet[1]);
+			String titleSheetID = this.keyValue.get(this.keysToGet[0]);
+			String sheetID = this.keyValue.get(this.keysToGet[1]);
 			String accessToken = getAccessToken();
-			return SpreadSheetHelper.deleteSheet(titleSheetName, sheetName, accessToken);
+			return SpreadSheetHelper.deleteSheet(titleSheetID, sheetID, accessToken); 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,

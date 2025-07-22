@@ -20,11 +20,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.SpreadSheetHelper;
 
-public class GoogleSpreadSheetUpdateReactor extends AbstractReactor {
-	private static final Logger classLogger = LogManager.getLogger(GoogleSpreadSheetUpdateReactor.class);
+public class GoogleUpdateSheetReactor extends AbstractReactor {
+	private static final Logger classLogger = LogManager.getLogger(GoogleUpdateSheetReactor.class);
 
-	public GoogleSpreadSheetUpdateReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_NAME.getKey(), ReactorKeysEnum.SHEET_NAME.getKey(), ReactorKeysEnum.DATA.getKey() };
+	public GoogleUpdateSheetReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_ID.getKey(), ReactorKeysEnum.SHEET_ID.getKey(), ReactorKeysEnum.DATA.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
@@ -32,13 +32,13 @@ public class GoogleSpreadSheetUpdateReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String titleSheetName = this.keyValue.get(this.keysToGet[0]);
-			String sheetName = this.keyValue.get(this.keysToGet[1]);
+			String titleSheetID = this.keyValue.get(this.keysToGet[0]);
+			String sheetID = this.keyValue.get(this.keysToGet[1]);
 			String accessToken = getAccessToken();
 			String rawData = this.keyValue.get(this.keysToGet[2]);
 			ObjectMapper mapper=new ObjectMapper();
 			List<List<String>> data = mapper.readValue(rawData, List.class);
-			return SpreadSheetHelper.updateData(titleSheetName, sheetName, data, accessToken);
+			return SpreadSheetHelper.updateData(titleSheetID, sheetID, data, accessToken);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,

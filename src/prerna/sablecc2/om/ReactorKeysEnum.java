@@ -300,7 +300,9 @@ public enum ReactorKeysEnum {
 	KEY_NAME("keyname",											"key name for each entry in DB for JIRA"),
 	DATA("data",								    			"Data to be entered in spreadsheet"),
 	SHEETNAME("sheetName",								    	"Sheet name to be entered for Google spread sheet operations"),
-	TITLESHEET_NAME("titleSheetName",							"Title sheet name to be entered for Google spread sheet");
+	TITLESHEET_NAME("titleSheetName",							"Title sheet name to be entered for Google spread sheet"),
+	TITLESHEET_ID("titleSheetID",								"Title sheet ID to be entered for Google spread sheet"),
+	SHEET_ID("SheetID",											"Sheet ID to be entered for Google spread sheet");
 	
 
 	private String key;

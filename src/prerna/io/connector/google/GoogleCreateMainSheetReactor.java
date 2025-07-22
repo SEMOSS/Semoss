@@ -17,10 +17,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.SpreadSheetHelper;
 
-public class GoogleDeleteSpreadSheetReactor extends AbstractReactor {
-	private static final Logger classLogger = LogManager.getLogger(GoogleDeleteSpreadSheetReactor.class);
+public class GoogleCreateMainSheetReactor extends AbstractReactor{
+	private static final Logger classLogger = LogManager.getLogger(GoogleCreateMainSheetReactor.class);
 
-	public GoogleDeleteSpreadSheetReactor() {
+	public GoogleCreateMainSheetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_NAME.getKey()};
 		this.keyRequired = new int[] { 1 };
 	}
@@ -31,7 +31,7 @@ public class GoogleDeleteSpreadSheetReactor extends AbstractReactor {
 			this.organizeKeys();
 			String titleSheetName = this.keyValue.get(this.keysToGet[0]);
 			String accessToken = getAccessToken();
-			return SpreadSheetHelper.deleteTitleSheet(titleSheetName, accessToken);
+			return SpreadSheetHelper.createnewSpreadSheet(titleSheetName, accessToken);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
@@ -40,12 +40,13 @@ public class GoogleDeleteSpreadSheetReactor extends AbstractReactor {
 
 	}
 
+
 	private String getAccessToken() {
 		String accessToken = null;
 		User user = this.insight.getUser();
 		try {
 			if (user == null) {
-				Map<String, Object> retMap = new HashMap<String, Object>();
+				Map<String, Object> retMap = new HashMap<>();
 				retMap.put("type", "google");
 				retMap.put("message", "Please login to your Google account");
 				throwLoginError(retMap);
@@ -61,10 +62,10 @@ public class GoogleDeleteSpreadSheetReactor extends AbstractReactor {
 		}
 		return accessToken;
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to delete google spreadsheet";
+		return "This reactor is used to create a new google spreadsheet";
 	}
 
 	@Override
@@ -74,4 +75,6 @@ public class GoogleDeleteSpreadSheetReactor extends AbstractReactor {
 		}
 		return super.getDescriptionForKey(key);
 	}
+
+
 }

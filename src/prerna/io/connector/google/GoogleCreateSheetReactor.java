@@ -1,10 +1,13 @@
 package prerna.io.connector.google;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -17,22 +20,25 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.SpreadSheetHelper;
 
-public class GoogleSpreadSheetReadReactor extends AbstractReactor{
-	private static final Logger classLogger = LogManager.getLogger(GoogleSpreadSheetReadReactor.class);
+public class GoogleCreateSheetReactor extends AbstractReactor{
+	private static final Logger classLogger = LogManager.getLogger(GoogleCreateSheetReactor.class);
 
-	public GoogleSpreadSheetReadReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_NAME.getKey(), ReactorKeysEnum.SHEET_NAME.getKey()};
-		this.keyRequired = new int[] { 1, 1 };
+	public GoogleCreateSheetReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_ID.getKey(), ReactorKeysEnum.SHEET_NAME.getKey(), ReactorKeysEnum.DATA.getKey()};
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String titleSheetName = this.keyValue.get(this.keysToGet[0]);
+			String titleSheetID = this.keyValue.get(this.keysToGet[0]);
 			String sheetName = this.keyValue.get(this.keysToGet[1]);
+			String rawData = this.keyValue.get(this.keysToGet[2]);
+			ObjectMapper mapper=new ObjectMapper();
+			List<List<String>> data = mapper.readValue(rawData, List.class);
 			String accessToken = getAccessToken();
-			return SpreadSheetHelper.readData(titleSheetName, sheetName, accessToken);
+			return SpreadSheetHelper.createnewSheet(titleSheetID, sheetName, accessToken, data);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
@@ -64,7 +70,7 @@ public class GoogleSpreadSheetReadReactor extends AbstractReactor{
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is read the data present on Google spread sheet";
+		return "This reactor will create new sheet in existing google spreadsheet and data in it";
 	}
 
 	@Override
@@ -73,6 +79,8 @@ public class GoogleSpreadSheetReadReactor extends AbstractReactor{
 			return "TitleSheet name of the Google spread sheet" + ReactorKeysEnum.TITLESHEET_NAME.getKey();
 		}else if (key.equals(ReactorKeysEnum.SHEET_NAME.getKey())) {
 			return "Sheet name from Google spreadsheet" + ReactorKeysEnum.SHEET_NAME.getKey();
+		}else if (key.equals(ReactorKeysEnum.DATA.getKey())) {
+			return "Data to be updated in Google spreadsheet" + ReactorKeysEnum.DATA.getKey();
 		}
 		return super.getDescriptionForKey(key);
 	}
