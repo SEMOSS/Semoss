@@ -9,8 +9,8 @@ from ..constants import (
     EmbeddingsModelEngineResponse,
     FULL_PROMPT,
 )
-from ..message_builders.semoss_base.semoss_models import SEMOSSMessage
 from ..message_builders.semoss_base.semoss_message_builder import SEMOSSMessageBuilder
+from ..message_builders.semoss_base.semoss_models import ModelSettings, AskSettings
 from ..utils import string_to_bool
 
 
@@ -18,25 +18,6 @@ class ModelLimits(BaseModel):
     context_window: Optional[int] = None
     max_input_tokens: Optional[int] = None
     max_completion_tokens: Optional[int] = None
-
-
-class AskSettings(BaseModel):
-    """
-    Represents all of the conditional settings that affect the model call but are not passed
-    as parameters to the model call itself.
-
-    *NOTE: The only purpose for this right now is for the new clients until we fully go to semoss messages.
-    """
-
-    full_prompt: Optional[List[Dict]] = None
-    streaming: bool = False
-    use_history: bool = True
-    history: Optional[List[Dict]] = None
-    image_url: Optional[List[str]] = None
-    image_encoded: Optional[List[str]] = None
-    semoss_messages: Optional[List[SEMOSSMessage]] = None
-    system_prompt: Optional[str] = None
-    extra_params: Optional[Dict[str, Any]] = None
 
 
 class AbstractTextGenerationClient(ABC):
@@ -49,6 +30,8 @@ class AbstractTextGenerationClient(ABC):
         **kwargs: Any,
     ):
         self.model_name = kwargs.get("model_name", None)
+        if not self.model_name:
+            raise ValueError("model_name is required")
         # On V2 this will get moved to the message builders
         self.model_limits = self._get_model_limits(kwargs)
 
@@ -75,6 +58,34 @@ class AbstractTextGenerationClient(ABC):
             self.template_file = None
             self.templates = template
 
+        tokens_param_name = kwargs.pop("tokens_param_name", None)
+        if not tokens_param_name:
+            tokens_param_name = next(
+                (
+                    param
+                    for param in [
+                        "max_completion_tokens",
+                        "max_tokens",
+                        "max_new_tokens",
+                    ]
+                    if param in kwargs
+                ),
+                "max_completion_tokens",
+            )
+
+        self.model_settings = ModelSettings(
+            model_name=self.model_name,
+            context_window=kwargs.get("context_window", None),
+            max_completion_tokens=kwargs.get("max_completion_tokens", None),
+            max_input_tokens=kwargs.get("max_input_tokens", None),
+            ai_role=kwargs.pop("ai_role", None),
+            user_role=kwargs.pop("user_role", None),
+            system_role=kwargs.pop("system_role", None),
+            chat_type=kwargs.pop("chat_type", None),
+            model_type=kwargs.pop("model_type", None),
+            tokens_param_name=tokens_param_name,
+        )
+
     def _get_model_limits(self, smss_args) -> ModelLimits:
         """
         Returns the model limits for the given  model.
@@ -96,9 +107,7 @@ class AbstractTextGenerationClient(ABC):
 
     def get_ask_settings(
         self,
-        history=None,
-        use_history: bool = True,
-        context: Optional[str] = None,
+        model_settings: ModelSettings,
         **kwargs,
     ) -> AskSettings:
         """Get the ask settings from the provided keyword arguments."""
@@ -123,7 +132,9 @@ class AbstractTextGenerationClient(ABC):
             try:
                 message_json = json.loads(message_json)
                 semoss_messages = SEMOSSMessageBuilder().build_messages(
-                    input_messages=message_json, param_map=json_messages_param_map
+                    input_messages=message_json,
+                    param_map=json_messages_param_map,
+                    model_settings=model_settings,
                 )
             except json.JSONDecodeError:
                 try:
@@ -141,7 +152,6 @@ class AbstractTextGenerationClient(ABC):
 
         streaming = json_messages_param_map.get("stream")
 
-        # TODO: DO I HAVE TO MOVE THESE??
         image_url = kwargs.pop("image_url", None)
         if isinstance(image_url, str):
             image_url = [image_url]
@@ -150,8 +160,11 @@ class AbstractTextGenerationClient(ABC):
         if isinstance(image_encoded, str):
             image_encoded = [image_encoded]
 
+        use_history = kwargs.pop("use_history", True)
         if not use_history:
             history = None
+
+        context = kwargs.pop("context", None)
 
         return AskSettings(
             full_prompt=full_prompt,

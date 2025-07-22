@@ -11,7 +11,7 @@ class OpenAIChatCompletionV2(AbstractOpenAiClient):
         self.message_builder = OpenAIMessageBuilder(self.cfg_client.model_settings)
 
     def ask_call(self, prefix: str = "", **kwargs) -> AskModelEngineResponse:
-        self.ask_settings = self.get_ask_settings(**kwargs)
+        self.ask_settings = self.get_ask_settings(self.model_settings, **kwargs)
 
         if self.ask_settings.semoss_messages is None:
             raise ValueError("semoss_messages is required")

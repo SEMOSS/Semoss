@@ -18,26 +18,13 @@ class ModelSettings(BaseModel):
     system_role: Optional[str] = None
     model_type: Optional[str] = None
     chat_type: Optional[str] = None
+    tokens_param_name: Optional[str] = None
 
 
 class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
 
-    def __init__(
-        self, model_name: str, api_key: str, model_type: Optional[str] = None, **kwargs
-    ):
+    def __init__(self, api_key: str, **kwargs):
         assert api_key != None
-
-        self.model_settings = ModelSettings(
-            model_name=model_name,
-            context_window=kwargs.get("context_window", None),
-            max_completion_tokens=kwargs.get("max_completion_tokens", None),
-            max_input_tokens=kwargs.get("max_input_tokens", None),
-            ai_role=kwargs.pop("ai_role", None),
-            user_role=kwargs.pop("user_role", None),
-            system_role=kwargs.pop("system_role", None),
-            chat_type=kwargs.pop("chat_type", None),
-            model_type=model_type,
-        )
 
         super().__init__(
             template=kwargs.pop("template", None),
@@ -45,8 +32,8 @@ class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
             **kwargs
         )
 
-        self.model_name = model_name
-        self.model_type = model_type.lower() if model_type else None
+        self.model_type = self.model_settings.model_type
+
         self.use_max_tokens_param = kwargs.pop("use_max_tokens", False)
 
         self.tokenizer = self._get_tokenizer(kwargs)
