@@ -13,8 +13,8 @@ from ..semoss_base.semoss_models import (
     SEMOSSMessageType,
     SEMOSSImageContent,
     SEMOSSImageType,
+    ModelSettings,
 )
-from ...text_generation.openai_clients.abstract_openai_client import ModelSettings
 
 
 class OpenAIMessageBuilder:
@@ -86,8 +86,40 @@ class OpenAIMessageBuilder:
 
             if is_last:
                 param_map.update(message.param_map)
+                if param_map.get("context"):
+                    openai_messages = self._create_system_message(
+                        param_map.pop("context"), openai_messages
+                    )
+                param_map = self._clean_param_map(param_map)
 
         return openai_messages, param_map
+
+    def _clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        This exists because I need to support the legacy ask methods and clients
+        Rather than refactoring all the clients, I am just cleaning the param map here for now.
+        """
+        param_map.pop("model_name", None)
+        param_map.pop("history", None)
+        param_map.pop("use_history", None)
+        param_map.pop("context", None)
+        param_map.pop("image_url", None)
+        param_map.pop("image_encoded", None)
+        return param_map
+
+    def _create_system_message(
+        self, context: str, openai_messages: List[OpenAIMessage]
+    ) -> List[OpenAIMessage]:
+        """Create or update the system message at the beginning of the message list."""
+        # List is not empty and starts with a system message.
+        if openai_messages and openai_messages[0].role == OpenAIRoles.SYSTEM.value:
+            openai_messages[0].content = context
+        # List does not start with a system message.
+        else:
+            openai_messages.insert(
+                0, OpenAIMessage(role=OpenAIRoles.SYSTEM.value, content=context)
+            )
+        return openai_messages
 
     def _message_type_to_role(self, message_type: SEMOSSMessageType) -> str:
         """Convert SEMOSS message type to OpenAI role."""
@@ -145,7 +177,9 @@ class OpenAIMessageBuilder:
                 "The image type was specified as URL but no URL was provided."
             )
 
-        image_url = OpenAIImageURL(url=image_content.url, detail=OpenAIImageDetail.AUTO)
+        image_url = OpenAIImageURL(
+            url=image_content.url, detail=OpenAIImageDetail.AUTO.value
+        )
 
         return OpenAIImageContentPart(image_url=image_url)
 
@@ -166,6 +200,6 @@ class OpenAIMessageBuilder:
 
         data_uri = f"data:{image_content.mime_type};base64,{image_content.data}"
 
-        image_url = OpenAIImageURL(url=data_uri, detail=OpenAIImageDetail.AUTO)
+        image_url = OpenAIImageURL(url=data_uri, detail=OpenAIImageDetail.AUTO.value)
 
         return OpenAIImageContentPart(image_url=image_url)

@@ -1,24 +1,8 @@
-from typing import Any, Optional
+from typing import Any
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from abc import ABC, abstractmethod
 from ...constants import AskModelEngineResponse
-from pydantic import BaseModel
-
-
-class ModelSettings(BaseModel):
-    """These are attributes I want set in the SMSS file for each model"""
-
-    model_name: str
-    context_window: Optional[int] = None
-    max_completion_tokens: Optional[int] = None
-    max_input_tokens: Optional[int] = None
-    ai_role: Optional[str] = None
-    user_role: Optional[str] = None
-    system_role: Optional[str] = None
-    model_type: Optional[str] = None
-    chat_type: Optional[str] = None
-    tokens_param_name: Optional[str] = None
 
 
 class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
@@ -55,6 +39,7 @@ class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
         )
 
     def _get_client(self, api_key, **kwargs):
+        kwargs.pop("model_name", None)
         from openai import OpenAI
 
         return OpenAI(api_key=api_key, **kwargs)

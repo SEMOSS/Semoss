@@ -19,7 +19,7 @@ class OpenAIImageDetail(StringEnum):
 
 class OpenAIImageURL(BaseModel):
     url: str
-    detail: Optional[OpenAIImageDetail] = OpenAIImageDetail.AUTO
+    detail: Optional[str] = OpenAIImageDetail.AUTO.value
 
 
 class OpenAITextContentPart(BaseModel):

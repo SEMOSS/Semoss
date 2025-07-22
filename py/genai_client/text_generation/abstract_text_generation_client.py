@@ -29,7 +29,7 @@ class AbstractTextGenerationClient(ABC):
         template_name: str = None,
         **kwargs: Any,
     ):
-        self.model_name = kwargs.get("model_name", None)
+        self.model_name = kwargs.pop("model_name", None)
         if not self.model_name:
             raise ValueError("model_name is required")
         # On V2 this will get moved to the message builders
@@ -163,6 +163,8 @@ class AbstractTextGenerationClient(ABC):
         use_history = kwargs.pop("use_history", True)
         if not use_history:
             history = None
+        else:
+            history = kwargs.pop("history", None)
 
         context = kwargs.pop("context", None)
 
