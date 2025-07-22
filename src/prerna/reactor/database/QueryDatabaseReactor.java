@@ -172,20 +172,20 @@ public class QueryDatabaseReactor extends AbstractReactor {
     Map<String, Object> queryResponse = modelEngine.ask(prompt, context, this.insight, paramMap).toMap();
     String responseString = (String) queryResponse.get("response");
     String cleanedResponse = responseString.trim().replace("\\n", "").replace("\\\"", "\"");
-    Map<String, String> responseMap = parseResponse(cleanedResponse);
+    Map<String, Object> responseMap = parseResponse(cleanedResponse);
     if (responseMap == null || !responseMap.containsKey("question") || !responseMap.containsKey("sql") || !responseMap.containsKey("explanation")) {
     	throw new SemossPixelException("LLM could not generate proper response");
     }
     
-    if (responseMap.get("sql") == null || responseMap.get("sql").trim().isEmpty()) {
-    	return new NounMetadata(responseMap.get("explanation"), PixelDataType.MAP);
+    if (responseMap.get("sql") == null || ((String) responseMap.get("sql")).trim().isEmpty()) {
+    	return new NounMetadata(responseMap, PixelDataType.MAP);
     }
     
     // TODO connect to db and add query to prepared statement, get results and return to FE
     Connection con = null;
 	try {
 		con = database.makeConnection();
-		String sql = responseMap.get("sql");
+		String sql = (String) responseMap.get("sql");
 		System.out.println(sql);
 	    
 	    try (PreparedStatement ps = con.prepareStatement(sql)) {
@@ -204,12 +204,9 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	    		}
 	    		resultObject.add(m);
 	    	}
-	    	Map<String, Object> resultMap = new HashMap<>();
-	    	resultMap.put("sql", sql);
-	    	resultMap.put("explanation", responseMap.get("explanation"));
-	    	resultMap.put("question", responseMap.get("question"));
-	    	resultMap.put("result_set", resultObject);
-	    	return new NounMetadata(resultMap, PixelDataType.VECTOR);
+	    	responseMap.put("sql", sql);
+	    	responseMap.put("result_set", resultObject);
+	    	return new NounMetadata(responseMap, PixelDataType.VECTOR);
 	    } catch (SQLException e) {
 	    	throw new SemossPixelException("Could not run generated SQL");
 	    }
@@ -239,9 +236,9 @@ public class QueryDatabaseReactor extends AbstractReactor {
 		return null;
 	}
   
-  private Map<String, String> parseResponse(String jsonString) {
-      Type type = new TypeToken<Map<String, String>>(){}.getType();
-      Map<String, String> map = null;
+  private Map<String, Object> parseResponse(String jsonString) {
+      Type type = new TypeToken<Map<String, Object>>(){}.getType();
+      Map<String, Object> map = null;
 
       try {
           map = gson.fromJson(jsonString, type);
