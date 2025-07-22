@@ -15,31 +15,31 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GoogleCalendarSearchEventReactor extends AbstractReactor {
 	
 	public GoogleCalendarSearchEventReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.SUMMARY.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey()};
 		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String summary = this.keyValue.get(this.keysToGet[0]);
+		String id = this.keyValue.get(this.keysToGet[0]);
 		
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
 			Calendar CalendarService = GoogleCalendarUtils.getCalendarServiceUsingToken(accessToken);
-			Event searchedEvent = GoogleCalendarHelper.searchEvent(CalendarService, summary);
-			Map<String, Object> mp = new HashMap<>();
-			mp.put("id", searchedEvent.getId());
-			mp.put("SingleEvent", searchedEvent.getRecurringEventId() == null);
-			mp.put("StartTime", searchedEvent.getStart().getDateTime().toStringRfc3339());
-			mp.put("EndTime", searchedEvent.getEnd().getDateTime().toStringRfc3339());
-			mp.put("Organizer", searchedEvent.getOrganizer().getEmail());
-			return new NounMetadata(mp, PixelDataType.CUSTOM_DATA_STRUCTURE,
+			Event searchedEvent = GoogleCalendarHelper.searchEvent(CalendarService, id);
+			Map<String, Object> map = new HashMap<>();
+			map.put("summary", searchedEvent.getSummary());
+			map.put("singleEvent", searchedEvent.getRecurringEventId() == null);
+			map.put("startTime", searchedEvent.getStart().getDateTime().toStringRfc3339());
+			map.put("endTime", searchedEvent.getEnd().getDateTime().toStringRfc3339());
+			map.put("organizer", searchedEvent.getOrganizer().getEmail());
+			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 			
 		} catch (Exception e) {
-			throw new SemossPixelException("Issue with input: " + e.getMessage(), e);
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 		
 	}
@@ -47,5 +47,13 @@ public class GoogleCalendarSearchEventReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to search event in the Google Calender.";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if (key.equals(ReactorKeysEnum.ID.getKey())) {
+	        return "Unique identifier of the event to search for " + ReactorKeysEnum.ID.getKey();
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 }

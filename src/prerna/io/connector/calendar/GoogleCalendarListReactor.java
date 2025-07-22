@@ -36,7 +36,7 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 			return new NounMetadata(eventList, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Issue with input: " + e.getMessage(), e);
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 	}
 	
@@ -78,5 +78,15 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to get the list of events.";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if (key.equals(ReactorKeysEnum.STARTDATE.getKey())) {
+	        return "Start date and time for retrieving events " + ReactorKeysEnum.STARTDATE.getKey();
+	    } else if (key.equals(ReactorKeysEnum.ENDDATE.getKey())) {
+	        return "End date and time for retrieving events " + ReactorKeysEnum.ENDDATE.getKey();
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 }

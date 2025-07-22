@@ -92,7 +92,6 @@ public class GoogleCalendarHelper {
 	        }
 			
 			service.events().update("primary", event.getId(), event).setConferenceDataVersion(1).execute();
-			System.out.println("Event with id " + id + " updated successfully");
 			return true;
 			
 		} catch (Exception e) {
@@ -104,7 +103,6 @@ public class GoogleCalendarHelper {
 	public static Boolean deleteEvent(Calendar service, String id) throws Exception {
 		try {
 			service.events().delete("primary", id).execute();
-			System.out.println("Event with id " + id + " deleted successfully");
 			return true;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -152,32 +150,8 @@ public class GoogleCalendarHelper {
 		return recurringEvent;
 	}
 	
-	public static Event searchEvent(Calendar service, String summary) throws Exception {
-	    String pageToken = null;
-
-	    while (true) {
-	        Events events = service.events().list("primary")
-	            .setOrderBy("startTime")
-	            .setSingleEvents(true)
-	            .setMaxResults(100)
-	            .setPageToken(pageToken)
-	            .execute();
-
-	        List<Event> items = events.getItems();
-
-	        for (Event item : items) {
-	            if (item.getSummary() != null && item.getSummary().trim().equalsIgnoreCase(summary.trim())) {
-	                return item;
-	            }
-	        }
-
-	        pageToken = events.getNextPageToken();
-	        if (pageToken == null) {
-	            break;
-	        }
-	    }
-
-	    return null;
+	public static Event searchEvent(Calendar service, String eventId) throws Exception {
+		return service.events().get("primary", eventId).execute();
 	}
 	
 	public static Boolean isUserBusy(Calendar service, String userEmail, String timeMin, String timeMax) throws Exception {

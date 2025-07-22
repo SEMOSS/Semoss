@@ -52,12 +52,12 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 			boolean video = Boolean.parseBoolean(enablevideo);
 			Event createdEvent = GoogleCalendarHelper.createEvent(CalendarService, summary, location, desc, startdatetime,
 					enddatetime, attendeeEmails, video);
-			Map<String, Object> mp = new HashMap<>();
-			mp.put("id", createdEvent.getId());
-			mp.put("Link", createdEvent.getHtmlLink());
-			return new NounMetadata(mp, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			Map<String, Object> map = new HashMap<>();
+			map.put("id", createdEvent.getId());
+			map.put("link", createdEvent.getHtmlLink());
+			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Issue with input: " + e.getMessage(), e);
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 
 	}
@@ -65,6 +65,26 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to create event in the Google Calender.";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if (key.equals(ReactorKeysEnum.SUMMARY.getKey())) {
+	        return "Event summary or title " + ReactorKeysEnum.SUMMARY.getKey();
+	    } else if (key.equals(ReactorKeysEnum.LOCATION.getKey())) {
+	        return "Location where the event will take place " + ReactorKeysEnum.LOCATION.getKey();
+	    } else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+	        return "Detailed description of the event " + ReactorKeysEnum.DESCRIPTION.getKey();
+	    } else if (key.equals(ReactorKeysEnum.STARTDATE.getKey())) {
+	        return "Event start date and time " + ReactorKeysEnum.STARTDATE.getKey();
+	    } else if (key.equals(ReactorKeysEnum.ENDDATE.getKey())) {
+	        return "Event end date and time " + ReactorKeysEnum.ENDDATE.getKey();
+	    } else if (key.equals(ReactorKeysEnum.EMAIL.getKey())) {
+	        return "Email address of the attendee or organizer " + ReactorKeysEnum.EMAIL.getKey();
+	    } else if (key.equals(ReactorKeysEnum.VIDEO.getKey())) {
+	        return "Video conference link or meeting URL " + ReactorKeysEnum.VIDEO.getKey();
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 
 }

@@ -56,7 +56,7 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 					enddatetime, attendeeEmails, video);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Issue with input: " + e.getMessage(), e);
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 
 	}
@@ -64,6 +64,28 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to update an existing event in the Google Calender.";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if (key.equals(ReactorKeysEnum.SUMMARY.getKey())) {
+	        return "Updated event summary or title " + ReactorKeysEnum.SUMMARY.getKey();
+	    } else if (key.equals(ReactorKeysEnum.LOCATION.getKey())) {
+	        return "Updated location for the event " + ReactorKeysEnum.LOCATION.getKey();
+	    } else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+	        return "Updated description of the event " + ReactorKeysEnum.DESCRIPTION.getKey();
+	    } else if (key.equals(ReactorKeysEnum.STARTDATE.getKey())) {
+	        return "Updated start date and time (RFC3339 format) " + ReactorKeysEnum.STARTDATE.getKey();
+	    } else if (key.equals(ReactorKeysEnum.ENDDATE.getKey())) {
+	        return "Updated end date and time (RFC3339 format) " + ReactorKeysEnum.ENDDATE.getKey();
+	    } else if (key.equals(ReactorKeysEnum.VIDEO.getKey())) {
+	        return "Updated video conference link or meeting URL " + ReactorKeysEnum.VIDEO.getKey();
+	    } else if (key.equals(ReactorKeysEnum.EMAIL.getKey())) {
+	        return "Updated email address of the attendee or organizer " + ReactorKeysEnum.EMAIL.getKey();
+	    } else if (key.equals(ReactorKeysEnum.ID.getKey())) {
+	        return "Unique identifier of the event to be updated " + ReactorKeysEnum.ID.getKey();
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 
 }

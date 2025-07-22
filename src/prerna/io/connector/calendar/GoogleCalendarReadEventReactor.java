@@ -31,31 +31,31 @@ public class GoogleCalendarReadEventReactor extends AbstractReactor{
 			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
 			Calendar CalendarService = GoogleCalendarUtils.getCalendarServiceUsingToken(accessToken);
 			Event result = GoogleCalendarHelper.readEvent(CalendarService, id);
-			Map<String, Object> mp = new LinkedHashMap<>();
-			mp.put("summary", result.getSummary());
+			Map<String, Object> map = new LinkedHashMap<>();
+			map.put("summary", result.getSummary());
 			List<Map<String, Object>> attendeeList = new ArrayList<>();
 			if(result.getAttendees() != null) {
 				for(EventAttendee i: result.getAttendees()) {
 					Map<String, Object> att = new HashMap<>();
 					att.put("email", i.getEmail());
-					att.put("ResponseStatus", i.getResponseStatus());
+					att.put("responseStatus", i.getResponseStatus());
 					attendeeList.add(att);
 				}
 			}
-			mp.put("attendees", attendeeList);
-			mp.put("starttime", result.getStart().getDateTime().toStringRfc3339());
-			mp.put("endtime", result.getEnd().getDateTime().toStringRfc3339());
-			mp.put("location", result.getLocation());
-			mp.put("organizer", result.getOrganizer().getEmail());
-			mp.put("hangoutLink", result.getHangoutLink());
-			mp.put("htmlLink", result.getHtmlLink());
-			mp.put("video", result.getHangoutLink()!=null);
-			mp.put("audio", result.getHangoutLink()!=null);
+			map.put("attendees", attendeeList);
+			map.put("starttime", result.getStart().getDateTime().toStringRfc3339());
+			map.put("endtime", result.getEnd().getDateTime().toStringRfc3339());
+			map.put("location", result.getLocation());
+			map.put("organizer", result.getOrganizer().getEmail());
+			map.put("hangoutLink", result.getHangoutLink());
+			map.put("htmlLink", result.getHtmlLink());
+			map.put("video", result.getHangoutLink()!=null);
+			map.put("audio", result.getHangoutLink()!=null);
 			
-			return new NounMetadata(mp, PixelDataType.CUSTOM_DATA_STRUCTURE,
+			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Issue with input: " + e.getMessage(), e);
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 
 	}
@@ -63,5 +63,13 @@ public class GoogleCalendarReadEventReactor extends AbstractReactor{
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to read event in the Google Calender.";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if (key.equals(ReactorKeysEnum.ID.getKey())) {
+	        return "Unique identifier of the Google Calendar event to be read " + ReactorKeysEnum.ID.getKey();
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 }

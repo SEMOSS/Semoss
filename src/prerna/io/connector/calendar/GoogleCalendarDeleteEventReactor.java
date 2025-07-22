@@ -28,7 +28,7 @@ public class GoogleCalendarDeleteEventReactor extends AbstractReactor {
 			boolean result = GoogleCalendarHelper.deleteEvent(CalendarService, id);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Issue with input: " + e.getMessage(), e);
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 
 	}
@@ -36,6 +36,14 @@ public class GoogleCalendarDeleteEventReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to delete event in the Google Calender.";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if (key.equals(ReactorKeysEnum.ID.getKey())) {
+	        return "Unique identifier of the Google Calendar event to be deleted " + ReactorKeysEnum.ID.getKey();
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 
 }

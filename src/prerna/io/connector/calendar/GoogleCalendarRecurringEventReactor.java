@@ -55,12 +55,12 @@ public class GoogleCalendarRecurringEventReactor extends AbstractReactor {
 			boolean video = Boolean.parseBoolean(enablevideo);
 			Event recurringEvent = GoogleCalendarHelper.recurringEvent(CalendarService, summary, location, desc,
 					startdatetime, enddatetime, attendeeEmails, frequency, until, video);
-			Map<String, Object> mp = new HashMap<>();
-			mp.put("id", recurringEvent.getId());
-			mp.put("Link", recurringEvent.getHtmlLink());
-			return new NounMetadata(mp, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			Map<String, Object> map = new HashMap<>();
+			map.put("id", recurringEvent.getId());
+			map.put("link", recurringEvent.getHtmlLink());
+			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Issue with input: " + e.getMessage(), e);
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 
 	}
@@ -68,5 +68,29 @@ public class GoogleCalendarRecurringEventReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to create recurring events in the Google Calender.";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if (key.equals(ReactorKeysEnum.SUMMARY.getKey())) {
+	        return "Event summary or title " + ReactorKeysEnum.SUMMARY.getKey();
+	    } else if (key.equals(ReactorKeysEnum.LOCATION.getKey())) {
+	        return "Location where the event will take place " + ReactorKeysEnum.LOCATION.getKey();
+	    } else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+	        return "Detailed description of the event " + ReactorKeysEnum.DESCRIPTION.getKey();
+	    } else if (key.equals(ReactorKeysEnum.STARTDATE.getKey())) {
+	        return "Event start date and time (RFC3339 format) " + ReactorKeysEnum.STARTDATE.getKey();
+	    } else if (key.equals(ReactorKeysEnum.ENDDATE.getKey())) {
+	        return "Event end date and time (RFC3339 format) " + ReactorKeysEnum.ENDDATE.getKey();
+	    } else if (key.equals(ReactorKeysEnum.EMAIL.getKey())) {
+	        return "Email address of the attendee or organizer " + ReactorKeysEnum.EMAIL.getKey();
+	    } else if (key.equals(ReactorKeysEnum.FREQUENCY.getKey())) {
+	        return "Recurrence frequency (e.g., DAILY, WEEKLY, MONTHLY) " + ReactorKeysEnum.FREQUENCY.getKey();
+	    } else if (key.equals(ReactorKeysEnum.UNTIL.getKey())) {
+	        return "Date until which the event recurs (RFC3339 format) " + ReactorKeysEnum.UNTIL.getKey();
+	    } else if (key.equals(ReactorKeysEnum.VIDEO.getKey())) {
+	        return "Video conference link or meeting URL " + ReactorKeysEnum.VIDEO.getKey();
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 }

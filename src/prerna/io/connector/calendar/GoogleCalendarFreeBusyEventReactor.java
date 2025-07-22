@@ -32,13 +32,25 @@ public class GoogleCalendarFreeBusyEventReactor extends AbstractReactor{
 			return new NounMetadata(isBusy, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Issue with input: " + e.getMessage(), e);
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 	}
 	
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to check a person is free or busy for an event.";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if (key.equals(ReactorKeysEnum.EMAIL.getKey())) {
+	        return "Email address of the user whose availability is being checked " + ReactorKeysEnum.EMAIL.getKey();
+	    } else if (key.equals(ReactorKeysEnum.STARTDATE.getKey())) {
+	        return "Start date and time for the availability check " + ReactorKeysEnum.STARTDATE.getKey();
+	    } else if (key.equals(ReactorKeysEnum.ENDDATE.getKey())) {
+	        return "End date and time for the availability check " + ReactorKeysEnum.ENDDATE.getKey();
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 
 }
