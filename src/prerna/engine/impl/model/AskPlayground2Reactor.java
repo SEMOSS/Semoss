@@ -216,7 +216,7 @@ public class AskPlayground2Reactor extends AbstractReactor {
 	    List<String> inputStrings = new ArrayList<>();
 
 	    // see if added as key
-	    GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
+	    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE_TOOLS.getKey());
 	    if (grs != null && !grs.isEmpty()) {
 	      int size = grs.size();
 	      for (int i = 0; i < size; i++) {
@@ -239,7 +239,7 @@ public class AskPlayground2Reactor extends AbstractReactor {
 	    List<String> inputStrings = new ArrayList<>();
 
 	    // see if added as key
-	    GenRowStruct grs = this.store.getNoun(this.keysToGet[6]);
+	    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PROJECT_TOOLS.getKey());
 	    if (grs != null && !grs.isEmpty()) {
 	      int size = grs.size();
 	      for (int i = 0; i < size; i++) {
