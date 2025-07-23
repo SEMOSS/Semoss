@@ -22,8 +22,7 @@ import prerna.util.EngineUtility;
 public class BrowseEngineAssetsReactor extends AbstractReactor {
 
 	public BrowseEngineAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), 
-				ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
 		this.keyRequired = new int[] {1,0};
 	}
 
