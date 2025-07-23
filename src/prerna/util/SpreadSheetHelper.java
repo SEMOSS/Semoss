@@ -93,8 +93,8 @@ public class SpreadSheetHelper {
 			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method writeData()" + e.getMessage()));
 		}
 	}
 
@@ -158,8 +158,8 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			hashMap.put("ResponseBody", "Exception: " + e.getMessage());
-			hashMap.put("ResponseCode", -1);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method sendPostRequest()" + e.getMessage()));
 		} finally {
 			if (conn != null) {
 				conn.disconnect();
@@ -212,8 +212,8 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			String msg = "Exception in getSpreadsheetIdByTitle() method with error: " + e.getMessage();
-			return msg;
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method getSpreadsheetIdByTitle()" + e.getMessage()));
 		}
 
 	}
@@ -295,8 +295,8 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method updateData()" + e.getMessage()));
 		}
 	}
 
@@ -323,6 +323,8 @@ public class SpreadSheetHelper {
 			conn.disconnect();
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method sendGetRequest()" + e.getMessage()));
 		}
 		return content.toString();
 	}
@@ -371,8 +373,8 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			hashMap.put("ResponseBody", "Exception: " + e.getMessage());
-			hashMap.put("ResponseCode", -1);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method sendPutRequest()" + e.getMessage()));
 		} finally {
 			if (conn != null) {
 				conn.disconnect();
@@ -434,8 +436,7 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 
@@ -497,8 +498,8 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method deleteSheet()" + e.getMessage()));
 		}
 	}
 
@@ -535,6 +536,8 @@ public class SpreadSheetHelper {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method getSheetName()" + e.getMessage()));
 		}
 		return allSheetNames;
 	}
@@ -568,6 +571,8 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method getSpreadSheetId()" + e.getMessage()));
 		}
 		return spreadsheetIds;
 	}
@@ -652,11 +657,8 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			SpreadSheetResponse resp = new SpreadSheetResponse();
-			resp.setStatus(false);
-			resp.setTitleSheetID(null);
-			resp.setSheetID(null);
-			return new NounMetadata(resp, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method createNewSpreadSheet()" + e.getMessage()));
 		}
 	}
 
@@ -680,7 +682,8 @@ public class SpreadSheetHelper {
 			return true;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return false; // Or true, depending on your error policy
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method validateTitleSheetName()" + e.getMessage()));
 		}
 	}
 
@@ -691,10 +694,12 @@ public class SpreadSheetHelper {
 					.setApplicationName("Your Application Name").build();
 		} catch (GeneralSecurityException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return null;
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method getDriveService()" + e.getMessage()));
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return null;
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method getDriveService()" + e.getMessage()));
 		}
 	}
 
@@ -861,10 +866,8 @@ public class SpreadSheetHelper {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			resp.setStatus(false);
-			resp.setTitleSheetID(null);
-			resp.setSheetID(null);
-			return new NounMetadata(resp, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method createNewSheet()" + e.getMessage()));
 		}
 	}
 
@@ -904,9 +907,8 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			msg = e.getMessage();
-			return new NounMetadata("Spreadsheet not deleted. Error: " + msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method deleteTitleSheet()" + e.getMessage()));
 		}
 	}
 
@@ -919,8 +921,8 @@ public class SpreadSheetHelper {
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return new NounMetadata("Spreadsheet not deleted. Error: " + e.getMessage(),
-					PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Exception in method deleteAll()" + e.getMessage()));
 		}
 	}
 
