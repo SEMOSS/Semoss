@@ -34,9 +34,9 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		organizeKeys();
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
-		Integer limit;
+		Integer limit = -1;
 		String offsetStr = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
-		Integer offset;
+		Integer offset = -1;
 		String dateSortStr = this.keyValue.get(ReactorKeysEnum.SORT.getKey());
 		String dateSort = "ASC";
 
