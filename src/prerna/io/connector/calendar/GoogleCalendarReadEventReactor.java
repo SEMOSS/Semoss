@@ -33,6 +33,7 @@ public class GoogleCalendarReadEventReactor extends AbstractReactor{
 			Event result = GoogleCalendarHelper.readEvent(CalendarService, id);
 			Map<String, Object> map = new LinkedHashMap<>();
 			map.put("summary", result.getSummary());
+			map.put("description", result.getDescription());
 			List<Map<String, Object>> attendeeList = new ArrayList<>();
 			if(result.getAttendees() != null) {
 				for(EventAttendee i: result.getAttendees()) {
