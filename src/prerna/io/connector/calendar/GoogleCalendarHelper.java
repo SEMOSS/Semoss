@@ -153,24 +153,5 @@ public class GoogleCalendarHelper {
 	public static Event searchEvent(Calendar service, String eventId) throws Exception {
 		return service.events().get("primary", eventId).execute();
 	}
-	
-	public static Boolean isUserBusy(Calendar service, String userEmail, String timeMin, String timeMax) throws Exception {
-        FreeBusyRequest fbRequest = new FreeBusyRequest();
-        DateTime TimeMin = new DateTime(timeMin);
-        DateTime TimeMax = new DateTime(timeMax);
-        fbRequest.setTimeMin(TimeMin);
-        fbRequest.setTimeMax(TimeMax);
-
-        FreeBusyRequestItem item = new FreeBusyRequestItem();
-        item.setId(userEmail);
-        fbRequest.setItems(Collections.singletonList(item));
-
-        Calendar.Freebusy.Query fbQuery = service.freebusy().query(fbRequest);
-        FreeBusyResponse fbResponse = fbQuery.execute();
-
-        List<TimePeriod> busyTimes = fbResponse.getCalendars().get(userEmail).getBusy();
-
-        return !busyTimes.isEmpty();
-    }
 
 }
