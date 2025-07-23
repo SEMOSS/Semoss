@@ -205,7 +205,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	    		resultObject.add(m);
 	    	}
 	    	responseMap.put("result_set", resultObject);
-	    	return new NounMetadata(responseMap, PixelDataType.VECTOR);
+	    	return new NounMetadata(responseMap, PixelDataType.MAP);
 	    } catch (SQLException e) {
 	    	throw new SemossPixelException("Could not run generated SQL");
 	    }
