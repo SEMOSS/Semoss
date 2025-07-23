@@ -4,9 +4,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.JiraHelper;
@@ -29,8 +28,7 @@ public class JiraListAllTicketReactor extends AbstractReactor {
 			return JiraHelper.listIssue(project, keyName);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return new NounMetadata("Exception: " + e.getMessage(), PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 

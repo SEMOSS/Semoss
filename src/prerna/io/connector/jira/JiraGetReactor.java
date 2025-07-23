@@ -12,6 +12,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.JiraDetails;
@@ -77,7 +78,7 @@ public class JiraGetReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			String error = "Error in the reactor JiraGetReactor: " + e.getMessage();
-			return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		} finally {
 			try {
 				if (rs != null)

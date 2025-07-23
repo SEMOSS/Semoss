@@ -19,6 +19,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -102,8 +103,7 @@ public class JiraInsertReactor extends AbstractReactor {
 			classLogger.error(Constants.STACKTRACE, e);
 			String error = "Error in executing the reactor";
 			msg = e.getMessage();
-			return new NounMetadata(error + ": " + msg, PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 
