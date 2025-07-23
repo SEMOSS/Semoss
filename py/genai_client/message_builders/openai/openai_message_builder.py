@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Union
 from ...utils import get_image_extension
 from .openai_models import (
     OpenAIRoles,
@@ -7,6 +7,7 @@ from .openai_models import (
     OpenAIImageContentPart,
     OpenAITextContentPart,
     OpenAIImageDetail,
+    OpenAIResponsesImageContentPart,
 )
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
@@ -19,9 +20,10 @@ from ..semoss_base.semoss_models import (
 
 class OpenAIMessageBuilder:
 
-    def __init__(self, model_settings: ModelSettings):
+    def __init__(self, model_settings: ModelSettings, chat_type: str):
         """Initialize the OpenAI message builder with a specific model name."""
         self.model_settings = model_settings
+        self.chat_type = chat_type
 
     def build_request(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
         """Build complete OpenAI request with messages and parameters. This is a dictionary that can be sent directly to OpenAI"""
@@ -42,7 +44,12 @@ class OpenAIMessageBuilder:
 
             message_dicts.append(msg_dict)
 
-        request_map.update({"messages": message_dicts})
+        if self.chat_type == "chat-completion":
+            request_map.update({"messages": message_dicts})
+        elif self.chat_type == "responses":
+            request_map.update({"input": message_dicts})
+        elif self.chat_type == "completions":
+            raise ValueError("Completions are not supported yet")
 
         return request_map
 
@@ -86,26 +93,80 @@ class OpenAIMessageBuilder:
 
             if is_last:
                 param_map.update(message.param_map)
-                if param_map.get("context"):
-                    openai_messages = self._create_system_message(
-                        param_map.pop("context"), openai_messages
+                if self.chat_type == "responses":
+                    openai_messages, param_map = self._clean_param_map_for_responses(
+                        openai_messages, param_map
                     )
-                param_map = self._clean_param_map(param_map)
+                elif self.chat_type == "chat-completion":
+                    openai_messages, param_map = (
+                        self._clean_param_map_for_chat_completions(
+                            openai_messages, param_map
+                        )
+                    )
+                elif self.chat_type == "completions":
+                    raise ValueError("Completions are not supported yet")
+                else:
+                    raise ValueError(f"Invalid chat type: {self.chat_type}")
 
         return openai_messages, param_map
 
-    def _clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        This exists because I need to support the legacy ask methods and clients
-        Rather than refactoring all the clients, I am just cleaning the param map here for now.
-        """
+    def _clean_param_map_for_responses(
+        self, openai_messages: List[OpenAIMessage], param_map: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        if param_map.get("context"):
+            param_map["instructions"] = param_map.pop("context")
+
+        max_tokens = (
+            param_map.pop("max_tokens", None)
+            or param_map.pop("max_new_tokens", None)
+            or param_map.pop("max_completion_tokens", None)
+        )
+        if max_tokens:
+            param_map["max_output_tokens"] = max_tokens
+
+        # Removing any unhanlded semoss specific params
+        param_map.pop("max_completion_tokens", None)
+        param_map.pop("max_tokens", None)
+        param_map.pop("max_new_tokens", None)
         param_map.pop("model_name", None)
         param_map.pop("history", None)
         param_map.pop("use_history", None)
         param_map.pop("context", None)
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
-        return param_map
+        return (openai_messages, param_map)
+
+    def _clean_param_map_for_chat_completions(
+        self, openai_messages: List[OpenAIMessage], param_map: Dict[str, Any]
+    ) -> Tuple[List[OpenAIMessage], Dict[str, Any]]:
+        """
+        Cleaning the param map for the specific chat type and removing any unhandled semoss specific params
+        """
+
+        if param_map.get("context"):
+            openai_messages = self._create_system_message(
+                param_map.pop("context"), openai_messages
+            )
+
+        max_tokens = (
+            param_map.pop("max_tokens", None)
+            or param_map.pop("max_new_tokens", None)
+            or param_map.pop("max_output_tokens", None)
+        )
+        if max_tokens:
+            param_map["max_completion_tokens"] = max_tokens
+
+        # Removing any unhanlded semoss specific params
+        param_map.pop("max_output_tokens", None)
+        param_map.pop("max_tokens", None)
+        param_map.pop("max_new_tokens", None)
+        param_map.pop("model_name", None)
+        param_map.pop("history", None)
+        param_map.pop("use_history", None)
+        param_map.pop("context", None)
+        param_map.pop("image_url", None)
+        param_map.pop("image_encoded", None)
+        return (openai_messages, param_map)
 
     def _create_system_message(
         self, context: str, openai_messages: List[OpenAIMessage]
@@ -150,7 +211,10 @@ class OpenAIMessageBuilder:
 
     def _build_text_content_part(self, content: str) -> OpenAITextContentPart:
         """Build OpenAI text content part"""
-        return OpenAITextContentPart(text=content)
+        if self.chat_type == "responses":
+            return OpenAITextContentPart(text=content, type="input_text")
+        else:
+            return OpenAITextContentPart(text=content)
 
     def _build_image_content_parts(
         self, image_content: List[SEMOSSImageContent] = []
@@ -170,22 +234,25 @@ class OpenAIMessageBuilder:
 
     def _build_url_image_content(
         self, image_content: SEMOSSImageContent
-    ) -> OpenAIImageContentPart:
+    ) -> Union[OpenAIImageContentPart, OpenAIResponsesImageContentPart]:
         """Build OpenAI image content part from URL"""
         if not image_content.url:
             raise ValueError(
                 "The image type was specified as URL but no URL was provided."
             )
 
-        image_url = OpenAIImageURL(
-            url=image_content.url, detail=OpenAIImageDetail.AUTO.value
-        )
+        if self.chat_type == "responses":
+            return OpenAIResponsesImageContentPart(image_url=image_content.url)
+        else:
+            image_url = OpenAIImageURL(
+                url=image_content.url, detail=OpenAIImageDetail.AUTO.value
+            )
 
-        return OpenAIImageContentPart(image_url=image_url)
+            return OpenAIImageContentPart(image_url=image_url)
 
     def _build_base64_image_content(
         self, image_content: SEMOSSImageContent
-    ) -> OpenAIImageContentPart:
+    ) -> Union[OpenAIImageContentPart, OpenAIResponsesImageContentPart]:
         """Build OpenAI image content part from base64"""
         if not image_content.data:
             raise ValueError(
@@ -200,6 +267,10 @@ class OpenAIMessageBuilder:
 
         data_uri = f"data:{image_content.mime_type};base64,{image_content.data}"
 
-        image_url = OpenAIImageURL(url=data_uri, detail=OpenAIImageDetail.AUTO.value)
-
-        return OpenAIImageContentPart(image_url=image_url)
+        if self.chat_type == "responses":
+            return OpenAIResponsesImageContentPart(image_url=data_uri)
+        else:
+            image_url = OpenAIImageURL(
+                url=data_uri, detail=OpenAIImageDetail.AUTO.value
+            )
+            return OpenAIImageContentPart(image_url=image_url)

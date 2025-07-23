@@ -32,19 +32,20 @@ class OpenAIImageContentPart(BaseModel):
     image_url: OpenAIImageURL
 
 
+class OpenAIResponsesImageContentPart(BaseModel):
+    type: str = "input_image"
+    image_url: str
+
+
 class OpenAIMessage(BaseModel):
     role: str
-    content: Union[str, List[Union[OpenAITextContentPart, OpenAIImageContentPart]]]
-
-
-class ChatCompletionsConfig(BaseModel):
-    messages: List[OpenAIMessage]
-    model: str
-    frequency_penalty: Optional[float] = None
-    logit_bias: Optional[Dict[str, float]] = None
-    max_completion_tokens: Optional[int] = None
-    temperature: Optional[float] = None
-    presence_penalty: Optional[float] = None
-    stop: Optional[Union[str, List[str]]] = None
-    stream: Optional[bool] = None
-    top_p: Optional[float] = None
+    content: Union[
+        str,
+        List[
+            Union[
+                OpenAITextContentPart,
+                OpenAIImageContentPart,
+                OpenAIResponsesImageContentPart,
+            ]
+        ],
+    ]

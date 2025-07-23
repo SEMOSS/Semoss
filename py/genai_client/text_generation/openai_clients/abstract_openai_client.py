@@ -40,6 +40,8 @@ class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
 
     def _get_client(self, api_key, **kwargs):
         kwargs.pop("model_name", None)
+        kwargs.pop("model_type", None)
+        kwargs.pop("chat_type", None)
         from openai import OpenAI
 
         return OpenAI(api_key=api_key, **kwargs)

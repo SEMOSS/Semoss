@@ -10,7 +10,7 @@ from ...constants import (
     IMAGE_URL,
 )
 from utils.util import string_to_bool
-from .openai_clients_v2.openai_chat_completion_client_v2 import OpenAIChatCompletionV2
+from .openai_clients_v2.openai_client_v2 import OpenAIClientV2
 
 
 class OpenAiChatCompletion(AbstractOpenAiClient):
@@ -20,7 +20,9 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
     def ask_call(self, **kwargs) -> AskModelEngineResponse:
         if "message_json" in kwargs:
-            chat_completion_client_v2 = OpenAIChatCompletionV2(client=self)
+            chat_completion_client_v2 = OpenAIClientV2(
+                client=self, chat_type="chat-completion"
+            )
             return chat_completion_client_v2.ask_call(**kwargs)
 
         return self.chat_operation.ask(**kwargs)

@@ -12,6 +12,7 @@ from ...constants import (
     IMAGE_URL,
 )
 from ...utils import StringEnum
+from .openai_clients_v2.openai_client_v2 import OpenAIClientV2
 
 
 class ModelType(StringEnum):
@@ -26,6 +27,9 @@ class OpenAIResponses(AbstractOpenAiClient):
         self.image_client = Image(client=self)
 
     def ask_call(self, **kwargs) -> AskModelEngineResponse:
+        if "message_json" in kwargs:
+            responses_client_v2 = OpenAIClientV2(client=self, chat_type="responses")
+            return responses_client_v2.ask_call(**kwargs)
 
         if self.model_type == ModelType.IMAGE:
             return self.image_client.ask(**kwargs)
