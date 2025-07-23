@@ -205,7 +205,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	    			if (!gotMetadata) {
 	    				Map<String, String> col = new HashMap<>();
 	    				col.put("name", rsmd.getColumnName(columnIndex));
-	    				col.put("type", rsmd.getColumnName(columnIndex));
+	    				col.put("type", rsmd.getColumnTypeName(columnIndex));
 	    				columnInfo.add(col);
 	    			}
 	    			
