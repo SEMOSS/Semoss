@@ -24,8 +24,7 @@ import prerna.util.Utility;
 public class BrowseAppAssetsReactor extends AbstractReactor {
 
 	public BrowseAppAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), 
-				ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
 		this.keyRequired = new int[] {1,0};
 	}
 
@@ -82,7 +81,11 @@ public class BrowseAppAssetsReactor extends AbstractReactor {
 			}
 			Map<String, Object> fileMap = new HashMap<>();
 			fileMap.put("name", f.getName());
-			fileMap.put("type", FilenameUtils.getExtension(f.getName()));
+			if (f.isDirectory()) {
+				fileMap.put("type", "directory");
+			} else {
+				fileMap.put("type", FilenameUtils.getExtension(f.getName()));
+			}
 			fileMap.put("lastModified", dateFormat.format(f.lastModified()));
 			fileMap.put("path", f.getAbsolutePath().substring(pathSubstringIndex));
 			retObj.add(fileMap);
