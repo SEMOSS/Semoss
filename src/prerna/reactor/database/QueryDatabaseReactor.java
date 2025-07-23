@@ -196,26 +196,28 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	    	List<Map<String, String>> columnInfo = new ArrayList<>();
 	        int columnCount = rsmd.getColumnCount();
 	        
-	    	List<Map<String, Object>> resultObject = new ArrayList<>();
+	    	List<List<Object>> resultObject = new ArrayList<>();
 	    	boolean gotMetadata = false;
 	    	while (rs.next()) {
-	    		Map<String, Object> m = new HashMap<>();
+	    		List<Object> vals = new ArrayList<>();
 	    		int columnIndex = 1;
 	    		while (columnIndex < columnCount + 1) {
 	    			if (!gotMetadata) {
 	    				Map<String, String> col = new HashMap<>();
-	    				col.put("name", rsmd.getColumnName(columnIndex));
+	    				col.put("key", rsmd.getColumnName(columnIndex));
 	    				col.put("type", rsmd.getColumnTypeName(columnIndex));
 	    				columnInfo.add(col);
 	    			}
 	    			
-	    			m.put(rsmd.getColumnName(columnIndex), rs.getObject(columnIndex++));
+	    			vals.add(rs.getObject(columnIndex++));
 	    		}
 	    		gotMetadata = true;
-	    		resultObject.add(m);
+	    		resultObject.add(vals);
 	    	}
-	    	responseMap.put("metadata", columnInfo);
-	    	responseMap.put("result_set", resultObject);
+	    	Map<String, Object> finalResultMap = new HashMap<>();
+	    	finalResultMap.put("columns", columnInfo);
+	    	finalResultMap.put("rows", resultObject);
+	    	responseMap.put("result_set", finalResultMap);
 	    	return new NounMetadata(responseMap, PixelDataType.MAP);
 	    } catch (SQLException e) {
 	    	throw new SemossPixelException("Could not run generated SQL");
