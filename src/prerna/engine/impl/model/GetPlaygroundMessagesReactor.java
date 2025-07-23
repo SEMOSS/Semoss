@@ -68,7 +68,7 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
         	throw new IllegalArgumentException("Invalid value for limit or offset passed");
         }
         if(dateSortStr != null && !dateSortStr.isEmpty()
-        		&& this.keyValue.get(this.keysToGet[3]).equals("DESC")) 
+        		&& dateSortStr.equals("DESC")) 
         	dateSort = "DESC";
         
         /**
