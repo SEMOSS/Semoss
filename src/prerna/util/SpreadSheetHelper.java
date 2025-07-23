@@ -26,6 +26,7 @@ import com.google.api.services.drive.model.FileList;
 import prerna.reactor.model.SpreadSheetResponse;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SpreadSheetHelper {
@@ -710,7 +711,6 @@ public class SpreadSheetHelper {
 	 */
 	public static NounMetadata createNewSheet(String titlesheetid, String sheetName, String accessToken,
 			List<List<String>> data) {
-
 		SpreadSheetResponse resp = new SpreadSheetResponse();
 
 		try {
@@ -747,8 +747,8 @@ public class SpreadSheetHelper {
 					JSONObject properties = sheets.getJSONObject(i).getJSONObject("properties");
 					if (sheetName.equals(properties.optString("title"))) {
 						// Sheet with the same name exists, throw error
-						throw new IllegalArgumentException("A sheet with the name '" + sheetName
-								+ "' already exists. Two sheets cannot have the same name.");
+						throw new SemossPixelException(NounMetadata.getErrorNounMessage("A sheet with the name '"
+								+ sheetName + "' already exists. Two sheets cannot have the same name."));
 					}
 				}
 			}
@@ -856,6 +856,9 @@ public class SpreadSheetHelper {
 
 			return new NounMetadata(resp, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 
+		} catch (SemossPixelException e) {
+			// Let this propagate to the caller (custom exception for duplicate sheet)
+			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			resp.setStatus(false);
