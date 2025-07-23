@@ -193,17 +193,28 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	    	
 	    	// I can't find the Wrapper manager way of converting a result set to a map
 	    	ResultSetMetaData rsmd = rs.getMetaData();
+	    	List<Map<String, String>> columnInfo = new ArrayList<>();
 	        int columnCount = rsmd.getColumnCount();
 	        
 	    	List<Map<String, Object>> resultObject = new ArrayList<>();
+	    	boolean gotMetadata = false;
 	    	while (rs.next()) {
 	    		Map<String, Object> m = new HashMap<>();
 	    		int columnIndex = 1;
 	    		while (columnIndex < columnCount + 1) {
+	    			if (!gotMetadata) {
+	    				Map<String, String> col = new HashMap<>();
+	    				col.put("name", rsmd.getColumnName(columnIndex));
+	    				col.put("type", rsmd.getColumnName(columnIndex));
+	    				columnInfo.add(col);
+	    			}
+	    			
 	    			m.put(rsmd.getColumnName(columnIndex), rs.getObject(columnIndex++));
 	    		}
+	    		gotMetadata = true;
 	    		resultObject.add(m);
 	    	}
+	    	responseMap.put("metadata", columnInfo);
 	    	responseMap.put("result_set", resultObject);
 	    	return new NounMetadata(responseMap, PixelDataType.MAP);
 	    } catch (SQLException e) {
