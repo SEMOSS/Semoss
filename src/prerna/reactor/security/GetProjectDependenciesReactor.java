@@ -12,24 +12,20 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	public GetProjectDependenciesReactor() {
 		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), "details" };
 	}
-
+	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
+		String userId = this.insight.getUserId();
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-
+ 
 		if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException("The user does not have access to view this project or project id is invalid");
 		}
 		
-		boolean details = Boolean.parseBoolean(this.keyValue.get("details")+"");
-		if(details) {
-			return new NounMetadata(SecurityProjectUtils.getProjectDependencyDetails(projectId), PixelDataType.MAP);
-		} 
-		
-		return new NounMetadata(SecurityProjectUtils.getProjectDependencies(projectId), PixelDataType.CONST_STRING);
+			return new NounMetadata(SecurityProjectUtils.getProjectDependencyDetails(projectId, userId), PixelDataType.MAP);
 	}
 	
 	@Override
