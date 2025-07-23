@@ -4,20 +4,20 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.hc.client5.http.ClientProtocolException;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.async.methods.SimpleBody;
+import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
+import org.apache.hc.client5.http.async.methods.SimpleHttpRequests;
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.client5.http.cookie.BasicCookieStore;
 import org.apache.hc.client5.http.cookie.CookieStore;
-import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
+import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.NameValuePair;
-import org.apache.hc.core5.http.ParseException;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -36,217 +36,168 @@ import prerna.util.Utility;
 
 public class RunPixelJobFromDB implements InterruptableJob {
 
-	private static final Logger logger = LogManager.getLogger(RunPixelJobFromDB.class);
+    private static final Logger logger = LogManager.getLogger(RunPixelJobFromDB.class);
+    private volatile boolean interrupted = false;
 
-	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+    public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+    private static boolean FETCH_CSRF = false;
 
-	private static boolean FETCH_CSRF = false;
-	
-	private String jobId;
-	private String jobGroup;
-	
-	@Override
-	public void execute(JobExecutionContext context) throws JobExecutionException {
-		jobId = context.getJobDetail().getKey().getName();
-		jobGroup = context.getJobDetail().getKey().getGroup();
-		
-		JobDataMap dataMap = context.getMergedJobDataMap();
-		String pixel = dataMap.getString(JobConfigKeys.PIXEL);
-		String pixelParameters = dataMap.getString(JobConfigKeys.PIXEL_PARAMETERS);
-		String userAccess = RPAProps.getInstance().decrypt(dataMap.getString(JobConfigKeys.USER_ACCESS));
+    private String jobId;
+    private String jobGroup;
 
-		String execId = UUID.randomUUID().toString();
-		// insert the exec id so we allow the execution
-		SchedulerDatabaseUtility.insertIntoExecutionTable(execId, jobId, jobGroup);
-		
-		// add the scheduler cert if required
-		String keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
-		String keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-		String keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
-		
-		try {
-			// run the pixel endpoint
-			boolean success = false;
-			String url = Utility.getDIHelperProperty(Constants.SCHEDULER_ENDPOINT);
-			if(url == null) {
-				throw new IllegalArgumentException("Must define the scheduler endpoint to run scheduled jobs");
-			}
-			url = url.trim();
-			
-			String csrfToken = null;
-			CookieStore httpCookieStore = new BasicCookieStore();
-			CloseableHttpClient httpclient = HttpHelperUtility.getCustomClient(httpCookieStore, keyStore, keyStorePass, keyPass);
-			if(FETCH_CSRF){
-				String fetchUrl = url;
-				if(fetchUrl.endsWith("/")) {
-					fetchUrl += "api/config/fetchCsrf";
-				} else {
-					fetchUrl += "/api/config/fetchCsrf";
-				}
-				HttpGet httpget = new HttpGet(url);
-				httpget.addHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
-				httpget.addHeader("X-CSRF-Token","fetch");
-				CloseableHttpResponse response = null;
-				try {
-					response = httpclient.execute(httpget);
-					Header[] allheaders = response.getHeaders();
-					for(Header h : allheaders) {
-						if(h.getName().equals("X-CSRF-Token")) {
-							csrfToken = h.getValue();
-							break;
-						}
-					}
-				} catch (ClientProtocolException e) {
-					logger.error(Constants.STACKTRACE, e);
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				} finally {
-					if(response != null) {
-						try {
-							response.close();
-						} catch (IOException e) {
-							logger.error(Constants.STACKTRACE, e);
-						}
-					}
-				}
-			}
-			
-			if(url.endsWith("/")) {
-				url += "api/schedule/executePixel";
-			} else {
-				url += "/api/schedule/executePixel";
-			}
-			
-			// use the same cookie store from above if values are set
-			HttpPost httppost = new HttpPost(url);
-			httppost.addHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
-			if(csrfToken != null) {
-				httppost.addHeader("X-CSRF-Token",csrfToken);
-			}
-			
-			// add the body
-			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
-			paramList.add(new BasicNameValuePair(JobConfigKeys.EXEC_ID, execId));
-			paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_ID, jobId));
-			paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_GROUP, jobGroup));
-			paramList.add(new BasicNameValuePair(JobConfigKeys.USER_ACCESS, userAccess));
-			boolean hasParam = false;
-			if(pixelParameters != null && !(pixelParameters = pixelParameters.trim()).isEmpty()) {
-				if(pixelParameters.endsWith(";")) {
-					pixelParameters = pixelParameters.substring(0, pixelParameters.length()-1);
-				}
-				// account for just a ";" being sent as the pixel parameter
-				if(!pixelParameters.isEmpty()) {
-					hasParam = true;
-					paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixelParameters + " | " + pixel));
-				}
-			}
-			if(!hasParam) {
-				paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixel));
-			}
-			
-			long start = System.currentTimeMillis();
-			
-			int status = -1;
-			CloseableHttpResponse response = null;
-			HttpEntity entity = null;
-			String schedulerOutput = null;
-			try {
-				httppost.setEntity(new UrlEncodedFormEntity(paramList));
-				response = httpclient.execute(httppost);
-				status = response.getCode();
-				if (status == 200 ) {
-					success = true;
-				}
-				
-				entity = response.getEntity();
-				schedulerOutput = EntityUtils.toString(entity);
-			} catch (ClientProtocolException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} catch (ParseException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				// consume will release the entity
-				if(entity != null) {
-					try {
-						EntityUtils.consume(entity);
-					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-				if(response != null) {
-					try {
-						response.close();
-					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-			
-			logger.info("##SCHEDULED JOB: Response Code " + status);
-//			try {
-//				logger.info("##SCHEDULED JOB: Json return = " + EntityUtils.toString(response.getEntity()));
-//			} catch (ParseException e) {
-//				logger.error(Constants.STACKTRACE, e);
-//			} catch (IOException e) {
-//				logger.error(Constants.STACKTRACE, e);
-//			}
-			
-			// store execution time and date in SMSS_AUDIT_TRAIL table
-			long end = System.currentTimeMillis();
-			SchedulerDatabaseUtility.insertIntoAuditTrailTable(jobId, jobGroup, start, end, success, schedulerOutput);
-			logger.info("##SCHEDULED JOB: Execution time: " + (end - start) / 1000 + " seconds.");
-		} finally {
-			// always delete the UUID
-			SchedulerDatabaseUtility.removeExecutionId(execId);
-		}
-		
-//		// Execute job
-//		Insight insight = new Insight();
-//
-//		// Add user info to the insight
-//		User user = new User();
-//		String[] accessPairs = userAccess.split(",");
-//
-//		for (String accessPair : accessPairs) {
-//			String[] providerAndId = accessPair.split(":");
-//
-//			// Get the auth provider
-//			AuthProvider provider = AuthProvider.valueOf(providerAndId[0]);
-//
-//			// Get the id
-//			String id = providerAndId[1];
-//
-//			// Create the access token
-//			AccessToken token = new AccessToken();
-//			token.setProvider(provider);
-//			token.setId(id);
-//
-//			user.setAccessToken(token);
-//		}
-//		insight.setUser(user);
-//
-//		String insightId = InsightStore.getInstance().put(insight);
-//		if (!pixel.endsWith(";")) {
-//			pixel = pixel + ";";
-//		}
-//
-//		// make a random session id
-//		ThreadStore.setInsightId(insightId);
-//		ThreadStore.setSessionId("scheduledJob_" + UUID.randomUUID().toString());
-//		ThreadStore.setJobId(insightId);
-//		ThreadStore.setUser(user);
-	}
+    @Override
+    public void execute(JobExecutionContext context) throws JobExecutionException {
 
-	@Override
-	public void interrupt() throws UnableToInterruptJobException {
-		logger.warn("Received request to interrupt the " + jobId + " job. However, there is nothing to interrupt for this job.");
-	}
-	
-	public static void setFetchCsrf(boolean fetchCsrf) {
-		RunPixelJobFromDB.FETCH_CSRF = fetchCsrf;
-	}
+        jobId = context.getJobDetail().getKey().getName();
+        jobGroup = context.getJobDetail().getKey().getGroup();
 
+        JobDataMap dataMap = context.getMergedJobDataMap();
+        String pixel = dataMap.getString(JobConfigKeys.PIXEL);
+        String pixelParameters = dataMap.getString(JobConfigKeys.PIXEL_PARAMETERS);
+        String userAccess = RPAProps.getInstance().decrypt(dataMap.getString(JobConfigKeys.USER_ACCESS));
+
+        String execId = UUID.randomUUID().toString();
+        SchedulerDatabaseUtility.insertIntoExecutionTable(execId, jobId, jobGroup);
+
+        String keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
+        String keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+        String keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+
+        CloseableHttpAsyncClient asyncClient = null;
+        try {
+            // Create and start async client
+            CookieStore httpCookieStore = new BasicCookieStore();
+            asyncClient = HttpAsyncClients.custom()
+                    .setDefaultCookieStore(httpCookieStore)
+                    .build();
+            asyncClient.start();
+
+            boolean success = false;
+            String url = Utility.getDIHelperProperty(Constants.SCHEDULER_ENDPOINT);
+            if (url == null) {
+                throw new IllegalArgumentException("Must define the scheduler endpoint to run scheduled jobs");
+            }
+            url = url.trim();
+
+            Header csrfToken = null;
+
+            if (FETCH_CSRF) {
+                String fetchUrl = url.endsWith("/") ? url + "api/config/fetchCsrf" : url + "/api/config/fetchCsrf";
+                SimpleHttpRequest fetchRequest = SimpleHttpRequests.get(fetchUrl);
+                fetchRequest.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
+                fetchRequest.setHeader("X-CSRF-Token", "fetch");
+
+                Future<SimpleHttpResponse> fetchFuture = asyncClient.execute(fetchRequest, null);
+
+                try {
+                    SimpleHttpResponse fetchResponse = fetchFuture.get(10, TimeUnit.SECONDS);
+                    csrfToken = fetchResponse.getHeader("X-CSRF-Token");
+                } catch (Exception e) {
+                    logger.error(Constants.STACKTRACE, e);
+                }
+            }
+
+            String postUrl = url.endsWith("/") ? url + "api/schedule/executePixel" : url + "/api/schedule/executePixel";
+            SimpleHttpRequest postRequest = SimpleHttpRequests.post(postUrl);
+            postRequest.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
+            if (csrfToken != null) {
+                postRequest.setHeader("X-CSRF-Token", csrfToken);
+            }
+
+            // Prepare form parameters
+            List<NameValuePair> paramList = new ArrayList<>();
+            paramList.add(new BasicNameValuePair(JobConfigKeys.EXEC_ID, execId));
+            paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_ID, jobId));
+            paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_GROUP, jobGroup));
+            paramList.add(new BasicNameValuePair(JobConfigKeys.USER_ACCESS, userAccess));
+
+            boolean hasParam = false;
+            if (pixelParameters != null && !(pixelParameters = pixelParameters.trim()).isEmpty()) {
+                if (pixelParameters.endsWith(";")) {
+                    pixelParameters = pixelParameters.substring(0, pixelParameters.length() - 1);
+                }
+                if (!pixelParameters.isEmpty()) {
+                    hasParam = true;
+                    paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixelParameters + " | " + pixel));
+                }
+            }
+            if (!hasParam) {
+                paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixel));
+            }
+
+            StringBuilder formBody = new StringBuilder();
+            for (int i = 0; i < paramList.size(); i++) {
+                NameValuePair pair = paramList.get(i);
+                formBody.append(pair.getName()).append("=").append(pair.getValue());
+                if (i < paramList.size() - 1) {
+                    formBody.append("&");
+                }
+            }
+            postRequest.setBody(
+                formBody.toString().getBytes("UTF-8"),
+                ContentType.APPLICATION_FORM_URLENCODED
+            );
+
+            long start = System.currentTimeMillis();
+
+            Future<SimpleHttpResponse> postFuture = asyncClient.execute(postRequest, null);
+
+            String schedulerOutput = null;
+            int status = -1;
+
+            while (!postFuture.isDone()) { //INTERUPT
+                if (interrupted) {
+                    postFuture.cancel(true);
+                    long end = System.currentTimeMillis();
+                    logger.info("##SCHEDULED JOB: " + jobId + " interrupted, exiting early after " + (end - start) / 1000 + " seconds.");
+                    SchedulerDatabaseUtility.insertIntoAuditTrailTable(
+                        jobId, jobGroup, start, System.currentTimeMillis(), false, "Job interrupted"
+                    );
+                    throw new JobExecutionException("Job interrupted and HTTP request cancelled.");
+                }
+            }
+
+            try {
+                SimpleHttpResponse postResponse = postFuture.get();
+                status = postResponse.getCode();
+                schedulerOutput = postResponse.getBodyText();
+                if (status == 200) {
+                    success = true;
+                }
+            } catch (Exception e) {
+                logger.error(Constants.STACKTRACE, e);
+            }
+
+            logger.info("##SCHEDULED JOB: Response Code " + status);
+
+            long end = System.currentTimeMillis();
+            SchedulerDatabaseUtility.insertIntoAuditTrailTable(jobId, jobGroup, start, end, success, schedulerOutput);
+            logger.info("##SCHEDULED JOB: Execution time: " + (end - start) / 1000 + " seconds.");
+
+        } catch (Exception e) {
+            logger.error(Constants.STACKTRACE, e);
+        } finally {
+            SchedulerDatabaseUtility.removeExecutionId(execId);
+            if (asyncClient != null) {
+                try {
+                    asyncClient.close();
+                } catch (IOException e) {
+                    logger.error(Constants.STACKTRACE, e);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void interrupt() throws UnableToInterruptJobException {
+        logger.warn("Interrupt requested for job " + jobId);
+        interrupted = true;
+//        if (executingThread != null) {
+//            executingThread.interrupt(); // Propagate interrupt to the running thread
+//        }
+    }
+
+    public static void setFetchCsrf(boolean fetchCsrf) {
+        RunPixelJobFromDB.FETCH_CSRF = fetchCsrf;
+    }
 }
