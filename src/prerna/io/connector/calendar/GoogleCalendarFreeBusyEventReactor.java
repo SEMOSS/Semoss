@@ -1,5 +1,6 @@
 package prerna.io.connector.calendar;
 
+import java.util.*;
 import com.google.api.services.calendar.Calendar;
 
 import prerna.auth.User;
@@ -29,7 +30,9 @@ public class GoogleCalendarFreeBusyEventReactor extends AbstractReactor{
 			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
 			Calendar CalendarService = GoogleCalendarUtils.getCalendarServiceUsingToken(accessToken);
 			boolean isBusy = GoogleCalendarHelper.isUserBusy(CalendarService, email, starttime, endtime);
-			return new NounMetadata(isBusy, PixelDataType.CUSTOM_DATA_STRUCTURE,
+			Map<String, Object> map = new HashMap<>();
+			map.put("status: ", isBusy);
+			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);

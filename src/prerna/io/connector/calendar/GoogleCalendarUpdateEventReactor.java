@@ -1,11 +1,7 @@
 package prerna.io.connector.calendar;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import java.util.*;
 import com.google.api.services.calendar.Calendar;
-import com.google.api.services.calendar.model.Event;
-import com.google.api.services.calendar.model.Events;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
@@ -54,7 +50,9 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 			boolean video = Boolean.parseBoolean(enablevideo);
 			boolean result = GoogleCalendarHelper.updateEvent(CalendarService,id, summary, location, desc, startdatetime,
 					enddatetime, attendeeEmails, video);
-			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			Map<String, Object> map = new HashMap<>();
+			map.put("status: ", result);
+			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}

@@ -1,7 +1,7 @@
 package prerna.io.connector.calendar;
 
 import com.google.api.services.calendar.Calendar;
-
+import java.util.*;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -26,7 +26,9 @@ public class GoogleCalendarDeleteEventReactor extends AbstractReactor {
 			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
 			Calendar CalendarService = GoogleCalendarUtils.getCalendarServiceUsingToken(accessToken);
 			boolean result = GoogleCalendarHelper.deleteEvent(CalendarService, id);
-			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			Map<String, Object> map = new HashMap<>();
+			map.put("status: ", result);
+			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
