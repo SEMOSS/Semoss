@@ -74,7 +74,7 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
         /**
          * Convert each message to output map for return
          */
-        List<Map<String, Object>> outpuMap = new ArrayList<>();
+        List<Map<String, Object>> outputMap = new ArrayList<>();
         
         /**
          * Get room object (will load or fetch as needed) and convert messages to new format from legacy
@@ -86,7 +86,7 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
         	/**
         	 * Returning empty map as that is the closet to the old design of empty array from db
         	 */
-        	return new NounMetadata(outpuMap, PixelDataType.VECTOR);
+        	return new NounMetadata(outputMap, PixelDataType.VECTOR);
         }
 
         /**
@@ -98,10 +98,10 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
          * Add messages to list
          */
         for (AbstractMessage m : page) {
-        	outpuMap.add(jsonToMap(MessageUtils.toJson(m)));
+        	outputMap.add(jsonToMap(MessageUtils.toJson(m)));
         }
         
-		return new NounMetadata(outpuMap, PixelDataType.VECTOR);
+		return new NounMetadata(outputMap, PixelDataType.VECTOR);
 	}
 	
     /**
