@@ -41,18 +41,18 @@ public class GoogleDocsCreateReactor extends AbstractReactor {
 			boolean success = false;
 			String DOCID = "docid";
 			String SUCCESS = "success";
-			Map<String, Object> res = new HashMap<>();
+			Map<String, Object> map = new HashMap<>();
 			try {
 				Document doc = GoogleDocsHelper.createDoc(service, getDriveService, title, content);
 				if (doc != null && doc.getDocumentId() != null) {
 					success = true;
-					res.put(DOCID, doc.getDocumentId());
+					map.put(DOCID, doc.getDocumentId());
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			res.put(SUCCESS, success);
-			return new NounMetadata(res, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			map.put(SUCCESS, success);
+			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			throw new SemossPixelException("Please provide valid input", e);
 		}

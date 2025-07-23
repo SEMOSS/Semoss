@@ -1,7 +1,7 @@
 package prerna.io.connector.docs;
 
 import com.google.api.services.drive.Drive;
-
+import java.util.*;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -26,9 +26,10 @@ public class GoogleDocsDeleteReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			String accessToken = GoogleDocsUtils.getGoogleAccessToken(user);
 			Drive getDriveService = GoogleDocsUtils.getDriveServiceUsingToken(accessToken);
-
 			boolean deleteresult = GoogleDocsHelper.deleteDoc(getDriveService, id);
-			return new NounMetadata(deleteresult, PixelDataType.CUSTOM_DATA_STRUCTURE,
+			Map<String, Object> map = new HashMap<>();
+			map.put("status: ", deleteresult);
+			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
 		    throw new SemossPixelException("Please provide valid input", e);

@@ -1,5 +1,8 @@
 package prerna.io.connector.docs;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.google.api.services.docs.v1.Docs;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
@@ -26,9 +29,10 @@ public class GoogleDocsUpdateReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			String accessToken = GoogleDocsUtils.getGoogleAccessToken(user);
 			Docs service = GoogleDocsUtils.getDocsServiceUsingToken(accessToken);
-
 			boolean updateresult = GoogleDocsHelper.updateDoc(service, id, content);
-			return new NounMetadata(updateresult, PixelDataType.CUSTOM_DATA_STRUCTURE,
+			Map<String, Object> map = new HashMap<>();
+			map.put("status: ", updateresult);
+			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			throw new SemossPixelException("Please provide valid input", e);
