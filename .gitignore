@@ -102,3 +102,5 @@ py/.env
 out/
 .idea/
 semoss.iml
+/.apt_generated/
+/.apt_generated_tests/
