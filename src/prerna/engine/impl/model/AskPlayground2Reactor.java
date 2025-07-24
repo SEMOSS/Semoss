@@ -83,8 +83,8 @@ public class AskPlayground2Reactor extends AbstractReactor {
         
 //        TODO: Gonna need to move the files to a room if exists
         List<String> inputFiles = getFiles();
-        
         addToolsToParamMap(paramMap);
+        System.out.println(paramMap);
 		
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 		MessageUtils.moveFilesToRoomFolder(inputImages, room, insight);
@@ -227,52 +227,33 @@ public class AskPlayground2Reactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		return "";
 	}
-	
-	 /** @return list of engines */
-	  public List<String> getEngineToolIDs() {
-	    List<String> inputStrings = new ArrayList<>();
 
-	    // see if added as key
-	    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE_TOOLS.getKey());
-	    if (grs != null && !grs.isEmpty()) {
-	      int size = grs.size();
-	      for (int i = 0; i < size; i++) {
-	        inputStrings.add(grs.get(i).toString());
-	      }
-	      return inputStrings;
-	    }
+      public List<String> getEngineToolIDs() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE_TOOLS.getKey());
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
 
-	    // no key is added, grab all inputs
-	    int size = this.curRow.size();
-	    for (int i = 0; i < size; i++) {
-	      inputStrings.add(this.curRow.get(i).toString());
-	    }
-
-	    return inputStrings;
-	  }
-
-	  /** @return list of project IDs */
-	  public List<String> getProjectToolIDs() {
-	    List<String> inputStrings = new ArrayList<>();
-
-	    // see if added as key
-	    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PROJECT_TOOLS.getKey());
-	    if (grs != null && !grs.isEmpty()) {
-	      int size = grs.size();
-	      for (int i = 0; i < size; i++) {
-	        inputStrings.add(grs.get(i).toString());
-	      }
-	      return inputStrings;
-	    }
-
-	    // no key is added, grab all inputs
-	    int size = this.curRow.size();
-	    for (int i = 0; i < size; i++) {
-	      inputStrings.add(this.curRow.get(i).toString());
-	    }
-
-	    return inputStrings;
-	  }
+    
+      public List<String> getProjectToolIDs() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PROJECT_TOOLS.getKey());
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
     
     /**
      * Converts a JSON object string to a Map<String, Object>
