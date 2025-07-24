@@ -10,6 +10,7 @@ import glob
 import json
 import bm25s
 
+
 # CFG/SEMOSS packages
 from genai_client import HuggingfaceTokenizer
 import gaas_gpt_model as ggm
@@ -79,6 +80,16 @@ class FAISSSearcher:
         self.reranker_gaas_model = None
         self.reranker_tok = None
         self.reranker = reranker
+
+        try:
+            import Stemmer
+
+            self.stemmer = Stemmer.Stemmer("english")
+        except ImportError:
+            self.class_logger.warning(
+                "Stemmer package not found. BM25 search will not use stemming."
+            )
+            self.stemmer = None
 
         disable_caching()
 
@@ -184,7 +195,10 @@ class FAISSSearcher:
                 corpus_with_metadata.append({"id": i, "text": text})
 
             text_only = [item["text"] for item in corpus_with_metadata]
-            corpus_tokens = bm25s.tokenize(text_only, stopwords="en")
+
+            corpus_tokens = bm25s.tokenize(
+                text_only, stopwords="en", stemmer=self.stemmer
+            )
 
             self.bm25_index = bm25s.BM25(method="lucene")
 
@@ -218,7 +232,7 @@ class FAISSSearcher:
             return []
 
         try:
-            query_tokens = bm25s.tokenize([query], stopwords="en")
+            query_tokens = bm25s.tokenize([query], stopwords="en", stemmer=self.stemmer)
 
             if top_k > len(self.bm25_corpus):
                 top_k = len(self.bm25_corpus)
