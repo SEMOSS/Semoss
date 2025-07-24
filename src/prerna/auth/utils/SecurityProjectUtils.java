@@ -1901,7 +1901,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	        permQs.addSelector(new QueryColumnSelector("PERMISSION__NAME","PERMISSION_NAME"));     
 	        permQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID","==", userId));
 	        permQs.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
- 
+	        permQs.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+	        permQs.addGroupBy(new QueryColumnSelector("PERMISSION__NAME"));
+	 
 	        SubqueryRelationship permRel = new SubqueryRelationship(permQs,"EP","left.outer.join",new String[]{ "EP__ENGINEID","ENGINE__ENGINEID","=" });
 	        qs.addRelation(permRel);
 	        qs.addSelector(new QueryColumnSelector("EP__PERMISSION","permission"));
