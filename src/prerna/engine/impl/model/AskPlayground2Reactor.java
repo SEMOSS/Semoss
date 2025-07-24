@@ -6,6 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -46,9 +48,10 @@ public class AskPlayground2Reactor extends AbstractReactor {
 				ReactorKeysEnum.URL.getKey(),
 				ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.ENGINE_TOOLS.getKey(),
-				ReactorKeysEnum.PROJECT_TOOLS.getKey()
+				ReactorKeysEnum.PROJECT_TOOLS.getKey(),
+        ReactorKeysEnum.VECTORDB.getKey()
 		};
-		this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -89,6 +92,13 @@ public class AskPlayground2Reactor extends AbstractReactor {
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 		MessageUtils.moveFilesToRoomFolder(inputImages, room, insight);
 		List<String> roomFilePaths = MessageUtils.moveFilesToRoomFolder(inputFiles, room, insight);
+
+    String vectorId = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.VECTORDB.getKey()));
+    if (vectorId != null && !SecurityEngineUtils.userCanViewEngine(user, vectorId)) {
+			throw new IllegalArgumentException(
+					"Vector " + vectorId + " does not exist or user does not have access to this vector");
+		}
+
 		
 	///// MESSAGE CREATION //////////
 
@@ -142,6 +152,10 @@ public class AskPlayground2Reactor extends AbstractReactor {
 
             // Iterate over each engine ID and add the function tool to the tools list
             for (String engineToolID : engineToolIDs) {
+              if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineToolID)) {
+                throw new IllegalArgumentException(
+                    "Function engine " + engineToolID + " does not exist or user does not have access to this vector");
+              }
               IFunctionEngine function = Utility.getFunctionEngine(engineToolID);
               assert function.getCatalogType() == IFunctionEngine.CATALOG_TYPE.FUNCTION;
               Map<String, Object> functionToolMap = function.buildFunctionEngineToolMap();
@@ -150,6 +164,10 @@ public class AskPlayground2Reactor extends AbstractReactor {
 
             // Iterate over each project ID and add the tool to the tools list
             for (String projectToolID : projectToolIDs) {
+              if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), projectToolID)) {
+                throw new IllegalArgumentException(
+                    "Function engine " + projectToolID + " does not exist or user does not have access to this vector");
+              }
               IProject project = Utility.getProject(projectToolID);
               assert project.getProjectType() == IProject.PROJECT_TYPE.CODE;
 //              TODO: Implement deprecated method
