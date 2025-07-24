@@ -25,7 +25,6 @@ public class GoogleDocsReadReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			String accessToken = GoogleDocsUtils.getGoogleAccessToken(user);
 			Docs service = GoogleDocsUtils.getDocsServiceUsingToken(accessToken);
-
 			String contentValue = GoogleDocsHelper.readDoc(service, id);
 			return new NounMetadata(contentValue, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
@@ -42,10 +41,10 @@ public class GoogleDocsReadReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROMPT_TITLE.getKey())) {
-			return "Title of the Document " + ReactorKeysEnum.PROMPT_TITLE.getKey();
-		}
-		return super.getDescriptionForKey(key);
+	    if (key.equals(ReactorKeysEnum.ID.getKey())) {
+	        return "ID of the Document to be read" + ReactorKeysEnum.ID.getKey();
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 
 }

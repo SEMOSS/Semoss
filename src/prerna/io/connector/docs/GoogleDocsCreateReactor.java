@@ -16,6 +16,9 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleDocsCreateReactor extends AbstractReactor {
+	
+	private static final String DOCUMENT_ID_KEY = "documentId";
+    private static final String SUCCESS_KEY = "success";
 
 	public GoogleDocsCreateReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROMPT_TITLE.getKey(), ReactorKeysEnum.CONTENT.getKey() };
@@ -39,19 +42,17 @@ public class GoogleDocsCreateReactor extends AbstractReactor {
 			Drive getDriveService = GoogleDocsUtils.getDriveServiceUsingToken(accessToken);
 
 			boolean success = false;
-			String DOCID = "docid";
-			String SUCCESS = "success";
 			Map<String, Object> map = new HashMap<>();
 			try {
 				Document doc = GoogleDocsHelper.createDoc(service, getDriveService, title, content);
 				if (doc != null && doc.getDocumentId() != null) {
 					success = true;
-					map.put(DOCID, doc.getDocumentId());
+					map.put(DOCUMENT_ID_KEY, doc.getDocumentId());
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			map.put(SUCCESS, success);
+			map.put(SUCCESS_KEY, success);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			throw new SemossPixelException("Please provide valid input", e);

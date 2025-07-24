@@ -28,7 +28,7 @@ public class GoogleDocsDeleteReactor extends AbstractReactor {
 			Drive getDriveService = GoogleDocsUtils.getDriveServiceUsingToken(accessToken);
 			boolean deleteresult = GoogleDocsHelper.deleteDoc(getDriveService, id);
 			Map<String, Object> map = new HashMap<>();
-			map.put("status: ", deleteresult);
+			map.put("status", deleteresult);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
@@ -44,10 +44,10 @@ public class GoogleDocsDeleteReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROMPT_TITLE.getKey())) {
-			return "Title of the Document " + ReactorKeysEnum.PROMPT_TITLE.getKey();
-		}
-		return super.getDescriptionForKey(key);
+	    if (key.equals(ReactorKeysEnum.ID.getKey())) {
+	        return "ID of the Document to be deleted" + ReactorKeysEnum.ID.getKey();
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 
 }

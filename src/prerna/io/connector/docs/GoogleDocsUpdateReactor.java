@@ -31,7 +31,7 @@ public class GoogleDocsUpdateReactor extends AbstractReactor {
 			Docs service = GoogleDocsUtils.getDocsServiceUsingToken(accessToken);
 			boolean updateresult = GoogleDocsHelper.updateDoc(service, id, content);
 			Map<String, Object> map = new HashMap<>();
-			map.put("status: ", updateresult);
+			map.put("status", updateresult);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
@@ -47,8 +47,8 @@ public class GoogleDocsUpdateReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROMPT_TITLE.getKey())) {
-			return "Title of the Document " + ReactorKeysEnum.PROMPT_TITLE.getKey();
+		if (key.equals(ReactorKeysEnum.ID.getKey())) {
+			return "ID of the Document to be updated " + ReactorKeysEnum.ID.getKey();
 		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
 			return "Updated Content to be added to the document " + ReactorKeysEnum.CONTENT.getKey();
 		}
