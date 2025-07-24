@@ -42,8 +42,8 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
 		User user = this.insight.getUser();
 		// check if user is logged in
 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
 			classLogger.error("Unauthorized access: you must be logged in to perform this action");
+			throwAnonymousUserError();
 		}
 		
 		String fileRelativePath = Utility.normalizePath(keyValue.get(keysToGet[0]));
