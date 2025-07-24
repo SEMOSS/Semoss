@@ -6161,5 +6161,15 @@ public final class Utility {
 		
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
+    
+    public static boolean folderHasAnyFiles(String folderPath) {
+        File folder = new File(folderPath);
+        if (!folder.exists() || !folder.isDirectory()) {
+            return false;
+        }
+        // Check for at least one non-directory file
+        File[] files = folder.listFiles(f -> f.isFile());
+        return files != null && files.length > 0;
+    }
 
     } 
