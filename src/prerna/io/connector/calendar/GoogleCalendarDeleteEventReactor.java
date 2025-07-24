@@ -27,7 +27,7 @@ public class GoogleCalendarDeleteEventReactor extends AbstractReactor {
 			Calendar CalendarService = GoogleCalendarUtils.getCalendarServiceUsingToken(accessToken);
 			boolean result = GoogleCalendarHelper.deleteEvent(CalendarService, id);
 			Map<String, Object> map = new HashMap<>();
-			map.put("status: ", result);
+			map.put("status", result);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);

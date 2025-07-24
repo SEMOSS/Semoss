@@ -51,7 +51,7 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 			boolean result = GoogleCalendarHelper.updateEvent(CalendarService,id, summary, location, desc, startdatetime,
 					enddatetime, attendeeEmails, video);
 			Map<String, Object> map = new HashMap<>();
-			map.put("status: ", result);
+			map.put("status", result);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);

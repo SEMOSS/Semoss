@@ -47,7 +47,7 @@ public class GoogleCalendarReadEventReactor extends AbstractReactor{
 			map.put("starttime", result.getStart().getDateTime().toStringRfc3339());
 			map.put("endtime", result.getEnd().getDateTime().toStringRfc3339());
 			map.put("location", result.getLocation());
-			map.put("organizer", result.getOrganizer().getEmail());
+			map.put("organizer", result.getOrganizer() != null ? result.getOrganizer().getEmail() : null);
 			map.put("hangoutLink", result.getHangoutLink());
 			map.put("htmlLink", result.getHtmlLink());
 			map.put("video", result.getHangoutLink()!=null);
