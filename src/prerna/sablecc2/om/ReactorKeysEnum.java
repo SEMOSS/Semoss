@@ -68,7 +68,6 @@ public enum ReactorKeysEnum {
 	ENGINE_TOOLS("engine_tools",								"Tools that are function engines to be run"),
 	ENGINE_TYPE("engineTypes",									"The type of engine to filter into (DATABASE, STORAGE, MODEL, etc.)"),
 	ENTITIES("entities",                                        "The entities to locate within a given text"),
-	EXECUTE_TOOLS("execute_tools",                              "Boolean to determine whether to execute tools or not"),
 	EXPIRES_ON("expires",	 									"The date when the api expires"),
 	EXPORT_AUDIT("exportAudit",	                             	"Boolean to include an audit sheet for parameters to excel exports"),
 	EXPORT_TEMPLATE("export_template",					    	"Template file to use for the export of this data"),

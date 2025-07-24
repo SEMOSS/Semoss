@@ -112,8 +112,6 @@ public class AskPlayground2Reactor extends AbstractReactor {
         
         ResponseMessage response = room.ask(msg, context, modelEngine);
         
-//        Check if tool call - if so, recursively keep asking until a non-tool call is returned (This will happen in @Room
-        
         // ---- Return both messages as a Map
         Map<String, Object> pixelReturn = new LinkedHashMap<>();
 

@@ -10,7 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -21,6 +24,8 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
+import prerna.project.api.IProject;
+import prerna.sablecc2.NotebookExecution;
 import prerna.util.Utility;
 
 public class Room {
@@ -40,6 +45,7 @@ public class Room {
 	private Insight insight;
 	private String systemMessage;
 	private String roomFolderPath;
+	private Map<String, Object> kwArgMap = new HashMap<>();
 
 	public Room() {
 	}
@@ -97,7 +103,6 @@ public class Room {
 			messageJsonString = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
 		}
 
-		Map<String, Object> kwArgMap = new HashMap<>();
 		kwArgMap.putAll(msg.getParamMap());
 		kwArgMap.put("message_json", messageJsonString);
 
@@ -105,6 +110,75 @@ public class Room {
 				kwArgMap);
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 
+		return handleTools(llmResponse, response, msg, modelEngine);
+	}
+	
+//  Check if tool call - if so, recursively keep asking until a non-tool call is returned (This will happen in @Room)
+	private ResponseMessage handleTools(AskModelEngineResponse<?> llmResponse, ResponseMessage response, InputMessage msg, IModelEngine modelEngine) {
+		
+		AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) llmResponse;
+		
+		updateRoomMessages(llmResponse, response, msg, modelEngine);
+		
+//		TODO: Clean up all deprecated methods
+		if (response.getMessageType().equals(MessageType.RESPONSE_TOOL)) {
+			HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
+			toolExecutionMap.put(AbstractModelEngine.ROLE, "tool");
+			toolExecutionMap.put("tool_call_id", toolResponse.getToolCallId());
+		    toolExecutionMap.put("name", toolResponse.getToolCallName());
+
+		    // {"function_id":"123-3345-567","map":{"lat":"123","lon":"321"}}
+		    String toolArguments = toolResponse.getToolCallArgumentsAsString();
+
+		    ObjectMapper mapper = new ObjectMapper();
+		    Map<String, Object> toolParams = new HashMap<String, Object>();
+		    try {
+		      toolParams = mapper.readValue(toolArguments, Map.class);
+		    } catch (Exception e) {
+		      // Handle parsing error
+		      toolParams = null;
+		    }
+
+		    Object toolExecutionReturn;
+		    // if it is a project, execute that:
+		    if (toolResponse.getToolCallName().equals("project_engine")) {
+		      IProject project = Utility.getProject((String) toolParams.get("id"));
+		      NotebookExecution notebookExec =
+		          project.executeNotebooks(this.insight, (Map<String, String>) toolParams.get("map"));
+		      toolExecutionReturn = notebookExec.getRunner().getResults();
+		    }
+		    // if it is a function, execute that:
+		    else {
+		      IFunctionEngine function = Utility.getFunctionEngine((String) toolParams.get("id"));
+		      toolExecutionReturn = function.execute((Map<String, Object>) toolParams.get("map"));
+		    }
+		    String toolReturnString = null;
+		    
+		    try {
+		        toolReturnString = mapper.writeValueAsString(toolExecutionReturn);
+		      } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+		        // Handle the exception, maybe log it or return a default value
+		        e.printStackTrace();
+		        toolReturnString = "{}";
+		      }
+		    
+//		    TODO: Do we want to put this into kwArgMap and run .askRoom?
+		    HashMap<String, Object> paramMap = new HashMap<String, Object>();
+		    toolExecutionMap.put("content", toolReturnString);
+		    paramMap.put("toolExecution", toolExecutionMap);
+		    
+		    AskModelEngineResponse<?> toolExecutionResponse =
+		            modelEngine.ask("", null, this.insight, paramMap);
+		    response = ResponseMessage.Builder.fromAskModelEngineResponse(toolExecutionResponse).build();
+		    
+		    updateRoomMessages(toolExecutionResponse, response, msg, modelEngine);
+        }
+
+		return response;
+	}
+
+	private void updateRoomMessages(AskModelEngineResponse<?> llmResponse, ResponseMessage response, InputMessage msg,
+			IModelEngine modelEngine) {
 		// set transaction id for both pieces
 		msg.setTransactionId(llmResponse.getMessageId());
 		msg.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
@@ -144,19 +218,6 @@ public class Room {
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 					getMessagesAsString());
 		}
-
-		return response;
-	}
-	
-	private ResponseMessage handleTools(ResponseMessage response, Room room) {
-		
-		if (!(response.getMessageType().equals(MessageType.RESPONSE_TOOL))) {
-        	return response;
-        }
-		
-		HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
-		
-		return response;
 	}
 
 	public AskModelEngineResponse<?> addToolExecutionResult(String toolCallId, String tool_name,
