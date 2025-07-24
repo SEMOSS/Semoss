@@ -3,8 +3,12 @@ package prerna.engine.impl.model;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -12,6 +16,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.project.api.IProject;
@@ -29,6 +34,8 @@ import prerna.util.Utility;
  */
 public class AskPlayground2Reactor extends AbstractReactor {
 	
+	private static final Gson gson = new Gson();
+	
 	public AskPlayground2Reactor() {
 		this.keysToGet = new String[] { 
 				ReactorKeysEnum.ENGINE.getKey(), 
@@ -39,9 +46,11 @@ public class AskPlayground2Reactor extends AbstractReactor {
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
 				ReactorKeysEnum.IMAGE.getKey(),
 				ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.FILE_PATH.getKey()
+				ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.ENGINE_TOOLS.getKey(),
+				ReactorKeysEnum.PROJECT_TOOLS.getKey()
 		};
-//		TODO: add this back when needed
+//		TODO: add this back when needed to test
 //		this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0, 0, 0 };
 	}
 
@@ -78,13 +87,44 @@ public class AskPlayground2Reactor extends AbstractReactor {
 //        TODO: Gonna need to move the files to a room if exists
         List<String> inputFiles = getFiles();
         
-        boolean executeTool = false;
-        String executeToolStr = this.keyValue.get(ReactorKeysEnum.EXECUTE_TOOLS.getKey());
-        if (executeToolStr != null) {
-          executeTool = Boolean.parseBoolean(executeToolStr);
-        }
+        addToolsToParamMap(paramMap);
+		
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
+		MessageUtils.moveFilesToRoomFolder(inputImages, room, insight);
+		List<String> roomFilePaths = MessageUtils.moveFilesToRoomFolder(inputFiles, room, insight);
+		
+	///// MESSAGE CREATION //////////
+
+//		Need to make sure we are adding files to the message (if applicable/necessary) using withRagChunks
+        InputMessage msg;
+        msg = InputMessage.builder(room)
+        .withInputUIPrompt(question)
+        .withInputPrompt(question)
+        .withModelType(modelEngine.getModelType())
+        .withParamMap(paramMap)
+        .withImages(inputImages, room)
+        .withImageUrls(inputImageURLs)
+        .build();
         
-        List<String> engineToolIDs = getEngineToolIDs();
+        /**
+         * Send message and incorporate tools if necessary
+         */
+        
+        ResponseMessage response = room.ask(msg, context, modelEngine);
+        
+//        Check if tool call - if so, recursively keep asking until a non-tool call is returned (This will happen in @Room
+        
+        // ---- Return both messages as a Map
+        Map<String, Object> pixelReturn = new LinkedHashMap<>();
+
+         pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(msg)));
+         pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
+
+        return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
+
+	private void addToolsToParamMap(Map<String, Object> paramMap) {
+		List<String> engineToolIDs = getEngineToolIDs();
         List<String> projectToolIDs = getProjectToolIDs();
         
         if (!engineToolIDs.isEmpty() || !projectToolIDs.isEmpty()) {
@@ -121,25 +161,6 @@ public class AskPlayground2Reactor extends AbstractReactor {
               toolsList.add(projectToolMap);
             }
           }
-		
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
-		
-	///// MESSAGE CREATION //////////
-
-//		Need to make sure we are adding files to the message (if applicable/necessary) and then need to add tools through the builder
-        MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
-        InputMessage msg;
-        msg = InputMessage.builder(room)
-        .withInputUIPrompt(question)
-        .withInputPrompt(question)
-        .withModelType(modelEngine.getModelType())
-        .withParamMap(paramMap)
-        .withImages(inputImages, room)
-        .withImageUrls(inputImageURLs)
-        .build();
-        
-        ResponseMessage response = room.ask(msg, context, modelEngine);
-		return new NounMetadata(response.getModelEngineResponse().toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
     public List<String> getImages() {
@@ -257,5 +278,16 @@ public class AskPlayground2Reactor extends AbstractReactor {
 	    return inputStrings;
 	  }
     
+    /**
+     * Converts a JSON object string to a Map<String, Object>
+     * @param json The JSON string (must be a JSON object: { ... })
+     * @return The parsed Map
+     */
+    public static Map<String, Object> jsonToMap(String json) {
+        if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
+            throw new IllegalArgumentException("Input must be a valid JSON object string.");
+        }
+        return gson.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
+    }
 
 }

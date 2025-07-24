@@ -101,7 +101,7 @@ public class Room {
 		kwArgMap.putAll(msg.getParamMap());
 		kwArgMap.put("message_json", messageJsonString);
 
-		AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,
+		AskModelEngineResponse<?> llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,
 				kwArgMap);
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 
@@ -147,8 +147,19 @@ public class Room {
 
 		return response;
 	}
+	
+	private ResponseMessage handleTools(ResponseMessage response, Room room) {
+		
+		if (!(response.getMessageType().equals(MessageType.RESPONSE_TOOL))) {
+        	return response;
+        }
+		
+		HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
+		
+		return response;
+	}
 
-	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String tool_name,
+	public AskModelEngineResponse<?> addToolExecutionResult(String toolCallId, String tool_name,
 			String tool_execution_response, IModelEngine modelEngine, Insight insight) {
 		if (messages.isEmpty())
 			throw new IllegalStateException("No messages to match tool call context");
@@ -232,7 +243,7 @@ public class Room {
 //			}
 			Map<String, Object> params = new HashMap<>();
 			params.put("full_prompt", fullPrompt);
-			AskModelEngineResponse llmResponse = modelEngine.ask(null, null, insight, params);
+			AskModelEngineResponse<?> llmResponse = modelEngine.ask(null, null, insight, params);
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
@@ -248,7 +259,7 @@ public class Room {
 		return null;
 	}
 
-	private ResponseMessage createResponseMessage(AskModelEngineResponse llmResponse) {
+	private ResponseMessage createResponseMessage(AskModelEngineResponse<?> llmResponse) {
 		if (llmResponse.getMessageType().equals(AskModelEngineResponse.CHAT)) {
 			return ResponseMessage.text(llmResponse.getStringResponse());
 		} else if (llmResponse.getMessageType().equals(AskModelEngineResponse.TOOL)) {
