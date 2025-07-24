@@ -48,10 +48,12 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 		QuerySolution row = rs.next();
 		for(int colIndex = 0;colIndex < numColumns; colIndex++) {
 			RDFNode node = row.get(rawHeaders[colIndex]);
-			// raw value is the straight return from the binding set
-			rawRow[colIndex] = node.toString();
-			// get the real value of the node
-			cleanRow[colIndex] = getRealValue(node);
+			if(node != null) {
+				// raw value is the straight return from the binding set
+				rawRow[colIndex] = node.toString();
+				// get the real value of the node
+				cleanRow[colIndex] = getRealValue(node);
+			}
 		}
 
 		return new HeadersDataRow(headers, cleanRow, rawRow);
@@ -93,13 +95,10 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	}
 
 	private Object getRealValue(RDFNode node){
-		if(node.isAnon()) {
-			classLogger.debug("Ok.. an anon node");
-			return Utility.getNextID();
-		} else {
-			classLogger.debug("Raw data JENA For Column ");
-			return Utility.getInstanceName(node + "");
-		}
+		if(node.isLiteral()) {
+			return node.asLiteral().getValue();
+		} 
+		return Utility.getInstanceName(node + "");
 	}
 	
 	@Override

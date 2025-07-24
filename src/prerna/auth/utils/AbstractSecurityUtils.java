@@ -40,6 +40,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.SemossDefaultEngines;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -2377,9 +2378,8 @@ public abstract class AbstractSecurityUtils {
 
 
 	public static boolean ignoreDatabase(String databaseId) {
-		if(databaseId.equals(Constants.LOCAL_MASTER_DB) || databaseId.equals(Constants.SECURITY_DB) 
-				|| databaseId.equals(Constants.SCHEDULER_DB) || databaseId.equals(Constants.USER_TRACKING_DB) ) {
-			// dont add local master or security db to security db
+		// dont add default semoss databases to security
+		if(SemossDefaultEngines.getDatabaseIgnoreSecurity().contains(databaseId)) {
 			return true;
 		}
 		// engine is an asset
@@ -2636,15 +2636,28 @@ public abstract class AbstractSecurityUtils {
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 
+	/**
+	 * 
+	 * @param email
+	 * @param isNewUser
+	 * @throws Exception
+	 */
 	public static void validEmail(String email, boolean isNewUser) throws Exception {
 		if(email == null || !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
 			throw new IllegalArgumentException(email + " is not a valid email address. ");
 		}
 		if(isNewUser && SecurityNativeUserUtils.userEmailExists(email)) {
-			throw new IllegalArgumentException("This email already exists. Please login");
+			throw new IllegalArgumentException("This email already exists. Please login. ");
 		}
 	}
 
+	/**
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param password
+	 * @throws Exception
+	 */
 	public static void validPassword(String userId, AuthProvider type, String password) throws Exception {
 		if(password == null || password.isEmpty()) {
 			throw new IllegalArgumentException("Password cannot be empty. ");
@@ -2655,6 +2668,12 @@ public abstract class AbstractSecurityUtils {
 		}
 	}
 
+	/**
+	 * 
+	 * @param phone
+	 * @return
+	 * @throws Exception
+	 */
 	public static String formatPhone(String phone) throws Exception {
 		if (phone != null && !phone.isEmpty()) {
 			if (!phone.matches("[\\d\\s.()-]+")) {
@@ -2667,6 +2686,20 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		return phone;
+	}
+	
+	/**
+	 * 
+	 * @param username
+	 * @throws IllegalArgumentException
+	 */
+	public static void validUsername(String username) throws IllegalArgumentException {
+		if (username == null || username.trim().isEmpty()) {
+			throw new IllegalArgumentException("Username cannot be empty. ");
+		}
+		if (SecurityQueryUtils.checkUsernameExist(username)) {
+			throw new IllegalArgumentException("Username already exists. ");
+		}
 	}
 
 	/**
@@ -2710,4 +2743,5 @@ public abstract class AbstractSecurityUtils {
 		LocalDateTime formattedEndDate = endDate.getLocalDateTime();
 		return formattedEndDate.isBefore(currentTime);
 	}
+	
 }

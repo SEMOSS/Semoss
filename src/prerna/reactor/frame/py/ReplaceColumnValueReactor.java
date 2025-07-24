@@ -134,7 +134,7 @@ public class ReplaceColumnValueReactor extends AbstractPyFrameReactor {
 		}
 		
 		// execute all of the routines after we have done our validation
-		insight.getPyTranslator().runPyAndReturnOutput(scripts);
+		insight.getPyTranslator().runEmptyPy(scripts);
 		for(String script : scripts) {
 			this.addExecutedCode(script);
 		}

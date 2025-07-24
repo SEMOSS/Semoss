@@ -2204,6 +2204,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getUserProjectList(
 			User user, 
+			List<String> projectTypes,
 			List<String> projectIdFilters,
 			boolean favoritesOnly, 
 			boolean portalsOnly,
@@ -2358,6 +2359,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs1.addExplicitFilter(orFilter);
 		}
 		
+		if(projectTypes != null && !projectTypes.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"TYPE", "==", projectTypes));
+		}
+		
 		// filter based on permission filters
 		if(permissionFilters != null && !permissionFilters.isEmpty()) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "==", permissionFilters, PixelDataType.CONST_INT));
@@ -2374,6 +2379,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if(portalsOnly) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"HASPORTAL", "==", true, PixelDataType.BOOLEAN));
 		}
+		
 		if(hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTID", searchTerm));
@@ -2563,6 +2569,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED", "project_reactors_compiled_date"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE", "project_favorite"));
 		// for sorting
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
 		// back to the others

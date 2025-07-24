@@ -22,6 +22,7 @@ import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDFDatabase;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.masterdatabase.utility.MetadataUtility;
@@ -284,7 +285,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 
 			// create the property URI
 			String property = null;
-			if (this.dbType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
+			if (IRDFDatabase.isRDFDbType(this.dbType)) {
 				// THIS IS BECAUSE OF LEGACY QUERIES!!!
 				property = BASE_PROPERTY_URI + "/" + propertyCol;
 			} else {
@@ -602,7 +603,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		long start = System.currentTimeMillis();
 		// create the property URI
 		String property = null;
-		if (this.dbType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
+		if (IRDFDatabase.isRDFDbType(this.dbType)) {
 			// THIS IS BECAUSE OF LEGACY QUERIES!!!
 			property = BASE_PROPERTY_URI + "/" + propertyCol;
 		} else {

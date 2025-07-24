@@ -381,11 +381,12 @@ public class Constants {
 	
 	// folder names on engines / projects
 	public static final String DATABASE_FOLDER = "db";
-	public static final String STORAGE_FOLDER = "storage";
-	public static final String MODEL_FOLDER = "model";
-	public static final String FUNCTION_FOLDER = "function";
-	public static final String VECTOR_FOLDER = "vector";
 	public static final String GUARDRAIL_FOLDER = "guardrail";
+	public static final String FUNCTION_FOLDER = "function";
+	public static final String MODEL_FOLDER = "model";
+	public static final String ROOM_FOLDER = "room";
+	public static final String STORAGE_FOLDER = "storage";
+	public static final String VECTOR_FOLDER = "vector";
 	public static final String VENV_FOLDER = "venv";
 	// project is just a special engine..
 	public static final String PROJECT_FOLDER = "project";
