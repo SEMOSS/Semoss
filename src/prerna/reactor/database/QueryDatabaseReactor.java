@@ -143,12 +143,12 @@ public class QueryDatabaseReactor extends AbstractReactor {
 		3. Generate the SQL query using only SELECT statements. Do not use INSERT, UPDATE, or DELETE.
 		4. Only join tables if a foreign key relationship is defined in the schema. Do not assume relationships that are not explicitly specified.
 		5. Do not use any columns, tables, or relationships that are not present or described in the schema.
-		6. The SQL query should be valid and as efficient as possible.
-		7. The SQL query should be compatible for a %s database.
-		7. If you use a column or table based on its description or logical name, briefly explain your reasoning in the "explanation" field.
-		8. Before finalizing your answer, think step-by-step about what result your SQL query will produce, and check if it matches the user's request.
-		9. If the SQL query does not exactly answer the user's question, or if there is not enough information in the schema, leave the "sql" field blank and explain why in the "explanation" field.
-		10. Make sure the JSON string can be parsed with GSON.
+		6. The SQL query should be compatible for a %s database.
+		7. The SQL query should be valid and as efficient as possible.
+		8. If you use a column or table based on its description or logical name, briefly explain your reasoning in the "explanation" field.
+		9. Before finalizing your answer, think step-by-step about what result your SQL query will produce, and check if it matches the user's request.
+		10. If the SQL query does not exactly answer the user's question, or if there is not enough information in the schema, leave the "sql" field blank and explain why in the "explanation" field.
+		11. Make sure the JSON string can be parsed with GSON.
 		
 		Schema:
 		%s
