@@ -7,6 +7,8 @@ import numpy as np
 import pickle
 import os
 import glob
+import json
+import bm25s
 
 # CFG/SEMOSS packages
 from genai_client import HuggingfaceTokenizer
@@ -28,7 +30,9 @@ class FAISSSearcher:
         metric_type_is_cosine_similarity: bool,
         base_path=None,
         reranker="BAAI/bge-reranker-base",
+        enable_hybrid_search: bool = True,
     ):
+        self.class_logger = get_logger(__name__)
         self.init_device()
         self.ds = None
 
@@ -46,24 +50,37 @@ class FAISSSearcher:
         )
 
         self.base_path = base_path
-        # if there is no master file, try to recreate it
+
+        # BM25 components
+        self.enable_hybrid_search = enable_hybrid_search
+        self.bm25_index = None
+        self.bm25_corpus = None
+
+        # File paths for BM25 storage
+        if base_path:
+            self.bm25_index_path = os.path.join(base_path, "bm25_index")
+            self.bm25_corpus_path = os.path.join(base_path, "bm25_corpus.json")
+
+        # Load existing files
         master_dataset_path = os.path.join(base_path, "dataset.pkl")
         master_vector_path = os.path.join(base_path, "vectors.pkl")
-        # if all the file paths exist, then create the tuple
+
         if not os.path.exists(master_dataset_path) or not os.path.exists(
             master_vector_path
         ):
             self.createMasterFiles(self.base_path)
 
-        self.rerank = False  # disable reranking by default
+        # Load BM25 index if it exists
+        if self.enable_hybrid_search:
+            self._load_bm25_index()
+
+        self.rerank = False
         self.reranker_model = None
         self.reranker_gaas_model = None
         self.reranker_tok = None
         self.reranker = reranker
 
-        disable_caching()  # disable caching within the shell so that engines can be exported
-
-        self.class_logger = get_logger(__name__)
+        disable_caching()
 
     def __getattr__(self, name: str):
         """Retrieve attribute from object's dictionary."""
@@ -129,6 +146,190 @@ class FAISSSearcher:
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
 
+    def _load_bm25_index(self):
+        """Load existing BM25 index and corpus if they exist"""
+        try:
+            if os.path.exists(self.bm25_index_path) and os.path.exists(
+                self.bm25_corpus_path
+            ):
+                self.bm25_index = bm25s.BM25.load(
+                    self.bm25_index_path, load_corpus=True
+                )
+
+                with open(self.bm25_corpus_path, "r", encoding="utf-8") as f:
+                    self.bm25_corpus = json.load(f)
+
+        except Exception as e:
+            self.class_logger.warning(f"Failed to load BM25 index: {e}")
+            self.bm25_index = None
+            self.bm25_corpus = None
+
+    def _save_bm25_index(self):
+        """Save BM25 index and corpus to disk"""
+        try:
+            if self.bm25_index is not None:
+                self.bm25_index.save(self.bm25_index_path, corpus=self.bm25_corpus)
+
+                with open(self.bm25_corpus_path, "w", encoding="utf-8") as f:
+                    json.dump(self.bm25_corpus, f, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            self.class_logger.error(f"Failed to save BM25 index: {e}")
+
+    def _build_bm25_index(self, texts: List[str]):
+        """Build BM25 index from text corpus"""
+        try:
+            corpus_with_metadata = []
+            for i, text in enumerate(texts):
+                corpus_with_metadata.append({"id": i, "text": text})
+
+            text_only = [item["text"] for item in corpus_with_metadata]
+            corpus_tokens = bm25s.tokenize(text_only, stopwords="en")
+
+            self.bm25_index = bm25s.BM25(method="lucene")
+
+            self.bm25_index.index(corpus_tokens)
+
+            self.bm25_corpus = texts
+
+            self._save_bm25_index()
+
+        except Exception as e:
+            self.class_logger.error(f"Failed to build BM25 index: {e}")
+            self.bm25_index = None
+            self.bm25_corpus = None
+
+    def _update_bm25_index(self, new_texts: List[str]):
+        """Update BM25 index with new texts"""
+        try:
+            if self.bm25_corpus is None:
+                self.bm25_corpus = []
+
+            all_texts = self.bm25_corpus + new_texts
+
+            self._build_bm25_index(all_texts)
+
+        except Exception as e:
+            self.class_logger.error(f"Failed to update BM25 index: {e}")
+
+    def _bm25_search(self, query: str, top_k: int = 10) -> List[Tuple[int, float]]:
+        """Perform BM25 search and return document indices with scores"""
+        if self.bm25_index is None or self.bm25_corpus is None:
+            return []
+
+        try:
+            query_tokens = bm25s.tokenize([query], stopwords="en")
+
+            if top_k > len(self.bm25_corpus):
+                top_k = len(self.bm25_corpus)
+
+            scores, indices = self.bm25_index.retrieve(query_tokens, k=top_k)
+
+            results = []
+            for i, (score_array, idx_array) in enumerate(zip(scores, indices)):
+                for score, idx in zip(score_array, idx_array):
+                    if isinstance(score, dict) and "id" in score:
+                        doc_index = score["id"]
+                        similarity_score = float(idx)
+
+                        if doc_index != -1:
+                            results.append((int(doc_index), similarity_score))
+                    else:
+                        self.class_logger.warning(
+                            f"Unexpected BM25 result format - score: {type(score)}, idx: {type(idx)}"
+                        )
+                        if idx != -1:
+                            results.append(
+                                (
+                                    int(idx),
+                                    (
+                                        float(score)
+                                        if not isinstance(score, dict)
+                                        else 0.0
+                                    ),
+                                )
+                            )
+
+            results.sort(key=lambda x: x[1], reverse=True)
+
+            return results
+
+        except Exception as e:
+            self.class_logger.error(f"BM25 search failed: {e}")
+            return []
+
+    def _reciprocal_rank_fusion(
+        self,
+        vector_results: List[Dict],
+        bm25_results: List[Tuple[int, float]],
+        k: int = 60,
+    ) -> List[Dict]:
+        """
+        Combine vector and BM25 results using Reciprocal Rank Fusion
+
+        Args:
+            vector_results: Results from vector search with 'Score' and data
+            bm25_results: Results from BM25 search as (index, score) tuples
+            k: RRF parameter (typically 60)
+        """
+        vector_score_map = {}
+        for i, result in enumerate(vector_results):
+            vector_score_map[i] = {
+                "rrf_score": 1.0 / (k + i + 1),  # RRF formula
+                "result": result,
+            }
+
+        bm25_score_map = {}
+        for rank, (doc_idx, score) in enumerate(bm25_results):
+            if doc_idx < len(self.ds):
+                bm25_score_map[doc_idx] = {
+                    "rrf_score": 1.0 / (k + rank + 1),
+                    "bm25_score": score,
+                    "doc_idx": doc_idx,
+                }
+
+        combined_scores = {}
+
+        for idx, data in vector_score_map.items():
+            combined_scores[idx] = {
+                "rrf_score": data["rrf_score"],
+                "result": data["result"],
+                "vector_score": data["result"]["Score"],
+                "bm25_score": 0.0,
+            }
+
+        for doc_idx, data in bm25_score_map.items():
+            if doc_idx in combined_scores:
+                combined_scores[doc_idx]["rrf_score"] += data["rrf_score"]
+                combined_scores[doc_idx]["bm25_score"] = data["bm25_score"]
+            else:
+                if doc_idx < len(self.ds):
+                    data_row = self.ds[doc_idx]
+                    result = {"Score": float("inf")}  # High distance for vector search
+                    for col in data_row.keys():
+                        result[col] = data_row[col]
+
+                    combined_scores[doc_idx] = {
+                        "rrf_score": data["rrf_score"],
+                        "result": result,
+                        "vector_score": float("inf"),
+                        "bm25_score": data["bm25_score"],
+                    }
+
+        sorted_results = sorted(
+            combined_scores.items(), key=lambda x: x[1]["rrf_score"], reverse=True
+        )
+
+        final_results = []
+        for idx, data in sorted_results:
+            result = data["result"].copy()
+            result["RRF_Score"] = data["rrf_score"]
+            result["BM25_Score"] = data["bm25_score"]
+            result["Vector_Score"] = data["vector_score"]
+            final_results.append(result)
+
+        return final_results
+
     def nearestNeighbor(
         self,
         question: str,
@@ -137,61 +338,97 @@ class FAISSSearcher:
         columns_to_return: Optional[List[str]] = None,
         return_threshold: Optional[Union[int, float]] = 1000,
         ascending: Optional[bool] = None,
-        total_results: Optional[int] = 10,  # this is used for reranking
+        total_results: Optional[int] = 10,
         insight_id: Optional[str] = None,
+        use_hybrid_search: Optional[bool] = None,
     ) -> List[Dict]:
-        '''
-        Find the closest match(es) between the question bassed in and the embedded documents using Euclidena Distance.
+        """
+        Enhanced nearest neighbor search with optional hybrid BM25 + vector search
+        """
+        use_hybrid = (
+            use_hybrid_search
+            if use_hybrid_search is not None
+            else self.enable_hybrid_search
+        )
 
-        Args:
-            question(`str`):
-                The string you are trying to match against the embedded documents
-            filter(`str`):
-                A SQL filter to find the appropriate indexes before executing the semantic search
-            results(`Optional[int]`, *optional*):
-                The number of matches under the threshold that will be returned
-            columns_to_return(`List[str]`):
-                A list of column names that will be sent back in the return payload.
-                Example:
-                # Given the following dataset
-                >>> dataset
-                Dataset({
-                    features: ['doc_index', 'content', 'tokens', 'url'],
-                    num_rows: 902
-                })
+        if not use_hybrid or self.bm25_index is None:
+            # if im not hybrid im using original vector-only search
+            return self._vector_only_search(
+                question,
+                filter,
+                results,
+                columns_to_return,
+                return_threshold,
+                ascending,
+                total_results,
+                insight_id,
+            )
 
-                # if columns_to_return = None, then all four columns will be returned
+        return self._hybrid_search(
+            question,
+            filter,
+            results,
+            columns_to_return,
+            return_threshold,
+            ascending,
+            total_results,
+            insight_id,
+        )
 
-                # if columns_to_return = ['doc_index']
+    def _hybrid_search(
+        self,
+        question,
+        filter,
+        results,
+        columns_to_return,
+        return_threshold,
+        ascending,
+        total_results,
+        insight_id,
+    ):
+        """Perform hybrid BM25 + vector search"""
+        if columns_to_return is None:
+            columns_to_return = list(self.ds.features)
 
-                >>> FAISSearcher.nearestNeighbor(
-                ...     question = 'Sample',
-                ...     columns_to_return = ['doc_index'],
-                ...     results = 1
-                ... )
-                [{'Score':0.23, "doc_index":"<theDocIndexThatMathced"}]
-            return_threshold(`Optional[Union[int,float]]`):
-                A numerical value that specifies what Score should be less than.
-            ascending(`Optional[bool]`):
-                A boolean flag to return results in ascending order or not. Default is True
-            insight_id(`Optional[str]`):
-                The unique identifier of the insight from which the call is being made
+        fusion_results = max(total_results * 2, 20)
 
-        Return:
-            `List[Dict]` consisting of Score and columns
+        # 1. Do vector search
+        vector_results = self._vector_only_search(
+            question,
+            filter,
+            fusion_results,
+            columns_to_return,
+            return_threshold,
+            ascending,
+            fusion_results,
+            insight_id,
+        )
 
-        Example:
-            >>> faissSearcherObj.nearestNeighbor(
-            ...     question="""How is the president chosen""",
-            ...     results = 3,
-            ...     columns_to_return = ['doc_index'],
-            ...     return_threshold = 1.0,
-            ...     ascending = False
-            ... )
-            [{Score=0.9867115616798401, doc_index=1420-deloitte-independence_11_text},
-            {Score=0.9855965375900269, doc_index=1420-deloitte-independence_10_text}]
-        '''
-        # if columns_to_return is None, then by default we return all columns
+        # 2. Do BM25 search
+        bm25_results = self._bm25_search(question, top_k=fusion_results)
+
+        # 3. Combine using reciprocal rank fusion
+        if bm25_results:
+            hybrid_results = self._reciprocal_rank_fusion(vector_results, bm25_results)
+        else:
+            # fall back to vector-only if BM25 failed
+            hybrid_results = vector_results
+
+        # 4. return top results
+        return hybrid_results[:results]
+
+    def _vector_only_search(
+        self,
+        question,
+        filter,
+        results,
+        columns_to_return,
+        return_threshold,
+        ascending,
+        total_results,
+        insight_id,
+    ):
+        """Original vector-only search logic"""
         if columns_to_return is None:
             columns_to_return = list(self.ds.features)
 
@@ -199,21 +436,14 @@ class FAISSSearcher:
             strings_to_embed=[question], insight_id=insight_id
         )
 
-        # If model_engine_class is 'LOCAL' -> Type of search_vector is List
-        # If model_engine_class is 'TOMCAT' -> Type of search_vector is Dict
         if isinstance(search_vector, List):
             query_vector = np.array(search_vector[0]["response"], dtype=np.float32)
         else:
             query_vector = np.array(search_vector["response"], dtype=np.float32)
         assert query_vector.shape[0] == 1
 
-        # check to see if need to normalize the vector
         if isinstance(self.tokenizer, HuggingfaceTokenizer):
             faiss.normalize_L2(query_vector)
-
-        # perform the faiss search. Scores returned are Euclidean distances
-        # distances - the measurement score between the embedded question and the Approximate Nearest Neighbor (ANN)
-        # ann_index - the index location of the Approximate Nearest Neighbor (ANN)
 
         if not isinstance(results, int):
             results = int(results)
@@ -221,7 +451,6 @@ class FAISSSearcher:
         if not self.rerank:
             total_results = results
 
-        # If a filter was passed in then we need to get the indexes
         if filter != None:
             filter_ids = self._filter_dataset(filter)
             id_selector = faiss.IDSelectorArray(filter_ids)
@@ -237,7 +466,7 @@ class FAISSSearcher:
         ann_index = ann_index[0]
 
         if self.rerank:
-            final_output = self.do_rerank(
+            return self.do_rerank(
                 question=question,
                 distances=distances,
                 ann_index=ann_index,
@@ -246,21 +475,13 @@ class FAISSSearcher:
                 ascending=ascending,
             )
 
-            return final_output
-
-        # this is a safety check to make sure we are only returning good vectors if the limit was too high
         if self.vector_dimensions[0] < results:
-            # Find the index of the first occurrence of -1
             index_of_minus_one = np.where(ann_index == -1)[0]
-            # If -1 is not found, index_of_minus_one will be an empty array
-            # In that case, we keep the original array, otherwise, we slice it
             if len(index_of_minus_one) > 0:
                 ann_index = ann_index[: index_of_minus_one[0]]
                 distances = distances[: index_of_minus_one[0]]
 
-        # create the return data
         samples_df = pd.DataFrame({"distances": distances, "ann": ann_index})
-
         samples_df.sort_values(
             "distances",
             ascending=(
@@ -270,19 +491,12 @@ class FAISSSearcher:
         )
         samples_df = samples_df[samples_df["distances"] <= return_threshold]
 
-        # create the response payload by adding the relevant columns from the dataset
         final_output = []
-
-        # see if rerank is enabled
-        # if so run through reranking this
-        # and then limit to the final result
-
         for _, row in samples_df.iterrows():
-            output = {}
-            output.update({"Score": row["distances"]})
+            output = {"Score": row["distances"]}
             data_row = self.ds[int(row["ann"])]
             for col in columns_to_return:
-                output.update({col: data_row[col]})
+                output[col] = data_row[col]
             final_output.append(output)
 
         return final_output
@@ -504,6 +718,57 @@ class FAISSSearcher:
         return concatenate_datasets(datasets)
 
     def addDocument(
+        self,
+        documentFileLocation: List[str],
+        columns_to_index: Optional[List[str]],
+        columns_to_remove: Optional[List[str]] = [],
+        target_column: Optional[str] = "text",
+        separator: Optional[str] = ",",
+        keyword_search_params: Optional[Dict] = {},
+        insight_id: Optional[str] = None,
+    ) -> Dict:
+        """
+        Enhanced document addition with BM25 index updates
+        """
+        # Call the original addDocument method
+        response = self._vector_addDocument(
+            documentFileLocation,
+            columns_to_index,
+            columns_to_remove,
+            target_column,
+            separator,
+            keyword_search_params,
+            insight_id,
+        )
+
+        if self.enable_hybrid_search and self.ds is not None:
+            try:
+                # Extract all text content for BM25 indexing
+                if "Content" in self.ds.features:
+                    all_texts = self.ds["Content"]
+                else:
+                    # Fallback: concatenate all text fields
+                    all_texts = []
+                    for i in range(len(self.ds)):
+                        row = self.ds[i]
+                        text_parts = []
+                        for key, value in row.items():
+                            if isinstance(value, str):
+                                text_parts.append(value)
+                        all_texts.append(" ".join(text_parts))
+
+                if self.bm25_index is None:
+                    self._build_bm25_index(all_texts)
+                else:
+                    # eventually i want to build incrementally here..
+                    self._build_bm25_index(all_texts)
+
+            except Exception as e:
+                self.class_logger.error(f"Failed to update BM25 index: {e}")
+
+        return response
+
+    def _vector_addDocument(
         self,
         documentFileLocation: List[str],
         columns_to_index: Optional[List[str]],
