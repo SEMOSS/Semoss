@@ -123,143 +123,147 @@ public class AskPlayground2Reactor extends AbstractReactor {
      List<Map<String, Object>> chunks = new ArrayList<>();
 
      try {
-    String vectorId = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.VECTORDB.getKey()));
+       String vectorId = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.VECTORDB.getKey()));
 
-    String workspaceId = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey()));
+       String workspaceId = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey()));
 
-    JsonObject options = null;
-		String rawOptions = room.getOptions();
-		if(rawOptions != null) {
-			try {
-				options = JsonParser.parseString(rawOptions).getAsJsonObject();
-			} catch(Exception e) {
-				logger.warn("Failed to parse room options for room with id " + roomId, e);
-			}
-		}
+       JsonObject options = null;
+       String rawOptions = room.getOptions();
+       if (rawOptions != null) {
+         try {
+           options = JsonParser.parseString(rawOptions).getAsJsonObject();
+         } catch (Exception e) {
+           logger.warn("Failed to parse room options for room with id " + roomId, e);
+         }
+       }
 
-    if(workspaceId == null && options != null) {
-			JsonElement workspaceElement = options.get("workspace");
-			if(workspaceElement != null) {
-				if(workspaceElement.isJsonPrimitive()) {
-					workspaceId = workspaceElement.getAsString();
-				} else if(workspaceElement.isJsonObject()) {
-					JsonElement idElement = workspaceElement.getAsJsonObject().get("id");
-					if(idElement.isJsonPrimitive()) {
-						workspaceId = idElement.getAsString();
-					}
-				}
-			}
-		}
+       if (workspaceId == null && options != null) {
+         JsonElement workspaceElement = options.get("workspace");
+         if (workspaceElement != null) {
+           if (workspaceElement.isJsonPrimitive()) {
+             workspaceId = workspaceElement.getAsString();
+           } else if (workspaceElement.isJsonObject()) {
+             JsonElement idElement = workspaceElement.getAsJsonObject().get("id");
+             if (idElement.isJsonPrimitive()) {
+               workspaceId = idElement.getAsString();
+             }
+           }
+         }
+       }
 
-    Map<String, Object> workspace = null;
-		if(workspaceId != null) {
-			workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-			if (workspace == null) {
-				throw new IllegalArgumentException("Workspace not found");
-			}
-			String currentOwner = (String) workspace.get("owner");
-			Boolean currentlyShared = (Boolean) workspace.get("sharing_enabled");
-			boolean hasPermission = false;
-			if (currentOwner != null) {
-				for (AuthProvider provider : user.getLogins()) {
-					if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
-						hasPermission = true;
-						break;
-					}
-				}
-			}
-			if (!hasPermission
-					&& (Boolean.TRUE != currentlyShared
-					|| !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user))) {
-				throw new IllegalArgumentException("User unauthorized to use workspace for this query");
-			}
-		}
+       Map<String, Object> workspace = null;
+       if (workspaceId != null) {
+         workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+         if (workspace == null) {
+           throw new IllegalArgumentException("Workspace not found");
+         }
+         String currentOwner = (String) workspace.get("owner");
+         Boolean currentlyShared = (Boolean) workspace.get("sharing_enabled");
+         boolean hasPermission = false;
+         if (currentOwner != null) {
+           for (AuthProvider provider : user.getLogins()) {
+             if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
+               hasPermission = true;
+               break;
+             }
+           }
+         }
+         if (!hasPermission
+             && (Boolean.TRUE != currentlyShared
+                 || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user))) {
+           throw new IllegalArgumentException("User unauthorized to use workspace for this query");
+         }
+       }
 
-    String givenSystemPrompt = context;
-		if(givenSystemPrompt == null && options != null) {
-			JsonElement instructionsElement = options.get("instructions");
-			if(instructionsElement != null && instructionsElement.isJsonPrimitive()) {
-				givenSystemPrompt = instructionsElement.getAsString();
-			}
-		}
-		if(givenSystemPrompt == null && workspace != null) {
-			givenSystemPrompt = (String) workspace.get("system_prompt");
-		}
+       String givenSystemPrompt = context;
+       if (givenSystemPrompt == null && options != null) {
+         JsonElement instructionsElement = options.get("instructions");
+         if (instructionsElement != null && instructionsElement.isJsonPrimitive()) {
+           givenSystemPrompt = instructionsElement.getAsString();
+         }
+       }
+       if (givenSystemPrompt == null && workspace != null) {
+         givenSystemPrompt = (String) workspace.get("system_prompt");
+       }
 
-  if(vectorId == null && workspace != null && AbstractSecurityUtils.containsEngineId(workspaceId)) {
-			vectorId = workspaceId;
-		}
+       if (vectorId == null && workspace != null && AbstractSecurityUtils.containsEngineId(workspaceId)) {
+         vectorId = workspaceId;
+       }
 
-		if (vectorId != null && !SecurityEngineUtils.userCanViewEngine(user, vectorId)) {
-			throw new IllegalArgumentException(
-					"Vector " + vectorId + " does not exist or user does not have access to this vector");
-		}
-		Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(workspaceId,
-				Arrays.asList("description"), true);
-		String vectorDesc = StringUtils.trimToEmpty((String) metadata.get("description"));
-		
-		long charCount = 0;
-		List<String> selectedFiles = null;
-		if(vectorId != null && vectorId.equals(workspaceId)) {
-			if(options != null) {
-				try {
-					JsonElement resourceFiltersElement = options.get("resourceFilters");
-					if(resourceFiltersElement != null && resourceFiltersElement.isJsonObject()) {
-						JsonElement entriesForVector = ((JsonObject) resourceFiltersElement).get(vectorId);
-						if(entriesForVector != null && entriesForVector.isJsonArray()) {
-							JsonArray filterEntries = (JsonArray) entriesForVector;
-							if(filterEntries != null) {
-								Set<String> distinctFiles = new HashSet<>();
-								for(JsonElement e : (JsonArray) filterEntries) {
-									distinctFiles.add(e.getAsString());
-								}
-								selectedFiles = new ArrayList<>(distinctFiles);
-							}
-						}
-					}
-				} catch(Exception e) {
-					logger.warn("Failed to retrieve resource filters from room options for room with id " + roomId, e);
-				}
-			}
-			
-      // TODO: Add a helper to ModelInferenceLogsUtils to get filesData
-			// Map<String, Object> selectedFilesData = PlaygroundUtils.getInstance().getWorkspaceDocDataFromFilter(workspaceId, selectedFiles);
-			// charCount = (Long) selectedFilesData.get("persistent_char_count");
-			// selectedFiles = (List<String>) selectedFilesData.get("workspace_selected_files");
-		}
+       if (vectorId != null && !SecurityEngineUtils.userCanViewEngine(user, vectorId)) {
+         throw new IllegalArgumentException(
+             "Vector " + vectorId + " does not exist or user does not have access to this vector");
+       }
+       Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(workspaceId,
+           Arrays.asList("description"), true);
+       String vectorDesc = StringUtils.trimToEmpty((String) metadata.get("description"));
 
-    if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(room.getRoomFolderPath());
-		}
+       long charCount = 0;
+       List<String> selectedFiles = null;
+       if (vectorId != null && vectorId.equals(workspaceId)) {
+         if (options != null) {
+           try {
+             JsonElement resourceFiltersElement = options.get("resourceFilters");
+             if (resourceFiltersElement != null && resourceFiltersElement.isJsonObject()) {
+               JsonElement entriesForVector = ((JsonObject) resourceFiltersElement).get(vectorId);
+               if (entriesForVector != null && entriesForVector.isJsonArray()) {
+                 JsonArray filterEntries = (JsonArray) entriesForVector;
+                 if (filterEntries != null) {
+                   Set<String> distinctFiles = new HashSet<>();
+                   for (JsonElement e : (JsonArray) filterEntries) {
+                     distinctFiles.add(e.getAsString());
+                   }
+                   selectedFiles = new ArrayList<>(distinctFiles);
+                 }
+               }
+             }
+           } catch (Exception e) {
+             logger.warn("Failed to retrieve resource filters from room options for room with id " + roomId, e);
+           }
+         }
 
-    String vectorDocumentsPath = null;
-		if(vectorId != null) {
-			vectorDocumentsPath = Utility.getVectorDatabase(vectorId).getDocumentsFilesPath(null);
-			Path documentsDir = Paths.get(vectorDocumentsPath);
-			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-				this.insight.getUser().getUserSymlinkHelper().symlinkFolder(documentsDir.toString());
-			}
-		}
+         // TODO: Add a helper to ModelInferenceLogsUtils to get filesData
+         // Map<String, Object> selectedFilesData =
+         // PlaygroundUtils.getInstance().getWorkspaceDocDataFromFilter(workspaceId,
+         // selectedFiles);
+         // charCount = (Long) selectedFilesData.get("persistent_char_count");
+         // selectedFiles = (List<String>)
+         // selectedFilesData.get("workspace_selected_files");
+       }
 
-    if(workspaceId != null) {
-			promptScript = buildWorkspaceScript(userId, question, engineId, roomFilePaths, null, vectorId, vectorDesc, vectorDocumentsPath, givenSystemPrompt, selectedFiles, charCount);
-		} else {
-			promptScript = buildPromptScript(userId, question, engineId, roomFilePaths, null, vectorId, vectorDesc);
-		}
-		logger.info("AskElsa running: " + promptScript);
-		promptResult = (Map<String, Object>) this.insight.getPyTranslator()
-				.runScript(promptScript);
+       if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+         this.insight.getUser().getUserSymlinkHelper().symlinkFolder(room.getRoomFolderPath());
+       }
 
-    String builtPrompt = (String) promptResult.getOrDefault("built_prompt", "");
-		String userPrompt = (String) promptResult.getOrDefault("user_question", question);
-		String systemPrompt = (String) promptResult.getOrDefault("system_prompt", context);
-		chunks = (List<Map<String, Object>>) promptResult.remove("chunks");
-		if (builtPrompt.isEmpty())
-			builtPrompt = userPrompt;
+       String vectorDocumentsPath = null;
+       if (vectorId != null) {
+         vectorDocumentsPath = Utility.getVectorDatabase(vectorId).getDocumentsFilesPath(null);
+         Path documentsDir = Paths.get(vectorDocumentsPath);
+         if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+           this.insight.getUser().getUserSymlinkHelper().symlinkFolder(documentsDir.toString());
+         }
+       }
 
-  } catch (Exception e) {
-    logger.warn("Rag failed with error: ", e.getMessage());
-  }
+       if (workspaceId != null) {
+         promptScript = buildWorkspaceScript(userId, question, engineId, roomFilePaths, null, vectorId, vectorDesc,
+             vectorDocumentsPath, givenSystemPrompt, selectedFiles, charCount);
+       } else {
+         promptScript = buildPromptScript(userId, question, engineId, roomFilePaths, null, vectorId, vectorDesc);
+       }
+       logger.info("AskElsa running: " + promptScript);
+       promptResult = (Map<String, Object>) this.insight.getPyTranslator()
+           .runScript(promptScript);
+
+       String builtPrompt = (String) promptResult.getOrDefault("built_prompt", "");
+       String userPrompt = (String) promptResult.getOrDefault("user_question", question);
+       String systemPrompt = (String) promptResult.getOrDefault("system_prompt", context);
+       chunks = (List<Map<String, Object>>) promptResult.remove("chunks");
+       if (builtPrompt.isEmpty())
+         builtPrompt = userPrompt;
+
+     } catch (Exception e) {
+       logger.warn("Rag failed with error: ", e.getMessage());
+     }
 		
 	///// MESSAGE CREATION //////////
 
