@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.Event;
 import prerna.auth.User;
@@ -16,6 +17,8 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleCalendarRecurringEventReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarRecurringEventReactor.class);
 
 	public GoogleCalendarRecurringEventReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.SUMMARY.getKey(), ReactorKeysEnum.LOCATION.getKey(),
@@ -60,6 +63,7 @@ public class GoogleCalendarRecurringEventReactor extends AbstractReactor {
 			map.put("link", recurringEvent.getHtmlLink());
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
+			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 

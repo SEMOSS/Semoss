@@ -2,7 +2,8 @@ package prerna.io.connector.calendar;
 
 import java.util.List;
 import java.util.*;
-
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventAttendee;
@@ -16,6 +17,8 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleCalendarReadEventReactor extends AbstractReactor{
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarReadEventReactor.class);
 	
 	public GoogleCalendarReadEventReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey()};
@@ -56,6 +59,7 @@ public class GoogleCalendarReadEventReactor extends AbstractReactor{
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
+			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 

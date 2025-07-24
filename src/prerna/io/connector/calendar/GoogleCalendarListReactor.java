@@ -2,7 +2,8 @@ package prerna.io.connector.calendar;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.Event;
@@ -17,6 +18,8 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleCalendarListReactor extends AbstractReactor{
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarListReactor.class);
 	
 	public GoogleCalendarListReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.STARTDATE.getKey(), ReactorKeysEnum.ENDDATE.getKey()};
@@ -36,6 +39,7 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 			return new NounMetadata(eventList, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
+			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 	}
@@ -69,7 +73,7 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 	    } while (pageToken != null);
 
 	    if (eventList.isEmpty()) {
-	        System.out.println("No Events Found In The Given Date Range");
+	    	classLogger.info("No Events Found In The Given Date Range");
 	    }
 
 	    return eventList;

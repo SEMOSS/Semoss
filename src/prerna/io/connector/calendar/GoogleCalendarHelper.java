@@ -4,8 +4,12 @@ import java.util.*;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.*;
 import com.google.api.client.util.DateTime;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class GoogleCalendarHelper {
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarHelper.class);
 
 	public static Event createEvent(Calendar service, String summary, String location, String desc, String startdatetime,
 			String enddatetime, List<String> attendeeEmails, Boolean enableVideoConferencing) throws Exception {
@@ -95,7 +99,7 @@ public class GoogleCalendarHelper {
 			return true;
 			
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error("Failed to update event");
 			return false;
 		}
 	}
@@ -105,7 +109,7 @@ public class GoogleCalendarHelper {
 			service.events().delete("primary", id).execute();
 			return true;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error("Failed to delete event");
 			return false;
 		}
 	}
