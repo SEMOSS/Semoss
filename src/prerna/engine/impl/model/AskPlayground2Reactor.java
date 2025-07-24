@@ -48,8 +48,7 @@ public class AskPlayground2Reactor extends AbstractReactor {
 				ReactorKeysEnum.ENGINE_TOOLS.getKey(),
 				ReactorKeysEnum.PROJECT_TOOLS.getKey()
 		};
-//		TODO: add this back when needed to test
-//		this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override

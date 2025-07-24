@@ -116,11 +116,10 @@ public class Room {
 	
 //  Check if tool call - if so, handle that and return the tool execution (This will happen in @Room)
 	private ResponseMessage handleTools(AskModelEngineResponse<?> llmResponse, ResponseMessage response, InputMessage msg, IModelEngine modelEngine) {
-		
-		AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) llmResponse;
 
 		//		TODO: Clean up all deprecated methods
 		if (response.getMessageType().equals(MessageType.RESPONSE_TOOL)) {
+			AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) llmResponse;
 			HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
 			toolExecutionMap.put(AbstractModelEngine.ROLE, "tool");
 			toolExecutionMap.put("tool_call_id", toolResponse.getToolCallId());
