@@ -1,6 +1,11 @@
 package prerna.io.connector.docs;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.google.api.services.docs.v1.Docs;
+import com.google.api.services.docs.v1.model.Document;
+
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -25,13 +30,22 @@ public class GoogleDocsReadReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			String accessToken = GoogleDocsUtils.getGoogleAccessToken(user);
 			Docs service = GoogleDocsUtils.getDocsServiceUsingToken(accessToken);
+			String title = getDocTitle(service, id);
 			String contentValue = GoogleDocsHelper.readDoc(service, id);
-			return new NounMetadata(contentValue, PixelDataType.CUSTOM_DATA_STRUCTURE,
+			Map<String, Object> map = new HashMap<>();
+			map.put("title", title);
+			map.put("content", contentValue);
+			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			throw new SemossPixelException("Please provide valid input", e);
 		}
 
+	}
+	
+	public static String getDocTitle(Docs service, String docId) throws Exception {
+	    Document doc = service.documents().get(docId).execute();
+	    return doc.getTitle();
 	}
 	
 	@Override
