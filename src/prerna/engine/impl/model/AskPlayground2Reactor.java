@@ -1,7 +1,6 @@
 package prerna.engine.impl.model;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,7 +15,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.project.api.IProject;
@@ -155,7 +153,8 @@ public class AskPlayground2Reactor extends AbstractReactor {
             for (String projectToolID : projectToolIDs) {
               IProject project = Utility.getProject(projectToolID);
               assert project.getProjectType() == IProject.PROJECT_TYPE.CODE;
-              Map<String, Object> projectToolMap = project.buildOpenAIFunctionEngineToolMap();
+//              TODO: Implement deprecated method
+              Map<String, Object> projectToolMap = project.buildProjectToolMap();
               toolsList.add(projectToolMap);
             }
           }

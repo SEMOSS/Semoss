@@ -109,18 +109,17 @@ public class Room {
 		AskModelEngineResponse<?> llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,
 				kwArgMap);
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+		// updateRoomMessages(llmResponse, response, msg, modelEngine);
 
 		return handleTools(llmResponse, response, msg, modelEngine);
 	}
 	
-//  Check if tool call - if so, recursively keep asking until a non-tool call is returned (This will happen in @Room)
+//  Check if tool call - if so, handle that and return the tool execution (This will happen in @Room)
 	private ResponseMessage handleTools(AskModelEngineResponse<?> llmResponse, ResponseMessage response, InputMessage msg, IModelEngine modelEngine) {
 		
 		AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) llmResponse;
-		
-		updateRoomMessages(llmResponse, response, msg, modelEngine);
-		
-//		TODO: Clean up all deprecated methods
+
+		//		TODO: Clean up all deprecated methods
 		if (response.getMessageType().equals(MessageType.RESPONSE_TOOL)) {
 			HashMap<String, String> toolExecutionMap = new HashMap<String, String>();
 			toolExecutionMap.put(AbstractModelEngine.ROLE, "tool");
@@ -162,17 +161,18 @@ public class Room {
 		        toolReturnString = "{}";
 		      }
 		    
-//		    TODO: Do we want to put this into kwArgMap and run .askRoom?
 		    HashMap<String, Object> paramMap = new HashMap<String, Object>();
 		    toolExecutionMap.put("content", toolReturnString);
 		    paramMap.put("toolExecution", toolExecutionMap);
 		    
 		    AskModelEngineResponse<?> toolExecutionResponse =
 		            modelEngine.ask("", null, this.insight, paramMap);
-		    response = ResponseMessage.Builder.fromAskModelEngineResponse(toolExecutionResponse).build();
 		    
-		    updateRoomMessages(toolExecutionResponse, response, msg, modelEngine);
+		    response = ResponseMessage.Builder.fromAskModelEngineResponse(toolExecutionResponse).build();
+		    llmResponse = toolExecutionResponse;
         }
+
+		updateRoomMessages(llmResponse, response, msg, modelEngine);
 
 		return response;
 	}
