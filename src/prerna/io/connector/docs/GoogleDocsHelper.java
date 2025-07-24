@@ -2,6 +2,9 @@ package prerna.io.connector.docs;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 
 import com.google.api.services.docs.v1.Docs;
@@ -12,13 +15,17 @@ import com.google.api.services.docs.v1.model.ParagraphElement;
 import com.google.api.services.docs.v1.model.StructuralElement;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.*;
+
 import com.google.api.services.docs.v1.model.*;
 
 public class GoogleDocsHelper {
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleDocsHelper.class);
 
 	public static Document createDoc(Docs service, Drive driveService, String title, String content) throws Exception {
 
 		if (title == null || titleExists(driveService, title)) {
+			classLogger.error("Title already exists");
 		    throw new IllegalArgumentException("Title " + title + " already exists");
 		}
 		Document doc = new Document().setTitle(title);
@@ -46,7 +53,7 @@ public class GoogleDocsHelper {
 		return sb.toString();
 	}
 
-	public static Boolean updateDoc(Docs service, String id, String content) throws Exception {
+	public static Boolean updateDoc(Docs service, String id, String content) {
 		try {
 			List<Request> requests = new ArrayList<>();
 			Document doc = service.documents().get(id).execute();
@@ -66,18 +73,17 @@ public class GoogleDocsHelper {
 			service.documents().batchUpdate(id, body).execute();
 			return true;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error("Failed to update Google Doc");
 			return false;
 		}
 	}
 
-	public static Boolean deleteDoc(Drive driveService, String id) throws Exception {
+	public static Boolean deleteDoc(Drive driveService, String id) {
 		try {
 			driveService.files().delete(id).execute();
-			System.out.println("Document with id " + id + " deleted successfully");
 			return true;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error("Failed to delete Google Doc");
 			return false;
 		}
 
@@ -95,8 +101,8 @@ public class GoogleDocsHelper {
 			return files != null && !files.isEmpty();
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error("Error checking existence of Google Doc with title");
+			return false;
 		}
-		return false;
 	}
 }

@@ -2,7 +2,8 @@ package prerna.io.connector.docs;
 
 import java.util.HashMap;
 import java.util.Map;
-
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.google.api.services.docs.v1.Docs;
 import com.google.api.services.docs.v1.model.Document;
 import com.google.api.services.drive.Drive;
@@ -17,8 +18,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleDocsCreateReactor extends AbstractReactor {
 	
+	private static final Logger classLogger = LogManager.getLogger(GoogleDocsCreateReactor.class);
+	
 	private static final String DOCUMENT_ID_KEY = "documentId";
-    private static final String SUCCESS_KEY = "success";
+	private static final String SUCCESS_KEY = "success";
 
 	public GoogleDocsCreateReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROMPT_TITLE.getKey(), ReactorKeysEnum.CONTENT.getKey() };
@@ -50,12 +53,14 @@ public class GoogleDocsCreateReactor extends AbstractReactor {
 					map.put(DOCUMENT_ID_KEY, doc.getDocumentId());
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error("Failed to create document or Document id not found");
+				throw new SemossPixelException("Failed to create document or Document id not found: " + e.getMessage(), e);
 			}
 			map.put(SUCCESS_KEY, success);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Please provide valid input", e);
+			classLogger.error("Unauthorized access or Please provide valid input");
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 
 	}

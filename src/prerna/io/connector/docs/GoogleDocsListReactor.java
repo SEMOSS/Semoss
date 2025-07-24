@@ -3,7 +3,8 @@ package prerna.io.connector.docs;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
@@ -16,6 +17,8 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleDocsListReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleDocsListReactor.class);
 
 	@Override
 	public NounMetadata execute() {
@@ -29,7 +32,8 @@ public class GoogleDocsListReactor extends AbstractReactor {
 			res.put("DocIdList", docIdList);
 			return new NounMetadata(res, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Please provide valid input", e);
+			classLogger.error("Unauthorized access or Please provide valid input");
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 
 	}
@@ -53,7 +57,8 @@ public class GoogleDocsListReactor extends AbstractReactor {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error("Failed to retrieve Google Docs file list from Drive API");
+			throw new SemossPixelException("Failed to retrieve Google Docs file list from Drive API: " + e.getMessage(), e);
 		}
 		return docList;
 	}

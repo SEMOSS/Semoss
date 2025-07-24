@@ -1,5 +1,7 @@
 package prerna.io.connector.docs;
 
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,6 +17,8 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleDocsReadReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleDocsReadReactor.class);
 
 	public GoogleDocsReadReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
@@ -38,7 +42,8 @@ public class GoogleDocsReadReactor extends AbstractReactor {
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			throw new SemossPixelException("Please provide valid input", e);
+			classLogger.error("Unauthorized access or Please provide valid input");
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 
 	}
