@@ -171,8 +171,7 @@ public class QueryDatabaseReactor extends AbstractReactor {
     // ask model and parse response
     Map<String, Object> queryResponse = modelEngine.ask(prompt, context, this.insight, paramMap).toMap();
     String responseString = (String) queryResponse.get("response");
-    String cleanedResponse = responseString.trim().replace("\\n", "").replace("\\\"", "\"");
-    Map<String, Object> responseMap = parseResponse(cleanedResponse);
+    Map<String, Object> responseMap = parseResponse(responseString.trim());
     if (responseMap == null || !responseMap.containsKey("question") || !responseMap.containsKey("sql") || !responseMap.containsKey("explanation")) {
     	throw new SemossPixelException("LLM could not generate proper response");
     }
