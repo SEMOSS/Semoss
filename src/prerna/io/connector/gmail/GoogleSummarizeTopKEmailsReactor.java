@@ -3,6 +3,9 @@ package prerna.io.connector.gmail;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.api.services.gmail.Gmail;
 
 import prerna.auth.User;
@@ -14,6 +17,8 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleSummarizeTopKEmailsReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleSummarizeTopKEmailsReactor.class);
 	
 	public GoogleSummarizeTopKEmailsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.NUMBER.getKey() };
@@ -32,6 +37,7 @@ public class GoogleSummarizeTopKEmailsReactor extends AbstractReactor {
 			List<Map<String, Object>> result = GoogleGmailHelper.summarizeTopKEmails(GmailService, num);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
+			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 		

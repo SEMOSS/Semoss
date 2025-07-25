@@ -2,6 +2,11 @@ package prerna.io.connector.gmail;
 
 import com.google.api.services.gmail.Gmail;
 import java.util.*;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import jakarta.mail.Multipart;
+import jakarta.mail.BodyPart;
 import jakarta.mail.internet.MimeMessage;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
@@ -12,6 +17,8 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleReadGmailReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleReadGmailReactor.class);
 	
 	public GoogleReadGmailReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
@@ -28,21 +35,50 @@ public class GoogleReadGmailReactor extends AbstractReactor {
 			Gmail GmailService = GoogleGmailUtils.getGmailServiceUsingToken(accessToken);
 			MimeMessage result = GoogleGmailHelper.readEmail(GmailService, id);
 			Map<String, Object> map = new LinkedHashMap<>();
-			map.put("From", result.getFrom());
-			map.put("To", result.getRecipients(jakarta.mail.Message.RecipientType.TO));
-			map.put("Subject", result.getSubject());
-			map.put("SentDate", result.getSentDate());
-			map.put("ReceivedDate", result.getReceivedDate());
+			map.put("from", result.getFrom());
+			map.put("to", result.getRecipients(jakarta.mail.Message.RecipientType.TO));
+			map.put("subject", result.getSubject());
+			map.put("content", getBody(result));
+			map.put("sentDate", result.getSentDate());
+			map.put("receivedDate", result.getReceivedDate());
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
+			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 		
 	}
 	
+	public static String getBody(MimeMessage message) throws Exception {
+	    Object content = message.getContent();
+	    if (content instanceof String) {
+	        return (String) content;
+	    } else if (content instanceof Multipart) {
+	        return getTextFromMultipart((Multipart) content);
+	    }
+	    return null;
+	}
+
+	private static String getTextFromMultipart(Multipart multipart) throws Exception {
+	    for (int i = 0; i < multipart.getCount(); i++) {
+	        BodyPart bodyPart = multipart.getBodyPart(i);
+	        if (bodyPart.isMimeType("text/plain")) {
+	            return (String) bodyPart.getContent();
+	        } else if (bodyPart.isMimeType("text/html")) {
+	            return (String) bodyPart.getContent();
+	        } else if (bodyPart.getContent() instanceof Multipart) {
+	            String result = getTextFromMultipart((Multipart) bodyPart.getContent());
+	            if (result != null) {
+	                return result;
+	            }
+	        }
+	    }
+	    return null;
+	}
+	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to delete the email";
+		return "This reactor is used to read the email";
 	}
 	
 	@Override

@@ -5,11 +5,16 @@ import java.util.*;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.*;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
 public class GoogleGmailHelper {
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleGmailHelper.class);
 
 	public static Message sendEmail(Gmail service, String messageSubject, String bodyText, String toEmailAddress) throws Exception {
 
@@ -32,7 +37,7 @@ public class GoogleGmailHelper {
 			message = service.users().messages().send("me", message).execute();
 			return message;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error("Failed to send email.");
 		}
 		return null;
 	}
@@ -45,8 +50,8 @@ public class GoogleGmailHelper {
 		return mimeMessage;
 	}
 
-	public static Profile getGmailProfileById(Gmail service, String userId) throws Exception {
-		return service.users().getProfile(userId).execute();
+	public static Profile getGmailProfileById(Gmail service) throws Exception {
+		return service.users().getProfile("me").execute();
 	}
 
 	public static Boolean deleteEmail(Gmail service, String messageId) {
@@ -54,7 +59,7 @@ public class GoogleGmailHelper {
 			service.users().messages().delete("me", messageId).execute();
 			return true;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error("Failed to delete event.");
 			return false;
 		}
 	}
@@ -106,23 +111,6 @@ public class GoogleGmailHelper {
 		map.put("subject", subject);
 		map.put("from", from);
 		return map;
-	}
-
-	public static Label createGmailLabel(Gmail service, Label name) throws Exception {
-		Label res = service.users().labels().create("me", name).execute();
-		return res;
-
-	}
-
-	public static Void deleteGmailLabel(Gmail service, String LabelId) throws Exception {
-		Void res = service.users().labels().delete("me", LabelId).execute();
-		return res;
-	}
-
-	public static List<Label> listGmailLabels(Gmail service) throws Exception {
-		ListLabelsResponse res = service.users().labels().list("me").execute();
-		List<Label> labels = res.getLabels();
-		return labels;
 	}
 
 }

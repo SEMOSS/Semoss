@@ -3,6 +3,10 @@ package prerna.io.connector.gmail;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.Message;
 import java.util.*;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -12,6 +16,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleSendGmailReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleSendGmailReactor.class);
+	
+	private static final String MESSAGE_ID_KEY = "messageId";
+	private static final String SUCCESS_KEY = "success";
 
 	public GoogleSendGmailReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.TOEMAIL.getKey(), ReactorKeysEnum.SUBJECT.getKey(), ReactorKeysEnum.BODY.getKey() };
@@ -31,21 +40,20 @@ public class GoogleSendGmailReactor extends AbstractReactor {
 			String accessToken = GoogleGmailUtils.getGoogleAccessToken(user);
 			Gmail GmailService = GoogleGmailUtils.getGmailServiceUsingToken(accessToken);
 			boolean success = false;
-			String ID = "id";
-			String SUCCESS = "success";
 			Map<String, Object> map = new HashMap<>();
 			try {
 				Message result = GoogleGmailHelper.sendEmail(GmailService, subject, body, toemail);
 				if (result != null && result.getId() != null) {
 					success = true;
-					map.put(ID, result.getId());
+					map.put(MESSAGE_ID_KEY, result.getId());
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			map.put(SUCCESS, success);
+			map.put(SUCCESS_KEY, success);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
+			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
 
