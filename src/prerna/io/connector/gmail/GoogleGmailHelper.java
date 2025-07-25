@@ -19,7 +19,7 @@ public class GoogleGmailHelper {
 	
 	private static final String USER_ID = "me"; 
 	private static final String ID_KEY = "id";
-	private static final String PRE_CONTENT_KEY = "pre-content";
+	private static final String PRE_CONTENT_KEY = "pre_content";
 	private static final String SUBJECT_KEY = "subject";
 	private static final String FROM_KEY = "from";
 	private static final String SUBJECT_HEADER = "Subject";
