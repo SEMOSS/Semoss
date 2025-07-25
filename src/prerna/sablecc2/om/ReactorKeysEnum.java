@@ -84,7 +84,6 @@ public enum ReactorKeysEnum {
 	FRAME("frame", 												"The frame"),
 	FRAME_CACHE("frameCache", 									"Enable or disable the frame cache. Boolean (True / False)"),
 	FRAME_TYPE("frameType", 									"Type of frame to generate - grid (sql based frame), graph (frame based on tinkerpop), r (data sits within r, must have r installed to use), native (leverages the database to execute queries)"),
-	FREQUENCY("frequency",                                      "The number of time the event will be repeated"),
 	FUNCTION("function", 										"The id/name of the function engine to use"),
 	FUNCTION_DETAILS("functionDetails", 						"Map containing the necessary details to establish a connection to function engine"),
 	GITLAB_BRANCH_NAME("gitlabBranchName",						"The name of the gitlab branch"),
