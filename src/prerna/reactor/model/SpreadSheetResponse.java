@@ -1,11 +1,11 @@
 package prerna.reactor.model;
 
-//pojo to send responses for spreadsheet reactors
+//pojo to send responses for Spreadsheet reactors
 public class SpreadSheetResponse {
 	
 	private String titleSheetID;
 	private String SheetID;
-	private boolean status;
+	private boolean success;
 	public String getTitleSheetID() {
 		return titleSheetID;
 	}
@@ -18,10 +18,10 @@ public class SpreadSheetResponse {
 	public void setSheetID(String sheetID) {
 		SheetID = sheetID;
 	}
-	public boolean isStatus() {
-		return status;
+	public boolean isSuccess() {
+		return success;
 	}
-	public void setStatus(boolean status) {
-		this.status = status;
+	public void setSuccess(boolean success) {
+		this.success = success;
 	}
 }
