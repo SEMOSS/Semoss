@@ -15,7 +15,7 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(JiraGetProjectsReactor.class);
 
 	public JiraGetProjectsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.KEY_NAME.getKey() , ReactorKeysEnum.API_KEY.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.USERID.getKey() , ReactorKeysEnum.API_KEY.getKey()};
 		this.keyRequired = new int[] { 1 ,1 ,1};
 	}
 
@@ -24,9 +24,9 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 		try {
 			this.organizeKeys();
 			String url = this.keyValue.get(this.keysToGet[0]);
-			String keyName = this.keyValue.get(this.keysToGet[1]);
+			String userId = this.keyValue.get(this.keysToGet[1]); 
 			String apiKey = this.keyValue.get(this.keysToGet[2]);
-			return JiraHelper.getAllProjects(url,keyName, apiKey);
+			return JiraHelper.getAllProjects(url,userId, apiKey);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
