@@ -17,6 +17,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -25,13 +26,10 @@ public class InterruptAndStopJobReactor extends AbstractReactor {
 
     private static final Logger classLogger = LogManager.getLogger(InterruptAndStopJobReactor.class);
 
-    public static final String JOB_ID = "jobId";
-    public static final String JOB_GROUP = "jobGroup";
-
     protected Scheduler scheduler = null;
 
     public InterruptAndStopJobReactor() {
-        this.keysToGet = new String[] { JOB_ID, JOB_GROUP };
+        this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
     }
 
     @Override
@@ -41,8 +39,8 @@ public class InterruptAndStopJobReactor extends AbstractReactor {
         }
         organizeKeys();
 
-        String jobId = this.keyValue.get(JOB_ID);
-        String jobGroup = this.keyValue.get(JOB_GROUP);
+        String jobId = this.keyValue.get(ReactorKeysEnum.JOB_NAME.getKey());;
+        String jobGroup = this.keyValue.get(ReactorKeysEnum.JOB_GROUP.getKey());;
 
         if (jobId == null) {
             throw new IllegalArgumentException("jobId is required");
