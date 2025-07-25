@@ -21,16 +21,16 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class CancelAndRemoveJobReactor extends AbstractReactor {
+public class InterruptAndStopJobReactor extends AbstractReactor {
 
-    private static final Logger classLogger = LogManager.getLogger(CancelAndRemoveJobReactor.class);
+    private static final Logger classLogger = LogManager.getLogger(InterruptAndStopJobReactor.class);
 
     public static final String JOB_ID = "jobId";
     public static final String JOB_GROUP = "jobGroup";
 
     protected Scheduler scheduler = null;
 
-    public CancelAndRemoveJobReactor() {
+    public InterruptAndStopJobReactor() {
         this.keysToGet = new String[] { JOB_ID, JOB_GROUP };
     }
 
