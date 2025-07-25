@@ -47,12 +47,14 @@ public class GoogleGetAllSheetsReactor extends AbstractReactor {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		} finally {
 			if (rs != null) {
 				try {
 					rs.close();
 				} catch (SQLException ex) {
 					classLogger.error(Constants.STACKTRACE, ex);
+					throw new SemossPixelException(NounMetadata.getErrorNounMessage(ex.getMessage()));
 				}
 			}
 		}
@@ -96,7 +98,7 @@ public class GoogleGetAllSheetsReactor extends AbstractReactor {
 
 				Map<String, Object> spreadsheetInfo = new HashMap<>();
 				spreadsheetInfo.put("spreadsheetTitle", spreadsheetTitle);
-				spreadsheetInfo.put("titleId", spreadsheetId);
+				spreadsheetInfo.put("TitleId", spreadsheetId); // TitleId key as well
 				spreadsheetInfo.put("sheetNames", sheetNameList);
 
 				spreadsheets.add(spreadsheetInfo);
@@ -116,9 +118,10 @@ public class GoogleGetAllSheetsReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		try {
 			if (user == null) {
-				Map<String, Object> retMap = new HashMap<String, Object>();
+				Map<String, Object> retMap = new HashMap<>();
 				retMap.put("type", "google");
 				retMap.put("message", "Please login to your Google account");
+				classLogger.error("user can not be null");
 				throwLoginError(retMap);
 			} else {
 				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
@@ -128,6 +131,7 @@ public class GoogleGetAllSheetsReactor extends AbstractReactor {
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("type", "google");
 			retMap.put("message", "Please login to your Google account");
+			classLogger.error("Error while getting access token");
 			throwLoginError(retMap);
 		}
 		return accessToken;

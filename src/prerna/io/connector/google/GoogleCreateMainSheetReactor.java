@@ -30,7 +30,7 @@ public class GoogleCreateMainSheetReactor extends AbstractReactor {
 			this.organizeKeys();
 			String titleSheetName = this.keyValue.get(this.keysToGet[0]);
 			String accessToken = getAccessToken();
-			return SpreadSheetHelper.createNewSpreadSheet(titleSheetName, accessToken);
+			return SpreadSheetHelper.createnewSpreadSheet(titleSheetName, accessToken);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
@@ -46,6 +46,7 @@ public class GoogleCreateMainSheetReactor extends AbstractReactor {
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put("type", "google");
 				retMap.put("message", "Please login to your Google account");
+				classLogger.error("user can not be null");
 				throwLoginError(retMap);
 			} else {
 				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
@@ -55,6 +56,7 @@ public class GoogleCreateMainSheetReactor extends AbstractReactor {
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("type", "google");
 			retMap.put("message", "Please login to your Google account");
+			classLogger.error("Error while getting access token");
 			throwLoginError(retMap);
 		}
 		return accessToken;

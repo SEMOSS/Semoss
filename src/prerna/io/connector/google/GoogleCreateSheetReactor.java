@@ -38,7 +38,7 @@ public class GoogleCreateSheetReactor extends AbstractReactor {
 			ObjectMapper mapper = new ObjectMapper();
 			List<List<String>> data = mapper.readValue(rawData, List.class);
 			String accessToken = getAccessToken();
-			return SpreadSheetHelper.createNewSheet(titleSheetID, sheetName, accessToken, data);
+			return SpreadSheetHelper.createnewSheet(titleSheetID, sheetName, accessToken, data);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
@@ -50,9 +50,10 @@ public class GoogleCreateSheetReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		try {
 			if (user == null) {
-				Map<String, Object> retMap = new HashMap<String, Object>();
+				Map<String, Object> retMap = new HashMap<>();
 				retMap.put("type", "google");
 				retMap.put("message", "Please login to your Google account");
+				classLogger.error("user can not be null");
 				throwLoginError(retMap);
 			} else {
 				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
@@ -62,6 +63,7 @@ public class GoogleCreateSheetReactor extends AbstractReactor {
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("type", "google");
 			retMap.put("message", "Please login to your Google account");
+			classLogger.error("Error while getting access token");
 			throwLoginError(retMap);
 		}
 		return accessToken;

@@ -43,9 +43,10 @@ public class GoogleDeleteMainSheetReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		try {
 			if (user == null) {
-				Map<String, Object> retMap = new HashMap<String, Object>();
+				Map<String, Object> retMap = new HashMap<>();
 				retMap.put("type", "google");
 				retMap.put("message", "Please login to your Google account");
+				classLogger.error("user can not be null");
 				throwLoginError(retMap);
 			} else {
 				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
@@ -55,6 +56,7 @@ public class GoogleDeleteMainSheetReactor extends AbstractReactor {
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("type", "google");
 			retMap.put("message", "Please login to your Google account");
+			classLogger.error("Error while getting access token");
 			throwLoginError(retMap);
 		}
 		return accessToken;
@@ -67,8 +69,8 @@ public class GoogleDeleteMainSheetReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.TITLESHEET_NAME.getKey())) {
-			return "TitleSheet name of the Google spread sheet" + ReactorKeysEnum.TITLESHEET_NAME.getKey();
+		if (key.equals(ReactorKeysEnum.TITLESHEET_ID.getKey())) {
+			return "TitleSheet id of the Google spread sheet" + ReactorKeysEnum.TITLESHEET_ID.getKey();
 		}
 		return super.getDescriptionForKey(key);
 	}
