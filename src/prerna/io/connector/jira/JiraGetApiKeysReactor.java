@@ -18,11 +18,11 @@ import prerna.util.Constants;
 import prerna.util.JiraDetails;
 import prerna.util.Utility;
 
-public class JiraGetReactor extends AbstractReactor {
+public class JiraGetApiKeysReactor extends AbstractReactor {
 
 	public static final String JIRA_UNIQUE_ID = "ID";
 	private static final String TABLE = "JIRA_USER";
-	private static final Logger classLogger = LogManager.getLogger(JiraGetReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(JiraGetApiKeysReactor.class);
 
 	// Centralized method to get table name
 	private String getTableName(IDatabaseEngine database) {
@@ -35,6 +35,7 @@ public class JiraGetReactor extends AbstractReactor {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 		return null;
 	}
@@ -46,8 +47,9 @@ public class JiraGetReactor extends AbstractReactor {
 			IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
 			String tableName = getTableName(database);
 			if (tableName == null) {
-				String error = "Jira user table not found in database.";
-				return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+				classLogger.error("Jira user table not found in database.");
+				throw new SemossPixelException(
+						NounMetadata.getErrorNounMessage("Jira user table not found in database."));
 			}
 
 			String query = "SELECT * FROM " + tableName;
@@ -66,11 +68,13 @@ public class JiraGetReactor extends AbstractReactor {
 					jiraDetails.setUrl(rs.getString("URL"));
 					jiraDetails.setUserId(rs.getString("USER_ID"));
 					jiraDetails.setKeyName(rs.getString("KEY_NAME"));
+					jiraDetails.setKeyName(rs.getString("PROJECT"));
 					resultList.add(jiraDetails);
 				}
 			} else {
-				String error = "No ResultSet returned from database query.";
-				return new NounMetadata(error, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+				classLogger.error("No ResultSet returned from database query.");
+				throw new SemossPixelException(
+						NounMetadata.getErrorNounMessage("No ResultSet returned from database query."));
 			}
 
 			return new NounMetadata(resultList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -78,13 +82,14 @@ public class JiraGetReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			String error = "Error in the reactor JiraGetReactor: " + e.getMessage();
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(error));
 		} finally {
 			try {
 				if (rs != null)
 					rs.close();
 			} catch (Exception ex) {
 				classLogger.error("Error closing ResultSet in JiraGetReactor", ex);
+				throw new SemossPixelException(NounMetadata.getErrorNounMessage(ex.getMessage()));
 			}
 		}
 	}

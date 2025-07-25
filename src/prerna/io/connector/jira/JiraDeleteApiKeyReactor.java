@@ -10,11 +10,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.JiraHelper;
 
-public class JiraGetAllProjectReactor extends AbstractReactor {
+public class JiraDeleteApiKeyReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(JiraGetAllProjectReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(JiraDeleteApiKeyReactor.class);
 
-	public JiraGetAllProjectReactor() {
+	public JiraDeleteApiKeyReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.KEY_NAME.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -24,7 +24,7 @@ public class JiraGetAllProjectReactor extends AbstractReactor {
 		try {
 			this.organizeKeys();
 			String keyName = this.keyValue.get(this.keysToGet[0]);
-			return JiraHelper.getAllProjects(keyName);
+			return JiraHelper.deleteRecordForUser(keyName);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
@@ -33,13 +33,13 @@ public class JiraGetAllProjectReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to retrieve all Jira projects accessible to the user.";
+		return "This reactor is used to delete a database user record via Jira integration.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
-			return "The unique key name used for authentication or context.";
+			return "The unique key name identifying the database user to delete.";
 		}
 		return super.getDescriptionForKey(key);
 	}

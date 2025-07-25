@@ -1347,9 +1347,9 @@ public abstract class AbstractSecurityUtils {
 			}
 			
 			//JIRA_USER
-			colNames = new String[] { "ID", "KEY_NAME", "API_KEY", "CREATED_BY", "DATE_CREATED", "DATE_LAST_USED", "URL", "USER_ID" };
+			colNames = new String[] { "ID", "KEY_NAME", "API_KEY", "CREATED_BY", "DATE_CREATED", "DATE_LAST_USED", "URL", "USER_ID" , "PROJECT"};
 
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" , "VARCHAR(255)"};
 
 			if (allowIfExistsTable) {
 			    securityDb.insertData(queryUtil.createTableIfNotExists("JIRA_USER", colNames, types));

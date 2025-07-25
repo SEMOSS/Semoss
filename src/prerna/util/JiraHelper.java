@@ -25,6 +25,7 @@ import prerna.engine.impl.model.Fields;
 import prerna.engine.impl.model.IssueType;
 import prerna.engine.impl.model.JiraRequestBodyModel;
 import prerna.engine.impl.model.Project;
+import prerna.reactor.model.JiraTicketDetails;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -66,8 +67,8 @@ public class JiraHelper {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method getTableName()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata
+					.getErrorNounMessage("Failed to retrieve table name in getTableName(): " + e.getMessage()));
 		}
 		return null;
 	}
@@ -85,7 +86,7 @@ public class JiraHelper {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method userExists()" + e.getMessage()));
+					NounMetadata.getErrorNounMessage("Unable to verify user presence. " + e.getMessage()));
 		}
 	}
 
@@ -103,143 +104,174 @@ public class JiraHelper {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method getFieldFromDB()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage("Failed to retrieve field '" + field
+					+ "' for user '" + keyName + "' in getFieldFromDB():" + e.getMessage()));
 		}
 		return null;
 	}
 
-	public static NounMetadata listIssue(String projectName, String keyName) {
-		if (projectName == null || projectName.isEmpty()) {
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Project Name for listing issues is missing or null"));
-		}
-		try {
-			if (!userExists(keyName)) {
-				throw new SemossPixelException(NounMetadata.getErrorNounMessage(keyName + " is not present in DB"));
-			}
-			String apiKey = getFieldFromDB(keyName, "API_KEY");
-			String username = getFieldFromDB(keyName, "USER_ID");
-			String urlBase = getFieldFromDB(keyName, "URL");
-			if (apiKey == null || username == null || urlBase == null) {
-				throw new SemossPixelException(
-						NounMetadata.getErrorNounMessage("User credentials or URL missing in DB"));
-			}
-			String auth = username + ":" + apiKey;
-			String encodeToString = Base64.getEncoder().encodeToString(auth.getBytes());
-			Map<String, String> map = new HashMap<>();
-			map.put("Authorization", "Basic " + encodeToString);
-			String url = urlBase + JIRA_LIST_ISSUE_URL + projectName;
-			String response = HttpHelperUtility.getRequest(url, map, null, null, null);
-			ObjectMapper objectMapper = new ObjectMapper();
-			JsonNode root = objectMapper.readTree(response);
-			JsonNode issues = root.path("issues");
-			List<String> jiraIssueDetails = new ArrayList<>();
-			for (JsonNode issue : issues) {
-				jiraIssueDetails.add(issue.path("id").asText());
-			}
-			return new NounMetadata(jiraIssueDetails, PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method listIssue()" + e.getMessage()));
-		}
+	public static NounMetadata listIssue(String keyName) {
+
+	    try {
+	        if (!userExists(keyName)) {
+	            throw new SemossPixelException(NounMetadata.getErrorNounMessage(keyName + " is not present in DB"));
+	        }
+
+	        String apiKey = getFieldFromDB(keyName, "API_KEY");
+	        String username = getFieldFromDB(keyName, "USER_ID");
+	        String urlBase = getFieldFromDB(keyName, "URL");
+	        String projectName = getFieldFromDB(keyName, "PROJECT"); 
+
+	        if (apiKey == null || username == null || urlBase == null || projectName == null) {
+	            throw new SemossPixelException(
+	                NounMetadata.getErrorNounMessage("User credentials, URL, or project missing in DB"));
+	        }
+
+	        String auth = username + ":" + apiKey;
+	        String encodeToString = Base64.getEncoder().encodeToString(auth.getBytes());
+	        Map<String, String> map = new HashMap<>();
+	        map.put("Authorization", "Basic " + encodeToString);
+
+	        String url = urlBase + JIRA_LIST_ISSUE_URL + projectName;
+	        String response = HttpHelperUtility.getRequest(url, map, null, null, null);
+
+	        ObjectMapper objectMapper = new ObjectMapper();
+	        JsonNode root = objectMapper.readTree(response);
+	        JsonNode issues = root.path("issues");
+
+	        List<JiraTicketDetails> jiraIssueDetails = new ArrayList<>();
+
+	        for (JsonNode issue : issues) {
+	            String id = issue.path("id").asText();
+	            String link = issue.path("self").asText();
+	            String summary = issue.path("fields").path("summary").asText();
+	            jiraIssueDetails.add(new JiraTicketDetails(id, link, summary));
+	        }
+
+	        return new NounMetadata(jiraIssueDetails, PixelDataType.CUSTOM_DATA_STRUCTURE,
+	                PixelOperationType.OPERATION);
+
+	    } catch (Exception e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	        throw new SemossPixelException(NounMetadata.getErrorNounMessage("Failed to list issues for project associated with '"
+	                + keyName + "' in listIssue():" + e.getMessage()));
+	    }
 	}
 
-	public static NounMetadata createIssue(String summary, String description, String istype, String projectName,
-			String keyName) {
-		try {
-			if (!userExists(keyName)) {
-				throw new SemossPixelException(
-						NounMetadata.getErrorNounMessage("User id " + keyName + " is not present in DB"));
+	public static NounMetadata createIssue(String summary, String description, String istype, String keyName) {
+	    try {
+	        if (!userExists(keyName)) {
+	            throw new SemossPixelException(
+	                NounMetadata.getErrorNounMessage("User id " + keyName + " is not present in DB"));
+	        }
 
-			}
-			String apiKey = getFieldFromDB(keyName, "API_KEY");
-			String username = getFieldFromDB(keyName, "USER_ID");
-			String urlBase = getFieldFromDB(keyName, "URL");
-			if (apiKey == null || username == null || urlBase == null) {
-				throw new SemossPixelException(
-						NounMetadata.getErrorNounMessage("User credentials or URL missing in DB"));
-			}
-			String auth = username + ":" + apiKey;
-			String encodeToString = Base64.getEncoder().encodeToString(auth.getBytes());
-			Map<String, String> map = new HashMap<>();
-			map.put("Authorization", "Basic " + encodeToString);
-			String url = urlBase + JIRA_CREATE_DELETE_ISSUE_URL;
+	        String apiKey = getFieldFromDB(keyName, "API_KEY");
+	        String username = getFieldFromDB(keyName, "USER_ID");
+	        String urlBase = getFieldFromDB(keyName, "URL");
+	        String projectName = getFieldFromDB(keyName, "PROJECT"); // Fetch project from DB
 
-			Project project = new Project();
-			project.setKey(projectName);
-			IssueType issuetype = new IssueType();
-			issuetype.setName(istype);
-			Fields fields = new Fields();
-			fields.setProject(project);
-			fields.setSummary(summary);
-			fields.setDescription(description);
-			fields.setIssuetype(issuetype);
-			JiraRequestBodyModel jiraRequestBodyModel = new JiraRequestBodyModel();
-			jiraRequestBodyModel.setFields(fields);
+	        if (apiKey == null || username == null || urlBase == null || projectName == null) {
+	            throw new SemossPixelException(
+	                NounMetadata.getErrorNounMessage("User credentials, URL, or project missing in DB"));
+	        }
 
-			Gson gson = new GsonBuilder().setPrettyPrinting().create();
-			String body = gson.toJson(jiraRequestBodyModel);
+	        String auth = username + ":" + apiKey;
+	        String encodeToString = Base64.getEncoder().encodeToString(auth.getBytes());
+	        Map<String, String> map = new HashMap<>();
+	        map.put("Authorization", "Basic " + encodeToString);
 
-			String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, map, body,
-					ContentType.APPLICATION_JSON, null, null, null);
-			Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, Map.class);
-			Object jiraId = responseMap.get("id");
-			Object link = responseMap.get("self");
+	        String url = urlBase + JIRA_CREATE_DELETE_ISSUE_URL;
 
-			return new NounMetadata("Jira id: " + jiraId + ", Jira link: " + link, PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method createIssue()" + e.getMessage()));
-		}
+	        Project project = new Project();
+	        project.setKey(projectName); // Use project fetched from DB
+	        IssueType issuetype = new IssueType();
+	        issuetype.setName(istype);
+	        Fields fields = new Fields();
+	        fields.setProject(project);
+	        fields.setSummary(summary);
+	        fields.setDescription(description);
+	        fields.setIssuetype(issuetype);
+
+	        JiraRequestBodyModel jiraRequestBodyModel = new JiraRequestBodyModel();
+	        jiraRequestBodyModel.setFields(fields);
+
+	        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+	        String body = gson.toJson(jiraRequestBodyModel);
+
+	        String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, map, body,
+	                ContentType.APPLICATION_JSON, null, null, null);
+	        Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, Map.class);
+	        Object id = responseMap.get("id");
+	        Object link = responseMap.get("self");
+
+	        // Create JiraIssueMetadata object
+	        JiraTicketDetails jiraDetail = new JiraTicketDetails(id != null ? id.toString() : null,
+	                link != null ? link.toString() : null, null);
+
+	        // Return as part of NounMetadata
+	        return new NounMetadata(jiraDetail, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+
+	    } catch (Exception e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	        throw new SemossPixelException(NounMetadata.getErrorNounMessage("Failed to create issue for project associated with'"
+	                + keyName + "' in createIssue():" + e.getMessage()));
+	    }
 	}
 
-	public static NounMetadata deleteIssue(String jiraId, String keyName, String project) {
-		try {
-			if (!userExists(keyName)) {
-				throw new SemossPixelException(
-						NounMetadata.getErrorNounMessage("User id " + keyName + " is not present in DB"));
-			}
-			String apiKey = getFieldFromDB(keyName, "API_KEY");
-			String username = getFieldFromDB(keyName, "USER_ID");
-			String urlBase = getFieldFromDB(keyName, "URL");
-			if (apiKey == null || username == null || urlBase == null) {
-				throw new SemossPixelException(
-						NounMetadata.getErrorNounMessage("User credentials or URL missing in DB"));
-			}
-			String auth = username + ":" + apiKey;
-			String encodeToString = Base64.getEncoder().encodeToString(auth.getBytes());
-			Map<String, String> map = new HashMap<>();
-			map.put("Authorization", "Basic " + encodeToString);
+	public static NounMetadata deleteIssue(String jiraId, String keyName) {
 
-			// Step 1: Get issue details to verify project
-			String issueUrl = urlBase + JIRA_CREATE_DELETE_ISSUE_URL + "/" + jiraId;
-			String issueResponse = HttpHelperUtility.getRequest(issueUrl, map, null, null, null);
+	    try {
+	        ObjectMapper objectMapper = new ObjectMapper();
 
-			// Parse the response to check project key
-			ObjectMapper objectMapper = new ObjectMapper();
-			JsonNode root = objectMapper.readTree(issueResponse);
-			String projectKey = root.path("fields").path("project").path("key").asText();
+	        if (!userExists(keyName)) {
+	            throw new SemossPixelException(
+	                NounMetadata.getErrorNounMessage("User id " + keyName + " is not present in DB"));
+	        }
 
-			if (!project.equalsIgnoreCase(projectKey)) {
-				return new NounMetadata("Issue " + jiraId + " does not belong to project " + project,
-						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-			}
+	        String apiKey = getFieldFromDB(keyName, "API_KEY");
+	        String username = getFieldFromDB(keyName, "USER_ID");
+	        String urlBase = getFieldFromDB(keyName, "URL");
+	        String project = getFieldFromDB(keyName, "PROJECT"); // Fetch project from DB
 
-			// Step 2: Delete the issue
-			HttpHelperUtility.deleteRequestStringBody(issueUrl, map, null, null, null);
-			return new NounMetadata("Jira id " + jiraId + " successfully deleted from project " + project,
-					PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+	        if (apiKey == null || username == null || urlBase == null || project == null) {
+	            throw new SemossPixelException(
+	                NounMetadata.getErrorNounMessage("User credentials, URL, or project missing in DB"));
+	        }
 
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method deleteIssue()" + e.getMessage()));
-		}
+	        String auth = username + ":" + apiKey;
+	        String encodeToString = Base64.getEncoder().encodeToString(auth.getBytes());
+	        Map<String, String> map = new HashMap<>();
+	        map.put("Authorization", "Basic " + encodeToString);
+
+	        // Step 1: Get issue details to verify project
+	        String issueUrl = urlBase + JIRA_CREATE_DELETE_ISSUE_URL + "/" + jiraId;
+	        String issueResponse = HttpHelperUtility.getRequest(issueUrl, map, null, null, null);
+
+	        // Parse the response to check project key
+	        JsonNode root = objectMapper.readTree(issueResponse);
+	        String projectKey = root.path("fields").path("project").path("key").asText();
+
+	        if (!project.equalsIgnoreCase(projectKey)) {
+	            throw new SemossPixelException(
+	                NounMetadata.getErrorNounMessage("Issue " + jiraId + " does not belong to project " + project));
+	        }
+
+	        // Step 2: Delete the issue
+	        HttpHelperUtility.deleteRequestStringBody(issueUrl, map, null, null, null);
+
+	        Map<String, Object> response = new HashMap<>();
+	        response.put("success", true);
+	        return new NounMetadata(response, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+
+	    } catch (Exception e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	        // Fetch project for error message if possible
+	        String project = null;
+	        try { project = getFieldFromDB(keyName, "PROJECT"); } catch (Exception ex) {}
+	        throw new SemossPixelException(
+	            NounMetadata.getErrorNounMessage("Failed to delete issue '" + jiraId + "' for project '" + project
+	                + "' and user '" + keyName + "' in deleteIssue(): " + e.getMessage()));
+	    }
 	}
 
 	public static NounMetadata truncateData(String keyName) {
@@ -248,55 +280,76 @@ public class JiraHelper {
 			if (tableName == null) {
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage("Table not found in database."));
 			}
+
 			if (!userExists(keyName)) {
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage(
 						"User id " + keyName + " is not present in DB. Truncate operation aborted."));
 			}
+
 			String truncateQuery = "DELETE FROM " + tableName;
 			try (Connection conn = jiraDB.makeConnection();
 					PreparedStatement pstmt = conn.prepareStatement(truncateQuery)) {
 				pstmt.executeUpdate();
 			}
-			String msg = "Table '" + tableName + "' truncated successfully by user with user id: " + keyName;
-			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+
+			Map<String, Object> response = new HashMap<>();
+			response.put("success", true);
+			return new NounMetadata(response, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method truncateData()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(
+					"Failed to truncate table for user '" + keyName + "' in truncateData(): " + e.getMessage()));
 		}
 	}
 
-	public static NounMetadata getAllProjects(String keyName) {
-		try {
-			if (!userExists(keyName)) {
-				throw new SemossPixelException(
-						NounMetadata.getErrorNounMessage("User id " + keyName + " is not present in DB"));
-			}
-			String apiKey = getFieldFromDB(keyName, "API_KEY");
-			String username = getFieldFromDB(keyName, "USER_ID");
-			String urlBase = getFieldFromDB(keyName, "URL");
-			if (apiKey == null || username == null || urlBase == null) {
-				throw new SemossPixelException(
-						NounMetadata.getErrorNounMessage("User credentials or URL missing in DB"));
-			}
-			String auth = username + ":" + apiKey;
-			String encodeToString = Base64.getEncoder().encodeToString(auth.getBytes());
-			Map<String, String> map = new HashMap<>();
-			map.put("Authorization", "Basic " + encodeToString);
-			String url = urlBase + JIRA_GETALL_PROJECTS_URL;
-			String response = HttpHelperUtility.getRequest(url, map, null, null, null);
-			JSONArray projResponse = new JSONArray(response);
-			List<String> projList = new ArrayList<>();
-			for (int i = 0; i < projResponse.length(); i++) {
-				JSONObject project = projResponse.getJSONObject(i);
-				projList.add(project.getString("key"));
-			}
-			return new NounMetadata(projList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method getAllProjects()" + e.getMessage()));
-		}
+	public static NounMetadata getAllProjects(String URL, String keyName, String apikey) {
+
+	    try {
+	        if (!userExists(keyName)) {
+	            throw new SemossPixelException(
+	                NounMetadata.getErrorNounMessage("User id " + keyName + " is not present in DB"));
+	        }
+
+	        // Use the passed-in apikey and URL
+	        if (apikey == null || apikey.isEmpty() || URL == null || URL.isEmpty()) {
+	            throw new SemossPixelException(
+	                NounMetadata.getErrorNounMessage("API key or URL is missing or empty"));
+	        }
+
+	        // You may still want to fetch the username from DB for authentication
+	        String username = getFieldFromDB(keyName, "USER_ID");
+	        if (username == null) {
+	            throw new SemossPixelException(
+	                NounMetadata.getErrorNounMessage("User ID missing in DB"));
+	        }
+
+	        String auth = username + ":" + apikey;
+	        String encodeToString = Base64.getEncoder().encodeToString(auth.getBytes());
+
+	        Map<String, String> map = new HashMap<>();
+	        map.put("Authorization", "Basic " + encodeToString);
+
+	        String url = URL + JIRA_GETALL_PROJECTS_URL;
+
+	        String response = HttpHelperUtility.getRequest(url, map, null, null, null);
+
+	        JSONArray projResponse = new JSONArray(response);
+
+	        List<String> projList = new ArrayList<>();
+
+	        for (int i = 0; i < projResponse.length(); i++) {
+	            JSONObject project = projResponse.getJSONObject(i);
+	            projList.add(project.getString("key"));
+	        }
+
+	        return new NounMetadata(projList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+
+	    } catch (Exception e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	        throw new SemossPixelException(NounMetadata.getErrorNounMessage("Failed to retrieve all projects for user '"
+	            + keyName + "' in getAllProjects():" + e.getMessage()));
+	    }
 	}
 
 	public static NounMetadata deleteRecordForUser(String keyName) {
@@ -305,22 +358,27 @@ public class JiraHelper {
 			if (tableName == null) {
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage("Table not found in database."));
 			}
+
 			if (!userExists(keyName)) {
 				throw new SemossPixelException(
 						NounMetadata.getErrorNounMessage("User id " + keyName + " is not present in DB"));
 			}
+
 			String deleteQuery = "DELETE FROM " + tableName + " WHERE " + JIRA_UNIQUE_ID + " = ?";
 			try (Connection conn = jiraDB.makeConnection();
 					PreparedStatement pstmt = conn.prepareStatement(deleteQuery)) {
 				pstmt.setString(1, keyName);
 				pstmt.executeUpdate();
 			}
-			String msg = "Record deleted successfully for user id " + keyName;
-			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+
+			Map<String, Object> response = new HashMap<>();
+			response.put("success", true);
+			return new NounMetadata(response, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method deleteRecordForUser()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(
+					"Failed to delete record for user '" + keyName + "' in deleteRecordForUser(): " + e.getMessage()));
 		}
 	}
 
@@ -350,8 +408,8 @@ public class JiraHelper {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method getAllUserIds()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata
+					.getErrorNounMessage("Failed to retrieve user IDs in getAllUserIds():" + e.getMessage()));
 		}
 		return userIds;
 	}

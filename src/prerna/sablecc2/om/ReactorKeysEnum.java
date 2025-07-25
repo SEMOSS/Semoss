@@ -299,13 +299,6 @@ public enum ReactorKeysEnum {
 	X("x",		 											    "The X coordiante."),
 	Y("y",		 											    "The Y coordiante.");
 	
-	
-	
-	
-	
-	
-	
-
 	private String key;
 	private String description;
 	

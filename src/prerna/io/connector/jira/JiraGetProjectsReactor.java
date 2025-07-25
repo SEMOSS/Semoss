@@ -10,21 +10,23 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.JiraHelper;
 
-public class JiraDeleteDbUserReactor extends AbstractReactor {
+public class JiraGetProjectsReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(JiraDeleteDbUserReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(JiraGetProjectsReactor.class);
 
-	public JiraDeleteDbUserReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.KEY_NAME.getKey() };
-		this.keyRequired = new int[] { 1 };
+	public JiraGetProjectsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.KEY_NAME.getKey() , ReactorKeysEnum.API_KEY.getKey()};
+		this.keyRequired = new int[] { 1 ,1 ,1};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String keyName = this.keyValue.get(this.keysToGet[0]);
-			return JiraHelper.deleteRecordForUser(keyName);
+			String url = this.keyValue.get(this.keysToGet[0]);
+			String keyName = this.keyValue.get(this.keysToGet[1]);
+			String apiKey = this.keyValue.get(this.keysToGet[2]);
+			return JiraHelper.getAllProjects(url,keyName, apiKey);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
@@ -33,13 +35,13 @@ public class JiraDeleteDbUserReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to delete a database user record via Jira integration.";
+		return "This reactor is used to retrieve all Jira projects accessible to the user.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
-			return "The unique key name identifying the database user to delete.";
+			return "The unique key name used for authentication or context.";
 		}
 		return super.getDescriptionForKey(key);
 	}

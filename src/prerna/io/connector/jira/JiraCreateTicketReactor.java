@@ -10,15 +10,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.JiraHelper;
 
-public class JiraCreateNewTicketReactor extends AbstractReactor {
+public class JiraCreateTicketReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(JiraCreateNewTicketReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(JiraCreateTicketReactor.class);
 
-	public JiraCreateNewTicketReactor() {
+	public JiraCreateTicketReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.KEY_NAME.getKey(), ReactorKeysEnum.SUMMARY.getKey(),
-				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.ISSUETYPE.getKey(),
-				ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 1, 1 };
+				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.ISSUETYPE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1, 1};
 	}
 
 	@Override
@@ -29,8 +28,7 @@ public class JiraCreateNewTicketReactor extends AbstractReactor {
 			String summary = this.keyValue.get(this.keysToGet[1]);
 			String description = this.keyValue.get(this.keysToGet[2]);
 			String issuetype = this.keyValue.get(this.keysToGet[3]);
-			String project = this.keyValue.get(this.keysToGet[4]);
-			return JiraHelper.createIssue(summary, description, issuetype, project, keyName);
+			return JiraHelper.createIssue(summary, description, issuetype, keyName);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));

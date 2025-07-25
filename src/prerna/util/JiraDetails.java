@@ -2,6 +2,7 @@ package prerna.util;
 
 import java.sql.Timestamp;
 
+//POJO to insert data in Jira user related data in DB
 public class JiraDetails {
 
 	private String url;
@@ -11,6 +12,7 @@ public class JiraDetails {
 	private String dateLastUsed;
 	private String primaryId;
 	private String keyName;
+	private String project;
 	public String getUrl() {
 		return url;
 	}
@@ -53,10 +55,10 @@ public class JiraDetails {
 	public void setKeyName(String keyName) {
 		this.keyName = keyName;
 	}
-	@Override
-	public String toString() {
-		return "JiraDetails [url=" + url + ", userId=" + userId + ", createdBy=" + createdBy + ", dateCreated="
-				+ dateCreated + ", dateLastUsed=" + dateLastUsed + ", primaryId=" + primaryId + ", keyName=" + keyName
-				+ "]";
+	public String getProject() {
+		return project;
+	}
+	public void setProject(String project) {
+		this.project = project;
 	}
 }

@@ -15,9 +15,8 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(JiraDeleteTicketReactor.class);
 
 	public JiraDeleteTicketReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.KEY_NAME.getKey(), ReactorKeysEnum.JIRAID.getKey(),
-				ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.KEY_NAME.getKey(), ReactorKeysEnum.JIRAID.getKey()};
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
@@ -26,8 +25,7 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 			this.organizeKeys();
 			String keyName = this.keyValue.get(this.keysToGet[0]);
 			String jiraId = this.keyValue.get(this.keysToGet[1]);
-			String project = this.keyValue.get(this.keysToGet[2]);
-			return JiraHelper.deleteIssue(jiraId, keyName, project);
+			return JiraHelper.deleteIssue(jiraId, keyName);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
