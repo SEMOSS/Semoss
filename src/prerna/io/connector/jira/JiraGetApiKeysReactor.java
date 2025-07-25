@@ -68,7 +68,7 @@ public class JiraGetApiKeysReactor extends AbstractReactor {
 					jiraDetails.setUrl(rs.getString("URL"));
 					jiraDetails.setUserId(rs.getString("USER_ID"));
 					jiraDetails.setKeyName(rs.getString("KEY_NAME"));
-					jiraDetails.setKeyName(rs.getString("PROJECT"));
+					jiraDetails.setProject(rs.getString("PROJECT"));
 					resultList.add(jiraDetails);
 				}
 			} else {
