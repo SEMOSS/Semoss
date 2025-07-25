@@ -60,7 +60,7 @@ public class GoogleCalendarHelper {
 	}
 	
 	public static Boolean updateEvent(Calendar service, String id, String summary, String location, String desc, String startdatetime,
-	String enddatetime, List<String> attendeeEmails, Boolean enableVideoConferencing) throws Exception {
+	String enddatetime, List<String> attendeeEmails, String frequency, String until, Boolean enableVideoConferencing) throws Exception {
 		
 		try {
 			Event event = service.events().get("primary", id).execute();
@@ -94,7 +94,21 @@ public class GoogleCalendarHelper {
 	        } else {
 	            event.setConferenceData(null);
 	        }
-			
+			if(frequency != null) {
+				frequency = frequency.trim().toUpperCase();
+				if (!frequency.equals("DAILY") && !frequency.equals("WEEKLY") && !frequency.equals("NONE")) {
+				    throw new IllegalArgumentException("Frequency must be 'DAILY' or 'WEEKLY' or 'NONE'");
+				}
+				if(frequency.equals("NONE")) {
+					event.setRecurrence(null);
+				}
+				else if (frequency.equals("DAILY") || frequency.equals("WEEKLY")) {
+					if (until == null || until.trim().isEmpty()) {
+			            throw new IllegalArgumentException("Until date must be provided for recurring events.");
+			        }
+					event.setRecurrence(Arrays.asList("RRULE:FREQ="+frequency+";UNTIL="+until));
+				}
+			}
 			service.events().update("primary", event.getId(), event).setConferenceDataVersion(1).execute();
 			return true;
 			
@@ -114,7 +128,7 @@ public class GoogleCalendarHelper {
 		}
 	}
 	
-	public static Event recurringEvent(Calendar service, String summary, String location, String description, String startdatetime, String enddatetime, List<String> attendeeEmails, String frequency, String Until, Boolean enableVideoConferencing) throws Exception {
+	public static Event recurringEvent(Calendar service, String summary, String location, String description, String startdatetime, String enddatetime, List<String> attendeeEmails, String frequency, String until, Boolean enableVideoConferencing) throws Exception {
 		if (frequency == null) {
 		    throw new IllegalArgumentException("Frequency must not be null and must be 'DAILY' or 'WEEKLY'");
 		}
@@ -149,7 +163,7 @@ public class GoogleCalendarHelper {
 		DateTime end = DateTime.parseRfc3339(enddatetime);
 		event.setStart(new EventDateTime().setDateTime(start).setTimeZone("Asia/Kolkata"));
 		event.setEnd(new EventDateTime().setDateTime(end).setTimeZone("Asia/Kolkata"));
-		event.setRecurrence(Arrays.asList("RRULE:FREQ="+frequency+";UNTIL="+Until));
+		event.setRecurrence(Arrays.asList("RRULE:FREQ="+frequency+";UNTIL="+until));
 		Event recurringEvent = service.events().insert("primary", event).setConferenceDataVersion(1).execute();
 		return recurringEvent;
 	}

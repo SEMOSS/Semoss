@@ -55,14 +55,30 @@ public class GoogleCalendarReadEventReactor extends AbstractReactor{
 			map.put("htmlLink", result.getHtmlLink());
 			map.put("video", result.getHangoutLink()!=null);
 			map.put("audio", result.getHangoutLink()!=null);
-			
+			String frequency = null;
+			String until = null;
+			if (result.getRecurrence() != null && !result.getRecurrence().isEmpty()) {
+			    for (String rule : result.getRecurrence()) {
+			        if (rule.startsWith("RRULE:")) {
+			            String[] parts = rule.substring(6).split(";");
+			            for (String part : parts) {
+			                if (part.startsWith("FREQ=")) {
+			                    frequency = part.substring(5);
+			                } else if (part.startsWith("UNTIL=")) {
+			                    until = part.substring(6);
+			                }
+			            }
+			        }
+			    }
+			}
+			map.put("frequency", frequency);
+			map.put("until", until);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
-
 	}
 	
 	@Override

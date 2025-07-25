@@ -19,23 +19,51 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 	public GoogleCalendarUpdateEventReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.SUMMARY.getKey(), ReactorKeysEnum.LOCATION.getKey(),
 				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.STARTDATE.getKey(),
-				ReactorKeysEnum.ENDDATE.getKey(), ReactorKeysEnum.VIDEO.getKey(), ReactorKeysEnum.EMAIL.getKey(), ReactorKeysEnum.ID.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 1, 1, 1 };
+				ReactorKeysEnum.ENDDATE.getKey(), ReactorKeysEnum.VIDEO.getKey(), ReactorKeysEnum.EMAIL.getKey(), ReactorKeysEnum.ID.getKey(), 
+				ReactorKeysEnum.FREQUENCY.getKey(), ReactorKeysEnum.UNTIL.getKey()};
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String summary = this.keyValue.get(this.keysToGet[0]);
-		String location = this.keyValue.get(this.keysToGet[1]);
-		String desc = this.keyValue.get(this.keysToGet[2]);
-		String startdatetime = this.keyValue.get(this.keysToGet[3]);
-		String enddatetime = this.keyValue.get(this.keysToGet[4]);
-		String enablevideo = this.keyValue.get(this.keysToGet[5]);
-		String emailsInput = this.keyValue.get(this.keysToGet[6]);
 		String id = this.keyValue.get(this.keysToGet[7]);
-		
-		
+		String summary = null;
+		String location = null;
+		String desc = null;
+		String startdatetime = null;
+		String enddatetime = null;
+		String enablevideo = null;
+		String emailsInput = null;
+		String frequency = null;
+		String until = null;
+		if (this.keyValue.get(this.keysToGet[0]) != null && !this.keyValue.get(this.keysToGet[0]).isEmpty()) {
+			summary = this.keyValue.get(this.keysToGet[0]);
+		}
+		if (this.keyValue.get(this.keysToGet[1]) != null && !this.keyValue.get(this.keysToGet[1]).isEmpty()) {
+			location = this.keyValue.get(this.keysToGet[1]);
+		}
+		if (this.keyValue.get(this.keysToGet[2]) != null && !this.keyValue.get(this.keysToGet[2]).isEmpty()) {
+			desc = this.keyValue.get(this.keysToGet[2]);
+		}
+		if (this.keyValue.get(this.keysToGet[3]) != null && !this.keyValue.get(this.keysToGet[3]).isEmpty()) {
+			startdatetime = this.keyValue.get(this.keysToGet[3]);
+		}
+		if (this.keyValue.get(this.keysToGet[4]) != null && !this.keyValue.get(this.keysToGet[4]).isEmpty()) {
+			enddatetime = this.keyValue.get(this.keysToGet[4]);
+		}
+		if (this.keyValue.get(this.keysToGet[5]) != null && !this.keyValue.get(this.keysToGet[5]).isEmpty()) {
+			enablevideo = this.keyValue.get(this.keysToGet[5]);
+		}
+		if (this.keyValue.get(this.keysToGet[6]) != null && !this.keyValue.get(this.keysToGet[6]).isEmpty()) {
+			emailsInput = this.keyValue.get(this.keysToGet[6]);
+		}
+		if (this.keyValue.get(this.keysToGet[8]) != null && !this.keyValue.get(this.keysToGet[8]).isEmpty()) {
+			frequency = this.keyValue.get(this.keysToGet[8]);
+		}
+		if (this.keyValue.get(this.keysToGet[9]) != null && !this.keyValue.get(this.keysToGet[9]).isEmpty()) {
+			until = this.keyValue.get(this.keysToGet[9]);
+		}
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
@@ -52,7 +80,7 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 			}
 			boolean video = Boolean.parseBoolean(enablevideo);
 			boolean result = GoogleCalendarHelper.updateEvent(CalendarService,id, summary, location, desc, startdatetime,
-					enddatetime, attendeeEmails, video);
+					enddatetime, attendeeEmails, frequency, until, video);
 			Map<String, Object> map = new HashMap<>();
 			map.put("status", result);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -86,7 +114,11 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 	        return "Updated email address of the attendee or organizer " + ReactorKeysEnum.EMAIL.getKey();
 	    } else if (key.equals(ReactorKeysEnum.ID.getKey())) {
 	        return "Unique identifier of the event to be updated " + ReactorKeysEnum.ID.getKey();
-	    }
+	    } else if (key.equals(ReactorKeysEnum.FREQUENCY.getKey())) {
+	        return "Updated Recurrence frequency " + ReactorKeysEnum.FREQUENCY.getKey();
+	    } else if (key.equals(ReactorKeysEnum.UNTIL.getKey())) {
+	        return "Updated Date until which the event recurs " + ReactorKeysEnum.UNTIL.getKey();
+	    } 
 	    return super.getDescriptionForKey(key);
 	}
 
