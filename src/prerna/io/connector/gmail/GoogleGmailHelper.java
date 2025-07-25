@@ -37,9 +37,9 @@ public class GoogleGmailHelper {
 			message = service.users().messages().send("me", message).execute();
 			return message;
 		} catch (Exception e) {
-			classLogger.error("Failed to send email.");
+			classLogger.error("Failed to send email.", e);
+			throw e;
 		}
-		return null;
 	}
 	
 	public static MimeMessage readEmail(Gmail service, String messageId) throws Exception {
@@ -70,11 +70,12 @@ public class GoogleGmailHelper {
 		List<Message> messages = res.getMessages();
 		if (messages == null)
 			return summaries;
-
-		for (Message msg : messages) {
-			Message msgRes = service.users().messages().get("me", msg.getId()).execute();
-			Map<String, Object> summary = normalizeGmailMessage(msgRes);
-			summaries.add(summary);
+		if (messages != null) {
+			for (Message msg : messages) {
+				Message msgRes = service.users().messages().get("me", msg.getId()).execute();
+				Map<String, Object> summary = normalizeGmailMessage(msgRes);
+				summaries.add(summary);
+			}
 		}
 		return summaries;
 	}
@@ -84,11 +85,12 @@ public class GoogleGmailHelper {
 		ListMessagesResponse res = service.users().messages().list("me").setQ("is:unread").setMaxResults((long) k)
 				.execute();
 		List<Message> messages = res.getMessages();
-
-		for (Message msg : messages) {
-			Message msgRes = service.users().messages().get("me", msg.getId()).execute();
-			Map<String, Object> result = normalizeGmailMessage(msgRes);
-			unread.add(result);
+		if (messages != null) {
+			for (Message msg : messages) {
+				Message msgRes = service.users().messages().get("me", msg.getId()).execute();
+				Map<String, Object> result = normalizeGmailMessage(msgRes);
+				unread.add(result);
+			}
 		}
 		return unread;
 

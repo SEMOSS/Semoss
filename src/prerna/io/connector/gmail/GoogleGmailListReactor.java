@@ -62,16 +62,21 @@ public class GoogleGmailListReactor extends AbstractReactor {
 						break;
 					}
 				}
-
+				if (fullmsg.getPayload() != null && fullmsg.getPayload().getHeaders() != null) {
+				    for (MessagePartHeader header : fullmsg.getPayload().getHeaders()) {
+				        if ("Subject".equalsIgnoreCase(header.getName())) {
+				            subject = header.getValue();
+				            break;
+				        }
+				    }
+				}
 				Map<String, Object> map = new HashMap<>();
 				map.put("id", fullmsg.getId());
 				map.put("subject", subject);
 				emailList.add(map);
-
 			}
 		}
 		return emailList;
-
 	}
 	
 	@Override

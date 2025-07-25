@@ -48,7 +48,8 @@ public class GoogleSendGmailReactor extends AbstractReactor {
 					map.put(MESSAGE_ID_KEY, result.getId());
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error("Failed to send email or message id not found");
+				throw new SemossPixelException("Failed to send email or message id not found: " + e.getMessage(), e);
 			}
 			map.put(SUCCESS_KEY, success);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
