@@ -44,8 +44,12 @@ public class InterruptAndStopJobReactor extends AbstractReactor {
         String jobId = this.keyValue.get(JOB_ID);
         String jobGroup = this.keyValue.get(JOB_GROUP);
 
-        if (jobId == null || jobGroup == null) {
-            throw new IllegalArgumentException("jobId and jobGroup are required");
+        if (jobId == null) {
+            throw new IllegalArgumentException("jobId is required");
+        }
+
+        if (jobGroup == null || jobGroup.trim().isEmpty()) {
+            jobGroup = "defaultGroup";
         }
 
         User user = this.insight.getUser();
