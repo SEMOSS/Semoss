@@ -30,7 +30,7 @@ public class GoogleCreateMainSheetReactor extends AbstractReactor {
 			this.organizeKeys();
 			String titleSheetName = this.keyValue.get(this.keysToGet[0]);
 			String accessToken = getAccessToken();
-			return SpreadSheetHelper.createnewSpreadSheet(titleSheetName, accessToken);
+			return SpreadSheetHelper.createNewSpreadSheet(titleSheetName, accessToken);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));

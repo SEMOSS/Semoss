@@ -38,7 +38,7 @@ public class GoogleCreateSheetReactor extends AbstractReactor {
 			ObjectMapper mapper = new ObjectMapper();
 			List<List<String>> data = mapper.readValue(rawData, List.class);
 			String accessToken = getAccessToken();
-			return SpreadSheetHelper.createnewSheet(titleSheetID, sheetName, accessToken, data);
+			return SpreadSheetHelper.createNewSheet(titleSheetID, sheetName, accessToken, data);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));

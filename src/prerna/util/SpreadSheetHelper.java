@@ -12,6 +12,7 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,6 +22,7 @@ import org.json.JSONObject;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 
 import prerna.reactor.model.SpreadSheetResponse;
@@ -93,8 +95,7 @@ public class SpreadSheetHelper {
 			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method writeData()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 
@@ -158,8 +159,7 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method sendPostRequest()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		} finally {
 			if (conn != null) {
 				conn.disconnect();
@@ -212,25 +212,25 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method getSpreadsheetIdByTitle()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 
 	}
 
 	/**
-	 * To update data in spreadsheet using titlesheetid and sheetId.
+	 * Updates data in a Google Spreadsheet and returns only the success value.
 	 *
 	 * @param titlesheetid The spreadsheet ID.
 	 * @param sheetId      The sheet/tab ID (as String).
 	 * @param data         The data to write (List<List<String>>).
 	 * @param accessToken  The Google API access token.
-	 * @return NounMetadata with the result message.
+	 * @return NounMetadata with {"success": true} if update succeeded, {"success":
+	 *         false} otherwise, as a Java object (not JSON string).
 	 */
 	public static NounMetadata updateData(String titlesheetid, String sheetId, List<List<String>> data,
 			String accessToken) {
 		try {
-			// 1. Get the sheet name from the sheetId
+			// Retrieve the sheet name for the given sheetId
 			String metaUrl = SHEET_URL + titlesheetid + "?fields=sheets(properties(sheetId,title))";
 			String metaResponse = sendGetRequest(metaUrl, accessToken);
 			JSONObject metaJson = new JSONObject(metaResponse);
@@ -245,58 +245,46 @@ public class SpreadSheetHelper {
 				}
 			}
 
-			if (sheetName == null) {
-				return new NounMetadata("Sheet ID not found in spreadsheet.", PixelDataType.CUSTOM_DATA_STRUCTURE,
-						PixelOperationType.OPERATION);
-			}
+			boolean success = false;
+			if (sheetName != null) {
+				// Clear the entire sheet
+				String clearUrl = SHEET_URL + titlesheetid + "/values/" + URLEncoder.encode(sheetName, "UTF-8")
+						+ ":clear";
+				sendPostRequest(clearUrl, "", accessToken);
 
-			// 2. Clear the entire sheet first
-			String clearRange = sheetName; // This clears the whole sheet
-			String clearUrl = SHEET_URL + titlesheetid + "/values/" + URLEncoder.encode(clearRange, "UTF-8") + ":clear";
-			sendPostRequest(clearUrl, "", accessToken);
-
-			// 3. Write new data starting from A1
-			int numRows = data.size();
-			int numCols = numRows > 0 ? data.get(0).size() : 0;
-			String startCell = "A1";
-			String endCell = getCellReference(numCols - 1, numRows - 1);
-			String range = sheetName + "!" + startCell;
-			if (numRows > 1 || numCols > 1) {
-				range += ":" + endCell;
-			}
-
-			String url = SHEET_URL + titlesheetid + "/values/" + URLEncoder.encode(range, "UTF-8")
-					+ "?valueInputOption=USER_ENTERED";
-
-			JSONObject body = new JSONObject();
-			body.put("values", new JSONArray(data));
-
-			HashMap<String, Object> responseMessage = sendPutRequest(url, body.toString(), accessToken);
-
-			Object responseBody = responseMessage.get("ResponseBody");
-			int responseCode = (int) responseMessage.get("ResponseCode");
-
-			JSONObject jsonResponse = new JSONObject(responseBody.toString());
-
-			String msg;
-			if (responseCode >= 200 && responseCode < 300) {
-				if (jsonResponse.has("updatedCells") && jsonResponse.getInt("updatedCells") > 0) {
-					msg = "All data replaced successfully";
-				} else if (jsonResponse.has("updatedCells")) {
-					msg = "No cells were updated. Response: " + jsonResponse.toString();
-				} else {
-					msg = "Response did not contain 'updatedCells'. Full response: " + jsonResponse.toString();
+				// Write new data starting from A1
+				int numRows = data.size();
+				int numCols = numRows > 0 ? data.get(0).size() : 0;
+				String startCell = "A1";
+				String endCell = getCellReference(numCols - 1, numRows - 1);
+				String range = sheetName + "!" + startCell;
+				if (numRows > 1 || numCols > 1) {
+					range += ":" + endCell;
 				}
-			} else {
-				msg = "Failed to update data. HTTP code: " + responseCode + ". Response: " + jsonResponse.toString();
+
+				String updateUrl = SHEET_URL + titlesheetid + "/values/" + URLEncoder.encode(range, "UTF-8")
+						+ "?valueInputOption=USER_ENTERED";
+				JSONObject body = new JSONObject();
+				body.put("values", new JSONArray(data));
+
+				HashMap<String, Object> responseMessage = sendPutRequest(updateUrl, body.toString(), accessToken);
+				Object responseBody = responseMessage.get("ResponseBody");
+				int responseCode = (int) responseMessage.get("ResponseCode");
+				JSONObject jsonResponse = new JSONObject(responseBody.toString());
+
+				if (responseCode >= 200 && responseCode < 300 && jsonResponse.has("updatedCells")) {
+					success = jsonResponse.getInt("updatedCells") > 0;
+				}
 			}
 
-			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			Map<String, Object> result = new HashMap<>();
+			result.put("success", success);
+
+			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method updateData()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 
@@ -323,8 +311,7 @@ public class SpreadSheetHelper {
 			conn.disconnect();
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method sendGetRequest()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 		return content.toString();
 	}
@@ -373,8 +360,7 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method sendPutRequest()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		} finally {
 			if (conn != null) {
 				conn.disconnect();
@@ -389,7 +375,7 @@ public class SpreadSheetHelper {
 	 */
 	public static NounMetadata readData(String spreadsheetId, String sheetId, String accessToken) {
 		try {
-			// 1. Get the sheet name from the sheetId
+			// Get the sheet name from the sheetId
 			String metaUrl = SHEET_URL + spreadsheetId + "?fields=sheets(properties(sheetId,title))";
 			SpreadSheetHelper helper = new SpreadSheetHelper();
 			String metaResponse = SpreadSheetHelper.sendGetRequest(metaUrl, accessToken);
@@ -414,7 +400,7 @@ public class SpreadSheetHelper {
 						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
 
-			// 2. Read the data using the sheet name
+			// Read the data using the sheet name
 			String url = SHEET_URL + spreadsheetId + "/values/" + URLEncoder.encode(sheetName, "UTF-8");
 			String response = SpreadSheetHelper.sendGetRequest(url, accessToken);
 			JSONObject json = new JSONObject(response);
@@ -441,16 +427,16 @@ public class SpreadSheetHelper {
 	}
 
 	/**
-	 * To delete a sheet from a spreadsheet using titlesheetid and sheetId.
+	 * Deletes a sheet from a spreadsheet using titlesheetid and sheetId.
 	 *
 	 * @param titlesheetid The spreadsheet ID.
-	 * @param sheetId      The sheet/tab ID (as Integer or String).
+	 * @param sheetId      The sheet/tab ID (as String).
 	 * @param accessToken  The Google API access token.
-	 * @return NounMetadata with the result message.
+	 * @return NounMetadata with {"success": true} if deletion succeeded,
+	 *         {"success": false} otherwise, as a Java object (not JSON string).
 	 */
 	public static NounMetadata deleteSheet(String titlesheetid, String sheetId, String accessToken) {
 		try {
-
 			// Prepare batchUpdate request body
 			JSONObject deleteSheetRequest = new JSONObject();
 			deleteSheetRequest.put("deleteSheet", new JSONObject().put("sheetId", Integer.parseInt(sheetId)));
@@ -475,31 +461,17 @@ public class SpreadSheetHelper {
 			os.close();
 
 			int batchResponseCode = batchConn.getResponseCode();
-			InputStream batchIs = (batchResponseCode >= 200 && batchResponseCode < 300) ? batchConn.getInputStream()
-					: batchConn.getErrorStream();
 
-			BufferedReader batchIn = new BufferedReader(new InputStreamReader(batchIs));
-			String inputLine;
-			StringBuilder batchResponse = new StringBuilder();
-			while ((inputLine = batchIn.readLine()) != null) {
-				batchResponse.append(inputLine);
-			}
-			batchIn.close();
+			boolean success = (batchResponseCode >= 200 && batchResponseCode < 300);
 
-			String msg;
-			if (batchResponseCode >= 200 && batchResponseCode < 300) {
-				msg = "Sheet with ID '" + sheetId + "' deleted successfully from spreadsheet '" + titlesheetid + "'.";
-			} else {
-				msg = "Failed to delete sheet. HTTP code: " + batchResponseCode + ". Response: "
-						+ batchResponse.toString();
-			}
+			Map<String, Object> result = new HashMap<>();
+			result.put("success", success);
 
-			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method deleteSheet()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 
@@ -536,8 +508,7 @@ public class SpreadSheetHelper {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method getSheetName()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 		return allSheetNames;
 	}
@@ -571,8 +542,7 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method getSpreadSheetId()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 		return spreadsheetIds;
 	}
@@ -592,7 +562,7 @@ public class SpreadSheetHelper {
 			if (!isTitleSheetNamePresent) {
 				String msg = "A Spreadsheet with this title already exists";
 				SpreadSheetResponse resp = new SpreadSheetResponse();
-				resp.setStatus(false);
+				resp.setSuccess(false);
 				resp.setTitleSheetID(null);
 				resp.setSheetID(null);
 				return new NounMetadata(resp, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -646,9 +616,9 @@ public class SpreadSheetHelper {
 				}
 				resp.setTitleSheetID(spreadsheetId);
 				resp.setSheetID(sheetId);
-				resp.setStatus(true);
+				resp.setSuccess(true);
 			} else {
-				resp.setStatus(false);
+				resp.setSuccess(false);
 				resp.setTitleSheetID(null);
 				resp.setSheetID(null);
 			}
@@ -657,8 +627,7 @@ public class SpreadSheetHelper {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method createNewSpreadSheet()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 
@@ -674,7 +643,7 @@ public class SpreadSheetHelper {
 			String query = TITLESHEET_NAMEURL;
 			FileList result = driveService.files().list().setQ(query).setFields("files(name)").execute();
 
-			for (com.google.api.services.drive.model.File file : result.getFiles()) {
+			for (File file : result.getFiles()) {
 				if (file.getName().equalsIgnoreCase(titleSheetName)) {
 					return false;
 				}
@@ -682,8 +651,7 @@ public class SpreadSheetHelper {
 			return true;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method validateTitleSheetName()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 
@@ -694,12 +662,10 @@ public class SpreadSheetHelper {
 					.setApplicationName("Your Application Name").build();
 		} catch (GeneralSecurityException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method getDriveService()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method getDriveService()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 
@@ -716,17 +682,18 @@ public class SpreadSheetHelper {
 	 */
 	public static NounMetadata createNewSheet(String titlesheetid, String sheetName, String accessToken,
 			List<List<String>> data) {
+
 		SpreadSheetResponse resp = new SpreadSheetResponse();
 
 		try {
 			if (titlesheetid == null || titlesheetid.isEmpty()) {
-				resp.setStatus(false);
+				resp.setSuccess(false);
 				resp.setTitleSheetID(null);
 				resp.setSheetID(null);
 				return new NounMetadata(resp, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
 
-			// 1. Get spreadsheet metadata to check for existing sheet
+			// Get spreadsheet metadata to check for existing sheet
 			String getUrl = SHEET_URL + titlesheetid + "?fields=sheets.properties";
 			URL url = new URL(getUrl);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -751,14 +718,14 @@ public class SpreadSheetHelper {
 				for (int i = 0; i < sheets.length(); i++) {
 					JSONObject properties = sheets.getJSONObject(i).getJSONObject("properties");
 					if (sheetName.equals(properties.optString("title"))) {
-						// Sheet with the same name exists, throw error
-						throw new SemossPixelException(NounMetadata.getErrorNounMessage("A sheet with the name '"
-								+ sheetName + "' already exists. Two sheets cannot have the same name."));
+						classLogger.error("Sheet with same name already exist.");
+						throw new IllegalArgumentException("A sheet with the name '" + sheetName
+								+ "' already exists. Two sheets cannot have the same name.");
 					}
 				}
 			}
 
-			// 2. Create the new sheet
+			// Create the new sheet
 			String batchUpdateUrl = SHEET_URL + titlesheetid + ":batchUpdate";
 			url = new URL(batchUpdateUrl);
 			conn = (HttpURLConnection) url.openConnection();
@@ -807,9 +774,9 @@ public class SpreadSheetHelper {
 				}
 				resp.setTitleSheetID(titlesheetid);
 				resp.setSheetID(sheetId);
-				resp.setStatus(true);
+				resp.setSuccess(true);
 			} else {
-				resp.setStatus(false);
+				resp.setSuccess(false);
 				resp.setTitleSheetID(titlesheetid);
 				resp.setSheetID(null);
 				return new NounMetadata(resp, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -818,7 +785,7 @@ public class SpreadSheetHelper {
 			// Wait for sheet to be available
 			Thread.sleep(1000);
 
-			// 3. Add data to the sheet
+			// Add data to the sheet
 			int numRows = data.size();
 			int numCols = numRows > 0 ? data.get(0).size() : 0;
 			String startCell = "A1";
@@ -854,32 +821,28 @@ public class SpreadSheetHelper {
 			updateIn.close();
 
 			if (updateResponseCode >= 200 && updateResponseCode < 300) {
-				resp.setStatus(true);
+				resp.setSuccess(true);
 			} else {
-				resp.setStatus(false);
+				resp.setSuccess(false);
 			}
 
 			return new NounMetadata(resp, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 
-		} catch (SemossPixelException e) {
-			// Let this propagate to the caller (custom exception for duplicate sheet)
-			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method createNewSheet()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 
 	/**
-	 * To delete a spreadsheet using its titlesheetid (spreadsheet ID).
+	 * Deletes a spreadsheet using its titlesheetid (spreadsheet ID).
 	 *
 	 * @param titlesheetid The spreadsheet ID.
 	 * @param accessToken  The Google API access token.
-	 * @return NounMetadata with the result message.
+	 * @return NounMetadata with {"success": true} if deletion succeeded,
+	 *         {"success": false} otherwise, as a Java object (not JSON string).
 	 */
 	public static NounMetadata deleteTitleSheet(String titlesheetid, String accessToken) {
-		String msg = null;
 		try {
 			// Delete the spreadsheet using the Drive API
 			String urlStr = GOOGLEDRIVE_URL + titlesheetid;
@@ -890,25 +853,17 @@ public class SpreadSheetHelper {
 
 			int responseCode = conn.getResponseCode();
 
-			if (responseCode == 204) { // 204 No Content means success
-				msg = "Spreadsheet with ID '" + titlesheetid + "' deleted successfully.";
-			} else {
-				BufferedReader in = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
-				String inputLine;
-				StringBuilder response = new StringBuilder();
-				while ((inputLine = in.readLine()) != null) {
-					response.append(inputLine);
-				}
-				in.close();
-				msg = "Failed to delete spreadsheet. HTTP code: " + responseCode + ". Response: " + response.toString();
-			}
+			// 204 No Content means success
+			boolean success = (responseCode == 204);
 
-			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			Map<String, Object> result = new HashMap<>();
+			result.put("success", success);
+
+			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method deleteTitleSheet()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 
@@ -921,8 +876,7 @@ public class SpreadSheetHelper {
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Exception in method deleteAll()" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 
