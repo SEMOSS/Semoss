@@ -109,8 +109,6 @@ public class AskPlayground2Reactor extends AbstractReactor {
         
 //        TODO: Gonna need to move the files to a room if exists
         List<String> inputFiles = getFiles();
-        addToolsToParamMap(paramMap);
-        System.out.println(paramMap);
 		
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 		MessageUtils.moveFilesToRoomFolder(inputImages, room, insight);
@@ -277,6 +275,8 @@ public class AskPlayground2Reactor extends AbstractReactor {
         .withImages(inputImages, room)
         .withImageUrls(inputImageURLs)
         .withRAGChunks(chunks)
+        .withEngineTools(getEngineToolIDs(), user)
+        .withProjectTools(getProjectToolIDs(), user)
         .build();
         
         /**
@@ -292,55 +292,6 @@ public class AskPlayground2Reactor extends AbstractReactor {
          pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
 
         return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-	private void addToolsToParamMap(Map<String, Object> paramMap) {
-		List<String> engineToolIDs = getEngineToolIDs();
-        List<String> projectToolIDs = getProjectToolIDs();
-        
-        if (!engineToolIDs.isEmpty() || !projectToolIDs.isEmpty()) {
-
-            // Check if the "tools_choice" key exists in the paramMap, else add it
-            if (!paramMap.containsKey("tool_choice")) {
-              paramMap.put("tool_choice", "auto");
-            }
-
-            // Check if the "tools" key exists in the paramMap
-            List<Map<String, Object>> toolsList;
-            if (paramMap.containsKey("tools")) {
-              // Retrieve the existing list of tools
-              toolsList = (List<Map<String, Object>>) paramMap.get("tools");
-            } else {
-              // Create a new list for tools
-              toolsList = new ArrayList<Map<String, Object>>();
-              paramMap.put("tools", toolsList);
-            }
-
-            // Iterate over each engine ID and add the function tool to the tools list
-            for (String engineToolID : engineToolIDs) {
-              if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineToolID)) {
-                throw new IllegalArgumentException(
-                    "Function engine " + engineToolID + " does not exist or user does not have access to this vector");
-              }
-              IFunctionEngine function = Utility.getFunctionEngine(engineToolID);
-              assert function.getCatalogType() == IFunctionEngine.CATALOG_TYPE.FUNCTION;
-              Map<String, Object> functionToolMap = function.buildFunctionEngineToolMap();
-              toolsList.add(functionToolMap);
-            }
-
-            // Iterate over each project ID and add the tool to the tools list
-            for (String projectToolID : projectToolIDs) {
-              if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), projectToolID)) {
-                throw new IllegalArgumentException(
-                    "Function engine " + projectToolID + " does not exist or user does not have access to this vector");
-              }
-              IProject project = Utility.getProject(projectToolID);
-              assert project.getProjectType() == IProject.PROJECT_TYPE.CODE;
-//              TODO: Implement deprecated method
-              Map<String, Object> projectToolMap = project.buildProjectToolMap();
-              toolsList.add(projectToolMap);
-            }
-          }
 	}
 	
     public List<String> getImages() {

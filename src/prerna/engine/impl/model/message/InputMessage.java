@@ -8,9 +8,14 @@ import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.Room;
+import prerna.project.api.IProject;
+import prerna.auth.User;
+import prerna.util.Utility;
 
 /**
  * Unified message class that can handle all types of messages (text, image, tool calls, etc.)
@@ -381,6 +386,61 @@ public class InputMessage extends AbstractMessage {
                 return MessageType.INPUT_MEDIA;
             }
             return MessageType.INPUT_TEXT;
+        }
+
+        public Builder withEngineTools(List<String> engineToolIDs, User user) {
+            if (!engineToolIDs.isEmpty()) {
+                ensureToolsStructure();
+                
+                List<Map<String, Object>> toolsList = (List<Map<String, Object>>) message.paramMap.get("tools");
+                
+                // Add engine tools
+                for (String engineToolID : engineToolIDs) {
+                    if (!SecurityEngineUtils.userCanViewEngine(user, engineToolID)) {
+                        throw new IllegalArgumentException(
+                            "Function engine " + engineToolID + " does not exist or user does not have access to this engine");
+                    }
+                    IFunctionEngine function = Utility.getFunctionEngine(engineToolID);
+                    assert function.getCatalogType() == IFunctionEngine.CATALOG_TYPE.FUNCTION;
+                    Map<String, Object> functionToolMap = function.buildFunctionEngineToolMap();
+                    toolsList.add(functionToolMap);
+                }
+            }
+            return this;
+        }
+
+        public Builder withProjectTools(List<String> projectToolIDs, User user) {
+            if (!projectToolIDs.isEmpty()) {
+                ensureToolsStructure();
+                
+                List<Map<String, Object>> toolsList = (List<Map<String, Object>>) message.paramMap.get("tools");
+                
+                // Add project tools
+                for (String projectToolID : projectToolIDs) {
+                    if (!SecurityEngineUtils.userCanViewEngine(user, projectToolID)) {
+                        throw new IllegalArgumentException(
+                            "Project tool " + projectToolID + " does not exist or user does not have access to this project");
+                    }
+                    IProject project = Utility.getProject(projectToolID);
+                    assert project.getProjectType() == IProject.PROJECT_TYPE.CODE;
+                    Map<String, Object> projectToolMap = project.buildProjectToolMap();
+                    toolsList.add(projectToolMap);
+                }
+            }
+            return this;
+        }
+
+        private void ensureToolsStructure() {
+            // Check if the "tool_choice" key exists in the paramMap, else add it
+            if (!message.paramMap.containsKey("tool_choice")) {
+                message.paramMap.put("tool_choice", "auto");
+            }
+
+            // Check if the "tools" key exists in the paramMap
+            if (!message.paramMap.containsKey("tools")) {
+                message.paramMap.put("tools", new ArrayList<Map<String, Object>>());
+            }
+            
         }
     }
 }
