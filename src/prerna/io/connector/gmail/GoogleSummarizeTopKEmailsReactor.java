@@ -38,7 +38,7 @@ public class GoogleSummarizeTopKEmailsReactor extends AbstractReactor {
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
-			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage());
 		}
 		
 	}

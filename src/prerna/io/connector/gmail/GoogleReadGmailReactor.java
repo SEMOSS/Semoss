@@ -20,6 +20,15 @@ public class GoogleReadGmailReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(GoogleReadGmailReactor.class);
 	
+	private static final String FROM_KEY = "from";
+    private static final String TO_KEY = "to";
+    private static final String SUBJECT_KEY = "subject";
+    private static final String CONTENT_KEY = "content";
+    private static final String SENT_DATE_KEY = "sentDate";
+    private static final String RECEIVED_DATE_KEY = "receivedDate";
+    private static final String TEXT_PLAIN_MIME = "text/plain";
+    private static final String TEXT_HTML_MIME = "text/html";
+	
 	public GoogleReadGmailReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
 		this.keyRequired = new int[] { 1 };
@@ -35,16 +44,16 @@ public class GoogleReadGmailReactor extends AbstractReactor {
 			Gmail GmailService = GoogleGmailUtils.getGmailServiceUsingToken(accessToken);
 			MimeMessage result = GoogleGmailHelper.readEmail(GmailService, id);
 			Map<String, Object> map = new LinkedHashMap<>();
-			map.put("from", result.getFrom());
-			map.put("to", result.getRecipients(jakarta.mail.Message.RecipientType.TO));
-			map.put("subject", result.getSubject());
-			map.put("content", getBody(result));
-			map.put("sentDate", result.getSentDate());
-			map.put("receivedDate", result.getReceivedDate());
+			map.put(FROM_KEY, result.getFrom());
+	        map.put(TO_KEY, result.getRecipients(jakarta.mail.Message.RecipientType.TO));
+	        map.put(SUBJECT_KEY, result.getSubject());
+	        map.put(CONTENT_KEY, getBody(result));
+	        map.put(SENT_DATE_KEY, result.getSentDate());
+	        map.put(RECEIVED_DATE_KEY, result.getReceivedDate());
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
-			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage());
 		}
 		
 	}
@@ -62,9 +71,9 @@ public class GoogleReadGmailReactor extends AbstractReactor {
 	private static String getTextFromMultipart(Multipart multipart) throws Exception {
 	    for (int i = 0; i < multipart.getCount(); i++) {
 	        BodyPart bodyPart = multipart.getBodyPart(i);
-	        if (bodyPart.isMimeType("text/plain")) {
+	        if (bodyPart.isMimeType(TEXT_PLAIN_MIME)) {
 	            return (String) bodyPart.getContent();
-	        } else if (bodyPart.isMimeType("text/html")) {
+	        } else if (bodyPart.isMimeType(TEXT_HTML_MIME)) {
 	            return (String) bodyPart.getContent();
 	        } else if (bodyPart.getContent() instanceof Multipart) {
 	            String result = getTextFromMultipart((Multipart) bodyPart.getContent());

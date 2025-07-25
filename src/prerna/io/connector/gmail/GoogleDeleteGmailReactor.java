@@ -18,6 +18,8 @@ public class GoogleDeleteGmailReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(GoogleDeleteGmailReactor.class);
 	
+	private static final String STATUS_KEY = "status";
+	
 	public GoogleDeleteGmailReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
 		this.keyRequired = new int[] { 1 };
@@ -33,11 +35,11 @@ public class GoogleDeleteGmailReactor extends AbstractReactor {
 			Gmail GmailService = GoogleGmailUtils.getGmailServiceUsingToken(accessToken);
 			boolean result = GoogleGmailHelper.deleteEmail(GmailService, id);
 			Map<String, Object> map = new HashMap<>();
-			map.put("status", result);
+			map.put(STATUS_KEY, result);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
-			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage());
 		}
 		
 	}

@@ -49,13 +49,13 @@ public class GoogleSendGmailReactor extends AbstractReactor {
 				}
 			} catch (Exception e) {
 				classLogger.error("Failed to send email or message id not found");
-				throw new SemossPixelException("Failed to send email or message id not found: " + e.getMessage(), e);
+				throw new SemossPixelException("Failed to send email or message id not found: " + e.getMessage());
 			}
 			map.put(SUCCESS_KEY, success);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
-			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
+			throw new SemossPixelException("Please provide valid input: " + e.getMessage());
 		}
 
 	}
