@@ -55,7 +55,6 @@ public class AskPlayground2Reactor extends AbstractReactor {
 
   private String promptScript = null;
 	private Map<String, Object> promptResult = null;
-	private Map<String, Object> askArguments = null; // includes systemPrompt and userPrompt
 	
 	public AskPlayground2Reactor() {
 		this.keysToGet = new String[] { 
@@ -84,7 +83,7 @@ public class AskPlayground2Reactor extends AbstractReactor {
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		User user = this.insight.getUser();
     String userId = user.getPrimaryLoginToken().getId();
-		AccessToken userToken = user.getPrimaryLoginToken();
+		// AccessToken userToken = user.getPrimaryLoginToken();
 		
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
@@ -114,16 +113,49 @@ public class AskPlayground2Reactor extends AbstractReactor {
 		MessageUtils.moveFilesToRoomFolder(inputImages, room, insight);
 		List<String> roomFilePaths = MessageUtils.moveFilesToRoomFolder(inputFiles, room, insight);
 
-    /**
-     * Vector DB
-     */
+     List<Map<String, Object>> chunks = getRagChunks(engineId, roomId, user, userId, question, context, room,
+        roomFilePaths);
+		
+	///// MESSAGE CREATION //////////
 
-     List<Map<String, Object>> chunks = new ArrayList<>();
+//		Need to make sure we are adding files to the message (if applicable/necessary) using withRagChunks
+        InputMessage msg;
+        msg = InputMessage.builder(room)
+        .withInputUIPrompt(question)
+        .withInputPrompt(question)
+        .withModelType(modelEngine.getModelType())
+        .withParamMap(paramMap)
+        .withImages(inputImages, room)
+        .withImageUrls(inputImageURLs)
+        .withRAGChunks(chunks)
+        .withEngineTools(getEngineToolIDs(), user)
+        .withProjectTools(getProjectToolIDs(), user)
+        .build();
+        
+        /**
+         * Send message and incorporate tools if necessary
+         */
+        
+        ResponseMessage response = room.ask(msg, context, modelEngine);
+        
+        // ---- Return both messages as a Map
+        Map<String, Object> pixelReturn = new LinkedHashMap<>();
+
+         pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(msg)));
+         pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
+
+        return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
+
+  @SuppressWarnings("unchecked")
+  private List<Map<String, Object>> getRagChunks(String engineId, String roomId, User user, String userId,
+      String question, String context, Room room, List<String> roomFilePaths) {
+    List<Map<String, Object>> chunks = new ArrayList<>();
 
      try {
-       String vectorId = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.VECTORDB.getKey()));
+       String vectorId = getStringArg(ReactorKeysEnum.VECTORDB);
 
-       String workspaceId = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey()));
+       String workspaceId = getStringArg(ReactorKeysEnum.WORKSPACE_ID);
 
        JsonObject options = null;
        String rawOptions = room.getOptions();
@@ -248,7 +280,7 @@ public class AskPlayground2Reactor extends AbstractReactor {
        } else {
          promptScript = buildPromptScript(userId, question, engineId, roomFilePaths, null, vectorId, vectorDesc);
        }
-       logger.info("AskElsa running: " + promptScript);
+       logger.info("Playground running: " + promptScript);
        promptResult = (Map<String, Object>) this.insight.getPyTranslator()
            .runScript(promptScript);
 
@@ -262,37 +294,12 @@ public class AskPlayground2Reactor extends AbstractReactor {
      } catch (Exception e) {
        logger.warn("Rag failed with error: ", e.getMessage());
      }
-		
-	///// MESSAGE CREATION //////////
+    return chunks;
+  }
 
-//		Need to make sure we are adding files to the message (if applicable/necessary) using withRagChunks
-        InputMessage msg;
-        msg = InputMessage.builder(room)
-        .withInputUIPrompt(question)
-        .withInputPrompt(question)
-        .withModelType(modelEngine.getModelType())
-        .withParamMap(paramMap)
-        .withImages(inputImages, room)
-        .withImageUrls(inputImageURLs)
-        .withRAGChunks(chunks)
-        .withEngineTools(getEngineToolIDs(), user)
-        .withProjectTools(getProjectToolIDs(), user)
-        .build();
-        
-        /**
-         * Send message and incorporate tools if necessary
-         */
-        
-        ResponseMessage response = room.ask(msg, context, modelEngine);
-        
-        // ---- Return both messages as a Map
-        Map<String, Object> pixelReturn = new LinkedHashMap<>();
-
-         pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(msg)));
-         pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
-
-        return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
+  private String getStringArg(ReactorKeysEnum rke) {
+    return StringUtils.trimToNull(this.keyValue.get(rke.getKey()));
+  }
 	
     public List<String> getImages() {
         List<String> inputStrings = new ArrayList<>();
@@ -352,7 +359,7 @@ public class AskPlayground2Reactor extends AbstractReactor {
     @Override
 	public String getReactorDescription() {
 //    	TODO: fill this in
-		return "TODO";
+		return "Reactor to ask Playground";
 	}
     
     /**
