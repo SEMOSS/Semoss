@@ -136,6 +136,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         except Exception as e:
             raise RuntimeError(f"Failed to build messages from SEMOSS messages: {e}")
 
+        # TODO: Move this to the message builder
         self.request_config = self._convert_args_to_provider_config(
             context=self.ask_settings.system_prompt, history=msg_history, **param_map
         )
@@ -164,9 +165,12 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
     def _handle_standard_ask(self, **kwargs):
         """This method will change when we go to the new history format"""
-        msg_history, system_prompt_from_history = self._convert_history(
+        cnvtd_history = self._convert_history(
             question=kwargs.get("question"),
         )
+        msg_history = cnvtd_history.contents
+        system_prompt_from_history = cnvtd_history.system_instructions
+
         if system_prompt_from_history and not self.ask_settings.system_prompt:
             self.ask_settings.system_prompt = system_prompt_from_history
 
@@ -318,7 +322,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
     def _convert_history(
         self,
-        history: List[Dict] = None,
         question: str = None,
         image_url: List[str] = None,
         image_encoded: List[str] = None,
@@ -329,8 +332,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         google_history = []
         system_instructions = None
 
-        if history is not None:
-            for message in history:
+        if self.ask_settings.history is not None:
+            for message in self.ask_settings.history:
                 role = message.get("role", "user")
                 content = message.get("content", "")
                 tool_calls = message.get("tool_calls", None)
