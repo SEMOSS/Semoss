@@ -70,36 +70,29 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
     def ask_call(
         self,
-        question: str = None,
-        context: str = None,
-        use_history: bool = True,
-        history: List[Dict] = None,
         prefix="",
         **kwargs,
     ):
         if self.client is None:
             raise ValueError("Google Gen AI client is not initialized.")
 
-        self.ask_settings = self.get_ask_settings(
-            history, use_history, context, **kwargs
-        )
+        self.ask_settings = self.get_ask_settings(self.model_settings, **kwargs)
 
         # Handling new history format through message_json
         if self.ask_settings.semoss_messages:
             msg_history = self._handle_semoss_msgs()
 
-        # Handling full prompt from Elsa...
+        # Handling full prompt
         elif self.ask_settings.full_prompt:
             msg_history = self._handle_full_prompt_msgs(**kwargs)
 
         # Handling standard ask with question and legacy history
         else:
             msg_history = self._handle_standard_ask(
-                question=question,
                 **kwargs,
             )
 
-        config = self._convert_args_to_provider_config(context=context, **kwargs)
+        config = self._convert_args_to_provider_config(**kwargs)
 
         if self.ask_settings.streaming:
             # STREAMING
@@ -169,10 +162,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         return msg_history
 
-    def _handle_standard_ask(self, question: str, **kwargs):
+    def _handle_standard_ask(self, **kwargs):
         """This method will change when we go to the new history format"""
         msg_history, system_prompt_from_history = self._convert_history(
-            question=question,
+            question=kwargs.get("question"),
         )
         if system_prompt_from_history and not self.ask_settings.system_prompt:
             self.ask_settings.system_prompt = system_prompt_from_history
@@ -280,12 +273,11 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         return google_tools
 
-    def _convert_args_to_provider_config(
-        self, context: str = None, **kwargs
-    ) -> types.GenerateContentConfig:
+    def _convert_args_to_provider_config(self, **kwargs) -> types.GenerateContentConfig:
         """
         Convert our CFG arguments to a GenerateContentConfig object.
         """
+        context = kwargs.pop("context", None)
         response_schema = kwargs.pop("schema", None)
         response_mime_type = kwargs.pop("response_mime_type", None)
         if response_schema is not None and response_mime_type is None:

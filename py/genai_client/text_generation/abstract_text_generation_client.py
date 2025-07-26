@@ -29,9 +29,8 @@ class AbstractTextGenerationClient(ABC):
         template_name: str = None,
         **kwargs: Any,
     ):
-        self.model_name = kwargs.pop("model_name", None)
-        if not self.model_name:
-            raise ValueError("model_name is required")
+        self.model_name = kwargs.pop("model_name", "Unknown")
+
         # On V2 this will get moved to the message builders
         self.model_limits = self._get_model_limits(kwargs)
 

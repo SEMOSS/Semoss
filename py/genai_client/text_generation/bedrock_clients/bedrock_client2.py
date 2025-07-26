@@ -1,26 +1,22 @@
-from typing import List, Dict
+from typing import Any, Dict
 import boto3
 import botocore.exceptions
-from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.bedrock.bedrock_models import BedrockRequest
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
-from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
+from ...constants import AskModelEngineResponse
 
 
-class BedrockClient2(AbstractTextGenerationClient):
+class BedrockClient2:
     def __init__(
         self,
+        cfg_client,
         modelId: str,
         region: str,
         secret_key: str = None,
         access_key: str = None,
         **kwargs,
     ):
-        super().__init__(
-            template=kwargs.pop(TEMPLATE, None),
-            template_name=kwargs.pop(TEMPLATE_NAME, None),
-            **kwargs,
-        )
+        self.cfg_client = cfg_client
         self.client = self._get_client(region, secret_key, access_key, **kwargs)
         self.modelId = modelId
 
@@ -47,18 +43,14 @@ class BedrockClient2(AbstractTextGenerationClient):
 
     def ask_call(
         self,
-        question: str = None,
-        context: str = None,
-        use_history: bool = True,
-        history: List[Dict] = None,
         prefix="",
         **kwargs,
     ) -> AskModelEngineResponse:
         if self.client is None:
             raise RuntimeError("Bedrock client is not initialized.")
 
-        self.ask_settings = self.get_ask_settings(
-            history, use_history, context, **kwargs
+        self.ask_settings = self.cfg_client.get_ask_settings(
+            self.cfg_client.model_settings, **kwargs
         )
 
         if self.ask_settings.semoss_messages:
@@ -71,18 +63,21 @@ class BedrockClient2(AbstractTextGenerationClient):
                 "This class is only being used for message_json requests.."
             )
 
-        if self.ask_settings.streaming:
+        streaming = bedrock_request.get("additionalModelRequestFields", None).pop(
+            "stream", False
+        )
+
+        if self.ask_settings.streaming or streaming:
             return self._handle_streaming(bedrock_request, prefix=prefix)
         else:
             return self._handle_non_streaming(bedrock_request)
 
     def _handle_streaming(
-        self, request: BedrockRequest, prefix: str = ""
+        self, request: Dict[str, Any], prefix: str = ""
     ) -> AskModelEngineResponse:
-        request_dict = request.model_dump(exclude_none=True)
         try:
             stream_response = self.client.converse_stream(
-                modelId=self.modelId, **request_dict
+                modelId=self.modelId, **request
             )
             final_response = ""
             for event in stream_response.get("stream", []):
@@ -112,11 +107,10 @@ class BedrockClient2(AbstractTextGenerationClient):
         except botocore.exceptions.BotoCoreError as e:
             raise RuntimeError(f"Failed to stream response from Bedrock: {e}")
 
-    def _handle_non_streaming(self, request: BedrockRequest) -> AskModelEngineResponse:
-        request_dict = request.model_dump(exclude_none=True)
+    def _handle_non_streaming(self, request: Dict[str, Any]) -> AskModelEngineResponse:
         model_engine_response = AskModelEngineResponse()
         try:
-            response = self.client.converse(modelId=self.modelId, **request_dict)
+            response = self.client.converse(modelId=self.modelId, **request)
 
             output = response.get("output", {})
             message = output.get("message", {})

@@ -327,6 +327,7 @@ class BedrockClient(AbstractTextGenerationClient):
 
             if "message_json" in kwargs:
                 bedrock_client2 = BedrockClient2(
+                    cfg_client=self,
                     modelId=self.modelId,
                     access_key=self.access_key,
                     secret_key=self.secret_key,

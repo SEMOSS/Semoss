@@ -24,7 +24,7 @@ from .bedrock_models import (
 class BedrockMessageBuilder:
     def build_messages(
         self, semoss_messages: List[SEMOSSMessage], system_prompt: str = None
-    ) -> Tuple[List[BedrockMessage], Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         bedrock_messages = []
         param_map = {}
         for i, message in enumerate(semoss_messages):
@@ -52,13 +52,26 @@ class BedrockMessageBuilder:
                     message.param_map
                 )
                 system_block = self.build_system_block(system_prompt)
+                param_map = self.clean_param_map(param_map)
 
         return BedrockRequest(
             messages=bedrock_messages,
             system=system_block,
             inferenceConfig=inference_config,
             additionalModelRequestFields=param_map,
-        )
+        ).model_dump(exclude_none=True)
+
+    def clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
+        param_map.pop("max_completion_tokens", None)
+        param_map.pop("max_tokens", None)
+        param_map.pop("max_new_tokens", None)
+        param_map.pop("model_name", None)
+        param_map.pop("history", None)
+        param_map.pop("use_history", None)
+        param_map.pop("context", None)
+        param_map.pop("image_url", None)
+        param_map.pop("image_encoded", None)
+        return param_map
 
     def _message_type_to_role(self, message_type: SEMOSSMessageType) -> str:
         """Convert SEMOSS message type to Bedrock role."""
