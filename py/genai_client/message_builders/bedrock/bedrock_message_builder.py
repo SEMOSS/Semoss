@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Tuple, Union
+import base64
 from ...utils import (
     get_image_extension,
     fetch_and_encode_image,
@@ -11,13 +12,13 @@ from ..semoss_base.semoss_models import (
 )
 from .bedrock_models import (
     BedrockMessage,
-    BedrockContentBlock,
     BedrockImageBlock,
     BedrockImageSource,
     BedrockInferenceConfig,
     BedrockRequest,
     BedrockSystemBlock,
-    BedrockTextBlock,
+    BedrockTextContentBlock,
+    BedrockImageContentBlock,
 )
 
 
@@ -59,7 +60,7 @@ class BedrockMessageBuilder:
             system=system_block,
             inferenceConfig=inference_config,
             additionalModelRequestFields=param_map,
-        ).model_dump(exclude_none=True)
+        ).model_dump(exclude_none=True, by_alias=True)
 
     def clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
         param_map.pop("max_completion_tokens", None)
@@ -92,23 +93,23 @@ class BedrockMessageBuilder:
         else:
             raise ValueError(f"Unknown SEMOSS message type: {message_type}")
 
-    def _build_text_content_block(self, content: str) -> BedrockTextBlock:
+    def _build_text_content_block(self, content: str) -> BedrockTextContentBlock:
         """Build a text content block."""
-        return BedrockTextBlock(text=content)
+        return BedrockTextContentBlock(text=content)
 
     def _build_image_blocks(
         self, image_content: List[SEMOSSImageContent] = []
-    ) -> List[BedrockContentBlock]:
+    ) -> List[BedrockImageContentBlock]:
 
         bedrock_content_blocks = []
         for image in image_content:
             if image.type == SEMOSSImageType.URL:
                 image_block = self._build_url_image_content(image)
-                content_block = BedrockContentBlock(image=image_block)
+                content_block = BedrockImageContentBlock(image=image_block)
                 bedrock_content_blocks.append(content_block)
             elif image.type == SEMOSSImageType.BASE64:
                 image_block = self._build_base64_image_content(image)
-                content_block = BedrockContentBlock(image=image_block)
+                content_block = BedrockImageContentBlock(image=image_block)
                 bedrock_content_blocks.append(content_block)
             else:
                 raise ValueError(f"Unsupported SEMOSS image type: {image.type}")
@@ -124,6 +125,11 @@ class BedrockMessageBuilder:
             media_type = "image/jpeg"
 
         media_type = media_type.split("/")[-1].lower()
+
+        try:
+            img_bytes = base64.b64decode(img_bytes)
+        except Exception as e:
+            raise ValueError(f"Could not decode base64 image data: {e}")
 
         image_source = BedrockImageSource(bytes=img_bytes)
         return BedrockImageBlock(source=image_source, format=media_type)
@@ -142,7 +148,17 @@ class BedrockMessageBuilder:
             image_content.mime_type = "image/jpeg"
         media_type = image_content.mime_type.split("/")[-1].lower()
 
-        image_source = BedrockImageSource(bytes=image_content.data)
+        if image_content.data.startswith("data:"):
+            base64_data = image_content.data.split(",")[1]
+        else:
+            base64_data = image_content.data
+
+        try:
+            image_bytes = base64.b64decode(base64_data)
+        except Exception as e:
+            raise ValueError(f"Could not decode base64 image data: {e}")
+
+        image_source = BedrockImageSource(bytes=image_bytes)
         return BedrockImageBlock(source=image_source, format=media_type)
 
     def _build_request_parameters(

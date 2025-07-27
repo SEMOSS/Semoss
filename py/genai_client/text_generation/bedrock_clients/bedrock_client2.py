@@ -1,7 +1,6 @@
 from typing import Any, Dict
 import boto3
 import botocore.exceptions
-from ...message_builders.bedrock.bedrock_models import BedrockRequest
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
 from ...constants import AskModelEngineResponse
 
@@ -18,7 +17,7 @@ class BedrockClient2:
     ):
         self.cfg_client = cfg_client
         self.client = self._get_client(region, secret_key, access_key, **kwargs)
-        self.modelId = modelId
+        self.model_id = modelId
 
     def _get_client(
         self, region: str, secret_key: str = None, access_key: str = None, **kwargs
@@ -77,7 +76,7 @@ class BedrockClient2:
     ) -> AskModelEngineResponse:
         try:
             stream_response = self.client.converse_stream(
-                modelId=self.modelId, **request
+                modelId=self.model_id, **request
             )
             final_response = ""
             for event in stream_response.get("stream", []):
@@ -110,7 +109,7 @@ class BedrockClient2:
     def _handle_non_streaming(self, request: Dict[str, Any]) -> AskModelEngineResponse:
         model_engine_response = AskModelEngineResponse()
         try:
-            response = self.client.converse(modelId=self.modelId, **request)
+            response = self.client.converse(modelId=self.model_id, **request)
 
             output = response.get("output", {})
             message = output.get("message", {})
