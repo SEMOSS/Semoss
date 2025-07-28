@@ -156,7 +156,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
 
         self.request_config = self._convert_args_to_provider_config(
-            context=self.ask_settings.system_prompt,
             history=msg_history,
             **param_map,
         )
@@ -176,7 +175,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             self.ask_settings.system_prompt = system_prompt_from_history
 
         self.request_config = self._convert_args_to_provider_config(
-            context=self.ask_settings.system_prompt,
             history=msg_history,
             **kwargs,
         )
@@ -192,7 +190,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             self.ask_settings.system_prompt = system_prompt_from_history
 
         self.request_config = self._convert_args_to_provider_config(
-            context=self.ask_settings.system_prompt,
             history=msg_history,
             **kwargs,
         )
@@ -246,11 +243,15 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
     def _convert_args_to_provider_config(
-        self, context: str = None, history: List[Message] = None, **kwargs
+        self, history: List[Message] = None, **kwargs
     ) -> AnthropicRequestConfig:
         """
         Converts the arguments to a provider-specific configuration.
         """
+
+        system_prompt = kwargs.pop("context", None)
+        if not system_prompt:
+            system_prompt = self.ask_settings.system_prompt
 
         max_tokens = (
             kwargs.pop("max_tokens", None)
@@ -266,7 +267,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         return AnthropicRequestConfig(
             model=self.model_name,
-            system=context,
+            system=system_prompt,
             messages=[message.model_dump(mode="json") for message in history],
             tools=tools,
             max_tokens=max_tokens,
