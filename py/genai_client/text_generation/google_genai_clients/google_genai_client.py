@@ -157,7 +157,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         # Returning a diff type of AskModelEngineResponse if there are function calls
         if len(getattr(model_response, "function_calls", None) or []) > 0:
             return self._parse_tools_call_response(
-                response=model_response.text,
+                response=model_response,
                 response_tokens=response_tokens,
                 prompt_tokens=prompt_tokens,
             )
@@ -218,12 +218,16 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
     ) -> AskModelEngineResponse:
         tools_result = []
         for i, function_call in enumerate(response.function_calls):
+            function_name = function_call.name
+            if function_name.startswith("function_engine_"):
+                # This is our function engine id
+                function_id = function_name.replace("function_engine_", "")
+            else:
+                function_id = i
+
             tools_result.append(
                 {
-                    # idk why google is not giving me an id here..
-                    # They have a palce holder field for it, but it's always None
-                    # I also don't need to pass it to the model in the history..
-                    "id": i,
+                    "id": function_id,
                     "type": "function",
                     "name": function_call.name,
                     "arguments": getattr(function_call, "args", {}),

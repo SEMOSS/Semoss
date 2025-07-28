@@ -157,7 +157,7 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 		// Extract the description from metadata
 		String description = (String) metadata.get("description");
 		if (description == null) {
-			description = "No description available.";
+			description = this.functionDescription;			
 		}
 
 		// Create the main map

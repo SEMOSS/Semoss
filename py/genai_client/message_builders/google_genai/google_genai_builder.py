@@ -59,6 +59,14 @@ class GoogleGenAIMessageBuilder:
         for tool in tools:
             if tool.get("type", None) == "function":
                 func_def = tool["function"]
+                # if func_def.get("name", None) == "function_engine":
+                #     function_engine_id_actual = (
+                #         func_def.get("parameters")
+                #         .get("properties")
+                #         .get("id")
+                #         .get("enum")[0]
+                #     )
+                #     func_def["name"] = f"function_engine_{function_engine_id_actual}"
 
                 parameters_schema = None
                 if "parameters" in func_def:
