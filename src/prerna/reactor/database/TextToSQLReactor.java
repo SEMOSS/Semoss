@@ -13,20 +13,12 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -35,12 +27,12 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class QueryDatabaseReactor extends AbstractReactor {
+public class TextToSQLReactor extends AbstractReactor {
 	
-  private static Logger logger = LogManager.getLogger(QueryDatabaseReactor.class);
+  private static Logger logger = LogManager.getLogger(TextToSQLReactor.class);
   private static final Gson gson = new Gson();
 
-  public QueryDatabaseReactor() {
+  public TextToSQLReactor() {
     this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
     this.keyRequired = new int[] {1, 1, 1, 0};
   }
@@ -165,7 +157,6 @@ public class QueryDatabaseReactor extends AbstractReactor {
 	}
     
     // add response format to ensure json schema
-    // still need to make sure this works
     paramMap.put("response_format", getJsonSchema());
     
     // ask model and parse response
@@ -176,60 +167,8 @@ public class QueryDatabaseReactor extends AbstractReactor {
     	throw new SemossPixelException("LLM could not generate proper response");
     }
     
-    if (responseMap.get("sql") == null || ((String) responseMap.get("sql")).trim().isEmpty()) {
-    	return new NounMetadata(responseMap, PixelDataType.MAP);
-    }
-    
-    // TODO connect to db and add query to prepared statement, get results and return to FE
-    Connection con = null;
-	try {
-		con = database.makeConnection();
-		String sql = (String) responseMap.get("sql");
-		System.out.println(sql);
-	    
-	    try (PreparedStatement ps = con.prepareStatement(sql)) {
-	    	ResultSet rs = ps.executeQuery();
-	    	
-	    	// I can't find the Wrapper manager way of converting a result set to a map
-	    	ResultSetMetaData rsmd = rs.getMetaData();
-	    	List<Map<String, String>> columnInfo = new ArrayList<>();
-	        int columnCount = rsmd.getColumnCount();
-	        
-	    	List<List<Object>> resultObject = new ArrayList<>();
-	    	boolean gotMetadata = false;
-	    	while (rs.next()) {
-	    		List<Object> vals = new ArrayList<>();
-	    		int columnIndex = 1;
-	    		while (columnIndex < columnCount + 1) {
-	    			if (!gotMetadata) {
-	    				Map<String, String> col = new HashMap<>();
-	    				col.put("key", rsmd.getColumnName(columnIndex));
-	    				col.put("type", rsmd.getColumnTypeName(columnIndex));
-	    				columnInfo.add(col);
-	    			}
-	    			
-	    			vals.add(rs.getObject(columnIndex++));
-	    		}
-	    		gotMetadata = true;
-	    		resultObject.add(vals);
-	    	}
-	    	Map<String, Object> finalResultMap = new HashMap<>();
-	    	finalResultMap.put("columns", columnInfo);
-	    	finalResultMap.put("rows", resultObject);
-	    	responseMap.put("result_set", finalResultMap);
-	    	return new NounMetadata(responseMap, PixelDataType.MAP);
-	    } catch (SQLException e) {
-	    	throw new SemossPixelException("Could not run generated SQL");
-	    }
-	} catch (Exception e) {
-		throw new IllegalArgumentException("Error occured establishing connection to database: " + e.getMessage());
-	} finally {
-		try {
-			con.close();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}    
+    return new NounMetadata(responseMap, PixelDataType.MAP);
+
   }
   
   private Map<String, Object> getParamMap() {
