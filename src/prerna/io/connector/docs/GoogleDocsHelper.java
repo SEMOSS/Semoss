@@ -24,10 +24,10 @@ public class GoogleDocsHelper {
     private static final String DOCUMENT_ID_KEY = "documentId";
     private static final String TITLE_KEY = "title";
     private static final String CONTENT_KEY = "content";
-    public static final String GOOGLE_DOCS_CREATE_URL = "https://docs.googleapis.com/v1/documents";
-    public static final String GOOGLE_DOCS_GET_URL = "https://docs.googleapis.com/v1/documents/";
-    public static final String GOOGLE_DOCS_BATCH_UPDATE_URL = "https://docs.googleapis.com/v1/documents/%s:batchUpdate";
-    public static final String GOOGLE_DRIVE_FILES_LIST_URL = "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.document'&fields=files(id,name)";
+    private static final String GOOGLE_DOCS_CREATE_URL = "https://docs.googleapis.com/v1/documents";
+    private static final String GOOGLE_DOCS_GET_URL = "https://docs.googleapis.com/v1/documents/";
+    private static final String GOOGLE_DOCS_BATCH_UPDATE_URL = "https://docs.googleapis.com/v1/documents/%s:batchUpdate";
+    private static final String GOOGLE_DRIVE_FILES_LIST_URL = "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.document'&fields=files(id,name)";
 
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -134,14 +134,14 @@ public class GoogleDocsHelper {
     }
 
     @SuppressWarnings("unchecked")
-	public static NounMetadata titleExists(String accessToken, String titleToFind) {
+	public static NounMetadata titleExists(String accessToken, String title) {
         try {
             Map<String, String> headers = getBearerHeader(accessToken);
             String response = HttpHelperUtility.getRequest(GOOGLE_DRIVE_FILES_LIST_URL, headers, null, null, null);
             Map<String, Object> json = gson.fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
             List<Map<String, Object>> files = (List<Map<String, Object>>) json.get("files");
             for (Map<String, Object> file : files) {
-                if (file.get("name") != null && file.get("name").toString().equalsIgnoreCase(titleToFind)) {
+                if (file.get("name") != null && file.get("name").toString().equalsIgnoreCase(title)) {
                     Map<String, Object> result = new HashMap<>();
                     result.put("exists", true);
                     result.put("docId", file.get("id"));
