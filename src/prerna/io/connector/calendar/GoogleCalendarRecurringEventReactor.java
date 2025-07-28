@@ -1,17 +1,11 @@
 package prerna.io.connector.calendar;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import com.google.api.services.calendar.Calendar;
-import com.google.api.services.calendar.model.Event;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -44,7 +38,6 @@ public class GoogleCalendarRecurringEventReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
-			Calendar CalendarService = GoogleCalendarUtils.getCalendarServiceUsingToken(accessToken);
 			List<String> attendeeEmails = new ArrayList<>();
 			if (emailsInput != null && !emailsInput.isEmpty()) {
 				String[] emailArray = emailsInput.split(",");
@@ -56,12 +49,8 @@ public class GoogleCalendarRecurringEventReactor extends AbstractReactor {
 				}
 			}
 			boolean video = Boolean.parseBoolean(enablevideo);
-			Event recurringEvent = GoogleCalendarHelper.recurringEvent(CalendarService, summary, location, desc,
+			return GoogleCalendarHelper.recurringEvent(accessToken, summary, location, desc,
 					startdatetime, enddatetime, attendeeEmails, frequency, until, video);
-			Map<String, Object> map = new HashMap<>();
-			map.put("id", recurringEvent.getId());
-			map.put("link", recurringEvent.getHtmlLink());
-			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);

@@ -1,15 +1,10 @@
 package prerna.io.connector.calendar;
 
-import java.util.Map;
 import java.util.*;
-import com.google.api.services.calendar.Calendar;
-import com.google.api.services.calendar.model.Event;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -40,7 +35,6 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
-			Calendar CalendarService = GoogleCalendarUtils.getCalendarServiceUsingToken(accessToken);
 			
 			List<String> attendeeEmails = new ArrayList<>();
 			if (emailsInput != null && !emailsInput.isEmpty()) {
@@ -53,12 +47,8 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 			    }
 			}
 			boolean video = Boolean.parseBoolean(enablevideo);
-			Event createdEvent = GoogleCalendarHelper.createEvent(CalendarService, summary, location, desc, startdatetime,
+			return GoogleCalendarHelper.createEvent(accessToken, summary, location, desc, startdatetime,
 					enddatetime, attendeeEmails, video);
-			Map<String, Object> map = new HashMap<>();
-			map.put("id", createdEvent.getId());
-			map.put("link", createdEvent.getHtmlLink());
-			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);

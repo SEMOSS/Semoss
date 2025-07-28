@@ -1,7 +1,6 @@
 package prerna.io.connector.calendar;
 
 import java.util.*;
-import com.google.api.services.calendar.Calendar;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import prerna.auth.User;
@@ -15,6 +14,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarUpdateEventReactor.class);
+	
+	private static final String STATUS_KEY = "status";
 	
 	public GoogleCalendarUpdateEventReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.SUMMARY.getKey(), ReactorKeysEnum.LOCATION.getKey(),
@@ -67,7 +68,6 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
-			Calendar CalendarService = GoogleCalendarUtils.getCalendarServiceUsingToken(accessToken);
 			List<String> attendeeEmails = new ArrayList<>();
 			if (emailsInput != null && !emailsInput.isEmpty()) {
 			    String[] emailArray = emailsInput.split(",");
@@ -79,10 +79,10 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 			    }
 			}
 			boolean video = Boolean.parseBoolean(enablevideo);
-			boolean result = GoogleCalendarHelper.updateEvent(CalendarService,id, summary, location, desc, startdatetime,
+			boolean result = GoogleCalendarHelper.updateEvent(accessToken, id, summary, location, desc, startdatetime,
 					enddatetime, attendeeEmails, frequency, until, video);
 			Map<String, Object> map = new HashMap<>();
-			map.put("status", result);
+			map.put(STATUS_KEY, result);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");

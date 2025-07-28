@@ -2,12 +2,8 @@ package prerna.io.connector.calendar;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import com.google.api.services.calendar.Calendar;
-import java.util.*;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -28,16 +24,11 @@ public class GoogleCalendarDeleteEventReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
-			Calendar CalendarService = GoogleCalendarUtils.getCalendarServiceUsingToken(accessToken);
-			boolean result = GoogleCalendarHelper.deleteEvent(CalendarService, id);
-			Map<String, Object> map = new HashMap<>();
-			map.put("status", result);
-			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			return GoogleCalendarHelper.deleteEvent(accessToken, id);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
-
 	}
 	
 	@Override
