@@ -191,9 +191,9 @@ class BedrockMessageBuilder:
 
     def build_system_block(
         self, system_prompt: str = None
-    ) -> Union[BedrockSystemBlock, None]:
+    ) -> Union[List[BedrockSystemBlock], None]:
         """Build a system content block."""
         if system_prompt:
-            return BedrockSystemBlock(text=system_prompt)
+            return [BedrockSystemBlock(text=system_prompt)]
         else:
             return None

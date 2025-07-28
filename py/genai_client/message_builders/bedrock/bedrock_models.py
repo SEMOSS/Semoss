@@ -126,7 +126,7 @@ class BedrockInferenceConfig(BaseModel):
 
 class BedrockRequest(BaseModel):
     messages: List[BedrockMessage]
-    system: Optional[BedrockSystemBlock] = None
+    system: Optional[List[BedrockSystemBlock]] = None
     inferenceConfig: Optional[BedrockInferenceConfig] = None
     additionalModelRequestFields: Optional[Dict[str, Any]] = None
     toolConfig: Optional[Any] = None
