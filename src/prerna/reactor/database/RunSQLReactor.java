@@ -28,7 +28,7 @@ import prerna.util.Utility;
 public class RunSQLReactor extends AbstractReactor {
 
   public RunSQLReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.COMMAND.getKey()};
+    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.SQL.getKey()};
     this.keyRequired = new int[] {1, 1};
   }
 
@@ -46,7 +46,7 @@ public class RunSQLReactor extends AbstractReactor {
     
     IRDBMSEngine database = (RDBMSNativeEngine) Utility.getDatabase(databaseId);
     	
-    String query = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
+    String query = this.keyValue.get(ReactorKeysEnum.SQL.getKey());
     
     Connection con = null;
 	try {
