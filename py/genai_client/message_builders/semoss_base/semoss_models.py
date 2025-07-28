@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Literal
 from pydantic import BaseModel, Field
 from ...utils import StringEnum
 
@@ -17,10 +17,6 @@ class SEMOSSImageType(StringEnum):
     BASE64 = "base64"
 
 
-class SEMOSSToolType(StringEnum):
-    FUNCTION = "function"
-
-
 class SEMOSSToolFunction(BaseModel):
     """Represents a tool function definition"""
 
@@ -33,7 +29,7 @@ class SEMOSSToolCall(BaseModel):
     """Represents a tool call"""
 
     function: SEMOSSToolFunction
-    type: SEMOSSToolType = SEMOSSToolType.FUNCTION
+    type: Literal["function"]
     id: Optional[str] = None
 
 
@@ -41,7 +37,7 @@ class SEMOSSToolResponse(BaseModel):
     """Represents a tool response"""
 
     id: str
-    type: SEMOSSToolType
+    type: Literal["function"]
     name: str
     arguments: str
 

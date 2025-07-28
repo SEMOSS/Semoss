@@ -80,7 +80,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         # Handling new history format through message_json
         if self.ask_settings.semoss_messages:
-            msg_history = self._handle_semoss_msgs()
+            return self._handle_semoss_messages(
+                semoss_messages=self.ask_settings.semoss_messages,
+            )
 
         # Handling full prompt
         elif self.ask_settings.full_prompt:
@@ -127,21 +129,47 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         return model_engine_response
 
-    def _handle_semoss_msgs(self):
-
+    def _handle_semoss_messages(self, semoss_messages: List[Dict]):
         try:
-            msg_history, param_map = GoogleGenAIMessageBuilder().build_messages(
-                self.ask_settings.semoss_messages
-            )
+            response = GoogleGenAIMessageBuilder().build_messages(semoss_messages)
+            google_messages = response["messages"]
+            provider_config = response["param_map"]
+            stream = response["stream"]
         except Exception as e:
             raise RuntimeError(f"Failed to build messages from SEMOSS messages: {e}")
 
-        # TODO: Move this to the message builder
-        self.request_config = self._convert_args_to_provider_config(
-            context=self.ask_settings.system_prompt, history=msg_history, **param_map
+        if stream or self.ask_settings.streaming:
+            model_response = self._handle_streaming(
+                prefix="",
+                contents=google_messages,
+                config=provider_config,
+            )
+        else:
+            model_response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=google_messages,
+                config=provider_config,
+            )
+
+        response_tokens = model_response.usage_metadata.candidates_token_count
+        prompt_tokens = model_response.usage_metadata.prompt_token_count
+
+        # Returning a diff type of AskModelEngineResponse if there are function calls
+        if len(getattr(model_response, "function_calls", None) or []) > 0:
+            return self._parse_tools_call_response(
+                response=model_response.text,
+                response_tokens=response_tokens,
+                prompt_tokens=prompt_tokens,
+            )
+
+        model_engine_response = AskModelEngineResponse(
+            response=model_response.text,
+            prompt_tokens=prompt_tokens,
+            response_tokens=response_tokens,
+            messageType="CHAT",
         )
 
-        return msg_history
+        return model_engine_response
 
     def _handle_full_prompt_msgs(self, **kwargs):
         """
@@ -210,9 +238,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
     def _handle_streaming(
         self,
-        prefix: str,
         contents: List[types.Content],
         config: types.GenerateContentConfig,
+        prefix: Optional[str] = "",
     ) -> StreamingResponse:
         final_response = ""
 
