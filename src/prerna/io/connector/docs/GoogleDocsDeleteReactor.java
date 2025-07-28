@@ -1,14 +1,10 @@
 package prerna.io.connector.docs;
 
-import com.google.api.services.drive.Drive;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
-import java.util.*;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -30,12 +26,7 @@ public class GoogleDocsDeleteReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleDocsUtils.getGoogleAccessToken(user);
-			Drive getDriveService = GoogleDocsUtils.getDriveServiceUsingToken(accessToken);
-			boolean deleteresult = GoogleDocsHelper.deleteDoc(getDriveService, id);
-			Map<String, Object> map = new HashMap<>();
-			map.put("status", deleteresult);
-			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			return GoogleDocsHelper.deleteDoc(accessToken, id);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);

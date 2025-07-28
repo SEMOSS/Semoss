@@ -2,14 +2,9 @@ package prerna.io.connector.docs;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import java.util.HashMap;
-import java.util.Map;
 
-import com.google.api.services.docs.v1.Docs;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -32,12 +27,7 @@ public class GoogleDocsUpdateReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleDocsUtils.getGoogleAccessToken(user);
-			Docs service = GoogleDocsUtils.getDocsServiceUsingToken(accessToken);
-			boolean updateresult = GoogleDocsHelper.updateDoc(service, id, content);
-			Map<String, Object> map = new HashMap<>();
-			map.put("status", updateresult);
-			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			return GoogleDocsHelper.updateDoc(accessToken, id, content);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);

@@ -1,17 +1,10 @@
 package prerna.io.connector.docs;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import com.google.api.services.docs.v1.Docs;
-import com.google.api.services.docs.v1.model.Document;
-import com.google.api.services.drive.Drive;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -19,9 +12,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GoogleDocsCreateReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(GoogleDocsCreateReactor.class);
-	
-	private static final String DOCUMENT_ID_KEY = "documentId";
-	private static final String SUCCESS_KEY = "success";
 
 	public GoogleDocsCreateReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROMPT_TITLE.getKey(), ReactorKeysEnum.CONTENT.getKey() };
@@ -41,23 +31,7 @@ public class GoogleDocsCreateReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleDocsUtils.getGoogleAccessToken(user);
-			Docs service = GoogleDocsUtils.getDocsServiceUsingToken(accessToken);
-			Drive getDriveService = GoogleDocsUtils.getDriveServiceUsingToken(accessToken);
-
-			boolean success = false;
-			Map<String, Object> map = new HashMap<>();
-			try {
-				Document doc = GoogleDocsHelper.createDoc(service, getDriveService, title, content);
-				if (doc != null && doc.getDocumentId() != null) {
-					success = true;
-					map.put(DOCUMENT_ID_KEY, doc.getDocumentId());
-				}
-			} catch (Exception e) {
-				classLogger.error("Failed to create document or Document id not found");
-				throw new SemossPixelException("Failed to create document or Document id not found: " + e.getMessage(), e);
-			}
-			map.put(SUCCESS_KEY, success);
-			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			return GoogleDocsHelper.createDoc(accessToken, title, content);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
