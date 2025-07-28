@@ -1027,5 +1027,27 @@ public class Constants {
     public static final String ADMIN_ONLY_VIEW_MENU_BAR = "ADMIN_ONLY_VIEW_MENU_BAR";
     // default AdminOnlyNonApproveProdCatalogItem
     public static final String ADMIN_ONLY_NON_APPROVED_PROD_ITEM = "ADMIN_ONLY_NON_APPROVED_PROD_ITEM";
-
+    
+    public static final String AUDIT_LOG_INSIGHT_ID = "insightId";
+    public static final String AUDIT_LOG_SESSION_ID = "sessionId";
+    public static final String AUDIT_LOG_ENGINE_ID = "engineId";
+    public static final String AUDIT_LOG_ENGINE_NAME = "engineName";
+    public static final String AUDIT_LOG_ENGINE_TYPE = "engineType";
+    public static final String AUDIT_LOG_USER_ID = "userId";
+    public static final String AUDIT_LOG_PROJECT_ID = "projectId";
+    public static final String AUDIT_LOG_PROJECT_NAME = "projectName";
+    public static final String AUDIT_LOG_ROOM_ID = "roomId";
+    public static final String AUDIT_LOG_REQUEST = "request";
+    public static final String AUDIT_LOG_METHOD_NAME = "methodName";
+    public static final String AUDIT_LOG_TIMESTAMP = "timestamp";
+    public static final String AUDIT_LOG_LEVEL = "logLevel";
+    public static final String AUDIT_LOG_MESSAGE = "logMessage";
+    
+    public static final String KAFKA_BOOTSTRAP_SERVERS_CONFIG = "KAFKA_BOOTSTRAP_SERVERS_CONFIG";
+    public static final String KAFKA_ACKS_CONFIG = "KAFKA_ACKS_CONFIG";
+    public static final String KAFKA_RETRIES_CONFIG = "KAFKA_RETRIES_CONFIG";
+    public static final String KAFKA_KEY_SERIALIZER_CLASS_CONFIG = "KAFKA_KEY_SERIALIZER_CLASS_CONFIG";
+    public static final String KAFKA_VALUE_SERIALIZER_CLASS_CONFIG = "KAFKA_VALUE_SERIALIZER_CLASS_CONFIG";
+    public static final String KAFKA_AUDIT_LOG_TOPIC = "KAFKA_AUDIT_LOG_TOPIC";
+    
 }

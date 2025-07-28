@@ -131,6 +131,27 @@
 							</execution>
 						</executions>
 					</plugin>
+					<plugin>
+				<groupId>org.apache.avro</groupId>
+				<artifactId>avro-maven-plugin</artifactId>
+				<version>1.11.1</version> <!-- Use the latest version -->
+				<executions>
+					<execution>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>schema</goal>
+						</goals>
+						<configuration>
+							<sourceDirectory>
+								${project.basedir}/src/prerna/avro</sourceDirectory>
+							<outputDirectory>
+								${project.basedir}/src/prerna/avro</outputDirectory>
+							<stringType>String</stringType> <!--
+									Optional: Specify string type -->
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 				</plugins>
 			</build>
 		</profile>
@@ -2600,6 +2621,16 @@
 			<artifactId>jimfs</artifactId>
 			<version>1.3.0</version>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.avro</groupId>
+			<artifactId>avro</artifactId>
+			<version>1.12.0</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.kafka</groupId>
+		    <artifactId>kafka-clients</artifactId>
+		    <version>3.6.0</version>
 		</dependency>
 
 		<!--  please add jars above and not within the testing block -->

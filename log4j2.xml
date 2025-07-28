@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO" packages="prerna.logging">
+	<Appenders>
+		<QueueAppender name="QueueAppender">
+
+			<PatternLayout>
+				<Pattern>{"timestamp":"%d{ISO8601}","level":"%p","thread":"%t","logger":"%c","message":"%m","mdc":%X}
+				</Pattern>
+			</PatternLayout>
+			<loggerClass>prerna.logging.KafkaLogger</loggerClass>
+            <loggerConfig>bootstrap.servers=localhost:9092,topic=logs1</loggerConfig>
+			<Console name="Console" target="SYSTEM_OUT">
+				<PatternLayout>
+					<Pattern>{"timestamp":"%d{ISO8601}","level":"%p","thread":"%t","logger":"%c","message":"%m","mdc":%X}
+					</Pattern>
+				</PatternLayout>
+			</Console>
+		</QueueAppender>
+	</Appenders>
+
+	<Loggers>
+	<Logger name ="org.apache.kafka" level="off" additivity="false"/>
+	<Logger name ="org.apache.kafka.clients" level="off" additivity="false"/>
+	<Logger name ="org.apache.kafka.common" level="off" additivity="false"/>
+	<Logger name ="kafka" level="off" additivity="false"/>
+	<Logger name ="kafka.producer" level="off" additivity="false"/>
+	<Logger name ="kafka.client" level="off" additivity="false"/>
+		<Root level="info">
+			<AppenderRef ref="QueueAppender" />
+			<AppenderRef ref="Console" />
+		</Root>
+	</Loggers>
+</Configuration>
