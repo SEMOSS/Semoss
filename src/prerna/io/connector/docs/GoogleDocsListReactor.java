@@ -20,8 +20,17 @@ public class GoogleDocsListReactor extends AbstractReactor {
 
     private static final Logger classLogger = LogManager.getLogger(GoogleDocsListReactor.class);
 
-    private static final String DRIVE_API_URL = "https://www.googleapis.com/drive/v3/files";
     private static final String MIME_TYPE = "application/vnd.google-apps.document";
+    private static final String DRIVE_API_URL = "https://www.googleapis.com/drive/v3/files";
+    private static final String QUERY_PARAM_TEMPLATE = "mimeType='%s'";
+    private static final String FIELDS_PARAM = "files(id,name)";
+    private static final String AUTHORIZATION = "Authorization";
+    private static final String BEARER = "Bearer ";
+    private static final String GET = "GET";
+    private static final String FILES = "files";
+    private static final String NAME = "name";
+    private static final String ID = "id";
+    
     private static final Gson gson = new Gson();
 
     @Override
@@ -29,10 +38,8 @@ public class GoogleDocsListReactor extends AbstractReactor {
         try {
             User user = this.insight.getUser();
             String accessToken = GoogleDocsUtils.getGoogleAccessToken(user);
-            List<List<String>> docIdList = getDocsIdListUsingRest(accessToken);
-            Map<String, Object> res = new HashMap<>();
-            res.put("DocIdList", docIdList);
-            return new NounMetadata(res, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+            List<List<String>> docidList = getDocsIdListUsingRest(accessToken);
+            return new NounMetadata(docidList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
         } catch (Exception e) {
             classLogger.error("Unauthorized access or Please provide valid input", e);
             throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
@@ -40,39 +47,38 @@ public class GoogleDocsListReactor extends AbstractReactor {
     }
     
     @SuppressWarnings("unchecked")
-	public static List<List<String>> getDocsIdListUsingRest(String accessToken) {
+    public static List<List<String>> getDocsIdListUsingRest(String accessToken) {
         List<List<String>> docList = new ArrayList<>();
         try {
-            String queryParam = "mimeType='" + MIME_TYPE + "'";
-            String fields = "files(id,name)";
-            String fullUrl = DRIVE_API_URL + "?q=" + java.net.URLEncoder.encode(queryParam, "UTF-8") + "&fields=" + java.net.URLEncoder.encode(fields, "UTF-8");
+            String queryParam = String.format(QUERY_PARAM_TEMPLATE, MIME_TYPE);
+            String fullUrl = DRIVE_API_URL + "?q=" + java.net.URLEncoder.encode(queryParam, "UTF-8") + "&fields=" + java.net.URLEncoder.encode(FIELDS_PARAM, "UTF-8");
             HttpURLConnection conn = (HttpURLConnection) new URL(fullUrl).openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+            conn.setRequestMethod(GET);
+            conn.setRequestProperty(AUTHORIZATION, BEARER + accessToken);
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
                 classLogger.error("Failed to list Google Docs. Response Code: " + responseCode);
                 throw new SemossPixelException("Drive API error: HTTP " + responseCode);
             }
-            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            Map<String, Object> json = gson.fromJson(in, new TypeToken<Map<String, Object>>() {}.getType());
-            in.close();
-            conn.disconnect();
-            List<Map<String, Object>> files = (List<Map<String, Object>>) json.get("files");
-            for (Map<String, Object> file : files) {
-                String name = (String) file.get("name");
-                String id = (String) file.get("id");
-                if (name != null && id != null) {
-                    docList.add(Arrays.asList(name, id));
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                Map<String, Object> json = gson.fromJson(in, new TypeToken<Map<String, Object>>() {}.getType());
+                List<Map<String, Object>> files = (List<Map<String, Object>>) json.get(FILES);
+                for (Map<String, Object> file : files) {
+                    String name = (String) file.get(NAME);
+                    String id = (String) file.get(ID);
+                    if (name != null && id != null) {
+                        docList.add(Arrays.asList(name, id));
+                    }
                 }
             }
+            conn.disconnect();
         } catch (Exception e) {
             classLogger.error("Failed to retrieve Google Docs file list from Drive REST API", e);
             throw new SemossPixelException("Failed to retrieve Google Docs file list from Drive REST API: " + e.getMessage(), e);
         }
         return docList;
     }
-    
+
     @Override
     public String getReactorDescription() {
         return "This reactor is used to get the list of Google documents using Drive REST API.";
