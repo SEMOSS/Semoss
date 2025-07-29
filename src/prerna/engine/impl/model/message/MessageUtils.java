@@ -220,35 +220,35 @@ public class MessageUtils {
 	
 	// ---- Image copy utilities  ----
 	public static List<String> copyFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
-		List<String> roomFilePaths = new ArrayList<>();
-		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
-			logger.info("No file paths provided to copy.");
-			return roomFilePaths;
-		}
-		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
-		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
-		Path targetDir = Paths.get(roomFolder);
-		try {
-			Files.createDirectories(targetDir);
-		} catch (IOException e) {
-			logger.warn("Failed to create room folder: " + targetDir, e);
-			return roomFilePaths;
-		}
-		for (String relPath : relativePathToFiles) {
-			File srcFile = new File(insightFolder, relPath);
-			if (!srcFile.exists() || !srcFile.isFile()) {
-				logger.info("Source file file does not exist in insight folder: " + srcFile.getAbsolutePath());
-				continue;
-			}
-			String fileName = srcFile.getName();
-			Path destination = targetDir.resolve(fileName);
-			try {
-				Files.copy(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException e) {
-				logger.warn("Failed to copy file: " + srcFile.getAbsolutePath() + " to " + destination, e);
-			}
-			roomFilePaths.add(destination.toString());
-		}
-		return roomFilePaths;
+	    List<String> copiedFileNames = new ArrayList<>();
+	    if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
+	        logger.info("No file paths provided to copy.");
+	        return copiedFileNames;
+	    }
+	    String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
+	    String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
+	    Path targetDir = Paths.get(roomFolder);
+	    try {
+	        Files.createDirectories(targetDir);
+	    } catch (IOException e) {
+	        logger.warn("Failed to create room folder: " + targetDir, e);
+	        return copiedFileNames;
+	    }
+	    for (String relPath : relativePathToFiles) {
+	        File srcFile = new File(insightFolder, relPath);
+	        if (!srcFile.exists() || !srcFile.isFile()) {
+	            logger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
+	            continue;
+	        }
+	        String fileName = srcFile.getName();
+	        Path destination = targetDir.resolve(fileName);
+	        try {
+	            Files.copy(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
+	            copiedFileNames.add(fileName); // only add if copy succeeded
+	        } catch (IOException e) {
+	            logger.warn("Failed to copy file: " + srcFile.getAbsolutePath() + " to " + destination, e);
+	        }
+	    }
+	    return copiedFileNames;
 	}
 }
