@@ -85,7 +85,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
         IModelEngine modelEngine = Utility.getModel(engineId);
 
         Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
-        MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
+        List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
         // ---- Build the InputMessage
         InputMessage msg = InputMessage.builder(room)
@@ -93,7 +93,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
             .withInputPrompt(question)
             .withModelType(modelEngine.getModelType())
             .withParamMap(paramMap)
-            .withImages(inputImages, room)
+            .withImages(copiedImages, room)
             .withImageUrls(inputImageURLs)
             .withTools(tools)
             .build();
