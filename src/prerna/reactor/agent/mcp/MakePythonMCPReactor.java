@@ -16,9 +16,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-public class MakeMCPReactor extends AbstractReactor {
+public class MakePythonMCPReactor extends AbstractReactor {
 
-	public MakeMCPReactor() {
+	public MakePythonMCPReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.MODEL.getKey()};
 		this.keyRequired = new int[] {1, 0};
 	}
@@ -38,6 +38,7 @@ public class MakeMCPReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit.");
 		}
 		IProject project = Utility.getProject(projectId);
+		//TODO: change output to be a proper json
 		String output = "unprocessed";
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 
