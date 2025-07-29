@@ -3,13 +3,8 @@ package prerna.io.connector.gmail;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.api.services.gmail.Gmail;
-import com.google.api.services.gmail.model.Profile;
-
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
