@@ -33,8 +33,8 @@ public class TextToSQLReactor extends AbstractReactor {
   private static final Gson gson = new Gson();
 
   public TextToSQLReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
-    this.keyRequired = new int[] {1, 1, 1, 0};
+    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.ERROR.getKey(), ReactorKeysEnum.SQL.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
+    this.keyRequired = new int[] {1, 1, 1, 0, 0, 0};
   }
 
   @Override
@@ -151,6 +151,22 @@ public class TextToSQLReactor extends AbstractReactor {
 
     String context = String.format(sqlContext, database.getDbType(), gson.toJson(conceptInfo));
     String prompt = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
+    String error = this.keyValue.get(ReactorKeysEnum.ERROR.getKey());
+    String oldSQL = this.keyValue.get(ReactorKeysEnum.SQL.getKey());
+    if (error != null && !error.trim().isEmpty() && oldSQL != null) {    	
+    	String appendError = 
+    	"""
+    	The previous SQL you generated was the following:
+    	%s
+    	
+    	When running the SQL, there was the following error:
+    	%s
+    	
+    	Please regenerate the SQL while considering the error.
+    	""";
+    	String tailoredPrompt = String.format(appendError, oldSQL, error);
+    	prompt += "\n" + tailoredPrompt;
+    }
     Map<String, Object> paramMap = getParamMap();
     if (paramMap == null) {
 		paramMap = new HashMap<String, Object>();
