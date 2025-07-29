@@ -2,8 +2,6 @@ package prerna.io.connector.gmail;
 
 import java.util.List;
 import java.util.Map;
-
-import com.google.api.services.gmail.Gmail;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import prerna.auth.User;
@@ -30,9 +28,8 @@ public class GoogleGetUnreadEmailsReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleGmailUtils.getGoogleAccessToken(user);
-			Gmail GmailService = GoogleGmailUtils.getGmailServiceUsingToken(accessToken);
 			int num = Integer.parseInt(number);
-			List<Map<String, Object>> result = GoogleGmailHelper.getUnreadEmails(GmailService, num);
+			List<Map<String, Object>> result = GoogleGmailHelper.getUnreadEmails(accessToken, num);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");

@@ -6,8 +6,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.api.services.gmail.Gmail;
-
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -32,9 +30,8 @@ public class GoogleSummarizeTopKEmailsReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleGmailUtils.getGoogleAccessToken(user);
-			Gmail GmailService = GoogleGmailUtils.getGmailServiceUsingToken(accessToken);
 			int num = Integer.parseInt(number);
-			List<Map<String, Object>> result = GoogleGmailHelper.summarizeTopKEmails(GmailService, num);
+			List<Map<String, Object>> result = GoogleGmailHelper.summarizeTopKEmails(accessToken, num);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");

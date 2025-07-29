@@ -2,8 +2,6 @@ package prerna.io.connector.gmail;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import com.google.api.services.gmail.Gmail;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import prerna.auth.User;
@@ -32,8 +30,7 @@ public class GoogleDeleteGmailReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleGmailUtils.getGoogleAccessToken(user);
-			Gmail GmailService = GoogleGmailUtils.getGmailServiceUsingToken(accessToken);
-			boolean result = GoogleGmailHelper.deleteEmail(GmailService, id);
+			boolean result = GoogleGmailHelper.deleteEmail(accessToken, id);
 			Map<String, Object> map = new HashMap<>();
 			map.put(STATUS_KEY, result);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);

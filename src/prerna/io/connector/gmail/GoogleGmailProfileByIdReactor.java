@@ -22,9 +22,7 @@ public class GoogleGmailProfileByIdReactor extends AbstractReactor{
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleGmailUtils.getGoogleAccessToken(user);
-			Gmail GmailService = GoogleGmailUtils.getGmailServiceUsingToken(accessToken);
-			Profile result = GoogleGmailHelper.getGmailProfileById(GmailService);
-			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			return GoogleGmailHelper.getGmailProfileById(accessToken);
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage());
