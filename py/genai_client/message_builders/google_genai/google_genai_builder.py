@@ -7,6 +7,7 @@ from ..semoss_base.semoss_models import (
     SEMOSSImageType,
 )
 from .google_genai_models import GoogleRoles
+from google.genai import types
 
 
 class GoogleGenAIMessageBuilder:
@@ -39,8 +40,108 @@ class GoogleGenAIMessageBuilder:
             )
 
             if i == len(semoss_messages) - 1:
-                param_map = message.param_map
-        return google_messages, param_map
+                param_map, stream = self._convert_args_to_provider_config(
+                    **message.param_map
+                )
+
+        return {
+            "messages": google_messages,
+            "param_map": param_map,
+            "stream": stream,
+        }
+
+    def _handle_tools_conversion(self, tools: List[Dict]) -> List[types.Tool]:
+        """
+        Converting from the OpenAI tools format I recieve to the Google Gen AI tools format.
+        """
+        google_tools = []
+
+        for tool in tools:
+            if tool.get("type", None) == "function":
+                func_def = tool["function"]
+                # if func_def.get("name", None) == "function_engine":
+                #     function_engine_id_actual = (
+                #         func_def.get("parameters")
+                #         .get("properties")
+                #         .get("id")
+                #         .get("enum")[0]
+                #     )
+                #     func_def["name"] = f"function_engine_{function_engine_id_actual}"
+
+                parameters_schema = None
+                if "parameters" in func_def:
+                    params = func_def["parameters"]
+
+                    properties = {}
+                    for prop_name, prop_def in params.get("properties", {}).items():
+                        properties[prop_name] = types.Schema(
+                            type=prop_def["type"].upper(),
+                            description=prop_def.get("description", ""),
+                        )
+
+                    parameters_schema = types.Schema(
+                        type="OBJECT",
+                        properties=properties,
+                        required=params.get("required", []),
+                    )
+
+                function_declaration = types.FunctionDeclaration(
+                    name=func_def["name"],
+                    description=func_def["description"],
+                    parameters=parameters_schema,
+                )
+
+                google_tools.append(
+                    types.Tool(function_declarations=[function_declaration])
+                )
+            else:
+                raise ValueError("Unsupported tool type in SEMOSS tools.")
+
+        return google_tools
+
+    def _convert_args_to_provider_config(
+        self, **kwargs
+    ) -> Tuple[types.GenerateContentConfig, bool]:
+        """
+        Convert our CFG arguments to a GenerateContentConfig object.
+        """
+        context = kwargs.pop("context", None)
+        response_schema = kwargs.pop("schema", None)
+        response_mime_type = kwargs.pop("response_mime_type", None)
+        if response_schema is not None and response_mime_type is None:
+            response_mime_type = "application/json"
+
+        tools = kwargs.pop("tools", None)
+        if tools is not None:
+            tools = self._handle_tools_conversion(tools)
+
+        max_output_tokens = kwargs.get("max_new_tokens", None)
+        if max_output_tokens is None:
+            max_output_tokens = kwargs.get("max_completion_tokens", None)
+        if max_output_tokens is None:
+            max_output_tokens = kwargs.get("max_tokens", None)
+
+        stream = kwargs.pop("stream", False)
+        if not stream:
+            kwargs.pop("streaming", None)
+
+        config = types.GenerateContentConfig(
+            http_options=kwargs.pop("http_options", None),
+            system_instruction=context,
+            max_output_tokens=max_output_tokens,
+            temperature=kwargs.pop("temperature", None),
+            top_p=kwargs.pop("top_p", None),
+            top_k=kwargs.pop("top_k", None),
+            stop_sequences=kwargs.pop("stop_sequences", None),
+            presence_penalty=kwargs.pop("presence_penalty", None),
+            frequency_penalty=kwargs.pop("frequency_penalty", None),
+            # TODO: Pass this from the init.. this lives in smss
+            safety_settings=None,
+            response_schema=response_schema,
+            response_mime_type=response_mime_type,
+            tools=tools,
+        )
+        return config, stream
 
     def _build_text_content_part(self, content: str) -> Part:
         """Build a text content part for Google GenAI."""
