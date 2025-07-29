@@ -52,8 +52,7 @@ public class GoogleCalendarHelper {
     private static final String CONFERENCE_SOLUTION_KEY = "conferenceSolutionKey";
     private static final String TYPE = "type";
     private static final String HANGOUTS_MEET = "hangoutsMeet";
-    private static final String ID = "id";
-    private static final String EVENT_ID = "eventId";
+    private static final String ID = "id";            //eventId
     private static final String HTML_LINK = "htmlLink";
     private static final String LINK = "link";
     private static final String RESPONSE_STATUS = "responseStatus";
@@ -132,7 +131,7 @@ public class GoogleCalendarHelper {
 		    String response = HttpHelperUtility.postRequestStringBody(url, headers, jsonBody, ContentType.APPLICATION_JSON, null, null, null);
 		    Map<String, Object> json = gson.fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
 		    Map<String, Object> map = new HashMap<>();
-		    map.put(EVENT_ID, json.get(ID));
+		    map.put(ID, json.get(ID));
 		    map.put(LINK, json.get(HTML_LINK));
 		    return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
@@ -350,7 +349,7 @@ public class GoogleCalendarHelper {
 		    String response = HttpHelperUtility.postRequestStringBody(url,headers,jsonBody,ContentType.APPLICATION_JSON,null, null, null);
 		    Map<String, Object> json = gson.fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
 		    Map<String, Object> map = new HashMap<>();
-		    map.put(EVENT_ID, json.get(ID));
+		    map.put(ID, json.get(ID));
 		    map.put(LINK, json.get(HTML_LINK));
 		    return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
