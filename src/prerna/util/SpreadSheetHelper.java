@@ -468,7 +468,7 @@ public class SpreadSheetHelper {
 	 * @param titlesheetid The spreadsheet ID.
 	 * @param accessToken  The Google API OAuth2 access token.
 	 * @return NounMetadata with {"success": true/false, "error": "..."} as result.
-	 */
+	 */ 
 	public static NounMetadata deleteTitleSheet(String titlesheetid, String accessToken) {
 		try {
 			String urlStr = GOOGLEDRIVE_URL + titlesheetid;
