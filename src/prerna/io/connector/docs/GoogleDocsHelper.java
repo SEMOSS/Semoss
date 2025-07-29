@@ -42,6 +42,7 @@ public class GoogleDocsHelper {
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String STATUS_KEY = "status";
     private static final String DOCUMENT_ID_KEY = "documentId";
+    private static final String ID_KEY = "id";
     private static final String TITLE_KEY = "title";
     private static final String CONTENT_KEY = "content";
     private static final String NAME_KEY = "name";
@@ -72,7 +73,7 @@ public class GoogleDocsHelper {
             	updateDoc(accessToken, docId, content);
             }
             Map<String, Object> result = new HashMap<>();
-            result.put(DOCUMENT_ID_KEY, json.get(DOCUMENT_ID_KEY));
+            result.put(ID_KEY, json.get(DOCUMENT_ID_KEY));
             result.put(SUCCESS_KEY, true);
             return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
         } catch (Exception e) {

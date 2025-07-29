@@ -25,7 +25,7 @@ public class GoogleDocsListReactor extends AbstractReactor {
     private static final String QUERY_PARAM_TEMPLATE = "mimeType='%s'";
     private static final String FIELDS_PARAM = "files(id,name)";
     private static final String AUTHORIZATION = "Authorization";
-    private static final String DOCID_LIST = "docidList";
+    private static final String DOCID_LIST = "docIdList";
     private static final String BEARER = "Bearer ";
     private static final String GET = "GET";
     private static final String FILES = "files";
