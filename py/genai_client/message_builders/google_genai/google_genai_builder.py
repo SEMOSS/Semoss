@@ -50,54 +50,35 @@ class GoogleGenAIMessageBuilder:
             "stream": stream,
         }
 
-    def _handle_tools_conversion(self, tools: List[Dict]) -> List[types.Tool]:
+    def convert_mcp_to_google_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
         """
-        Converting from the OpenAI tools format I recieve to the Google Gen AI tools format.
+        Convert MCP-formatted tools to Google GenAI function calling format.
+        Args:
+            mcp_tools: List of tools in MCP format
+        Returns:
+            List of function declarations for Google GenAI
         """
-        google_tools = []
+        function_declarations = []
 
-        for tool in tools:
-            if tool.get("type", None) == "function":
-                func_def = tool["function"]
-                # if func_def.get("name", None) == "function_engine":
-                #     function_engine_id_actual = (
-                #         func_def.get("parameters")
-                #         .get("properties")
-                #         .get("id")
-                #         .get("enum")[0]
-                #     )
-                #     func_def["name"] = f"function_engine_{function_engine_id_actual}"
+        for tool in mcp_tools:
+            function_declaration = {
+                "name": tool["name"],
+                "description": tool["description"],
+                "parameters": {
+                    "type": tool["inputSchema"]["type"],
+                    "properties": {},
+                    "required": tool["inputSchema"].get("required", []),
+                },
+            }
 
-                parameters_schema = None
-                if "parameters" in func_def:
-                    params = func_def["parameters"]
+            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
+                function_declaration["parameters"]["properties"][prop_name] = {
+                    k: v for k, v in prop_def.items() if k != "title"
+                }
 
-                    properties = {}
-                    for prop_name, prop_def in params.get("properties", {}).items():
-                        properties[prop_name] = types.Schema(
-                            type=prop_def["type"].upper(),
-                            description=prop_def.get("description", ""),
-                        )
+            function_declarations.append(function_declaration)
 
-                    parameters_schema = types.Schema(
-                        type="OBJECT",
-                        properties=properties,
-                        required=params.get("required", []),
-                    )
-
-                function_declaration = types.FunctionDeclaration(
-                    name=func_def["name"],
-                    description=func_def["description"],
-                    parameters=parameters_schema,
-                )
-
-                google_tools.append(
-                    types.Tool(function_declarations=[function_declaration])
-                )
-            else:
-                raise ValueError("Unsupported tool type in SEMOSS tools.")
-
-        return google_tools
+        return function_declarations
 
     def _convert_args_to_provider_config(
         self, **kwargs
@@ -113,7 +94,9 @@ class GoogleGenAIMessageBuilder:
 
         tools = kwargs.pop("tools", None)
         if tools is not None:
-            tools = self._handle_tools_conversion(tools)
+            func_declarations = self.convert_mcp_to_google_tools(tools)
+
+            tools = [types.Tool(function_declarations=func_declarations)]
 
         max_output_tokens = kwargs.get("max_new_tokens", None)
         if max_output_tokens is None:
