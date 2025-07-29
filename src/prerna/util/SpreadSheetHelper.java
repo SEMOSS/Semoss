@@ -44,49 +44,6 @@ public class SpreadSheetHelper {
 	}
 
 	/**
-	 * Writes the provided data to a specific sheet in a Google Spreadsheet.
-	 *
-	 * @param titleSheetName The title of the spreadsheet.
-	 * @param sheetName      The name of the sheet/tab within the spreadsheet.
-	 * @param data           The data to write (as a List of rows, each a List of
-	 *                       Strings).
-	 * @param accessToken    The Google API OAuth2 access token.
-	 * @return NounMetadata containing the operation result message.
-	 */
-	public static NounMetadata writeData(String titleSheetName, String sheetName, List<List<String>> data,
-			String accessToken) {
-		try {
-			String msg = null;
-			String spreadsheetId = getSpreadsheetIdByTitle(titleSheetName, accessToken);
-			JSONArray dataArray = new JSONArray(data);
-			int numRows = dataArray.length();
-			int numCols = numRows > 0 ? dataArray.getJSONArray(0).length() : 0;
-			String startCell = "A1";
-			String endCell = getCellReference(numCols - 1, numRows - 1);
-			String range = sheetName + "!" + startCell + ":" + endCell;
-			String url = SHEET_URL + spreadsheetId + "/values/" + URLEncoder.encode(range, "UTF-8")
-					+ "?valueInputOption=USER_ENTERED";
-			JSONObject body = new JSONObject();
-			body.put("values", dataArray);
-			Map<String, String> headers = new HashMap<>();
-			headers.put("Authorization", "Bearer " + accessToken);
-			headers.put("Content-Type", "application/json");
-			String response = HttpHelperUtility.putRequestStringBody(url, headers, body.toString(), null, null, null,
-					null);
-			JSONObject jsonResponse = new JSONObject(response);
-			if (jsonResponse.has("updatedCells") && jsonResponse.getInt("updatedCells") > 0) {
-				msg = "Data written successfully";
-			} else {
-				msg = "No cells were updated. Response: " + jsonResponse.toString();
-			}
-			return new NounMetadata(msg, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
-		}
-	}
-
-	/**
 	 * Retrieves the spreadsheet ID for a given spreadsheet title.
 	 *
 	 * @param titleSheetName The title of the spreadsheet.
