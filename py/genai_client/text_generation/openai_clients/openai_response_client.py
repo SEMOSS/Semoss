@@ -3,17 +3,16 @@ from typing import List, Tuple, Any
 import json
 from enum import Enum
 from pydantic import BaseModel
-from .operations.instruct import Instruct
 from .operations.chat import Chat
 from .operations.image import Image
 from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import (
     AskModelEngineResponse,
-    InstructModelEngineResponse,
     IMAGE_ENCODED,
     IMAGE_URL,
 )
 from ...utils import StringEnum
+from .openai_clients_v2.openai_client_v2 import OpenAIClientV2
 
 
 class ModelType(StringEnum):
@@ -24,14 +23,13 @@ class ModelType(StringEnum):
 class OpenAIResponses(AbstractOpenAiClient):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.instruct_operation = Instruct(client=self)
         self.chat_operation = Chat(client=self)
         self.image_client = Image(client=self)
 
-    def instruct(self, **kwargs) -> InstructModelEngineResponse:
-        return self.instruct_operation.instruct(**kwargs)
-
     def ask_call(self, **kwargs) -> AskModelEngineResponse:
+        if "message_json" in kwargs:
+            responses_client_v2 = OpenAIClientV2(client=self, chat_type="responses")
+            return responses_client_v2.ask_call(**kwargs)
 
         if self.model_type == ModelType.IMAGE:
             return self.image_client.ask(**kwargs)
