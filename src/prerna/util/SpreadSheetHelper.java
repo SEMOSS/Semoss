@@ -173,7 +173,7 @@ public class SpreadSheetHelper {
 			JSONArray values = json.optJSONArray("values");
 			List<List<String>> result = new ArrayList<>();
 			if (values != null) {
-				for (int i = 0; i < values.length(); i++) {
+				for (int i = 0; i < values.length(); i++) { 
 					JSONArray row = values.getJSONArray(i);
 					List<String> rowList = new ArrayList<>();
 					for (int j = 0; j < row.length(); j++) {
@@ -291,7 +291,7 @@ public class SpreadSheetHelper {
 			SpreadSheetResponse resp = new SpreadSheetResponse();
 			if (!isTitleSheetNamePresent) {
 				String msg = "A Spreadsheet with this title already exists";
-				resp.setStatus(false);
+				resp.setSuccess(false);
 				resp.setTitleSheetID(null);
 				resp.setSheetID(null);
 				return new NounMetadata(resp, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -321,10 +321,10 @@ public class SpreadSheetHelper {
 					}
 					resp.setTitleSheetID(spreadsheetId);
 					resp.setSheetID(sheetId);
-					resp.setStatus(true);
+					resp.setSuccess(true);
 				}
 			} else {
-				resp.setStatus(false);
+				resp.setSuccess(false);
 				resp.setTitleSheetID(null);
 				resp.setSheetID(null);
 			}
@@ -384,7 +384,7 @@ public class SpreadSheetHelper {
 		SpreadSheetResponse resp = new SpreadSheetResponse();
 		try {
 			if (titlesheetid == null || titlesheetid.isEmpty()) {
-				resp.setStatus(false);
+				resp.setSuccess(false);
 				resp.setTitleSheetID(null);
 				resp.setSheetID(null);
 				return new NounMetadata(resp, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -431,7 +431,7 @@ public class SpreadSheetHelper {
 			}
 			resp.setTitleSheetID(titlesheetid);
 			resp.setSheetID(sheetId);
-			resp.setStatus(true);
+			resp.setSuccess(true);
 			// Wait for sheet to be available
 			Thread.sleep(1000);
 			// 3. Add data to the sheet
@@ -452,7 +452,7 @@ public class SpreadSheetHelper {
 			updateHeaders.put("Content-Type", "application/json; charset=UTF-8");
 			HttpHelperUtility.putRequestStringBody(updateUrl, updateHeaders, dataBody.toString(), null, null, null,
 					null);
-			resp.setStatus(true);
+			resp.setSuccess(true);
 			return new NounMetadata(resp, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			throw e;
@@ -468,7 +468,7 @@ public class SpreadSheetHelper {
 	 * @param titlesheetid The spreadsheet ID.
 	 * @param accessToken  The Google API OAuth2 access token.
 	 * @return NounMetadata with {"success": true/false, "error": "..."} as result.
-	 */ 
+	 */
 	public static NounMetadata deleteTitleSheet(String titlesheetid, String accessToken) {
 		try {
 			String urlStr = GOOGLEDRIVE_URL + titlesheetid;
