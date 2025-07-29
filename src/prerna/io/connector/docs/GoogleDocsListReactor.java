@@ -18,13 +18,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleDocsListReactor extends AbstractReactor {
 
-    private static final Logger classLogger = LogManager.getLogger(GoogleDocsListReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleDocsListReactor.class);
 
     private static final String MIME_TYPE = "application/vnd.google-apps.document";
     private static final String DRIVE_API_URL = "https://www.googleapis.com/drive/v3/files";
     private static final String QUERY_PARAM_TEMPLATE = "mimeType='%s'";
     private static final String FIELDS_PARAM = "files(id,name)";
     private static final String AUTHORIZATION = "Authorization";
+    private static final String DOCID_LIST = "docidList";
     private static final String BEARER = "Bearer ";
     private static final String GET = "GET";
     private static final String FILES = "files";
@@ -39,7 +40,9 @@ public class GoogleDocsListReactor extends AbstractReactor {
             User user = this.insight.getUser();
             String accessToken = GoogleDocsUtils.getGoogleAccessToken(user);
             List<List<String>> docidList = getDocsIdListUsingRest(accessToken);
-            return new NounMetadata(docidList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+            HashMap<String, Object> res = new HashMap<>();
+			res.put(DOCID_LIST, docidList);
+            return new NounMetadata(res, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
         } catch (Exception e) {
             classLogger.error("Unauthorized access or Please provide valid input", e);
             throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);

@@ -18,7 +18,9 @@ import org.apache.hc.core5.http.ContentType;
 
 public class GoogleDocsHelper {
 
-    private static final Logger classLogger = LogManager.getLogger(GoogleDocsHelper.class);
+    private static final String SUCCESS_KEY = "success";
+
+	private static final Logger classLogger = LogManager.getLogger(GoogleDocsHelper.class);
     
     private static final String BEARER = "Bearer ";
     private static final String PARAGRAPH = "paragraph";
@@ -71,7 +73,7 @@ public class GoogleDocsHelper {
             }
             Map<String, Object> result = new HashMap<>();
             result.put(DOCUMENT_ID_KEY, json.get(DOCUMENT_ID_KEY));
-            result.put(TITLE_KEY, json.get(TITLE_KEY));
+            result.put(SUCCESS_KEY, true);
             return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
         } catch (Exception e) {
             classLogger.error("Error creating doc", e);
