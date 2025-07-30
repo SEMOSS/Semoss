@@ -195,26 +195,26 @@ public class RdbmsConnectionHelper {
 					+ " UNION SELECT VIEW_NAME AS \"table_name\", 'VIEW' AS \"table_type\", '" + meta.getUserName() +"' AS \"table_schem\" FROM ALL_VIEWS WHERE"
 					+ " OWNER NOT IN ('SYS', 'SYSTEM', 'WMSYS', 'XDB', 'CTXSYS', 'LBASYS', 'MDSYS', 'OLAPSYS','ORDSYS','LBACSYS', 'GSMADMIN_INTERNAL', 'ORDDATA')";
 			tablesRs = stmt.executeQuery(query);
-		} else if (driver == RdbmsTypeEnum.ATHENA || driver == RdbmsTypeEnum.REDSHIFT){
+		} 
+		else if (driver == RdbmsTypeEnum.ATHENA || driver == RdbmsTypeEnum.REDSHIFT){
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "EXTERNAL TABLE", "EXTERNAL_TABLE", "VIEW" });
 		} 
-//		else if (driver == RdbmsTypeEnum.SQL_SERVER) {
-//			// do not pass in the schema...
-//			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW"});
-//		} 
 		else if(driver == RdbmsTypeEnum.MYSQL){
 			// these take the schema as a proper regex search
 			tablesRs = meta.getTables(catalogFilter, "^" + schemaFilter + "$", null, new String[] { "TABLE", "VIEW" });
-		} else if (driver == RdbmsTypeEnum.CASSANDRA){
+		} 
+		else if (driver == RdbmsTypeEnum.CASSANDRA){
 			if(catalogFilter.isEmpty()) {
 				tablesRs = meta.getTables("cassandra", schemaFilter, null, new String[] { "TABLE", "VIEW" });
 			} else {
 				tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
 			}
 		}
+		else if(driver == RdbmsTypeEnum.POSTGRES) {
+			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW", "MATERIALIZED VIEW" });
+		}
 		else {
 			// these do not take in the schema as a proper regex search
-			// i know POSTGRES is an example
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
 		}
 		return tablesRs;
