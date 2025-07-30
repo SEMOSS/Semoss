@@ -72,14 +72,14 @@ public class LLM2Reactor extends AbstractReactor {
         
         ///// MESSAGE CREATION //////////
 
-        MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
+        List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
         InputMessage msg;
         msg = InputMessage.builder(room)
         .withInputUIPrompt(question)
         .withInputPrompt(question)
         .withModelType(modelEngine.getModelType())
         .withParamMap(paramMap)
-        .withImages(inputImages, room)
+        .withImages(copiedImages, room)
         .withImageUrls(inputImageURLs)
         .build();
         
