@@ -19,6 +19,12 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+import java.util.Map;
+import java.util.HashMap;
+import prerna.om.Insight;
+
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
+
 public class FrameToGraphReactor extends AbstractRFrameReactor {
 
 	private static final String ENGINE_KEY = "ENGINE";
@@ -41,13 +47,11 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.executeEmptyR("library(igraph)");
 		
 		///////// DATA PARSING ///////////
-		
+		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[0]);
+	    ITableDataFrame sourceFrame = getFrame();
 		String sql = "SELECT * FROM " + sourceFrame.getName();  
-
-		promptData.append(promptDataHeader);
-		promptData.append(promptDataBody);
 		
-		String[] packages = new String[] {"igraph"};
+		String[] pckgs = new String[] {"igraph"};
 		this.rJavaTranslator.checkPackages(packages);
 		this.rJavaTranslator.executeEmptyR("library(igraph)");
 		
@@ -70,13 +74,12 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		///////// MODEL ///////////
 		Map<String, Object> modelParams = new HashMap<>();
         modelParams.put("use_history", "true");
-        Insight currentInsight = getCurrentInsight(); // Implement retrieval as needed
         
         // Using the new helper method to call the model
         AskModelEngineResponse modelResponse = callLLM(
-            "Generate graph steps from frame data: " + promptData.toString(),
+            "Generate graph steps from frame data: " + buildVegaPrompt(sourceFrame),
             "FrameToGraph context",
-            this.store.getInsight();,
+            this.insight.getInsightFolder(), // TODO: Unsure about this
             modelParams
         );
         
@@ -166,7 +169,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		promptBuilder.append("  }\n");
 		promptBuilder.append("}");
 
-		System.out.println("PROMPT: " promptBuilder.toString());
+		System.out.println("PROMPT: " + promptBuilder.toString());
 		
 		return promptBuilder.toString();
 	}
@@ -176,7 +179,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
      */
     private AskModelEngineResponse callLLM(String question, String context, Insight insight, Map<String, Object> parameters) {
         Map<String, String> keyValue = new HashMap<>();
-        keyValue.put(ENGINE_KEY, this.getModelType().name());
+        keyValue.put(ENGINE_KEY, this.getType().name());
         keyValue.put(COMMAND_KEY, question);
         if (context != null) {
             keyValue.put(CONTEXT_KEY, context);
