@@ -1139,6 +1139,24 @@ public class Project implements IProject {
 	}
 	
 	@Override
+	public INotebookHelper getNotebookHelper() {
+		// if not blocks json
+		// then ignore for now
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			return NotebookHelperFactory.getNotebookHelper(blocksF);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+	
+	@Override
 	public synchronized List<File> writeNotebooks() {
 		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
