@@ -16,6 +16,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 
 public class GoogleCalendarHelper {
 	
+	private static final String UNTIL2 = "UNTIL=";
+	private static final String FREQ = "FREQ=";
+	private static final String RRULE = "RRULE:";
+	private static final String AUDIO = "audio";
+	private static final String VIDEO = "video";
 	private static final String UNTIL_PREFIX = ";UNTIL=";
 	private static final String NONE = "NONE";
 	private static final String WEEKLY = "WEEKLY";
@@ -169,8 +174,8 @@ public class GoogleCalendarHelper {
 	        Map<String, Object> start = (Map<String, Object>) json.get(START);
 	        Map<String, Object> end = (Map<String, Object>) json.get(END);
 
-	        map.put("startTime", start != null ? start.get(DATE_TIME) : null);
-	        map.put("endTime", end != null ? end.get(DATE_TIME) : null);
+	        map.put(START_TIME, start != null ? start.get(DATE_TIME) : null);
+	        map.put(END_TIME, end != null ? end.get(DATE_TIME) : null);
 
 	        Map<String, Object> organizer = (Map<String, Object>) json.get(ORGANIZER);
 	        map.put(ORGANIZER, organizer != null ? organizer.get(EMAIL) : null);
@@ -179,8 +184,8 @@ public class GoogleCalendarHelper {
 	        map.put(HTML_LINK, json.get(HTML_LINK));
 
 	        boolean hasVideo = json.get(HANGOUT_LINK) != null;
-	        map.put("video", hasVideo);
-	        map.put("audio", hasVideo);
+	        map.put(VIDEO, hasVideo);
+	        map.put(AUDIO, hasVideo);
 
 	        String frequency = null;
 	        String until = null;
@@ -188,12 +193,12 @@ public class GoogleCalendarHelper {
 	        List<String> recurrence = (List<String>) json.get(RECURRENCE);
 	        if (recurrence != null) {
 	            for (String rule : recurrence) {
-	                if (rule.startsWith("RRULE:")) {
+	                if (rule.startsWith(RRULE)) {
 	                    String[] parts = rule.substring(6).split(";");
 	                    for (String part : parts) {
-	                        if (part.startsWith("FREQ=")) {
+	                        if (part.startsWith(FREQ)) {
 	                            frequency = part.substring(5);
-	                        } else if (part.startsWith("UNTIL=")) {
+	                        } else if (part.startsWith(UNTIL2)) {
 	                            until = part.substring(6);
 	                        }
 	                    }
