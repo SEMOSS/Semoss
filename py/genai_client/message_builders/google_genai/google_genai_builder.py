@@ -12,32 +12,94 @@ from google.genai import types
 
 class GoogleGenAIMessageBuilder:
 
-    def build_messages(
-        self, semoss_messages: List[SEMOSSMessage]
-    ) -> Tuple[List[Content], Dict[str, Any]]:
-        """Convert SEMOSS messages to Google GenAI Content and return the param map from the latest message."""
+    def build_messages(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
+        """Convert SEMOSS messages to Google GenAI Content."""
         google_messages = []
         param_map = {}
+        stream = False
+
+        pending_tool_response = False
 
         for i, message in enumerate(semoss_messages):
             parts = []
 
-            content = message.content
-            if content:
-                parts.extend([self._build_text_content_part(content)])
+            if (
+                message.type == SEMOSSMessageType.INPUT_TEXT
+                or message.type == SEMOSSMessageType.INPUT_MEDIA
+            ):
+                if message.content:
+                    parts.append(self._build_text_content_part(message.content))
 
-            if message.image_content:
-                parts.extend(self._build_image_content_parts(message.image_content))
+                if message.image_content:
+                    parts.extend(self._build_image_content_parts(message.image_content))
 
-            # TODO: Handle tool calls and responses..
-
-            role = self._message_type_to_role(message.type)
-            google_messages.append(
-                Content(
-                    role=role,
-                    parts=parts,
+                google_messages.append(
+                    Content(
+                        role=GoogleRoles.USER,
+                        parts=parts,
+                    )
                 )
-            )
+
+            elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
+                if message.tool_calls:
+                    for tool_call in message.tool_calls:
+                        parts.append(
+                            Part.from_function_call(
+                                name=tool_call["function"]["name"],
+                                args=tool_call["function"]["arguments"],
+                            )
+                        )
+
+                    google_messages.append(
+                        Content(
+                            role=GoogleRoles.MODEL,
+                            parts=parts,
+                        )
+                    )
+                    pending_tool_response = True
+
+            elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
+                if pending_tool_response:
+                    # im finding the tool name from the previous RESPONSE_TOOL message
+                    tool_name = None
+                    for j in range(i - 1, -1, -1):
+                        prev_msg = semoss_messages[j]
+                        if prev_msg.type == SEMOSSMessageType.RESPONSE_TOOL:
+                            if prev_msg.tool_calls and prev_msg.tool_calls[0]:
+                                for tool_call in prev_msg.tool_calls:
+                                    if str(tool_call.get("id")) == str(
+                                        message.tool_call_id
+                                    ):
+                                        tool_name = tool_call["function"]["name"]
+                                        break
+                            break
+
+                    if tool_name and message.content:
+                        parts.append(
+                            Part.from_function_response(
+                                name=tool_name, response={"result": message.content}
+                            )
+                        )
+
+                        google_messages.append(
+                            Content(
+                                role=GoogleRoles.USER,
+                                parts=parts,
+                            )
+                        )
+
+                    pending_tool_response = False
+
+            elif message.type == SEMOSSMessageType.RESPONSE_TEXT:
+                if message.content:
+                    parts.append(self._build_text_content_part(message.content))
+
+                google_messages.append(
+                    Content(
+                        role=GoogleRoles.MODEL,
+                        parts=parts,
+                    )
+                )
 
             if i == len(semoss_messages) - 1:
                 param_map, stream = self._convert_args_to_provider_config(
