@@ -17,10 +17,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleCalendarListReactor extends AbstractReactor{
-	
+
 	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarListReactor.class);
 	
 	private static final String CALENDAR_ID = "primary";
+	private static final String RECURRING_EVENT_ID = "recurringEventId";
     private static final String BASE_URL = "https://www.googleapis.com/calendar/v3/calendars/%s/events";
     private static final String ORDER_BY = "orderBy";
     private static final String ORDER_BY_START_TIME = "startTime";
@@ -91,6 +92,10 @@ public class GoogleCalendarListReactor extends AbstractReactor{
                     List<String> lst = new ArrayList<>();
                     lst.add((String) item.get(SUMMARY));
                     lst.add((String) item.get(ID));
+                    String recurringEventId = (String) item.get(RECURRING_EVENT_ID);
+                    if (recurringEventId != null) {
+                        lst.add(recurringEventId);               
+                    } 
                     eventList.add(lst);
                 }
             }
