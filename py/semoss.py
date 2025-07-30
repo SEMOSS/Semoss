@@ -33,7 +33,7 @@ class Insight(ServerProxy):
         )
 
         if pixelReturn is not None and len(pixelReturn) > 0:
-            output = pixelReturn[0]["pixelReturn"][0]
+            output = pixelReturn[0]["pixelReturn"][-1]
             return output["output"]
 
         return pixelReturn
