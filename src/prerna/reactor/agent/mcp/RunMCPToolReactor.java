@@ -21,6 +21,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
@@ -84,7 +85,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 			return new NounMetadata(output, PixelDataType.CONST_STRING);
 		}
 		
-		return new NounMetadata(output, PixelDataType.CONST_STRING);
+		throw new SemossMCPException("Unknown tool: invalid_tool_name", MCPErrorCode.INVALID_PARAMS);
 	}
 
 	/**
