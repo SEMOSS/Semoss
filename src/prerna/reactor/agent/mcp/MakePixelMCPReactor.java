@@ -62,7 +62,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		}
 		
 		JSONObject mcpJson = new JSONObject();
-		mcpJson.put("tool", toolsArray);
+		mcpJson.put("tools", toolsArray);
 		LocalDate todayUTC = LocalDate.now(ZoneOffset.UTC);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 		mcpJson.put("last_modified_date", todayUTC.format(formatter));
