@@ -10,6 +10,9 @@ import org.json.JSONObject;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossMCPException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 
 public final class MCPToolExecution {
@@ -96,9 +99,6 @@ public final class MCPToolExecution {
 		Iterator <String> props = functionProperties.keys();
 		StringBuilder paramString = new StringBuilder();
 		while(props.hasNext()) {
-			if(paramString.length() != 0) {
-				paramString.append(", ");
-			}
 			String propName = props.next();
 			JSONObject thisProp = ((JSONObject)functionProperties.get(propName));
 			String propType = thisProp.getString("type");
@@ -113,6 +113,12 @@ public final class MCPToolExecution {
 			} 
 			// if we have a value, add it 
 			if(propValue != null) {
+				// we have confirmed we have a new value to add
+				// check if we need to comma separate
+				if(paramString.length() != 0) {
+					paramString.append(", ");
+				}
+				
 				paramString.append(propName).append("=");
 	
 				// compose the string
@@ -129,7 +135,11 @@ public final class MCPToolExecution {
 		classLogger.info("Running pixel tool '" + runMethod + "' from project " + project.getProjectId());
 		// run pixel
 		PixelRunner pixelReturn = insight.runPixel(runMethod);
-		return pixelReturn.getResults().get(0).getValue()+"";
+		NounMetadata result = pixelReturn.getResults().get(0);
+		if(result.getOpType().contains(PixelOperationType.ERROR)) {
+			throw new SemossMCPException(result.getValue()+"", MCPErrorCode.SERVER_ERROR);
+		}
+		return result.getValue()+"";
 	}
 	
 	private MCPToolExecution() {
