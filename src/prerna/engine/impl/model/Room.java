@@ -86,13 +86,19 @@ public class Room {
 	    Object useHistoryObj = kwArgMap.get("use_history");
 	    if (useHistoryObj instanceof Boolean) {
 	        useHistory = (Boolean) useHistoryObj;
+	        kwArgMap.remove("use_history");
 	    } else if (useHistoryObj != null && "false".equalsIgnoreCase(useHistoryObj.toString())) {
 	        useHistory = false;
+	        kwArgMap.remove("use_history");
 	    }
 
 		// does the model have keep keep input output off or is use_history false? if so then just ask the model and send the response back. 
 
 	    if (!abstractModel.keepInputOutput || !useHistory) {
+	    	
+	    	String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
+	    	kwArgMap.put("message_json", singleMessageJson);
+
 	        AskModelEngineResponse llmResponse = modelEngine.askRoom(
 	            msg.getInputPrompt(), this.getSystemMessage(), this, kwArgMap
 	        );
