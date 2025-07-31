@@ -17,7 +17,9 @@ import com.google.gson.reflect.TypeToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
@@ -101,6 +103,13 @@ public class AskPlaygroundReactor extends AbstractReactor {
         // ---- Actually run LLM call
         ResponseMessage response = room.ask(msg, context, modelEngine);
 
+        // parse the response for code blocks
+        if(response.getMessageType().equals(MessageType.RESPONSE_TEXT)) {
+        	response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
+			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
+					room.getMessagesAsString());
+        }
+        
         // ---- Return both messages as a Map
         Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
