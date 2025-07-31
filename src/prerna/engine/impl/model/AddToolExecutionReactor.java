@@ -55,9 +55,8 @@ public class AddToolExecutionReactor extends prerna.reactor.AbstractReactor {
         if (!ModelInferenceLogsUtils.validUserRoom(roomId, userId)) {
             throw new IllegalArgumentException("User does not have access to room " + roomId);
         }
-        Room room = ModelInferenceLogsUtils.getRoomById(roomId, userId);
-        room.setInsight(insight);
-        room.parseMessages();
+        
+        Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 
         List<AbstractMessage> messages = room.getMessages();
         if (messages.isEmpty()) {
