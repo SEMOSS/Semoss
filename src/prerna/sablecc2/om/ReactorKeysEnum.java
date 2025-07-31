@@ -29,6 +29,7 @@ public enum ReactorKeysEnum {
 	COMMAND ("command",											"The shell command to execute. Commands allowed cd, dir, ls, copy, cp, mv, move, del <specific file>, rm <specific file>, git"),
 	COMMENT_KEY("comment", 										"This key can represent a string comment, a map containing the data for a given comment, or the id for an existing comment"),
 	COMMENT_ID_KEY("commentId", 								"Unique ID for the insight comment"),
+	COMMIT_ID_KEY("commitId",                                  "Commit ID of a project"),
 	CONCEPTUAL_NAMES("conceptualNames", 						"Conceptual names that are defined for the app tables and columns"),
 	CONCEPT("concept", 											"Concept name within an engine"),
 	CONCEPTS("concepts", 										"List of concept names within an engine"),
