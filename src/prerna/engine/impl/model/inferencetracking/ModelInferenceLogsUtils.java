@@ -89,6 +89,7 @@ public class ModelInferenceLogsUtils {
   private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
   private static final String AGENT_TABLE_NAME = "AGENT__";
   private static final String ROOM_TABLE_NAME = "ROOM__";
+  private static final String FEEDBACK_TABLE_NAME = "FEEDBACK__";  
 
   static IRDBMSEngine modelInferenceLogsDb;
   static boolean initialized = false;
@@ -649,18 +650,13 @@ public class ModelInferenceLogsUtils {
    */
   public static List<Map<String, Object>> getRoomFeedback(String roomId) {
 	  SelectQueryStruct qs = new SelectQueryStruct();
-	  qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
-	  qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__ROOM_ID", "==", roomId));
-	  List<Map<String, Object>> message_result = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-	  List<String> message_ids = message_result.parallelStream().map(res -> res.get("MESSAGE_ID").toString()).collect(Collectors.toList());
-	  
-	  qs = new SelectQueryStruct();
-	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_TYPE"));
+	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_ID"));
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_TYPE"));
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"));
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__FEEDBACK_DATE"));
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__RATING"));
-	  qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "IN", message_ids));
+	  qs.addRelation(MESSAGE_TABLE_NAME + "MESSAGE_ID", FEEDBACK_TABLE_NAME + "MESSAGE_ID", "inner.join");
+	  qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__ROOM_ID", "==", roomId));
 	  List<Map<String, Object>> feedback_result = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	return feedback_result;
 	  
