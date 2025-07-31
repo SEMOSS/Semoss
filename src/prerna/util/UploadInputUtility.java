@@ -152,7 +152,6 @@ public final class UploadInputUtility {
 	}
 	
 	/**
-	 * 
 	 * @param store
 	 * @param insight
 	 * @return
@@ -160,6 +159,10 @@ public final class UploadInputUtility {
 	public static String getFilePath(NounStore store, Insight insight) {
 		return getFilePath(store, insight, FILE_PATH);
 	}
+	
+
+	
+
 
 	/**
 	 * 
@@ -173,6 +176,7 @@ public final class UploadInputUtility {
 		if(fileGrs == null || fileGrs.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the relative file path as " + keyToGrab + "=[\"input_path\"]");
 		}
+		int sz = fileGrs.size();
 		String fileLocation =  fileGrs.get(0).toString();
 		//normalize
 		fileLocation = Utility.normalizePath(fileLocation);
@@ -187,7 +191,8 @@ public final class UploadInputUtility {
 
 		return getFilePath(insight, fileLocation, space);
 	}
-	
+
+
 	/**
 	 * 
 	 * @param store
@@ -547,6 +552,36 @@ public final class UploadInputUtility {
 			return null;
 		}
 		return (int) grs.get(0);
+	}
+	
+	// get a list of multiple file paths to be uploaded
+	
+	public static List<String> getFilePaths(NounStore store, Insight insight) {
+	    return getFilePaths(store, insight, FILE_PATH);
+	}
+
+	public static List<String> getFilePaths(NounStore store, Insight insight, String keyToGrab) {
+		GenRowStruct fileGrs = store.getNoun(keyToGrab);
+		if (fileGrs == null || fileGrs.isEmpty()) {
+			throw new IllegalArgumentException("Must pass in the relative file path(s) as " + keyToGrab + "=[\"input_path\"]");
+		}
+
+		// Get the space (if any)
+		String space = null;
+		GenRowStruct spaceGrs = store.getNoun(SPACE);
+		if (spaceGrs != null && !spaceGrs.isEmpty()) {
+			space = spaceGrs.get(0).toString();
+		}
+
+		List<String> filePaths = new ArrayList<>();
+		for (int i = 0; i < fileGrs.size(); i++) {
+			String rawFileLocation = fileGrs.get(i).toString();
+			String normalizedPath = Utility.normalizePath(rawFileLocation);
+			String fullPath = getFilePath(insight, normalizedPath, space);
+			filePaths.add(fullPath);
+		}
+
+		return filePaths;
 	}
 
 }
