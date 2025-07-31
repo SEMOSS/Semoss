@@ -86,13 +86,19 @@ public class Room {
 	    Object useHistoryObj = kwArgMap.get("use_history");
 	    if (useHistoryObj instanceof Boolean) {
 	        useHistory = (Boolean) useHistoryObj;
+	        kwArgMap.remove("use_history");
 	    } else if (useHistoryObj != null && "false".equalsIgnoreCase(useHistoryObj.toString())) {
 	        useHistory = false;
+	        kwArgMap.remove("use_history");
 	    }
 
 		// does the model have keep keep input output off or is use_history false? if so then just ask the model and send the response back. 
 
 	    if (!abstractModel.keepInputOutput || !useHistory) {
+	    	
+	    	String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
+	    	kwArgMap.put("message_json", singleMessageJson);
+
 	        AskModelEngineResponse llmResponse = modelEngine.askRoom(
 	            msg.getInputPrompt(), this.getSystemMessage(), this, kwArgMap
 	        );
@@ -255,18 +261,13 @@ public class Room {
 
 		// 5. If all tool_call_ids fulfilled, trigger next model.ask
 		if (answeredIds.containsAll(allIds) && allIds.size() > 0) {
-			// Prepare full prompt (map all formatted messages)
-			List<Object> fullPrompt = new ArrayList<>();
-//			for (AbstractMessage m : messages) {
-//				fullPrompt.add(m.getFormattedMessage());
-//			}
+			String messageJsonString = getMessagesWithImageDataAsString();
 			Map<String, Object> params = new HashMap<>();
-			params.put("full_prompt", fullPrompt);
-			AskModelEngineResponse llmResponse = modelEngine.ask(null, null, insight, params);
+			params.put("message_json", messageJsonString);
+			AskModelEngineResponse llmResponse = modelEngine.ask("", null, insight, params);
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
-//			nextAssistant.getFormattedMessage();
 			messages.add(nextAssistant);
 
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),

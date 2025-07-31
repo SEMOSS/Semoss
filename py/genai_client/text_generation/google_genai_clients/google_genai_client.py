@@ -218,12 +218,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
     ) -> AskModelEngineResponse:
         tools_result = []
         for i, function_call in enumerate(response.function_calls):
-            function_name = function_call.name
-            if function_name.startswith("function_engine_"):
-                # This is our function engine id
-                function_id = function_name.replace("function_engine_", "")
-            else:
-                function_id = i
+            function_id = i
 
             tools_result.append(
                 {
@@ -269,45 +264,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         )
 
         return StreamingResponse(text=final_response, usage_metadata=usage_metadata)
-
-    def _handle_tools_conversion(self, tools: List[Dict]) -> List[types.Tool]:
-        """
-        Converting from the OpenAI tools format I recieve to the Google Gen AI tools format.
-        """
-        google_tools = []
-
-        for tool in tools:
-            if tool.get("type", None) == "function":
-                func_def = tool["function"]
-
-                parameters_schema = None
-                if "parameters" in func_def:
-                    params = func_def["parameters"]
-
-                    properties = {}
-                    for prop_name, prop_def in params.get("properties", {}).items():
-                        properties[prop_name] = types.Schema(
-                            type=prop_def["type"].upper(),
-                            description=prop_def.get("description", ""),
-                        )
-
-                    parameters_schema = types.Schema(
-                        type="OBJECT",
-                        properties=properties,
-                        required=params.get("required", []),
-                    )
-
-                function_declaration = types.FunctionDeclaration(
-                    name=func_def["name"],
-                    description=func_def["description"],
-                    parameters=parameters_schema,
-                )
-
-                google_tools.append(
-                    types.Tool(function_declarations=[function_declaration])
-                )
-
-        return google_tools
 
     def _convert_args_to_provider_config(self, **kwargs) -> types.GenerateContentConfig:
         """
@@ -360,6 +316,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
     ) -> ConvertedHistory:
         """
         Convert our history format to Google Gen AI's Content format.
+        This is only used if I do not have message_json.
+        This assumes OpenAI format.
         """
         google_history = []
         system_instructions = None
@@ -426,3 +384,44 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 raise ValueError("Invalid image URL format.")
 
         return image_parts
+
+    def _handle_tools_conversion(self, tools: List[Dict]) -> List[types.Tool]:
+        """
+        Converting from the OpenAI tools format I recieve to the Google Gen AI tools format.
+        This is only used when I don't get the messages as message_json.
+        Therefore I need to assume they are in OpenAI format
+        """
+        google_tools = []
+
+        for tool in tools:
+            if tool.get("type", None) == "function":
+                func_def = tool["function"]
+
+                parameters_schema = None
+                if "parameters" in func_def:
+                    params = func_def["parameters"]
+
+                    properties = {}
+                    for prop_name, prop_def in params.get("properties", {}).items():
+                        properties[prop_name] = types.Schema(
+                            type=prop_def["type"].upper(),
+                            description=prop_def.get("description", ""),
+                        )
+
+                    parameters_schema = types.Schema(
+                        type="OBJECT",
+                        properties=properties,
+                        required=params.get("required", []),
+                    )
+
+                function_declaration = types.FunctionDeclaration(
+                    name=func_def["name"],
+                    description=func_def["description"],
+                    parameters=parameters_schema,
+                )
+
+                google_tools.append(
+                    types.Tool(function_declarations=[function_declaration])
+                )
+
+        return google_tools
