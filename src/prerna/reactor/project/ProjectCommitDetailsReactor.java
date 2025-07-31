@@ -5,14 +5,13 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessToken;
-import prerna.auth.User;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -36,17 +35,12 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		
-		User user = this.insight.getUser();
-		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		String userEmail = accessToken.getEmail();
-		String userId = accessToken.getUsername();
-		
-		List<List<String>> commits = new ArrayList<>();
+
+		List<Map<String, Object>> commits = new ArrayList<>();
 		String filePath = null;
+
 		try {
-			ProcessBuilder builder = new ProcessBuilder("git", "log", "--pretty=format:%H%nDate: %ad%nMessage: %s%n",
-					"--date=local");
+			ProcessBuilder builder = new ProcessBuilder("git", "log", "--pretty=format:%H-%an-%ae-%ad-%s");
 			IProject project = Utility.getProject(projectId);
 			filePath = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 			builder.directory(new File(filePath));
@@ -58,11 +52,18 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 
 			String[] lines = output.split("\n");
 
-			for (int i = 0; i < lines.length - 2; i += 4) {
-				String commitId = lines[i].trim();
-				String comitDate = lines[i + 1].replace("Date:", "").trim();
-				String commitMessage = lines[i + 2].replace("Message:", "").trim();
-				commits.add(new ArrayList(Arrays.asList(userId, userEmail, commitId, comitDate, commitMessage)));
+			for (int i = 0; i < lines.length; i++) {
+				String[] commitDetails = lines[i].split("-");
+				Map<String, Object> details=new LinkedHashMap<>();
+				details.put("commitId", commitDetails[0]);
+				Map<String, String> authorDetails=new LinkedHashMap<>();
+				authorDetails.put("userId", commitDetails[1]);
+				authorDetails.put("userEmail", commitDetails[2]);
+				details.put("author", authorDetails);
+				details.put("date", commitDetails[3]);
+				details.put("commitMessage", commitDetails[4]);
+				commits.add(details);
+				System.out.println(details);
 			}
 
 		} catch (IOException e) {
