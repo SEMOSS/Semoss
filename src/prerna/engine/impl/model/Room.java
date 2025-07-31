@@ -264,7 +264,7 @@ public class Room {
 			String messageJsonString = getMessagesWithImageDataAsString();
 			Map<String, Object> params = new HashMap<>();
 			params.put("message_json", messageJsonString);
-			AskModelEngineResponse llmResponse = modelEngine.ask("", null, insight, params);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, params);
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
