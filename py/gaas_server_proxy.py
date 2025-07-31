@@ -183,3 +183,18 @@ class ServerProxy:
             raise Exception(new_payload_struct["ex"])
         else:
             return new_payload_struct["payload"]
+
+    def get_thread_insight_id(self):
+        """Helper function to get insight_id from the current thread's payload"""
+        try:
+            # get the original payload from the current thread so that we can get the insight id
+            orig_payload = getattr(self.server.thread_local, "payload", None)
+
+            if orig_payload:
+                return orig_payload.get("executionInsightId") or orig_payload.get(
+                    "insightId"
+                )
+            else:
+                return None
+        except AttributeError:
+            return None
