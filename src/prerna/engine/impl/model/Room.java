@@ -378,7 +378,7 @@ public class Room {
 
 	// Core message accessors
 	public List<AbstractMessage> getMessages() {
-		System.out.println("Henlo these are query results \n" + ModelInferenceLogsUtils.getRoomFeedback(this.room_id));
+		System.out.println("QUERY RESULTS \n" + ModelInferenceLogsUtils.getRoomFeedback(this.room_id));
 		return this.messages;
 	}
 

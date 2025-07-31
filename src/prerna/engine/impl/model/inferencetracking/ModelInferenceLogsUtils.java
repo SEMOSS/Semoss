@@ -643,7 +643,7 @@ public class ModelInferenceLogsUtils {
     }
   }
   
-  /**
+/**
    * @param roomId
    * @return a list of feedback for the room
    */
@@ -655,13 +655,13 @@ public class ModelInferenceLogsUtils {
 	  List<String> message_ids = message_result.parallelStream().map(res -> res.get("MESSAGE_ID").toString()).collect(Collectors.toList());
 	  
 	  qs = new SelectQueryStruct();
-	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_ID"));)
-		qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_TYPE"));
-		qs.addSelector(new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"));
-		qs.addSelector(new QueryColumnSelector("FEEDBACK__FEEDBACK_DATE"));
-		qs.addSelector(new QueryColumnSelector("FEEDBACK__RATING"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "IN", message_ids));
-		List<Map<String, Object>> feedback_result = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_TYPE"));
+	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_TYPE"));
+	  qs.addSelector(new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"));
+	  qs.addSelector(new QueryColumnSelector("FEEDBACK__FEEDBACK_DATE"));
+	  qs.addSelector(new QueryColumnSelector("FEEDBACK__RATING"));
+	  qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "IN", message_ids));
+	  List<Map<String, Object>> feedback_result = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	return feedback_result;
 	  
   }
