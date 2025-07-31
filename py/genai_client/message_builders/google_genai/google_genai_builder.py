@@ -7,40 +7,186 @@ from ..semoss_base.semoss_models import (
     SEMOSSImageType,
 )
 from .google_genai_models import GoogleRoles
+from google.genai import types
 
 
 class GoogleGenAIMessageBuilder:
 
-    def build_messages(
-        self, semoss_messages: List[SEMOSSMessage]
-    ) -> Tuple[List[Content], Dict[str, Any]]:
-        """Convert SEMOSS messages to Google GenAI Content and return the param map from the latest message."""
+    def build_messages(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
+        """Convert SEMOSS messages to Google GenAI Content."""
         google_messages = []
         param_map = {}
+        stream = False
+
+        pending_tool_response = False
 
         for i, message in enumerate(semoss_messages):
             parts = []
 
-            content = message.content
-            if content:
-                parts.extend([self._build_text_content_part(content)])
+            if (
+                message.type == SEMOSSMessageType.INPUT_TEXT
+                or message.type == SEMOSSMessageType.INPUT_MEDIA
+            ):
+                if message.content:
+                    parts.append(self._build_text_content_part(message.content))
 
-            if message.image_content:
-                parts.extend(self._build_image_content_parts(message.image_content))
+                if message.image_content:
+                    parts.extend(self._build_image_content_parts(message.image_content))
 
-            # TODO: Handle tool calls and responses..
-
-            role = self._message_type_to_role(message.type)
-            google_messages.append(
-                Content(
-                    role=role,
-                    parts=parts,
+                google_messages.append(
+                    Content(
+                        role=GoogleRoles.USER,
+                        parts=parts,
+                    )
                 )
-            )
+
+            elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
+                if message.tool_calls:
+                    for tool_call in message.tool_calls:
+                        parts.append(
+                            Part.from_function_call(
+                                name=tool_call["function"]["name"],
+                                args=tool_call["function"]["arguments"],
+                            )
+                        )
+
+                    google_messages.append(
+                        Content(
+                            role=GoogleRoles.MODEL,
+                            parts=parts,
+                        )
+                    )
+                    pending_tool_response = True
+
+            elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
+                if pending_tool_response:
+                    # im finding the tool name from the previous RESPONSE_TOOL message
+                    tool_name = None
+                    for j in range(i - 1, -1, -1):
+                        prev_msg = semoss_messages[j]
+                        if prev_msg.type == SEMOSSMessageType.RESPONSE_TOOL:
+                            if prev_msg.tool_calls and prev_msg.tool_calls[0]:
+                                for tool_call in prev_msg.tool_calls:
+                                    if str(tool_call.get("id")) == str(
+                                        message.tool_call_id
+                                    ):
+                                        tool_name = tool_call["function"]["name"]
+                                        break
+                            break
+
+                    if tool_name and message.content:
+                        parts.append(
+                            Part.from_function_response(
+                                name=tool_name, response={"result": message.content}
+                            )
+                        )
+
+                        google_messages.append(
+                            Content(
+                                role=GoogleRoles.USER,
+                                parts=parts,
+                            )
+                        )
+
+                    pending_tool_response = False
+
+            elif message.type == SEMOSSMessageType.RESPONSE_TEXT:
+                if message.content:
+                    parts.append(self._build_text_content_part(message.content))
+
+                google_messages.append(
+                    Content(
+                        role=GoogleRoles.MODEL,
+                        parts=parts,
+                    )
+                )
 
             if i == len(semoss_messages) - 1:
-                param_map = message.param_map
-        return google_messages, param_map
+                param_map, stream = self._convert_args_to_provider_config(
+                    **message.param_map
+                )
+
+        return {
+            "messages": google_messages,
+            "param_map": param_map,
+            "stream": stream,
+        }
+
+    def convert_mcp_to_google_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
+        """
+        Convert MCP-formatted tools to Google GenAI function calling format.
+        Args:
+            mcp_tools: List of tools in MCP format
+        Returns:
+            List of function declarations for Google GenAI
+        """
+        function_declarations = []
+
+        for tool in mcp_tools:
+            function_declaration = {
+                "name": tool["name"],
+                "description": tool["description"],
+                "parameters": {
+                    "type": tool["inputSchema"]["type"],
+                    "properties": {},
+                    "required": tool["inputSchema"].get("required", []),
+                },
+            }
+
+            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
+                function_declaration["parameters"]["properties"][prop_name] = {
+                    k: v for k, v in prop_def.items() if k != "title"
+                }
+
+            function_declarations.append(function_declaration)
+
+        return function_declarations
+
+    def _convert_args_to_provider_config(
+        self, **kwargs
+    ) -> Tuple[types.GenerateContentConfig, bool]:
+        """
+        Convert our CFG arguments to a GenerateContentConfig object.
+        """
+        context = kwargs.pop("context", None)
+        response_schema = kwargs.pop("schema", None)
+        response_mime_type = kwargs.pop("response_mime_type", None)
+        if response_schema is not None and response_mime_type is None:
+            response_mime_type = "application/json"
+
+        tools = kwargs.pop("tools", None)
+        if tools is not None:
+            func_declarations = self.convert_mcp_to_google_tools(tools)
+
+            tools = [types.Tool(function_declarations=func_declarations)]
+
+        max_output_tokens = kwargs.get("max_new_tokens", None)
+        if max_output_tokens is None:
+            max_output_tokens = kwargs.get("max_completion_tokens", None)
+        if max_output_tokens is None:
+            max_output_tokens = kwargs.get("max_tokens", None)
+
+        stream = kwargs.pop("stream", False)
+        if not stream:
+            kwargs.pop("streaming", None)
+
+        config = types.GenerateContentConfig(
+            http_options=kwargs.pop("http_options", None),
+            system_instruction=context,
+            max_output_tokens=max_output_tokens,
+            temperature=kwargs.pop("temperature", None),
+            top_p=kwargs.pop("top_p", None),
+            top_k=kwargs.pop("top_k", None),
+            stop_sequences=kwargs.pop("stop_sequences", None),
+            presence_penalty=kwargs.pop("presence_penalty", None),
+            frequency_penalty=kwargs.pop("frequency_penalty", None),
+            # TODO: Pass this from the init.. this lives in smss
+            safety_settings=None,
+            response_schema=response_schema,
+            response_mime_type=response_mime_type,
+            tools=tools,
+        )
+        return config, stream
 
     def _build_text_content_part(self, content: str) -> Part:
         """Build a text content part for Google GenAI."""

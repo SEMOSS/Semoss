@@ -78,6 +78,44 @@ public class Room {
 			ModelInferenceLogsUtils.setRoomContext(this.insight.getInsightId(),
 					this.insight.getUser().getPrimaryLoginToken().getId(), systemMessage);
 		}
+	    Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
+	    AbstractModelEngine abstractModel = (AbstractModelEngine) modelEngine;
+
+	    // Determine useHistory: default true unless "use_history" is Boolean.FALSE or string "false"
+	    boolean useHistory = true;
+	    Object useHistoryObj = kwArgMap.get("use_history");
+	    if (useHistoryObj instanceof Boolean) {
+	        useHistory = (Boolean) useHistoryObj;
+	        kwArgMap.remove("use_history");
+	    } else if (useHistoryObj != null && "false".equalsIgnoreCase(useHistoryObj.toString())) {
+	        useHistory = false;
+	        kwArgMap.remove("use_history");
+	    }
+
+		// does the model have keep keep input output off or is use_history false? if so then just ask the model and send the response back. 
+
+	    if (!abstractModel.keepInputOutput || !useHistory) {
+	    	
+	    	String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
+	    	kwArgMap.put("message_json", singleMessageJson);
+
+	        AskModelEngineResponse llmResponse = modelEngine.askRoom(
+	            msg.getInputPrompt(), this.getSystemMessage(), this, kwArgMap
+	        );
+	        ResponseMessage response = ResponseMessage.Builder
+	            .fromAskModelEngineResponse(llmResponse)
+	            .build();
+	        response.setModel(modelEngine);
+	        response.setParentMessageId(msg.getMessageId());
+	        response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+	        return response;
+	    }
+		
+		//if we dont have to keep history. then wipe all previous messages. 
+		if(!abstractModel.keepConversationHistory) {
+			messages.clear();
+		}
+		
 		// Set model type and add message to history
 		msg.setModel(modelEngine);
 		// Set parentMessageId for this message
@@ -90,15 +128,13 @@ public class Room {
 
 		messages.add(msg);
 
-		String messageJsonString;
-		if (Boolean.TRUE == msg.getParamMap().getOrDefault("use_history", Boolean.TRUE)) {
-			messageJsonString = getMessagesWithImageDataAsString();
-		} else {
-			messageJsonString = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
-		}
+		String messageJsonString = getMessagesWithImageDataAsString();
+//		if (Boolean.TRUE == msg.getParamMap().getOrDefault("use_history", Boolean.TRUE)) {
+//			messageJsonString = getMessagesWithImageDataAsString();
+//		} else {
+//			messageJsonString = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
+//		}
 
-		Map<String, Object> kwArgMap = new HashMap<>();
-		kwArgMap.putAll(msg.getParamMap());
 		kwArgMap.put("message_json", messageJsonString);
 
 		AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,
@@ -225,18 +261,13 @@ public class Room {
 
 		// 5. If all tool_call_ids fulfilled, trigger next model.ask
 		if (answeredIds.containsAll(allIds) && allIds.size() > 0) {
-			// Prepare full prompt (map all formatted messages)
-			List<Object> fullPrompt = new ArrayList<>();
-//			for (AbstractMessage m : messages) {
-//				fullPrompt.add(m.getFormattedMessage());
-//			}
+			String messageJsonString = getMessagesWithImageDataAsString();
 			Map<String, Object> params = new HashMap<>();
-			params.put("full_prompt", fullPrompt);
-			AskModelEngineResponse llmResponse = modelEngine.ask(null, null, insight, params);
+			params.put("message_json", messageJsonString);
+			AskModelEngineResponse llmResponse = modelEngine.ask("", null, insight, params);
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
-//			nextAssistant.getFormattedMessage();
 			messages.add(nextAssistant);
 
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),

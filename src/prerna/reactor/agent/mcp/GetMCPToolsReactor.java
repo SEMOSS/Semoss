@@ -1,12 +1,10 @@
 package prerna.reactor.agent.mcp;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -47,33 +45,17 @@ public class GetMCPToolsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access");
 		}
 		
-		JSONObject toolMap = new JSONObject();
+		classLogger.info("Getting MCP Tools for project .. " + projectId);
 		
-		// get the project
-		// check to see if there is a py directory
-		// if there is pick the main.py and ask the system to make the json
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(keyValue.get(keysToGet[0]));
-		// need to apply the same from java etc. 
-		classLogger.info("Getting MCP for project .. " + keyValue.get(keysToGet[0]));
-		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
-		File jsonFile = new File(jsonFileLoc);
-		if(jsonFile.exists())
-		{
-			JSONArray pyToolArray = getNode(jsonFileLoc, "tools");
-			jsonFileLoc = projectAssetFolder + "/mcp/java_mcp.json";
-			JSONArray javaToolArray = getNode(jsonFileLoc, "tools");
-			pyToolArray.putAll(javaToolArray);
-			
-			// other routines to assimilate other things
-
-			toolMap.put("tools", pyToolArray);
-			classLogger.info("Toolsets.. " + toolMap);
-		}
-		else
-		{
-			JSONArray empty = new JSONArray();
-			toolMap.put("tools", empty);
-		}
+		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+		
+		JSONObject toolMap = new JSONObject();
+		JSONArray toolsArray = new JSONArray();
+		toolsArray.putAll(getNode(pythonJsonFileLoc, "tools"));
+		toolsArray.putAll(getNode(pixelJsonFileLoc, "tools"));
+		toolMap.put("tools", toolsArray);
 		return new NounMetadata(toolMap, PixelDataType.JSON_OBJECT);
 	}
 	
@@ -85,10 +67,9 @@ public class GetMCPToolsReactor extends AbstractReactor {
 	 */
 	protected JSONArray getNode(String jsonFileLoc, String node) {
 		File jsonFile = new File(jsonFileLoc);
-		if(jsonFile.exists())
-		{
-			try (InputStream is = new FileInputStream(jsonFile);){
-				String jsonTxt = IOUtils.toString(is, "UTF-8");
+		if(jsonFile.exists()) {
+			try {
+				String jsonTxt = FileUtils.readFileToString(jsonFile, "UTF-8");
 				JSONObject json = new JSONObject(jsonTxt);
 				// the tools is what has it
 				JSONArray toolObj = null;
