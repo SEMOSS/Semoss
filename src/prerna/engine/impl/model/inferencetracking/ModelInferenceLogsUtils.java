@@ -20,12 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
+import com.amazonaws.services.guardduty.model.Feedback;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.SemossDataType;
@@ -639,6 +641,29 @@ public class ModelInferenceLogsUtils {
     } catch (Exception e) {
       classLogger.error(Constants.STACKTRACE, e);
     }
+  }
+  
+  /**
+   * @param roomId
+   * @return a list of feedback for the room
+   */
+  public static List<Map<String, Object>> getRoomFeedback(String roomId) {
+	  SelectQueryStruct qs = new SelectQueryStruct();
+	  qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
+	  qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__ROOM_ID", "==", roomId));
+	  List<Map<String, Object>> message_result = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	  List<String> message_ids = message_result.parallelStream().map(res -> res.get("MESSAGE_ID").toString()).collect(Collectors.toList());
+	  
+	  qs = new SelectQueryStruct();
+	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_ID"));)
+		qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_TYPE"));
+		qs.addSelector(new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"));
+		qs.addSelector(new QueryColumnSelector("FEEDBACK__FEEDBACK_DATE"));
+		qs.addSelector(new QueryColumnSelector("FEEDBACK__RATING"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "IN", message_ids));
+		List<Map<String, Object>> feedback_result = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	return feedback_result;
+	  
   }
 
   /** USAGE HELPER FUNCTIONS */
