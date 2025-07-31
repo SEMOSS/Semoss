@@ -378,8 +378,14 @@ public class Room {
 
 	// Core message accessors
 	public List<AbstractMessage> getMessages() {
-		System.out.println("QUERY RESULTS \n" + ModelInferenceLogsUtils.getRoomFeedback(this.room_id));
-		return this.messages;
+		List<AbstractMessage> messages = this.messages;
+		List<Feedback> feedback = ModelInferenceLogsUtils.getRoomFeedback(this.room_id);
+		Map<String, Feedback> feedbackMap = new HashMap<>();
+	    feedback.parallelStream().forEach(f -> {feedbackMap.put(f.getTransactionId(), f);});
+		messages.parallelStream().forEach(message -> {
+			if (message.getMessageType().equals(MessageType.RESPONSE_TEXT)) message.setFeedback(feedbackMap.getOrDefault(message.getTransactionId(), null));
+		});
+		return messages;
 	}
 
 	public void setMessages(List<AbstractMessage> messagesList) {

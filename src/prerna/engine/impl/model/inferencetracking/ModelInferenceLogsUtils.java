@@ -8,7 +8,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,7 +26,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
-import com.amazonaws.services.guardduty.model.Feedback;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.SemossDataType;
@@ -42,6 +40,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.Feedback;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
@@ -648,7 +647,7 @@ public class ModelInferenceLogsUtils {
    * @param roomId
    * @return a list of feedback for the room
    */
-  public static List<Map<String, Object>> getRoomFeedback(String roomId) {
+  public static List<Feedback> getRoomFeedback(String roomId) {
 	  SelectQueryStruct qs = new SelectQueryStruct();
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_ID"));
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_TYPE"));
@@ -658,7 +657,14 @@ public class ModelInferenceLogsUtils {
 	  qs.addRelation(MESSAGE_TABLE_NAME + "MESSAGE_ID", FEEDBACK_TABLE_NAME + "MESSAGE_ID", "inner.join");
 	  qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__ROOM_ID", "==", roomId));
 	  List<Map<String, Object>> feedback_result = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-	return feedback_result;
+	  List<Feedback> feedback_list = feedback_result.parallelStream().map(resMap -> new Feedback(
+			  resMap.get("MESSAGE_ID").toString(),
+			  resMap.get("MESSAGE_TYPE").toString(),
+			  resMap.get("FEEDBACK_TEXT").toString(),
+			  resMap.get("FEEDBACK_DATE").toString(),
+			  resMap.get("RATING").toString()
+			  )).collect(Collectors.toList());
+	return feedback_list;
 	  
   }
 

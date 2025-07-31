@@ -12,6 +12,7 @@ import com.google.gson.annotations.SerializedName;
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.Feedback;
 import prerna.engine.impl.model.Room;
 
 public abstract class AbstractMessage {
@@ -21,6 +22,7 @@ public abstract class AbstractMessage {
 	protected String messageId;
 	protected String transactionId;
 	protected String parentMessageId;
+	protected Feedback feedback;
 	protected int tokens;
 	
     protected boolean visible = true;
@@ -91,6 +93,14 @@ public abstract class AbstractMessage {
 
 	public void setParentMessageId(String parentMessageId) {
 		this.parentMessageId = parentMessageId;
+	}
+
+	public Feedback getFeedback() {
+		return feedback;
+	}
+
+	public void setFeedback(Feedback feedback) {
+		this.feedback = feedback;
 	}
 
 	public void setRoom(Room room) {

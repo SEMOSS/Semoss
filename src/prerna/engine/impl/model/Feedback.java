@@ -1,26 +1,26 @@
 package prerna.engine.impl.model;
 
 public class Feedback {
-	private String messageId;
+	private String transactionid;
 	private String messageType;
 	private String feedbackText;
 	private String feedbackDate;
 	private String rating;
 	
 	public Feedback(String messageId, String messageType, String feedbackText, String feedbackDate, String rating) {
-		this.messageId = messageId;
+		this.transactionid = messageId;
 		this.messageType = messageType;
 		this.feedbackText = feedbackText;
 		this.feedbackDate = feedbackDate;
 		this.rating = rating;
 	}
 
-	public String getMessageId() {
-		return messageId;
+	public String getTransactionId() {
+		return transactionid;
 	}
 
-	public void setMessageId(String messageId) {
-		this.messageId = messageId;
+	public void setMessageId(String transactionId) {
+		this.transactionid = transactionId;
 	}
 
 	public String getMessageType() {
