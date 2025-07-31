@@ -21,6 +21,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.ArrayList;
 import prerna.om.Insight;
 
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -31,6 +32,11 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
     private static final String COMMAND_KEY = "COMMAND";
     private static final String CONTEXT_KEY = "CONTEXT";
     private static final String USE_HISTORY_KEY = "USE_HISTORY";
+    
+    private static final String PROMPT = 
+    "Here is the metadata extracted from a data frame: • Categorical fields: [Country, City] • Numerical fields: [Population, GDP]." +
+    "Based on this, determine the best Vega-Lite mark (e.g. bar, line, point, etc.) and encoding for a chart. Choose the x and y fields, indicate their types, and output a complete valid Vega-Lite JSON specification." + 
+    "I only want valid JSON with no extra commentary.";
 
 	public FrameToGraphReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.MODEL.getKey(), "userInput" };
@@ -66,7 +72,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 			System.out.println("PandasFrame query result: " + result);
 		} else if (sourceFrame instanceof TinkerFrame) {
 			// TODO: Implement Grid, R, and Tinker Frame instances
-			System.out.println("TODO: Implement Grid, R, and Tinker Frame instances");
+			System.out.println("TODO: Implement Grid and R instances");
 		} else {
 			System.err.println("Unsupported frame type for query execution");
 		}
@@ -76,19 +82,19 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
         modelParams.put("use_history", "true");
         
         // Using the new helper method to call the model
-        AskModelEngineResponse modelResponse = callLLM(
-            "Generate graph steps from frame data: " + buildVegaPrompt(sourceFrame),
-            "FrameToGraph context",
-            this.insight.getInsightFolder(), // TODO: Unsure about this
-            modelParams
-        );
+//        AskModelEngineResponse modelResponse = callLLM(
+//            "Generate graph steps from frame data: " + buildVegaPrompt(sourceFrame),
+//            "FrameToGraph context",
+//            this.insight.getInsightFolder(), // TODO: Unsure about this
+//            modelParams
+//        );
         
-        if (modelResponse != null) {
-            System.out.println("LLM Response: " + modelResponse.getResponse());
-            // Process the response as needed (e.g., parse steps, adjust graph configuration, etc.)
-        } else {
-            System.err.println("No valid response from LLM model call");
-        }
+//        if (modelResponse != null) {
+//            System.out.println("LLM Response: " + modelResponse.getResponse());
+//            // Process the response as needed (e.g., parse steps, adjust graph configuration, etc.)
+//        } else {
+//            System.err.println("No valid response from LLM model call");
+//        }
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 	}
@@ -127,51 +133,135 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 	 */
 	private String buildVegaPrompt(ITableDataFrame sourceFrame) {
 		StringBuilder promptBuilder = new StringBuilder();
-		
-		// Start a simple Vega JSON template
-		promptBuilder.append("{\n");
-		promptBuilder.append("  \"$schema\": \"https://vega.github.io/schema/vega-lite/v5.json\",\n"); // Change version as needed
-		promptBuilder.append("  \"description\": \"A chart generated from frame data\",\n");
-		
-		// Embed data from the frame (sample only a few rows)
-		promptBuilder.append("  \"data\": {\n");
-		promptBuilder.append("    \"values\": [\n");
-		
-		int rowCount = sourceFrame.getRowCount();
-		int sampleRows = Math.min(rowCount, 3);
-		String[] headers = sourceFrame.getColumnHeaders();
-		
-		for (int r = 0; r < sampleRows; r++) {
-			promptBuilder.append("      {");
-			for (int h = 0; h < headers.length; h++) {
-				Object cell = sourceFrame.getCellValue(r, headers[h]);
-				promptBuilder.append("\"").append(headers[h]).append("\": \"").append(cell).append("\"");
-				if (h < headers.length - 1) {
-					promptBuilder.append(", ");
-				}
-			}
-			promptBuilder.append("}");
-			if (r < sampleRows - 1) {
-				promptBuilder.append(",\n");
-			} else {
-				promptBuilder.append("\n");
-			}
-		}
-		
-		promptBuilder.append("    ]\n");
-		promptBuilder.append("  },\n");
-		
-		// Add encoding and mark settings (you can modify this template as needed)
-		promptBuilder.append("  \"mark\": \"bar\",\n");
-		promptBuilder.append("  \"encoding\": {\n");
-		promptBuilder.append("    \"x\": { \"field\": \"").append(headers[0]).append("\", \"type\": \"ordinal\" },\n");
-		promptBuilder.append("    \"y\": { \"field\": \"").append(headers[1]).append("\", \"type\": \"quantitative\" }\n");
-		promptBuilder.append("  }\n");
-		promptBuilder.append("}");
 
-		System.out.println("PROMPT: " + promptBuilder.toString());
+		String[] headers = sourceFrame.getColumnHeaders();
+		int rowCount = (int) sourceFrame.size(sourceFrame.getName());
 		
-		return promptBuilder.toString();
+		// TODO: Make this work for frames greater than size 10. Test how many rows we can insert into prompt.
+		int sampleRows = Math.min(rowCount, 10);
+		StringBuilder sb = new StringBuilder();
+
+		// Partition headers into numerical and categorical based on the first non-null cell in row 0
+		List<String> numericalHeaders = new ArrayList<>();
+        List<String> categoricalHeaders = new ArrayList<>();
+        String[] columnHeaders = sourceFrame.getColumnHeaders();
+        
+        for (int i = 0; i < columnHeaders.length ; i++) {
+        	String currentHeader = columnHeaders[i];
+            if (sourceFrame.isNumeric(currentHeader)) {
+//                	= sourceFrame.getColumn(currentHeader);
+//                	for (int i = 0; i < ; i++) {
+//                		
+//                	}
+                numericalHeaders.add(currentHeader);
+            } else {
+                categoricalHeaders.add(currentHeader);
+            }
+        }
+
+        // Begin JSON template
+        sb.append("{\n");
+        sb.append("  \"$schema\": \"https://vega.github.io/schema/vega-lite/v5.json\",\n");
+        sb.append("  \"description\": \"A chart generated from frame data\",\n");
+        sb.append("  \"data\": {\n");
+
+        if (!categoricalHeaders.isEmpty()) {
+            // Embed categorical data
+            promptBuilder.append("    \"categorical\": [\n");
+            
+            // Each row entry in [] should start with '{' and end with '}'
+            for (int r = 0; r < sampleRows; r++) {
+                promptBuilder.append("      {");
+                for (int i = 0; i < categoricalHeaders.size(); i++) {
+                	// Get the corresponding numericRowData for the current header
+                    String header = categoricalHeaders.get(i);
+                    Double[] categoricalRowData = sourceFrame.getColumnAsNumeric(header);
+                    
+                    // "Fruit" : "Apple"
+                    promptBuilder.append("\"").append(header).append("\": \"").append(categoricalRowData[r]).append("\"");
+                    if (i < categoricalHeaders.size() - 1) {
+                        promptBuilder.append(", ");
+                    }
+                }
+                
+                // Handles inserting ',' after each row entry
+                promptBuilder.append("}");
+                if (r < sampleRows - 1) {
+                    promptBuilder.append(",\n");
+                } else {
+                    promptBuilder.append("\n");
+                }
+            }
+            promptBuilder.append("    ],\n");
+            
+        }
+            
+        if (!numericalHeaders.isEmpty()) {
+            // Embed numerical data
+            promptBuilder.append("    \"numerical\": [\n");
+            
+            // Each row entry in [] should start with '{' and end with '}'
+            for (int r = 0; r < sampleRows; r++) {
+                promptBuilder.append("      {");
+                for (int i = 0; i < numericalHeaders.size(); i++) {
+                	// Get the corresponding numericRowData for the current header
+                    String header = numericalHeaders.get(i);
+                    Object[] numericRowData = sourceFrame.getColumn(header);
+                    
+                    // "Temperature" : 21
+                    promptBuilder.append("\"").append(header).append("\": ").append(numericRowData[r]);
+                    if (i < numericalHeaders.size() - 1) {
+                        promptBuilder.append(", ");
+                    }
+                }
+                promptBuilder.append("}");
+                
+                // Handles inserting ',' after each row entry
+                if (r < sampleRows - 1) {
+                    promptBuilder.append(",\n");
+                } else {
+                    promptBuilder.append("\n");
+                }
+            }
+            promptBuilder.append("    ]\n");
+        }
+        
+
+        // Fallback: if all columns are of one type, embed data under "values"
+        promptBuilder.append("    \"values\": [\n");
+        for (int r = 0; r < sampleRows; r++) {
+            promptBuilder.append("      {");
+            for (int i = 0; i < headers.length; i++) {
+            	String header = numericalHeaders.get(i);
+                Object[] rowData = sourceFrame.getColumn(header);
+                Object cell = rowData[i];
+                
+                // If we have only numerical data, omit quotes. Otherwise, include quotes.
+                if (numericalHeaders.isEmpty() || !(cell instanceof Number)) {
+                    promptBuilder.append("\"").append(header).append("\": \"").append((String) cell).append("\"");
+                } else {
+                    promptBuilder.append("\"").append(header).append("\": ").append((Double) cell);
+                }
+                if (i < headers.length - 1) {
+                    promptBuilder.append(", ");
+                }
+            }
+            promptBuilder.append("}");
+            if (r < sampleRows - 1) {
+                promptBuilder.append(",\n");
+            } else {
+                promptBuilder.append("\n");
+            }
+        }
+        
+        promptBuilder.append("    ]\n");
+
+        // Minimal encoding: for demonstration use first categorical as x and first numerical as y (if available)
+        // Waiting on prompt for mark, encoding, x field and x type. y field and y type. 
+        // e.g. Country and Ordinal, or Population and quantitiative
+        
+		System.out.println("Vega Prompt: " + promptBuilder.toString());
+        return sb.toString();
 	}
 
 	/**
@@ -216,6 +306,10 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
             response.setRoomId((String) output.get("roomId"));
         }
         return response;
+    }
+    
+    private isNumericData() {
+    	
     }
 	
 	public String getName()
