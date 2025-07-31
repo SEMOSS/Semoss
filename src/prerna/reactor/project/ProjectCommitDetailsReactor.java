@@ -11,6 +11,8 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AccessToken;
+import prerna.auth.User;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -34,7 +36,12 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-
+		
+		User user = this.insight.getUser();
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String userEmail = accessToken.getEmail();
+		String userId = accessToken.getUsername();
+		
 		List<List<String>> commits = new ArrayList<>();
 		String filePath = null;
 		try {
@@ -55,7 +62,7 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 				String commitId = lines[i].trim();
 				String comitDate = lines[i + 1].replace("Date:", "").trim();
 				String commitMessage = lines[i + 2].replace("Message:", "").trim();
-				commits.add(new ArrayList(Arrays.asList(commitId, comitDate, commitMessage)));
+				commits.add(new ArrayList(Arrays.asList(userId, userEmail, commitId, comitDate, commitMessage)));
 			}
 
 		} catch (IOException e) {

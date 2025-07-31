@@ -1,13 +1,12 @@
 package prerna.reactor.project;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
 import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -15,6 +14,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 
 public class ProjectCommitRestoreReactor extends AbstractReactor {
 
@@ -31,17 +31,19 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String commitId = this.keyValue.get(this.keysToGet[1]);
+		
+		User user = this.insight.getUser();
 
 		IProject project = Utility.getProject(projectId);
-		String filePath = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
+		String projectVersionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 
 		try {
 
-			runCommand(filePath, "git", "checkout", commitId, "--", ".");
+			runCommand(projectVersionFolder, "git", "checkout", commitId, "--", ".");
 
-			runCommand(filePath, "git", "add", ".");
-
-			runCommand(filePath, "git", "commit", "-m", "Cloned content from commit: " + commitId);
+			runCommand(projectVersionFolder, "git", "add", ".");
+			
+			GitRepoUtils.commitAddedFiles(projectVersionFolder, "Reverted to commit: " + commitId, user);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -60,6 +62,21 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 		if (exitCode != 0) {
 			throw new RuntimeException("Command failed: " + String.join(" ", command));
 		}
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "This reactor returns the details of all the commits in a project";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "This is a required field containing the project id of a project";
+		} else if (key.equals(ReactorKeysEnum.COMMIT_ID_KEY.getKey())) {
+			return "This is a required field containing the commit id of a project";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }
