@@ -157,7 +157,7 @@ public class GoogleCalendarHelper {
 	        Map<String, Object> map = new HashMap<>();
 	        map.put(SUMMARY, json.get(SUMMARY));
 	        map.put(DESCRIPTION, json.get(DESCRIPTION));
-
+	        map.put(LOCATION, json.get(LOCATION));
 	        List<Map<String, Object>> attendeeList = new ArrayList<>();
 	        List<Map<String, Object>> attendees = (List<Map<String, Object>>) json.get(ATTENDEES);
 
@@ -217,6 +217,7 @@ public class GoogleCalendarHelper {
 	    }
 	}
 	
+	@SuppressWarnings("unused")
 	public static Boolean updateEvent(String accessToken, String id, String summary, String location, String desc, String startdatetime,
 	String enddatetime, List<String> attendeeEmails, String frequency, String until, Boolean enableVideoConferencing) throws Exception {
 		
