@@ -46,6 +46,9 @@ public class DownloadAppNotebookReactor extends AbstractReactor {
 		
 		IProject project = Utility.getProject(projectId);
 		List<File> notebookFiles = project.writeNotebooks();
+		if(notebookFiles == null) {
+			throw new IllegalArgumentException("The project is not a blocks based app");
+		}
 		File download = null;
 		if(notebookFiles.size() == 1) {
 			download = notebookFiles.get(0);
