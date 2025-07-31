@@ -378,6 +378,11 @@ public class Room {
 
 	// Core message accessors
 	public List<AbstractMessage> getMessages() {
+		List<AbstractMessage> messages = applyFeedbackToMessages();
+		return messages;
+	}
+
+	private List<AbstractMessage> applyFeedbackToMessages() {
 		List<AbstractMessage> messages = this.messages;
 		List<Feedback> feedback = ModelInferenceLogsUtils.getRoomFeedback(this.room_id);
 		Map<String, Feedback> feedbackMap = new HashMap<>();
