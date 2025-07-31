@@ -261,18 +261,13 @@ public class Room {
 
 		// 5. If all tool_call_ids fulfilled, trigger next model.ask
 		if (answeredIds.containsAll(allIds) && allIds.size() > 0) {
-			// Prepare full prompt (map all formatted messages)
-			List<Object> fullPrompt = new ArrayList<>();
-//			for (AbstractMessage m : messages) {
-//				fullPrompt.add(m.getFormattedMessage());
-//			}
+			String messageJsonString = getMessagesWithImageDataAsString();
 			Map<String, Object> params = new HashMap<>();
-			params.put("full_prompt", fullPrompt);
-			AskModelEngineResponse llmResponse = modelEngine.ask(null, null, insight, params);
+			params.put("message_json", messageJsonString);
+			AskModelEngineResponse llmResponse = modelEngine.ask("", null, insight, params);
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
-//			nextAssistant.getFormattedMessage();
 			messages.add(nextAssistant);
 
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
