@@ -1,7 +1,8 @@
 package prerna.reactor.project;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -70,7 +71,7 @@ public class BrowseAppAssetsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("The path " + relativeFilePath + " exists within the assets folder but is not a directory");
 		}
 		
-		SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").withZone(user.getZoneId());
 		
 		List<Map<String, Object>> retObj = new ArrayList<>();
 		File[] allFiles = directory.listFiles();
@@ -86,7 +87,7 @@ public class BrowseAppAssetsReactor extends AbstractReactor {
 			} else {
 				fileMap.put("type", FilenameUtils.getExtension(f.getName()));
 			}
-			fileMap.put("lastModified", dateFormat.format(f.lastModified()));
+			fileMap.put("lastModified", dateTimeFormatter.format(Instant.ofEpochMilli(f.lastModified())));
 			fileMap.put("path", f.getAbsolutePath().substring(pathSubstringIndex));
 			retObj.add(fileMap);
 		}
