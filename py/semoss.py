@@ -4,8 +4,13 @@ import ast
 
 
 class Insight(ServerProxy):
-    def __init__(self, insight_id=None):
+    def __init__(
+        self,
+        insight_id: Optional[str] = None,
+    ):
         super().__init__()
+        if insight_id is None:
+            insight_id = super().get_thread_insight_id()
         self.insight_id = insight_id
 
     def run_pixel(self, pixel: str = None, insight_id: Optional[str] = None):
@@ -37,15 +42,6 @@ class Insight(ServerProxy):
             return output["output"]
 
         return pixelReturn
-
-    def get_insight_id(self):
-        """
-        This method is responsible for getting the insight id
-
-        Returns:
-            str: The insight id
-        """
-        return self.insight_id
 
 
 class SemossParameterSchema:
