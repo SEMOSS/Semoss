@@ -46,7 +46,7 @@ public class BrowseAppAssetsReactor extends AbstractReactor {
 
 		String relativeFilePath = this.keyValue.get(this.keysToGet[1]);
 		if(relativeFilePath != null) {
-			relativeFilePath = relativeFilePath.trim();
+			relativeFilePath = Utility.normalizePath(relativeFilePath.trim());
 			if(!relativeFilePath.isEmpty()) {
 				relativeFilePath = relativeFilePath.replace('\\', '/');
 				if(!relativeFilePath.startsWith("/")) {

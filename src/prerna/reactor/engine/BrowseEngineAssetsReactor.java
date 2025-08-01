@@ -18,6 +18,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
+import prerna.util.Utility;
 
 public class BrowseEngineAssetsReactor extends AbstractReactor {
 
@@ -42,7 +43,7 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
         }
 		String relativeFilePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		if(relativeFilePath != null) {
-			relativeFilePath = relativeFilePath.trim();
+			relativeFilePath = Utility.normalizePath(relativeFilePath.trim());
 			if(!relativeFilePath.isEmpty()) {
 				relativeFilePath = relativeFilePath.replace('\\', '/');
 				if(!relativeFilePath.startsWith("/")) {
