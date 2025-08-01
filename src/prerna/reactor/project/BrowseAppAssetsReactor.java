@@ -39,7 +39,7 @@ public class BrowseAppAssetsReactor extends AbstractReactor {
 		}
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
 		}
 		IProject project = Utility.getProject(projectId);

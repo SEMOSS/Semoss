@@ -42,14 +42,9 @@ public class DownloadEngineAssetReactor extends AbstractReactor {
 		}
 
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-        // check if user is logged in
- 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
- 			throwAnonymousUserError();
- 		}
-     		
-        if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-            throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to this engine");
-        }
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to edit assets.");
+		}
 
 		String relativeFilePath = this.keyValue.get(this.keysToGet[1]);
 		if(relativeFilePath != null) {
