@@ -56,7 +56,6 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		organizeKeys();
 
 		PyTranslator pyt = this.insight.getPyTranslator();
-		pyt.setLogger(this.getLogger(this.getClass().getName()));
 		
 		String command = keyValue.get(keysToGet[0]) +"";
 		

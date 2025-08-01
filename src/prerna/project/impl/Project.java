@@ -56,7 +56,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -66,6 +65,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
@@ -1139,6 +1139,24 @@ public class Project implements IProject {
 	}
 	
 	@Override
+	public INotebookHelper getNotebookHelper() {
+		// if not blocks json
+		// then ignore for now
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			return NotebookHelperFactory.getNotebookHelper(blocksF);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+	
+	@Override
 	public synchronized List<File> writeNotebooks() {
 		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
@@ -1790,11 +1808,9 @@ public class Project implements IProject {
 		}
 		
 		// create the py translator
-		PyTransporter pyTransporter = new PyTransporter();
-		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		this.pyTranslator = new PyTranslator();
-		this.pyTranslator.setInsight(new Insight());
-		this.pyTranslator.setPyTransporter(pyTransporter);
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		// finally set the cpw in the class
 		this.cpw = cpwToInit;
 	}

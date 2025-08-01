@@ -962,3 +962,117 @@ def load_module_from_file(module_name=None, file_path=None, search=None):
         sys.path.remove(search)
     return module
     # import module_name
+
+
+def gen_mcp(src_file=None, dest_file=None):
+    import ast
+    import json
+    import datetime
+    import os
+    import time
+
+    with open(src_file, "r") as file:
+        tree = ast.parse(file.read())
+
+    tools_block = {}
+    tools = []
+    tools = []
+    for node in ast.walk(tree):
+        function = {}
+        input_schema = {}
+        ## {"name":"compare_stocks","description":"\n    Compare the current stock prices of two ticker symbols.\n    Returns a formatted message comparing the two stock prices.\n    \n    Parameters:\n        symbol1: The first stock ticker symbol.\n        symbol2: The second stock ticker symbol.\n    ",
+        # "inputSchema":{"properties":{"symbol1":{"title":"Symbol1","type":"string"},"symbol2":{"title":"Symbol2","type":"string"}},"required":["symbol1","symbol2"],"title":"compare_stocksArguments","type":"object"}}]}}
+        if isinstance(node, ast.FunctionDef):
+            function_return_type = "string"
+            if node.returns is not None:
+                function_return_type = node.returns.id
+                function_return_type = map_py_to_mcp(function_return_type)
+                # print(function_return_type)
+
+            function_name = node.name
+            function.update({"name": function_name})
+            docstring = ast.get_docstring(node)
+            if docstring is not None and len(docstring) > 0:
+                function.update({"description": docstring})
+            properties = {}
+            required = []
+            # for  arg, default in zip(node.args.args, node.args.defaults):
+            for arg in node.args.args:
+                this_arg = {}
+                # name of the argument
+                arg_name = arg.arg
+                this_arg.update({"title": arg_name.capitalize()})
+                arg_type = "string"
+                if arg.annotation:
+                    if isinstance(arg.annotation, ast.Name):
+                        arg_type = arg.annotation.id
+                    elif isinstance(arg.annotation, ast.Subscript):
+                        if isinstance(arg.annotation.value, ast.Name):
+                            arg_type = arg.annotation.value.id
+                        else:
+                            arg_type = "string"
+                    else:
+                        arg_type = "string"
+                # else:
+                arg_type = map_py_to_mcp(arg_type)  ## catch all
+                function_return_type = "object"
+
+                ## add default
+                # if default is not None:
+                #    this_arg.update({"default": ast.unparse(default)})
+                this_arg.update({"type": arg_type})
+                required.append(arg_name)
+                properties.update({arg_name: this_arg})
+            input_schema.update({"properties": properties})
+            input_schema.update({"required": required})
+            # input_schema.update({f"{function_name}Arguments": node.returns.id})
+            input_schema.update({"title": f"{function_name}Arguments"})
+            input_schema.update({"type": function_return_type})
+            function.update({"inputSchema": input_schema})
+
+            # print(json.dumps((function)))
+            tools.append(function)
+    tools_block.update({"tools": tools})
+    # also add other details like when it was created etc.
+    # todays date in utc
+    todays_date_utc = datetime.datetime.now(datetime.timezone.utc).date()
+    date_format = "%Y-%m-%d"
+    tools_block.update({"last_modified_date": todays_date_utc.strftime(date_format)})
+    # date the file was last changed in utc
+    file_last_mod_date_utc = datetime.datetime.fromtimestamp(
+        os.path.getmtime(src_file), tz=datetime.timezone.utc
+    )
+    tools_block.update(
+        {"file_last_modified_date": file_last_mod_date_utc.strftime(date_format)}
+    )
+    tools_block.update({"source_file": src_file})
+
+    # write this back to a file
+    with open(dest_file, "w", encoding="utf-8") as f:
+        json.dump(tools_block, f, indent=4, ensure_ascii=False)
+    return tools_block
+
+
+def map_py_to_mcp(input):
+    mapper = {
+        "str": "string",
+        "float": "number",
+        "int": "number",
+        "bool": "boolean",
+    }
+    if input in mapper:
+        return mapper[input]
+    else:
+        return "object"
+
+
+def map_mcp_to_py(input):
+    mapper = {
+        "string": "str",
+        "number": "float",
+        "boolean": "bool",
+    }
+    if input in mapper:
+        return mapper[input]
+    else:
+        return "object"

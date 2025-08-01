@@ -2,7 +2,6 @@ package prerna.reactor.project;
 
 import prerna.auth.User;
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -10,10 +9,12 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+@Deprecated
 public class SetContextReactor extends AbstractReactor {
 
 	// takes in a the name and engine and mounts the engine assets as that variable
@@ -78,8 +79,8 @@ public class SetContextReactor extends AbstractReactor {
 			} else {
 				// is the user already using python?
 				// if so, set the path
-				PyTransporter pyTransporter = user.getPyTransporter(false);
-				if (pyTransporter != null) {
+				SocketClient sc = user.getPythonSocketClient(false);
+				if (sc != null) {
 					PyTranslator pyTranslator = insight.getPyTranslator();
 					pyTranslator.runEmptyPy(script);
 				}
@@ -90,6 +91,11 @@ public class SetContextReactor extends AbstractReactor {
 				PixelOperationType.OPERATION);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is deprecated. Please update to LoadApp(project='') instead";
+	}
+	
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equalsIgnoreCase(this.keysToGet[1])) {
