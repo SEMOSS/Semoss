@@ -18,6 +18,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
+import prerna.util.Utility;
 
 public class BrowseEngineAssetsReactor extends AbstractReactor {
 
@@ -31,18 +32,19 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 		organizeKeys();
 
 		User user = this.insight.getUser();
-        String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-        // check if user is logged in
+		// check if user is logged in
  		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
  			throwAnonymousUserError();
  		}
-     		
-        if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-            throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to this engine");
-        }
+		 		
+        String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to edit assets.");
+		}
+		
 		String relativeFilePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		if(relativeFilePath != null) {
-			relativeFilePath = relativeFilePath.trim();
+			relativeFilePath = Utility.normalizePath(relativeFilePath.trim());
 			if(!relativeFilePath.isEmpty()) {
 				relativeFilePath = relativeFilePath.replace('\\', '/');
 				if(!relativeFilePath.startsWith("/")) {
