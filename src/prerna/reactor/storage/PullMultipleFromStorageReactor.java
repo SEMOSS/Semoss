@@ -32,14 +32,24 @@ public class PullMultipleFromStorageReactor extends AbstractReactor {
         organizeKeys();
         IStorageEngine storage = getStorage();
         List<String> storagePaths = getStoragePaths();
-        String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
-        if (!(new File(fileLocation).isDirectory())) {
-            new File(fileLocation).mkdirs();
+
+        // Get the base directory for downloads
+        String baseDir = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+        if (!(new File(baseDir).isDirectory())) {
+            new File(baseDir).mkdirs();
         }
 
         try {
             for (String storagePath : storagePaths) {
-                storage.copyToLocal(storagePath, fileLocation);
+                // Extract filename from storage path
+                String filename = storagePath.substring(storagePath.lastIndexOf('/') + 1);
+                if (filename.isEmpty()) {
+                    filename = "downloaded_file_" + System.currentTimeMillis();
+                }
+
+                // Create unique local path for each file
+                String localPath = baseDir + "/" + filename;
+                storage.copyToLocal(storagePath, localPath);
             }
             return new NounMetadata(true, PixelDataType.BOOLEAN);
         } catch (Exception e) {
