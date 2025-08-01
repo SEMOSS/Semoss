@@ -228,7 +228,7 @@ public enum ReactorKeysEnum {
 	SCALE("scale", 												"How much to scale the graph, default value is set at 20 based on screen size"),
 	SCHEMA("schema",                	                        "The database schema."),
 	SEARCH("search",											"The search term."),
-  SECTION("section", 											"The section to use as input from addBlockReactor"),
+	SECTION("section", 											"The section to use as input from addBlockReactor"),
 	SEPARATOR("separator",										"Separator for file processing to be used. Defaults to \\r\\n\\r\\n"),
 	SESSION_ID("sessionId", 									"Id of the session"),
 	SHAPE_INDEX("shapeIndex",                 		            "Which particular shape to replace on the powerpoint"),
@@ -241,7 +241,8 @@ public enum ReactorKeysEnum {
 	SPACE("space", 												"The space to work with assets (user project space, current insight space, project id space)."),
 	SQL("sql", 													"The SQL query"),
 	START("start",												"Start value for a between reactor"),
-	START_DATE("startDate",										"Start Date passed in for filter"),		
+	START_DATE("startDate",										"Start Date passed in for filter"),	
+	SEARCH_PARAM("searchParam",									"Param values to be searched / filtered"), //Added for getUsersForEngine 
 	START_ROW("startRow",										"The starting row number to import from a file."),
 	STATEMENT("statement", 										"Statement to be evaluated"),
 	STORAGE("storage",											"The id/name of the storage engine to use"),

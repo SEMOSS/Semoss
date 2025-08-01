@@ -1274,6 +1274,43 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission, limit, offset);
 	}
 	
+	//code to be added here
+	//new method to validate
+		/**
+		 * @param user
+		 * @param engineId
+		 * @param searchParam
+		 * @param permission
+		 * @param limit
+		 * @param offset
+		 * @return
+		 */
+		public static List<Map<String, Object>> getUsersForApp(User user, String projectId, String searchParam, String permission,
+				long limit, long offset) {
+			List<Map<String, Object>> result = null;
+			try {
+				result = getProjectUsers(user, projectId, searchParam, permission, limit, offset);
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			Set<String> wantedKeys = Set.of("id","permission","name", "type");
+			result = result.stream()
+					.map(map -> 
+					map.entrySet().stream()
+							.filter(entry -> wantedKeys.contains(entry.getKey()))
+								.collect(Collectors.toMap(Map.Entry::getKey,Map.Entry::getValue)))
+								.collect(Collectors.toList());
+			boolean hasPermission = permission != null && !(permission.trim()).isEmpty();
+			if(hasPermission) {
+				List<Map<String, Object>> filteredResult = result.stream()
+							.filter(m -> permission.equals(m.get("permission")))
+							.collect(Collectors.toList());
+				return filteredResult;
+			}
+			return result;
+		}
+		
 	public static long getProjectUsersCount(User user, String projectId, String searchParam, String permission) throws IllegalAccessException {
 		if(!userCanViewProject(user, projectId)) {
 			throw new IllegalAccessException("The user does not have access to view this project");

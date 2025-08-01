@@ -711,6 +711,42 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		return SecurityUserEngineUtils.getEngineUsers(engineId, searchParam, permission, limit, offset);
 	}
+
+	//new method to validate
+	/**
+	 * @param user
+	 * @param engineId
+	 * @param searchParam
+	 * @param permission
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUsersForEngine(User user, String engineId, String searchParam, String permission,
+			long limit, long offset) {
+		List<Map<String, Object>> result = null;
+		try {
+			result = getEngineUsers(user, engineId, searchParam, permission, limit, offset);
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		Set<String> wantedKeys = Set.of("id","name","permission","type");
+		result = result.stream()
+				.map(map -> 
+				map.entrySet().stream()
+						.filter(entry -> wantedKeys.contains(entry.getKey()))
+							.collect(Collectors.toMap(Map.Entry::getKey,Map.Entry::getValue)))
+							.collect(Collectors.toList());
+		boolean hasPermission = permission != null && !(permission.trim()).isEmpty();
+		if(hasPermission) {
+			List<Map<String, Object>> filteredResult = result.stream()
+						.filter(m -> permission.equals(m.get("permission")))
+						.collect(Collectors.toList());
+			return filteredResult;
+		}
+		return result;
+	}
 	
 	/**
 	 * 
