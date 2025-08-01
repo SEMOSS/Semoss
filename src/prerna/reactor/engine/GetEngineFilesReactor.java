@@ -34,11 +34,11 @@ public class GetEngineFilesReactor extends AbstractEngineFileReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		validateUserAndEngineAccess(user);
 
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to this engine");
+        String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to edit assets.");
 		}
 
 		String enginePath = getSpecificEngineBaseFolder(engineId);
