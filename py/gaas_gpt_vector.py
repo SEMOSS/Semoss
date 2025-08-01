@@ -4,11 +4,9 @@ from gaas_server_proxy import ServerProxy
 
 
 class VectorEngine(ServerProxy):
-    engine_type = "VECTOR"
-
     def __init__(
         self,
-        engine_id: str,
+        engine_id: str = None,
         insight_id: Optional[str] = None,
         # we do not use this anymore
         insight_folder: Optional[str] = None,
@@ -16,6 +14,8 @@ class VectorEngine(ServerProxy):
         assert engine_id is not None
         super().__init__()
         self.engine_id = engine_id
+        if insight_id is None:
+            insight_id = super().get_thread_insight_id()
         self.insight_id = insight_id
         # we do not use this anymore
         self.insight_folder = insight_folder

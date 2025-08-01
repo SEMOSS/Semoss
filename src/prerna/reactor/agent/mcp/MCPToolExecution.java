@@ -38,7 +38,10 @@ public final class MCPToolExecution {
 		String sysImport = "import sys";
 		String getpath = "sys.path";
 		String setpath = "sys.path.insert(0,'" + pyFolderLoc + "')";
-		String loadLib = "import smss_driver as smss";
+		//String loadLib = "import smss_driver as smss";
+	    String importSmssIfNeeded =
+	            "if 'smss' not in globals():\n" +
+	            "    import smss_driver as smss";
 
 		// iterate function properties and find if it is string etc. 
 		Iterator <String> props = functionProperties.keys();
@@ -77,8 +80,12 @@ public final class MCPToolExecution {
 		String curPath = insight.getPyTranslator().runScript(sysImport, getpath)+"";
 		curPath = curPath.replace("\\", "/");
 		if(!curPath.contains(pyFolderLoc)) {
-			insight.getPyTranslator().runScript(setpath, loadLib);
+			insight.getPyTranslator().runScript(setpath);
 		}
+		
+	    // Always import smss if needed
+	    insight.getPyTranslator().runScript(importSmssIfNeeded);
+	    
 		// run method
 		return insight.getPyTranslator().runScript(runMethod)+"";
 	}
