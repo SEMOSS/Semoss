@@ -1,6 +1,7 @@
 package prerna.reactor.storage;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,13 +18,15 @@ import prerna.util.Constants;
 public class DeleteFromStorageReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(DeleteFromStorageReactor.class);
-	
+
 	private static final String LEAVE_FOLDER_STRUCTURE = "leaveFolderStructure";
-	
+	private static final String STORAGE_PATHS = "storagePaths";
+
 	public DeleteFromStorageReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), LEAVE_FOLDER_STRUCTURE};
+		this.keysToGet = new String[] { ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(),
+				LEAVE_FOLDER_STRUCTURE, STORAGE_PATHS };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -32,35 +35,75 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), storage.getEngineId())) {
 			throw new IllegalArgumentException("User does not have permission to delete from the remote storage");
 		}
-		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
-		boolean leaveFolderStructure = Boolean.parseBoolean(this.keyValue.get(LEAVE_FOLDER_STRUCTURE)+"");
+
+		List<String> storagePaths = getStoragePaths();
+		boolean leaveFolderStructure = Boolean.parseBoolean(this.keyValue.get(LEAVE_FOLDER_STRUCTURE) + "");
+
 		try {
-			storage.deleteFromStorage(storagePath, leaveFolderStructure);
+			if (storagePaths.size() == 1) {
+				storage.deleteFromStorage(storagePaths.get(0), leaveFolderStructure);
+			} else {
+				for (String storagePath : storagePaths) {
+					storage.deleteFromStorage(storagePath, leaveFolderStructure);
+				}
+			}
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred delete file from storage");
+			throw new IllegalArgumentException("Error occurred deleting files from storage");
 		}
 	}
-	
+
+	private List<String> getStoragePaths() {
+		List<String> storagePaths = new ArrayList<>();
+
+		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+		if (storagePath != null && !storagePath.isEmpty()) {
+			storagePaths.add(storagePath);
+			return storagePaths;
+		}
+
+		GenRowStruct grs = this.store.getNoun(STORAGE_PATHS);
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++) {
+				storagePaths.add(grs.get(i).toString());
+			}
+			return storagePaths;
+		}
+
+		List<NounMetadata> storagePathInputs = this.curRow.getNounsOfType(PixelDataType.STRING);
+		if (storagePathInputs != null && !storagePathInputs.isEmpty()) {
+			for (NounMetadata input : storagePathInputs) {
+				storagePaths.add(input.getValue().toString());
+			}
+			return storagePaths;
+		}
+
+		throw new IllegalArgumentException("No storage paths provided for deletion");
+	}
+
 	private IStorageEngine getStorage() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
+		if (grs != null && !grs.isEmpty()) {
 			return (IStorageEngine) grs.get(0);
 		}
-		
+
 		List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
-		if(storageInputs != null && !storageInputs.isEmpty()) {
+		if (storageInputs != null && !storageInputs.isEmpty()) {
 			return (IStorageEngine) storageInputs.get(0).getValue();
 		}
-		
+
 		throw new NullPointerException("No storage engine defined");
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(LEAVE_FOLDER_STRUCTURE)) {
+		if (key.equals(LEAVE_FOLDER_STRUCTURE)) {
 			return "Boolean value if the folder structure should still be maintained even when deleting the path. Default is false.";
+		}
+		if (key.equals(STORAGE_PATHS)) {
+			return "List of storage paths to delete. If provided, this takes precedence over storagePath.";
 		}
 		return super.getDescriptionForKey(key);
 	}
