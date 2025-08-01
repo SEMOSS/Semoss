@@ -72,7 +72,7 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 			return storagePaths;
 		}
 
-		List<NounMetadata> storagePathInputs = this.curRow.getNounsOfType(PixelDataType.STRING);
+		List<NounMetadata> storagePathInputs = this.curRow.getNounsOfType(PixelDataType.CONST_STRING);
 		if (storagePathInputs != null && !storagePathInputs.isEmpty()) {
 			for (NounMetadata input : storagePathInputs) {
 				storagePaths.add(input.getValue().toString());
