@@ -39,21 +39,15 @@ public class LoadPyFromFileProjectPyReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project space is needed");
 		}
 		
-		
 		// this also validates
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);		
-		
 		String alias = keyValue.get(keysToGet[1]);
-		
 		IProject project = Utility.getProject(space);
-
 		try {
 			String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search='" + appFolder + "')";
-			project.getProjectPyTranslator(this.insight).runScript(script);
+			project.getProjectPyTranslator().runScript(script);
 			return new NounMetadata("Variable set " + alias, PixelDataType.CONST_STRING);
-
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Unable to load python file as module");
 		}

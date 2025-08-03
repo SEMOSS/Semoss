@@ -42,6 +42,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.project.impl.ProjectProperties;
+import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.IReactor;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.NotebookExecution;
@@ -202,6 +203,12 @@ public interface IProject extends IEngine, Closeable {
 	
 	/**
 	 * 
+	 * @return
+	 */
+	INotebookHelper getNotebookHelper();
+	
+	/**
+	 * 
 	 * @param insight
 	 * @param inputReplacements
 	 * @return
@@ -293,7 +300,7 @@ public interface IProject extends IEngine, Closeable {
 	 * @return
 	 */
 	
-	PyTranslator getProjectPyTranslator(Insight insight);
+	PyTranslator getProjectPyTranslator();
 	
 	/**
 	 * 

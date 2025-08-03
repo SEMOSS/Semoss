@@ -46,19 +46,30 @@ public class MosfetSyncHelper {
 	////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * 
+	 * Get the folder location that has the mosfet file 
+	 * @param projectId
+	 * @param projectName
+	 * @param rdbmsId
+	 * @return
+	 */
+	public static String getMosfetFolderLocation(String projectId, String projectName, String rdbmsId) {
+		return Utility.getBaseFolder()
+				+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
+				+ DIR_SEPARATOR + "app_root" 
+				+ DIR_SEPARATOR + "version" 
+				+ DIR_SEPARATOR + rdbmsId;
+	}
+	
+	/**
+	 * Get the mosfet file path
 	 * @param projectId
 	 * @param projectName
 	 * @param rdbmsId
 	 * @return
 	 */
 	public static String getMosfetFileLocation(String projectId, String projectName, String rdbmsId) {
-		return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
-				+ DIR_SEPARATOR + "app_root" 
-				+ DIR_SEPARATOR + "version" 
-				+ DIR_SEPARATOR + rdbmsId;
+		return getMosfetFolderLocation(projectId, projectName, rdbmsId) + DIR_SEPARATOR + MosfetFile.RECIPE_FILE;
 	}
 	
 	/*
@@ -319,7 +330,7 @@ public class MosfetSyncHelper {
 		}
 		mosfet.setSchemaName(schemaName);
 
-		String mosfetPath = getMosfetFileLocation(projectId, projectName, rdbmsId);
+		String mosfetPath = getMosfetFolderLocation(projectId, projectName, rdbmsId);
 
 		mosfet.write(mosfetPath, forceDelete);
 		return new File(mosfetPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);

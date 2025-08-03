@@ -271,7 +271,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				
 				String clientName = model + "_client";
 				String hasClientName = "false";
-				hasClientName = insight.getPyTranslator().runPyAndReturnOutput("print('" + clientName + "' in locals())");
+				hasClientName = insight.getPyTranslator().runScript("print('" + clientName + "' in locals())")+"";
 				if(hasClientName.equalsIgnoreCase("false"))
 				{
 					insight.getPyTranslator().runScript(clientName + " = Client('" + endpoint + "')");				
@@ -359,7 +359,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				String frameMaker = frameName + " = pd.read_sql(\"" + sqlDFQuery + "\", " + sqliteName + ")";
 				classLogger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
 				insight.getPyTranslator().runEmptyPy(frameMaker);
-				String sampleOut = insight.getPyTranslator().runSingle(frameName + ".head(20)", this.insight); // load the sql df
+				String sampleOut = insight.getPyTranslator().runScript(frameName + ".head(20)")+""; // load the sql df
 
 				System.err.println(sampleOut);
 				// send information

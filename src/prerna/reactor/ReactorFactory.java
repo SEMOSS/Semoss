@@ -36,6 +36,7 @@ import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IEngine;
 import prerna.forms.UpdateFormReactor;
 import prerna.io.connector.surveymonkey.SurveyMonkeyListSurveysReactor;
+import prerna.om.Insight;
 import prerna.poi.main.helper.excel.GetExcelFormReactor;
 import prerna.query.querystruct.delete.DeleteReactor;
 import prerna.query.querystruct.update.reactors.UpdateReactor;
@@ -224,7 +225,6 @@ import prerna.reactor.insights.save.SetInsightCacheableReactor;
 import prerna.reactor.insights.save.SetInsightNameReactor;
 import prerna.reactor.insights.save.UpdateInsightImageReactor;
 import prerna.reactor.insights.save.UpdateInsightReactor;
-import prerna.reactor.job.JobReactor;
 import prerna.reactor.masterdatabase.AllConceptualNamesReactor;
 import prerna.reactor.masterdatabase.CLPModelReactor;
 import prerna.reactor.masterdatabase.GetConceptPropertiesReactor;
@@ -637,9 +637,6 @@ public class ReactorFactory {
 */	
 	// populates the frame agnostic reactors used by pixel
 	private static void createReactorHash(Map<String, Class> reactorHash) {
-		// used to generate the base Job for the pksl commands being executed
-		reactorHash.put("Job", JobReactor.class); // defines the job
-
 		// Import Reactors
 		// takes in a query struct and imports data to a new frame
 		reactorHash.put("Import", ImportReactor.class);
@@ -1328,18 +1325,39 @@ public class ReactorFactory {
 	}
 
 	/**
+	 * Get the new reactor instance. Attempts to first create the reactor from the project context
+	 * 
+	 * @param insight
+	 * @param reactorId
+	 * @param parentReactor
+	 * @param frame
+	 * @return
+	 */
+	public static IReactor getReactor(Insight insight, String reactorId, IReactor parentReactor, ITableDataFrame frame) {
+		if(insight != null) {
+			IReactor insightReactor = insight.getReactor(reactorId);
+	    	if(insightReactor != null) {
+	    		return insightReactor;
+	    	}
+		}
+    	if(frame == null && insight != null) {
+    		frame = (ITableDataFrame) insight.getDataMaker();
+    	}
+    	
+    	return getReactor(reactorId, frame, parentReactor);
+	}
+	
+	/**
 	 * 
 	 * @param reactorId
 	 *            - reactor name
-	 * @param nodeString
-	 *            - pixel
 	 * @param frame
 	 *            - frame we will be operating on
 	 * @param parentReactor
 	 *            - the parent reactor
 	 * @return
 	 * 
-	 * 		This will simply return the IReactor responsible for execution
+	 * 		   This will simply return the IReactor responsible for execution
 	 *         based on the reactorId
 	 * 
 	 *         Special case: if we are dealing with an expression, we determine
@@ -1350,7 +1368,7 @@ public class ReactorFactory {
 	 *         reactor when executed will use that reducing expression reactor
 	 *         to evaluate
 	 */
-	public static IReactor getReactor(String reactorId, String nodeString, ITableDataFrame frame, IReactor parentReactor) {
+	public static IReactor getReactor(String reactorId, ITableDataFrame frame, IReactor parentReactor) {
 		IReactor reactor = null;
 
 		try {
@@ -1359,11 +1377,12 @@ public class ReactorFactory {
 			// reducer or as a selector
 			if (expressionHash.containsKey(reactorId.toUpperCase())) {
 				// if this expression is not a selector
-				if (!(parentReactor instanceof AbstractQueryStructReactor) && 
-						!(parentReactor instanceof QuerySelectorExpressionAssimilator)) {
-					reactor = (IReactor) expressionHash.get(reactorId.toUpperCase()).newInstance();
-					reactor.setPixel(reactorId, nodeString);
-					return reactor;
+				if(parentReactor != null) {
+					if (!(parentReactor instanceof AbstractQueryStructReactor) && 
+							!(parentReactor instanceof QuerySelectorExpressionAssimilator)) {
+						reactor = (IReactor) expressionHash.get(reactorId.toUpperCase()).newInstance();
+						return reactor;
+					}
 				}
 			}
 			
@@ -1395,7 +1414,6 @@ public class ReactorFactory {
 				
 				// if we have retrieved a reactor from a frame hash
 				if (reactor != null) {
-					reactor.setPixel(reactorId, nodeString);
 					return reactor;
 				}
 			}
@@ -1406,7 +1424,6 @@ public class ReactorFactory {
 			// search in the normal reactor hash
 			if (reactorHash.containsKey(reactorId)) {
 				reactor = (IReactor) reactorHash.get(reactorId).newInstance();
-				reactor.setPixel(reactorId, nodeString);
 				return reactor;
 			}
 		} catch (InstantiationException | IllegalAccessException e) {
@@ -1418,18 +1435,24 @@ public class ReactorFactory {
 		 * I will just create this as a generic function reactor 
 		 * that creates a function selector to return 
 		 */
-		if (parentReactor instanceof AbstractQueryStructReactor || parentReactor instanceof QuerySelectorExpressionAssimilator) {
-			reactor = new GenericSelectorFunctionReactor();
-			reactor.setPixel(reactorId, nodeString);
-			// set the fuction name
-			((GenericSelectorFunctionReactor) reactor).setFunction(reactorId);
-			return reactor;
+		if(parentReactor != null) {
+			if (parentReactor instanceof AbstractQueryStructReactor || parentReactor instanceof QuerySelectorExpressionAssimilator) {
+				reactor = new GenericSelectorFunctionReactor();
+				// set the fuction name
+				((GenericSelectorFunctionReactor) reactor).setFunction(reactorId);
+				return reactor;
+			}
 		}
 		
 		// ughhh... idk what you are trying to do
 		throw new IllegalArgumentException("Cannot find reactor for keyword = " + reactorId);
 	}
 	
+	/**
+	 * 
+	 * @param reactorId
+	 * @return
+	 */
 	public static boolean hasReactor(String reactorId) {
 		return reactorHash.containsKey(reactorId) || expressionHash.containsKey(reactorId.toUpperCase());
 	}
