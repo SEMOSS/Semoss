@@ -807,4 +807,4 @@ KAFKA_KEY_SERIALIZER_CLASS_CONFIG org.apache.kafka.common.serialization.StringSe
 KAFKA_VALUE_SERIALIZER_CLASS_CONFIG org.apache.kafka.common.serialization.StringSerializer
 KAFKA_AUDIT_LOG_TOPIC logs1
 
-LOGGER_MICROSERVICE_URL http://localhost:8080/api/audit
+LOGGER_MICROSERVICE_URL http://localhost:8081/api/audit

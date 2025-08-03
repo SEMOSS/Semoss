@@ -1,12 +1,15 @@
 package prerna.logging;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -23,6 +26,8 @@ public class AuditLogReactor extends AbstractReactor{
 	private static final Logger classLogger = LogManager.getLogger(AuditLogReactor.class);
 
 	private String loggerMicroserviceUrl = null;
+	
+	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	public AuditLogReactor() {
 		/*
@@ -42,6 +47,20 @@ public class AuditLogReactor extends AbstractReactor{
        
         String url = this.loggerMicroserviceUrl +"/"+ endPoint;
 		String response = HttpHelperUtility.makeGetCall(url, null, getMap(), false);
+		try {
+			JsonNode jsonNode = objectMapper.readTree(response);
+			if(jsonNode.isObject()) {
+				return new NounMetadata(response, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.LOGGING_DATA);
+			}else if(jsonNode.isArray()) {
+				return new NounMetadata(response, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.LOGGING_DATA);
+			}
+		} catch (JsonMappingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonProcessingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return new NounMetadata(response, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.LOGGING_DATA);
     }
     

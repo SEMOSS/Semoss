@@ -79,7 +79,7 @@ if(event.getLoggerName() !=null && event.getLoggerName().startsWith("org.apache.
 				auditLogEvent.setMessage(event.getMessage().getFormattedMessage());
 			}
 
-			LocalDateTime dateTime = Instant.ofEpochMilli(event.getTimeMillis()).atZone(ZoneId.systemDefault())
+			LocalDateTime dateTime = Instant.ofEpochMilli(System.currentTimeMillis()).atZone(ZoneId.of("UTC"))
 					.toLocalDateTime();
 			String dateTimeStr = dateTime.toString();
 			auditLogEvent.setTimestamp(dateTimeStr);

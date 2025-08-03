@@ -125,6 +125,8 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			if(vectorDbDetails.get(Constants.API_KEY) == null) { throw new IllegalArgumentException(Constants.API_KEY + " is not provided."); }
 			if(vectorDbDetails.get(Constants.HOSTNAME) == null) { throw new IllegalArgumentException(Constants.HOSTNAME + " is not provided."); }
 		}
+		
+		//vectorDbDetails.put(Constants.PIPELINE,"PIPELINE.json");
 
 		// not doing any checks right now for weaviate
 				

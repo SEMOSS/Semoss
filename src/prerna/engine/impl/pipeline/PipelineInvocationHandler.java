@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -65,17 +66,21 @@ public class PipelineInvocationHandler implements InvocationHandler {
             return method.invoke(this.realEngine, args);
         }
 
-        Map<String, Object> processedArguments = null;
+        Map<String, Object> processedArguments =  new HashMap<>(); ;
         int inputIndex = 0; 	
         // === INPUT PIPELINE EXECUTION ===
+        String uuid = UUID.randomUUID().toString();
+        processedArguments.put(PipelineReactorUtils.METHOD_SPAN_ID, uuid);
         try {
             for (IInputReactor reactor : specificPipeline.getInputPipeline()) {
-                processedArguments = mapArguments(reactor, method, args);
+                processedArguments = mapArguments(reactor, method, args,processedArguments);
                 NounStore inputNouns = new NounStore("input-pipeline");
                 
                 GenRowStruct grs = new GenRowStruct();
+               // processedArguments.put(PipelineReactorUtils.REACTOR_SPAN_ID, reactor.getClass().getSimpleName()+"_"+uuid);
+                processedArguments.put(PipelineReactorUtils.INPUT_REACTOR_NAME, reactor.getClass().getSimpleName());
                 processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
-                processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
+                processedArguments.put(PipelineReactorUtils.METHOD_NAME, methodName);
                 processedArguments.put(PipelineReactorUtils.CONFIG, specificPipeline.getInputParams().get(inputIndex));
                 grs.add(new NounMetadata(processedArguments, PixelDataType.MAP));
                 inputNouns.addNoun(PipelineReactorUtils.ARGUMENTS, grs);
@@ -104,12 +109,14 @@ public class PipelineInvocationHandler implements InvocationHandler {
         Object result = method.invoke(this.realEngine, finalArgs);
         
         processedArguments.put(PipelineReactorUtils.RESULT, result);
-
+     
         // === OUTPUT PIPELINE EXECUTION ===
         inputIndex = 0;
         for (IOutputReactor reactor : specificPipeline.getOutputPipeline()) {
             NounStore outputNouns = new NounStore("output-pipeline");
             GenRowStruct grs = new GenRowStruct();
+           // processedArguments.put(PipelineReactorUtils.REACTOR_SPAN_ID, reactor.getClass().getSimpleName()+"_"+uuid);
+            processedArguments.put(PipelineReactorUtils.OUTPUT_REACTOR_NAME, reactor.getClass().getSimpleName());
             processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
             processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
             processedArguments.put(PipelineReactorUtils.CONFIG, specificPipeline.getOutputParams().get(inputIndex));
@@ -224,15 +231,14 @@ public class PipelineInvocationHandler implements InvocationHandler {
      * @param args
      * @return
      */
-    private Map<String, Object> mapArguments(IReactor reactor, Method method, Object[] args) {
-        Map<String, Object> map = new HashMap<>();
+    private Map<String, Object> mapArguments(IReactor reactor, Method method, Object[] args,Map<String, Object> processedArguments) {
         Parameter[] parameters = method.getParameters();
         for (int i = 0; i < parameters.length; i++) {
         		if(args[i] instanceof Insight)
         			reactor.setInsight((Insight)args[i]);
-            map.put(parameters[i].getName(), args[i]);
+        		processedArguments.put(parameters[i].getName(), args[i]);
         }
-        return map;
+        return processedArguments;
     }
 
     /**
