@@ -15,13 +15,10 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
-
-import java.util.zip.ZipOutputStream;
 
 public class PullMultipleFromStorageAndZipReactor extends AbstractReactor {
 
@@ -39,27 +36,19 @@ public class PullMultipleFromStorageAndZipReactor extends AbstractReactor {
         IStorageEngine storage = getStorage();
         List<String> storagePaths = getStoragePaths();
 
-        String space = this.keyValue.get(ReactorKeysEnum.SPACE.getKey());
-        if (space == null || space.isEmpty()) {
-            space = "insight";
-        }
-
-        String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
-        if (!(new File(assetFolder).isDirectory())) {
-            new File(assetFolder).mkdirs();
+        // Get the base directory for downloads
+        String baseDir = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+        if (!(new File(baseDir).isDirectory())) {
+            new File(baseDir).mkdirs();
         }
 
         // Create a temporary directory for the files
-        String tempDir = assetFolder + "/temp_download_" + System.currentTimeMillis();
+        String tempDir = baseDir + "/temp_download_" + System.currentTimeMillis();
         File tempDirFile = new File(tempDir);
         tempDirFile.mkdirs();
 
-        String filePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
-        if (filePath == null || filePath.isEmpty()) {
-            filePath = "multiple_files.zip";
-        }
-
-        String zipFilePath = assetFolder + "/" + filePath;
+        // Create zip file path
+        String zipFilePath = baseDir + "/multiple_files.zip";
 
         try {
             // Download all files to temp directory
@@ -76,13 +65,13 @@ public class PullMultipleFromStorageAndZipReactor extends AbstractReactor {
             }
 
             // Create zip file
-            ZipOutputStream zos = ZipUtils.zipFolder(tempDir, zipFilePath);
-            zos.close();
+            FileOutputStream fos = new FileOutputStream(zipFilePath);
+            ZipUtils.zipFolder(tempDir, zipFilePath);
 
             // Clean up temp directory
             deleteDirectory(tempDirFile);
 
-            return new NounMetadata(filePath, PixelDataType.CONST_STRING);
+            return new NounMetadata(true, PixelDataType.BOOLEAN);
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);
             // Clean up temp directory on error
