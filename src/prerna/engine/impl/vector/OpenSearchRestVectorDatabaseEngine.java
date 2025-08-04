@@ -573,7 +573,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	    headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
 	    headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
 	    try {
-	        int status = HttpHelperUtility.headRequest2(url, headersMap, null, null, null);
+	        int status = HttpHelperUtility.headRequestStatus(url, headersMap, null, null, null);
 	        switch (status) {
 	            case 200: 
 	            	classLogger.info("Recieved 200, indicating that index does exist.");
