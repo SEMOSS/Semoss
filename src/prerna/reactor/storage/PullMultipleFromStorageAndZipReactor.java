@@ -19,6 +19,7 @@ import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
+import java.util.zip.ZipOutputStream;
 
 public class PullMultipleFromStorageAndZipReactor extends AbstractReactor {
 
@@ -42,39 +43,32 @@ public class PullMultipleFromStorageAndZipReactor extends AbstractReactor {
             new File(baseDir).mkdirs();
         }
 
-        // Create a temporary directory for the files
         String tempDir = baseDir + "/temp_download_" + System.currentTimeMillis();
         File tempDirFile = new File(tempDir);
         tempDirFile.mkdirs();
 
-        // Create zip file path
         String zipFilePath = baseDir + "/multiple_files.zip";
 
         try {
-            // Download all files to temp directory
             for (String storagePath : storagePaths) {
-                // Extract filename from storage path
                 String filename = storagePath.substring(storagePath.lastIndexOf('/') + 1);
                 if (filename.isEmpty()) {
                     filename = "downloaded_file_" + System.currentTimeMillis();
                 }
 
-                // Create local path for this file
                 String localPath = tempDir + "/" + filename;
-                storage.copyToLocal(storagePath, localPath);
+                storage.syncStorageToLocal(storagePath, localPath);
             }
 
-            // Create zip file
-            FileOutputStream fos = new FileOutputStream(zipFilePath);
-            ZipUtils.zipFolder(tempDir, zipFilePath);
+            System.out.println("creating zip file");
+            ZipOutputStream zos = ZipUtils.zipFolder(tempDir, zipFilePath);
+            zos.close();
 
-            // Clean up temp directory
             deleteDirectory(tempDirFile);
 
             return new NounMetadata(true, PixelDataType.BOOLEAN);
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);
-            // Clean up temp directory on error
             deleteDirectory(tempDirFile);
             throw new IllegalArgumentException("Error occurred downloading and zipping storage files");
         }
