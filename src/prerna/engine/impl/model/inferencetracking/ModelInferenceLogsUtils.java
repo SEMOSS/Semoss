@@ -1358,7 +1358,6 @@ public class ModelInferenceLogsUtils {
 	      ps.setString(index++, projectId);
 	      ps.setString(index++, userId);
 	      ps.setString(index++, "%" + keyword.toLowerCase() + "%");
-	      System.out.println(ps);
 	      ResultSet rs = ps.executeQuery();
 	      while (rs.next()) {
 	    	  Map<String, Object> message = new HashMap<>();
