@@ -4,10 +4,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IFunctionEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
@@ -16,11 +14,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class ExecuteTempPythonFunctionEngineReactor extends AbstractEngineFileReactor {
+public class CreateEngineFromTemplateReactor extends AbstractEngineFileReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ExecuteTempPythonFunctionEngineReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CreateEngineFromTemplateReactor.class);
 
-	public ExecuteTempPythonFunctionEngineReactor() {
+	public CreateEngineFromTemplateReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.MAP.getKey() };
 	}
 
@@ -39,13 +37,10 @@ public class ExecuteTempPythonFunctionEngineReactor extends AbstractEngineFileRe
 
 			// Generate new engine ID
 			String newEngineId = UUID.randomUUID().toString();
-			String existingEnginePath = getSpecificEngineBaseFolder(engineId);
-			 //new(temp) engine reference and return the new engine object
-			IFunctionEngine engine = Utility.copyAndLoadEngine(engineId, newEngineId, existingEnginePath);
-			//execute new(temp) engine
-			Object execValue = engine.execute(getMap());
-			return new NounMetadata(execValue, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.OPERATION);
-
+			String currentEnginePath = getSpecificEngineBaseFolder(engineId);
+			 //copying the current engine function to new one
+		    Utility.copyAndLoadEngine(engineId, newEngineId, currentEnginePath);
+			return new NounMetadata(newEngineId,PixelDataType.CONST_STRING);
 		} catch (Exception e) {
 			classLogger.error("Execution failed for temporary Python Function Engine", e);
 			throw new RuntimeException("Failed to run temporary Python engine: " + e.getMessage(), e);

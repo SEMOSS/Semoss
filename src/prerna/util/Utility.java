@@ -6172,10 +6172,10 @@ public final class Utility {
     }
     
     //copy an engine and its contents but creates a new engine id
-    public static IFunctionEngine copyAndLoadEngine(String originalEngineId, String newEngineId, String originalEnginePath ) throws IOException {
-        File originalEngineDir = new File(originalEnginePath);
+    public static void copyAndLoadEngine(String currentEngineId, String newEngineId, String currentEnginePath ) throws IOException {
+        File originalEngineDir = new File(currentEnginePath);
 
-        String originalSmssPath = DIHelper.getInstance().getEngineProperty(originalEngineId + "_" + Constants.STORE) + "";
+        String originalSmssPath = DIHelper.getInstance().getEngineProperty(currentEngineId + "_" + Constants.STORE) + "";
         Properties smssProps = Utility.loadProperties(originalSmssPath);
 
         String newAlias = smssProps.getProperty("ENGINE_ALIAS") +"__Temp";
@@ -6197,31 +6197,11 @@ public final class Utility {
 
         // Create new .smss file next to the new engine folder
         File newSmssFile = new File(parentDir, newEngineFolderName + ".smss");
-        writeSmssInReadableFormat(newSmssFile, smssProps);
         
+        writeSmssInReadableFormat(newSmssFile, smssProps);
         if (!newSmssFile.exists()) {
             throw new IllegalStateException("Expected .smss file not found: " + newSmssFile.getAbsolutePath());
         }
-
-        IFunctionEngine engine = null;
-        int retries = 30; // retry for up to 3 seconds
-        int delayMs = 100;
-
-        while (retries-- > 0) {
-            engine = Utility.getFunctionEngine(newEngineId);
-            if (engine != null) break;
-
-            try {
-                Thread.sleep(delayMs); // wait 100ms before retrying
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("Thread interrupted while waiting for engine: " + newEngineId, e);
-            }
-        }
-        if (engine == null) {
-            throw new IllegalStateException("Failed to load engine: " + newEngineId);
-        }
-		return engine;
     }
 
     public static void writeSmssInReadableFormat(File file, Properties props) throws IOException {
@@ -6236,12 +6216,13 @@ public final class Utility {
     			writer.write(key + tab + props.getProperty(key));
     			writer.write(newline);
     		}
+    		writer.flush();
     	}
     }
    //take assets from the new(temp) engine and replace the assets with the original engine
-    public static void replaceAllEditedAssetsFromTempEngine(String tempEngineId, String engineId, String existingEnginePath , String newEnginePath) throws IOException {
+    public static void replaceAllEditedAssetsFromTempEngine(String currentEnginePath , String newEnginePath) throws IOException {
 		File tempEngineDir = new File(newEnginePath);
-		File existingEngineDir = new File(existingEnginePath);
+		File existingEngineDir = new File(currentEnginePath);
 
 		if (!tempEngineDir.exists()) {
 			throw new FileNotFoundException("Temp engine folder not found: " + tempEngineDir.getAbsolutePath());
