@@ -38,6 +38,7 @@ import org.apache.hc.client5.http.classic.methods.HttpHead;
 import org.apache.hc.client5.http.classic.methods.HttpPatch;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpPut;
+import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.cookie.CookieStore;
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -59,6 +60,7 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.TrustStrategy;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.logging.log4j.LogManager;
@@ -143,12 +145,16 @@ public final class HttpHelperUtility {
 		PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
 			.setSSLSocketFactory(sslConnFactory.build())
 			.build();
+		
+		RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(Timeout.DISABLED)
+				.setConnectionRequestTimeout(Timeout.DISABLED).setResponseTimeout(Timeout.DISABLED).build();
 
 		HttpClientBuilder builder = HttpClients.custom();
 		if(cookieStore != null) {
 			builder.setDefaultCookieStore(cookieStore);
 		}
 		builder.setConnectionManager(connectionManager);
+		builder.setDefaultRequestConfig(requestConfig);
 		return builder.build();
 	}
 
