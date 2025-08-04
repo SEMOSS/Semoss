@@ -378,19 +378,7 @@ public class Room {
 
 	// Core message accessors
 	public List<AbstractMessage> getMessages() {
-		List<AbstractMessage> messages = applyFeedbackToMessages();
-		return messages;
-	}
-
-	private List<AbstractMessage> applyFeedbackToMessages() {
-		List<AbstractMessage> messages = this.messages;
-		List<Feedback> feedback = ModelInferenceLogsUtils.getRoomFeedback(this.room_id);
-		Map<String, Feedback> feedbackMap = new HashMap<>();
-	    feedback.parallelStream().forEach(f -> {feedbackMap.put(f.getTransactionId(), f);});
-		messages.parallelStream().forEach(message -> {
-			if (message.getMessageType().equals(MessageType.RESPONSE_TEXT)) message.setFeedback(feedbackMap.getOrDefault(message.getTransactionId(), null));
-		});
-		return messages;
+		return this.messages;
 	}
 
 	public void setMessages(List<AbstractMessage> messagesList) {
@@ -418,6 +406,16 @@ public class Room {
 			return;
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArray(messagesJson, this);
+		
+		List<String> messageIds = loaded.parallelStream().map(msg -> msg.getMessageId()).toList();
+		List<Feedback> modelLogsFeedback = ModelInferenceLogsUtils.getRoomFeedback(messageIds);
+		
+		Map<String, Feedback> feedbackMap = new HashMap<>();
+		modelLogsFeedback.parallelStream().forEach(f -> {feedbackMap.put(f.getMessageId(), f);});
+		loaded.parallelStream().forEach(message -> {
+			if (message.getMessageType().equals(MessageType.RESPONSE_TEXT)) message.setFeedback(feedbackMap.getOrDefault(message.getMessageId(), null));
+		});
+		
 		this.setMessages(loaded != null ? loaded : new ArrayList<>());
 	}
 
