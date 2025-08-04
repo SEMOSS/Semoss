@@ -1,4 +1,4 @@
-def string_to_bool(value: str) -> bool:
+def string_to_bool(value) -> bool:
     """
     Convert a string representation of a boolean to a boolean value.
     """

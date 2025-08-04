@@ -2,6 +2,7 @@ from typing import List
 import boto3
 import json
 import logging
+import boto3.session
 import requests
 
 from .abstract_embedder import AbstractEmbedder
@@ -37,13 +38,14 @@ class BedrockEmbedder(AbstractEmbedder):
         self.service_name = "bedrock-runtime"
         self.cohere_input_type = cohere_input_type
 
-        # Create the client once during initialization
-        self.client = boto3.client(
-            service_name=self.service_name,
+        # Create a new session each time to avoid using default session
+        session = boto3.session.Session(
             aws_access_key_id=self.access_key,
             aws_secret_access_key=self.secret_key,
             region_name=self.region,
         )
+
+        self.client = session.client(self.service_name)
 
         super().__init__(
             model_name=self.model_name,
