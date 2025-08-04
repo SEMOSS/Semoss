@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +49,7 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -1306,6 +1308,7 @@ public class ModelInferenceLogsUtils {
   /**
    * @param userId
    * @param roomId
+   * @param pinned
    * @return
    */
   public static boolean doSetRoomToPinned(String userId, String roomId, boolean pinned) {
@@ -1330,6 +1333,49 @@ public class ModelInferenceLogsUtils {
       return false;
     }
     return true;
+  }
+  
+  /**
+   * @param userId
+   * @param projectId
+   * @param keyword
+   * @return
+   */
+  public static List<Map<String, Object>> searchMessages(
+	      String userId, String projectId, String keyword) {
+	  String query = "SELECT M.ROOM_ID AS ROOM_ID, m.MESSAGE_DATA "
+				+ "FROM MESSAGE m "
+				+ "LEFT JOIN ROOM r "
+				+ "ON r.ROOM_ID = m.ROOM_ID "
+				+ "WHERE r.is_active = true "
+				+ "AND r.PROJECT_ID = ? "
+				+ "AND r.user_id = ? "
+				+ "AND m.MESSAGE_DATA ILIKE ? "
+				+ "ORDER BY r.date_created DESC";
+	  
+	  List<Map<String, Object>> resultList = new ArrayList<>();
+	  PreparedStatement ps = null;
+	    try {
+	      ps = modelInferenceLogsDb.getPreparedStatement(query);
+	      int index = 1;
+	      ps.setString(index++, projectId);
+	      ps.setString(index++, userId);
+	      ps.setString(index++, "%" + keyword.toLowerCase() + "%");
+	      System.out.println(ps);
+	      ResultSet rs = ps.executeQuery();
+	      while (rs.next()) {
+	    	  Map<String, Object> message = new HashMap<>();
+	    	  message.put("room_id", rs.getString("ROOM_ID"));
+	    	  message.put("message", rs.getString("MESSAGE_DATA"));
+	    	  resultList.add(message);
+	      }
+	    } catch (Exception e) {
+	      classLogger.error(Constants.STACKTRACE, e);
+	    } finally {
+	      ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+	    }
+	    
+	    return resultList;
   }
 
   /**
