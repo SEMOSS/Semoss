@@ -146,6 +146,11 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
+	
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
 
 	@Override
 	public void setEngineId(String engineId) {

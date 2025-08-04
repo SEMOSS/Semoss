@@ -74,14 +74,14 @@ public class RunMCPToolReactor extends AbstractReactor {
 		JSONObject functionProperties = getFunction(functionName, pythonJsonFileLoc);
 		if(functionProperties != null) {
 			// this is a python mcp tool
-			output = MCPToolExecution.runPythonTool(project, this.insight, functionName, functionProperties, paramMap);
+			output = MCPUtility.runPythonTool(project, this.insight, functionName, functionProperties, paramMap);
 			return new NounMetadata(output, PixelDataType.CONST_STRING);
 		}
 		
 		functionProperties = getFunction(functionName, pixelJsonFileLoc);
 		if(functionProperties != null) {
 			// this is a pixel mcp tool
-			output = MCPToolExecution.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
+			output = MCPUtility.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
 			return new NounMetadata(output, PixelDataType.CONST_STRING);
 		}
 		
