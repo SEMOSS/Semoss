@@ -20,6 +20,7 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
+import prerna.engine.impl.ocr.OCRStrategy;
 import prerna.om.Insight;
 import prerna.util.Utility;
 
@@ -81,9 +82,8 @@ public class Room {
 	    Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 	    AbstractModelEngine abstractModel = (AbstractModelEngine) modelEngine;
 	    
-//	    Get ocr-strategy if it exists
-//	    TODO: Create an enum for this
-	    String ocrStrategy = msg.getOrnament("ocrStrategy") != null ? msg.getOrnament("ocrStrategy").toString() : null;
+//	    Get ocr-strategy
+	    OCRStrategy ocrStrategy = (OCRStrategy) msg.getOrnament("ocrStrategy");
 
 	    // Determine useHistory: default true unless "use_history" is Boolean.FALSE or string "false"
 	    boolean useHistory = true;
