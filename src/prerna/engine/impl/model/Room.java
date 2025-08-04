@@ -80,6 +80,10 @@ public class Room {
 		}
 	    Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 	    AbstractModelEngine abstractModel = (AbstractModelEngine) modelEngine;
+	    
+//	    Get ocr-strategy if it exists
+//	    TODO: Create an enum for this
+	    String ocrStrategy = msg.getOrnament("ocrStrategy") != null ? msg.getOrnament("ocrStrategy").toString() : null;
 
 	    // Determine useHistory: default true unless "use_history" is Boolean.FALSE or string "false"
 	    boolean useHistory = true;

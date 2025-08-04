@@ -155,6 +155,7 @@ public enum ReactorKeysEnum {
 	NUM_DISPLAY("display",										"The number of results to display"),
 	NUMERIC_VALUE("numValue", 									"Numeric value to be used in the operation"),
 	NUMERIC_VALUES("numValues", 								"Numeric values to be used in the operation"),
+	OCR_STRATEGY("ocrStrategy",                                 "Strategy to use for OCR"),		
 	OFFSET("offset", 											"Offset to add for the query results"),
 	ONLY_FAVORITES("onlyFavorites", 							"Get engines/insights which are favorited by the user"),
 	ONLY_PORTALS("onlyPortals", 								"Get projects which contain a portal"),
