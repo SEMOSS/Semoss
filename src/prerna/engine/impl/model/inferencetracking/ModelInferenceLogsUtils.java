@@ -1361,8 +1361,8 @@ public class ModelInferenceLogsUtils {
 	      ResultSet rs = ps.executeQuery();
 	      while (rs.next()) {
 	    	  Map<String, Object> message = new HashMap<>();
-	    	  message.put("room_id", rs.getString("ROOM_ID"));
-	    	  message.put("message", rs.getString("MESSAGE_DATA"));
+	    	  message.put("ROOM_ID", rs.getString("ROOM_ID"));
+	    	  message.put("MESSAGE", rs.getString("MESSAGE_DATA"));
 	    	  resultList.add(message);
 	      }
 	    } catch (Exception e) {
