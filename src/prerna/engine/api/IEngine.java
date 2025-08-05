@@ -127,4 +127,10 @@ public interface IEngine extends Closeable {
 	 */
 	Map<String, Object> buildOpenAIFunctionEngineToolMap();
 	
+	/**
+	 * Return a Map for the bedrock tool for execution of the engine
+	 * @return
+	 */
+	Map<String, Object> buildBedrockToolSpec();
+	
 }
