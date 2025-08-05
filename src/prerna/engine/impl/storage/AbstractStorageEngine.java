@@ -110,6 +110,11 @@ public abstract class AbstractStorageEngine implements IStorageEngine {
 	}
 	
 	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
+	
+	@Override
 	public void setEngineId(String engineId) {
 		this.engineId = engineId;
 	}
