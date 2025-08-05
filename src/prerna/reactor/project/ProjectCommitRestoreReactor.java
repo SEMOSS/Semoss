@@ -8,12 +8,11 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
@@ -32,6 +31,13 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
+		User user = this.insight.getUser();
+
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			classLogger.error("Unauthorized access: you must be logged in to perform this action");
+			throwAnonymousUserError();
+		}
+
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String commitId = this.keyValue.get(this.keysToGet[1]);
 
@@ -42,40 +48,23 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must pass in the commitid");
 		}
 
-		User user = this.insight.getUser();
-
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to restore the commits",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 
 		String projectVersionFolder = null;
-		try {
-
-			IProject project = Utility.getProject(projectId);
-			projectVersionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
-
-		} catch (Exception e) {
-			classLogger.error("Please provide a valid projectid " + projectId, e);
-			throw new IllegalArgumentException("Please provide a valid projectid " + projectId, e);
-		}
+		IProject project = Utility.getProject(projectId);
+		projectVersionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 
 		try {
+			
 			String gitCheckoutCommand = "git checkout " + commitId + " -- .";
-			String[] checkoutCommand = gitCheckoutCommand.split(" ");
-			runCommand(projectVersionFolder, checkoutCommand);
+			runCommand(projectVersionFolder, gitCheckoutCommand);
 
 			String gitAddCommand = "git add .";
-			String[] addCommand = gitAddCommand.split(" ");
-			runCommand(projectVersionFolder, addCommand);
-
+			runCommand(projectVersionFolder, gitAddCommand);
+			
 		} catch (Exception e) {
 			classLogger.error("Please provide a valid commitid " + commitId, e);
 			throw new IllegalArgumentException("Please provide a valid commitid " + commitId, e);
@@ -86,7 +75,8 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	private static void runCommand(String workingDir, String[] command) throws IOException, InterruptedException {
+	private static void runCommand(String workingDir, String gitCommand) throws IOException, InterruptedException {
+		String[] command=gitCommand.split(" ");
 		ProcessBuilder pb = new ProcessBuilder(command);
 		pb.directory(new File(workingDir));
 		pb.redirectErrorStream(true);
@@ -94,6 +84,7 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 
 		int exitCode = process.waitFor();
 		if (exitCode != 0) {
+			classLogger.error("Command Failed " + gitCommand);
 			throw new RuntimeException();
 		}
 	}

@@ -3,7 +3,6 @@ package prerna.reactor.project;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,6 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -39,6 +39,11 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 
 		User user = this.insight.getUser();
 
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			classLogger.error("Unauthorized access: you must be logged in to perform this action");
+			throwAnonymousUserError();
+		}
+
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);
@@ -63,6 +68,7 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 
 		String gitGetLogCommand=null;
 		try {
+			
 			gitGetLogCommand = "git log --pretty=format:%H%n%an%n%ae%n%ad%n%s";
 			String[] command=gitGetLogCommand.split(" ");
 			ProcessBuilder builder = new ProcessBuilder(command);
@@ -70,6 +76,12 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 			filePath = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 			builder.directory(new File(filePath));
 			Process process = builder.start();
+			
+			int exitCode = process.waitFor();
+			if (exitCode != 0) {
+				classLogger.error("Command Failed "+gitGetLogCommand);
+				throw new RuntimeException();
+			}
 
 			InputStream inputStream = process.getInputStream();
 			byte[] allBytes = inputStream.readAllBytes();
@@ -89,7 +101,7 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 				commits.add(details);
 			}
 
-		} catch (IOException e) {
+		} catch (Exception e) {
 			classLogger.error("Command failed " + gitGetLogCommand, e);
 			throw new IllegalArgumentException("Command failed " + gitGetLogCommand, e);
 		}
