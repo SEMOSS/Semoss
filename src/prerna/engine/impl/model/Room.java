@@ -407,6 +407,14 @@ public class Room {
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArray(messagesJson, this);
 		
+		applyFeedbackToMessages(loaded);
+		
+		System.out.println("Yup, this just happened :: RITHIVK");
+		
+		this.setMessages(loaded != null ? loaded : new ArrayList<>());
+	}
+
+	private void applyFeedbackToMessages(List<AbstractMessage> loaded) {
 		List<String> messageIds = loaded.parallelStream().map(msg -> msg.getMessageId()).toList();
 		List<IFeedback> modelLogsFeedback = ModelInferenceLogsUtils.getMessagesFeedback(messageIds);
 		
@@ -415,10 +423,6 @@ public class Room {
 		loaded.parallelStream().forEach(message -> {
 			if (message.getMessageType().equals(MessageType.RESPONSE_TEXT)) message.setFeedback(feedbackMap.getOrDefault(message.getMessageId(), null));
 		});
-		
-		System.out.println("Yup, this just happened :: RITHIVK");
-		
-		this.setMessages(loaded != null ? loaded : new ArrayList<>());
 	}
 
 	public Insight getInsight() {
