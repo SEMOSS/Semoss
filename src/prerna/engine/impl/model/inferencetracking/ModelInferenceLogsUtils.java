@@ -1347,7 +1347,7 @@ public class ModelInferenceLogsUtils {
 				+ "WHERE r.is_active = true "
 				+ "AND r.PROJECT_ID = ? "
 				+ "AND r.user_id = ? "
-				+ "AND m.MESSAGE_DATA ILIKE ? "
+				+ "AND CAST(m.MESSAGE_DATA AS CLOB) ILIKE ? "
 				+ "ORDER BY r.date_created DESC";
 	  
 	  List<Map<String, Object>> resultList = new ArrayList<>();
