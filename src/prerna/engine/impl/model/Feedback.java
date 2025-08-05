@@ -1,13 +1,13 @@
 package prerna.engine.impl.model;
 
-public class Feedback {
+public class Feedback implements IFeedback {
 	private String messageId;
 	private String messageType;
 	private String feedbackText;
 	private String feedbackDate;
-	private String rating;
+	private boolean rating;
 	
-	public Feedback(String messageId, String messageType, String feedbackText, String feedbackDate, String rating) {
+	public Feedback(String messageId, String messageType, String feedbackText, String feedbackDate, boolean rating) {
 		this.messageId = messageId;
 		this.messageType = messageType;
 		this.feedbackText = feedbackText;
@@ -47,11 +47,11 @@ public class Feedback {
 		this.feedbackDate = feedbackDate;
 	}
 
-	public String getRating() {
+	public boolean getRating() {
 		return rating;
 	}
 
-	public void setRating(String rating) {
+	public void setRating(boolean rating) {
 		this.rating = rating;
 	}
 }

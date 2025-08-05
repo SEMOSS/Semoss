@@ -13,6 +13,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.Feedback;
+import prerna.engine.impl.model.IFeedback;
 import prerna.engine.impl.model.Room;
 
 public abstract class AbstractMessage {
@@ -22,7 +23,7 @@ public abstract class AbstractMessage {
 	protected String messageId;
 	protected String transactionId;
 	protected String parentMessageId;
-	protected Feedback feedback;
+	protected IFeedback feedback;
 	protected int tokens;
 	
     protected boolean visible = true;
@@ -95,11 +96,11 @@ public abstract class AbstractMessage {
 		this.parentMessageId = parentMessageId;
 	}
 
-	public Feedback getFeedback() {
+	public IFeedback getFeedback() {
 		return feedback;
 	}
 
-	public void setFeedback(Feedback feedback) {
+	public void setFeedback(IFeedback feedback) {
 		this.feedback = feedback;
 	}
 

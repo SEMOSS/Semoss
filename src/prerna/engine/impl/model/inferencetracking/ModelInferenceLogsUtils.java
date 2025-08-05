@@ -41,6 +41,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.Feedback;
+import prerna.engine.impl.model.IFeedback;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
@@ -663,7 +664,7 @@ public class ModelInferenceLogsUtils {
 			  resMap.get("MESSAGE_TYPE").toString(),
 			  resMap.get("FEEDBACK_TEXT").toString(),
 			  resMap.get("FEEDBACK_DATE").toString(),
-			  resMap.get("RATING").toString()
+			  Boolean.parseBoolean(resMap.get("RATING").toString())
 			  )).collect(Collectors.toList());
 	return feedback_list;
 	  
@@ -673,7 +674,7 @@ public class ModelInferenceLogsUtils {
    * @param messageIds
    * @return a list of feedback for the room
    */
-  public static List<Feedback> getRoomFeedback(List<String> messageIds) {
+  public static List<IFeedback> getMessagesFeedback(List<String> messageIds) {
 	  SelectQueryStruct qs = new SelectQueryStruct();
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_ID"));
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_TYPE"));
@@ -682,12 +683,12 @@ public class ModelInferenceLogsUtils {
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__RATING"));
 	  qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageIds));
 	  List<Map<String, Object>> feedback_result = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-	  List<Feedback> feedback_list = feedback_result.parallelStream().map(resMap -> new Feedback(
+	  List<IFeedback> feedback_list = feedback_result.parallelStream().map(resMap -> new Feedback(
 			  resMap.get("MESSAGE_ID").toString(),
 			  resMap.get("MESSAGE_TYPE").toString(),
 			  resMap.get("FEEDBACK_TEXT").toString(),
 			  resMap.get("FEEDBACK_DATE").toString(),
-			  resMap.get("RATING").toString()
+			  Boolean.parseBoolean(resMap.get("RATING").toString())
 			  )).collect(Collectors.toList());
 	return feedback_list;
 	  

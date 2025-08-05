@@ -408,13 +408,15 @@ public class Room {
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArray(messagesJson, this);
 		
 		List<String> messageIds = loaded.parallelStream().map(msg -> msg.getMessageId()).toList();
-		List<Feedback> modelLogsFeedback = ModelInferenceLogsUtils.getRoomFeedback(messageIds);
+		List<IFeedback> modelLogsFeedback = ModelInferenceLogsUtils.getMessagesFeedback(messageIds);
 		
-		Map<String, Feedback> feedbackMap = new HashMap<>();
+		Map<String, IFeedback> feedbackMap = new HashMap<>();
 		modelLogsFeedback.parallelStream().forEach(f -> {feedbackMap.put(f.getMessageId(), f);});
 		loaded.parallelStream().forEach(message -> {
 			if (message.getMessageType().equals(MessageType.RESPONSE_TEXT)) message.setFeedback(feedbackMap.getOrDefault(message.getMessageId(), null));
 		});
+		
+		System.out.println("Yup, this just happened :: RITHIVK");
 		
 		this.setMessages(loaded != null ? loaded : new ArrayList<>());
 	}
