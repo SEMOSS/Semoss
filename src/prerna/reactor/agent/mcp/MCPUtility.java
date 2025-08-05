@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.om.Insight;
@@ -15,9 +16,9 @@ import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 
-public final class MCPToolExecution {
+public final class MCPUtility {
 
-	private static final Logger classLogger = LogManager.getLogger(MCPToolExecution.class);
+	private static final Logger classLogger = LogManager.getLogger(MCPUtility.class);
 	
 	/**
 	 * Run a python mcp tool
@@ -149,7 +150,51 @@ public final class MCPToolExecution {
 		return result.getValue()+"";
 	}
 	
-	private MCPToolExecution() {
+	/**
+	 * Appends a parameter for the SMSS_PROJECT_ID for each tool
+	 * @param projectId
+	 * @param jsonToolsMap
+	 * @return
+	 */
+	public static JSONObject appendProjectIdToTools(String projectId, JSONObject jsonToolsMap) {
+		if(!jsonToolsMap.has("tools")) {
+			return jsonToolsMap;
+		}
+		
+		JSONArray toolsArray = jsonToolsMap.getJSONArray("tools");
+		for(int i = 0; i < toolsArray.length(); i++) {
+			JSONObject toolMap = toolsArray.getJSONObject(i);
+			if(!toolMap.has("inputSchema")) {
+				toolMap.put("inputSchema", new JSONObject());
+			}
+			
+			JSONObject inputSchema = toolMap.getJSONObject("inputSchema");
+			if(!inputSchema.has("properties")) {
+				inputSchema.put("properties", new JSONObject());
+			}
+			
+			JSONObject properties = inputSchema.getJSONObject("properties");
+			
+			// add an enum with a single value for this field
+			JSONObject smssProjectId = new JSONObject();
+			smssProjectId.put("type", "string");
+			smssProjectId.put("enum", new JSONArray());
+			smssProjectId.getJSONArray("enum").put(projectId);
+			smssProjectId.put("description", "This is a required id field. Always return the enum's single value of '"+projectId+"'");
+			properties.put("SMSS_PROJECT_ID", smssProjectId);
+			
+			
+			// now add in the required
+			if(!inputSchema.has("required")) {
+				inputSchema.put("required", new JSONArray());
+			}
+			inputSchema.getJSONArray("required").put("SMSS_PROJECT_ID");
+		}
+		return jsonToolsMap;
+	}
+	
+	
+	private MCPUtility() {
 		
 	}
 }

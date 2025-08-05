@@ -793,6 +793,11 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 	
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
+	
 	/**
 	 * 
 	 * @param insightObj

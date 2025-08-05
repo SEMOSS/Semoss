@@ -373,6 +373,11 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 	
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
+	
 	/**
 	 * 
 	 * @return
