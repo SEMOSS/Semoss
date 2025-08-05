@@ -409,8 +409,6 @@ public class Room {
 		
 		applyFeedbackToMessages(loaded);
 		
-		System.out.println("Yup, this just happened :: RITHIVK");
-		
 		this.setMessages(loaded != null ? loaded : new ArrayList<>());
 	}
 
