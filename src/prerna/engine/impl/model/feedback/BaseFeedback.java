@@ -1,13 +1,13 @@
-package prerna.engine.impl.model;
+package prerna.engine.impl.model.feedback;
 
-public class Feedback implements IFeedback {
+public class BaseFeedback implements IFeedback {
 	private String messageId;
 	private String messageType;
 	private String feedbackText;
 	private String feedbackDate;
 	private boolean rating;
 	
-	public Feedback(String messageId, String messageType, String feedbackText, String feedbackDate, boolean rating) {
+	public BaseFeedback(String messageId, String messageType, String feedbackText, String feedbackDate, boolean rating) {
 		this.messageId = messageId;
 		this.messageType = messageType;
 		this.feedbackText = feedbackText;
@@ -57,7 +57,7 @@ public class Feedback implements IFeedback {
 	
 	@Override
 	public String toString() {
-	    return "Feedback{" +
+	    return "BaseFeedback{" +
 	            "messageId='" + messageId + '\'' +
 	            ", messageType='" + messageType + '\'' +
 	            ", feedbackText='" + feedbackText + '\'' +

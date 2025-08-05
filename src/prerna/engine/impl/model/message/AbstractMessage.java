@@ -12,9 +12,10 @@ import com.google.gson.annotations.SerializedName;
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
-import prerna.engine.impl.model.Feedback;
-import prerna.engine.impl.model.IFeedback;
+import prerna.engine.impl.model.feedback.BaseFeedback;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.feedback.IFeedback;
+import prerna.engine.impl.model.feedback.ReturnFeedback;
 
 public abstract class AbstractMessage {
 
@@ -101,7 +102,7 @@ public abstract class AbstractMessage {
 	}
 
 	public void setFeedback(IFeedback feedback) {
-		this.feedback = feedback;
+		this.feedback = new ReturnFeedback(feedback);
 	}
 
 	public void setRoom(Room room) {
