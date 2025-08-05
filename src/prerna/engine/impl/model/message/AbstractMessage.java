@@ -102,7 +102,9 @@ public abstract class AbstractMessage {
 	}
 
 	public void setFeedback(IFeedback feedback) {
-		this.feedback = new ReturnFeedback(feedback);
+		if (feedback != null) {
+			this.feedback = new ReturnFeedback(feedback);
+		}
 	}
 
 	public void setRoom(Room room) {
