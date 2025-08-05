@@ -320,7 +320,12 @@ public class Insight implements Serializable {
 				if(this.user != null) {
 					logger.info(User.getSingleLogginName(this.user) + " Running >>> " + Utility.cleanLogString(pixelString));
 				} else {
-					logger.info("No User Running >>> " + Utility.cleanLogString(pixelString));
+					User threadUser = getUser();
+					if(threadUser != null) {
+						logger.info(User.getSingleLogginName(threadUser) + " Running >>> " + Utility.cleanLogString(pixelString));
+					} else {
+						logger.info("No User Running >>> " + Utility.cleanLogString(pixelString));
+					}
 				}
 				try {
 					runner.runPixel(pixelString, this);

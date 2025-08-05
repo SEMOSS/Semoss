@@ -218,7 +218,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
     ) -> AskModelEngineResponse:
         tools_result = []
         for i, function_call in enumerate(response.function_calls):
-            function_id = i
+            function_id = str(i)
 
             tools_result.append(
                 {
