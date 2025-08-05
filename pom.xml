@@ -2642,6 +2642,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- https://github.com/jamsesso/json-logic-java -->
+		<dependency>
+		  	<groupId>io.github.jamsesso</groupId>
+		  	<artifactId>json-logic-java</artifactId>
+		  	<version>1.1.0</version>
+		</dependency>
+
 		<!-- https://mvnrepository.com/artifact/net.bytebuddy/byte-buddy -->
 		<dependency>
 			<groupId>net.bytebuddy</groupId>
@@ -2661,3 +2668,4 @@
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>
+
