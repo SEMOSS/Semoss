@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.SystemUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.CheckoutCommand;
@@ -435,11 +434,6 @@ public class PythonVenvEngine extends AbstractVenvEngine {
         	Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(engineId, this.getCatalogType(), filesToAddToCloud.stream().toArray(String[]::new)));
 			copyFilesToCloudThread.start();
         }
-	}
-	
-	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 	
 	@Override
