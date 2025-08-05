@@ -31,9 +31,10 @@ public class TextToSQLReactor extends AbstractReactor {
 	
   private static Logger logger = LogManager.getLogger(TextToSQLReactor.class);
   private static final Gson gson = new Gson();
+  private static final String ERROR = "error";
 
   public TextToSQLReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.ERROR.getKey(), ReactorKeysEnum.SQL.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
+    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(), ERROR, ReactorKeysEnum.SQL.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
     this.keyRequired = new int[] {1, 1, 1, 0, 0, 0};
   }
 
@@ -151,7 +152,7 @@ public class TextToSQLReactor extends AbstractReactor {
 
     String context = String.format(sqlContext, database.getDbType(), gson.toJson(conceptInfo));
     String prompt = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
-    String error = this.keyValue.get(ReactorKeysEnum.ERROR.getKey());
+    String error = this.keyValue.get(ERROR);
     String oldSQL = this.keyValue.get(ReactorKeysEnum.SQL.getKey());
     if (error != null && !error.trim().isEmpty() && oldSQL != null) {    	
     	String appendError = 
@@ -187,7 +188,7 @@ public class TextToSQLReactor extends AbstractReactor {
 
   }
   
-  private Map<String, Object> getParamMap() {
+  	private Map<String, Object> getParamMap() {
 		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
@@ -202,7 +203,7 @@ public class TextToSQLReactor extends AbstractReactor {
 		return null;
 	}
   
-  private Map<String, Object> parseResponse(String jsonString) {
+  	private Map<String, Object> parseResponse(String jsonString) {
       Type type = new TypeToken<Map<String, Object>>(){}.getType();
       Map<String, Object> map = null;
 
@@ -213,9 +214,9 @@ public class TextToSQLReactor extends AbstractReactor {
           throw new SemossPixelException("Failed to parse JSON response: " + jsonString, e);
       }
       return map;
-  }
+  	}
   
-  private Map<String, Object> getJsonSchema() {
+  	private Map<String, Object> getJsonSchema() {
 	  Map<String, Object> questionProp = new HashMap<>();
       questionProp.put("type", "string");
 
@@ -247,5 +248,18 @@ public class TextToSQLReactor extends AbstractReactor {
       paramJson.put("type", "json_schema");
       paramJson.put("json_schema", jsonSchema);
       return paramJson;
-  }
+  	}
+  
+  	@Override
+  	public String getReactorDescription() {
+	  return "Convert natural language to SQL. Also allows users to pass in old SQL and SQL errors to generate new SQL";
+  	}
+  
+  	@Override
+	protected String getDescriptionForKey(String key) {
+	    if(key.equals(ERROR)) {
+	        return "This is an optional parameter to pass in errors to the LLM.";
+	    }
+	    return super.getDescriptionForKey(key);
+	}
 }
