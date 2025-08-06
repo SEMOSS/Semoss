@@ -1340,38 +1340,19 @@ public class ModelInferenceLogsUtils {
    */
   public static List<Map<String, Object>> searchMessages(
 	      String userId, String projectId, String keyword) {
-	  String query = "SELECT M.ROOM_ID AS ROOM_ID, m.MESSAGE_DATA "
-				+ "FROM MESSAGE m "
-				+ "LEFT JOIN ROOM r "
-				+ "ON r.ROOM_ID = m.ROOM_ID "
-				+ "WHERE r.is_active = true "
-				+ "AND r.PROJECT_ID = ? "
-				+ "AND r.user_id = ? "
-				+ "AND CAST(m.MESSAGE_DATA AS varchar) ILIKE ? "
-				+ "ORDER BY r.date_created DESC";
-	  
-	  List<Map<String, Object>> resultList = new ArrayList<>();
-	  PreparedStatement ps = null;
-	    try {
-	      ps = modelInferenceLogsDb.getPreparedStatement(query);
-	      int index = 1;
-	      ps.setString(index++, projectId);
-	      ps.setString(index++, userId);
-	      ps.setString(index++, "%" + keyword.toLowerCase() + "%");
-	      ResultSet rs = ps.executeQuery();
-	      while (rs.next()) {
-	    	  Map<String, Object> message = new HashMap<>();
-	    	  message.put("ROOM_ID", rs.getString("ROOM_ID"));
-	    	  message.put("MESSAGE", rs.getString("MESSAGE_DATA"));
-	    	  resultList.add(message);
-	      }
-	    } catch (Exception e) {
-	      classLogger.error(Constants.STACKTRACE, e);
-	    } finally {
-	      ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
-	    }
+	  SelectQueryStruct qs = new SelectQueryStruct();
+	    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
+	    qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
+
+	    qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
+
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "?like", keyword.toLowerCase()));
+	    qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED"));
+	    qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED"));
 	    
-	    return resultList;
+	    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
   }
 
   /**
