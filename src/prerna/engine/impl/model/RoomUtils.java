@@ -154,7 +154,7 @@ public final class RoomUtils {
         	boolean migratedMessageIds = ModelInferenceLogsUtils.doCheckMessageIdMigration(roomId, messages.get(0).getMessageId());
         	if (!migratedMessageIds) {
         		for (AbstractMessage m : messages) {
-        			ModelInferenceLogsUtils.updateResponseMessageId(m.getTransactionId(), m.getMessageId());
+        			ModelInferenceLogsUtils.updateMessageIds(m.getTransactionId(), m.getMessageId(), m.getMessageType());
         		}
         	}
         }

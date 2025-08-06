@@ -41,6 +41,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.Project;
@@ -1933,19 +1934,29 @@ public class ModelInferenceLogsUtils {
     }
   }
   
-  public static void updateResponseMessageId(String transactionId, String newMessageId) {
+  public static void updateMessageIds(String transactionId, String newMessageId, MessageType messageType) {
 	    try {
+	      String mType = null;
+	      if (messageType.equals(MessageType.INPUT_TEXT)) {
+	    	  mType = "INPUT";
+	      }
+	      if (messageType.equals(MessageType.RESPONSE_TEXT)) {
+	    	  mType = "RESPONSE";
+	      }
+	      if (mType == null) {
+	    	  throw new IllegalArgumentException("Incorrect message type");
+	      }
 	      UpdateQueryStruct qs = new UpdateQueryStruct();
 	      qs.setEngine(modelInferenceLogsDb);
 	      qs.addExplicitFilter(
-	          SimpleQueryFilter.makeColToValFilter("MESSAGE__TRANSACTION_ID", "==", transactionId));
+	          SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_ID", "==", transactionId));
 	      qs.addExplicitFilter(
-	          SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_TYPE", "==", "RESPONSE"));
+	          SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_TYPE", "==", mType));
 	      List<IQuerySelector> selectors =
-	          new ArrayList<>(Arrays.asList(new QueryColumnSelector("MESSAGE__MESSAGE_ID")));
+	          new ArrayList<>(Arrays.asList(new QueryColumnSelector("MESSAGE__MESSAGE_ID"), new QueryColumnSelector("MESSAGE__TRANSACTION_ID")));
 
 	      List<Object> values =
-	          new ArrayList<>(Arrays.asList(newMessageId));
+	          new ArrayList<>(Arrays.asList(newMessageId, transactionId));
 
 	      qs.setSelectors(selectors);
 	      qs.setValues(values);
