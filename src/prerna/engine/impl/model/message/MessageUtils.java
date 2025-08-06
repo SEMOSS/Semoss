@@ -31,6 +31,8 @@ import com.google.gson.JsonParser;
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.feedback.IFeedback;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.gson.SemossDateAdapter;
@@ -317,6 +319,16 @@ public class MessageUtils {
 
 	}
 	
+	public static void applyFeedbackToMessages(List<AbstractMessage> loaded) {
+		List<String> messageIds = loaded.parallelStream().map(msg -> msg.getMessageId()).toList();
+		List<IFeedback> modelLogsFeedback = ModelInferenceLogsUtils.getMessagesFeedback(messageIds);
+		
+		Map<String, IFeedback> feedbackMap = new HashMap<>();
+		modelLogsFeedback.parallelStream().forEach(f -> {feedbackMap.put(f.getMessageId(), f);});
+		loaded.parallelStream().forEach(message -> {
+			if (message.getMessageType().equals(MessageType.RESPONSE_TEXT)) message.setFeedback(feedbackMap.getOrDefault(message.getMessageId(), null));
+		});
+	}
 
 	// Class to represent a code block
 	private static class CodeBlock {

@@ -409,20 +409,9 @@ public class Room {
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArray(messagesJson, this);
 		
-		applyFeedbackToMessages(loaded);
+		MessageUtils.applyFeedbackToMessages(loaded);
 		
 		this.setMessages(loaded != null ? loaded : new ArrayList<>());
-	}
-
-	private void applyFeedbackToMessages(List<AbstractMessage> loaded) {
-		List<String> messageIds = loaded.parallelStream().map(msg -> msg.getMessageId()).toList();
-		List<IFeedback> modelLogsFeedback = ModelInferenceLogsUtils.getMessagesFeedback(messageIds);
-		
-		Map<String, IFeedback> feedbackMap = new HashMap<>();
-		modelLogsFeedback.parallelStream().forEach(f -> {feedbackMap.put(f.getMessageId(), f);});
-		loaded.parallelStream().forEach(message -> {
-			if (message.getMessageType().equals(MessageType.RESPONSE_TEXT)) message.setFeedback(feedbackMap.getOrDefault(message.getMessageId(), null));
-		});
 	}
 
 	public Insight getInsight() {
