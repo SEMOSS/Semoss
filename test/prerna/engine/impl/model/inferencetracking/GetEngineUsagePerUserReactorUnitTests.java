@@ -88,7 +88,7 @@ User user;
             MockedStatic<ModelInferenceLogsUtils> modelUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
             queryUtils.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine")).thenReturn("engine");
             engineUtils.when(() -> SecurityEngineUtils.userIsOwner(user, "engine")).thenReturn(true);
-            modelUtils.when(() -> ModelInferenceLogsUtils.getTokenUsagePerProjectForEngine("engine", "limit", "offset", "start date", "end date")).thenReturn(list);
+            modelUtils.when(() -> ModelInferenceLogsUtils.getUserUsagePerEngine("engine", "limit", "offset", "start date", "end date")).thenReturn(list);
         
             NounMetadata n = reactor.execute();
             assertEquals(list, n.getValue());
