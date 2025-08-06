@@ -2703,5 +2703,90 @@ public class ModelInferenceLogsUtils {
 		}
 		return bestPermission;
 	}
+	
+	public static List<Map<String, Object>> getModelInferenceUserReport(String agentId, String startDate,
+			String endDate) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+
+		// SELECT fields
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME", "user"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID", "user_id"));
+
+		QueryFunctionSelector msgCount = new QueryFunctionSelector();
+		msgCount.setAlias("messages");
+		msgCount.setFunction(QueryFunctionHelper.COUNT);
+		msgCount.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(msgCount);
+
+		QueryFunctionSelector sumTokens = new QueryFunctionSelector();
+		sumTokens.setAlias("tokens");
+		sumTokens.setFunction(QueryFunctionHelper.SUM);
+		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokens);
+
+		QueryFunctionSelector lastUsed = new QueryFunctionSelector();
+		lastUsed.setAlias("last_utilized_date");
+		lastUsed.setFunction(QueryFunctionHelper.MAX);
+		lastUsed.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
+		qs.addSelector(lastUsed);
+
+		// WHERE AGENT_ID = ? and date filter
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", agentId));
+
+		if (startDate != null && endDate != null) {
+			addStartDateEndDateFitler(qs, startDate, endDate);
+		}
+
+		// GROUP BY userName and userId
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
+		qs.addOrderBy("last_utilized_date", "DESC");
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	public static List<Map<String, Object>> getModelInferenceAppReport(String agentId, String startDate,
+			String endDate) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// SELECT fields
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME", "project_name"));
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID", "project_id"));
+
+		QueryFunctionSelector msgCount = new QueryFunctionSelector();
+		msgCount.setAlias("messages");
+		msgCount.setFunction(QueryFunctionHelper.COUNT);
+		msgCount.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(msgCount);
+
+		QueryFunctionSelector sumTokens = new QueryFunctionSelector();
+		sumTokens.setAlias("tokens");
+		sumTokens.setFunction(QueryFunctionHelper.SUM);
+		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokens);
+
+		QueryFunctionSelector lastUsed = new QueryFunctionSelector();
+		lastUsed.setAlias("last_utilized_date");
+		lastUsed.setFunction(QueryFunctionHelper.MAX);
+		lastUsed.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
+		qs.addSelector(lastUsed);
+
+		// JOIN MESSAGE.ROOM_ID = ROOM.ROOM_ID
+		qs.addRelation(MESSAGE_TABLE_NAME + "ROOM_ID", ROOM_TABLE_NAME + "ROOM_ID", "left.join");
+
+		// Filter on AGENT_ID
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", agentId));
+
+		
+		if (startDate != null && endDate != null) {
+			addStartDateEndDateFitler(qs, startDate, endDate);
+		}
+
+		// GROUP BY project name + id
+		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
+		qs.addOrderBy("last_utilized_date", "DESC");
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
 
 }

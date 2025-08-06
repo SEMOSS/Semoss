@@ -290,7 +290,8 @@ public enum ReactorKeysEnum {
 	WIDTH("width", 											    "The width to use for screenshot capture"),
 	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
 	X("x",		 											    "The X coordiante."),
-	Y("y",		 											    "The Y coordiante.");
+	Y("y",		 											    "The Y coordiante."),
+	AGENT_ID("agentId",		 								    "The agent id.");
 
 	private String key;
 	private String description;
