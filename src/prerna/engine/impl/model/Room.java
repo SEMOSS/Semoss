@@ -81,9 +81,6 @@ public class Room {
 		}
 	    Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 	    AbstractModelEngine abstractModel = (AbstractModelEngine) modelEngine;
-	    
-//	    Get ocr-strategy
-	    OCRStrategy ocrStrategy = (OCRStrategy) msg.getOrnament("ocrStrategy");
 
 	    // Determine useHistory: default true unless "use_history" is Boolean.FALSE or string "false"
 	    boolean useHistory = true;
