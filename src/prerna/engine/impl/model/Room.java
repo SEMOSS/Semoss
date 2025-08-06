@@ -136,10 +136,12 @@ public class Room {
 //		}
 
 		kwArgMap.put("message_json", messageJsonString);
+		kwArgMap.put("inputMessageId", msg.getMessageId());
 
 		AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,
 				kwArgMap);
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+		ModelInferenceLogsUtils.updateResponseMessageId(llmResponse.getMessageId(), response.getMessageId());
 
 		// set transaction id for both pieces
 		msg.setTransactionId(llmResponse.getMessageId());

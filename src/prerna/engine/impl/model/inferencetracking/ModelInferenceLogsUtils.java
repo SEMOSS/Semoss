@@ -1172,6 +1172,7 @@ public class ModelInferenceLogsUtils {
       String userEmail) {
     ZonedDateTime dateCreated = ZonedDateTime.now();
     doRecordMessage(
+    	UUID.randomUUID().toString(),
         messageId,
         messageType,
         messageData,
@@ -1206,6 +1207,7 @@ public class ModelInferenceLogsUtils {
    */
   public static void doRecordMessage(
       String messageId,
+      String transactionId,
       String messageType,
       String messageData,
       String messageMethod,
@@ -1224,14 +1226,15 @@ public class ModelInferenceLogsUtils {
 
     // boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
     String query =
-        "INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
+        "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
             + " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-            + "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            + "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     PreparedStatement ps = null;
     try {
       ps = modelInferenceLogsDb.getPreparedStatement(query);
       int index = 1;
       ps.setString(index++, messageId);
+      ps.setString(index++, transactionId);
       ps.setString(index++, messageType);
       if (messageData != null) {
         modelInferenceLogsDb
@@ -1900,6 +1903,32 @@ public class ModelInferenceLogsUtils {
       ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
     }
   }
+  
+  public static void updateResponseMessageId(String transactionId, String newMessageId) {
+	    try {
+	      UpdateQueryStruct qs = new UpdateQueryStruct();
+	      qs.setEngine(modelInferenceLogsDb);
+	      qs.addExplicitFilter(
+	          SimpleQueryFilter.makeColToValFilter("MESSAGE__TRANSACTION_ID", "==", transactionId));
+	      qs.addExplicitFilter(
+	          SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_TYPE", "==", "RESPONSE"));
+	      List<IQuerySelector> selectors =
+	          new ArrayList<>(Arrays.asList(new QueryColumnSelector("MESSAGE__MESSAGE_ID")));
+
+	      List<Object> values =
+	          new ArrayList<>(Arrays.asList(newMessageId));
+
+	      qs.setSelectors(selectors);
+	      qs.setValues(values);
+	      qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+	      UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+	      String updateQ = updateInterp.composeQuery();
+
+	      modelInferenceLogsDb.insertData(updateQ);
+	    } catch (Exception e) {
+	      classLogger.error(Constants.STACKTRACE, e);
+	    }
+	  }
   
 
 	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory, String roomName,

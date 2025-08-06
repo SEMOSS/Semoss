@@ -134,7 +134,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		String insightId = room.getInsight().getInsightId();		
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/askModelResponse.getMessageId(), 
+					/*messageId*/ (parameters.containsKey("inputMessageId") ? parameters.get("inputMessageId") : UUID.randomUUID()).toString(),
+					/*transactionId*/askModelResponse.getMessageId(), 
 					/*messageMethod*/"ask", 
 					/*engine*/this,
 					/*insightId*/room.getInsight().getInsightId(),
@@ -186,7 +187,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/askModelResponse.getMessageId(), 
+					/*messageId*/ (parameters.containsKey("inputMessageId") ? parameters.get("inputMessageId") : UUID.randomUUID()).toString(),
+					/*transactionId*/askModelResponse.getMessageId(), 
 					/*messageMethod*/"ask", 
 					/*engine*/this, 
 					/*insightId*/insight.getInsightId(),
@@ -237,14 +239,15 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		InstructModelEngineResponse instructModelResponse = instructCall(task, context, projectData, insight, parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 
-		String messageId = UUID.randomUUID().toString();
+		String transactionId = UUID.randomUUID().toString();
 		instructModelResponse.setMessageId(UUID.randomUUID().toString());
 		instructModelResponse.setRoomId(insight.getInsightId());
 		
 		if (inferenceLogsEnbaled) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/messageId, 
+					/*messageId*/ (parameters.containsKey("inputMessageId") ? parameters.get("inputMessageId") : UUID.randomUUID()).toString(),
+					/*transactionId*/transactionId, 
 					/*messageMethod*/"instruct", 
 					/*engine*/this, 
 					/*insightId*/insight.getInsightId(),
@@ -291,9 +294,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		ZonedDateTime outputTime = ZonedDateTime.now();
 
 		if (inferenceLogsEnbaled) {
-			String messageId = UUID.randomUUID().toString();
+			String transactionId = UUID.randomUUID().toString();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/messageId, 
+					/*messageId*/ (parameters.containsKey("inputMessageId") ? parameters.get("inputMessageId") : UUID.randomUUID()).toString(),
+					/*transactionId*/transactionId, 
 					/*messageMethod*/"embeddings", 
 					/*engine*/this, 
 					/*insightId*/insight.getInsightId(),
@@ -339,9 +343,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		ZonedDateTime outputTime = ZonedDateTime.now();
 
 		if (inferenceLogsEnbaled) {
-			String messageId = UUID.randomUUID().toString();
+			String transactionId = UUID.randomUUID().toString();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/messageId, 
+					/*messageId*/ (parameters.containsKey("inputMessageId") ? parameters.get("inputMessageId") : UUID.randomUUID()).toString(),
+					/*transactionId*/transactionId, 
 					/*messageMethod*/"embeddings", 
 					/*engine*/this, 
 					/*insightId*/insight.getInsightId(),

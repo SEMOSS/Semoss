@@ -3,6 +3,7 @@ package prerna.engine.impl.model.workers;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Collection;
+import java.util.UUID;
 
 import com.google.gson.GsonBuilder;
 
@@ -22,6 +23,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	public static final String RESPONSE = "RESPONSE";
 	
 	private String messageId;
+	private String transactionId;
 	private String messageMethod;
     private IEngine engine;
     private String insightId;
@@ -41,6 +43,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     
     public ModelEngineInferenceLogsWorker(
 		String messageId, 
+		String transactionId,
 		String messageMethod, 
 		IEngine engine,
 		String insightId,
@@ -59,6 +62,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	   	ZonedDateTime responseTime
 	) {
     	this.messageId = messageId;
+    	this.transactionId = transactionId;
     	this.messageMethod = messageMethod;
     	this.engine = engine;
     	this.insightId = insightId;
@@ -169,7 +173,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		
 		if(keepInputOutput) {
 			ModelInferenceLogsUtils.doRecordMessage(
-				this.messageId, 
+				this.messageId,
+				this.transactionId,
 				INPUT,
 				this.prompt,
 				this.messageMethod,
@@ -185,7 +190,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				userEmail
 			);
 			ModelInferenceLogsUtils.doRecordMessage(
-				this.messageId, 
+				UUID.randomUUID().toString(), // replace after response id is generated
+				this.transactionId,
 				RESPONSE,
 				this.response,
 				this.messageMethod,
@@ -202,7 +208,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			);
 		} else {
 			ModelInferenceLogsUtils.doRecordMessage(
-				this.messageId, 
+				this.messageId,
+				this.transactionId, 
 				INPUT,
 				null,
 				this.messageMethod,
@@ -218,7 +225,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				userEmail
 			);
 			ModelInferenceLogsUtils.doRecordMessage(
-				this.messageId, 
+				UUID.randomUUID().toString(), // replace after response id is generated
+				this.transactionId,
 				RESPONSE,
 				null,
 				this.messageMethod,
