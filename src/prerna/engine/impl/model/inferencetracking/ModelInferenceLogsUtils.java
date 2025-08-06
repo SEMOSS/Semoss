@@ -1069,6 +1069,35 @@ public class ModelInferenceLogsUtils {
     }
     return false;
   }
+  
+  /**
+   * @param roomId
+   * @param messageId
+   * @return
+   */
+  public static boolean doCheckMessageIdMigration(String roomId, String messageId) {
+    String query = "SELECT COUNT(*) FROM MESSAGE WHERE ROOM_ID = ? AND MESSAGE_ID = ?";
+    PreparedStatement ps = null;
+    try {
+      ps = modelInferenceLogsDb.getPreparedStatement(query);
+      int index = 1;
+      ps.setString(index++, roomId);
+      ps.setString(index++, messageId);
+      ps.execute();
+      if (ps.execute()) {
+        ResultSet rs = ps.getResultSet();
+        if (rs.next()) {
+          int count = rs.getInt(1);
+          return count >= 1;
+        }
+      }
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    } finally {
+      ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+    }
+    return false;
+  }
 
   /**
    * @param agentId
