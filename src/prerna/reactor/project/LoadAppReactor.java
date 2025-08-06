@@ -14,8 +14,7 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-@Deprecated
-public class SetContextReactor extends AbstractReactor {
+public class LoadAppReactor extends AbstractReactor {
 
 	// takes in a the name and engine and mounts the engine assets as that variable
 	// name in both python and R
@@ -23,7 +22,7 @@ public class SetContextReactor extends AbstractReactor {
 	// for instance a user could have saved a recipe with some mapping and then
 	// later, they would like to use a different mapping
 
-	public SetContextReactor() {
+	public LoadAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "loadPath" };
 		this.keyRequired = new int[] { 1, 0 };
 	}
@@ -87,13 +86,12 @@ public class SetContextReactor extends AbstractReactor {
 			}
 		}
 
-		return new NounMetadata("Successfully set context to '" + context, PixelDataType.CONST_STRING,
-				PixelOperationType.OPERATION);
+		return new NounMetadata("Successfully set app context to '" + context, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is deprecated. Please update to LoadApp(project='') instead";
+		return "Set the context for the insight in order to have access to app assets including custom reactors and python scripts";
 	}
 	
 	@Override

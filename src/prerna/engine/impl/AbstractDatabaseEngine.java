@@ -318,6 +318,11 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	}
 	
 	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
+	
+	@Override
 	public String getProperty(String key) {
 		String retProp = null;
 

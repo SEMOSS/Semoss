@@ -35,6 +35,7 @@ import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
@@ -1139,6 +1140,24 @@ public class Project implements IProject {
 	}
 	
 	@Override
+	public INotebookHelper getNotebookHelper() {
+		// if not blocks json
+		// then ignore for now
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			return NotebookHelperFactory.getNotebookHelper(blocksF);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+	
+	@Override
 	public synchronized List<File> writeNotebooks() {
 		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
@@ -1899,6 +1918,11 @@ public class Project implements IProject {
 		toolMap.put("function", project);
 
 		return toolMap;
+	}
+	
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 
 	@Deprecated
