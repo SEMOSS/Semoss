@@ -58,6 +58,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         engine = mock(AbstractModelEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
             "id",
+            "transactionId",
             "method",
             engine,
             insight.getInsightId(),
@@ -235,6 +236,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         engine = mock(AbstractVectorDatabaseEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
             "id",
+            "transactionId",
             "method",
             engine,
             insight.getInsightId(),
@@ -412,6 +414,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         engine = mock(PGVectorDatabaseEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
             "id",
+            "transactionId",
             "method",
             engine,
             insight.getInsightId(),

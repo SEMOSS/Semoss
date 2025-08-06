@@ -1117,6 +1117,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/UUID.randomUUID().toString(), 
+					/*transactionId*/null, 
 					/*messageMethod*/"nearestNeighbor", 
 					/*engine*/this, 
 					/*insightId*/insight.getInsightId(),
