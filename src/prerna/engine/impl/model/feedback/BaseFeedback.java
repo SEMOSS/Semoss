@@ -54,15 +54,4 @@ public class BaseFeedback implements IFeedback {
 	public void setRating(boolean rating) {
 		this.rating = rating;
 	}
-	
-	@Override
-	public String toString() {
-	    return "BaseFeedback{" +
-	            "messageId='" + messageId + '\'' +
-	            ", messageType='" + messageType + '\'' +
-	            ", feedbackText='" + feedbackText + '\'' +
-	            ", feedbackDate='" + feedbackDate + '\'' +
-	            ", rating=" + rating +
-	            '}';
-	}
 }
