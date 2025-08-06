@@ -1,13 +1,13 @@
 package prerna.engine.impl.model.feedback;
 
-public class SemossFeedback implements IFeedback {
+public class ModelInferenceLogsFeedback implements IFeedback {
 	private String messageId;
 	private String messageType;
 	private String feedbackText;
 	private String feedbackDate;
 	private boolean rating;
 	
-	public SemossFeedback(String messageId, String messageType, String feedbackText, String feedbackDate, boolean rating) {
+	public ModelInferenceLogsFeedback(String messageId, String messageType, String feedbackText, String feedbackDate, boolean rating) {
 		this.messageId = messageId;
 		this.messageType = messageType;
 		this.feedbackText = feedbackText;
