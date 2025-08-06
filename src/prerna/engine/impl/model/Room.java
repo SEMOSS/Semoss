@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
@@ -137,11 +138,11 @@ public class Room {
 
 		kwArgMap.put("message_json", messageJsonString);
 		kwArgMap.put("inputMessageId", msg.getMessageId());
-
+		
 		AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,
 				kwArgMap);
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
-		ModelInferenceLogsUtils.updateResponseMessageId(llmResponse.getMessageId(), response.getMessageId());
+		response.setMessageId(llmResponse.getMessageId());
 
 		// set transaction id for both pieces
 		msg.setTransactionId(llmResponse.getMessageId());

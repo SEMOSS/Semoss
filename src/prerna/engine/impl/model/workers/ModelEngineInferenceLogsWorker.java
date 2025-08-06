@@ -190,7 +190,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				userEmail
 			);
 			ModelInferenceLogsUtils.doRecordMessage(
-				UUID.randomUUID().toString(), // replace after response id is generated
+				this.transactionId,
 				this.transactionId,
 				RESPONSE,
 				this.response,
@@ -225,7 +225,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				userEmail
 			);
 			ModelInferenceLogsUtils.doRecordMessage(
-				UUID.randomUUID().toString(), // replace after response id is generated
+				this.transactionId,
 				this.transactionId,
 				RESPONSE,
 				null,
