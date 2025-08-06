@@ -50,7 +50,9 @@ public class BM25RankerReactor extends AbstractReactor {
         List<Map<String,Object>> results = service.search(query, topN);
 
         // Wrap and return
-        return wrapResults(results);
+        Map<String,Object> payload = new HashMap<>();
+        payload.put("BM25_RESULTS", results);
+        return new NounMetadata(payload, PixelDataType.CUSTOM_DATA_STRUCTURE);
     }
 
     /** Safely parse TOP_N or fallback to default. */
@@ -85,10 +87,4 @@ public class BM25RankerReactor extends AbstractReactor {
         System.out.println("=== End Extracted Content ===");
     }
 
-    /** Wrap BM25 results into SableCC noun metadata. */
-    private NounMetadata wrapResults(List<Map<String,Object>> results) {
-        Map<String,Object> payload = new HashMap<>();
-        payload.put("BM25_RESULTS", results);
-        return new NounMetadata(payload, PixelDataType.CUSTOM_DATA_STRUCTURE);
-    }
 }
