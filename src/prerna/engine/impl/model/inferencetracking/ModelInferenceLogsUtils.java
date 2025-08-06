@@ -41,7 +41,8 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.feedback.BaseFeedback;
+import prerna.engine.impl.model.feedback.Feedback;
+import prerna.engine.impl.model.feedback.SemossFeedback;
 import prerna.engine.impl.model.feedback.IFeedback;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
@@ -657,7 +658,7 @@ public class ModelInferenceLogsUtils {
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__RATING"));
 	  qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageIds));
 	  List<Map<String, Object>> feedback_result = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-	  List<IFeedback> feedback_list = feedback_result.parallelStream().map(resMap -> new BaseFeedback(
+	  List<IFeedback> feedback_list = feedback_result.parallelStream().map(resMap -> new SemossFeedback(
 			  resMap.get("MESSAGE_ID").toString(),
 			  resMap.get("MESSAGE_TYPE").toString(),
 			  resMap.get("FEEDBACK_TEXT").toString(),

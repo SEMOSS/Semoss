@@ -1,11 +1,11 @@
 package prerna.engine.impl.model.feedback;
 
-public class ReturnFeedback implements IFeedback {
+public class Feedback implements IFeedback {
 	
 	private String messageId;
 	private boolean rating;
 	
-	public ReturnFeedback(IFeedback input) {
+	public Feedback(IFeedback input) {
 		this.messageId = input.getMessageId();
 		this.rating = input.getRating();
 	}
@@ -13,18 +13,6 @@ public class ReturnFeedback implements IFeedback {
 	@Override
 	public String getMessageId() {
 		return this.messageId;
-	}
-
-	@Override
-	public String getFeedbackText() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getFeedbackDate() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
