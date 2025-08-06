@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -42,28 +44,56 @@ public class SmssUtilities {
 
 	/**
 	 * Get the owl file
+	 * @param smssFilePath
 	 * @param prop
 	 * @return
 	 */
-	public static File getOwlFile(Properties prop) {
+	public static File getOwlFile(String smssFilePath, Properties prop) {
 		if(prop.getProperty(Constants.OWL) == null) {
 			return null;
 		}
-		String owl = Utility.normalizePath(prop.getProperty(Constants.OWL));
-		{
-			// if we have the full file path already
-			File owlF = new File(owl);
-			if(owlF.exists() && owlF.isFile()) {
-				return owlF;
-			}
-		}
-		// if we dont have a full filepath
-		String baseFolder = Utility.getBaseFolder();
-		String owlFile = baseFolder + DIR_SEPARATOR + owl;
 		String engineId = prop.getProperty(Constants.ENGINE);
-		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+		String engineName = prop.getProperty(Constants.ENGINE_ALIAS); 
+		prop = updateOWLSmssLegacyStructure(smssFilePath, engineId, prop);
+		String owl = Utility.normalizePath(prop.getProperty(Constants.OWL));
 
-		return new File(Utility.normalizePath(owlFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
+		return new File(EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName),
+				Utility.normalizePath(owl));
+	}
+	
+	/**
+	 * This method is to update the legacy structure where the OWL was not assumed within the assets folder of an engine
+	 * Marking as deprecated to remove for next major release
+	 * @param smssFilePath
+	 * @param engineId
+	 * @param prop
+	 */
+	@Deprecated
+	public static Properties updateOWLSmssLegacyStructure(String smssFilePath, String engineId, Properties prop) {
+		if(smssFilePath == null) {
+			return null;
+		}
+		if(prop.getProperty(Constants.OWL) == null) {
+			return prop;
+		}
+		String owlPropStr = prop.getProperty(Constants.OWL);
+		if(owlPropStr.equalsIgnoreCase("REMAKE")) {
+			return prop;
+		}
+		if(owlPropStr.startsWith("db")) {
+			// this is legacy format
+			// we will now assume it is in the assets directory instead
+			// of assuming another path
+			Path path = Paths.get(owlPropStr);
+			String filename = path.getFileName().toString();
+			try {
+				Utility.changePropertiesFileValue(smssFilePath, Constants.OWL, filename);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			prop = Utility.loadProperties(smssFilePath);
+		}
+		return prop;
 	}
 	
 	/**
@@ -107,12 +137,11 @@ public class SmssUtilities {
 		if(prop.getProperty(Constants.ENGINE_PROPERTIES) == null) {
 			return null;
 		}
-		String baseFolder = Utility.getBaseFolder();
-		String engineProps = baseFolder + DIR_SEPARATOR + prop.getProperty(Constants.ENGINE_PROPERTIES);
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-
-		return new File(Utility.normalizePath(engineProps.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
+		String engineAssets = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName);
+		String engineProps = Utility.normalizePath(prop.getProperty(Constants.ENGINE_PROPERTIES));
+		return new File(engineAssets, engineProps);
 	}
 
 	/**
