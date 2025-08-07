@@ -81,7 +81,7 @@ public class GenerateMetamodelUtility {
 			return positions;
 		}
 		// if the file is present, pull it and load
-		File owlF = SmssUtilities.getOwlFile(smssProp);
+		File owlF = SmssUtilities.getOwlFile(smssFile, smssProp);
 		if(owlF != null && owlF.isFile()) {
 			// position file is in same folder as OWL
 			String baseFolder = owlF.getParent();

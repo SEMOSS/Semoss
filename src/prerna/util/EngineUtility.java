@@ -63,12 +63,12 @@ public class EngineUtility {
 	/**
 	 * 
 	 * @param type
-	 * @param engineIdAndName
+	 * @param engineId
+	 * @param engineName
 	 * @return
 	 */
-	public static String getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE type, String engineIdAndName) {
-		String baseEngineFolder = getLocalEngineBaseDirectory(type);
-		return baseEngineFolder + "/" + engineIdAndName;
+	public static String getSpecificEngineAppRootFolder(IEngine.CATALOG_TYPE type, String engineId, String engineName) {
+		return getSpecificEngineBaseFolder(type, SmssUtilities.getUniqueName(engineName, engineId));
 	}
 	
 	/**
@@ -85,12 +85,57 @@ public class EngineUtility {
 	/**
 	 * 
 	 * @param type
+	 * @param engineId
+	 * @param engineName
+	 * @return
+	 */
+	public static String getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE type, String engineId, String engineName) {
+		return getSpecificEngineAssetsFolder(type, SmssUtilities.getUniqueName(engineName, engineId));
+	}
+	
+	/**
+	 * 
+	 * @param type
+	 * @param engineIdAndName
+	 * @return
+	 */
+	public static String getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE type, String engineIdAndName) {
+		String baseEngineFolder = getLocalEngineBaseDirectory(type);
+		return baseEngineFolder + "/" + engineIdAndName;
+	}
+	
+	/**
+	 * 
+	 * @param type
+	 * @param engineIdAndName
+	 * @return
+	 */
+	public static String getSpecificEngineAppRootFolder(IEngine.CATALOG_TYPE type, String engineIdAndName) {
+		String baseEngineFolder = getLocalEngineBaseDirectory(type);
+		return baseEngineFolder + "/" + engineIdAndName + "/" + Constants.APP_ROOT_FOLDER;
+	}
+	
+	/**
+	 * 
+	 * @param type
 	 * @param engineIdAndName
 	 * @return
 	 */
 	public static String getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE type, String engineIdAndName) {
 		String baseEngineFolder = getLocalEngineBaseDirectory(type);
 		return baseEngineFolder + "/" + engineIdAndName + "/" + Constants.APP_ROOT_FOLDER + "/" + Constants.VERSION_FOLDER;
+	}
+	
+	/**
+	 * 
+	 * @param type
+	 * @param engineIdAndName
+	 * @return
+	 */
+	public static String getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE type, String engineIdAndName) {
+		String baseEngineFolder = getLocalEngineBaseDirectory(type);
+		return baseEngineFolder + "/" + engineIdAndName + "/" + Constants.APP_ROOT_FOLDER + "/" + Constants.VERSION_FOLDER
+				+ "/" + Constants.ASSETS_FOLDER;
 	}
 	
 	/**
