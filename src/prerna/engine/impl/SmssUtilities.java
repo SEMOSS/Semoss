@@ -70,10 +70,7 @@ public class SmssUtilities {
 	 */
 	@Deprecated
 	public static Properties updateOWLSmssLegacyStructure(String smssFilePath, String engineId, Properties prop) {
-		if(smssFilePath == null) {
-			return null;
-		}
-		if(prop.getProperty(Constants.OWL) == null) {
+		if(smssFilePath == null || prop.getProperty(Constants.OWL) == null) {
 			return prop;
 		}
 		String owlPropStr = prop.getProperty(Constants.OWL);
