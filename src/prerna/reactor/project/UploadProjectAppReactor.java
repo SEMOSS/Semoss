@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -27,6 +26,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -309,49 +309,15 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		// push new project to cloud
 		ClusterUtil.pushProject(projectId);
 		
-		// extract engineIds from project including project_dependencies.json
-		Map<String, Map<String, Object>> uuidToFiles = UploadInputUtility.getEngineIdsFromProject(finalProjectFolderF);
-		String[] engineIds = uuidToFiles.keySet().toArray(new String[0]);
-		
-		// process engineIds and set project dependencies
-		Map<String, Object> engineInfo = UploadInputUtility.processAndSetProjectDependencies(engineIds, projectId, user);
-		
-		Map<String, Map<String, String>> successMap = (Map<String, Map<String, String>>) engineInfo.get("success");
-		
-	    Set<String> failedSet = (Set<String>)engineInfo.get("failed");
-		 
-		// final success list of engineIds
-		Map<String, Map<String, Object>> successResult = new HashMap<>();
-		
-		for (Map.Entry<String, Map<String, String>> entry : successMap.entrySet()) {
-		    String engineId = entry.getKey();
-		    Map<String, String> engineMeta = entry.getValue();
-		 
-		    Map<String, Object> value = new HashMap<>();
-		    value.put("engineType", engineMeta.get("engineType"));
-		    value.put("engineName", engineMeta.get("engineName"));
-		    value.put("files", uuidToFiles.get(engineId).get("files"));
-		    
-		    successResult.put(engineId, value);
+		Map<String, Object> engineIdMap = ProjectHelper.extractEngineIdsFromProjectFolder(projectId, finalProjectFolderF);
+		// update the project dependencies table only with valid engineIds
+		if(engineIdMap.containsKey("success")) {
+			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
+			SecurityProjectUtils.updateProjectDependencies(user, projectId, successMap.keySet());
 		}
-		
-		// final failed list of engineIds
-		Map<String, Map<String, Object>> failureResult = new HashMap<>();
-		
-		for (String engineId : failedSet) {
-		    Map<String, Object> value = new HashMap<>();
-		    value.put("files", uuidToFiles.containsKey(engineId) ? uuidToFiles.get(engineId).get("files") : new ArrayList<>());
-		    
-		    failureResult.put(engineId, value);
-		}
-		
-		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), projectId);
-		
-		Map<String, Object> engineIdMap = new HashMap<>();
-		engineIdMap.put("success", successResult);
-		engineIdMap.put("failed", failureResult);
 		
 		// sending the success and failed list of engineIds to FE
+		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), projectId);
 		retMap.put("engineIds", engineIdMap);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}

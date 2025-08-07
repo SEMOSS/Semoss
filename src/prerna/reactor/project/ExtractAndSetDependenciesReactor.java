@@ -1,112 +1,85 @@
 package prerna.reactor.project;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
+import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
-import prerna.util.UploadInputUtility;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 public class ExtractAndSetDependenciesReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ExtractAndSetDependenciesReactor.class);
-
 	public ExtractAndSetDependenciesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			classLogger.error("Unauthorized access: you must be logged in to perform this action");
-			throwAnonymousUserError();
-		}
 
-		String fileRelativePath = Utility.normalizePath(keyValue.get(keysToGet[0]));
-		String space = this.keyValue.get(this.keysToGet[1]);
-
-		// getting the asset folder path where UUIDs are present.
-		String baseFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
-		String assetsFileLocation = (baseFolder + "/" + fileRelativePath).replace('\\', '/');
-		File finalProjectAssetFolder = new File(assetsFileLocation);
-		
-		// extract engineIds and file mapping from project
-		Map<String, Map<String, Object>> uuidToFiles = UploadInputUtility.getEngineIdsFromProject(finalProjectAssetFolder);
-		 
-		// process engineIds and set project dependencies
-		String[] engineIds = uuidToFiles.keySet().toArray(new String[0]);
-		Map<String, Object> engineInfo = UploadInputUtility.processAndSetProjectDependencies(engineIds, space, user);
-		
-		Map<String, Map<String, String>> successMap = (Map<String, Map<String, String>>)engineInfo.get("success");
-		
-		Set<String> failedSet = (Set<String>)engineInfo.get("failed");
-		
-		// final success list of engineIds
-		Map<String, Map<String, Object>> successResult = new HashMap<>();
-		
-		for (Map.Entry<String, Map<String, String>> entry : successMap.entrySet()) {
-		    String engineId = entry.getKey();
-		    Map<String, String> engineMeta = entry.getValue();
-		 
-		    Map<String, Object> value = new HashMap<>();
-		    value.put("engineType", engineMeta.get("engineType"));
-		    value.put("engineName", engineMeta.get("engineName"));
-		    value.put("files", uuidToFiles.get(engineId).get("files"));
-		 
-		    successResult.put(engineId, value);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if(!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+			throw new IllegalArgumentException("The user does not have access to edit this project or project id is invalid");
 		}
-		 
-		// final failed list of engineIds
-		Map<String, Map<String, Object>> failureResult = new HashMap<>();
-		 
-		for (String engineId : failedSet) {
-		    Map<String, Object> value = new HashMap<>();
-		    value.put("files", uuidToFiles.containsKey(engineId) ? uuidToFiles.get(engineId).get("files") : new ArrayList<>());
-		 
-		    failureResult.put(engineId, value);
-		}
-		 
-		// final return map
-		Map<String, Object> retMap = new HashMap<>();
+		
+		IProject project = Utility.getProject(projectId);
 
-		Map<String, Object> engineIdMap = new HashMap<>();
-		engineIdMap.put("success", successResult);
-		engineIdMap.put("failed", failureResult);
+		String fileRelativePath = this.keyValue.get(keysToGet[1]);
+		if(fileRelativePath != null && !(fileRelativePath=fileRelativePath.trim()).isEmpty()) {
+			fileRelativePath = fileRelativePath.replace("\\", "/");
+			if(!fileRelativePath.startsWith("/")) {
+				fileRelativePath = "/"+fileRelativePath;
+			}
+		}
+		
+		// getting the asset folder path where UUIDs are present
+		String assetsFileLocation = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT, 
+				project.getProjectId(), project.getProjectName());
+		String projectFolderPath = assetsFileLocation;
+		if(fileRelativePath != null && !(fileRelativePath=fileRelativePath.trim()).isEmpty()) {
+			fileRelativePath = fileRelativePath.replace("\\", "/");
+			if(!fileRelativePath.startsWith("/")) {
+				fileRelativePath = "/"+fileRelativePath;
+			}
+			projectFolderPath += fileRelativePath;
+		}
+		
+		File projectF = new File(projectFolderPath);
+		Map<String, Object> engineIdMap = ProjectHelper.extractEngineIdsFromProjectFolder(projectId, projectF);
+		// update the project dependencies table only with valid engineIds
+		if(engineIdMap.containsKey("success")) {
+			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
+			SecurityProjectUtils.updateProjectDependencies(user, projectId, successMap.keySet());
+		}
 		
 		// sending the success and failed list of engineIds to FE
+		Map<String, Object> retMap = new HashMap<>();
 		retMap.put("engineIds", engineIdMap);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Extract engine Ids from the updated project's asset folder and adds the engine Ids into projectdependencies table.";
+		return "Extract engine ids from the project's folder and adds the engine ids as project dependencies";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "This is a required value containing the relative file path of the unzipped folder.";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is a required field which is used to resolve the full folder path of the uploaded project.";
-		}
+			return "This is an optional relative file path within the project assets folder to search";
+		} 
 		return super.getDescriptionForKey(key);
 	}
 

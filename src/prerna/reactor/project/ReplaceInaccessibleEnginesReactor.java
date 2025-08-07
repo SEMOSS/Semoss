@@ -16,15 +16,17 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
@@ -32,27 +34,43 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
 	private static final Logger classLogger = LogManager.getLogger(ReplaceInaccessibleEnginesReactor.class);
 
 	public ReplaceInaccessibleEnginesReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.MAP.getKey()};
-		this.keyRequired = new int[] {1, 1, 1};
+		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.MAP.getKey()};
+		this.keyRequired = new int[] {1, 0, 1};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			classLogger.error("Unauthorized access: you must be logged in to perform this action");
-			throwAnonymousUserError();
+
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if(!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+			throw new IllegalArgumentException("The user does not have access to edit this project or project id is invalid");
 		}
 		
-		String fileRelativePath = Utility.normalizePath(keyValue.get(keysToGet[0]));
-		String space = this.keyValue.get(this.keysToGet[1]);
+		IProject project = Utility.getProject(projectId);
+
+		String fileRelativePath = this.keyValue.get(keysToGet[1]);
+		if(fileRelativePath != null && !(fileRelativePath=fileRelativePath.trim()).isEmpty()) {
+			fileRelativePath = fileRelativePath.replace("\\", "/");
+			if(!fileRelativePath.startsWith("/")) {
+				fileRelativePath = "/"+fileRelativePath;
+			}
+		}
 		
-		// getting the full folder path where the UUIDs need to be replaced
-		String baseFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
-		String assetsFileLocation = (baseFolder + "/" + fileRelativePath).replace('\\', '/');
-		File finalProjectAssetFolder = new File(assetsFileLocation);
+		// getting the asset folder path where UUIDs are present
+		String assetsFileLocation = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT, 
+				project.getProjectId(), project.getProjectName());
+		String projectFolderPath = assetsFileLocation;
+		if(fileRelativePath != null && !(fileRelativePath=fileRelativePath.trim()).isEmpty()) {
+			fileRelativePath = fileRelativePath.replace("\\", "/");
+			if(!fileRelativePath.startsWith("/")) {
+				fileRelativePath = "/"+fileRelativePath;
+			}
+			projectFolderPath += fileRelativePath;
+		}
+		
+		File projectF = new File(projectFolderPath);
 		
 		// map of inaccessible engineIds to their accessible replacements
 		Map<String, String> replacementMap = getReplacementMap();
@@ -77,7 +95,7 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
            uuidSuccessFiles.put(k, successInfo);
         });
         
-        try (Stream<Path> stream = Files.walk(Paths.get(finalProjectAssetFolder.getAbsolutePath()))) {
+        try (Stream<Path> stream = Files.walk(Paths.get(projectF.getAbsolutePath()))) {
             stream.filter(Files::isRegularFile).forEach(path -> {
                 try {
                     List<String> lines = Files.readAllLines(path);
@@ -117,7 +135,7 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
                     		if(uuidWasPresent) {
                     			uuidSuccessStatus.put(entry.getKey(), false);
                                 uuidFailedFiles.get(entry.getKey()).add(path.getFileName().toString());
-                                classLogger.warn("Inaccessible engine ID {} was not replaced in file: {}", uuid, path.toString());
+                                classLogger.warn("Engine ID {} was not replaced in file: {}", uuid, path.toString());
                     		}
                         }
                     }
@@ -128,8 +146,8 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
                 }
             });
         } catch (Exception e) {
-        	classLogger.error("Error walking through project folder: {}", finalProjectAssetFolder, e);
-        	throw new IllegalArgumentException("Error walking through project folder: {}"+ finalProjectAssetFolder, e);
+        	classLogger.error("Error walking through project folder: {}", projectF, e);
+        	throw new IllegalArgumentException("Error walking through project folder: {}"+ projectF, e);
         }
 		
         // final success and failure results
@@ -138,10 +156,9 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
         
         for (Map.Entry<String, Boolean> entry : uuidSuccessStatus.entrySet()) {
         	String uuid = entry.getKey();
-        	
         	if (entry.getValue()) {
         		successList.put(uuid, uuidSuccessFiles.get(uuid));
-        	}else {
+        	} else {
         		failedList.put(uuid, uuidFailedFiles.get(uuid));
         	}
         }
@@ -149,10 +166,13 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
         Map<String, Object> retMap = new HashMap<>();
         retMap.put("success", successList);
         retMap.put("failed", failedList);
-        
         return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	private Map<String, String> getReplacementMap() {
 	    GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.MAP.getKey());
 	    if (mapGrs != null && !mapGrs.isEmpty()) {
@@ -166,15 +186,13 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
 	
 	@Override
 	public String getReactorDescription() {
-	    return "Replaces inaccessible engine Ids with corresponding accessible engine Ids in the project folder files.";
+	    return "Replaces UUID engine ids with new UUID values";
 	}
 	
 	@Override
 	protected String getDescriptionForKey(String key) {
 	    if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-	        return "This is a required value containing the relative file path of the unzipped folder.";
-	    } else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
-	        return "This is a required field which is used to resolve the full folder path of the uploaded project.";
+			return "This is an optional relative file path within the project assets folder to search";
 	    } else if(key.equals(ReactorKeysEnum.MAP.getKey())) {
 	    	return "This is a required field which contains the key-value map of inaccessible engine Ids to their accessible replacements.";
 	    }
