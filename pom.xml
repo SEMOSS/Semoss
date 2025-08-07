@@ -86,6 +86,34 @@
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>3.1.0</version>
+						<executions>
+							<execution>
+								<phase>process-resources</phase>
+								<goals>
+									<goal>run</goal>
+								</goals>
+								<configuration>
+									<target>
+										<mkdir dir="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}"/>
+										<tstamp>
+											<format property="build.timestamp.utc" pattern="yyyy-MM-dd HH:mm:ss z" timezone="UTC" />
+										</tstamp>
+										<propertyfile file="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}/pom.properties">
+											<entry key="groupId" value="${project.groupId}" />
+											<entry key="artifactId" value="${project.artifactId}" />
+											<entry key="version" value="${project.version}" />
+											<entry key="ci.version" value="${project.version}" />
+											<entry key="build.date" value="${build.timestamp.utc}" />
+										</propertyfile>
+									</target>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.3.0</version>
 						<executions>
@@ -158,6 +186,34 @@
 	        				<target>21</target>
 							<encoding>cp1252</encoding>
 						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>3.1.0</version>
+						<executions>
+							<execution>
+								<phase>process-resources</phase>
+								<goals>
+									<goal>run</goal>
+								</goals>
+								<configuration>
+									<target>
+										<mkdir dir="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}"/>
+										<tstamp>
+											<format property="build.timestamp.utc" pattern="yyyy-MM-dd HH:mm:ss z" timezone="UTC" />
+										</tstamp>
+										<propertyfile file="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}/pom.properties">
+											<entry key="groupId" value="${project.groupId}" />
+											<entry key="artifactId" value="${project.artifactId}" />
+											<entry key="version" value="${project.version}" />
+											<entry key="ci.version" value="${project.version}" />
+											<entry key="build.date" value="${build.timestamp.utc}" />
+										</propertyfile>
+									</target>
+								</configuration>
+							</execution>
+						</executions>
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>

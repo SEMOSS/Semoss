@@ -1,15 +1,12 @@
 package prerna.reactor.agent.mcp;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -19,13 +16,16 @@ import org.json.JSONObject;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class RunMCPToolReactor extends AbstractReactor {
 
@@ -51,79 +51,41 @@ public class RunMCPToolReactor extends AbstractReactor {
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access.");
 		}
-
+		IProject project = Utility.getProject(projectId);
+		
 		String functionName = this.keyValue.get(this.keysToGet[1]);
 		if(functionName == null || (functionName=functionName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Function name must be passed in to execute the mcp tool");
 		}
+		
+		// these are the params
+		Map<String, Object> paramMap = getMap();
 
 		String output = "{}";
-		// get the param map
-		// load the script and then run it
+
+		// first need to find the right tool
+		
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 		projectAssetFolder = projectAssetFolder.replace("\\", "/");
 
-		String pyFolderLoc = projectAssetFolder + "/py";
-
-		Map<String, Object> paramMap = getMap();
-
-		String sysImport = "import sys";
-		String getpath = "print(sys.path)";
-		String setpath = "sys.path.insert(0,'" + pyFolderLoc + "')";
-		String loadLib = "import smss_driver as smss";
-
-		// this is where we need to compose the method
-		// for every argument I need to know the type
-		// and then compose accordingly
-		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
-
-		JSONObject functionProperties = getFunction(functionName, jsonFileLoc);
-
-		// iterate function properties and find if it is string etc. 
-		Iterator <String> props = functionProperties.keys();
-		StringBuilder paramString = new StringBuilder();
-		while(props.hasNext())
-		{
-			if(paramString.length() != 0) {
-				paramString.append(", ");
-			}
-			String propName = props.next();
-			JSONObject thisProp = ((JSONObject)functionProperties.get(propName));
-			String propType = thisProp.getString("type");
-			Object propValue = null;
-
-			// get the value
-			if(paramMap != null && paramMap.containsKey(propName)) {
-				propValue = paramMap.get(propName);
-			} else if (thisProp.has("default")) {
-				// get the default value
-				propValue = thisProp.getString("default");
-			} else {
-				propValue = "None";
-			}
-			paramString.append(propName).append("=");
-
-			// compose the string
-			// if it is none send it as is
-			if(propType.toUpperCase().contains("STR") && !propValue.toString().equals("None")) {
-				paramString.append("'").append(propValue).append("'");
-			} else {
-				paramString.append(propValue);
-			}
+		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+		
+		JSONObject functionProperties = getFunction(functionName, pythonJsonFileLoc);
+		if(functionProperties != null) {
+			// this is a python mcp tool
+			output = MCPUtility.runPythonTool(project, this.insight, functionName, functionProperties, paramMap);
+			return new NounMetadata(output, PixelDataType.CONST_STRING);
 		}
 		
-		String runMethod = "smss." + functionName + "(" + paramString + ")";
-		classLogger.info("Running method..  " + runMethod + "  On project " + projectId);
-		String curPath = insight.getPyTranslator().runScript(sysImport, getpath)+"";
-		curPath = curPath.replace("\\", "/");
-		if(!curPath.contains(pyFolderLoc)) {
-			insight.getPyTranslator().runScript(setpath, loadLib);
+		functionProperties = getFunction(functionName, pixelJsonFileLoc);
+		if(functionProperties != null) {
+			// this is a pixel mcp tool
+			output = MCPUtility.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
+			return new NounMetadata(output, PixelDataType.CONST_STRING);
 		}
-		// run method
-		output = insight.getPyTranslator().runScript(runMethod)+"";
-		classLogger.info(output);
-
-		return new NounMetadata(output, PixelDataType.CONST_STRING);
+		
+		throw new SemossMCPException("Unknown tool: invalid_tool_name", MCPErrorCode.INVALID_PARAMS);
 	}
 
 	/**
@@ -151,25 +113,20 @@ public class RunMCPToolReactor extends AbstractReactor {
 	 * @param jsonFileLoc
 	 * @return
 	 */
-	private JSONObject getFunction(String functionName, String jsonFileLoc)
-	{
+	private JSONObject getFunction(String functionName, String jsonFileLoc) {
 		File jsonFile = new File(jsonFileLoc);
-		if(jsonFile.exists())
-		{
-			try (InputStream is = new FileInputStream(jsonFile)){
-				String jsonTxt = IOUtils.toString(is, "UTF-8");
+		if(jsonFile.exists()) {
+			try {
+				String jsonTxt = FileUtils.readFileToString(jsonFile, "UTF-8");
 				JSONObject json = new JSONObject(jsonTxt);
 				// the tools is what has it
 				JSONArray toolObj = null;
-				if(json.has("tools"))
-				{
+				if(json.has("tools")) {
 					toolObj = (JSONArray)json.getJSONArray("tools");
-					for (int toolIndex = 0;toolIndex < toolObj.length();toolIndex++)
-					{
+					for (int toolIndex = 0;toolIndex < toolObj.length();toolIndex++) {
 						JSONObject thisTool = toolObj.getJSONObject(toolIndex);
 						String toolName = thisTool.getString("name");
-						if(toolName.contains(functionName))
-						{
+						if(toolName.contains(functionName)) {
 							// get everything else
 							JSONObject properties = ((JSONObject)thisTool.get("inputSchema")).getJSONObject("properties");
 							return properties;
@@ -184,7 +141,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		return new JSONObject();
+		return null;
 	}
 
 	@Override
