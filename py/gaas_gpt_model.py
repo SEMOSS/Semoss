@@ -131,7 +131,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             f',context=["<encode>{context}</encode>"]' if (context is not None) else ""
         )
         optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict)}]"
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )
@@ -231,7 +231,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict)}]"
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )
@@ -269,7 +269,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict)}]"
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )
