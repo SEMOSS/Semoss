@@ -2150,8 +2150,12 @@ public final class Utility {
 				// we didn't have the assets directory when we started, do we have it now?
 				hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
 				if(hasAssetsFolder) {
-					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId) + " assets directory exists. Sync to cloud storage if present");
-					ClusterUtil.pushEngine(engineId);
+					if(SemossDefaultEngines.getDatabasesWithGeneratedOwl().contains(engineId)) {
+						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId) + " assets directory exists. This enigne will not be synced to cloud");
+					} else {
+						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId) + " assets directory exists. Sync to cloud storage if enabled");
+						ClusterUtil.pushEngine(engineId);
+					}
 				} else {
 					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId) + " assets directory still does not exist");
 				}

@@ -821,7 +821,7 @@ public class SmssUtilities {
 				AbstractSqlQueryUtil.PASSWORD.toUpperCase(),
 				AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
 				Constants.API_KEY,
-			
+				
 				// model
 				AbstractModelEngine.OPEN_AI_KEY.toUpperCase(),
 				AbstractModelEngine.AWS_SECRET_KEY.toUpperCase(),
@@ -833,6 +833,9 @@ public class SmssUtilities {
 				MinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(),
 				AzureBlobStorageEngine.AZ_PRIMARY_KEY.toUpperCase(),
 				AzureBlobStorageEngine.AZ_CONN_STRING.toUpperCase(),
+				
+				//TODO should create a constants for this
+				"SERVICE_ACCOUNT_CREDENTIALS"
 		};
 		
 		for(String curLine : currentSmssLines) {
@@ -889,6 +892,9 @@ public class SmssUtilities {
 				MinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(),
 				AzureBlobStorageEngine.AZ_PRIMARY_KEY.toUpperCase(),
 				AzureBlobStorageEngine.AZ_CONN_STRING.toUpperCase(),
+				
+				//TODO should create a constants for this
+				"SERVICE_ACCOUNT_CREDENTIALS"
 		};
 		
 		boolean requireProcessing = false;
