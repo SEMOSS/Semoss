@@ -1,6 +1,6 @@
 services:
   semoss:
-    image: quay.io/semoss/semoss:4.3.2-ubuntu22-cuda
+    image: quay.io/semoss/semoss-dev:5.0.0-alpha-SNAPSHOT-ubuntu22-latest
     container_name: semoss
     user: "1001:1001"
     ports:
