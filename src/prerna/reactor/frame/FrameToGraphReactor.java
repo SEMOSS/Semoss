@@ -353,9 +353,49 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
         return response;
     }
     
-//    private String isNumericData() {
-//    	
-//    }
+	public String[] isNumericData(ITableDataFrame sourceFrame) {
+
+		String[] headers = sourceFrame.getColumnHeaders();
+		String[] headerDataTypes = new String[headers.length];
+
+		final String CATEGORICAL = "CATEGORICAL";
+		final String NUMERICAL = "NUMERICAL";
+		final String TEMPORAL = "TEMPORAL";
+
+		for (int i = 0; i < headers.length; i++) {
+			String header = headers[i];
+			boolean isNumerical = false;
+			boolean isCategorical = false;
+			boolean isTemporal = false;
+			Object[] rowData = sourceFrame.getColumn(header);
+			for (int j = 0; j < rowData.length; j++) {
+				System.out.println("Cell value: " + rowData[j]);
+
+				if (rowData[j] instanceof Integer || rowData[j] instanceof Double || rowData[j] instanceof Boolean) {
+					isNumerical = true;
+				} else if (rowData[j] instanceof SemossDate) {
+					isTemporal = true;
+				} else if (rowData[j] instanceof String) {
+					isCategorical = true;
+				}
+
+				if (j == rowData.length - 1) {
+					if (isNumerical && isCategorical)
+						headerDataTypes[i] = CATEGORICAL;
+					else if (isTemporal && isCategorical)
+						headerDataTypes[i] = CATEGORICAL;
+					else if (isNumerical)
+						headerDataTypes[i] = NUMERICAL;
+					else if (isTemporal)
+						headerDataTypes[i] = TEMPORAL;
+					else if (isCategorical)
+						headerDataTypes[i] = CATEGORICAL;
+				}
+
+			}
+		}
+		return headerDataTypes;
+	}
 	
 	public String getName()
 	{
