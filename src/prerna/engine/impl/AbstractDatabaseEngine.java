@@ -116,11 +116,6 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	 */
 	private AuditDatabase auditDatabase = null;
 
-	/**
-	 * This is if we have a connection but no OWL
-	 */
-	private boolean isBasic = false;
-
 	protected ZoneId databaseZoneId;
 	
 	/**
@@ -143,6 +138,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
+		// basic would be an insights database for example
 		if(this.isBasic) {
 			// still try to set the db zone id...
 			setDatabaseZoneId();
@@ -222,7 +218,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-
+		
 		// load properties object for db
 		File engineProps = SmssUtilities.getEngineProperties(this.smssProp);
 		if (engineProps != null) {
@@ -538,16 +534,6 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 		return Utility.getVectorOfReturn(sparqlQuery, engine, true);
 	} 
 
-	@Override
-	public boolean isBasic() {
-		return this.isBasic;
-	}
-	
-	@Override
-	public void setBasic(boolean isBasic) {
-		this.isBasic = isBasic;
-	}
-	
 	@Override
 	public String getNodeBaseUri(){
 		if(baseUri == null) {

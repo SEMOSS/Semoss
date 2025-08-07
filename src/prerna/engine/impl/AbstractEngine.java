@@ -42,6 +42,12 @@ public abstract class AbstractEngine implements IEngine {
 	protected String engineAssetsFolder = null;
 	
 	/**
+	 * This is if we have an engine with no assets
+	 * Or for database, connection but no OWL
+	 */
+	protected boolean isBasic = false;
+	
+	/**
 	 * Init the general smss values
 	 * @param builder
 	 * @throws Exception 
@@ -89,34 +95,36 @@ public abstract class AbstractEngine implements IEngine {
 		
 		// make sure we always have an assets folder and all the directories leading up to it
 		{
-			File f = new File(this.engineAssetsFolder);
-			if(!f.exists() || !f.isDirectory()) {
-				f.mkdirs();
-				// this means you have a legacy structure
-				// i will move everything you have into the assets folder
-				// with exception of .mv.db files
-				Path assetsPath = Path.of(this.engineAssetsFolder);
-				Files.list(Path.of(this.engineBaseFolder)).forEach(item -> {
-					// skip if the item is already within app_root or app_root/versions 
-					// this would really only be for the engine image 
-					String fileName = item.getFileName().toString();
-					if(item.toString().replace("\\","/").contains("/"+Constants.APP_ROOT_FOLDER+"/") || 
-							fileName.equals(Constants.APP_ROOT_FOLDER)) {
-		                return; // skip
-		            }
-		            
-					if(!fileName.endsWith(".mv.db") && !fileName.endsWith(".jnl") && !fileName.endsWith(".sqlite")) {
-						try {
-							Path targetPath = assetsPath.resolve(item.getFileName());
-							classLogger.info("Performing asset restructure for " + item + " > " + targetPath);
-							Files.move(item, targetPath, StandardCopyOption.REPLACE_EXISTING);
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+			if(!this.isBasic) {
+				File f = new File(this.engineAssetsFolder);
+				if(!f.exists() || !f.isDirectory()) {
+					f.mkdirs();
+					// this means you have a legacy structure
+					// i will move everything you have into the assets folder
+					// with exception of .mv.db files
+					Path assetsPath = Path.of(this.engineAssetsFolder);
+					Files.list(Path.of(this.engineBaseFolder)).forEach(item -> {
+						// skip if the item is already within app_root or app_root/versions 
+						// this would really only be for the engine image 
+						String fileName = item.getFileName().toString();
+						if(item.toString().replace("\\","/").contains("/"+Constants.APP_ROOT_FOLDER+"/") || 
+								fileName.equals(Constants.APP_ROOT_FOLDER)) {
+			                return; // skip
+			            }
+			            
+						if(!fileName.endsWith(".mv.db") && !fileName.endsWith(".jnl") && !fileName.endsWith(".sqlite")) {
+							try {
+								Path targetPath = assetsPath.resolve(item.getFileName());
+								classLogger.info("Performing asset restructure for " + item + " > " + targetPath);
+								Files.move(item, targetPath, StandardCopyOption.REPLACE_EXISTING);
+							} catch (IOException e) {
+								classLogger.error(Constants.STACKTRACE, e);
+							}
+						} else {
+							classLogger.info("Ignoring asset restructure for " + item);
 						}
-					} else {
-						classLogger.info("Ignoring asset restructure for " + item);
-					}
-				});
+					});
+				}
 			}
 		}
 		
@@ -208,6 +216,16 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public CaseInsensitiveProperties getOrigSmssProp() {
 		return this.origSmssProp;
+	}
+	
+	@Override
+	public boolean isBasic() {
+		return this.isBasic;
+	}
+	
+	@Override
+	public void setBasic(boolean isBasic) {
+		this.isBasic = isBasic;
 	}
 	
 	@Override

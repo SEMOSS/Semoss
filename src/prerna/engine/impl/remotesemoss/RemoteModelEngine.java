@@ -123,6 +123,16 @@ public class RemoteModelEngine implements IModelEngine {
 		// TODO Auto-generated method stub
 		// for remote engine.. I dont have to do anything here
 	}
+	
+	@Override
+	public boolean isBasic() {
+		return false;
+	}
+	
+	@Override
+	public void setBasic(boolean isBasic) {
+		// always false
+	}
 
 	@Override
 	public ModelTypeEnum getModelType() {
