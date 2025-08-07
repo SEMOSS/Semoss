@@ -1344,7 +1344,8 @@ public class ModelInferenceLogsUtils {
 
 		    SelectQueryStruct qs = new SelectQueryStruct();
 		    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
-		    qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA", "message_data"));
+		    qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA", "message_text"));
+		    qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
 
 		    qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
 		    qs.addExplicitFilter(
