@@ -2723,6 +2723,12 @@ public class ModelInferenceLogsUtils {
 		sumTokens.setFunction(QueryFunctionHelper.SUM);
 		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(sumTokens);
+		
+		QueryFunctionSelector avgTokens = new QueryFunctionSelector();
+		avgTokens.setAlias("avg_tokens");
+		avgTokens.setFunction(QueryFunctionHelper.AVERAGE_2);
+		avgTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(avgTokens);
 
 		QueryFunctionSelector lastUsed = new QueryFunctionSelector();
 		lastUsed.setAlias("last_utilized_date");
@@ -2763,6 +2769,12 @@ public class ModelInferenceLogsUtils {
 		sumTokens.setFunction(QueryFunctionHelper.SUM);
 		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(sumTokens);
+		
+		QueryFunctionSelector avgTokens = new QueryFunctionSelector();
+		avgTokens.setAlias("avg_tokens");
+		avgTokens.setFunction(QueryFunctionHelper.AVERAGE_2);
+		avgTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(avgTokens);
 
 		QueryFunctionSelector lastUsed = new QueryFunctionSelector();
 		lastUsed.setAlias("last_utilized_date");
