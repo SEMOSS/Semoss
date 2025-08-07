@@ -1334,26 +1334,44 @@ public class ModelInferenceLogsUtils {
   
   /**
    * @param userId
-   * @param projectId
+   * @param projectIdall
    * @param keyword
    * @return
    */
+
   public static List<Map<String, Object>> searchMessages(
-	      String userId, String projectId, String keyword) {
-	  SelectQueryStruct qs = new SelectQueryStruct();
-	    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
-	    qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
+		    String userId, String projectId, String keyword) {
 
-	    qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
+		    SelectQueryStruct qs = new SelectQueryStruct();
+		    qs.addSelector(new QueryColumnSelector("MESSAGE__ROOM_ID", "room_id"));
+		    qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA", "message_data"));
 
-	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
-	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
-	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "?like", keyword.toLowerCase()));
-	    qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED"));
-	    qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED"));
-	    
-	    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-  }
+		    qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
+		    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+
+		    QueryFunctionSelector castSelector = QueryFunctionSelector.makeFunctionSelector(
+		        "CAST",
+		        new QueryColumnSelector("MESSAGE__MESSAGE_DATA"),
+		        null
+		    );
+		    castSelector.setDataType("TEXT");
+
+		    qs.addExplicitFilter(
+		        SimpleQueryFilter.makeColToValFilter(
+		        	castSelector,
+		            "?like",
+		            keyword.toLowerCase(),
+		            PixelDataType.CONST_STRING
+		        )
+		    );
+
+		    qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
+		    qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
+		    
+		    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		}
+
 
   /**
    * @param userId
