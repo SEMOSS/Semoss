@@ -26,6 +26,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -46,7 +47,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(UploadProjectAppReactor.class);
 
 	private static final String CLASS_NAME = UploadProjectAppReactor.class.getName();
-
+	
 	public UploadProjectAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
 	}
@@ -263,7 +264,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				SecurityProjectUtils.addProject(projectId, global, user);
 			}
 			
-			// see if we have any dependencies or metadata to load
+			// see if we have any metadata to load
 			{
 				File metadataFile = new File(finalProjectFolderF.getAbsolutePath() + "/" + projectName + IEngine.METADATA_FILE_SUFFIX);
 				if(metadataFile.exists() && metadataFile.isFile()) {
@@ -271,21 +272,6 @@ public class UploadProjectAppReactor extends AbstractReactor {
 					SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
 					// delete this file since values can update and file is dynamically generated on export
 					metadataFile.delete();
-				}
-				
-				File dependenciesFile = new File(finalProjectFolderF.getAbsolutePath() + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX);
-				if(dependenciesFile.exists() && dependenciesFile.isFile()) {
-					List<Map<String, Object>> projectDependencies = (List<Map<String, Object>>) GsonUtility.readJsonFileToObject(dependenciesFile, new TypeToken<List<Map<String, Object>>>() {}.getType());
-					// List<String> dependentEngineIds = (List<String>) GsonUtility.readJsonFileToObject(dependenciesFile, new TypeToken<List<String>>() {}.getType());
-					if(projectDependencies != null && !projectDependencies.isEmpty()) {
-						List<String> dependentEngineIds = new ArrayList<>();
-						for(Map<String, Object> dep : projectDependencies) {
-							dependentEngineIds.add((String) dep.get("engine_id"));
-						}
-						SecurityProjectUtils.updateProjectDependencies(user, projectId, dependentEngineIds);
-					}
-					// delete this file since values can update and file is dynamically generated on export
-					dependenciesFile.delete();
 				}
 			}
 			
@@ -305,7 +291,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				SecurityProjectUtils.deleteProject(projectId);
 			} else {
 				File[] assetsFilesToDelete = finalProjectAssetF.listFiles(
-						(dir, name) -> name.endsWith(IEngine.METADATA_FILE_SUFFIX) 
+						(dir, name) -> name.endsWith(IEngine.METADATA_FILE_SUFFIX)
 							|| name.endsWith(IProject.DEPENDENCIES_FILE_SUFFIX) 
 							|| name.endsWith(Constants.SEMOSS_EXTENSION));			
 				cleanUpFolders(assetsFilesToDelete);
@@ -322,8 +308,17 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		
 		// push new project to cloud
 		ClusterUtil.pushProject(projectId);
-
+		
+		Map<String, Object> engineIdMap = ProjectHelper.extractEngineIdsFromProjectFolder(projectId, finalProjectFolderF);
+		// update the project dependencies table only with valid engineIds
+		if(engineIdMap.containsKey("success")) {
+			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
+			SecurityProjectUtils.updateProjectDependencies(user, projectId, successMap.keySet());
+		}
+		
+		// sending the success and failed list of engineIds to FE
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), projectId);
+		retMap.put("engineIds", engineIdMap);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 	
