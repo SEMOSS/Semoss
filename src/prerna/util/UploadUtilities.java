@@ -225,17 +225,17 @@ public final class UploadUtilities {
 		File owlFile = new File(owlLocation);
 		if(!owlFile.exists()) {
 			try {
+				// check if the parent folder is there
+				if(!owlFile.getParentFile().exists()) {
+					owlFile.getParentFile().mkdirs();
+				}
 				owlFile.createNewFile();
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-
-		try {
-			writer = new FileWriter(owlFile);
-			bufferedWriter = new BufferedWriter(writer);
+		try (FileWriter writer = new FileWriter(owlFile); 
+				BufferedWriter bufferedWriter = new BufferedWriter(writer);){
 			bufferedWriter.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 			bufferedWriter.write("\n");
 			bufferedWriter.write("<rdf:RDF");
@@ -245,20 +245,9 @@ public final class UploadUtilities {
 			bufferedWriter.write("\txmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">");
 			bufferedWriter.write("\n");
 			bufferedWriter.write("</rdf:RDF>");
-			
+			bufferedWriter.flush();
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			try {
-				if(bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if(writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
 		}
 		
 		return owlFile;
