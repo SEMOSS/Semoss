@@ -373,7 +373,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		List<String> downloadedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
 		boolean found = false;
-
+		
 		for (String s3FolderPath : paths) {
 			// Delete empty folder blobs
 			deleteEmptyBlobsFromS3(s3FolderPath);
@@ -381,7 +381,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			// Normalize prefix using the utility method
 			String prefix = Utility.normalizePath(s3FolderPath);
 			if (!prefix.endsWith("/") && !prefix.isEmpty()) {
-				prefix += "/";
+//				prefix += "/";
 			}
 
 			ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(this.bucket).prefix(prefix)
@@ -389,6 +389,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 			ListObjectsV2Response response;
 			do {
+				classLogger.info("Executing listObjectsV2...");
 				response = this.client.listObjectsV2(request);
 
 				for (S3Object s3Object : response.contents()) {
