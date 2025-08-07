@@ -304,7 +304,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		JsonObject responseJsonSearchId = JsonParser.parseString(responseSearchId).getAsJsonObject();
 		JsonArray sourceArrId = responseJsonSearchId.getAsJsonObject().getAsJsonArray("value");
 		classLogger.info("Response source ids :: "+sourceArrId);		
-		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 		//Delete Rq
 		JsonArray valueArr = new JsonArray();
 				
@@ -466,8 +466,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			indexClass = (String) parameters.get("indexClass");
 		}
  
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR
-				+ DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 		List<Map<String, Object>> returnSources = new ArrayList<>();
 		for (JsonElement bucket : sourceArr) {
 			JsonObject bucketDetails = bucket.getAsJsonObject();
