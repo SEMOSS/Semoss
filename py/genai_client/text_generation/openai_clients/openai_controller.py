@@ -14,7 +14,7 @@ from .openai_api_inference_server import (
 
 class OpenAiClientController:
     def __init__(self, **kwargs):
-        self.chat_type = kwargs.pop("chat_type", "chat-completion")
+        self.chat_type = kwargs.get("chat_type", "chat-completion")
         endpoint = kwargs.pop("endpoint", None)
 
         if (endpoint != None) and (endpoint != "https://api.openai.com/v1"):
@@ -36,9 +36,6 @@ class OpenAiClientController:
 
     def ask(self, **kwargs) -> Dict:
         return self.openai_class.ask(**kwargs)
-
-    def instruct(self, **kwargs) -> Dict:
-        return self.openai_class.instruct(**kwargs)
 
     def embeddings(self, **kwargs) -> List[float]:
         return self.openai_class.embeddings(**kwargs)

@@ -4,18 +4,23 @@ import java.io.File;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IModelEngine;
+import prerna.project.api.IProject;
+import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
-public class MakeMCPReactor extends AbstractReactor {
+public class MakePythonMCPReactor extends AbstractReactor {
 
-	public MakeMCPReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-		this.keyRequired = new int[] {1};
+	public MakePythonMCPReactor() {
+		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.MODEL.getKey()};
+		this.keyRequired = new int[] {1, 0};
 	}
 
 	@Override
@@ -32,10 +37,24 @@ public class MakeMCPReactor extends AbstractReactor {
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit.");
 		}
-
+		IProject project = Utility.getProject(projectId);
+		//TODO: change output to be a proper json
 		String output = "unprocessed";
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 
-		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(keyValue.get(keysToGet[0]));
+		if(project.getProjectType() == IProject.PROJECT_TYPE.BLOCKS) {
+			IModelEngine modelEngine = null;
+			String modelId = this.keyValue.get(this.keysToGet[1]);
+			if(modelId != null && !(modelId=modelId.trim()).isEmpty()) {
+				if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
+					throw new IllegalArgumentException("Model " + modelId + " does not exist or user does not have access.");
+				}
+				modelEngine = Utility.getModel(modelId);
+			}
+			INotebookHelper helper = project.getNotebookHelper();
+			helper.createMcpJson(projectAssetFolder+"/py/smss_driver.py", modelEngine, this.insight);
+		}
+		
 		String pyFolderLoc = projectAssetFolder + "/py";
 		File pyFolder = new File(pyFolderLoc);
 
@@ -51,8 +70,8 @@ public class MakeMCPReactor extends AbstractReactor {
 			output = "There is no py/smss_driver.py that exists. Please create this file and then try. "
 					+ "File main.py is the main driver which is utilized in terms of creating the MCP tools.";
 			return new NounMetadata(output, PixelDataType.CONST_STRING);
-		
 		}
+		
 		// use the smss_util to get the needed information
 		String mcpFolderLoc = projectAssetFolder + "/mcp";
 		File mcpFolder = new File(mcpFolderLoc);
@@ -63,8 +82,8 @@ public class MakeMCPReactor extends AbstractReactor {
 		mcpPyFileLoc = mcpPyFileLoc.replace("\\", "/");
 		outputFileLoc = outputFileLoc.replace("\\", "/");
 		String[] script = new String[] {"smssutil.gen_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc + "')"};
-		output = insight.getPyTranslator().runPyAndReturnOutput(script);
-
+		output = insight.getPyTranslator().runScript(script)+"";
+		
 		return new NounMetadata(output, PixelDataType.CONST_STRING);
 	}
 

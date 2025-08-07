@@ -7,22 +7,17 @@ from ...constants import AskModelEngineResponse
 
 class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
 
-    def __init__(
-        self,
-        model_name: str = None,
-        api_key: str = None,
-        model_type: str = None,
-        **kwargs
-    ):
+    def __init__(self, api_key: str, **kwargs):
         assert api_key != None
 
         super().__init__(
             template=kwargs.pop("template", None),
             template_name=kwargs.pop("template_name", None),
+            **kwargs
         )
 
-        self.model_name = model_name
-        self.model_type = model_type.lower() if model_type else None
+        self.model_type = self.model_settings.model_type
+
         self.use_max_tokens_param = kwargs.pop("use_max_tokens", False)
 
         self.tokenizer = self._get_tokenizer(kwargs)
@@ -44,6 +39,9 @@ class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
         )
 
     def _get_client(self, api_key, **kwargs):
+        kwargs.pop("model_name", None)
+        kwargs.pop("model_type", None)
+        kwargs.pop("chat_type", None)
         from openai import OpenAI
 
         return OpenAI(api_key=api_key, **kwargs)

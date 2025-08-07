@@ -263,9 +263,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(
-					this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents",
-					documentName);
+			File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", documentName);
 			try {
 				if (documentFile.exists()) {
 					FileUtils.forceDelete(documentFile);
@@ -343,7 +341,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 
 		List<Map<String, Object>> fileList = new ArrayList<>();
 

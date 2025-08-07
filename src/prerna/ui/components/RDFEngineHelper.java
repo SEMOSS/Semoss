@@ -455,8 +455,8 @@ public class RDFEngineHelper {
 
 	}
 	
-	public static Hashtable createBaseFilterHash(RepositoryConnection rcOWL) throws RepositoryException, MalformedQueryException, QueryEvaluationException{
-		Hashtable<String,String> baseFilterHash = new Hashtable<String,String>();
+	public static Hashtable<String, String> createBaseFilterHash(RepositoryConnection rcOWL) throws RepositoryException, MalformedQueryException, QueryEvaluationException{
+		Hashtable<String,String> baseFilterHash = new Hashtable<>();
 		String queryString = "SELECT ?x ?p ?y WHERE { ?x ?p ?y } ";
 		TupleQuery tupleQuery = rcOWL.prepareTupleQuery(QueryLanguage.SPARQL, queryString);
 		TupleQueryResult result = tupleQuery.evaluate();
