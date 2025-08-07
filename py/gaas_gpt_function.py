@@ -31,7 +31,7 @@ class FunctionEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
-        pixel = f'ExecuteFunctionEngine(engine = "{self.engine_id}", map=[{json.dumps(parameterMap)}]);'
+        pixel = f'ExecuteFunctionEngine(engine = "{self.engine_id}", map=[{json.dumps(parameterMap, ensure_ascii=False)}]);'
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(

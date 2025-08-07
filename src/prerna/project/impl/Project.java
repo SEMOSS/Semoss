@@ -1978,4 +1978,14 @@ public class Project implements IProject {
 	public String getCatalogSubType(Properties smssProp) {
 		return this.projectType.name();
 	}
+	
+	@Override
+	public boolean isBasic() {
+		return false;
+	}
+	
+	@Override
+	public void setBasic(boolean isBasic) {
+		// always false
+	}
 }
