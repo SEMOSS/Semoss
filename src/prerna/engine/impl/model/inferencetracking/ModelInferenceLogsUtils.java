@@ -1343,10 +1343,12 @@ public class ModelInferenceLogsUtils {
 		    String userId, String projectId, String keyword) {
 
 		    SelectQueryStruct qs = new SelectQueryStruct();
-		    qs.addSelector(new QueryColumnSelector("MESSAGE__ROOM_ID", "room_id"));
+		    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
 		    qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA", "message_data"));
 
 		    qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
+		    qs.addExplicitFilter(
+			        SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
 		    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 
