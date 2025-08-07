@@ -2,28 +2,29 @@ import math
 from typing import List, Tuple, Any
 import json
 from pydantic import BaseModel
-from .operations.instruct import Instruct
 from .operations.chat import Chat
 from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import (
     AskModelEngineResponse,
-    InstructModelEngineResponse,
     IMAGE_ENCODED,
     IMAGE_URL,
 )
 from utils.util import string_to_bool
+from .openai_clients_v2.openai_client_v2 import OpenAIClientV2
 
 
 class OpenAiChatCompletion(AbstractOpenAiClient):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.instruct_operation = Instruct(client=self)
         self.chat_operation = Chat(client=self)
 
-    def instruct(self, **kwargs) -> InstructModelEngineResponse:
-        return self.instruct_operation.instruct(**kwargs)
-
     def ask_call(self, **kwargs) -> AskModelEngineResponse:
+        if "message_json" in kwargs:
+            chat_completion_client_v2 = OpenAIClientV2(
+                client=self, chat_type="chat-completion"
+            )
+            return chat_completion_client_v2.ask_call(**kwargs)
+
         return self.chat_operation.ask(**kwargs)
 
     def _validate_structured_input(self, schema) -> Tuple[str, Any]:
@@ -41,7 +42,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         elif isinstance(schema, dict):
             # Validating that dict can be serialized to JSON
             try:
-                json.dumps(schema)
+                json.dumps(schema, ensure_ascii=False)
                 return ("dict", schema)
             except TypeError:
                 raise ValueError("Schema dict contains non-serializable values.")

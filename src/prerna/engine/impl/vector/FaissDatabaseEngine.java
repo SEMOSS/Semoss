@@ -72,11 +72,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (this.indexClasses.size() > 0) {
 	        ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
 			for (String indexClass : this.indexClasses) {
-				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass, "dataset.pkl");
-				modifiedCommands.add(this.vectorDatabaseSearcher+".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
+				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass, "dataset.pkl");
+				modifiedCommands.add(this.vectorDatabaseSearcher+".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+fileToCheck.getParent().replace("//", FILE_SEPARATOR) + FILE_SEPARATOR +"')");
 				if (fileToCheck.exists()) {
-			        modifiedCommands.add(this.vectorDatabaseSearcher+".searchers['"+indexClass+"'].load_dataset('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'dataset.pkl')");
-			        modifiedCommands.add(this.vectorDatabaseSearcher+".searchers['"+indexClass+"'].load_encoded_vectors('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'vectors.pkl')");
+			        modifiedCommands.add(this.vectorDatabaseSearcher+".searchers['"+indexClass+"'].load_dataset('"+fileToCheck.getParent().replace("//", FILE_SEPARATOR) + FILE_SEPARATOR +"' + 'dataset.pkl')");
+			        modifiedCommands.add(this.vectorDatabaseSearcher+".searchers['"+indexClass+"'].load_encoded_vectors('"+fileToCheck.getParent().replace("//", FILE_SEPARATOR) + FILE_SEPARATOR +"' + 'vectors.pkl')");
 		        }
 			}
             commands = modifiedCommands.stream().toArray(String[]::new);
@@ -99,7 +99,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		this.indexClasses.add(indexClass);
 		//TODO: do we really need base path for this?
-		String basePath = this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR;
+		String basePath = this.schemaFolder.getAbsolutePath().replace("//", FILE_SEPARATOR) + FILE_SEPARATOR + indexClass + FILE_SEPARATOR;
 		this.pyTranslator.runScript(this.vectorDatabaseSearcher + ".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+ basePath +"')");
 	}
 	
@@ -202,7 +202,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		{
 			List<String> temp = new ArrayList<>(vectorCsvFiles.size());
 			for(int i = 0; i < vectorCsvFiles.size(); i++) {
-				temp.add(vectorCsvFiles.get(i).replace(FILE_SEPARATOR, DIR_SEPARATOR));
+				temp.add(vectorCsvFiles.get(i).replace("//", FILE_SEPARATOR));
 			}
 			vectorCsvFiles = temp;
 		}
@@ -321,7 +321,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		checkSocketStatus();
 
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
-		String indexedFilesPath = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "indexed_files";
+		String indexedFilesPath = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "indexed_files";
 		Path indexDirectory = Paths.get(indexedFilesPath);
         DirectoryStream<Path> stream = null;
         try {
@@ -369,7 +369,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	                classLogger.info("Deleted: " + entry.toString());
 	            }
 		        try {
-		        	File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", document);
+		        	File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", document);
 					if(documentFile.exists() && documentFile.isFile()) {
 			        	FileUtils.forceDelete(documentFile);
 						filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
@@ -420,7 +420,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	                                .append(indexClass)
 	                                .append("']")
 	                                .append(".createMasterFiles(path_to_files = '")
-	                                .append(indexDirectory.getParent().toString().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+	                                .append(indexDirectory.getParent().toString().replace("//", FILE_SEPARATOR))
 	                                .append("')");
 
 	        String script = updateMasterFilesCommand.toString();
@@ -599,7 +599,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		executionScript.append(".removeCorruptedFiles(")
 					   .append("path_to_files = '")
-					   .append(indexClassDirectory.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+					   .append(indexClassDirectory.getAbsolutePath().replace("//", FILE_SEPARATOR))
 					   .append("')");
 		
 		@SuppressWarnings("unchecked")
@@ -636,7 +636,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		List<String> sources = (List<String>) pyTranslator.runDirectPy(listDocumentsCommand.toString());
 		
 		List<Map<String, Object>> fileList = new ArrayList<>();
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 		if(documentsDir.exists() && documentsDir.isDirectory()) {
 			for(String fileName : sources) {
 				Map<String, Object> fileInfo = new HashMap<>();
