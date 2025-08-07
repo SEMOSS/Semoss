@@ -40,10 +40,9 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 	
 		if (inferenceLogsEnbaled) {
 			String messageId = UUID.randomUUID().toString();
-			String transactionId = UUID.randomUUID().toString();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/messageId,
-					/*transactionId*/transactionId,
+					/*transactionId*/null,
 					/*messageMethod*/"textKeywords", 
 					/*engine*/this,
 					/*insightId*/insight.getInsightId(),

@@ -1202,8 +1202,8 @@ public class ModelInferenceLogsUtils {
       String userEmail) {
     ZonedDateTime dateCreated = ZonedDateTime.now();
     doRecordMessage(
-    	UUID.randomUUID().toString(),
         messageId,
+        null,
         messageType,
         messageData,
         messageMethod,
@@ -1221,6 +1221,7 @@ public class ModelInferenceLogsUtils {
 
   /**
    * @param messageId
+   * @param transactionId
    * @param messageType
    * @param messageData
    * @param messageMethod
@@ -1264,7 +1265,11 @@ public class ModelInferenceLogsUtils {
       ps = modelInferenceLogsDb.getPreparedStatement(query);
       int index = 1;
       ps.setString(index++, messageId);
-      ps.setString(index++, transactionId);
+      if (transactionId != null) {
+        ps.setString(index++, transactionId);
+      } else {
+        ps.setNull(index++, java.sql.Types.VARCHAR);
+      }
       ps.setString(index++, messageType);
       if (messageData != null) {
         modelInferenceLogsDb
