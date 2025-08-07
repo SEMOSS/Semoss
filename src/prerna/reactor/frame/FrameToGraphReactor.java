@@ -34,11 +34,39 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
     private static final String COMMAND_KEY = "command";
     private static final String CONTEXT_KEY = "context";
     private static final String USE_HISTORY_KEY = "use_history";
+    private static final String CATEGORICAL="CATEGORICAL";
+    private static final String NUMERICAL="NUMERICAL";
+    private static final String TEMPORAL="TEMPORAL";
     
     private static final String PROMPT = 
-    "Here is the metadata extracted from a data frame: Categorical fields: [] Numerical fields: []." +
-    "Based on this, determine the best Vega-Lite mark (e.g. bar, line, point, etc.) and encoding for a chart. Choose the x and y fields, indicate their types, and output a complete valid Vega-Lite JSON specification." + 
-    "I only want valid JSON with no extra commentary.";
+      "            \"You are a data visualization expert. Your task is to create a Vega-Lite JSON specification based on the raw data provided.\\n\\n\" +\n"
+    + " \n"
+    + "            \"Please generate a valid Vega-Lite chart specification in JSON format that accurately and clearly visualizes the given data.\\n\\n\" +\n"
+    + " \n"
+    + "            \"Your output must include:\\n\" +\n"
+    + "            \"1. **The complete Vega-Lite JSON spec** only — do not include any explanation, commentary, or code blocks.\\n\" +\n"
+    + "            \"2. Ensure the spec includes appropriate settings for:\\n\" +\n"
+    + "            \"   - `mark` type (e.g., bar, line, point, area, etc.)\\n\" +\n"
+    + "            \"   - `encoding` for x and y axes (use fields and types from the data)\\n\" +\n"
+    + "            \"   - Optional: tooltips, color, and other enhancements to improve clarity\\n\" +\n"
+    + "            \"3. Use reasonable assumptions if the chart type is not specified.\\n\" +\n"
+    + "            \"4. Ensure the JSON is valid and can be used directly with a Vega-Lite renderer.\\n\\n\" +\n"
+    + " \n"
+    + "            \"Guidelines:\\n\" +\n"
+    + "            \"- Avoid complex transforms unless required.\\n\" +\n"
+    + "            \"- If the data is time-based, use a line or area chart with appropriate time formatting.\\n\" +\n"
+    + "            \"- If comparing categories, use bar or grouped bar charts.\\n\" +\n"
+    + "            \"- Add axis titles based on the field names.\\n\\n\" +\n"
+    + " \n"
+    + "            \"Only return the Vega JSON. Do not include any text, markdown, or notes.\\n\\n\" +\n"
+    + " \n"
+    + "            Here is the raw data:\\n\\n +\n"
+    + " \n"
+    + "            context;\n"
+    + " \n"
+    + " \n"
+    + " \n"
+    + "    } ";
 
 	public FrameToGraphReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.MODEL.getKey(), "userInput" };
@@ -149,25 +177,31 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		// Partition headers into numerical and categorical based on the first non-null cell in row 0
 		List<String> numericalHeaders = new ArrayList<>();
         List<String> categoricalHeaders = new ArrayList<>();
+        List<String> temporalHeaders = new ArrayList<>();
         
-        for (int i = 0; i < headers.length ; i++) {
-        	String currentHeader = headers[i];
-            if (sourceFrame.isNumeric(currentHeader)) {
+        
+        String[] dataTypes = getColumnDataType(sourceFrame);
+        
+        for (int i = 0; i < dataTypes.length ; i++) {
+            if (dataTypes[i].equals(NUMERICAL)) {
+            	
+//            }
 //                	= sourceFrame.getColumn(currentHeader);
 //                	for (int i = 0; i < ; i++) {
 //                		
 //                	}
-                numericalHeaders.add(currentHeader);
+                	
+                numericalHeaders.add(headers[i]);
+            } else if (dataTypes[i].equals(TEMPORAL)) {
+            	temporalHeaders.add(headers[i]);
             } else {
-                categoricalHeaders.add(currentHeader);
+                categoricalHeaders.add(headers[i]);
             }
         }
 
         // Begin JSON template
-        promptBuilder.append("{\n");
-        promptBuilder.append("  \"$schema\": \"https://vega.github.io/schema/vega-lite/v5.json\",\n");
-        promptBuilder.append("  \"description\": \"A chart generated from frame data\",\n");
-        promptBuilder.append("  \"data\": {\n");
+        promptBuilder.append("  \"Here is the raw data:\": {\n");
+       
         
         
         System.out.println("Starting to embed data into Vega Prompt: " + promptBuilder.toString());
@@ -298,9 +332,27 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 	private AskModelEngineResponse callLLM(String question) {
         String modelId = (String) this.keyValue.get(this.keysToGet[1]);
         
-        String context = "Convert the given IDataFrame metadata into a complete Vega-Lite JSON specification that follows version v5 of the Vega-Lite schema." +
-        		"The output must be valid JSON with no extra commentary. " +
-        		"Derive the best mark (e.g. bar, line, point based on the data types available and ensure the encoding is the best configuration for the data.";
+        //TODO: Change this to prompt???
+        String context = "You are a data visualization expert. Your task is to create a Vega-Lite JSON specification based on the raw data provided.\n\n" +
+ 
+            "Please generate a valid Vega-Lite chart specification in JSON format that accurately and clearly visualizes the given data.\n\n" +
+ 
+            "Your output must include:\n" +
+            "1. **The complete Vega-Lite JSON spec** only — do not include any explanation, commentary, or code blocks.\n" +
+            "2. Ensure the spec includes appropriate settings for:\n" +
+            "   - `mark` type (e.g., bar, line, point, area, etc.)\n" +
+            "   - `encoding` for x and y axes (use fields and types from the data)\n" +
+            "   - Optional: tooltips, color, and other enhancements to improve clarity\n" +
+            "3. Use reasonable assumptions if the chart type is not specified.\n" +
+            "4. Ensure the JSON is valid and can be used directly with a Vega-Lite renderer.\n\n" +
+ 
+            "Guidelines:\n" +
+            "- Avoid complex transforms unless required.\n" +
+            "- If the data is time-based, use a line or area chart with appropriate time formatting.\n" +
+            "- If comparing categories, use bar or grouped bar charts.\n" +
+            "- Add axis titles based on the field names.\n\n" +
+ 
+            "Only return the Vega JSON. Do not include any text, markdown, or notes.\n\n";
 
         Map<String, String> keyValue = new HashMap<>();
         keyValue.put(ENGINE_KEY, modelId);
@@ -353,12 +405,66 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
         return response;
     }
     
-//    private String isNumericData() {
-//    	
-//    }
+    /*
+     * Determines whether the row data in a column are categorical, numerical, or temporal
+     * 
+     * 
+     * */
+    public String[] getColumnDataType(ITableDataFrame sourceFrame) {
+    	 
+		String[] headers = sourceFrame.getColumnHeaders();
+		String[] headerDataTypes = new String[headers.length];
+		
+		for (int i = 0; i < headers.length; i++) {
+			String header = headers[i];
+			boolean isNumerical = false;
+			boolean isCategorical = false;
+			boolean isTemporal = false;
+			Object[] rowData = sourceFrame.getColumn(header);
+			for (int j = 0; j < rowData.length; j++) {
+				System.out.println("Cell value: " + rowData[j]);
+ 
+				if (rowData[j] instanceof Integer || rowData[j] instanceof Double) {
+					isNumerical = true;
+				} else if (rowData[j] instanceof SemossDate) {
+					isTemporal=true;
+				} else if (rowData[j] instanceof String || rowData[j] instanceof Boolean) {
+					isCategorical = true;
+				}
+				
+				if(j == rowData.length - 1) {
+					if(isNumerical && isCategorical) {
+						headerDataTypes[i]=CATEGORICAL;
+						break;
+					}
+					else if(isTemporal && isCategorical) {
+						headerDataTypes[i]=CATEGORICAL;
+						break;
+					}
+					else if(isNumerical)
+						headerDataTypes[i]=NUMERICAL;
+					else if(isTemporal)
+						headerDataTypes[i]=TEMPORAL;
+					else if(isCategorical)
+						headerDataTypes[i]=CATEGORICAL;
+				}
+ 
+			}
+		}
+		System.out.print("HELLO");
+		return headerDataTypes;
+	}
 	
 	public String getName()
 	{
 		return "FrameToGraph";
 	}
+	
+//	public String getReactorDescription() {
+//		
+//	}
+	
+//	public String getDescriptionForKey() {
+//		
+//	}
 }
