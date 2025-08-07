@@ -423,7 +423,6 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 			Object[] rowData = sourceFrame.getColumn(header);
 			for (int j = 0; j < rowData.length; j++) {
 				System.out.println("Cell value: " + rowData[j]);
- 
 				if (rowData[j] instanceof Integer || rowData[j] instanceof Double) {
 					isNumerical = true;
 				} else if (rowData[j] instanceof SemossDate) {
@@ -451,7 +450,6 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
  
 			}
 		}
-		System.out.print("HELLO");
 		return headerDataTypes;
 	}
 	
