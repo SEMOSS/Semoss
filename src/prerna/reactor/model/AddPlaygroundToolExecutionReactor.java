@@ -1,28 +1,37 @@
-package prerna.engine.impl.model;
+package prerna.reactor.model;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import java.util.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * AddToolExecutionReactor:
  *   Input: roomId, toolId, toolName, tool_execution_response
  */
-public class AddToolExecutionReactor extends prerna.reactor.AbstractReactor {
-    public AddToolExecutionReactor() {
+public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
+	
+    private static final Gson gson = new Gson();
+
+    public AddPlaygroundToolExecutionReactor() {
         this.keysToGet = new String[]{
         	ReactorKeysEnum.ENGINE.getKey(),		
             "roomId",          // 1
@@ -30,7 +39,7 @@ public class AddToolExecutionReactor extends prerna.reactor.AbstractReactor {
             "toolName",        // 3
             "tool_execution_response" // 4
         };
-        this.keyRequired = new int[]{1, 1, 1, 1};
+        this.keyRequired = new int[]{1, 1, 1, 1, 1};
     }
 
     @Override
@@ -66,11 +75,28 @@ public class AddToolExecutionReactor extends prerna.reactor.AbstractReactor {
 
         AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw, modelEngine, insight);
         
-        if(response==null) {
+        Map<String, Object> pixelReturn = new HashMap<>();
+
+
+         if(response==null) {
+             pixelReturn.put("responseMessage", "Tool output added successfully. Additional tool executions required to continue");
             return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
         } else {
-            return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
+            pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(room.getMessages().getLast())));
+            return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
         }
+    }
+    
+    /**
+     * Converts a JSON object string to a Map<String, Object>
+     * @param json The JSON string (must be a JSON object: { ... })
+     * @return The parsed Map
+     */
+    public static Map<String, Object> jsonToMap(String json) {
+        if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
+            throw new IllegalArgumentException("Input must be a valid JSON object string.");
+        }
+        return gson.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
     }
 }
 
