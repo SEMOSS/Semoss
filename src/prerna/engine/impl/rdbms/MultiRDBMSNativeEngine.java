@@ -349,7 +349,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	}
 	
 	@Override
-	public void delete() throws IOException {
+	public void delete() {
 		classLogger.debug("Deleting Multi RDBMS Engine: " + this.engineName);
 		try {
 			close();

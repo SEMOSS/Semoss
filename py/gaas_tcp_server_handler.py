@@ -317,7 +317,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 "operation": data.get("operation", "N/A"),
             }
 
-            log_message = f"Final Output: {json.dumps(log, indent=4)}"
+            log_message = (
+                f"Final Output: {json.dumps(log, ensure_ascii=False, indent=4)}"
+            )
             self.prod_logger("------------- OUTPUT LOG - START ----------------\n")
             self.prod_logger(log_message)
             self.prod_logger("------------- OUTPUT LOG - END ----------------\n")
@@ -360,7 +362,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             }
             self.custom_dev_logger("---------- PAYLOAD SET LOG - START -----------\n")
             self.custom_dev_logger(
-                f"Payload Set For Thread - {json.dumps(payload_set_log, indent=4)}"
+                f"Payload Set For Thread - {json.dumps(payload_set_log, ensure_ascii=False, indent=4)}"
             )
             self.custom_dev_logger("---------- PAYLOAD SET LOG - END -------------\n")
 
@@ -498,7 +500,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             }
 
             formatted_log = json.dumps(
-                log_data, indent=4
+                log_data, ensure_ascii=False, indent=4
             )  # formatting log data to pretty format
 
             self.logger.info(
@@ -641,7 +643,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         self.custom_dev_logger("---------- SEND REQUEST LOG - START ---------\n")
         self.custom_dev_logger(
-            f"send_request(): REQUEST === {json.dumps(payload, indent=4)}"
+            f"send_request(): REQUEST === {json.dumps(payload, ensure_ascii=False, indent=4)}"
         )
         self.custom_dev_logger("---------- SEND REQUEST LOG - END -----------\n")
 
@@ -810,7 +812,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         )
         if payload["epoc"] in self.monitors:
             self.prod_logger(
-                f"\nhandle_response() -- Payload Response: {json.dumps(payload, indent=4)}"
+                f"\nhandle_response() -- Payload Response: {json.dumps(payload, ensure_ascii=False, indent=4)}"
             )
 
             condition = self.monitors[payload["epoc"]]
