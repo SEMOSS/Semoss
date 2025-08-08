@@ -1866,10 +1866,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-		
-	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId,String userId){
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @param userId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, String userId){
 	    SelectQueryStruct qs = new SelectQueryStruct();
- 
 	    qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 	    qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
 	    qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
@@ -1877,7 +1882,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	    qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
 	    qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
 	    qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
-	    qs.addRelation("PROJECTDEPENDENCIES__ENGINEID","ENGINE__ENGINEID","inner.join");
+	    qs.addRelation("PROJECTDEPENDENCIES__ENGINEID","ENGINE__ENGINEID", "inner.join");
 	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID","==", projectId));
 	    // ENGINEMETA sub-query
 	    {
@@ -1909,19 +1914,19 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	        qs.addSelector(new QueryColumnSelector("EP__PERMISSION","permission"));
 	        qs.addSelector(new QueryColumnSelector("EP__PERMISSION_NAME","permission_name"));
 	    }
-	 // ENGINEACCESSREQUEST sub-query
-		    {
-		    	  SelectQueryStruct engAccReqQs = new SelectQueryStruct();
-		    	  engAccReqQs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION","PERMISSION"));
-		    	  engAccReqQs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__ENGINEID","ENGINEID"));
-		    	  engAccReqQs.addRelation("ENGINEACCESSREQUEST__ENGINEID","ENGINE__ENGINEID","inner.join");
-		    	  engAccReqQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__REQUEST_USERID","==", userId));
-		    	  engAccReqQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__APPROVER_DECISION", "==", "NEW_REQUEST"));
-		    	 
-		    	  SubqueryRelationship engAReqRel = new SubqueryRelationship(engAccReqQs,"EAR","left.outer.join",new String[]{ "EAR__ENGINEID","ENGINE__ENGINEID","=" });
-			      qs.addRelation(engAReqRel);
-			      qs.addSelector(new QueryColumnSelector("EAR__PERMISSION","access_permission"));
-		    }
+	    // ENGINEACCESSREQUEST sub-query
+	    {
+	    	  SelectQueryStruct engAccReqQs = new SelectQueryStruct();
+	    	  engAccReqQs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION","PERMISSION"));
+	    	  engAccReqQs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__ENGINEID","ENGINEID"));
+	    	  engAccReqQs.addRelation("ENGINEACCESSREQUEST__ENGINEID","ENGINE__ENGINEID","inner.join");
+	    	  engAccReqQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__REQUEST_USERID","==", userId));
+	    	  engAccReqQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__APPROVER_DECISION", "==", "NEW_REQUEST"));
+	    	 
+	    	  SubqueryRelationship engAReqRel = new SubqueryRelationship(engAccReqQs,"EAR","left.outer.join",new String[]{ "EAR__ENGINEID","ENGINE__ENGINEID","=" });
+		      qs.addRelation(engAReqRel);
+		      qs.addSelector(new QueryColumnSelector("EAR__PERMISSION","access_permission"));
+	    }
 	    return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
