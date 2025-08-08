@@ -44,6 +44,8 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.Project;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.PostgresSqlInterpreter;
+import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -1360,7 +1362,7 @@ public class ModelInferenceLogsUtils {
 	          QueryFunctionSelector convert_selector = new QueryFunctionSelector();
 	          convert_selector.setFunction("CONVERT_FROM");
 	          convert_selector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
-	          convert_selector.addAdditionalParam(new Object[]{"noname", "'UTF-8'"});
+	          convert_selector.addInnerSelector(new QueryConstantSelector("UTF-8"));
 	          convert_selector.setDataType("TEXT");
 	          
 	          qs.addExplicitFilter(
@@ -1392,6 +1394,10 @@ public class ModelInferenceLogsUtils {
 
 		    qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
 		    qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
+		    
+		    SqlInterpreter sql = new PostgresSqlInterpreter();
+		    sql.setQueryStruct(qs);
+		    System.out.println(sql.composeQuery());
 		    
 		    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 		}
