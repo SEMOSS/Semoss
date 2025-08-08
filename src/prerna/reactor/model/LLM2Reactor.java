@@ -1,4 +1,4 @@
-package prerna.engine.impl.model;
+package prerna.reactor.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,6 +10,8 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -72,14 +74,14 @@ public class LLM2Reactor extends AbstractReactor {
         
         ///// MESSAGE CREATION //////////
 
-        MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
+        List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
         InputMessage msg;
         msg = InputMessage.builder(room)
         .withInputUIPrompt(question)
         .withInputPrompt(question)
         .withModelType(modelEngine.getModelType())
         .withParamMap(paramMap)
-        .withImages(inputImages, room)
+        .withImages(copiedImages, room)
         .withImageUrls(inputImageURLs)
         .build();
         

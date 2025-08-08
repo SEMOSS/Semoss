@@ -104,7 +104,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
@@ -1334,49 +1333,16 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
 
     /**
-     * Return the reactor based on the reactorId
-     * @param reactorId - reactor id or operation
-     * @param nodeString - full operation
+     * Return the reactor based on the reactorId. Will first check project specific reactors
+     * 
+     * @param reactorId -		Reactor id or operation
+     * @param nodeString - 		Full operation pixel string
      * @return	IReactor		A new instance of the reactor
      */
     protected IReactor getReactor(String reactorId, String nodeString) {
-    	
-    	// try to see if there is java files to be compiled
-    	//compileAllJava(insight.getInsightFolder());
-    	
-    	// oh wait why cant this be in reactor factory
-    	// because it doesn't have control of the insight
-    	// check if this is an insight specific DSL
-    	IReactor insightReactor = insight.getReactor(reactorId);
-    	if(insightReactor != null)
-    	{
-    		insightReactor.setPixel(reactorId, nodeString);
-    		return insightReactor;
-    	}
-    	/*
-    	if(insight != null && insight.getInsightFolder() != null) {
-    		// TODO: make this consistent... why is this added w/o any consideration of existing flows
-    		// just wasting peoples time having to debug
-    		IReactor insightReactor = ReactorFactory.getIReactor(insight.getInsightFolder(), reactorId);
-	    	if(insightReactor != null) {
-	    		// setting this here and not in rector factory .. inconsistent...
-	    		insightReactor.setPixel(reactorId, nodeString);
-	    		return insightReactor;
-	    	}
-    	} */
-    	
-    	if(this.currentFrame != null) {
-    		return ReactorFactory.getReactor(reactorId, nodeString, this.currentFrame, curReactor);
-    	}
-    	IDataMaker dataTable = null;
-    	if(this.insight != null) {
-    		dataTable = this.insight.getDataMaker();
-    	}
-    	if(dataTable != null) {
-    		return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) dataTable, curReactor);
-    	} else {
-    		return ReactorFactory.getReactor(reactorId, nodeString, null, curReactor);
-    	}
+    	IReactor newReactor = ReactorFactory.getReactor(this.insight, reactorId, this.curReactor, this.currentFrame);
+    	newReactor.setPixel(reactorId, nodeString);
+    	return newReactor;
     }
     
     //////////////////////////////////////////////////////////////////

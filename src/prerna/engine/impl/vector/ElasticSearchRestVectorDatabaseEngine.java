@@ -245,7 +245,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
-		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 
 		// construct search query
 		JsonObject search = new JsonObject();
@@ -342,35 +342,42 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 									knn.addProperty("k", limit);
 									// store key using the field name for the vector in parent
 									knn.addProperty("field", this.embeddings);
+									JsonObject filterParent = new JsonObject();
+									{
+										JsonObject filterBool = new JsonObject();
+										{
+											//filteration logic starts here
+											//filter contains simple or AND conditions
+											JsonArray filter = new JsonArray();
+
+											//should contains OR condition filters
+											JsonArray should = new JsonArray();
+
+											//must not contains not equals to filters
+											JsonArray must_not = new JsonArray();
+
+											List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
+											for(IQueryFilter queryFilter : filters) {
+												RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
+											}
+
+											filterBool.add("filter", filter);
+											filterBool.add("should", should);
+											filterBool.add("must_not", must_not);
+
+											if (should.size() > 1) {
+												filterBool.addProperty("minimum_should_match", 1);
+											}
+										}
+										filterParent.add("bool", filterBool);
+									}
+									knn.add("filter", filterParent);
 								}
 								knnParent.add("knn", knn);
 							}
 							must.add(knnParent);
 						}
 						bool.add("must", must);
-
-						//filteration logic starts here
-						//filter contains simple or AND conditions
-						JsonArray filter = new JsonArray();
-
-						//should contains OR condition filters
-						JsonArray should = new JsonArray();
-
-						//must not contains not equals to filters
-						JsonArray must_not = new JsonArray();
-
-						List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
-						for(IQueryFilter queryFilter : filters) {
-							RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
-						}
-
-						bool.add("filter", filter);
-						bool.add("should", should);
-						bool.add("must_not", must_not);
-
-						if (should.size() > 1) {
-							bool.addProperty("minimum_should_match", 1);
-						}
 					}
 					query.add("bool", bool);
 				}
@@ -448,7 +455,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 
 		List<Map<String, Object>> returnSources = new ArrayList<>();
 		for (JsonElement bucket : bucketsArr) {

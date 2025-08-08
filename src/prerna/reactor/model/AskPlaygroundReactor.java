@@ -1,11 +1,15 @@
-package prerna.engine.impl.model;
+package prerna.reactor.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -13,10 +17,15 @@ import com.google.gson.reflect.TypeToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.GetMCPToolsReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -37,9 +46,10 @@ public class AskPlaygroundReactor extends AbstractReactor {
             ReactorKeysEnum.CONTEXT.getKey(),
             ReactorKeysEnum.IMAGE.getKey(),
             ReactorKeysEnum.URL.getKey(),
-            ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
+            "mcpToolID",
+            ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
         };
-        this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0, 0, 0 };
     }
 
     @Override
@@ -65,10 +75,21 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
         List<String> inputImages = getImages();
         List<String> inputImageURLs = getImageURLs();
+        List<String> mcpToolIDs = getMCPToolIDs();
+        List<Map<String, Object>> tools = new ArrayList<Map<String, Object>>();
+        if(mcpToolIDs != null && !mcpToolIDs.isEmpty()) {
+        	for (String appId : mcpToolIDs) {
+        	    List<Map<String, Object>> toolJsons = getToolJson(appId);
+        	    if (toolJsons != null) {
+        	    	tools.addAll(toolJsons);
+        	    }
+        	}
+        }
+
         IModelEngine modelEngine = Utility.getModel(engineId);
 
         Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
-        MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
+        List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
         // ---- Build the InputMessage
         InputMessage msg = InputMessage.builder(room)
@@ -76,13 +97,21 @@ public class AskPlaygroundReactor extends AbstractReactor {
             .withInputPrompt(question)
             .withModelType(modelEngine.getModelType())
             .withParamMap(paramMap)
-            .withImages(inputImages, room)
+            .withImages(copiedImages, room)
             .withImageUrls(inputImageURLs)
+            .withTools(tools)
             .build();
 
         // ---- Actually run LLM call
         ResponseMessage response = room.ask(msg, context, modelEngine);
 
+        // parse the response for code blocks
+        if(response.getMessageType().equals(MessageType.RESPONSE_TEXT)) {
+        	response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
+			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
+					room.getMessagesAsString());
+        }
+        
         // ---- Return both messages as a Map
         Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
@@ -92,7 +121,37 @@ public class AskPlaygroundReactor extends AbstractReactor {
         return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
     }
 
-    // ------- image/file helpers, paramMap etc. ---------------
+    private List<Map<String, Object>> getToolJson(String appId) {
+        GetMCPToolsReactor getMCPToolsReactor = new GetMCPToolsReactor();
+        getMCPToolsReactor.In();
+
+        GenRowStruct grs1 = new GenRowStruct();
+        grs1.add(new NounMetadata(appId, PixelDataType.CONST_STRING));
+        getMCPToolsReactor.getNounStore().addNoun(ReactorKeysEnum.PROJECT.getKey(), grs1);
+        getMCPToolsReactor.setInsight(insight);
+
+        NounMetadata retNoun = getMCPToolsReactor.execute();
+        Object value = retNoun.getValue();
+        if (value instanceof JSONObject) {
+            JSONObject obj = (JSONObject)value;
+            if (obj.has("tools")) {
+                JSONArray arr = obj.getJSONArray("tools");
+                List<Map<String, Object>> result = new ArrayList<>();
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject toolObj = arr.getJSONObject(i);
+                    Map<String, Object> map = gson.fromJson(toolObj.toString(),
+                        new TypeToken<Map<String, Object>>() {}.getType());
+                    result.add(map);
+                }
+                return result;
+            }
+        }
+
+        // Fallback: always return an empty list if nothing found
+        return Collections.emptyList();
+    }
+
+	// ------- image/file helpers, paramMap etc. ---------------
     public List<String> getImages() {
         List<String> inputStrings = new ArrayList<>();
         GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
@@ -109,6 +168,19 @@ public class AskPlaygroundReactor extends AbstractReactor {
     public List<String> getImageURLs() {
         List<String> inputStrings = new ArrayList<>();
         GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
+    
+    public List<String> getMCPToolIDs() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun(this.keysToGet[6]);
         if (grs != null && !grs.isEmpty()) {
             int size = grs.size();
             for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());

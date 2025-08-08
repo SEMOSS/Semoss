@@ -1,10 +1,9 @@
 package prerna.engine.impl.model;
 
 import java.lang.reflect.Type;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,19 +26,13 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.util.Utility;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-
 
 /**
  * Utility methods for fetching and managing Room objects.
  * - createRoomIfNotExists: creates (if needed) and returns a Room
  * - getOrLoadRoom: looks up or loads room to memory hash, but never creates a Room
  */
-public class RoomUtils {
+public final class RoomUtils {
 
     private static final Logger logger = LogManager.getLogger(RoomUtils.class);
     
@@ -54,6 +47,7 @@ public class RoomUtils {
     public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question) {
     	return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null);
     }
+    
     /**
      * Ensures a Room exists: creates it if necessary, then loads it for the given user/insight.
      * @param roomId
@@ -101,7 +95,7 @@ public class RoomUtils {
                 IProject project = Utility.getProject(projectId);
                 projectName = project != null ? project.getProjectName() : null;
             }
-            String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : "untitled";
+            String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : null;
             ModelInferenceLogsUtils.doCreateNewConversation(
             		insight.getInsightId(), 
                     roomId,
@@ -177,7 +171,6 @@ public class RoomUtils {
         //write the message json to db
 		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
 				MessageUtils.toJsonArray(messages));		
-        
 	}
 
 	/**
@@ -287,6 +280,13 @@ public class RoomUtils {
         // Return the requested sublist
         // new ArrayList to ensure it's not a view of the original list
         return new ArrayList<>(copy.subList(startIdx, endIdx));
+    }
+    
+    /*
+     * Private constructor
+     */
+    private RoomUtils() {
+    	
     }
     
 }

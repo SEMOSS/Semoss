@@ -1,7 +1,8 @@
 services:
   semoss:
-    image: quay.io/semoss/semoss:4.3.2-ubuntu22-cuda
+    image: quay.io/semoss/semoss-dev:5.0.0-alpha-SNAPSHOT-ubuntu22-latest
     container_name: semoss
+    user: "1001:1001"
     ports:
       - "9090:8080"
     environment:
@@ -98,14 +99,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    volumes:
-      - semoss_db:/opt/semosshome/db
-      - semoss_project:/opt/semosshome/project
-      - semoss_model:/opt/semosshome/model
-      - semoss_vector:/opt/semosshome/vector
-      - semoss_storage:/opt/semosshome/storage
-      - semoss_function:/opt/semosshome/function
-      - semoss_guardrail:/opt/semosshome/guardrail
     networks:
       - mynetwork
 
@@ -157,13 +150,6 @@ services:
       - mynetwork
 
 volumes:
-  semoss_db:
-  semoss_project:
-  semoss_model:
-  semoss_vector:
-  semoss_storage:
-  semoss_function:
-  semoss_guardrail:
   pgdata:
   minio_data:
 

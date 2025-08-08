@@ -45,8 +45,9 @@ public class Room {
 	}
 
 	// Use this constructor if you want to load from JSON (as from DB)
-	public Room(String room_id, String userId, String roomName, String systemMessage, String shareId, boolean isActive, Timestamp createdAt,
-			Timestamp updatedAt, String messagesJson, boolean pinned, String options, String modelId) {
+	public Room(String room_id, String userId, String roomName, String systemMessage, String shareId, boolean isActive,
+			Timestamp createdAt, Timestamp updatedAt, String messagesJson, boolean pinned, String options,
+			String modelId) {
 		this.room_id = room_id;
 		this.userId = userId;
 		this.roomName = roomName;
@@ -59,10 +60,8 @@ public class Room {
 		this.options = options;
 		this.modelId = modelId;
 		this.messagesJson = messagesJson;
-		
-	    this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
-	    File folder = new File(this.roomFolderPath);
-	    folder.mkdirs();	 
+
+		this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
 		parseMessages();
 	}
 
@@ -70,14 +69,53 @@ public class Room {
 		setMessagesFromString(this.messagesJson);
 	}
 
-	
 	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine) {
-		
-		//if a specific system message is sent to use, overwrite the existing in the db. 
-		if(systemMessage != null) {
-			this.systemMessage=systemMessage;
-			ModelInferenceLogsUtils.setRoomContext(this.insight.getInsightId(), this.insight.getUser().getPrimaryLoginToken().getId() , systemMessage);
+
+		// if a specific system message is sent to use, overwrite the existing in the
+		// db.
+		if (systemMessage != null) {
+			this.systemMessage = systemMessage;
+			ModelInferenceLogsUtils.setRoomContext(this.insight.getInsightId(),
+					this.insight.getUser().getPrimaryLoginToken().getId(), systemMessage);
 		}
+	    Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
+	    AbstractModelEngine abstractModel = (AbstractModelEngine) modelEngine;
+
+	    // Determine useHistory: default true unless "use_history" is Boolean.FALSE or string "false"
+	    boolean useHistory = true;
+	    Object useHistoryObj = kwArgMap.get("use_history");
+	    if (useHistoryObj instanceof Boolean) {
+	        useHistory = (Boolean) useHistoryObj;
+	        kwArgMap.remove("use_history");
+	    } else if (useHistoryObj != null && "false".equalsIgnoreCase(useHistoryObj.toString())) {
+	        useHistory = false;
+	        kwArgMap.remove("use_history");
+	    }
+
+		// does the model have keep keep input output off or is use_history false? if so then just ask the model and send the response back. 
+
+	    if (!abstractModel.keepInputOutput || !useHistory) {
+	    	
+	    	String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
+	    	kwArgMap.put("message_json", singleMessageJson);
+
+	        AskModelEngineResponse llmResponse = modelEngine.askRoom(
+	            msg.getInputPrompt(), this.getSystemMessage(), this, kwArgMap
+	        );
+	        ResponseMessage response = ResponseMessage.Builder
+	            .fromAskModelEngineResponse(llmResponse)
+	            .build();
+	        response.setModel(modelEngine);
+	        response.setParentMessageId(msg.getMessageId());
+	        response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+	        return response;
+	    }
+		
+		//if we dont have to keep history. then wipe all previous messages. 
+		if(!abstractModel.keepConversationHistory) {
+			messages.clear();
+		}
+		
 		// Set model type and add message to history
 		msg.setModel(modelEngine);
 		// Set parentMessageId for this message
@@ -87,42 +125,64 @@ public class Room {
 		} else {
 			msg.setParentMessageId(null); // first message
 		}
-		
+
 		messages.add(msg);
-		
-		String messageJsonString;
-		if(Boolean.TRUE == msg.getParamMap().getOrDefault("use_history", Boolean.TRUE)) {
-			messageJsonString = getMessagesWithImageDataAsString();
-		} else {
-			messageJsonString = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
-		}
-		
-		Map<String, Object> kwArgMap =  new HashMap<>();
-		kwArgMap.putAll(msg.getParamMap());
+
+		String messageJsonString = getMessagesWithImageDataAsString();
+//		if (Boolean.TRUE == msg.getParamMap().getOrDefault("use_history", Boolean.TRUE)) {
+//			messageJsonString = getMessagesWithImageDataAsString();
+//		} else {
+//			messageJsonString = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
+//		}
+
 		kwArgMap.put("message_json", messageJsonString);
-		
-		AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this, kwArgMap);
+
+		AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,
+				kwArgMap);
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 
-		//set transaction id for both pieces
+		// set transaction id for both pieces
 		msg.setTransactionId(llmResponse.getMessageId());
 		msg.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
 		response.setTransactionId(llmResponse.getMessageId());
-		
+
 		// Create the assistant's response message and add to history
 		response.setModel(modelEngine);
 		response.setParentMessageId(msg.getMessageId());
 		response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
 		messages.add(response);
 
-		// Persist the message history
-		ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-				getMessagesAsString());
+		// Save the old (before) roomName for comparison
+		String prevRoomName = this.roomName;
+
+		// Try to infer/set roomName if missing
+		if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
+			for (AbstractMessage m : this.messages) {
+				if (m instanceof InputMessage) {
+					InputMessage im = (InputMessage) m;
+					String prompt = im.getInputUIPrompt();
+					if (prompt != null && !prompt.trim().isEmpty()) {
+						this.roomName = prompt.substring(0, Math.min(prompt.length(), 100));
+						break;
+					}
+				}
+			}
+		}
+
+		// Persist message history - room name was just updated
+		if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
+				&& !this.roomName.trim().isEmpty()) {
+			// Only update with room name if we just set it now!
+			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
+					getMessagesAsString(), this.roomName, modelEngine.getEngineId());
+		} else {
+			// Otherwise, regular update
+			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
+					getMessagesAsString());
+		}
 
 		return response;
 	}
-	
-	
 
 	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String tool_name,
 			String tool_execution_response, IModelEngine modelEngine, Insight insight) {
@@ -170,7 +230,8 @@ public class Room {
 		}
 
 		// 3. Add tool execution message
-		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, tool_name, tool_execution_response);
+		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, tool_name,
+				tool_execution_response);
 		toolExecution.setParentMessageId(toolResponse.getMessageId());
 		toolExecution.setModel(modelEngine);
 		messages.add(toolExecution);
@@ -186,11 +247,11 @@ public class Room {
 		for (int i = lastToolRespIdx + 1; i < messages.size(); ++i) {
 			AbstractMessage m = messages.get(i);
 			if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
-				InputMessage inputMessage = (InputMessage)m;
+				InputMessage inputMessage = (InputMessage) m;
 				toolCallId = inputMessage.getToolCallId();
 				if (toolCallId != null)
 					answeredIds.add(toolCallId);
-				}
+			}
 		}
 
 		if (insight != null) {
@@ -200,18 +261,13 @@ public class Room {
 
 		// 5. If all tool_call_ids fulfilled, trigger next model.ask
 		if (answeredIds.containsAll(allIds) && allIds.size() > 0) {
-			// Prepare full prompt (map all formatted messages)
-			List<Object> fullPrompt = new ArrayList<>();
-//			for (AbstractMessage m : messages) {
-//				fullPrompt.add(m.getFormattedMessage());
-//			}
+			String messageJsonString = getMessagesWithImageDataAsString();
 			Map<String, Object> params = new HashMap<>();
-			params.put("full_prompt", fullPrompt);
-			AskModelEngineResponse llmResponse = modelEngine.ask(null, null, insight, params);
+			params.put("message_json", messageJsonString);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, params);
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
-//			nextAssistant.getFormattedMessage();
 			messages.add(nextAssistant);
 
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
@@ -319,8 +375,6 @@ public class Room {
 	public String getRoomFolderPath() {
 		return roomFolderPath;
 	}
-	
-	
 
 	// Core message accessors
 	public List<AbstractMessage> getMessages() {
@@ -337,15 +391,15 @@ public class Room {
 	public String getMessagesAsString() {
 		return MessageUtils.toJsonArray(messages);
 	}
-	
-	// Serializes the message history to a JSON array for python exection 
+
+	// Serializes the message history to a JSON array for python exection
 	public String getMessagesWithImageDataAsString() {
 		return MessageUtils.toJsonArrayWithImageData(messages);
 	}
-	
+
 	// Deserialize from a JSON string (DB column) and populate the list
 	public void setMessagesFromString(String messagesJson) {
-		// Pull room folder -  Room folder is at BASE_FOLDER/roomid
+		// Pull room folder - Room folder is at BASE_FOLDER/roomid
 		ClusterUtil.pullRoom(this.room_id);
 		if (messagesJson == null || messagesJson.trim().isEmpty()) {
 			this.setMessages(new ArrayList<>());
@@ -370,15 +424,15 @@ public class Room {
 	public void setSystemMessage(String systemMessage) {
 		this.systemMessage = systemMessage;
 	}
-	
+
 	public String getMessageJson() {
 		return this.messagesJson;
 	}
 
-	// this should rarely be used. Really only if a Message object was created and then jsonified 
+	// this should rarely be used. Really only if a Message object was created and
+	// then jsonified
 	public void setMessagesJson(String messagesJson) {
 		this.messagesJson = messagesJson;
 	}
-	
-	
+
 }

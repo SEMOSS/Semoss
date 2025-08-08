@@ -26,7 +26,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.model.Room;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.storage.AbstractRCloneStorageEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
@@ -148,7 +147,7 @@ public class CentralCloudStorage implements ICloudClient {
 			CentralCloudStorage.VENV_CONTAINER_PREFIX = "semoss-venv";
 			CentralCloudStorage.PROJECT_CONTAINER_PREFIX = "project-";
 			CentralCloudStorage.USER_CONTAINER_PREFIX = "user-";
-			CentralCloudStorage.ROOM_CONTAINER_PREFIX = "semoss-room";
+			CentralCloudStorage.ROOM_CONTAINER_PREFIX = "semoss-room-";
 
 			
 		}
@@ -991,7 +990,7 @@ public class CentralCloudStorage implements ICloudClient {
 		
 		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
-		File localOwlF = SmssUtilities.getOwlFile(database.getSmssProp());
+		File localOwlF = SmssUtilities.getOwlFile(database.getSmssFilePath(), database.getSmssProp());
 		String localOwlFile = localOwlF.getAbsolutePath();
 		String localOwlPositionFile = localOwlF.getParent() + "/" + AbstractDatabaseEngine.OWL_POSITION_FILENAME;
 		boolean hasPositionFile = new File(localOwlPositionFile).exists();
@@ -1043,7 +1042,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		String localDatabaseFolder = EngineUtility.DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
 
-		File localOwlF = SmssUtilities.getOwlFile(database.getSmssProp());
+		File localOwlF = SmssUtilities.getOwlFile(database.getSmssFilePath(), database.getSmssProp());
 		String localOwlFile = localOwlF.getAbsolutePath();
 		String owlFileName = localOwlF.getName();
 		
@@ -1674,7 +1673,11 @@ public class CentralCloudStorage implements ICloudClient {
 
 	public void pushRoomFolderToCloud(String roomId) throws IOException, InterruptedException {
 		String localFolderPath=Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
-		centralStorageEngine.syncLocalToStorage(localFolderPath, ROOM_CONTAINER_PREFIX+ roomId, null);
+		
+		if(Utility.folderHasAnyFiles(localFolderPath)) {
+			centralStorageEngine.syncLocalToStorage(localFolderPath, ROOM_CONTAINER_PREFIX+ roomId, null);
+
+		}
 		}
 	
 	/////////////////////////////////////////////////////////////////////////////////

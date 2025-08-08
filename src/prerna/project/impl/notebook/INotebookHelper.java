@@ -4,6 +4,7 @@ import java.util.Map;
 
 import com.google.gson.JsonElement;
 
+import prerna.engine.api.IModelEngine;
 import prerna.om.Insight;
 import prerna.sablecc2.NotebookExecution;
 
@@ -37,6 +38,18 @@ public interface INotebookHelper {
 	 */
 	Map<String, String> getBlocksEngineDependencies();
 
+	/**
+	 * 
+	 * @return
+	 */
 	Map<String, String> getNotebookVariables();
 
+	/**
+	 * 
+	 * @param filePath
+	 * @param model
+	 * @param insight
+	 */
+	void createMcpJson(String filePath, IModelEngine model, Insight insight);
+	
 }

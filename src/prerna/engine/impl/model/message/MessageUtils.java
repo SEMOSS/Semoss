@@ -2,14 +2,19 @@ package prerna.engine.impl.model.message;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.lang.reflect.Type;
+import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,9 +29,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import prerna.date.SemossDate;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.gson.SemossDateAdapter;
+
 
 public class MessageUtils {
 
@@ -88,6 +96,18 @@ public class MessageUtils {
 
 	private static Logger logger = LogManager.getLogger(MessageUtils.class);
 
+	
+	private static final Pattern MARKDOWN_CODE_PATTERN = Pattern.compile("```" + // Opening backticks
+			"(?:([a-zA-Z0-9]+))?" + // Language (optional, group 1)
+			"(?:" + // Non-capturing group for title alternatives
+			"\\s+title=\"([^\"]+)\"" + // Either title="filename" (group 2)
+			"|\\s+([^\\s\\n]+)" + // Or direct filename (group 3)
+			")?" + // Title is optional
+			"\\s*\\n" + // Whitespace and mandatory newline
+			"(.*?)" + // Code content (group 4)
+			"```", // Closing backticks
+			Pattern.DOTALL);
+	
 	// ---- Serialization/Deserialization ----
 
 	// Deserialize a single message from JSON
@@ -220,35 +240,106 @@ public class MessageUtils {
 	
 	// ---- Image copy utilities  ----
 	public static List<String> copyFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
-		List<String> roomFilePaths = new ArrayList<>();
-		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
-			logger.info("No file paths provided to copy.");
-			return roomFilePaths;
-		}
-		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
-		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
-		Path targetDir = Paths.get(roomFolder);
-		try {
-			Files.createDirectories(targetDir);
-		} catch (IOException e) {
-			logger.warn("Failed to create room folder: " + targetDir, e);
-			return roomFilePaths;
-		}
-		for (String relPath : relativePathToFiles) {
-			File srcFile = new File(insightFolder, relPath);
-			if (!srcFile.exists() || !srcFile.isFile()) {
-				logger.info("Source file file does not exist in insight folder: " + srcFile.getAbsolutePath());
-				continue;
+	    List<String> copiedFileNames = new ArrayList<>();
+	    if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
+	        logger.info("No file paths provided to copy.");
+	        return copiedFileNames;
+	    }
+	    String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
+	    String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
+	    Path targetDir = Paths.get(roomFolder);
+	    try {
+	        Files.createDirectories(targetDir);
+	    } catch (IOException e) {
+	        logger.warn("Failed to create room folder: " + targetDir, e);
+	        return copiedFileNames;
+	    }
+	    for (String relPath : relativePathToFiles) {
+	        File srcFile = new File(insightFolder, relPath);
+	        if (!srcFile.exists() || !srcFile.isFile()) {
+	            logger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
+	            continue;
+	        }
+	        String fileName = srcFile.getName();
+	        Path destination = targetDir.resolve(fileName);
+	        try {
+	            Files.copy(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
+	            copiedFileNames.add(fileName); // only add if copy succeeded
+	        } catch (IOException e) {
+	            logger.warn("Failed to copy file: " + srcFile.getAbsolutePath() + " to " + destination, e);
+	        }
+	    }
+	    return copiedFileNames;
+	}
+	
+	// Method to parse markdown code blocks
+	public static ResponseMessage processMarkdownCodeBlocks(ResponseMessage responseMessage, IModelEngine modelEngine, Room room) {
+		String rawResponse = responseMessage.getContent();
+		
+		Map<String, CodeBlock> codeBlocks = new HashMap<>();
+		Matcher matcher = MARKDOWN_CODE_PATTERN.matcher(rawResponse);
+		StringBuffer modifiedResponse = new StringBuffer();
+
+		while (matcher.find()) {
+			String language = matcher.group(1) != null ? matcher.group(1).trim() : "";
+			// Check both title formats and use the first non-null one
+			String title = matcher.group(2) != null ? matcher.group(2).trim()
+					: matcher.group(3) != null ? matcher.group(3).trim() : "";
+			String code = matcher.group(4).trim();
+
+			String uuid = UUID.randomUUID().toString();
+
+			if (title == "") {
+				HashMap<String, Object> paramMap = new HashMap<String, Object>();
+				paramMap.put("use_history", "false");
+		        InputMessage msg = InputMessage.builder(room)
+		                .withInputUIPrompt("Given the following code block, give it a title: " + code + " Just give me the title")
+		                .withInputPrompt("Given the following code block, give it a title: " + code + " Just give me the title")
+		                .withModelType(modelEngine.getModelType())
+		                .withParamMap(paramMap)
+		                .build();
+		        
+		        ResponseMessage response = room.ask(msg, null, modelEngine);
+				title = response.getContent();
 			}
-			String fileName = srcFile.getName();
-			Path destination = targetDir.resolve(fileName);
-			try {
-				Files.copy(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException e) {
-				logger.warn("Failed to copy file: " + srcFile.getAbsolutePath() + " to " + destination, e);
-			}
-			roomFilePaths.add(destination.toString());
+
+			codeBlocks.put(uuid, new CodeBlock(language, code, title));
+
+			matcher.appendReplacement(modifiedResponse,
+					Matcher.quoteReplacement("<CODEBLOCK>" + uuid + "</CODEBLOCK>"));
 		}
-		return roomFilePaths;
+		matcher.appendTail(modifiedResponse);
+		
+		responseMessage.setOrnament("processedResponsed", modifiedResponse.toString());
+		responseMessage.setOrnament("codeBlocks", codeBlocks);
+		
+		return responseMessage;
+
+	}
+	
+
+	// Class to represent a code block
+	private static class CodeBlock {
+		private final String language;
+		private final String code;
+		private final String title;
+
+		public CodeBlock(String language, String code, String title) {
+			this.language = language;
+			this.code = code;
+			this.title = title;
+		}
+
+		public String getLanguage() {
+			return language;
+		}
+
+		public String getCode() {
+			return code;
+		}
+
+		public String getTitle() {
+			return title;
+		}
 	}
 }

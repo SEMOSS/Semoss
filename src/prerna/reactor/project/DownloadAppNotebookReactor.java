@@ -39,13 +39,15 @@ public class DownloadAppNotebookReactor extends AbstractReactor {
 		this.organizeKeys();
 		
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			// you don't have access
-			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
 		}
 		
 		IProject project = Utility.getProject(projectId);
 		List<File> notebookFiles = project.writeNotebooks();
+		if(notebookFiles == null) {
+			throw new IllegalArgumentException("The project is not a blocks based app");
+		}
 		File download = null;
 		if(notebookFiles.size() == 1) {
 			download = notebookFiles.get(0);
