@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Tuple, Union
+import base64
 from ...utils import (
     get_image_extension,
     fetch_and_encode_image,
@@ -11,20 +12,20 @@ from ..semoss_base.semoss_models import (
 )
 from .bedrock_models import (
     BedrockMessage,
-    BedrockContentBlock,
     BedrockImageBlock,
     BedrockImageSource,
     BedrockInferenceConfig,
     BedrockRequest,
     BedrockSystemBlock,
-    BedrockTextBlock,
+    BedrockTextContentBlock,
+    BedrockImageContentBlock,
 )
 
 
 class BedrockMessageBuilder:
     def build_messages(
         self, semoss_messages: List[SEMOSSMessage], system_prompt: str = None
-    ) -> Tuple[List[BedrockMessage], Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         bedrock_messages = []
         param_map = {}
         for i, message in enumerate(semoss_messages):
@@ -52,13 +53,26 @@ class BedrockMessageBuilder:
                     message.param_map
                 )
                 system_block = self.build_system_block(system_prompt)
+                param_map = self.clean_param_map(param_map)
 
         return BedrockRequest(
             messages=bedrock_messages,
             system=system_block,
             inferenceConfig=inference_config,
             additionalModelRequestFields=param_map,
-        )
+        ).model_dump(exclude_none=True, by_alias=True)
+
+    def clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
+        param_map.pop("max_completion_tokens", None)
+        param_map.pop("max_tokens", None)
+        param_map.pop("max_new_tokens", None)
+        param_map.pop("model_name", None)
+        param_map.pop("history", None)
+        param_map.pop("use_history", None)
+        param_map.pop("context", None)
+        param_map.pop("image_url", None)
+        param_map.pop("image_encoded", None)
+        return param_map
 
     def _message_type_to_role(self, message_type: SEMOSSMessageType) -> str:
         """Convert SEMOSS message type to Bedrock role."""
@@ -79,23 +93,23 @@ class BedrockMessageBuilder:
         else:
             raise ValueError(f"Unknown SEMOSS message type: {message_type}")
 
-    def _build_text_content_block(self, content: str) -> BedrockTextBlock:
+    def _build_text_content_block(self, content: str) -> BedrockTextContentBlock:
         """Build a text content block."""
-        return BedrockTextBlock(text=content)
+        return BedrockTextContentBlock(text=content)
 
     def _build_image_blocks(
         self, image_content: List[SEMOSSImageContent] = []
-    ) -> List[BedrockContentBlock]:
+    ) -> List[BedrockImageContentBlock]:
 
         bedrock_content_blocks = []
         for image in image_content:
             if image.type == SEMOSSImageType.URL:
                 image_block = self._build_url_image_content(image)
-                content_block = BedrockContentBlock(image=image_block)
+                content_block = BedrockImageContentBlock(image=image_block)
                 bedrock_content_blocks.append(content_block)
             elif image.type == SEMOSSImageType.BASE64:
                 image_block = self._build_base64_image_content(image)
-                content_block = BedrockContentBlock(image=image_block)
+                content_block = BedrockImageContentBlock(image=image_block)
                 bedrock_content_blocks.append(content_block)
             else:
                 raise ValueError(f"Unsupported SEMOSS image type: {image.type}")
@@ -111,6 +125,11 @@ class BedrockMessageBuilder:
             media_type = "image/jpeg"
 
         media_type = media_type.split("/")[-1].lower()
+
+        try:
+            img_bytes = base64.b64decode(img_bytes)
+        except Exception as e:
+            raise ValueError(f"Could not decode base64 image data: {e}")
 
         image_source = BedrockImageSource(bytes=img_bytes)
         return BedrockImageBlock(source=image_source, format=media_type)
@@ -129,7 +148,17 @@ class BedrockMessageBuilder:
             image_content.mime_type = "image/jpeg"
         media_type = image_content.mime_type.split("/")[-1].lower()
 
-        image_source = BedrockImageSource(bytes=image_content.data)
+        if image_content.data.startswith("data:"):
+            base64_data = image_content.data.split(",")[1]
+        else:
+            base64_data = image_content.data
+
+        try:
+            image_bytes = base64.b64decode(base64_data)
+        except Exception as e:
+            raise ValueError(f"Could not decode base64 image data: {e}")
+
+        image_source = BedrockImageSource(bytes=image_bytes)
         return BedrockImageBlock(source=image_source, format=media_type)
 
     def _build_request_parameters(
@@ -162,9 +191,9 @@ class BedrockMessageBuilder:
 
     def build_system_block(
         self, system_prompt: str = None
-    ) -> Union[BedrockSystemBlock, None]:
+    ) -> Union[List[BedrockSystemBlock], None]:
         """Build a system content block."""
         if system_prompt:
-            return BedrockSystemBlock(text=system_prompt)
+            return [BedrockSystemBlock(text=system_prompt)]
         else:
             return None

@@ -86,28 +86,30 @@ public class AddToMasterDB {
 
     /**
      * 
+     * @param smssFile
      * @param prop
      * @return
      */
-    public boolean registerEngineLocal(Properties prop) {
+    public boolean registerEngineLocal(String smssFile, Properties prop) {
         String engineId = prop.getProperty(Constants.ENGINE);
         if (engineId == null) {
             engineId = UUID.randomUUID().toString();
         }
-        return registerEngineLocal(prop, engineId);
+        return registerEngineLocal(smssFile, prop, engineId);
     }
 
     /**
      * 
+     * @param smssFile
      * @param prop
      * @param engineId
      * @return
      */
-    public boolean registerEngineLocal(Properties prop, String engineId) {
+    public boolean registerEngineLocal(String smssFile, Properties prop, String engineId) {
         // we want to load in the OWL for the engine we want to synchronize into the
         // the local master
         // get the owl relative path from the base folder to get the full path
-        String owlFile = SmssUtilities.getOwlFile(prop).getAbsolutePath();
+        String owlFile = SmssUtilities.getOwlFile(smssFile, prop).getAbsolutePath();
         if(!new File(owlFile).exists()) {
         	classLogger.warn("Attempting to load engine " + engineId + " into the local master but the OWL File does not exist");
         	return false;

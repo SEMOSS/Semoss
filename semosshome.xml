@@ -133,9 +133,6 @@
 			<source>quartz.properties</source>
 		</file>
 		<file>
-			<source>ver.txt</source>
-		</file>
-		<file>
 			<source>AuditModificationView.json</source>
 		</file>
 		<file>
