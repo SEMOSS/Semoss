@@ -74,6 +74,7 @@ import prerna.util.QueryExecutionUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class ModelInferenceLogsUtils {
 
@@ -1353,21 +1354,41 @@ public class ModelInferenceLogsUtils {
 		    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 
-		    QueryFunctionSelector castSelector = QueryFunctionSelector.makeFunctionSelector(
-		        "CAST",
-		        new QueryColumnSelector("MESSAGE__MESSAGE_DATA"),
-		        null
-		    );
-		    castSelector.setDataType("TEXT");
-
-		    qs.addExplicitFilter(
-		        SimpleQueryFilter.makeColToValFilter(
-		        	castSelector,
-		            "?like",
-		            keyword.toLowerCase(),
-		            PixelDataType.CONST_STRING
-		        )
-		    );
+		    if (modelInferenceLogsDb.getDbType().equals(RdbmsTypeEnum.POSTGRES)) {
+	          System.out.println("I'm here");
+	          
+	          QueryFunctionSelector convert_selector = new QueryFunctionSelector();
+	          convert_selector.setFunction("CONVERT_FROM");
+	          convert_selector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
+	          convert_selector.addAdditionalParam(new Object[]{"noname", "'UTF-8'"});
+	          convert_selector.setDataType("TEXT");
+	          
+	          qs.addExplicitFilter(
+	                SimpleQueryFilter.makeColToValFilter(
+	                  convert_selector,
+	                    "?like",
+	                    keyword.toLowerCase(),
+	                    PixelDataType.CONST_STRING
+	                )
+	            );
+	          
+	        } else { //assuming h2_db
+	          QueryFunctionSelector castSelector = QueryFunctionSelector.makeFunctionSelector(
+	                "CAST",
+	                new QueryColumnSelector("MESSAGE__MESSAGE_DATA"),
+	                null
+	            );
+	            castSelector.setDataType("TEXT");
+	
+	            qs.addExplicitFilter(
+	                SimpleQueryFilter.makeColToValFilter(
+	                  castSelector,
+	                    "?like",
+	                    keyword.toLowerCase(),
+	                    PixelDataType.CONST_STRING
+	                )
+	            );
+	        }
 
 		    qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
 		    qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
