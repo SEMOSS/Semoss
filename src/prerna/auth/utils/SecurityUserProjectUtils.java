@@ -87,6 +87,46 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		return null;
 	}
 	
+	public static String getActualGroupUserProjectPermission(User user, String projectId) {
+		//		String userFilters = getUserFilters(user);
+		//		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
+		//				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
+		//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
+				SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserGroupFiltersQs(user)));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null) {
+					int permission = ((Number) val).intValue();
+					return AccessPermissionEnum.getPermissionValueById(permission);
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		// see if project is public
+		if(SecurityProjectUtils.projectIsGlobal(projectId)) {
+			return AccessPermissionEnum.READ_ONLY.getPermission();
+		}
+
+		return null;
+	}
+	
 	/**
 	 * Get the project permissions for a specific user
 	 * @param singleUserId

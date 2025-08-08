@@ -294,7 +294,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getActualUserEnginePermission(User user, String engineId) {
-		return SecurityUserEngineUtils.getActualUserEnginePermission(user, engineId);
+		String userPermission = SecurityUserEngineUtils.getActualUserEnginePermission(user, engineId);
+		String groupUserPermission = SecurityUserEngineUtils.getActualGroupUserEnginePermission(user, engineId);
+		if(userPermission == null) {
+			return groupUserPermission;
+		}
+		else {
+			return userPermission;
+		}
 	}
 	
 	/**
@@ -2730,6 +2737,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", Arrays.asList(true, null), PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+			if(user.getPrimaryLoginToken().getUserGroups() != null) {
+				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserGroupFiltersQs(user)));
+			}
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");

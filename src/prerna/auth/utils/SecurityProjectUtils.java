@@ -852,7 +852,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getActualUserProjectPermission(User user, String projectId) {
-		return SecurityUserProjectUtils.getActualUserProjectPermission(user, projectId);
+		String userPermission = SecurityUserProjectUtils.getActualUserProjectPermission(user, projectId);
+		String groupUserPermission = SecurityUserProjectUtils.getActualGroupUserProjectPermission(user, projectId);
+		if(userPermission == null) {
+			return groupUserPermission;
+		}
+		else {
+			return userPermission;
+		}
 	}
 	
 	/**
@@ -2580,6 +2587,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			OrQueryFilter orFilter = new OrQueryFilter();
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+			if(user.getPrimaryLoginToken().getUserGroups() != null) {
+				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserGroupFiltersQs(user)));
+			}
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");

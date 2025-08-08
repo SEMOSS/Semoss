@@ -192,8 +192,9 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		for(AuthProvider login : logins) {
 			if(user.getAccessToken(login).getUserGroups().isEmpty()) {
 				continue;
+			}else {
+				anyUserGroups = true;
 			}
-			
 			AndQueryFilter andFilter = new AndQueryFilter();
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));

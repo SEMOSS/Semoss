@@ -73,6 +73,41 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		return null;
 	}
 	
+	public static String getActualGroupUserEnginePermission(User user, String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserGroupFiltersQs(user)));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null) {
+					int permission = ((Number) val).intValue();
+					return AccessPermissionEnum.getPermissionValueById(permission);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		// see if engine is public
+		if(SecurityEngineUtils.engineIsGlobal(engineId)) {
+			return AccessPermissionEnum.READ_ONLY.getPermission();
+		}
+		
+		return null;
+	}
+	
 	/**
 	 * Get the engine permissions for a specific user
 	 * @param singleUserId
