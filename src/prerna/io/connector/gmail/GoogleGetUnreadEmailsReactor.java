@@ -8,7 +8,6 @@ import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -17,7 +16,7 @@ public class GoogleGetUnreadEmailsReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GoogleGetUnreadEmailsReactor.class);
 	
 	public GoogleGetUnreadEmailsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.NUMBER.getKey() };
+		this.keysToGet = new String[] { "number" };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -40,14 +39,6 @@ public class GoogleGetUnreadEmailsReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to get the list of unread email";
-	}
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.NUMBER.getKey())) {
-	        return "The number of unread Google emails to get. " + ReactorKeysEnum.NUMBER.getKey();
-	    }
-	    return super.getDescriptionForKey(key);
 	}
 
 }

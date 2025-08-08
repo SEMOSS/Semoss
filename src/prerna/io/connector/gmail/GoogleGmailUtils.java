@@ -1,33 +1,43 @@
 package prerna.io.connector.gmail;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.HashMap;
+import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleGmailUtils {
-
-	private static final Logger classLogger = LogManager.getLogger(GoogleGmailUtils.class);
 	
 	public static String getGoogleAccessToken(User user) throws Exception {
-        String accessToken = null;
 
-        if (user == null) {
-        	classLogger.error("User not found in session.");
-            throw new SemossPixelException("User not found in session.");
-        }
+		String accessToken = null;
 
-        AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE);
-
-        if (googleToken == null) {
-        	classLogger.error("No Google Access Token fetched for user");
-            throw new SemossPixelException("No Google Access Token fetched.");
-        }
-
-        accessToken = googleToken.getAccess_token();
-        return accessToken;
-    }
+		try {
+			if (user == null) {
+				Map<String, Object> retMap = new HashMap<>();
+				retMap.put("type", "google");
+				retMap.put("message", "Please login to your Google account");
+				throwLoginError(retMap);
+			} else {
+				AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE);
+				accessToken = googleToken.getAccess_token();
+			}
+		} catch (Exception e) {
+			Map<String, Object> retMap = new HashMap<>();
+			retMap.put("type", "google");
+			retMap.put("message", "Please login to your Google account");
+			throwLoginError(retMap);
+		}
+		return accessToken;
+	}
+	
+	public static void throwLoginError(Map<String, Object> details) {
+		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(details, PixelOperationType.LOGGIN_REQUIRED_ERROR));
+		exception.setContinueThreadOfExecution(false);
+		throw exception;
+	}
 }

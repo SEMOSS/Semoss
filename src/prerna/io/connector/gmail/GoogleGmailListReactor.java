@@ -13,7 +13,6 @@ import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -34,7 +33,7 @@ public class GoogleGmailListReactor extends AbstractReactor {
 	private static final String GOOGLE_GMAIL_LIST_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages?labelIds=%s&maxResults=%d";
 
 	public GoogleGmailListReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.NUMBER.getKey() };
+		this.keysToGet = new String[] { "number" };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -95,14 +94,6 @@ public class GoogleGmailListReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to get the list of sent email";
-	}
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.NUMBER.getKey())) {
-	        return "The number of unread Google emails to get. " + ReactorKeysEnum.NUMBER.getKey();
-	    }
-	    return super.getDescriptionForKey(key);
 	}
 
 }

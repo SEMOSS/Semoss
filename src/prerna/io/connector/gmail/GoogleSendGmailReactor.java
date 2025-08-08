@@ -5,7 +5,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -14,7 +13,7 @@ public class GoogleSendGmailReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GoogleSendGmailReactor.class);
 
 	public GoogleSendGmailReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TOEMAIL.getKey(), ReactorKeysEnum.SUBJECT.getKey(), ReactorKeysEnum.BODY.getKey() };
+		this.keysToGet = new String[] { "toemail", "subject", "body" };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
@@ -40,18 +39,6 @@ public class GoogleSendGmailReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to send email.";
-	}
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.TOEMAIL.getKey())) {
-	        return "Event address of the receiver " + ReactorKeysEnum.TOEMAIL.getKey();
-	    } else if (key.equals(ReactorKeysEnum.SUBJECT.getKey())) {
-	        return "Subject of the Email " + ReactorKeysEnum.SUBJECT.getKey();
-	    } else if (key.equals(ReactorKeysEnum.BODY.getKey())) {
-	        return "Body of the Email " + ReactorKeysEnum.BODY.getKey();
-	    }
-	    return super.getDescriptionForKey(key);
 	}
 	
 }
