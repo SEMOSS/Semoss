@@ -1,6 +1,7 @@
 package prerna.reactor;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,6 +37,7 @@ import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IEngine;
 import prerna.forms.UpdateFormReactor;
 import prerna.io.connector.surveymonkey.SurveyMonkeyListSurveysReactor;
+import prerna.om.Insight;
 import prerna.poi.main.helper.excel.GetExcelFormReactor;
 import prerna.query.querystruct.delete.DeleteReactor;
 import prerna.query.querystruct.update.reactors.UpdateReactor;
@@ -224,7 +226,6 @@ import prerna.reactor.insights.save.SetInsightCacheableReactor;
 import prerna.reactor.insights.save.SetInsightNameReactor;
 import prerna.reactor.insights.save.UpdateInsightImageReactor;
 import prerna.reactor.insights.save.UpdateInsightReactor;
-import prerna.reactor.job.JobReactor;
 import prerna.reactor.masterdatabase.AllConceptualNamesReactor;
 import prerna.reactor.masterdatabase.CLPModelReactor;
 import prerna.reactor.masterdatabase.GetConceptPropertiesReactor;
@@ -348,7 +349,6 @@ import prerna.reactor.task.RemoveTaskReactor;
 import prerna.reactor.task.ResetTaskReactor;
 import prerna.reactor.task.TaskOptionsReactor;
 import prerna.reactor.task.TaskReactor;
-import prerna.reactor.task.lambda.map.MapLambdaReactor;
 import prerna.reactor.task.lambda.map.function.ApplyFormattingReactor;
 import prerna.reactor.task.modifiers.CodeLambdaReactor;
 import prerna.reactor.task.modifiers.FilterLambdaReactor;
@@ -422,43 +422,43 @@ public class ReactorFactory {
 	private static final Logger classLogger = LogManager.getLogger(ReactorFactory.class);
 	
 	// This holds the reactors that are frame agnostic and can be used by pixel
-	public static Map<String, Class> reactorHash;
+	public static Map<String, Class<? extends IReactor>> reactorHash;
 
 	// This holds the reactors that are expressions
 	// example Sum, Max, Min
 	// the reactors will handle how to execute
 	// if it can be run via the frame (i.e. sql/gremlin) or needs to run external
-	public static Map<String, Class> expressionHash;
+	public static Map<String, Class<? extends IReactor>> expressionHash;
 
 	// this holds that base package name for frame specific reactors
-	public static Map<String, Class> rFrameHash;
-	public static Map<String, Class> pandasFrameHash;
-	public static Map<String, Class> h2FrameHash;
-	public static Map<String, Class> tinkerFrameHash;
-	public static Map<String, Class> nativeFrameHash;
+	public static Map<String, Class<? extends IReactor>> rFrameHash;
+	public static Map<String, Class<? extends IReactor>> pandasFrameHash;
+	public static Map<String, Class<? extends IReactor>> h2FrameHash;
+	public static Map<String, Class<? extends IReactor>> tinkerFrameHash;
+	public static Map<String, Class<? extends IReactor>> nativeFrameHash;
 	
-	public static Map <String, Class> reactors = new HashMap<String, Class>();
+	public static Map <String, Class<? extends IReactor>> reactors = new HashMap<String, Class<? extends IReactor>>();
 	
 	public static List <String> nmList = new ArrayList<String>();
-	public static List <Class> classList = new ArrayList<Class>();
+	public static List <Class<? extends IReactor>> classList = new ArrayList<Class<? extends IReactor>>();
 	public static boolean write = true;
 	
 	static {
-		reactorHash = new HashMap<String, Class>();
+		reactorHash = new HashMap<String, Class<? extends IReactor>>();
 		createReactorHash(reactorHash);
 		// build expression hash
-		expressionHash = new HashMap<String, Class>();
+		expressionHash = new HashMap<String, Class<? extends IReactor>>();
 		populateExpressionSet(expressionHash);
 		// populate the frame specific hashes
-		rFrameHash = new HashMap<String, Class>();
+		rFrameHash = new HashMap<String, Class<? extends IReactor>>();
 		//populateRFrameHash(rFrameHash);
-		pandasFrameHash = new HashMap<String, Class>();
+		pandasFrameHash = new HashMap<String, Class<? extends IReactor>>();
 		//populatePandasFrameHash(pandasFrameHash);
-		h2FrameHash = new HashMap<String, Class>();
+		h2FrameHash = new HashMap<String, Class<? extends IReactor>>();
 		//populateH2FrameHash(h2FrameHash);
-		tinkerFrameHash = new HashMap<String, Class>();
+		tinkerFrameHash = new HashMap<String, Class<? extends IReactor>>();
 		//populateTinkerFrameHash(tinkerFrameHash);
-		nativeFrameHash = new HashMap<String, Class>();
+		nativeFrameHash = new HashMap<String, Class<? extends IReactor>>();
 		//populateNativeFrameHash(nativeFrameHash);
 
 		
@@ -635,10 +635,7 @@ public class ReactorFactory {
 	}
 */	
 	// populates the frame agnostic reactors used by pixel
-	private static void createReactorHash(Map<String, Class> reactorHash) {
-		// used to generate the base Job for the pksl commands being executed
-		reactorHash.put("Job", JobReactor.class); // defines the job
-
+	private static void createReactorHash(Map<String, Class<? extends IReactor>> reactorHash) {
 		// Import Reactors
 		// takes in a query struct and imports data to a new frame
 		reactorHash.put("Import", ImportReactor.class);
@@ -826,7 +823,6 @@ public class ReactorFactory {
 		// Task Operations
 		reactorHash.put("CodeLambda", CodeLambdaReactor.class);
 		reactorHash.put("FlatMapLambda", FlatMapLambdaReactor.class);
-		reactorHash.put("MapLambda", MapLambdaReactor.class);
 		reactorHash.put("FilterLambda", FilterLambdaReactor.class);
 		reactorHash.put("ToNumericType", ToNumericTypeReactor.class);
 		reactorHash.put("ToUrlType", ToUrlTypeReactor.class);
@@ -1161,11 +1157,11 @@ public class ReactorFactory {
 		reactorHash.put("YEAR", YearReactor.class);
 	}
 
-	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
+	private static void populateNativeFrameHash(Map<String, Class<? extends IReactor>> nativeFrameHash) {
 
 	}
 
-	private static void populateH2FrameHash(Map<String, Class> h2FrameHash) {
+	private static void populateH2FrameHash(Map<String, Class<? extends IReactor>> h2FrameHash) {
 		h2FrameHash.put("AddColumn", prerna.reactor.frame.rdbms.AddColumnReactor.class);
 		h2FrameHash.put("ChangeColumnType", prerna.reactor.frame.rdbms.ChangeColumnTypeReactor.class);
 		h2FrameHash.put("CountIf", prerna.reactor.frame.rdbms.CountIfReactor.class);
@@ -1182,7 +1178,7 @@ public class ReactorFactory {
 		h2FrameHash.put("TrimColumns", prerna.reactor.frame.rdbms.TrimColumnReactor.class);
 	}
 
-	private static void populateRFrameHash(Map<String, Class> rFrameHash) {
+	private static void populateRFrameHash(Map<String, Class<? extends IReactor>> rFrameHash) {
 		rFrameHash.put("AddColumn", prerna.reactor.frame.r.AddColumnReactor.class);
 		rFrameHash.put("AutoCleanColumn", prerna.reactor.frame.r.AutoCleanColumnReactor.class);
 		rFrameHash.put("ChangeColumnType", prerna.reactor.frame.r.ChangeColumnTypeReactor.class);
@@ -1247,7 +1243,7 @@ public class ReactorFactory {
 		rFrameHash.put("GetDQRules", GetDQRulesReactor.class);
 	}
 
-	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
+	private static void populateTinkerFrameHash(Map<String, Class<? extends IReactor>> tinkerFrameHash) {
 		tinkerFrameHash.put("ConnectedNodes", ConnectedNodesReactor.class);
 		tinkerFrameHash.put("RemoveIntermediaryNode", RemoveIntermediaryNodeReactor.class);
 		tinkerFrameHash.put("FindPathsConnectingNodes", FindPathsConnectingNodesReactor.class);
@@ -1258,7 +1254,7 @@ public class ReactorFactory {
 		tinkerFrameHash.put("NodeDetails", NodeDetailsReactor.class);
 	}
 	
-	private static void populatePandasFrameHash(Map<String, Class> pandasFrameHash) {
+	private static void populatePandasFrameHash(Map<String, Class<? extends IReactor>> pandasFrameHash) {
 		pandasFrameHash.put("ToUpperCase", prerna.reactor.frame.py.ToUpperCaseReactor.class);
 		pandasFrameHash.put("ToLowerCase", prerna.reactor.frame.py.ToLowerCaseReactor.class);
 		pandasFrameHash.put("ToProperCase", prerna.reactor.frame.py.ToProperCaseReactor.class);
@@ -1286,7 +1282,7 @@ public class ReactorFactory {
 		pandasFrameHash.put("DescriptiveStats", prerna.reactor.frame.py.DescriptiveStatsReactor.class);
 	}
 
-	private static void populateExpressionSet(Map<String, Class> expressionHash) {
+	private static void populateExpressionSet(Map<String, Class<? extends IReactor>> expressionHash) {
 		// excel like operations
 		expressionHash.put("SUM", OpSum.class);
 		expressionHash.put("AVERAGE", OpMean.class);
@@ -1326,18 +1322,39 @@ public class ReactorFactory {
 	}
 
 	/**
+	 * Get the new reactor instance. Attempts to first create the reactor from the project context
+	 * 
+	 * @param insight
+	 * @param reactorId
+	 * @param parentReactor
+	 * @param frame
+	 * @return
+	 */
+	public static IReactor getReactor(Insight insight, String reactorId, IReactor parentReactor, ITableDataFrame frame) {
+		if(insight != null) {
+			IReactor insightReactor = insight.getReactor(reactorId);
+	    	if(insightReactor != null) {
+	    		return insightReactor;
+	    	}
+		}
+    	if(frame == null && insight != null) {
+    		frame = (ITableDataFrame) insight.getDataMaker();
+    	}
+    	
+    	return getReactor(reactorId, frame, parentReactor);
+	}
+	
+	/**
 	 * 
 	 * @param reactorId
 	 *            - reactor name
-	 * @param nodeString
-	 *            - pixel
 	 * @param frame
 	 *            - frame we will be operating on
 	 * @param parentReactor
 	 *            - the parent reactor
 	 * @return
 	 * 
-	 * 		This will simply return the IReactor responsible for execution
+	 * 		   This will simply return the IReactor responsible for execution
 	 *         based on the reactorId
 	 * 
 	 *         Special case: if we are dealing with an expression, we determine
@@ -1347,8 +1364,12 @@ public class ReactorFactory {
 	 *         reactor to the expr reactor and return the expr reactor The expr
 	 *         reactor when executed will use that reducing expression reactor
 	 *         to evaluate
+	 * @throws SecurityException 
+	 * @throws NoSuchMethodException 
+	 * @throws InvocationTargetException 
+	 * @throws IllegalArgumentException 
 	 */
-	public static IReactor getReactor(String reactorId, String nodeString, ITableDataFrame frame, IReactor parentReactor) {
+	public static IReactor getReactor(String reactorId, ITableDataFrame frame, IReactor parentReactor) {
 		IReactor reactor = null;
 
 		try {
@@ -1357,10 +1378,14 @@ public class ReactorFactory {
 			// reducer or as a selector
 			if (expressionHash.containsKey(reactorId.toUpperCase())) {
 				// if this expression is not a selector
-				if (!(parentReactor instanceof AbstractQueryStructReactor) && 
-						!(parentReactor instanceof QuerySelectorExpressionAssimilator)) {
-					reactor = (IReactor) expressionHash.get(reactorId.toUpperCase()).newInstance();
-					reactor.setPixel(reactorId, nodeString);
+				if(parentReactor != null) {
+					if (!(parentReactor instanceof AbstractQueryStructReactor) && 
+							!(parentReactor instanceof QuerySelectorExpressionAssimilator)) {
+						reactor = (IReactor) expressionHash.get(reactorId.toUpperCase()).getDeclaredConstructor().newInstance();
+						return reactor;
+					}
+				} else {
+					reactor = (IReactor) expressionHash.get(reactorId.toUpperCase()).getDeclaredConstructor().newInstance();
 					return reactor;
 				}
 			}
@@ -1371,29 +1396,28 @@ public class ReactorFactory {
 				if (frame instanceof AbstractRdbmsFrame) {
 					// see if the hash contains the reactor id
 					if (h2FrameHash.containsKey(reactorId)) {
-						reactor = (IReactor) h2FrameHash.get(reactorId).newInstance();
+						reactor = (IReactor) h2FrameHash.get(reactorId).getDeclaredConstructor().newInstance();
 					}
 				} else if (frame instanceof RDataTable) {
 					if (rFrameHash.containsKey(reactorId)) {
-						reactor = (IReactor) rFrameHash.get(reactorId).newInstance();
+						reactor = (IReactor) rFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
 					}
 				} else if (frame instanceof TinkerFrame) {
 					if (tinkerFrameHash.containsKey(reactorId)) {
-						reactor = (IReactor) tinkerFrameHash.get(reactorId).newInstance();
+						reactor = (IReactor) tinkerFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
 					}
 				} else if (frame instanceof NativeFrame) {
 					if (nativeFrameHash.containsKey(reactorId)) {
-						reactor = (IReactor) nativeFrameHash.get(reactorId).newInstance();
+						reactor = (IReactor) nativeFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
 					}
 				} else if(frame instanceof PandasFrame) {
 					if (pandasFrameHash.containsKey(reactorId)) {
-						reactor = (IReactor) pandasFrameHash.get(reactorId).newInstance();
+						reactor = (IReactor) pandasFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
 					}
 				}
 				
 				// if we have retrieved a reactor from a frame hash
 				if (reactor != null) {
-					reactor.setPixel(reactorId, nodeString);
 					return reactor;
 				}
 			}
@@ -1403,11 +1427,10 @@ public class ReactorFactory {
 			// if not an expression
 			// search in the normal reactor hash
 			if (reactorHash.containsKey(reactorId)) {
-				reactor = (IReactor) reactorHash.get(reactorId).newInstance();
-				reactor.setPixel(reactorId, nodeString);
+				reactor = (IReactor) reactorHash.get(reactorId).getDeclaredConstructor().newInstance();
 				return reactor;
 			}
-		} catch (InstantiationException | IllegalAccessException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
@@ -1416,18 +1439,24 @@ public class ReactorFactory {
 		 * I will just create this as a generic function reactor 
 		 * that creates a function selector to return 
 		 */
-		if (parentReactor instanceof AbstractQueryStructReactor || parentReactor instanceof QuerySelectorExpressionAssimilator) {
-			reactor = new GenericSelectorFunctionReactor();
-			reactor.setPixel(reactorId, nodeString);
-			// set the fuction name
-			((GenericSelectorFunctionReactor) reactor).setFunction(reactorId);
-			return reactor;
+		if(parentReactor != null) {
+			if (parentReactor instanceof AbstractQueryStructReactor || parentReactor instanceof QuerySelectorExpressionAssimilator) {
+				reactor = new GenericSelectorFunctionReactor();
+				// set the fuction name
+				((GenericSelectorFunctionReactor) reactor).setFunction(reactorId);
+				return reactor;
+			}
 		}
 		
 		// ughhh... idk what you are trying to do
 		throw new IllegalArgumentException("Cannot find reactor for keyword = " + reactorId);
 	}
 	
+	/**
+	 * 
+	 * @param reactorId
+	 * @return
+	 */
 	public static boolean hasReactor(String reactorId) {
 		return reactorHash.containsKey(reactorId) || expressionHash.containsKey(reactorId.toUpperCase());
 	}
@@ -1441,7 +1470,7 @@ public class ReactorFactory {
 	 *            - the specific reactor hash object that we are building
 	 * 
 	 */
-	public static void buildReactorHashFromPropertyFile(Map<String, Class> hash, String propFile) {
+	public static void buildReactorHashFromPropertyFile(Map<String, Class<? extends IReactor>> hash, String propFile) {
 		// move info from the prop file into a Properties object
 		Properties properties = Utility.loadProperties(propFile);
 		// for each line in the file
@@ -1475,17 +1504,23 @@ public class ReactorFactory {
 		}
 		if(jsonData != null) {
 			for(String key : jsonData.keySet()) {
-				Map<String, Class> hash = getReactorsForType(key);
+				Map<String, Class<? extends IReactor>> hash = getReactorsForType(key);
 				if(hash != null) {
 					Map<String, String> reactorNameToClass = jsonData.get(key);
 					for(String reactorName : reactorNameToClass.keySet()) {
 						String classname = reactorNameToClass.get(reactorName);
-						Class reactor;
 						try {
-							reactor = (Class.forName(classname));
-							hash.put(reactorName, reactor);
-						} catch (ClassNotFoundException e) {
-							classLogger.warn("COULDN'T FIND THE REACTOR! " + classname);
+		                    // Load the class
+		                    Class<?> rawClass = Class.forName(classname);
+		                    // Verify it implements IReactor before casting
+		                    if (IReactor.class.isAssignableFrom(rawClass)) {
+		                        @SuppressWarnings("unchecked")
+		                        Class<? extends IReactor> reactorClass = (Class<? extends IReactor>) rawClass;
+		                        hash.put(reactorName, reactorClass);
+		                    } else {
+		                        classLogger.warn("Class " + classname + " does not implement IReactor interface!");
+		                    }
+		                } catch (ClassNotFoundException e) {
 							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
@@ -1494,7 +1529,7 @@ public class ReactorFactory {
 		}
 	}
 	
-	private static Map<String, Class> getReactorsForType(String key) {
+	private static Map<String, Class<? extends IReactor>> getReactorsForType(String key) {
 		key = key.toUpperCase();
 		if(key.equals("GENERAL")) {
 			return reactorHash;

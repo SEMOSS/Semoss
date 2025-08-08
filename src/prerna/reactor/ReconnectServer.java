@@ -25,9 +25,9 @@ public class ReconnectServer extends AbstractReactor {
 		}
 		// sadly, the logic right now requires we have a made cpw
 		// otherwise the reconnect method does nto 
-		ClientProcessWrapper cpw = user.getClientProcessWrapper();
+		ClientProcessWrapper cpw = user.getPythonClientProcessWrapper();
 		if(cpw == null || cpw.getSocketClient() == null) {
-			user.getSocketClient(true);
+			user.getPythonSocketClient(true);
 			return new NounMetadata("TCP Server was not initialized but is now started and connected", PixelDataType.CONST_STRING);
 		}
 		cpw.shutdown(false);
@@ -37,7 +37,7 @@ public class ReconnectServer extends AbstractReactor {
 			classLogger.error(Constants.STACKTRACE, e);
 			return new NounMetadata("Unable to restart TCP Server", PixelDataType.CONST_STRING);
 		}
-		SocketClient client = user.getSocketClient(false);
+		SocketClient client = user.getPythonSocketClient(false);
 		if(client == null || !client.isConnected()) {
 			return new NounMetadata("Unable to restart TCP Server", PixelDataType.CONST_STRING);
 		}

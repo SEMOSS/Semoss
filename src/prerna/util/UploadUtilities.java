@@ -205,7 +205,7 @@ public final class UploadUtilities {
 	 * @return
 	 */
 	public static File generateOwlFile(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) {
-		String owlLocation = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName) + "/";
+		String owlLocation = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId, engineName) + "/";
 		if(engineName != null) {
 			owlLocation += engineName;
 		} else {
@@ -225,17 +225,17 @@ public final class UploadUtilities {
 		File owlFile = new File(owlLocation);
 		if(!owlFile.exists()) {
 			try {
+				// check if the parent folder is there
+				if(!owlFile.getParentFile().exists()) {
+					owlFile.getParentFile().mkdirs();
+				}
 				owlFile.createNewFile();
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-
-		try {
-			writer = new FileWriter(owlFile);
-			bufferedWriter = new BufferedWriter(writer);
+		try (FileWriter writer = new FileWriter(owlFile); 
+				BufferedWriter bufferedWriter = new BufferedWriter(writer);){
 			bufferedWriter.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 			bufferedWriter.write("\n");
 			bufferedWriter.write("<rdf:RDF");
@@ -245,29 +245,12 @@ public final class UploadUtilities {
 			bufferedWriter.write("\txmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">");
 			bufferedWriter.write("\n");
 			bufferedWriter.write("</rdf:RDF>");
-			
+			bufferedWriter.flush();
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			try {
-				if(bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if(writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
 		}
 		
 		return owlFile;
-	}
-	
-	
-	public static String getRelativeOwlPath(File owlFile) {
-		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		return new File(baseDirectory).toURI().relativize(owlFile.toURI()).getPath();
 	}
 	
 	/**
@@ -1153,8 +1136,7 @@ public final class UploadUtilities {
 	private static void writeDefaultDatabaseSettings(BufferedWriter bufferedWriter, String databaseId, String databaseName, File owlFile, String className, final String newLine, final String tab) throws IOException {
 		writeDefaultEngineSettings(bufferedWriter, databaseId, databaseName, className, newLine, tab);
 		// write owl
-		String paramOwlLoc = getRelativeOwlPath(owlFile).replaceFirst(SmssUtilities.getUniqueName(databaseName, databaseId), SmssUtilities.ENGINE_REPLACEMENT);
-		bufferedWriter.write(Constants.OWL + tab + paramOwlLoc + newLine);
+		bufferedWriter.write(Constants.OWL + tab + owlFile.getName() + newLine);
 	}
 	
 
@@ -1997,5 +1979,4 @@ public final class UploadUtilities {
 		Map<String, Object> retMap = baseInfo.get(0);
 		return retMap;
 	}
-
 }

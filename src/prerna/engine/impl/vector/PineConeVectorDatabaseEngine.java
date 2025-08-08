@@ -16,8 +16,8 @@ import java.util.TreeSet;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.http.HttpHeaders;
-import org.apache.http.entity.ContentType;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -199,7 +199,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", documentName);
+			File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", documentName);
 			try {
 				if (documentFile.exists()) {
 					FileUtils.forceDelete(documentFile);
@@ -362,7 +362,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		List<Map<String, Object>> fileList = new ArrayList<>();
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 		if(documentsDir.exists() && documentsDir.isDirectory()) {
 			for(String fileName : sources) {
 				Map<String, Object> fileInfo = new HashMap<>();

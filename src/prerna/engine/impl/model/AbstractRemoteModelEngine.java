@@ -27,9 +27,11 @@ import prerna.cluster.util.RemoteClientServerZK;
 import prerna.cluster.util.RemoteClientServerZKRESTProxy;
 import prerna.cluster.util.ZKClientFactory;
 import prerna.engine.impl.model.kserve.KServeAdapter;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.RemoteModelStateEnum;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
@@ -524,4 +526,5 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 		return implementingEngineClass.instructCall(task, context, projectData, insight, hyperParameters);
 	}
+
 }

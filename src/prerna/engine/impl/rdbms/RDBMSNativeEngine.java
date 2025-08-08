@@ -850,7 +850,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	@Override
-	public void delete() throws IOException {
+	public void delete() {
 		classLogger.debug("Deleting RDBMS Engine: " + this.engineName);
 		try {
 			close();

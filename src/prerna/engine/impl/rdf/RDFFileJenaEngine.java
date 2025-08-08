@@ -52,6 +52,8 @@ import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
+import org.apache.jena.reasoner.Reasoner;
+import org.apache.jena.reasoner.ReasonerRegistry;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.update.UpdateAction;
@@ -61,6 +63,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDFDatabase;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -68,7 +71,7 @@ import prerna.util.Utility;
 /**
  * References the RDF source and uses the Jena API to query a database stored in an RDF file
  */
-public class RDFFileJenaEngine extends AbstractDatabaseEngine {
+public class RDFFileJenaEngine extends AbstractDatabaseEngine implements IRDFDatabase {
 	
 	private static final Logger classLogger = LogManager.getLogger(RDFFileJenaEngine.class);
 
@@ -250,33 +253,38 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 		this.jenaModel.commit();
 	}
 
-	
-	/**
-	 * Method addStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
-	 * @param subject String - RDF Subject
-	 * @param predicate String - RDF Predicate
-	 * @param object Object - RDF Object
-	 * @param concept boolean - True if the statement is a concept
-	 */
+	@Override
 	public void addStatement(Object[] args) {
 		processStatement(args, true);
 	}
 	
-	/**
-	 * Method removeStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
-	 * @param subject String - RDF Subject
-	 * @param predicate String - RDF Predicate
-	 * @param object Object - RDF Object
-	 * @param concept boolean - True if the statement is a concept
-	 */
+	@Override
 	public void removeStatement(Object[] args) {
 		processStatement(args, false);
 	}
 	
+	@Override
+	public void bulkInsert(List<Object[]> args) {
+		for(Object[] obj : args) {
+			processStatement(obj, true);
+		}
+	}
+
+	@Override
+	public void bulkRemoval(List<Object[]> args) {
+		for(Object[] obj : args) {
+			processStatement(obj, false);
+		}		
+	}
+	
 	/**
-	 * 
-	 * @param args
-	 * @param add
+	 * Adds or removes a triple from the sail connection
+	 * @param args array contains the following
+	 * 				subject String - RDF Subject
+	 * 				predicate String - RDF Predicate
+	 * 				object Object - RDF Object
+	 * 				concept boolean - True if the statement is a concept (URI), False if it is a property (Literal)
+	 * @param add	if we are adding or removing the triple
 	 */
 	private void processStatement(Object[] args, boolean add) {
 		String subject = args[0]+"";
@@ -330,4 +338,22 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	public Model getJenaModel() {
 		return this.jenaModel;
 	}
+
+	@Override
+	public void infer() {
+		// Create an RDFS reasoner
+		Reasoner reasoner = ReasonerRegistry.getRDFSReasoner();
+		// Create an inferred model by binding the reasoner to the TDB2 model
+		Model inferredModel = ModelFactory.createInfModel(reasoner, this.jenaModel);
+		// Add inferred triples to the base model
+		this.jenaModel.add(inferredModel);
+		this.jenaModel.commit();
+	}
+
+	@Override
+	public void exportDB() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+	
 }

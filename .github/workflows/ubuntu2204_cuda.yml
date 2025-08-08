@@ -68,9 +68,12 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.nvidia.cuda.12.5.1.ubuntu22.04
           push: true
+          pull: true
           tags: quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}  
           no-cache: true
-      
+          build-args: |
+            SEMOSS_VERSION=${{ vars.VERSION }}
+
       - name: Build and push Ubuntu Docker image - Non-Release Build
         if: ${{ vars.RELEASE == 'false' }}
         uses: docker/build-push-action@v2
@@ -78,7 +81,10 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.nvidia.cuda.12.5.1.ubuntu22.04
           push: true
+          pull: true
           tags: | 
             quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}  
             quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}  
           no-cache: true
+          build-args: |
+            SEMOSS_VERSION=${{ vars.VERSION }}-SNAPSHOT
