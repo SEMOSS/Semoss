@@ -9,6 +9,8 @@ public interface IEngine extends Closeable {
 
 	String METADATA_FILE_SUFFIX = "_metadata.json";
 	
+	String PIPELINE = "PIPELINE";
+	
 	enum CATALOG_TYPE {
 		DATABASE,
 		STORAGE,
@@ -132,5 +134,17 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	Map<String, Object> buildBedrockToolSpec();
+
+	/**
+	 * True when engine should not have assets
+	 * @return
+	 */
+	boolean isBasic();
+
+	/**
+	 * True when engine should not have assets
+	 * @param isBasic
+	 */
+	void setBasic(boolean isBasic);
 	
 }

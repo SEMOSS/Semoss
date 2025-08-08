@@ -1,5 +1,26 @@
 package prerna.engine.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Properties;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,6 +31,7 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IEngine;
@@ -21,19 +43,6 @@ import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Properties;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 public class SmssUtilitiesUnitTests {
 
@@ -54,8 +63,9 @@ public class SmssUtilitiesUnitTests {
 
     @Test
     void testGetOwlFileNull() {
+    	//TODO: fix null input 
         Properties prop = new Properties();
-        File f = SmssUtilities.getOwlFile(prop);
+        File f = SmssUtilities.getOwlFile(null, prop);
         assertNull(f);
     }
 
@@ -67,7 +77,8 @@ public class SmssUtilitiesUnitTests {
         Files.createFile(p);
         prop.setProperty(Constants.OWL, p.toAbsolutePath().toString());
 
-        File f = SmssUtilities.getOwlFile(prop);
+    	//TODO: fix null input 
+        File f = SmssUtilities.getOwlFile(null, prop);
         assertNotNull(f);
         assertTrue(f.exists());
     }
