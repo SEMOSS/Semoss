@@ -2660,4 +2660,23 @@
 
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
+
+	<reporting>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.6.3</version>
+				<configuration>
+					<source>21</source>
+					<target>21</target>
+					<encoding>cp1252</encoding>
+					<show>private</show>
+					<nohelp>true</nohelp>
+					<failOnError>false</failOnError>
+					<additionalJOption>-Xdoclint:none</additionalJOption>
+				</configuration>
+			</plugin>
+		</plugins>
+	</reporting>
 </project>
