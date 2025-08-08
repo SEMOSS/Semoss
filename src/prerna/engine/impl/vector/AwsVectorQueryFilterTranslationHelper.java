@@ -84,7 +84,6 @@ public class AwsVectorQueryFilterTranslationHelper {
             case ">=": return "$gte";
             case "<":  return "$lt";
             case "<=": return "$lte";
-            case "=": return "$in";
             default: throw new IllegalArgumentException("Unsupported comparator: " + raw);
         }
     }

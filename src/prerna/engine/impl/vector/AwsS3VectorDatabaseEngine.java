@@ -215,7 +215,7 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	        indexClass = (String) parameters.get("indexClass");
 	    }
 
-	    final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR
+	    final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
 	            + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 
 	    // 1. List vectors from S3 Vector DB
@@ -431,7 +431,7 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			indexClass = (String) parameters.get("indexClass");
 		}
 	
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
 				+ DOCUMENTS_FOLDER_NAME);
 	
 		List<Map<String, Object>> filesInS3Vector = new ArrayList<>();
