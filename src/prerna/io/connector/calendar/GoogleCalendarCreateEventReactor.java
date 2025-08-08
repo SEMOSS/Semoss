@@ -14,9 +14,9 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarCreateEventReactor.class);
 
 	public GoogleCalendarCreateEventReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.SUMMARY.getKey(), ReactorKeysEnum.LOCATION.getKey(),
-				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.STARTDATE.getKey(),
-				ReactorKeysEnum.ENDDATE.getKey(), ReactorKeysEnum.EMAIL.getKey(), ReactorKeysEnum.VIDEO.getKey() };
+		this.keysToGet = new String[] { "summary", "location",
+				ReactorKeysEnum.DESCRIPTION.getKey(), "startDate",
+				"endDate", "email", "video" };
 		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 1, 1 };
 	}
 
@@ -63,20 +63,8 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 	
 	@Override
 	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.SUMMARY.getKey())) {
-	        return "Event summary or title " + ReactorKeysEnum.SUMMARY.getKey();
-	    } else if (key.equals(ReactorKeysEnum.LOCATION.getKey())) {
-	        return "Location where the event will take place " + ReactorKeysEnum.LOCATION.getKey();
-	    } else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+	    if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
 	        return "Detailed description of the event " + ReactorKeysEnum.DESCRIPTION.getKey();
-	    } else if (key.equals(ReactorKeysEnum.STARTDATE.getKey())) {
-	        return "Event start date and time " + ReactorKeysEnum.STARTDATE.getKey();
-	    } else if (key.equals(ReactorKeysEnum.ENDDATE.getKey())) {
-	        return "Event end date and time " + ReactorKeysEnum.ENDDATE.getKey();
-	    } else if (key.equals(ReactorKeysEnum.EMAIL.getKey())) {
-	        return "Email address of the attendee or organizer " + ReactorKeysEnum.EMAIL.getKey();
-	    } else if (key.equals(ReactorKeysEnum.VIDEO.getKey())) {
-	        return "Video conference link or meeting URL " + ReactorKeysEnum.VIDEO.getKey();
 	    }
 	    return super.getDescriptionForKey(key);
 	}

@@ -18,10 +18,10 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 	private static final String STATUS_KEY = "status";
 	
 	public GoogleCalendarUpdateEventReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.SUMMARY.getKey(), ReactorKeysEnum.LOCATION.getKey(),
-				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.STARTDATE.getKey(),
-				ReactorKeysEnum.ENDDATE.getKey(), ReactorKeysEnum.VIDEO.getKey(), ReactorKeysEnum.EMAIL.getKey(), ReactorKeysEnum.ID.getKey(), 
-				ReactorKeysEnum.FREQUENCY.getKey(), ReactorKeysEnum.UNTIL.getKey()};
+		this.keysToGet = new String[] { "summary", "location",
+				ReactorKeysEnum.DESCRIPTION.getKey(), "startDate",
+				"endDate", "video", "email", ReactorKeysEnum.ID.getKey(), 
+				"frequency", "until" };
 		this.keyRequired = new int[] { 0, 0, 0, 1, 1, 0, 0, 1, 0, 0 };
 	}
 
@@ -92,27 +92,11 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 	
 	@Override
 	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.SUMMARY.getKey())) {
-	        return "Updated event summary or title " + ReactorKeysEnum.SUMMARY.getKey();
-	    } else if (key.equals(ReactorKeysEnum.LOCATION.getKey())) {
-	        return "Updated location for the event " + ReactorKeysEnum.LOCATION.getKey();
-	    } else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+	    if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
 	        return "Updated description of the event " + ReactorKeysEnum.DESCRIPTION.getKey();
-	    } else if (key.equals(ReactorKeysEnum.STARTDATE.getKey())) {
-	        return "Updated start date and time (RFC3339 format) " + ReactorKeysEnum.STARTDATE.getKey();
-	    } else if (key.equals(ReactorKeysEnum.ENDDATE.getKey())) {
-	        return "Updated end date and time (RFC3339 format) " + ReactorKeysEnum.ENDDATE.getKey();
-	    } else if (key.equals(ReactorKeysEnum.VIDEO.getKey())) {
-	        return "Updated video conference link or meeting URL " + ReactorKeysEnum.VIDEO.getKey();
-	    } else if (key.equals(ReactorKeysEnum.EMAIL.getKey())) {
-	        return "Updated email address of the attendee or organizer " + ReactorKeysEnum.EMAIL.getKey();
 	    } else if (key.equals(ReactorKeysEnum.ID.getKey())) {
 	        return "Unique identifier of the event to be updated " + ReactorKeysEnum.ID.getKey();
-	    } else if (key.equals(ReactorKeysEnum.FREQUENCY.getKey())) {
-	        return "Updated Recurrence frequency " + ReactorKeysEnum.FREQUENCY.getKey();
-	    } else if (key.equals(ReactorKeysEnum.UNTIL.getKey())) {
-	        return "Updated Date until which the event recurs " + ReactorKeysEnum.UNTIL.getKey();
-	    } 
+	    }
 	    return super.getDescriptionForKey(key);
 	}
 

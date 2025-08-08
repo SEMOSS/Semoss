@@ -15,10 +15,9 @@ public class GoogleCalendarRecurringEventReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarRecurringEventReactor.class);
 
 	public GoogleCalendarRecurringEventReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.SUMMARY.getKey(), ReactorKeysEnum.LOCATION.getKey(),
-				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.STARTDATE.getKey(),
-				ReactorKeysEnum.ENDDATE.getKey(), ReactorKeysEnum.EMAIL.getKey(), ReactorKeysEnum.FREQUENCY.getKey(),
-				ReactorKeysEnum.UNTIL.getKey(), ReactorKeysEnum.VIDEO.getKey()};
+		this.keysToGet = new String[] { "summary", "location",
+				ReactorKeysEnum.DESCRIPTION.getKey(), "startDate",
+				"endDate", "email", "frequency", "until", "video"};
 		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 	}
 
@@ -65,24 +64,8 @@ public class GoogleCalendarRecurringEventReactor extends AbstractReactor {
 	
 	@Override
 	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.SUMMARY.getKey())) {
-	        return "Event summary or title " + ReactorKeysEnum.SUMMARY.getKey();
-	    } else if (key.equals(ReactorKeysEnum.LOCATION.getKey())) {
-	        return "Location where the event will take place " + ReactorKeysEnum.LOCATION.getKey();
-	    } else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+	    if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
 	        return "Detailed description of the event " + ReactorKeysEnum.DESCRIPTION.getKey();
-	    } else if (key.equals(ReactorKeysEnum.STARTDATE.getKey())) {
-	        return "Event start date and time (RFC3339 format) " + ReactorKeysEnum.STARTDATE.getKey();
-	    } else if (key.equals(ReactorKeysEnum.ENDDATE.getKey())) {
-	        return "Event end date and time (RFC3339 format) " + ReactorKeysEnum.ENDDATE.getKey();
-	    } else if (key.equals(ReactorKeysEnum.EMAIL.getKey())) {
-	        return "Email address of the attendee or organizer " + ReactorKeysEnum.EMAIL.getKey();
-	    } else if (key.equals(ReactorKeysEnum.FREQUENCY.getKey())) {
-	        return "Recurrence frequency (e.g., DAILY, WEEKLY, MONTHLY) " + ReactorKeysEnum.FREQUENCY.getKey();
-	    } else if (key.equals(ReactorKeysEnum.UNTIL.getKey())) {
-	        return "Date until which the event recurs (RFC3339 format) " + ReactorKeysEnum.UNTIL.getKey();
-	    } else if (key.equals(ReactorKeysEnum.VIDEO.getKey())) {
-	        return "Video conference link or meeting URL " + ReactorKeysEnum.VIDEO.getKey();
 	    }
 	    return super.getDescriptionForKey(key);
 	}

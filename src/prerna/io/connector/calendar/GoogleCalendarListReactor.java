@@ -12,7 +12,6 @@ import com.google.gson.GsonBuilder;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -44,7 +43,7 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 	private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 	
 	public GoogleCalendarListReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.STARTDATE.getKey(), ReactorKeysEnum.ENDDATE.getKey()};
+		this.keysToGet = new String[] { "startDate", "endDate" };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -128,13 +127,4 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 		return "This reactor is used to get the list of events.";
 	}
 	
-	@Override
-	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.STARTDATE.getKey())) {
-	        return "Start date and time for retrieving events " + ReactorKeysEnum.STARTDATE.getKey();
-	    } else if (key.equals(ReactorKeysEnum.ENDDATE.getKey())) {
-	        return "End date and time for retrieving events " + ReactorKeysEnum.ENDDATE.getKey();
-	    }
-	    return super.getDescriptionForKey(key);
-	}
 }
