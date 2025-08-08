@@ -152,32 +152,36 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				continue;
 			}
 			
-			if(!vectorF.getCanonicalPath().contains(documentDir.getCanonicalPath()+FILE_SEPARATOR)) {
+			Path vectorFPath = vectorF.toPath().toAbsolutePath().normalize();
+			Path documentDirPath = documentDir.toPath().toAbsolutePath().normalize();
+			Path indexFilesDirPath = indexFilesDir.toPath().toAbsolutePath().normalize();
+
+			if (!vectorFPath.startsWith(documentDirPath)) {
 				File documentDestinationFile = new File(documentDir, vectorF.getName());
 				// check if the destination file exists, and if so, delete it 
 				try {
 					if (documentDestinationFile.exists()) {
 						FileUtils.forceDelete(documentDestinationFile);
 					}
-					
-					//only copy the csv if there is not already a file there with the same name
-		             String baseName = FilenameUtils.getBaseName(vectorF.getName());
 
-		             // Check if a file with the same base name but different extension exists
-		             boolean fileWithSameBaseNameExists = Arrays.stream(documentDir.listFiles())
-		                     .anyMatch(file -> FilenameUtils.getBaseName(file.getName()).equals(baseName));
-		             if(!fileWithSameBaseNameExists) {
-		            	 FileUtils.copyFileToDirectory(vectorF, documentDir, true);
+					//only copy the csv if there is not already a file there with the same name
+					String baseName = FilenameUtils.getBaseName(vectorF.getName());
+
+					// Check if a file with the same base name but different extension exists
+					boolean fileWithSameBaseNameExists = Arrays.stream(documentDir.listFiles())
+							.anyMatch(file -> FilenameUtils.getBaseName(file.getName()).equals(baseName));
+					if(!fileWithSameBaseNameExists) {
+						FileUtils.copyFileToDirectory(vectorF, documentDir, true);
 						// store to move to cloud
 						filesToCopyToCloud.add(documentDestinationFile.getAbsolutePath());
-		             }
-
+					}
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to remove previously created file for " + documentDestinationFile.getName() + " or move it to the document directory");
 				}
 			}
-			if(!vectorF.getCanonicalPath().contains(indexFilesDir.getCanonicalPath()+FILE_SEPARATOR)) {
+			
+			if(!vectorFPath.startsWith(indexFilesDirPath)) {
 				File indexDestinationFile = new File(indexFilesDir, vectorF.getName());
 				// check if the destination file exists, and if so, delete it
 				try {
