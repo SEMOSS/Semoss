@@ -45,7 +45,6 @@ import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
-
 public class PythonVenvEngine extends AbstractVenvEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(PythonVenvEngine.class);
@@ -449,4 +448,15 @@ public class PythonVenvEngine extends AbstractVenvEngine {
     		return  this.localVenvVersionFolder;
     	}
 	}
+	
+	@Override
+	public boolean isBasic() {
+		return false;
+	}
+	
+	@Override
+	public void setBasic(boolean isBasic) {
+		// always false
+	}
+	
 }

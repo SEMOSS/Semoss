@@ -177,7 +177,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
         }
         
 		// highest directory (first layer inside vector db base folder)
-		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
+		String engineDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
 		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
 		
 		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
