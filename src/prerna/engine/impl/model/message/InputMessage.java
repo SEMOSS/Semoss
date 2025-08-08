@@ -339,6 +339,7 @@ public class InputMessage extends AbstractMessage {
             message.toolCallId = toolCallId;
             message.toolName = name;
             message.setInputUIPrompt(content);
+            message.setInputPrompt(content);
             message.setMessageType(MessageType.INPUT_TOOL_EXEC);
             return this;
         }

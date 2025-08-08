@@ -55,7 +55,7 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.ProjectUtils;
+import prerna.util.InsightsRDBMSUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -599,8 +599,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IProject project = Utility.getProject(projectId);
 		RdbmsTypeEnum insightType = project.getInsightDatabase().getQueryUtil().getDbType();
 		
-		RDBMSNativeEngine newInsightDatabase = ProjectUtils.generateInsightsDatabase(projectId, insightType, folderPath);
-		ProjectUtils.runInsightCreateTableQueries(newInsightDatabase);
+		RDBMSNativeEngine newInsightDatabase = InsightsRDBMSUtils.generateInsightsDatabase(projectId, insightType, folderPath);
+		InsightsRDBMSUtils.runInsightCreateTableQueries(newInsightDatabase);
 		
 		InsightAdministrator admin = new InsightAdministrator(newInsightDatabase);
 		{

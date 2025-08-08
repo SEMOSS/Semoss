@@ -97,19 +97,13 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
     def ask_call(
         self,
-        question: str = None,
-        context: str = None,
-        use_history: bool = True,
-        history: List[Dict] = None,
         prefix="",
         **kwargs,
     ):
         if self.client is None:
             raise ValueError("Anthropic client is not initialized.")
 
-        self.ask_settings = self.get_ask_settings(
-            history, use_history, context, **kwargs
-        )
+        self.ask_settings = self.get_ask_settings(self.model_settings, **kwargs)
 
         # Handling new history format through message_json
         if self.ask_settings.semoss_messages:
@@ -121,10 +115,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         # Handling standard ask with question and legacy history
         else:
-            msg_history = self._handle_standard_ask(
-                question=question,
-                **kwargs,
-            )
+            msg_history = self._handle_standard_ask(**kwargs)
 
         if self.ask_settings.streaming:
             response = self._handle_streaming(prefix=prefix, msg_history=msg_history)
@@ -165,7 +156,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
 
         self.request_config = self._convert_args_to_provider_config(
-            context=self.ask_settings.system_prompt,
             history=msg_history,
             **param_map,
         )
@@ -185,23 +175,21 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             self.ask_settings.system_prompt = system_prompt_from_history
 
         self.request_config = self._convert_args_to_provider_config(
-            context=self.ask_settings.system_prompt,
             history=msg_history,
             **kwargs,
         )
 
         return msg_history
 
-    def _handle_standard_ask(self, question: str, **kwargs):
+    def _handle_standard_ask(self, **kwargs):
         """This method will change when we go to the new history format"""
         msg_history, system_prompt_from_history = self._convert_history(
-            question=question,
+            question=kwargs.get("question"),
         )
         if system_prompt_from_history and not self.ask_settings.system_prompt:
             self.ask_settings.system_prompt = system_prompt_from_history
 
         self.request_config = self._convert_args_to_provider_config(
-            context=self.ask_settings.system_prompt,
             history=msg_history,
             **kwargs,
         )
@@ -255,11 +243,15 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
     def _convert_args_to_provider_config(
-        self, context: str = None, history: List[Message] = None, **kwargs
+        self, history: List[Message] = None, **kwargs
     ) -> AnthropicRequestConfig:
         """
         Converts the arguments to a provider-specific configuration.
         """
+
+        system_prompt = kwargs.pop("context", None)
+        if not system_prompt:
+            system_prompt = self.ask_settings.system_prompt
 
         max_tokens = (
             kwargs.pop("max_tokens", None)
@@ -275,7 +267,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         return AnthropicRequestConfig(
             model=self.model_name,
-            system=context,
+            system=system_prompt,
             messages=[message.model_dump(mode="json") for message in history],
             tools=tools,
             max_tokens=max_tokens,
