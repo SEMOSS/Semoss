@@ -1,4 +1,4 @@
-package prerna.engine.impl.model;
+package prerna.reactor.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,6 +10,8 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;

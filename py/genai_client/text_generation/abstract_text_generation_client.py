@@ -111,7 +111,11 @@ class AbstractTextGenerationClient(ABC):
     ) -> AskSettings:
         """Get the ask settings from the provided keyword arguments."""
         full_prompt = kwargs.pop(FULL_PROMPT, None)
-        if isinstance(full_prompt, List) and isinstance(full_prompt[0], str):
+        if (
+            full_prompt
+            and isinstance(full_prompt, List)
+            and isinstance(full_prompt[0], str)
+        ):
             full_prompt = [json.loads(i) for i in full_prompt]
 
         streaming = kwargs.pop("stream", False)
