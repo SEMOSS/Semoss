@@ -52,13 +52,6 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 		// we filtered to a single database
 		Map<String, Object> databaseInfo = baseInfo.get(0);
 		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(engineId, getMetaKeys(), false));
-		// append last engine update
-		{
-			Date eDate = MasterDatabaseUtility.getEngineDate(engineId);
-			if(eDate != null) {
-				databaseInfo.put("last_updated", MasterDatabaseUtility.getEngineDate(engineId));
-			}
-		}
 		
 		// see if there is any pending request to this engine
 		int pendingRequest = SecurityEngineUtils.getUserPendingAccessRequest(user, engineId);

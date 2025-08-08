@@ -36,6 +36,7 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 		}
 		
 		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+		SecurityEngineUtils.updateEngineLastEditedDate(engineId);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the engine"));
 		return noun;

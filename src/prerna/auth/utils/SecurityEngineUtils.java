@@ -178,8 +178,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param user
 	 */
 	public static void addEngine(String engineId, String engineName, IEngine.CATALOG_TYPE engineType, String engineSubType, String engineCost, boolean global, User user) {
-		String query = "INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
+		String query = "INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATEUPDATED) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -213,6 +213,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			}
+			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
@@ -2714,6 +2715,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DATEUPDATED", "database_date_updated"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
@@ -3176,6 +3178,25 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch (SQLException e) {
 			classLogger.error("Failed to update engine tool_app", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+	
+	public static void updateEngineLastEditedDate(String engineId) {
+		String query = "UPDATE ENGINE SET DATEUPDATED=? WHERE ENGINEID=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+			ps.setString(parameterIndex++, engineId);
+	        ps.executeUpdate();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
