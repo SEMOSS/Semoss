@@ -50,7 +50,7 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @param parameters
 	 * @throws Exception
 	 */
-	void addEmbeddings(String vectorCsvFilePath, Insight insight, Map<String, Object> parameters) throws Exception;
+	List<FileEmbeddingStatus> addEmbeddings(String vectorCsvFilePath, Insight insight, Map<String, Object> parameters) throws Exception;
 	
 	/**
 	 * 
@@ -69,7 +69,7 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @param parameters
 	 * @throws Exception
 	 */
-	void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception;
+	List<FileEmbeddingStatus> addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception;
 	
 	/**
 	 * 

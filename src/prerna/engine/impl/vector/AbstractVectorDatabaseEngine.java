@@ -476,36 +476,32 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	}
 	
 	@Override
-	public void addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
-		addEmbeddings(vectorCsvTable, insight, parameters);
+		return addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override
-	public List<FileEmbeddingStatus> addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight,
-			Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
 		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		for (File vectorCsvFile : vectorCsvFiles) {
 			try {
 				VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
 				List<FileEmbeddingStatus> resultList = addEmbeddings(vectorCsvTable, insight, parameters);
-				
 	            fileStatusList.addAll(resultList);
-
 			} catch (Exception e) {
 				// File failed completely
-				FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(
-		                vectorCsvFile.getName(), "FAILED", 0, 0, 0);
-		            fileStatusList.add(failedStatus);
+				FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0);
+	            fileStatusList.add(failedStatus);
 			}
 		}
 		return fileStatusList;
 	}
 	
 	@Override
-	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-		addEmbeddings(vectorCsvTable, insight, parameters);
+		return addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override

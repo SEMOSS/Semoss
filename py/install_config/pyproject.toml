@@ -73,7 +73,6 @@ dependencies = [
     "trafilatura>=2.0.0",
     "transformers>=4.49.0",
     "xlrd>=2.0.1",
-    "yfinance",
 ]
 
 [project.optional-dependencies]

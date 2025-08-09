@@ -72,9 +72,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	private static final Logger classLogger = LogManager.getLogger(PGVectorDatabaseEngine.class);
 	
-	private static final String DIR_SEPARATOR = "/";
-	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	
 	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
 	public static final String PGVECTOR_METADATA_TABLE_NAME = "PGVECTOR_METADATA_TABLE_NAME";
 
@@ -178,7 +175,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
         
 		// highest directory (first layer inside vector db base folder)
 		String engineDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
-		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
+		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + "/py/"));
 		
 		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
 		this.schemaFolder = new File(engineDir, "schema");
@@ -305,9 +302,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 	
 	@Override
-	public void addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
-		addEmbeddings(vectorCsvTable, insight, parameters);
+		return addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override
@@ -321,9 +318,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 	
 	@Override
-	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-		addEmbeddings(vectorCsvTable, insight, parameters);
+		return addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override
@@ -503,7 +500,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
     	}
 		
-		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + "/" + indexClass + "/" + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		
 		String deleteQuery = "DELETE FROM "+this.vectorTableName+" WHERE SOURCE=?";
@@ -738,7 +735,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + "/" + indexClass + "/" + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 		if(documentsDir.exists() && documentsDir.isDirectory()) {
 			for(Map<String, Object> fileInPostgresDb : sourcesInPostgresDb) {
 				String fileName = (String) fileInPostgresDb.get("fileName");
@@ -975,7 +972,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		
-		File indexFilesFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, AbstractVectorDatabaseEngine.INDEXED_FOLDER_NAME);
+		File indexFilesFolder = new File(this.schemaFolder + "/" + indexClass, AbstractVectorDatabaseEngine.INDEXED_FOLDER_NAME);
 		// store the actual files we are extracting from
 		// since we move this into the vector folder
 		// we need to delete them if they fail
@@ -1036,8 +1033,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
 				String documentName = FilenameUtils.getBaseName(document.getName());
-				File extractedFile = new File(indexFilesFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
-				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
+				File extractedFile = new File(indexFilesFolder.getAbsolutePath() + "/" + documentName + ".csv");
+				String extractedFileName = extractedFile.getAbsolutePath().replace("\\", "/");
 				try {
 					if (extractedFile.exists()) {
 						FileUtils.forceDelete(extractedFile);
@@ -1202,7 +1199,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if (!this.indexClasses.contains(indexClass)) {
 			throw new IllegalArgumentException("Unable to retieve document csv from a directory that does not exist");
 		}
-		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + "/" + indexClass + "/" + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 	}
 	
 	@Override
