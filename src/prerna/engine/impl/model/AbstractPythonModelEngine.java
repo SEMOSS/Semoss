@@ -282,7 +282,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		        parameters.remove("toolExecution");
 	        }
 
-			String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
+			String history = null; // TODO: getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
 			if(history != null) {
 				//could still be null if its the first question in the convo
 				callMaker.append(",")
@@ -358,10 +358,11 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	            outputMap.put(MESSAGE_CONTENT, response.getStringResponse());
 	        }
 	        // Update chat history
-	        if (chatHistory.containsKey(insight.getInsightId())) {
-	            chatHistory.get(insight.getInsightId()).add(inputMap);
-	            chatHistory.get(insight.getInsightId()).add(outputMap);
-	        }
+			//TODO
+//	        if (chatHistory.containsKey(insight.getInsightId())) {
+//	            chatHistory.get(insight.getInsightId()).add(inputMap);
+//	            chatHistory.get(insight.getInsightId()).add(outputMap);
+//	        }
 		}
 
 		return response;

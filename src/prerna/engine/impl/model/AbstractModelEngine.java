@@ -171,7 +171,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		 */
 
 		// do we have any usage restriction on the user
-		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(insight.getUser(), this.engineId);
+		Map<String, Object> userRestrictionMap = new HashMap<>();
+//		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(insight.getUser(), this.engineId); // TODO: was originally this.insight.getUser()
 		
 		if(parameters == null) {
 			parameters = new HashMap<String, Object>();
@@ -182,30 +183,30 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		AskModelEngineResponse askModelResponse = askCall(question, fullPrompt, context, insight, parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 		askModelResponse.setMessageId(UUID.randomUUID().toString());
-		askModelResponse.setRoomId(insight.getInsightId());
+//		askModelResponse.setRoomId(insight.getInsightId());
 		
-		if (inferenceLogsEnbaled) {
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/askModelResponse.getMessageId(), 
-					/*messageMethod*/"ask", 
-					/*engine*/this, 
-					/*insightId*/insight.getInsightId(),
-					/*projectContextId*/insight.getContextProjectId(),
-					/*projectId*/insight.getProjectId(),
-					/*user*/insight.getUser(),
-					/*sessionId*/ThreadStore.getSessionId(),
-					/*roomId*/ThreadStore.getInsightId(),
-					/*context*/context, 
-					/*prompt*/question,
-					/*fullPrompt*/fullPrompt,
-					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
-					/*inputTime*/inputTime, 
-					/*response*/askModelResponse.getStringResponse(),
-					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
-			));
-			inferenceRecorder.start();
-		}
+//		if (inferenceLogsEnbaled) {
+//			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+//					/*messageId*/askModelResponse.getMessageId(), 
+//					/*messageMethod*/"ask", 
+//					/*engine*/this, 
+//					/*insightId*/insight.getInsightId(),
+//					/*projectContextId*/insight.getContextProjectId(),
+//					/*projectId*/insight.getProjectId(),
+//					/*user*/insight.getUser(),
+//					/*sessionId*/ThreadStore.getSessionId(),
+//					/*roomId*/ThreadStore.getInsightId(),
+//					/*context*/context, 
+//					/*prompt*/question,
+//					/*fullPrompt*/fullPrompt,
+//					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
+//					/*inputTime*/inputTime, 
+//					/*response*/askModelResponse.getStringResponse(),
+//					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
+//					/*outputTime*/outputTime
+//			));
+//			inferenceRecorder.start();
+//		}
 		
 		// update current usage based on this new request
 		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse, inputTime, outputTime);
