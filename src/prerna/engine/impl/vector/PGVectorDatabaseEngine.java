@@ -429,7 +429,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 		return fileStatusList;
 	}
-    //method to update file-inserted counts
+	
+	/**
+	 * Method to update file-inserted counts 
+	 * @param results
+	 * @param table
+	 * @param fileInsertedCountMap
+	 */
 	private void updateInsertCounts(int[] results, VectorDatabaseCSVTable table, Map<String, Integer> fileInsertedCountMap) {
 		List<VectorDatabaseCSVRow> rows = table.getRows();
 		for (int i = 0; i < results.length; i++) {
