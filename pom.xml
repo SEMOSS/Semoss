@@ -2657,6 +2657,21 @@
 			<version>1.3.0</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+		    <groupId>org.apache.lucene</groupId>
+		    <artifactId>lucene-core</artifactId>
+		    <version>8.11.2</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.lucene</groupId>
+		    <artifactId>lucene-analyzers-common</artifactId>
+		    <version>8.11.2</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.lucene</groupId>
+		    <artifactId>lucene-queryparser</artifactId>
+		    <version>8.11.2</version>
+		</dependency>
 
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
