@@ -1,6 +1,8 @@
 package prerna.engine.impl.vector;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -114,7 +116,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	
 	@Override
-	public void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -141,6 +143,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		// track files to push to cloud
 		Set<String> filesToCopyToCloud = new HashSet<String>();
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
 		
 		// check that the vectorCsvFiles are in the current engine folder
 		// if not, move them
@@ -152,6 +155,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				continue;
 			}
 			
+			int recordCount = countLines(vectorF);
+	        fileRecordCountMap.put(vectorF.getName(), recordCount);
+	        
 			Path vectorFPath = vectorF.toPath().toAbsolutePath().normalize();
 			Path documentDirPath = documentDir.toPath().toAbsolutePath().normalize();
 			Path indexFilesDirPath = indexFilesDir.toPath().toAbsolutePath().normalize();
@@ -279,36 +285,85 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 							 .append("']")
 							 .append(".datasetsLoaded()");
 		boolean datasetsLoaded = (boolean) pyTranslator.runDirectPy(insight, checkForEmptyDatabase.toString());
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+	        String file = entry.getKey();
+	        int totalRecords = entry.getValue();
+
+	        long inserted = 0;
+	        long failed = 0;
+	        String status;
+
+	        if (datasetsLoaded) {
+	            inserted = totalRecords;
+	            failed = 0;
+	            status = "SUCCESS";
+	        } else {
+	            inserted = 0;
+	            failed = totalRecords;
+	            status = "FAILED";
+	        }
+
+	        fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+		}
+
+	    return fileStatusList;
+	}
+	
+	/**
+	 * 
+	 * @param file
+	 * @return
+	 */
+	private int countLines(File file) {
+		int lines = 0;
+	    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+	        String line;
+	        boolean isFirstLine = true;
+	        while ((line = reader.readLine()) != null) {
+	            if (isFirstLine) {
+	                isFirstLine = false; // Skip header
+	                continue;
+	            }
+	            if (!line.trim().isEmpty()) {
+	                lines++;
+	            }
+	        }
+	    } catch (IOException e) {
+	        classLogger.error("Error reading file for line count: {}", file.getName(), e);
+	    }
+	    return lines;
 	}
 	
 	@Override
-	public void addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		List<String> vectorCsvFiles = new ArrayList<>(1);
 		vectorCsvFiles.add(vectorCsvFile);
-		addEmbeddings(vectorCsvFiles, insight, parameters);
+		return addEmbeddings(vectorCsvFiles, insight, parameters);
 	}
 	
 	@Override
-	public void addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
 		List<String> vectorCsvFilePaths = new ArrayList<>(vectorCsvFiles.size());
 		for(int i = 0; i < vectorCsvFiles.size(); i++) {
 			vectorCsvFilePaths.add(vectorCsvFiles.get(i).getAbsolutePath());
 		}
-		addEmbeddings(vectorCsvFilePaths, insight, parameters);
+		return addEmbeddings(vectorCsvFilePaths, insight, parameters);
 	}
 	
 	@Override
-	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		List<String> vectorCsvFiles = new ArrayList<>(1);
 		vectorCsvFiles.add(vectorCsvFile.getAbsolutePath());
-		addEmbeddings(vectorCsvFiles, insight, parameters);
+		return addEmbeddings(vectorCsvFiles, insight, parameters);
 	}
 
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		List<String> vectorCsvFilePaths = new ArrayList<>(1);
 		vectorCsvFilePaths.add(vectorCsvTable.getFile().getAbsolutePath());
-		addEmbeddings(vectorCsvFilePaths, insight, parameters);
+		return addEmbeddings(vectorCsvFilePaths, insight, parameters);
+		 
 	}
 	
 	@Override
