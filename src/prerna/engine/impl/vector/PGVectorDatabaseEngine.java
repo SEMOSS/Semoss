@@ -59,6 +59,7 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
+import prerna.reactor.vector.BM25RankerService;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
@@ -650,13 +651,40 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 	
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
-		if (insight == null) {
-			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
-		}
-		
-		if (!this.modelPropsLoaded) {
-			verifyModelProps();
-		}
+	    if (insight == null) {
+	        throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+	    }
+
+	    if (!this.modelPropsLoaded) {
+	        verifyModelProps();
+	    }
+
+	    // --- BM25 Branch ---
+	    String distanceMethodProp = this.smssProp.getProperty("DISTANCE_METHOD");
+	    if ("BM25".equalsIgnoreCase(distanceMethodProp)) {
+	        // Get BM25 index path from .smss
+	        String bm25IndexPath = this.smssProp.getProperty("BM25_INDEX_PATH");
+	        if (bm25IndexPath == null || bm25IndexPath.trim().isEmpty()) {
+	            throw new IllegalArgumentException("BM25_INDEX_PATH must be set in .smss when using BM25 distance method.");
+	        }
+
+	        int topN = 3;
+	        if (limit != null) {
+	            topN = limit.intValue();
+	        } else if (parameters != null && parameters.containsKey("TOP_N")) {
+	            try {
+	                topN = Integer.parseInt(parameters.get("TOP_N").toString());
+	            } catch (NumberFormatException ignore) {}
+	        }
+
+	        try {
+	            BM25RankerService bm25 = BM25RankerService.loadFromIndex(bm25IndexPath);
+	            List<Map<String, Object>> results = bm25.search(searchStatement, topN);
+	            return results;
+	        } catch (Exception e) {
+	            throw new RuntimeException("BM25 search failed: " + e.getMessage(), e);
+	        }
+	    }
 		
 		List<IQueryFilter> filters = null;
 		List<IQueryFilter> metaFilters = null;

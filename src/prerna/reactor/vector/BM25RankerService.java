@@ -1,79 +1,92 @@
 package prerna.reactor.vector;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * A BM25 service that solely loads and indexes the 6th column from a CSV file.
+ * A BM25 service that indexes and ranks a provided corpus (list of documents) with composite IDs.
  */
 public class BM25RankerService implements Serializable {
     private static final long serialVersionUID = 1L;
+
     private static final double k1 = 1.5;
     private static final double b  = 0.75;
 
     // --- Index state ---
     private final List<List<String>> tokenizedCorpus = new ArrayList<>();
-    private final List<String> rawCorpus              = new ArrayList<>();
-    private final Map<String, Integer> docFreq        = new HashMap<>();
+    private final List<String> rawCorpus             = new ArrayList<>();
+    private final List<String> docIds                = new ArrayList<>(); // Composite IDs
+    private final Map<String, Integer> docFreq       = new HashMap<>();
     private double avgDocLen = 0.0;
 
-    /** No-arg constructor */
     public BM25RankerService() { }
 
     /**
-     * Load or build a BM25 index directly from the CSV.
-     *
-     * @param csvPath          Path to the CSV file.
-     * @param contentColIndex  Zero-based index of the desired content column.
-     * @param indexFilePath    Where to read/write the serialized index.
+     * Build a BM25 index from a corpus and composite IDs, then save it to disk.
      */
-    public static BM25RankerService loadOrBuildFromCsv(
-            String csvPath, int contentColIndex, String indexFilePath)
-            throws IOException, ClassNotFoundException {
+    public static BM25RankerService buildAndSave(List<String> corpus, List<String> ids, String indexFilePath) throws IOException {
+        BM25RankerService svc = new BM25RankerService();
+        svc.indexDocuments(corpus, ids);
+        svc.saveIndex(indexFilePath);
+        return svc;
+    }
 
-        File idxFile = new File(indexFilePath);
-        if (idxFile.exists()) {
-            // Load existing index
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(idxFile))) {
-                return (BM25RankerService) ois.readObject();
-            }
-        } else {
-            // Build new index from CSV
-            BM25RankerService svc = new BM25RankerService();
-            svc.indexCsvAndSave(csvPath, contentColIndex, indexFilePath);
-            return svc;
+    /**
+     * Load a BM25 index from a serialized file.
+     */
+    public static BM25RankerService loadFromIndex(String indexFilePath) throws IOException, ClassNotFoundException {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(indexFilePath))) {
+            return (BM25RankerService) ois.readObject();
         }
     }
 
     /**
-     * Indexes the specified CSV column and saves the built index to disk.
-     *
-     * @param csvPath          Path to CSV.
-     * @param contentColIndex  Zero-based column index to extract.
-     * @param indexFilePath    Where to write the serialized service.
+     * Save the current BM25 index to disk.
      */
-    public void indexCsvAndSave(String csvPath, int contentColIndex, String indexFilePath)
-            throws IOException {
-
-        List<String> docs = loadColumnFromCsv(csvPath, contentColIndex);
-        indexDocuments(docs);
-
-        // Persist the service state
-        try (ObjectOutputStream oos = new ObjectOutputStream(
-                 new FileOutputStream(indexFilePath))) {
+    public void saveIndex(String indexFilePath) throws IOException {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(indexFilePath))) {
             oos.writeObject(this);
         }
     }
 
     /**
+     * Incrementally insert new documents and IDs into the index.
+     * Skips duplicate IDs.
+     */
+    public void insertDocuments(List<String> newDocs, List<String> newIds) {
+        if (newDocs.size() != newIds.size()) {
+            throw new IllegalArgumentException("New docs and IDs must be the same length.");
+        }
+        int added = 0;
+        for (int i = 0; i < newDocs.size(); i++) {
+            String doc = newDocs.get(i);
+            String id  = newIds.get(i);
+            if (docIds.contains(id)) {
+                // Removed verbose print: System.out.println("Skipping duplicate ID: " + id);
+                continue;
+            }
+            if (doc == null) doc = "";
+            List<String> toks = tokenize(doc);
+            tokenizedCorpus.add(toks);
+            rawCorpus.add(doc);
+            docIds.add(id);
+
+            // Update docFreq for unique tokens in this document
+            Set<String> uniqueTokens = new HashSet<>(toks);
+            for (String token : uniqueTokens) {
+                docFreq.put(token, docFreq.getOrDefault(token, 0) + 1);
+            }
+            added++;
+        }
+        // Update average document length
+        int totalDocLen = tokenizedCorpus.stream().mapToInt(List::size).sum();
+        avgDocLen = docIds.isEmpty() ? 0.0 : ((double) totalDocLen) / docIds.size();
+        // Removed verbose print: System.out.println("Inserted " + added + " new documents. Corpus size is now " + docIds.size());
+    }
+
+    /**
      * Search the in-memory BM25 index.
-     *
-     * @param query The query string.
-     * @param topN  Max number of results to return.
-     * @return List of maps with keys "docId", "score", and "content".
      */
     public List<Map<String, Object>> search(String query, int topN) {
         int N = tokenizedCorpus.size();
@@ -89,15 +102,15 @@ public class BM25RankerService implements Serializable {
                 int df = docFreq.getOrDefault(term, 0);
                 double idf = Math.log(1 + (N - df + 0.5) / (df + 0.5));
                 double denom = freq + k1 * (1 - b + b * dTokens.size() / avgDocLen);
-                score += idf * (freq * (k1 + 1)) / denom;
+                double termScore = idf * (freq * (k1 + 1)) / denom;
+                score += termScore;
             }
             Map<String,Object> result = new HashMap<>();
-            result.put("docId",  i);
+            result.put("docId",  docIds.get(i)); // Use composite ID
             result.put("score",  score);
             result.put("content", rawCorpus.get(i));
             scored.add(result);
         }
-
         return scored.stream()
                      .sorted((a, b) -> Double.compare((Double)b.get("score"),
                                                       (Double)a.get("score")))
@@ -105,91 +118,94 @@ public class BM25RankerService implements Serializable {
                      .collect(Collectors.toList());
     }
 
-    /** Exposes the raw extracted CSV column. */
+    /** Exposes the raw corpus. */
     public List<String> getRawCorpus() {
         return Collections.unmodifiableList(rawCorpus);
+    }
+
+    /** Exposes the doc IDs. */
+    public List<String> getDocIds() {
+        return Collections.unmodifiableList(docIds);
+    }
+    
+    public static BM25RankerService loadFromConfig(Properties smssProps) throws IOException, ClassNotFoundException {
+        String method = smssProps.getProperty("BM25_INDEX_METHOD").toUpperCase();
+        switch (method) {
+            case "DISK":
+                String diskPath = smssProps.getProperty("BM25_INDEX_PATH");
+                if (diskPath == null) throw new IllegalArgumentException("BM25_INDEX_PATH must be set for DISK method.");
+                return loadFromIndex(diskPath);
+            case "MEMORY":
+                // For MEMORY, you must build the index at runtime. Example:
+                // You'd need to provide corpus/ids in your service call or as a path in .smss
+                throw new UnsupportedOperationException("MEMORY method requires corpus/ids at runtime.");
+            case "S3":
+                String bucket = smssProps.getProperty("BM25_S3_BUCKET");
+                String key = smssProps.getProperty("BM25_S3_KEY");
+                if (bucket == null || key == null) throw new IllegalArgumentException("BM25_S3_BUCKET and BM25_S3_KEY must be set for S3 method.");
+                return loadFromS3(bucket, key);
+            default:
+                throw new IllegalArgumentException("Unknown BM25_INDEX_METHOD: " + method);
+        }
+    }
+
+    // Example S3 loader (requires AWS SDK)
+    public static BM25RankerService loadFromS3(String bucket, String key) throws IOException, ClassNotFoundException {
+        // Use AWS SDK to download the file to a temp location or stream it directly
+        // Example using temp file:
+        File tempFile = File.createTempFile("bm25_index", ".ser");
+        // ... download S3 object to tempFile ...
+        // (You must implement the S3 download logic using your AWS SDK of choice)
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(tempFile))) {
+            return (BM25RankerService) ois.readObject();
+        } finally {
+            tempFile.delete();
+        }
     }
 
     // ----- Internal helpers -----
 
     /** Tokenizes text on non-word characters. */
     private List<String> tokenize(String text) {
+        if (text == null) return Collections.emptyList();
         return Arrays.stream(text.toLowerCase().split("\\W+"))
                      .filter(tok -> !tok.isEmpty())
                      .collect(Collectors.toList());
     }
 
-    /** Builds the in-memory BM25 index from raw docs. */
-    private void indexDocuments(List<String> documents) {
+    /** Builds the in-memory BM25 index from raw docs and IDs. */
+    void indexDocuments(List<String> documents, List<String> ids) {
+        if (documents.size() != ids.size()) {
+            throw new IllegalArgumentException("Corpus and IDs must be the same length.");
+        }
+
         tokenizedCorpus.clear();
         rawCorpus.clear();
+        docIds.clear();
         docFreq.clear();
         avgDocLen = 0.0;
 
-        for (String doc : documents) {
+        int totalDocLen = 0;
+
+        for (int i = 0; i < documents.size(); i++) {
+            String doc = documents.get(i);
+            String id  = ids.get(i);
+            if (doc == null) {
+                // Removed verbose print: System.err.println("Warning: Document at index " + i + " with ID '" + id + "' is null.");
+                doc = "";
+            }
             List<String> toks = tokenize(doc);
             tokenizedCorpus.add(toks);
             rawCorpus.add(doc);
-        }
-        for (List<String> toks : tokenizedCorpus) {
-            Set<String> uniq = new HashSet<>(toks);
-            for (String term : uniq) {
-                docFreq.put(term, docFreq.getOrDefault(term, 0) + 1);
-            }
-        }
-        avgDocLen = tokenizedCorpus.stream()
-                .mapToInt(List::size)
-                .average()
-                .orElse(0.0);
-    }
+            docIds.add(id);
 
-    /**
-     * Reads a CSV and extracts one column (handles quoted commas).
-     */
-    private List<String> loadColumnFromCsv(String csvPath, int colIndex) throws IOException {
-        List<String> out = new ArrayList<>();
-        try (BufferedReader br = Files.newBufferedReader(Paths.get(csvPath))) {
-            String header = br.readLine();  // skip header
-            String line;
-            while ((line = br.readLine()) != null) {
-                List<String> cols = parseCsvLine(line);
-                if (cols.size() > colIndex) {
-                    String cell = cols.get(colIndex).trim();
-                    // remove wrapping quotes if present
-                    if (cell.startsWith("\"") && cell.endsWith("\"")) {
-                        cell = cell.substring(1, cell.length()-1);
-                    }
-                    out.add(cell);
-                }
+            // Update docFreq for unique tokens in this document
+            Set<String> uniqueTokens = new HashSet<>(toks);
+            for (String token : uniqueTokens) {
+                docFreq.put(token, docFreq.getOrDefault(token, 0) + 1);
             }
+            totalDocLen += toks.size();
         }
-        return out;
-    }
-
-    /**
-     * Splits a CSV line into fields, respecting quotes and escaped quotes.
-     */
-    private List<String> parseCsvLine(String line) {
-        List<String> fields = new ArrayList<>();
-        StringBuilder sb = new StringBuilder();
-        boolean inQuotes = false;
-        for (int i = 0; i < line.length(); i++) {
-            char c = line.charAt(i);
-            if (c == '"' ) {
-                if (inQuotes && i+1 < line.length() && line.charAt(i+1) == '"') {
-                    sb.append('"'); 
-                    i++;
-                } else {
-                    inQuotes = !inQuotes;
-                }
-            } else if (c == ',' && !inQuotes) {
-                fields.add(sb.toString());
-                sb.setLength(0);
-            } else {
-                sb.append(c);
-            }
-        }
-        fields.add(sb.toString());
-        return fields;
+        avgDocLen = documents.isEmpty() ? 0.0 : ((double) totalDocLen) / documents.size();
     }
 }
