@@ -11,6 +11,8 @@ import gc as gc
 import sys
 import re
 import ast
+import time
+import hashlib
 
 # IMPORTANT
 # Your python support extention might tell you that these packages arent being used
@@ -100,6 +102,51 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         }
         return log_mapper.get(log_level_name)
 
+    def log_error_to_json(self, error_message, location, epoc="N/A"):
+        """
+        ONLY WRITES TO LOGS WHEN self.dev_log_switch IS TRUE
+        """
+        if self.dev_log_switch:
+            # Generate a unique ID based on the error message and location
+            raw_id = f"{error_message}|{location}|{epoc}"
+            unique_id = hashlib.sha256(raw_id.encode()).hexdigest()
+
+            # Prevent logging the same error ID multiple times in this session
+            if unique_id in self.logged_error_ids:
+                return
+
+            self.logged_error_ids.add(unique_id)
+
+            error_entry = {
+                "id": unique_id,
+                "timestamp": int(time.time()),
+                "epoc": epoc,
+                "error": error_message,
+                "location": location,
+            }
+
+            # Append to JSON file
+            try:
+                with open(self.error_log_file, "r+", encoding="utf-8") as f:
+                    try:
+                        data = json.load(f)
+                    except json.JSONDecodeError:
+                        data = []
+
+                    # Prevent duplicates on disk (check by ID)
+                    exists = any(
+                        isinstance(e, dict) and e.get("id") == unique_id for e in data
+                    )
+
+                    if not exists:
+                        data.append(error_entry)
+                        f.seek(0)
+                        json.dump(data, f, indent=2)
+                        f.truncate()
+            except Exception as e:
+                # Fallback logging
+                self.logger.error(f"Failed to write to error JSON log: {e}")
+
     def logging_setup(self):
         """Configures logging with environment-based log levels."""
         try:
@@ -125,6 +172,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         except Exception as e:
             self.log_file.write("\n ERROR - Unexpected Error While Logging Setup.")
             self.log_file.flush()
+            self.log_error_to_json(
+                error_message=f"ERROR - Unexpected Error While Logging Setup - {e}",
+                location="logging_setup",
+            )
 
     def setup(self):
         """
@@ -154,6 +205,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.prefix = self.server.prefix
         self.insight_folder = self.server.insight_folder
         self.log_file = None
+        self.error_log_file = None
         self.logger = None
 
         # need to set timeout here also
@@ -168,6 +220,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.log_file = open(
                 f"{self.insight_folder}/log.txt", "a", encoding="utf-8"
             )
+            self.error_log_file = f"{self.insight_folder}/python_error_file.json"
+            self.logged_error_ids = set()
+
+            # Create the error log file if it doesn't exist
+            if not os.path.exists(self.error_log_file):
+                with open(self.error_log_file, "w") as f:
+                    json.dump([], f)
 
         print("Ready to start server")
         print(f"Server is {self.server}")
@@ -293,6 +352,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             except Exception as e:
                 self.logger.warning(e)
                 self.logger.warning("connection closed.. closing this socket")
+                self.log_error_to_json(error_message=f"Log - {e}", location="handle")
+                self.log_error_to_json(
+                    error_message="connection closed.. closing this socket",
+                    location="handle",
+                )
                 self.stop_request()
 
     def log_data(self, data: Union[bytes, dict, None]):
@@ -325,6 +389,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.prod_logger("------------- OUTPUT LOG - END ----------------\n")
         except Exception as e:
             self.logger.warning(f"Error in get_final_output: {str(e)}")
+            self.log_error_to_json(
+                error_message=f"ERROR - Error in get_final_output: {str(e)}",
+                location="log_data",
+                epoc=data.get("epoc", "N/A"),
+            )
 
     def get_final_output(
         self, data: Optional[bytes] = None, epoc: Optional[str] = None
@@ -446,6 +515,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             print(f"in the exception block  {epoc}")
             output = "".join(tb.format_exception(None, e, e.__traceback__))
             payload = {"epoc": str(epoc), "ex": [output]}
+
+            self.log_error_to_json(
+                epoc=epoc if epoc else "N/A",
+                error_message=output,
+                location="get_final_output",
+            )
+
             # there is a possibility this is a response from the previous
             if epoc in self.monitors:
                 condition = self.monitors[epoc]
@@ -509,9 +585,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.logger.info(formatted_log)
             self.logger.info("--------------------- END ---------------------------\n")
 
-        except Exception:
+        except Exception as e:
             # Ensure logging errors do not crash the application
             self.logger.warning("There was an error during logging")
+            self.log_error_to_json(
+                error_message=f"ERROR - There was an error during logging - {e}",
+                location="log_payload_details",
+            )
 
     def send_output(
         self,
@@ -948,6 +1028,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         else:
             # raise exception
             self.logger.warning(f"There is no mount point for {mount_name}")
+            self.log_error_to_json(
+                error_message=f"There is no mount point for {mount_name}",
+                location="get_cd",
+            )
             raise Exception(f"There is no mount point for {mount_name}")
 
     def exec_cd(
