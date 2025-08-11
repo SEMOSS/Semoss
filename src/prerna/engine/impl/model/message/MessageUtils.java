@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -169,6 +170,12 @@ public class MessageUtils {
 		return gsonForDB.toJson(msgs);
 	}
 
+	
+	public static String getMessageHistoryFromMessageId(List<AbstractMessage> messages, String latestMessageId) {
+		return toJsonArrayWithImageData(getMessageBranch(messages, latestMessageId));
+	}
+	
+	
 	// For Python: JSON array string WITH base64 image data in ImageInfo
 	public static String toJsonArrayWithImageData(List<AbstractMessage> msgs) {
 		if (msgs == null || msgs.isEmpty()) {
@@ -187,6 +194,30 @@ public class MessageUtils {
 			}
 		}
 		return gsonForPy.toJson(msgs);
+	}
+	
+	public static List<AbstractMessage> getMessageBranch(List<AbstractMessage> messages, String latestMessageId) {
+	    // 1. Build lookup map (messageId to message)
+	    Map<String, AbstractMessage> idMap = new HashMap<>();
+	    for (AbstractMessage m : messages) {
+	        if (m.getMessageId() != null) {
+	            idMap.put(m.getMessageId(), m);
+	        }
+	    }
+	    // 2. Climb up parent chain
+	    List<AbstractMessage> history = new ArrayList<>();
+	    String currentId = latestMessageId;
+	    while (currentId != null) {
+	        AbstractMessage m = idMap.get(currentId);
+	        if (m == null) break;
+	        history.add(m);
+	        // parentMessageId may be null/empty String
+	        currentId = m.getParentMessageId();
+	        if (currentId == null || currentId.isEmpty()) break;
+	    }
+	    // 3. Messages are from newest-to-oldest; reverse to get root-to-leaf
+	    Collections.reverse(history);
+	    return history;
 	}
 
 	// ---- Utility/Convenience methods (maintain if needed) ----

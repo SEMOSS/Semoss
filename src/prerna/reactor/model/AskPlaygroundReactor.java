@@ -42,6 +42,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
         this.keysToGet = new String[] {
             ReactorKeysEnum.ENGINE.getKey(),
             ReactorKeysEnum.ROOM_ID.getKey(),
+            ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(),
             ReactorKeysEnum.COMMAND.getKey(),
             ReactorKeysEnum.CONTEXT.getKey(),
             ReactorKeysEnum.IMAGE.getKey(),
@@ -49,7 +50,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
             "mcpToolID",
             ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
         };
-        this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0, 0 };
     }
 
     @Override
@@ -58,6 +59,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
         organizeKeys();
         String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
         String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+        String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
         User user = this.insight.getUser();
         if (user == null) throw new IllegalArgumentException("You are not properly logged in");
         String userId = user.getPrimaryLoginToken().getId();
@@ -103,7 +105,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
             .build();
 
         // ---- Actually run LLM call
-        ResponseMessage response = room.ask(msg, context, modelEngine);
+        ResponseMessage response = room.ask(msg, context, modelEngine, parentMessageId);
 
         // parse the response for code blocks
         if(response.getMessageType().equals(MessageType.RESPONSE_TEXT)) {
@@ -180,7 +182,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
     
     public List<String> getMCPToolIDs() {
         List<String> inputStrings = new ArrayList<>();
-        GenRowStruct grs = this.store.getNoun(this.keysToGet[6]);
+        GenRowStruct grs = this.store.getNoun("mcpToolID");
         if (grs != null && !grs.isEmpty()) {
             int size = grs.size();
             for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());

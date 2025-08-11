@@ -68,8 +68,12 @@ public class Room {
 	public void parseMessages() {
 		setMessagesFromString(this.messagesJson);
 	}
-
+	
 	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine) {
+		return ask( msg, systemMessage, modelEngine, null);
+	}
+
+	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine, String parentMessageId) {
 
 		// if a specific system message is sent to use, overwrite the existing in the
 		// db.
@@ -118,17 +122,27 @@ public class Room {
 		
 		// Set model type and add message to history
 		msg.setModel(modelEngine);
+		
 		// Set parentMessageId for this message
+		// first check that messages is not empty. otherwise its the first message of the thread and parent is null
 		if (!messages.isEmpty()) {
+			//if a parent message id is passed in, validate it exists and use it. 
+			if(parentMessageId != null && !parentMessageId.isEmpty() ) {
+				msg.setParentMessageId(parentMessageId);
+			} else {
+			// if no parent message id is passed in, use the last message as the parent. 
 			AbstractMessage lastMsg = messages.get(messages.size() - 1);
 			msg.setParentMessageId(lastMsg.getMessageId());
+			}
 		} else {
 			msg.setParentMessageId(null); // first message
 		}
 
 		messages.add(msg);
 
-		String messageJsonString = getMessagesWithImageDataAsString();
+		//String messageJsonString = getMessagesWithImageDataAsString();
+		String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, msg.getMessageId());
+		
 //		if (Boolean.TRUE == msg.getParamMap().getOrDefault("use_history", Boolean.TRUE)) {
 //			messageJsonString = getMessagesWithImageDataAsString();
 //		} else {
