@@ -36,7 +36,6 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
@@ -72,9 +71,6 @@ import prerna.util.sql.PGVectorQueryUtil;
 public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(PGVectorDatabaseEngine.class);
-	
-	private static final String DIR_SEPARATOR = "/";
-	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
 	public static final String PGVECTOR_METADATA_TABLE_NAME = "PGVECTOR_METADATA_TABLE_NAME";
@@ -178,8 +174,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
         }
         
 		// highest directory (first layer inside vector db base folder)
-		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
-		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
+		String engineDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
+		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + "/py/"));
 		
 		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
 		this.schemaFolder = new File(engineDir, "schema");
@@ -477,7 +473,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
     	}
 		
-		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + "/" + indexClass + "/" + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		
 		String deleteQuery = "DELETE FROM "+this.vectorTableName+" WHERE SOURCE=?";
@@ -712,7 +708,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + "/" + indexClass + "/" + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 		if(documentsDir.exists() && documentsDir.isDirectory()) {
 			for(Map<String, Object> fileInPostgresDb : sourcesInPostgresDb) {
 				String fileName = (String) fileInPostgresDb.get("fileName");
@@ -863,11 +859,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 
 		// create the py translator
-		PyTransporter pyTransporter = new PyTransporter();
-		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		pyTranslator = new PyTranslator();
-		pyTranslator.setInsight(new Insight());
-		pyTranslator.setPyTransporter(pyTransporter);
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		
 		try {
 			String[] commands = getServerStartCommands();
@@ -945,12 +939,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 //			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 //		}
 		
-		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
+		Insight insight = getInsight(parameters.get(Constants.INSIGHT));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		
-		File indexFilesFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, AbstractVectorDatabaseEngine.INDEXED_FOLDER_NAME);
+		File indexFilesFolder = new File(this.schemaFolder + "/" + indexClass, AbstractVectorDatabaseEngine.INDEXED_FOLDER_NAME);
 		// store the actual files we are extracting from
 		// since we move this into the vector folder
 		// we need to delete them if they fail
@@ -1011,8 +1005,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
 				String documentName = FilenameUtils.getBaseName(document.getName());
-				File extractedFile = new File(indexFilesFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
-				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
+				File extractedFile = new File(indexFilesFolder.getAbsolutePath() + "/" + documentName + ".csv");
+				String extractedFileName = extractedFile.getAbsolutePath().replace("\\", "/");
 				try {
 					if (extractedFile.exists()) {
 						FileUtils.forceDelete(extractedFile);
@@ -1122,8 +1116,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					/*messageId*/UUID.randomUUID().toString(), 
 					/*messageMethod*/"nearestNeighbor", 
 					/*engine*/this, 
-					/*insight*/insight,
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
 					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null, 
 					/*prompt*/searchStatement,
 					/*fullPrompt*/null,
@@ -1172,7 +1170,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if (!this.indexClasses.contains(indexClass)) {
 			throw new IllegalArgumentException("Unable to retieve document csv from a directory that does not exist");
 		}
-		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + "/" + indexClass + "/" + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 	}
 	
 	@Override

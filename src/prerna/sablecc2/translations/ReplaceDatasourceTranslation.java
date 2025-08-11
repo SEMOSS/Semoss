@@ -46,8 +46,8 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 	private boolean replaceFirst = false;
 	private boolean doneReplaceFirst = false;
 	
-	public ReplaceDatasourceTranslation(Insight insight, String jobId) {
-		super(insight, jobId);
+	public ReplaceDatasourceTranslation(Insight insight) {
+		super(insight);
 	}
 	
 	@Override

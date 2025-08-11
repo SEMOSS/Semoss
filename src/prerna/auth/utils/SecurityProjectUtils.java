@@ -55,7 +55,7 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.ProjectUtils;
+import prerna.util.InsightsRDBMSUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -599,8 +599,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IProject project = Utility.getProject(projectId);
 		RdbmsTypeEnum insightType = project.getInsightDatabase().getQueryUtil().getDbType();
 		
-		RDBMSNativeEngine newInsightDatabase = ProjectUtils.generateInsightsDatabase(projectId, insightType, folderPath);
-		ProjectUtils.runInsightCreateTableQueries(newInsightDatabase);
+		RDBMSNativeEngine newInsightDatabase = InsightsRDBMSUtils.generateInsightsDatabase(projectId, insightType, folderPath);
+		InsightsRDBMSUtils.runInsightCreateTableQueries(newInsightDatabase);
 		
 		InsightAdministrator admin = new InsightAdministrator(newInsightDatabase);
 		{
@@ -2204,6 +2204,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getUserProjectList(
 			User user, 
+			List<String> projectTypes,
 			List<String> projectIdFilters,
 			boolean favoritesOnly, 
 			boolean portalsOnly,
@@ -2358,6 +2359,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs1.addExplicitFilter(orFilter);
 		}
 		
+		if(projectTypes != null && !projectTypes.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"TYPE", "==", projectTypes));
+		}
+		
 		// filter based on permission filters
 		if(permissionFilters != null && !permissionFilters.isEmpty()) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "==", permissionFilters, PixelDataType.CONST_INT));
@@ -2374,6 +2379,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if(portalsOnly) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"HASPORTAL", "==", true, PixelDataType.BOOLEAN));
 		}
+		
 		if(hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTID", searchTerm));
@@ -2563,6 +2569,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED", "project_reactors_compiled_date"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE", "project_favorite"));
 		// for sorting
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
 		// back to the others

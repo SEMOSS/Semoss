@@ -99,6 +99,12 @@ public class InsightStore extends Hashtable<String, Insight> {
 		return sessionIdHash.get(sessionId);
 	}
 	
+	public void clearSession(String sessionId) {
+		if(sessionIdHash.containsKey(sessionId)) {
+			sessionIdHash.remove(sessionId);
+		}
+	}
+	
 	public Insight findInsightInStore(String engineName, String rdbmsId) {
 		Insight retIn = null;
 		INSIGHT_LOOP : for(String insightKey : this.keySet()) {
@@ -113,6 +119,9 @@ public class InsightStore extends Hashtable<String, Insight> {
 		return retIn;
 	}
 	
+	public Set<String> getAllInsights() {
+		return this.keySet();
+	}
 	
 	////////////////CODE FOR THICK CLIENT///////////////////////////
 	public void setActiveInsight(Insight insight) {
@@ -125,10 +134,6 @@ public class InsightStore extends Hashtable<String, Insight> {
 
 	public Insight getActiveInsight() {
 		return activeInsight;
-	}
-	
-	public Set<String> getAllInsights() {
-		return this.keySet();
 	}
 	
 	public static int getIdCount(){

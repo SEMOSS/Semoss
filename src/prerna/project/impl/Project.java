@@ -35,6 +35,7 @@ import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
@@ -56,7 +57,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -66,6 +66,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
@@ -90,7 +91,6 @@ import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.SemossClassloader;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -396,7 +396,7 @@ public class Project implements IProject {
 		
 		// remove the symbolic link
 		if(this.projectId != null && this.projectName != null) {
-			String public_home = DIHelper.getInstance().getProperty(Constants.PUBLIC_HOME);
+			String public_home = Utility.getDIHelperProperty(Constants.PUBLIC_HOME);
 			if(public_home != null) {
 				String fileName = public_home + java.nio.file.FileSystems.getDefault().getSeparator() 
 						+ SmssUtilities.getUniqueName(this.projectName, this.projectId);
@@ -455,7 +455,7 @@ public class Project implements IProject {
 		}
 		
 		// this check is to ensure we are deleting the right folder
-		String folderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+		String folderPath = Utility.getDIHelperProperty(Constants.BASE_FOLDER)
 				+ DIR_SEPARATOR + Constants.PROJECT_FOLDER + DIR_SEPARATOR + folderName;
 		File folder = new File(folderPath);
 		if(folder.exists() && folder.isDirectory()) {
@@ -675,7 +675,7 @@ public class Project implements IProject {
 //		}
 //		
 //		if(tableExists) {
-//			String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
+//			String exploreLoc = Utility.getDIHelperProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
 //			File exploreF = new File(exploreLoc);
 //			if(!exploreF.exists()) {
 //				// ughhh... cant do anything for ya buddy
@@ -879,7 +879,6 @@ public class Project implements IProject {
 		}
 		
 		if(!cl.isCommitted(this.projectId)) {
-			//compileJava(insightDirector.getParentFile().getAbsolutePath());
 			// delete the classes directory first
 			projectSpecificHash = Utility.loadReactors(this.projectAssetFolder, cl);
 			cl.commitEngine(this.projectId);
@@ -966,8 +965,8 @@ public class Project implements IProject {
 			classLogger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
 		}
 		
-		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
-				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
+		boolean useNettyPy = Utility.getDIHelperProperty(Constants.NETTY_PYTHON) != null
+				&& Utility.getDIHelperProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 		if (!useNettyPy) {
 			return retReac;
 		}
@@ -975,8 +974,8 @@ public class Project implements IProject {
 		// secondary check to execute reactor here
 		if(executeReactorOnSocket() && ( 
 				(
-				DIHelper.getInstance().getLocalProp("core") == null || 
-				DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")
+				Utility.getDIHelperLocalProperty("core") == null || 
+				Utility.getDIHelperLocalProperty("core").toString().equalsIgnoreCase("true")
 				) 
 				&& retReac != null)
 				) 
@@ -1005,8 +1004,8 @@ public class Project implements IProject {
 	{
 		if(this.execReactorOnSocket == null)
 		{
-			this.execReactorOnSocket= (DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null)
-					&& (DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION).toString().equalsIgnoreCase("SOCKET"));
+			this.execReactorOnSocket= (Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null)
+					&& (Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION).toString().equalsIgnoreCase("SOCKET"));
 		}
 		return execReactorOnSocket;
 	}
@@ -1110,8 +1109,8 @@ public class Project implements IProject {
 				boolean copy = true;
 				if(smssProp != null && smssProp.getProperty(Settings.COPY_PROJECT) != null) {
 					copy = Boolean.parseBoolean(smssProp.getProperty(Settings.COPY_PROJECT) + "");
-				} else if(DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) != null) {
-					copy = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) + "");	
+				} else if(Utility.getDIHelperProperty(Settings.COPY_PROJECT) != null) {
+					copy = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.COPY_PROJECT) + "");	
 				}
 				
 				// this is purely for testing purposes - this is because when eclipse publishes it wipes the directory and removes the actual db
@@ -1138,6 +1137,24 @@ public class Project implements IProject {
 		}
 		
 		return this.publishedPortal;
+	}
+	
+	@Override
+	public INotebookHelper getNotebookHelper() {
+		// if not blocks json
+		// then ignore for now
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			return NotebookHelperFactory.getNotebookHelper(blocksF);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
 	}
 	
 	@Override
@@ -1455,7 +1472,7 @@ public class Project implements IProject {
 			// to add to the classloader
 			String mvnHome = System.getProperty(Settings.MVN_HOME);
 			if(mvnHome == null) {
-				mvnHome = DIHelper.getInstance().getProperty(Settings.MVN_HOME);
+				mvnHome = Utility.getDIHelperProperty(Settings.MVN_HOME);
 			}
 			if(mvnHome == null) {
 				mvnDefined = true;
@@ -1520,7 +1537,7 @@ public class Project implements IProject {
 			// otherwise we have the list
 			String repoHome = System.getProperty(Settings.REPO_HOME);
 			if(repoHome == null) {
-				repoHome = DIHelper.getInstance().getProperty(Settings.REPO_HOME);
+				repoHome = Utility.getDIHelperProperty(Settings.REPO_HOME);
 			}
 			if(repoHome == null) {
 				mvnDefined = true;
@@ -1792,11 +1809,9 @@ public class Project implements IProject {
 		}
 		
 		// create the py translator
-		PyTransporter pyTransporter = new PyTransporter();
-		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		this.pyTranslator = new PyTranslator();
-		this.pyTranslator.setInsight(new Insight());
-		this.pyTranslator.setPyTransporter(pyTransporter);
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		// finally set the cpw in the class
 		this.cpw = cpwToInit;
 	}
@@ -1904,6 +1919,11 @@ public class Project implements IProject {
 
 		return toolMap;
 	}
+	
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
 
 	@Deprecated
 	/**
@@ -1957,5 +1977,15 @@ public class Project implements IProject {
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return this.projectType.name();
+	}
+	
+	@Override
+	public boolean isBasic() {
+		return false;
+	}
+	
+	@Override
+	public void setBasic(boolean isBasic) {
+		// always false
 	}
 }

@@ -23,8 +23,10 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
+import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.comm.PixelJobManager;
@@ -276,17 +278,34 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						// this is a request for a reactor
 						else if(ps.operation == PayloadStruct.OPERATION.REACTOR) {
 							final PayloadStruct finalPs = ps;
+							final String jobId = ps.jobId;
+							final String sessionId = ThreadStore.getSessionId();
+							final String routeId = ThreadStore.getRouteId();
 							// I'm creating a new thread to run the pixel
 						    new Thread(() -> {
 						        classLogger.debug("Starting reactor operation for epoc: {}", finalPs.epoc);
 						        ByteArrayOutputStream output = new ByteArrayOutputStream();
+						        String pixelOp = null;
 						        try {
 						            String insightId = finalPs.insightId;
 						            Insight insight = InsightStore.getInstance().get(insightId);
 						            if(insight == null) {
 						            	throw new IllegalArgumentException("Could not find the insight id");
 						            }
-						            String pixelOp = (String) finalPs.payload[0];
+						            // set in thread
+						    		ThreadStore.setInsightId(insight.getInsightId());
+						    		ThreadStore.setSessionId(sessionId);
+						    		ThreadStore.setRouteId(routeId);
+						    		ThreadStore.setJobId(jobId);
+						    		String executionInsightId = finalPs.executionInsightId;
+						    		if(executionInsightId != null) {
+						    			Insight executionInsight = InsightStore.getInstance().get(executionInsightId);
+							            if(executionInsight != null) {
+							            	ThreadStore.setUser(executionInsight.getUser());
+							            }
+						    		}
+						    		
+						            pixelOp = (String) finalPs.payload[0];
 						            if(!(pixelOp=pixelOp.trim()).endsWith(";")) {
 						                pixelOp+=";";
 						            }
@@ -300,7 +319,11 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						        } catch(Exception e) {
 					                classLogger.error(Constants.STACKTRACE, e);
 						        	finalPs.response = true;
-						        	finalPs.ex = "An error occurred running the pixel";
+						        	String errorMessage = "An error occurred running the pixel = " + pixelOp;
+						        	if(e.getMessage() != null) {
+						        		errorMessage += ". Error message = " + e.getMessage();
+						        	}
+					        		finalPs.ex = errorMessage;
 						            executeCommand(finalPs);
 						        } finally {
 						            try {
@@ -379,7 +402,17 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			executeCommand(ps);
 			return;
 		}
-		user = insight.getUser();
+		User user = null;
+		String executionInsightId = ps.executionInsightId;
+		if(executionInsightId != null) {
+			Insight executionInsight = InsightStore.getInstance().get(executionInsightId);
+            if(executionInsight != null) {
+            	ThreadStore.setUser(executionInsight.getUser());
+            }
+		}
+		if(user == null) {
+			user = insight.getUser();
+		}
 		if(user == null) {
 			ps.response = true;
 			ps.ex = "There is no user associated with this insight id";
@@ -387,7 +420,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			executeCommand(ps);
 			return;
 		} else {
-			NativePyEngineWorker worker = new NativePyEngineWorker(this.getUser(), ps, insight);
+			NativePyEngineWorker worker = new NativePyEngineWorker(user, ps, insight);
 			worker.run();
 			executeCommand(worker.getOutput());
 		}

@@ -50,8 +50,8 @@ public class GreedyTranslation extends LazyTranslation {
 
 	protected PixelRunner runner;
 	
-	public GreedyTranslation(PixelRunner runner, Insight insight, String jobId) {
-		super(insight, jobId);
+	public GreedyTranslation(PixelRunner runner, Insight insight) {
+		super(insight);
 		this.runner = runner;
 	}
 	

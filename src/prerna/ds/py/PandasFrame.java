@@ -188,7 +188,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String newFileLoc = Utility.getInsightCacheDir() + "/" + Utility.getRandomString(6) + ".json";
 			
 			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-				Insight in = this.pyTranslator.insight;
+				Insight in = this.pyTranslator.getGlobalStoreInsight();
 				String insightFolder = in.getInsightFolder();
 				new File(Utility.normalizePath(insightFolder)).mkdirs();
 				if(in.getUser() != null) {

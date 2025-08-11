@@ -60,7 +60,6 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.project.api.IProject;
 import prerna.query.parsers.GenExpressionWrapper;
@@ -173,11 +172,7 @@ public class Insight implements Serializable {
 
 	private transient boolean deleteFilesOnDropInsight = true;
 	private transient boolean deleteREnvOnDropInsight = true;
-	
-	//TODO: rename to delete python globals
-	//TODO: rename to delete python globals
-	//TODO: rename to delete python globals
-	private transient boolean deletePythonTupleOnDropInsight = true;
+	private transient boolean deletePythonGlobalsOnDropInsight = true;
 
 	private transient boolean isTemporaryInsight = false;
 	private transient boolean isSchedulerMode = false;
@@ -314,11 +309,6 @@ public class Insight implements Serializable {
 	}
 	
 	public PixelRunner runPixel(PixelRunner runner, List<String> pixelList) {
-		String jobId = ThreadStore.getJobId();
-		if(jobId == null) {
-			logger.warn("The job id is null. Defaulting to insight id");
-			jobId = this.insightId;
-		}
 		int size = pixelList.size();
 		if(size == 0) {
 			// set the insight in the runner as it is used
@@ -330,10 +320,15 @@ public class Insight implements Serializable {
 				if(this.user != null) {
 					logger.info(User.getSingleLogginName(this.user) + " Running >>> " + Utility.cleanLogString(pixelString));
 				} else {
-					logger.info("No User Running >>> " + Utility.cleanLogString(pixelString));
+					User threadUser = getUser();
+					if(threadUser != null) {
+						logger.info(User.getSingleLogginName(threadUser) + " Running >>> " + Utility.cleanLogString(pixelString));
+					} else {
+						logger.info("No User Running >>> " + Utility.cleanLogString(pixelString));
+					}
 				}
 				try {
-					runner.runPixel(pixelString, jobId, this);
+					runner.runPixel(pixelString, this);
 				} catch(SemossPixelException e) {
 					logger.error(Constants.ERROR_MESSAGE, e);
 					if(!e.isContinueThreadOfExecution()) {
@@ -601,6 +596,9 @@ public class Insight implements Serializable {
 	}
 
 	public User getUser() {
+		if(this.user == null) {
+			return ThreadStore.getUser();
+		}
 		return this.user;
 	}
 
@@ -844,12 +842,12 @@ public class Insight implements Serializable {
 		this.deleteREnvOnDropInsight = deleteREnvOnDropInsight;
 	}
 	
-	public boolean isDeletePythonTupleOnDropInsight() {
-		return this.deletePythonTupleOnDropInsight;
+	public boolean isDeletePythonGlobalsOnDropInsight() {
+		return this.deletePythonGlobalsOnDropInsight;
 	}
 	
-	public void setDeletePythonTupleOnDropInsight(boolean deletePythonTupleOnDropInsight) {
-		this.deletePythonTupleOnDropInsight = deletePythonTupleOnDropInsight;
+	public void setDeletePythonGlobalsOnDropInsight(boolean deletePythonGlobalsOnDropInsight) {
+		this.deletePythonGlobalsOnDropInsight = deletePythonGlobalsOnDropInsight;
 	}
 	
 	public void setRunSavedInsightMode(boolean isSavedInsightMode) {
@@ -1577,37 +1575,26 @@ public class Insight implements Serializable {
 		return (Boolean) getVar(FILTER_REFRESH_KEY);
 	}
 
-	///////////////////////////////////////// PYTHON SPECIFIC METHODS ///////////////////////////////////////////
-	
 	/**
 	 * 
 	 * @return
 	 */
 	public PyTranslator getPyTranslator() {
-		PyTransporter pyTransporter = user.getPyTransporter();
-		if(pyTransporter == null) {
-			throw new NullPointerException("Could not create python translator");
+		if(this.pyTranslator == null 
+				|| this.pyTranslator.getSocketClient() == null
+				|| !this.pyTranslator.getSocketClient().isConnected()) {
+			SocketClient sc = user.getPythonSocketClient(true);
+			this.pyTranslator = new PyTranslator(sc, this);
 		}
-		this.pyTranslator = new PyTranslator();
-		this.pyTranslator.setInsight(this);
-		this.pyTranslator.setPyTransporter(pyTransporter);
 		return this.pyTranslator;
 	}
 	
-	///////////////////////////////////////// END PYTHON SPECIFIC METHODS ///////////////////////////////////////////
-
 	public ChromeDriverUtility getChromeDriver() {
 		if(this.chromeUtil == null) {
 			chromeUtil = new ChromeDriverUtility();
 		}
 		return chromeUtil;
 	}
-	
-	@Override
-	protected void finalize() throws Throwable {
-		logger.info("Insight " + this.insightId + " is being gc'd");
-	}
-	
 	
 	// query the frame and get the data
 	public Object query(String sql, String srcFrameName) {
@@ -1699,6 +1686,7 @@ public class Insight implements Serializable {
 		id2SQLMapper.remove(id);
 		this.sqlWrapperMap.remove(sql);
 	}
+	
 	public void replaceWrapper(String id, String sql, GenExpressionWrapper wrapper)
 	{
 		String origSql = this.id2SQLMapper.get(id);
