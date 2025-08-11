@@ -14,6 +14,7 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+@Deprecated
 public class SetContextReactor extends AbstractReactor {
 
 	// takes in a the name and engine and mounts the engine assets as that variable
@@ -90,6 +91,11 @@ public class SetContextReactor extends AbstractReactor {
 				PixelOperationType.OPERATION);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is deprecated. Please update to LoadApp(project='') instead";
+	}
+	
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equalsIgnoreCase(this.keysToGet[1])) {
