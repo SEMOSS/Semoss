@@ -1,0 +1,97 @@
+{
+  "pipelines": {
+    "ask": {
+      "input": [
+        {
+          "reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+          "params": {
+            "logLevel": "INFO",
+            "logMessage": "Executing ASK method..."
+          }
+        },
+        {
+          "reactorClass": "prerna.reactor.interceptor.PIIInputReactor",
+          "params": {
+            "blockOnPII": true,
+            "piiTypes": ["SSN", "CREDIT_CARD"]
+          }
+        }
+      ],
+      "output": [
+		{
+          "reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+          "params": {
+            "logLevel": "INFO",
+            "logMessage": "Executing ASK method..."
+          }
+        },
+        {
+          "reactorClass": "prerna.reactor.interceptor.PHIOutputReactor",
+          "params": {
+            "redactionMask": "[REDACTED_PHI]"
+          }
+        }
+      ]
+    },
+	"addDocument": {
+      "input": [
+        {
+          "reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+          "params": {
+            "logLevel": "INFO",
+            "logMessage": "Executing ASK method..."
+          }
+        }
+      ],
+      "output": [
+		{
+          "reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+          "params": {
+            "logLevel": "INFO",
+            "logMessage": "Executing ASK method..."
+          }
+        }
+      ]
+    },
+	"removeDocument": {
+      "input": [
+        {
+          "reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+          "params": {
+            "logLevel": "INFO",
+            "logMessage": "Executing ASK method..."
+          }
+        }
+      ],
+      "output": [
+		{
+          "reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+          "params": {
+            "logLevel": "INFO",
+            "logMessage": "Executing ASK method..."
+          }
+        }
+      ]
+    },
+	"embeddings": {
+      "input": [
+        {
+          "reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+          "params": {
+            "logLevel": "INFO",
+            "logMessage": "Executing ASK method..."
+          }
+        }
+      ],
+      "output": [
+		{
+          "reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+          "params": {
+            "logLevel": "INFO",
+            "logMessage": "Executing ASK method..."
+          }
+        }
+      ]
+    }
+  }
+}

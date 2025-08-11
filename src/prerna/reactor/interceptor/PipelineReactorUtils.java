@@ -10,6 +10,8 @@ public final class PipelineReactorUtils {
     public static final String METHOD_SPAN_ID = "methodSpanId";
     public static final String INPUT_REACTOR_NAME = "inputReactorName";
     public static final String OUTPUT_REACTOR_NAME = "outputReactorName";
+    public static final String IS_SUCCESS = "isSuccess";
+    
     //public static final String REACTOR_SPAN_ID = "reactorSpanId";
     public static final String METHOD_NAME = "methodName";
     public static final String ARGUMENTS = "arguments";

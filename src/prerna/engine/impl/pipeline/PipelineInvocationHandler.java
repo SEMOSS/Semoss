@@ -3,6 +3,7 @@ package prerna.engine.impl.pipeline;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
@@ -27,8 +28,10 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Settings;
+import prerna.util.Utility;
 
 /**
  * The invocation handler for the dynamic proxy. This class intercepts all method calls,
@@ -37,6 +40,8 @@ import prerna.util.Constants;
 public class PipelineInvocationHandler implements InvocationHandler {
 
     private static final Logger classLogger = LogManager.getLogger(PipelineInvocationHandler.class);
+    
+    private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
     private final IEngine realEngine;
     private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
@@ -53,6 +58,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    	Object result = null;
+    	boolean isSuccess =true;
         String methodName = method.getName();
 
         // Find the correct pipeline for the called method.
@@ -105,52 +112,60 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
         Object[] finalArgs = unmapArguments(method, processedArguments);
 
-        // === ACTUAL METHOD EXECUTION ===
-        Object result = method.invoke(this.realEngine, finalArgs);
-        
-        processedArguments.put(PipelineReactorUtils.RESULT, result);
-     
-        // === OUTPUT PIPELINE EXECUTION ===
-        inputIndex = 0;
-        for (IOutputReactor reactor : specificPipeline.getOutputPipeline()) {
-            NounStore outputNouns = new NounStore("output-pipeline");
-            GenRowStruct grs = new GenRowStruct();
-           // processedArguments.put(PipelineReactorUtils.REACTOR_SPAN_ID, reactor.getClass().getSimpleName()+"_"+uuid);
-            processedArguments.put(PipelineReactorUtils.OUTPUT_REACTOR_NAME, reactor.getClass().getSimpleName());
-            processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
-            processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
-            processedArguments.put(PipelineReactorUtils.CONFIG, specificPipeline.getOutputParams().get(inputIndex));
-            grs.add(new NounMetadata(processedArguments, PixelDataType.MAP));
-            outputNouns.addNoun(PipelineReactorUtils.ARGUMENTS, grs);            
-            reactor.setNounStore(outputNouns);
+        try {
+        	 result = method.invoke(this.realEngine, finalArgs);
+        	 isSuccess = true;
+        } catch (InvocationTargetException e) {
+        	result = e.getTargetException();
+        	isSuccess = false;
+        } finally {
+        	 processedArguments.put(PipelineReactorUtils.RESULT, result);
+             processedArguments.put(PipelineReactorUtils.IS_SUCCESS, isSuccess);
+        	 // === OUTPUT PIPELINE EXECUTION ===
+            inputIndex = 0;
+            for (IOutputReactor reactor : specificPipeline.getOutputPipeline()) {
+                NounStore outputNouns = new NounStore("output-pipeline");
+                GenRowStruct grs = new GenRowStruct();
+               // processedArguments.put(PipelineReactorUtils.REACTOR_SPAN_ID, reactor.getClass().getSimpleName()+"_"+uuid);
+                processedArguments.put(PipelineReactorUtils.OUTPUT_REACTOR_NAME, reactor.getClass().getSimpleName());
+                processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
+                processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
+                processedArguments.put(PipelineReactorUtils.CONFIG, specificPipeline.getOutputParams().get(inputIndex));
+                grs.add(new NounMetadata(processedArguments, PixelDataType.MAP));
+                outputNouns.addNoun(PipelineReactorUtils.ARGUMENTS, grs);            
+                reactor.setNounStore(outputNouns);
 
-            NounMetadata resultNoun = reactor.execute();
-            processedArguments = (Map<String, Object>)resultNoun.getValue();
-            inputIndex++;
-            
-            // eval result	
-            Map resultMap = (Map <String, Object>) processedArguments.get(PipelineReactorUtils.INTERIM_RESULT);
-            boolean pass = (boolean)resultMap.get(PipelineReactorUtils.PASS);
-            if(!pass)
-            		throw new SecurityException("Output Guardrail issue detected");
+                NounMetadata resultNoun = reactor.execute();
+                processedArguments = (Map<String, Object>)resultNoun.getValue();
+                inputIndex++;
+                
+                // eval result	
+                Map resultMap = (Map <String, Object>) processedArguments.get(PipelineReactorUtils.INTERIM_RESULT);
+                boolean pass = (boolean)resultMap.get(PipelineReactorUtils.PASS);
+                if(!pass)
+                		throw new SecurityException("Output Guardrail issue detected");
 
+        }
+       
         }
 
         return processedArguments.get(PipelineReactorUtils.RESULT);
-    }
+      }
     
     /**
      * 
      * @param engine
      * @return
      */
-	private static String getJsonData(IEngine engine) {
+    private static String getJsonData(IEngine engine) {
 		String jsonString = null;
 		try {
-			String versionFolder = AssetUtility.getProjectVersionFolder(engine.getEngineName(), engine.getEngineId());
-			String pipelineFile = versionFolder + "/" + engine.getSmssProp().getProperty(IEngine.PIPELINE);
+			//String versionFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(), engine.getEngineName());
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			String pipelineFile = baseFolder + DIR_SEPARATOR + Utility.getDIHelperProperty(Settings.PIPELINE);
+			//String pipelineFile = versionFolder + "/" + engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			pipelineFile = pipelineFile.replace("\\", "/");
-			jsonString = FileUtils.readFileToString(new File(pipelineFile));
+			jsonString = FileUtils.readFileToString(new File(pipelineFile), "UTF-8");
 		} catch (IOException e) {
         	classLogger.error(Constants.STACKTRACE, e);
 		}
