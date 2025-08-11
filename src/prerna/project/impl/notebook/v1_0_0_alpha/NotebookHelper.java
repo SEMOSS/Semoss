@@ -338,10 +338,21 @@ public class NotebookHelper implements INotebookHelper {
 				    	AskModelEngineResponse llmResponse = model.ask(
 				    			PythonFunction.defaultLLMImprovePrompt() + function.createPythonFunctionSyntax(), 
 				    			null, insight, new HashMap<>());
-				    	String response = llmResponse.getStringResponse();
-				    	response = response.substring("```python".length());
-				    	response = response.substring(0, response.length()-1-"```".length());
-				    	writer.write(response);
+				    	String llmStringResponse = llmResponse.getStringResponse();
+				    	// because the LLM sometimes still adds stuff
+				    	// lets parse out the code block
+				    	String response = extractPythonCodeBlock(llmStringResponse);
+				    	if(response != null) {
+				    		// sometimes the response comes back with double encoding ...
+					    	// TODO: investigate this more
+					    	if(!response.contains("\n") && response.contains("\\n")) {
+					    		response = response.replace("\\n", "\n");
+					    	}
+					    	writer.write(response);
+				    	} else {
+				    		classLogger.warn("Unable to properly get python markdown from LLM. Defaulting to base function code");
+				    		writer.write(function.createPythonFunctionSyntax());
+				    	}
 			    	}
 			    	writer.write("\n\n");
 		    	}
@@ -418,19 +429,64 @@ public class NotebookHelper implements INotebookHelper {
 				finalCode = finalCode.replace("{{" + entry.getKey() + "}}", entry.getValue());
 			}
 			
+			// since we wrap within a function
+			// add an additional indent to all lines of code 
+			String indentedCode = finalCode.replaceAll("\\R", "\n" + TAB);
+
+		    String[] lines = indentedCode.split("\n");
+		    // find the last non-empty line and prepend "return " to it
+		    for(int i = lines.length - 1; i >= 0; i--) {
+		        String line = lines[i];
+		        if(!line.trim().isEmpty()) {
+		        	// find where the actual content starts
+		            int contentStart = 0;
+		            while(contentStart < line.length() && Character.isWhitespace(line.charAt(contentStart))) {
+		                contentStart++;
+		            }
+		            
+		            // split the indent and the content start
+		            String indent = line.substring(0, contentStart);
+		            String content = line.substring(contentStart);
+		            // modify the line after the indents to start with "return " 
+		            lines[i] = indent + "return " + content;
+		            break;
+		        }
+		    }
+		    
+		    String modifiedCode = String.join("\n", lines);
 			return "def " + methodName + parameters + ":" + "\n" +
-						TAB + finalCode.replaceAll("\\R", "\n"+TAB) + "\n";
+						TAB + modifiedCode + "\n";
 		}
 		
 		public static String defaultLLMImprovePrompt() {
 			String prompt = """
 					You are a python coding assistant. Inspect the provided python function. 
 					Please break out the inputs into variables in case they are within string inputs. 
-					Please provide a docstring and input types for the function. 
+					Please provide a docstring and input types for the function.
+					Ensure that the function has a return. 
 					Only reply with the code in markdown and make sure the syntax is executable with proper spacing:  
 					""";
 			return prompt;
 		}
 	}
 	
+	/**
+	 * 
+	 * @param str
+	 * @return
+	 */
+	public static String extractPythonCodeBlock(String str) {
+	    if (str == null) return null;
+	    
+	    // Pattern handles various formats:
+	    // ```python, ```Python, ``` python (with space), etc.
+	    Pattern pattern = Pattern.compile("```\\s*[Pp]ython\\s*\\n(.*?)\\n```", Pattern.DOTALL);
+	    Matcher matcher = pattern.matcher(str);
+	    
+	    if (matcher.find()) {
+	        return matcher.group(1).trim();
+	    }
+	    
+	    return null;
+	}
 }
