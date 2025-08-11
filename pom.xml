@@ -428,6 +428,7 @@
 			</exclusions>
 		</dependency>
 		 -->
+		 <!--
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-core</artifactId>
@@ -439,8 +440,8 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!--
-		https://mvnrepository.com/artifact/org.apache.lucene/lucene-analyzers-common -->
+		
+		https://mvnrepository.com/artifact/org.apache.lucene/lucene-analyzers-common
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-analyzers-common</artifactId>
@@ -452,8 +453,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!--
-		https://mvnrepository.com/artifact/org.apache.lucene/lucene-analyzers-smartcn -->
+		https://mvnrepository.com/artifact/org.apache.lucene/lucene-analyzers-smartcn
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-analyzers-smartcn</artifactId>
@@ -465,8 +465,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.blazegraph/bigdata-runtime -->
-		<!--
+		https://mvnrepository.com/artifact/com.blazegraph/bigdata-runtime
 		<dependency>
 			<groupId>com.blazegraph</groupId>
 			<artifactId>bigdata-runtime</artifactId>
