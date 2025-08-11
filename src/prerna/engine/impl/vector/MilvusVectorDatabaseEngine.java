@@ -149,7 +149,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -162,10 +162,11 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 		JsonArray entities = new JsonArray();
-
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
 		Map<String, Integer> sourceId = new HashMap<>();
 		for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
 			String source = row.getSource();
+			fileRecordCountMap.put(source, fileRecordCountMap.getOrDefault(source, 0) + 1);
 			int index = 0;
 			if(sourceId.containsKey(source)) {
 				index = sourceId.get(source);
@@ -189,21 +190,52 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		JsonObject requestBody = new JsonObject();
 		requestBody.addProperty("collectionName", this.collectionName);
 		requestBody.add("data", entities);
-
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		String url = this.milvusUrl + ENTITIES_ENDPOINT + INSERT_ENDPOINT;
 		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), requestBody.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
 		if (!json.has("code") || json.get("code").getAsInt() != 0) {
 			classLogger.error("Failed to add embeddings into collection '{}' within database '{}'", this.collectionName, this.databaseName);
-			throw new RuntimeException("Failed to insert collections " + this.collectionName 
-					+ " in database " + this.databaseName + ". Detailed error = " + json);
+			for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+				fileStatusList.add(new FileEmbeddingStatus(entry.getKey(), "FAILED", 0, entry.getValue(), entry.getValue()));
+	        }
+	        return fileStatusList;
 		}
-
+		else {
 		// {"code":0,"cost":284,"data":{"insertCount":228,"insertIds":["documentId1", ...
 		JsonObject dataJson = json.get("data").getAsJsonObject();
-		long inserted = dataJson.get("insertCount").getAsLong();
-		classLogger.info("Inserted {} records into Milvus Vector collection: {}", inserted, this.collectionName);
+		long insertedCount = dataJson.get("insertCount").getAsLong();
+		classLogger.info("Inserted {} records into Milvus Vector collection: {}", insertedCount, this.collectionName);
+		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+	        String file = entry.getKey();
+	        int totalRecords = entry.getValue();
+
+	        long inserted = 0;
+	        long failed = 0;
+	        String status;
+
+	        if (insertedCount == totalRecords) {
+	            inserted = totalRecords;
+	            failed = 0;
+	            status = "SUCCESS";
+	            insertedCount -= totalRecords;
+	        } else if (insertedCount > 0 && insertedCount < totalRecords) {
+	            inserted = insertedCount;
+	            failed = totalRecords - insertedCount;
+	            status = "PARTIAL";
+	            insertedCount = 0;
+	        } else {
+	            inserted = 0;
+	            failed = totalRecords;
+	            status = "FAILED";
+	        }
+
+	        fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+	    }
+
+	    return fileStatusList;
+		}
 	}
 
 	@Override
