@@ -90,12 +90,14 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error during getting the engine permission");
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Error during getting the engine permission");
 				}
 			}
 		}

@@ -109,12 +109,14 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error during getting the project permission");
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
 					logger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Error during getting the project permission");
 				}
 			}
 		}
