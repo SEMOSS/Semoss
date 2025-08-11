@@ -662,12 +662,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	    // --- BM25 Branch ---
 	    String distanceMethodProp = this.smssProp.getProperty("DISTANCE_METHOD");
 	    if ("BM25".equalsIgnoreCase(distanceMethodProp)) {
-	        // Get BM25 index path from .smss
-	        String bm25IndexPath = this.smssProp.getProperty("BM25_INDEX_PATH");
-	        if (bm25IndexPath == null || bm25IndexPath.trim().isEmpty()) {
-	            throw new IllegalArgumentException("BM25_INDEX_PATH must be set in .smss when using BM25 distance method.");
-	        }
-
 	        int topN = 3;
 	        if (limit != null) {
 	            topN = limit.intValue();
@@ -678,7 +672,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	        }
 
 	        try {
-	            BM25RankerService bm25 = BM25RankerService.loadFromIndex(bm25IndexPath);
+	            // Use the config-based loader for BM25 index
+	            BM25RankerService bm25 = BM25RankerService.loadFromConfig(this.smssProp);
 	            List<Map<String, Object>> results = bm25.search(searchStatement, topN);
 	            return results;
 	        } catch (Exception e) {
