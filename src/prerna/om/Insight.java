@@ -1580,7 +1580,9 @@ public class Insight implements Serializable {
 	 * @return
 	 */
 	public PyTranslator getPyTranslator() {
-		if(this.pyTranslator == null) {
+		if(this.pyTranslator == null 
+				|| this.pyTranslator.getSocketClient() == null
+				|| !this.pyTranslator.getSocketClient().isConnected()) {
 			SocketClient sc = user.getPythonSocketClient(true);
 			this.pyTranslator = new PyTranslator(sc, this);
 		}
