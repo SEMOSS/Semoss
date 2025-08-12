@@ -12,3 +12,9 @@ SEMOSS started as a visualization and analytics tool for RDF data (semantic web)
 ### Developers
 
 For Detailed Commit messages please look [here](hooks/README.md)
+
+### Resources
+
+Our [documentation site](https://workshop.cfg.deloitte.com/docs/) is refreshed nightly to provide the most current information. If you need documentation on a topic that is not currently covered, please post your question to the [Q&A board](https://github.com/SEMOSS/community/discussions/categories/q-a) with the appropriate context, screenshots, design input, and any other relevant details. 
+
+The Documentation team regularly monitors the board for documentation-related questions and creates tickets to address any identified needs.
