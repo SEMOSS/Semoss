@@ -17,6 +17,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
+import java.util.*;
 
 public class PushToStorageReactor extends AbstractReactor {
 
@@ -44,15 +45,16 @@ public class PushToStorageReactor extends AbstractReactor {
 	    Map<String, Object> metadata = getMetadata();
 
 	    try {
+	    	List<String> failedFiles = new ArrayList<>();
 	        for (String fileLocation : fileLocations) {
 	            fileLocation = Utility.normalizePath(fileLocation);
 	            if (!new File(fileLocation).exists()) {
-	                throw new IllegalArgumentException("Unable to locate file: " + fileLocation);
+	            	failedFiles.add(fileLocation);
+					classLogger.error("Failed to upload file: " + fileLocation);
 	            }
-
 	            storage.copyToStorage(fileLocation, storageFolderPath, metadata);
 	        }
-	        return new NounMetadata(true, PixelDataType.BOOLEAN);
+	        return new NounMetadata(failedFiles, PixelDataType.VECTOR);
 	    } catch (Exception e) {
 	        classLogger.error(Constants.STACKTRACE, e);
 	        throw new IllegalArgumentException("Error occurred uploading local files to storage");
