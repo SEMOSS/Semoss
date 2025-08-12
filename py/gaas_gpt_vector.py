@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Union
 import json
 from gaas_server_proxy import ServerProxy
 
@@ -27,7 +27,7 @@ class VectorEngine(ServerProxy):
         space: Optional[str] = None,
         param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
-    ) -> bool:
+    ) -> List[Dict]:
         """
         Add the documents into the vector database
 
@@ -36,6 +36,9 @@ class VectorEngine(ServerProxy):
             param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
             space (`Optional[str]`): If the files being loaded are in an app and not the insight, provide space='appid'
+
+        Returns:
+            List[Dict]:  List of dicts with metadata around the state of uploading each document provided.
         """
         assert file_paths is not None
         if insight_id is None:
@@ -72,7 +75,7 @@ class VectorEngine(ServerProxy):
         space: Optional[str] = None,
         param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
-    ) -> bool:
+    ) -> List[Dict]:
         """
         Add the vector csv file format documents into the vector database
 
@@ -81,6 +84,9 @@ class VectorEngine(ServerProxy):
             param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
             space (`Optional[str]`): If the files being loaded are in an app and not the insight, provide space='appid'
+
+        Returns:
+            List[Dict]:  List of dicts with metadata around the state of uploading each document provided.
         """
         assert file_paths is not None
         if insight_id is None:
