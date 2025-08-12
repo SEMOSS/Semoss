@@ -97,6 +97,9 @@ public abstract class AbstractEngine implements IEngine {
 		{
 			if(!this.isBasic) {
 				File f = new File(this.engineAssetsFolder);
+				if(this.engineAssetsFolder.contains("/null/")) {
+					System.out.println("why??");
+				}
 				if(!f.exists() || !f.isDirectory()) {
 					f.mkdirs();
 					// this means you have a legacy structure

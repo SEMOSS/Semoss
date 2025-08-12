@@ -23,6 +23,8 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
@@ -46,6 +48,12 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
 		// TODO: flush the key value pair into the nounstore
+		return execute();
+	}
+	
+	@Override
+	public NounMetadata execute(NounStore ns) {
+		this.setNounStore(ns);
 		return execute();
 	}
 

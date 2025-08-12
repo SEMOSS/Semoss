@@ -27,7 +27,6 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.EngineUtility;
 
 /**
  * The invocation handler for the dynamic proxy. This class intercepts all method calls,
@@ -44,9 +43,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
      * 
      * @param realEngine
      */
-    public PipelineInvocationHandler(IEngine realEngine) {
+    public PipelineInvocationHandler(IEngine realEngine, File jsonFile) {
         this.realEngine = realEngine;
-        String pipelineJson = getJsonData(realEngine);
+        String pipelineJson = getJsonData(jsonFile);
         parseAndLoadPipelines(pipelineJson);
     }
 
@@ -54,7 +53,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String methodName = method.getName();
 
-        // Find the correct pipeline for the called method.
+        // Find the correct pipeline for the called method
         Pipeline specificPipeline = this.pipelinesMap.get(methodName);
         if (specificPipeline == null) {
             specificPipeline = this.pipelinesMap.get("*");
@@ -87,11 +86,11 @@ public class PipelineInvocationHandler implements InvocationHandler {
                 
                 // get the decision and if it is false
                 // stop the execution. 
-                Map resultMap = (Map <String, Object>) processedArguments.get(PipelineReactorUtils.INTERIM_RESULT);
+                Map<String, Object> resultMap = (Map<String, Object>) processedArguments.get(PipelineReactorUtils.INTERIM_RESULT);
                 boolean pass = (boolean)resultMap.get(PipelineReactorUtils.PASS);
-                if(!pass)
-                		throw new SecurityException("Input Guardrail issue detected");
-                
+                if(!pass) {
+                	throw new SecurityException("Input Guardrail issue detected");
+                }
             }
         } catch (SecurityException e) {
             classLogger.error("Input pipeline blocked execution for method " + methodName, e);
@@ -122,11 +121,11 @@ public class PipelineInvocationHandler implements InvocationHandler {
             inputIndex++;
             
             // eval result	
-            Map resultMap = (Map <String, Object>) processedArguments.get(PipelineReactorUtils.INTERIM_RESULT);
+            Map<String, Object> resultMap = (Map <String, Object>) processedArguments.get(PipelineReactorUtils.INTERIM_RESULT);
             boolean pass = (boolean)resultMap.get(PipelineReactorUtils.PASS);
-            if(!pass)
-            		throw new SecurityException("Output Guardrail issue detected");
-
+            if(!pass) {
+        		throw new SecurityException("Output Guardrail issue detected");
+            }
         }
 
         return processedArguments.get(PipelineReactorUtils.RESULT);
@@ -134,16 +133,13 @@ public class PipelineInvocationHandler implements InvocationHandler {
     
     /**
      * 
-     * @param engine
+     * @param pipelineFile
      * @return
      */
-	private static String getJsonData(IEngine engine) {
+	private static String getJsonData(File pipelineFile) {
 		String jsonString = null;
 		try {
-			String versionFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(), engine.getEngineName());
-			String pipelineFile = versionFolder + "/" + engine.getSmssProp().getProperty(IEngine.PIPELINE);
-			pipelineFile = pipelineFile.replace("\\", "/");
-			jsonString = FileUtils.readFileToString(new File(pipelineFile), "UTF-8");
+			jsonString = FileUtils.readFileToString(pipelineFile, "UTF-8");
 		} catch (IOException e) {
         	classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -198,13 +194,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
             T reactor = reactorType.cast(clazz.newInstance());
             GenRowStruct grs = new GenRowStruct();
             if (config.has("params")) {
-                JSONObject params = config.getJSONObject("params");
                 NounStore nounStore = new NounStore("Reactor-params");
-                Map <String,Object> paramMap = new HashMap();
-                for (String key : params.keySet()) {
-                    Object value = params.get(key);
-                    paramMap.put(key, value);
-                }
+                Map <String,Object> paramMap = config.getJSONObject("params").toMap();
                 grs.add(new NounMetadata(paramMap, PixelDataType.MAP));
                 nounStore.addNoun("param", grs);
                 reactor.setNounStore(nounStore);
@@ -228,8 +219,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
         Map<String, Object> map = new HashMap<>();
         Parameter[] parameters = method.getParameters();
         for (int i = 0; i < parameters.length; i++) {
-        		if(args[i] instanceof Insight)
-        			reactor.setInsight((Insight)args[i]);
+    		if(args[i] instanceof Insight) {
+    			reactor.setInsight((Insight)args[i]);
+    		}
             map.put(parameters[i].getName(), args[i]);
         }
         return map;
