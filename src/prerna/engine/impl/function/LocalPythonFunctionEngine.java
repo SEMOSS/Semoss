@@ -48,7 +48,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 			throw new IllegalArgumentException("Please enter the name of the python file used to instantiate the function.");
 		}
 		
-		this.engineDirectoryPath = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
+		this.engineDirectoryPath = EngineUtility.getSpecificEngineAssetsFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
 		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
 		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
 		

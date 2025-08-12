@@ -105,6 +105,11 @@ public class ZKEngine implements IEngine {
 	}
 	
 	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
+	
+	@Override
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;
 	}
@@ -139,6 +144,16 @@ public class ZKEngine implements IEngine {
 	public String getCatalogSubType(Properties smssProp) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	@Override
+	public boolean isBasic() {
+		return false;
+	}
+	
+	@Override
+	public void setBasic(boolean isBasic) {
+		// always false
 	}
 
 	@Override

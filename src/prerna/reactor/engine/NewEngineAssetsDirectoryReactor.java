@@ -57,7 +57,10 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 //		String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
 		String assetFolder = EngineUtility.getSpecificEngineBaseFolder(engineId);
 
-		String filePath = this.keyValue.get(this.keysToGet[1]);
+		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
+		if(filePath == null || filePath.isEmpty()) {
+			throw new IllegalArgumentException("Must provide a valid filePath");
+		}
 //		String comment = this.keyValue.get(this.keysToGet[2]);
 //		if(comment == null) {
 //			comment = "add: creating new directory";
