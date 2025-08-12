@@ -135,7 +135,7 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 	    if (!modelPropsLoaded) {
 	        verifyModelProps();
 	    }
@@ -148,12 +148,13 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	    // Generate embeddings for all rows
 	    vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
-
+	    Map<String, Integer> fileRecordCountMap = new HashMap<>();
 	    List<JsonObject> vectorList = new ArrayList<>();
 	    Map<String, Integer> sourceId = new HashMap<>();
 
 	    for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
 	        String source = row.getSource();
+	        fileRecordCountMap.put(source, fileRecordCountMap.getOrDefault(source, 0) + 1);
 	        int index = sourceId.getOrDefault(source, 0);
 	        sourceId.put(source, index + 1);
 	        JsonObject vectorObject = new JsonObject();
@@ -204,7 +205,32 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	        throw new IllegalArgumentException("No response received from AWS S3 Vectors endpoint");
 	    }
 
+	 // AWS S3 returns "{}" for success
+	    boolean isSuccess = response != null && response.trim().equals("{}");
+
+	    List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+	    for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+	        String file = entry.getKey();
+	        int totalRecords = entry.getValue();
+	        int inserted = 0;
+	        if (isSuccess) {
+	         inserted = totalRecords;
+	        }
+
+			long failed = totalRecords - inserted;
+	        String status;
+			if (inserted == totalRecords) {
+				status = "SUCCESS";
+			} else if (inserted > 0 && inserted < totalRecords) {
+				status = "PARTIAL";
+			} else {
+				status = "FAILED";
+			}
+
+			fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+	    }
 	    classLogger.info("Successfully inserted " + vectorList.size() + " vectors into AWS S3 vector index " + this.indexName);
+	    return fileStatusList;
 	}
    
 	
