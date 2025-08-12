@@ -853,13 +853,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static String getActualUserProjectPermission(User user, String projectId) {
 		String userPermission = SecurityUserProjectUtils.getActualUserProjectPermission(user, projectId);
-		String groupUserPermission = SecurityUserProjectUtils.getActualGroupUserProjectPermission(user, projectId);
-		if(userPermission == null) {
-			return groupUserPermission;
-		}
-		else {
-			return userPermission;
-		}
+		List<String> groupUserPermissions = SecurityUserProjectUtils.getActualGroupUserProjectPermission(user, projectId);
+		return SecurityUserProjectUtils.getHighestProjectPermission(userPermission, groupUserPermissions);
 	}
 	
 	/**
@@ -2587,12 +2582,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			OrQueryFilter orFilter = new OrQueryFilter();
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
-			if(user.getPrimaryLoginToken().getUserGroups() != null) {
-				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserGroupFiltersQs(user)));
-			}
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", getUserGroupFiltersQs(user)));
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
+		qs.addRelation("PROJECT", "GROUPPROJECTPERMISSION", "left.outer.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);

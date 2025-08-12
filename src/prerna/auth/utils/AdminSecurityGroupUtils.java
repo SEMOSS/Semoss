@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.hadoop.security.Groups;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
@@ -789,41 +788,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Group " + groupId + " already has access to project " + projectId + " with permission = " + AccessPermissionEnum.getPermissionValueById(curPermission));
 		}
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if(endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		String prevPermission = SecurityProjectUtils.getActualUserProjectPermission(user, projectId);
-		if (prevPermission != null) {
-			int prevPermission1 = AccessPermissionEnum.getIdByPermission(prevPermission);
-			if(permission < prevPermission1) {
-				editProjectPermission(user, projectId, endDate, permission);
-			}
-		}
-		if ("GENERIC".equals(groupType)) {
-			PreparedStatement ps = null;
-			try {
-				ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET USERID = ? WHERE PERMISSION = ? AND PROJECTID = ? AND PERMISSIONGRANTEDBY = ? AND PERMISSIONGRANTEDBYTYPE = ?");
-				int parameterIndex = 1;
-				// SET
-				ps.setString(parameterIndex++, groupId);
-				// WHERE
-				ps.setInt(parameterIndex++, permission);
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.executeUpdate();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Error updating the project permission");
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-			}
-		}
+		
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)");
@@ -851,38 +822,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
-	public void editProjectPermission(User user, String projectId, String endDate, int permission) {
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?");
-			int parameterIndex = 1;
-			// SET
-			ps.setInt(parameterIndex++, permission);
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setTimestamp(parameterIndex++, startDate);
-			ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			// WHERE
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, projectId);
-			ps.executeUpdate();
-			if(!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred updating the project permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}	
-	}	
 	
 	/**
 	 * 
@@ -1249,34 +1188,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if(endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		String prevPermission = SecurityEngineUtils.getActualUserEnginePermission(user, engineId);
-		if (prevPermission != null) {
-			int prevPermission1 = AccessPermissionEnum.getIdByPermission(prevPermission);
-			if(permission < prevPermission1) {
-				editEnginePermission(user, engineId, endDate, permission);
-			}
-		}
-		if ("GENERIC".equals(groupType)) {
-			PreparedStatement ps = null;
-			try {
-				ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET USERID = ? WHERE PERMISSION = ? AND ENGINEID = ? ");
-				int parameterIndex = 1;
-				// SET
-				ps.setString(parameterIndex++, groupId);
-				// WHERE
-				ps.setInt(parameterIndex++, permission);
-				ps.setString(parameterIndex++, engineId);
-				ps.executeUpdate();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Error updating the engine permission");
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-			}
-		}
+		
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)");
@@ -1294,7 +1206,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
+			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -1304,38 +1216,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
-	public void editEnginePermission(User user, String engineId, String endDate, int permission) {
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND ENGINEID = ?");
-			int parameterIndex = 1;
-			// SET
-			ps.setInt(parameterIndex++, permission);
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setTimestamp(parameterIndex++, startDate);
-			ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			// WHERE
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, engineId);
-			ps.executeUpdate();
-			if(!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred updating the engine permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}	
-	}	
 	
 	/**
 	 * 

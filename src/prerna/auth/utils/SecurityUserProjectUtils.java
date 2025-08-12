@@ -2,9 +2,13 @@ package prerna.auth.utils;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -87,16 +91,12 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		return null;
 	}
 	
-	public static String getActualGroupUserProjectPermission(User user, String projectId) {
-		//		String userFilters = getUserFilters(user);
-		//		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-		//				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
-		//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
-				SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserGroupFiltersQs(user)));
+	public static List<String> getActualGroupUserProjectPermission(User user, String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", getUserGroupFiltersQs(user)));
+		List<String> permissions = new ArrayList<>();
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -104,7 +104,7 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 				Object val = wrapper.next().getValues()[0];
 				if(val != null) {
 					int permission = ((Number) val).intValue();
-					return AccessPermissionEnum.getPermissionValueById(permission);
+					permissions.add(AccessPermissionEnum.getPermissionValueById(permission));
 				}
 			}
 		} catch (Exception e) {
@@ -123,10 +123,31 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 
 		// see if project is public
 		if(SecurityProjectUtils.projectIsGlobal(projectId)) {
-			return AccessPermissionEnum.READ_ONLY.getPermission();
+			permissions.add(AccessPermissionEnum.READ_ONLY.getPermission());
 		}
 
-		return null;
+		return permissions;
+	}
+	
+	public static String getHighestProjectPermission(String userPermission, List<String> groupUserPermissions) {
+		Map<Integer, String> map = new HashMap<>();
+		if (userPermission != null) {
+			map.put(AccessPermissionEnum.getIdByPermission(userPermission), userPermission);
+		}
+		if (groupUserPermissions != null) {
+			for(String permission : groupUserPermissions) {
+				map.put(AccessPermissionEnum.getIdByPermission(permission), permission);
+			}
+		}
+		if (map.isEmpty()) {
+	        return null;
+	    }
+		Set<Entry<Integer, String>> mpset = map.entrySet();
+		int highestPermission1 = Integer.MAX_VALUE;
+		for(Entry<Integer, String> i : mpset) {
+			highestPermission1 = Math.min(highestPermission1, i.getKey());
+		}
+		return map.get(highestPermission1);	
 	}
 	
 	/**

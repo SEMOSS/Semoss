@@ -295,13 +295,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static String getActualUserEnginePermission(User user, String engineId) {
 		String userPermission = SecurityUserEngineUtils.getActualUserEnginePermission(user, engineId);
-		String groupUserPermission = SecurityUserEngineUtils.getActualGroupUserEnginePermission(user, engineId);
-		if(userPermission == null) {
-			return groupUserPermission;
-		}
-		else {
-			return userPermission;
-		}
+		List<String> groupUserPermissions = SecurityUserEngineUtils.getActualGroupUserEnginePermission(user, engineId);
+		return SecurityUserEngineUtils.getHighestEnginePermission(userPermission, groupUserPermissions);
 	}
 	
 	/**
@@ -2737,12 +2732,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", Arrays.asList(true, null), PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-			if(user.getPrimaryLoginToken().getUserGroups() != null) {
-				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserGroupFiltersQs(user)));
-			}
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", getUserGroupFiltersQs(user)));
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		qs.addRelation("ENGINE", "GROUPENGINEPERMISSION", "left.outer.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
