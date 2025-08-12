@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.NEREngine;
+import prerna.engine.impl.model.LocalNEREngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -53,12 +54,21 @@ public class NERReactor extends AbstractReactor {
 			paramMap = new HashMap<String, Object>();
 		}
 		
-		// CASTING TO CORRECT ENGINE.. NER is not abstracted
 		IModelEngine targetModel = Utility.getModel(engineId);
-		NEREngine targetEngine = (NEREngine) targetModel;
-		
-		NerModelEngineResponse output = targetEngine.predict(prompt, entities, maskEntities, this.insight, paramMap);
-		
+		NerModelEngineResponse output = null;
+
+		switch (targetModel.getModelType()) {
+		    case NER:
+		        NEREngine nerEngine = (NEREngine) targetModel;
+		        output = nerEngine.predict(prompt, entities, maskEntities, this.insight, paramMap);
+		        break;
+		    case LOCAL_NER:
+		        LocalNEREngine localNerEngine = (LocalNEREngine) targetModel;
+		        output = localNerEngine.predict(prompt, entities, maskEntities, this.insight, paramMap);
+		        break;
+		    default:
+		        throw new IllegalArgumentException("Engine " + engineId + " is not a valid NER engine type");
+		}
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 		
 	}

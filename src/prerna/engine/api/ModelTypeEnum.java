@@ -12,6 +12,7 @@ import prerna.engine.impl.model.KServeVisionEngine;
 import prerna.engine.impl.model.KServeImageEmbedEngine;
 import prerna.engine.impl.model.KServeImageEngine;
 import prerna.engine.impl.model.KServeTTSEngine;
+import prerna.engine.impl.model.LocalNEREngine;
 
 
 
@@ -21,6 +22,7 @@ public enum ModelTypeEnum {
 	EMBEDDED("EMBEDDED", EmbeddedModelEngine.class.getName()),
 	// FAST_CHAT("FAST_CHAT", FastChatProcessModel.class.getName()),
 	NER("NER", NEREngine.class.getName()),
+	LOCAL_NER("LOCAL_NER", LocalNEREngine.class.getName()),
 	KSERVE_VISION("KSERVE_VISION", KServeVisionEngine.class.getName()),
 	KSERVE_IMAGE_EMBED("KSERVE_IMAGE_EMBED", KServeImageEmbedEngine.class.getName()),
 	KSERVE_IMAGE("KSERVE_IMAGE", KServeImageEngine.class.getName()),

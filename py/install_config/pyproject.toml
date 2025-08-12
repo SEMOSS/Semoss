@@ -22,6 +22,7 @@ dependencies = [
     "faiss-cpu>=1.10.0",
     "flask>=3.1.0",
     "fuzzywuzzy>=0.18.0",
+    "gliner>=0.2.21",
     "google-auth>=2.38.0",
     "google-cloud-aiplatform>=1.97.0",
     "google-genai==1.20.0",
