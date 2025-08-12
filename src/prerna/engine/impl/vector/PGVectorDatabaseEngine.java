@@ -292,35 +292,39 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 	
 	@Override
-	public void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		for(String vectorCsvFile : vectorCsvFiles) {
 			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
-			addEmbeddings(vectorCsvTable, insight, parameters);
+			fileStatusList = addEmbeddings(vectorCsvTable, insight, parameters);
 		}
+		return fileStatusList;
 	}
 	
 	@Override
-	public void addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
-		addEmbeddings(vectorCsvTable, insight, parameters);
+		return addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override
-	public void addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		for(File vectorCsvFile : vectorCsvFiles) {
 			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-			addEmbeddings(vectorCsvTable, insight, parameters);
+			fileStatusList = addEmbeddings(vectorCsvTable, insight, parameters);
 		}
+		return fileStatusList;
 	}
 	
 	@Override
-	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-		addEmbeddings(vectorCsvTable, insight, parameters);
+		return addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -343,6 +347,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				+ this.vectorTableName 
 				+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT) "
 				+ "VALUES (?,?,?,?,?,?,?)";
+		
+		// Track insert status per file
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
+		Map<String, Integer> fileInsertedCountMap = new HashMap<>();
 		
 		Connection conn = null;
 		PreparedStatement ps = null;
@@ -368,26 +376,19 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				ps.setString(index++, row.getContent());
 				ps.addBatch();
 				
+				fileRecordCountMap.put(row.getSource(), fileRecordCountMap.getOrDefault(row.getSource(), 0) + 1);
 				// batch commit based on size
 				if (++count % batchSize == 0) {
 					classLogger.info("Executing embeddings batch .... row num = " + count);
 					int[] results = ps.executeBatch();
-					for(int j=0; j<results.length; j++) {
-						if(results[j] == PreparedStatement.EXECUTE_FAILED) {
-							throw new SQLException("Error inserting data for row " + j);
-						}
-					}
+					updateInsertCounts(results, vectorCsvTable, fileInsertedCountMap);
 				}
-			}
+			} 
 			
 			// well, we are done looping through now
 			classLogger.info("Executing final embeddings batch .... row num = " + count);
 			int[] results = ps.executeBatch();
-            for(int j=0; j<results.length; j++) {
-                if(results[j] == PreparedStatement.EXECUTE_FAILED) {
-                    throw new SQLException("Error inserting embeddings data for row " + j);
-                }
-            }
+			updateInsertCounts(results, vectorCsvTable, fileInsertedCountMap);
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -410,6 +411,38 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
 				}
+			}
+		}
+		// Generate file-wise embedding status
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+			String file = entry.getKey();
+			int total = entry.getValue();
+			int inserted = fileInsertedCountMap.getOrDefault(file, 0);
+			int failed = total - inserted;
+
+			String status = inserted == total ? "SUCCESS" :
+			                inserted == 0 ? "FAILED" : "PARTIAL";
+
+			fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, total));
+		}
+
+		return fileStatusList;
+	}
+	
+	/**
+	 * Method to update file-inserted counts 
+	 * @param results
+	 * @param table
+	 * @param fileInsertedCountMap
+	 */
+	private void updateInsertCounts(int[] results, VectorDatabaseCSVTable table, Map<String, Integer> fileInsertedCountMap) {
+		List<VectorDatabaseCSVRow> rows = table.getRows();
+		for (int i = 0; i < results.length; i++) {
+			VectorDatabaseCSVRow row = rows.get(i);
+			String source = row.getSource();
+			if (results[i] != PreparedStatement.EXECUTE_FAILED) {
+				fileInsertedCountMap.put(source, fileInsertedCountMap.getOrDefault(source, 0) + 1);
 			}
 		}
 	}
@@ -901,7 +934,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 	
 	@Override
-	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -1080,7 +1114,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
 			
 			if (extractedFiles.size() > 0) {
-				addEmbeddingFiles(extractedFiles, insight, parameters);
+				fileStatusList = addEmbeddingFiles(extractedFiles, insight, parameters);
 				
 				if (ClusterUtil.IS_CLUSTER) {
 					// push the actual documents over to the cloud
@@ -1098,6 +1132,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		} finally {
 			cleanUpAddDocument(indexFilesFolder);
 		}
+		return fileStatusList;
 	}
 	
 	@Override

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.engine.impl.vector.FileEmbeddingStatus;
 import prerna.engine.impl.vector.VectorDatabaseCSVTable;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 import prerna.om.Insight;
@@ -28,17 +29,19 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * 
 	 * @param filePaths		- List of absolute file paths
 	 * @param parameters	- Additional parameters the engine might need to process the documents e.g. an insight object
+	 * @return 
 	 */
-	void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception;
+	List<FileEmbeddingStatus> addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception;
 	
 	/**
 	 * 
 	 * @param vectorCsvFiles
 	 * @param insight
 	 * @param parameters
+	 * @return 
 	 * @throws Exception
 	 */
-	void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception;
+	List<FileEmbeddingStatus> addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception;
 
 	/**
 	 * 
@@ -47,16 +50,17 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @param parameters
 	 * @throws Exception
 	 */
-	void addEmbeddings(String vectorCsvFilePath, Insight insight, Map<String, Object> parameters) throws Exception;
+	List<FileEmbeddingStatus> addEmbeddings(String vectorCsvFilePath, Insight insight, Map<String, Object> parameters) throws Exception;
 	
 	/**
 	 * 
 	 * @param vectorCsvFiles
 	 * @param insight
 	 * @param parameters
+	 * @return 
 	 * @throws Exception
 	 */
-	void addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception;
+	List<FileEmbeddingStatus> addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception;
 	
 	/**
 	 * 
@@ -65,16 +69,17 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @param parameters
 	 * @throws Exception
 	 */
-	void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception;
+	List<FileEmbeddingStatus> addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception;
 	
 	/**
 	 * 
 	 * @param vectorCsvTable
 	 * @param insight
 	 * @param parameters
+	 * @return 
 	 * @throws Exception
 	 */
-	void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception;
+	List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception;
 	
 	/**
 	 * Insert embeddings directly into the vector database
