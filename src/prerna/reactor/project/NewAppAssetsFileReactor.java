@@ -55,7 +55,10 @@ public class NewAppAssetsFileReactor extends AbstractReactor {
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
 		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 
-		String filePath = this.keyValue.get(this.keysToGet[1]);
+		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
+		if(filePath == null || filePath.isEmpty()) {
+			throw new IllegalArgumentException("Must provide a valid filePath");
+		}
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if(comment == null) {
 			comment = "add: creating new file";

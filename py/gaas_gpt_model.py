@@ -45,7 +45,11 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
     """This class implements AbstractModelEngine class and is used as the "ModelEngine" class when calling `from gaas_gpt_model import ModelEngine` from a python
     process in Tomcat Server"""
 
-    def __init__(self, engine_id: str, insight_id: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        engine_id: str = None,
+        insight_id: Optional[str] = None,
+    ):
         """
         Initialize the TomcatModelEngine instance.
 
@@ -56,8 +60,11 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             pipeline_type (`Optional[str]`): Type of pipeline for local models.
             **kwargs: Additional keyword arguments.
         """
+        assert engine_id is not None
         super().__init__()  # initialize the ServerProxy class
         self.engine_id = engine_id  # set the engine id
+        if insight_id is None:
+            insight_id = super().get_thread_insight_id()
         self.insight_id = insight_id  # set the insight id
 
     def get_model_type(self, insight_id: Optional[str] = None):
@@ -124,7 +131,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             f',context=["<encode>{context}</encode>"]' if (context is not None) else ""
         )
         optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict)}]"
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )
@@ -161,55 +168,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         epoc = super().get_next_epoc()
 
         pixel = f'NER(engine="{self.engine_id}", prompt="{text}", entities={entities}, maskEntities={mask_entities});'
-
-        pixelReturn = super().callReactor(
-            epoc=epoc,
-            pixel=pixel,
-            insight_id=insight_id,
-        )
-
-        if pixelReturn is not None and len(pixelReturn) > 0:
-            output = pixelReturn[0]["pixelReturn"][0]
-            return output["output"]
-
-        return pixelReturn
-
-    def instruct(
-        self,
-        task: str,
-        context: Optional[str] = None,
-        param_dict: Optional[Dict] = None,
-        insight_id: Optional[str] = None,
-    ) -> List[Dict]:
-        """This method is responsible for interacting with models that can perform instruction based text-generation.
-        This is basically the same thing as the ask() method but it will include an OPERATION key in the parma_dict that will be set to "INSTRUCT".
-
-        Args:
-            - task (str): The task to instruct.
-            - context (Optional[str]): Context for the task.
-            - insight_id (Optional[str]): Identifier for insights.
-            - param_dict (Optional[Dict]): Additional parameters.
-
-        Returns:
-            `List[Dict]`: A dictionary with the response from the text-generation model. The dictionary in the response will contain the following keys:
-            - response
-            - numberOfTokensInPrompt
-            - numberOfTokensInResponse
-            - messageId
-            - roomId
-        """
-
-        if insight_id is None:
-            insight_id = self.insight_id
-
-        if param_dict is None:
-            param_dict = {}
-
-        epoc = super().get_next_epoc()
-
-        context_str = f'context="{context}",' if context is not None else ""
-
-        pixel = f'LLMInstruct(engine="{self.engine_id}", command="{task}", {context_str} insight_id="{insight_id}");'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -269,16 +227,17 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             strings_to_embed = [strings_to_embed]
 
         assert isinstance(strings_to_embed, list)
+        encoded_string = [f"<encode>{s}</encode>" for s in strings_to_embed]
 
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict)}]"
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )
 
-        pixel = f'Embeddings(engine="{self.engine_id}", values={strings_to_embed}{optionalParamDict});'
+        pixel = f'Embeddings(engine="{self.engine_id}",values={encoded_string}{optionalParamDict},encoded=true);'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -311,7 +270,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict)}]"
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )

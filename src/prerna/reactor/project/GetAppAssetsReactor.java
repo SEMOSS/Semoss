@@ -54,6 +54,8 @@ public class GetAppAssetsReactor extends AbstractReactor {
 		if(!filePath.startsWith("/")) {
 			filePath = "/" + filePath;
 		}
+		filePath = Utility.normalizePath(filePath);
+
 		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 
 		String output = null;
