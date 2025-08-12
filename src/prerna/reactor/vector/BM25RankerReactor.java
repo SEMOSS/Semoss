@@ -11,7 +11,7 @@ import java.util.*;
 
 public class BM25RankerReactor extends AbstractReactor {
 
-    private static final String INDEX_FILENAME     = "bm25_index.ser";
+    private static final String INDEX_FILENAME     = "bm25_index_dir"; // Now a directory, not a .ser file
     private static final String INDEX_OVERRIDE_KEY = "INDEX_PATH_OVERRIDE";
     private static final String ACTION_KEY         = "BM25_ACTION"; // "insert" or "search"
     private static final String INDEX_METHOD_KEY   = "INDEX_METHOD_KEY"; // Options: DISK, MEMORY, S3
@@ -40,7 +40,7 @@ public class BM25RankerReactor extends AbstractReactor {
         if (indexFp == null || indexFp.isEmpty()) {
             indexFp = INDEX_FILENAME;
         }
-        File idxFile = new File(indexFp);
+        File idxDir = new File(indexFp);
 
         // Default to "search" if action is missing or invalid
         boolean isInsert = "insert".equalsIgnoreCase(action);
@@ -49,14 +49,17 @@ public class BM25RankerReactor extends AbstractReactor {
         if (indexMethod == null) indexMethod = "DISK"; // default
 
         BM25RankerService service = null;
+        Map<String,Object> payload = new HashMap<>();
+
         try {
             switch (indexMethod.toUpperCase()) {
                 case "DISK":
-                    if (idxFile.exists()) {
-                        service = BM25RankerService.loadFromIndex(indexFp);
-                    } else {
-                        service = BM25RankerService.buildAndSave(corpus, ids, indexFp);
+                    // indexFp should be a directory path
+                    if (!idxDir.exists() && isInsert) {
+                        idxDir.mkdirs();
                     }
+                    service = new BM25RankerService(indexFp);
+                    // If index is empty and not inserting, you may want to build it
                     break;
                 case "S3":
                     String bucket = getLiteralFromNounStore(S3_BUCKET_KEY);
@@ -66,35 +69,32 @@ public class BM25RankerReactor extends AbstractReactor {
                     service = BM25RankerService.loadFromS3(bucket, s3key);
                     break;
                 case "MEMORY":
-                    // Always build index in memory from corpus/ids
                     service = new BM25RankerService();
-                    service.indexDocuments(corpus, ids);
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown BM25_INDEX_METHOD: " + indexMethod);
             }
-        } catch (Exception e) {
-            throw new RuntimeException("Error initializing BM25RankerService", e);
-        }
-        
-        Map<String,Object> payload = new HashMap<>();
 
-        if (isInsert) {
-            // Insert mode: add new documents and IDs, then save
-            service.insertDocuments(corpus, ids);
-            try {
-                service.saveIndex(indexFp);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to save BM25 index after insert", e);
+            if (isInsert) {
+                // Insert mode: add new documents and IDs, then save
+            	System.out.println("BM25RankerReactor: Inserting " + corpus.size() + " documents");
+                service.insertDocuments(corpus, ids);
+                service.saveIndex(indexFp); // For S3, implement upload in saveIndex
+                payload.put("BM25_INSERTED", corpus.size());
+                payload.put("BM25_INDEX_FILE", indexFp);
+                payload.put("BM25_DOC_COUNT", service.getDocIds().size());
+            } else {
+                // Search mode: run query and return results
+                List<Map<String,Object>> results = service.search(query, topN);
+                payload.put("BM25_RESULTS", results);
+                payload.put("BM25_INDEX_FILE", indexFp);
             }
-            payload.put("BM25_INSERTED", corpus.size());
-            payload.put("BM25_INDEX_FILE", indexFp);
-            payload.put("BM25_DOC_COUNT", service.getDocIds().size());
-        } else {
-            // Search mode: run query and return results
-            List<Map<String,Object>> results = service.search(query, topN);
-            payload.put("BM25_RESULTS", results);
-            payload.put("BM25_INDEX_FILE", indexFp);
+        } catch (Exception e) {
+            throw new RuntimeException("Error in BM25RankerReactor", e);
+        } finally {
+            if (service != null) {
+                try { service.close(); } catch (Exception ignore) {}
+            }
         }
 
         // Single diagnostic print at the end
