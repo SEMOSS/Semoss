@@ -128,11 +128,11 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	        return null;
 	    }
 		Set<Entry<Integer, String>> mpset = map.entrySet();
-		int highestPermission1 = Integer.MAX_VALUE;
+		int minPermissionId = Integer.MAX_VALUE;
 		for(Entry<Integer, String> i : mpset) {
-			highestPermission1 = Math.min(highestPermission1, i.getKey());
+			minPermissionId = Math.min(minPermissionId, i.getKey());
 		}
-		return map.get(highestPermission1);	
+		return map.get(minPermissionId);	
 	}
 	
 	/**
