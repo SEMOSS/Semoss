@@ -90,7 +90,7 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(targetEngine.getClass());
-//        enhancer.setInterfaces(new Class[] {IVectorDatabaseEngine.class});
+        enhancer.setInterfaces(new Class[] {IVectorDatabaseEngine.class});
         enhancer.setCallback(targetInterceptor);
         
         try {
@@ -111,36 +111,36 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	// call the proxy for the rest. let the interceptor/s decide how to handle
 	@Override
-	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
-		proxy.addDocument(filePaths, parameters);
+	public List<FileEmbeddingStatus> addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+		return proxy.addDocument(filePaths, parameters);
 	}
 	@Override
 	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws Exception {
 		proxy.addDocument(fileNames, parameters);
 	}
 	@Override
-	public void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters)
+	public List<FileEmbeddingStatus> addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters)
 			throws Exception {
-		proxy.addEmbeddings(vectorCsvFiles, insight, parameters);
+		return proxy.addEmbeddings(vectorCsvFiles, insight, parameters);
 	}
 	@Override
-	public void addEmbeddings(String vectorCsvFilePath, Insight insight, Map<String, Object> parameters)
+	public List<FileEmbeddingStatus> addEmbeddings(String vectorCsvFilePath, Insight insight, Map<String, Object> parameters)
 			throws Exception {
-		proxy.addEmbeddings(vectorCsvFilePath, insight, parameters);
+		return proxy.addEmbeddings(vectorCsvFilePath, insight, parameters);
 	}
 	@Override
-	public void addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters)
+	public List<FileEmbeddingStatus> addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters)
 			throws Exception {
-		proxy.addEmbeddingFiles(vectorCsvFiles, insight, parameters);
+		return proxy.addEmbeddingFiles(vectorCsvFiles, insight, parameters);
 	}
 	@Override
-	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
-		proxy.addEmbeddingFile(vectorCsvFile, insight, parameters);
+	public List<FileEmbeddingStatus> addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+		return proxy.addEmbeddingFile(vectorCsvFile, insight, parameters);
 	}
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters)
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters)
 			throws Exception {
-		proxy.addEmbeddings(vectorCsvTable, insight, parameters);
+		return proxy.addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	@Override
 	public void addEmbedding(List<? extends Number> embedding, String source, String modality, String divider,
