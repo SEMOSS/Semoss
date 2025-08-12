@@ -322,15 +322,15 @@ public class SecurityOwlCreator {
 
 		// JIRA_USER
 		owler.addConcept("JIRA_USER", null, null);
-		owler.addProp("SMSS_USER", "ID", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "KEY_NAME", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "API_KEY", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "CREATED_BY", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "DATE_CREATED", "TIMESTAMP");
-		owler.addProp("SMSS_USER", "DATE_LAST_USED", "TIMESTAMP");
-		owler.addProp("SMSS_USER", "URL", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "USER_ID", "VARCHAR(255");
-		owler.addProp("SMSS_USER", "PROJECT", "VARCHAR(255");
+		owler.addProp("JIRA_USER", "ID", "VARCHAR(255)");
+		owler.addProp("JIRA_USER", "KEY_NAME", "VARCHAR(255)");
+		owler.addProp("JIRA_USER", "API_KEY", "VARCHAR(255)");
+		owler.addProp("JIRA_USER", "CREATED_BY", "VARCHAR(255)");
+		owler.addProp("JIRA_USER", "DATE_CREATED", "TIMESTAMP");
+		owler.addProp("JIRA_USER", "DATE_LAST_USED", "TIMESTAMP");
+		owler.addProp("JIRA_USER", "URL", "VARCHAR(255)");
+		owler.addProp("JIRA_USER", "USER_ID", "VARCHAR(255");
+		owler.addProp("JIRA_USER", "PROJECT", "VARCHAR(255");
 		
 		// SMSS_USER_ACCESS_KEYS
 		owler.addConcept("SMSS_USER_ACCESS_KEYS", null, null);
