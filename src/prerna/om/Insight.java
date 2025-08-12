@@ -320,7 +320,12 @@ public class Insight implements Serializable {
 				if(this.user != null) {
 					logger.info(User.getSingleLogginName(this.user) + " Running >>> " + Utility.cleanLogString(pixelString));
 				} else {
-					logger.info("No User Running >>> " + Utility.cleanLogString(pixelString));
+					User threadUser = getUser();
+					if(threadUser != null) {
+						logger.info(User.getSingleLogginName(threadUser) + " Running >>> " + Utility.cleanLogString(pixelString));
+					} else {
+						logger.info("No User Running >>> " + Utility.cleanLogString(pixelString));
+					}
 				}
 				try {
 					runner.runPixel(pixelString, this);
@@ -1575,7 +1580,9 @@ public class Insight implements Serializable {
 	 * @return
 	 */
 	public PyTranslator getPyTranslator() {
-		if(this.pyTranslator == null) {
+		if(this.pyTranslator == null 
+				|| this.pyTranslator.getSocketClient() == null
+				|| !this.pyTranslator.getSocketClient().isConnected()) {
 			SocketClient sc = user.getPythonSocketClient(true);
 			this.pyTranslator = new PyTranslator(sc, this);
 		}
