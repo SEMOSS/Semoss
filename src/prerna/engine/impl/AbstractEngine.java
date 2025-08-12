@@ -128,11 +128,10 @@ public abstract class AbstractEngine implements IEngine {
 						}
 					});
 				}
+				if(!AssetUtility.isGit(this.engineVersionFolder)) {
+					GitRepoUtils.init(this.engineVersionFolder);
+				}
 			}
-		}
-		
-		if(!AssetUtility.isGit(this.engineVersionFolder)) {
-			GitRepoUtils.init(this.engineVersionFolder);
 		}
 	}
 	
