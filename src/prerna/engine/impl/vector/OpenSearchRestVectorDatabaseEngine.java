@@ -524,6 +524,10 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 		return returnSources;
 	}
+	
+	public List<Map<String, Object>> listAllRecords() {
+		return listAllRecords(null);
+	}
 
 	@Override
 	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
