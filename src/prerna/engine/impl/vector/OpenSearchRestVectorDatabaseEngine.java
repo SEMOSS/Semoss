@@ -54,6 +54,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private static final String BULK_ENDPOINT = "/_bulk";
 	private static final String UPDATE_MAPPINGS_ENDPOINT = "/_mapping";
 	private static final String DELETE_BY_QUERY_ENDPOINT = "/_delete_by_query";
+	
+	private static final String UNIQUE_SOURCES = "unique_sources";
 
 	private static final String EMBEDDINGS_COLUMN = "EMBEDDINGS_COLUMN";
 	private static final String DIMENSION_SIZE = "DIMENSION_SIZE";
@@ -174,12 +176,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		Map<String, Integer> sourceId = new HashMap<>();
 		for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
 			String source = row.getSource();
+			
 			int index = 0;
 			if(sourceId.containsKey(source)) {
 				index = sourceId.get(source);
-				sourceId.put(source, index+1);
+				sourceId.put(source, index++);
 			} else {
-				sourceId.put(source, new Integer(0));
+				sourceId.put(source, 0);
 			}
 
 			// store creation of the index
@@ -309,85 +312,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		if (!this.modelPropsLoaded) {
 			verifyModelProps();
 		}
-
-		IModelEngine engine = Utility.getModel(this.embedderEngineId);
-		EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] {searchStatement}), insight, null);
-
-		// construct search query
-		JsonObject search = new JsonObject();
-		search.addProperty("size", limit);
-		{
-			JsonObject query = new JsonObject();
-			{
-				if (!parameters.containsKey("filters")) {
-					JsonObject knn = new JsonObject();
-					{
-						JsonObject embedding = new JsonObject();
-						embedding.add("vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
-						embedding.addProperty("k", limit);
-						// store key using the field name for the vector in parent
-						knn.add(this.embeddings, embedding);
-					}
-					// add to parent
-					query.add("knn", knn);
-				} else if (parameters.containsKey("filters")) {
-					JsonObject bool = new JsonObject();
-					{
-						JsonArray must = new JsonArray();
-						{
-							JsonObject knnParent = new JsonObject();
-							{								
-								JsonObject knn = new JsonObject();
-								{
-									JsonObject embedding = new JsonObject();
-									embedding.add("vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
-									embedding.addProperty("k", limit);
-
-									JsonObject filterParent = new JsonObject();
-									{
-										JsonObject filterBool = new JsonObject();
-										{
-											//Filtration logic starts here
-											//filter contains simple or AND conditions
-											JsonArray filter = new JsonArray();
-
-											//should contains OR condition filters
-											JsonArray should = new JsonArray();
-
-											//must not contains not equals to filters
-											JsonArray must_not = new JsonArray();
-
-											List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
-											for(IQueryFilter queryFilter : filters) {
-												RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
-											}
-
-											//call to process filter
-											filterBool.add("filter", filter);
-											filterBool.add("should", should);
-											filterBool.add("must_not", must_not);
-
-											if (should.size() > 1) {
-												filterBool.addProperty("minimum_should_match", 1);
-											}
-										}
-										filterParent.add("bool", filterBool);
-									}
-									embedding.add("filter", filterParent);
-									knn.add(this.embeddings, embedding);
-								}
-								knnParent.add("knn", knn);
-							}
-							must.add(knnParent);
-						}
-						bool.add("must", must);
-					}
-					query.add("bool", bool);
-				}
-			}
-			// add to parent
-			search.add("query", query);
-		}
+				JsonObject search = getNearestNeighborSearchJson(insight, searchStatement, limit, parameters);
 		
 		classLogger.debug("OPENSEARCH FINAL SEARCH QUERY : " + search.toString());
 
@@ -420,31 +345,55 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return vectorSearchResults;
 	}
 
+	
+	
+	protected JsonObject getNearestNeighborSearchJson(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
+		IModelEngine engine = Utility.getModel(this.embedderEngineId);
+		EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] {searchStatement}), insight, null);
+		List<Double> searchStatementEmbedding = embeddingsResponse.getResponse().get(0);
+		
+		JsonObject search = new JsonObject();
+		search.addProperty("size", limit);
+		{
+			JsonObject query = new JsonObject();
+			{
+				JsonObject knn = new JsonObject();
+				{
+					JsonObject embedding = new JsonObject();
+					embedding.add("vector", convertListNumToJsonArray(searchStatementEmbedding));
+					embedding.addProperty("k", limit);
+					knn.add(this.embeddings, embedding);
+				}
+				
+				if (!parameters.containsKey("filters")) {
+					query.add("knn", knn);
+				} else {
+					JsonObject bool = new JsonObject();
+					{
+						JsonArray must = new JsonArray();
+						{
+							JsonObject knnParent = new JsonObject();
+							knnParent.add("knn", knn);
+							must.add(knnParent);
+						}
+						bool.add("must", must);
+						
+						JsonObject filter = getFilterAggregation(parameters);
+						bool.add("filter", filter);
+					}
+					query.add("bool", bool);
+				}
+				search.add("query", query);
+			}
+		}
+		return search;
+	}
+
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
-		final String UNIQUE_SOURCES = "unique_sources";
-		// construct search query
-		JsonObject search = new JsonObject();
-		{
-			JsonObject aggs = new JsonObject();
-			{			
-				JsonObject uniqueScores = new JsonObject();
-				{
-					JsonObject terms = new JsonObject();
-					terms.addProperty("field", VectorDatabaseCSVTable.SOURCE);
-					terms.addProperty("min_doc_count", 1);
-					// Pull upto 9999 unique terms for the aggregation.
-					terms.addProperty("size", 9999);
-					// add to parent
-					uniqueScores.add("terms", terms);
-				}
-				// add to parent
-				aggs.add(UNIQUE_SOURCES, uniqueScores);
-			}
-			// add to parent
-			search.add("aggs", aggs);
-			search.addProperty("size", 0);
-		}
+		
+		JsonObject search = getListDocumentSearchJson(parameters);
 
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;// + "?search_type=count";
 		Map<String, String> headersMap = new HashMap<>();
@@ -487,24 +436,71 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return returnSources;
 	}
 
+	protected JsonObject getListDocumentSearchJson(Map<String, Object> parameters) {
+		JsonObject search = new JsonObject();
+		search.addProperty("size", 0);
+		{
+			if (parameters.containsKey("filters")) {
+				JsonObject filter = getFilterAggregation(parameters);
+				search.add("query", filter);
+			}
+			
+			JsonObject aggs = new JsonObject();
+			{
+				JsonObject uniqueSources = new JsonObject();
+				{
+					JsonObject terms = new JsonObject();
+					terms.addProperty("field", VectorDatabaseCSVTable.SOURCE);
+					terms.addProperty("min_doc_count", 1);
+					// Pull upto 9999 unique terms for the aggregation
+					terms.addProperty("size", 9999);
+					uniqueSources.add("terms", terms);
+				}
+				aggs.add(UNIQUE_SOURCES, uniqueSources);
+			}
+			search.add("aggs", aggs);
+		}
+		return search;
+	}
+
+	@SuppressWarnings("unchecked")
+	protected JsonObject getFilterAggregation(Map<String, Object> parameters) {
+		JsonObject filterParent = new JsonObject();
+		{
+			JsonObject filterBool = new JsonObject();
+			{
+				//Filtration logic starts here
+				//filter contains simple or AND conditions
+				JsonArray filter = new JsonArray();
+
+				//should contains OR condition filters
+				JsonArray should = new JsonArray();
+
+				//must not contains not equals to filters
+				JsonArray must_not = new JsonArray();
+
+				List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
+				for(IQueryFilter queryFilter : filters) {
+					RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
+				}
+
+				//call to process filter
+				filterBool.add("filter", filter);
+				filterBool.add("should", should);
+				filterBool.add("must_not", must_not);
+
+				if (should.size() > 1) {
+					filterBool.addProperty("minimum_should_match", 1);
+				}
+			}
+			filterParent.add("bool", filterBool);
+		}
+		return filterParent;
+	}
+
 	@Override
 	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
-		// construct search query
-		JsonObject search = new JsonObject();
-		{
-			JsonArray fields = new JsonArray();
-			{	
-				fields.add(VectorDatabaseCSVTable.SOURCE);
-				fields.add(VectorDatabaseCSVTable.MODALITY);
-				fields.add(VectorDatabaseCSVTable.DIVIDER);
-				fields.add(VectorDatabaseCSVTable.PART);
-				fields.add(VectorDatabaseCSVTable.TOKENS);
-				fields.add(VectorDatabaseCSVTable.CONTENT);
-			}
-			// add to parent
-			search.add("fields", fields);
-			search.addProperty("_source", false);
-		}
+		JsonObject search = getListAllRecordsSearchJson(parameters);
 
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT + "?size=10000";
 		Map<String, String> headersMap = new HashMap<>();
@@ -530,6 +526,29 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		}
 		
 		return allDocuments;
+	}
+
+	protected JsonObject getListAllRecordsSearchJson(Map<String, Object> parameters) {
+		JsonObject search = new JsonObject();
+		{
+			if (parameters.containsKey("filters")) {
+				JsonObject filter = getFilterAggregation(parameters);
+				search.add("query", filter);
+			}
+			
+			JsonArray fields = new JsonArray();
+			{	
+				fields.add(VectorDatabaseCSVTable.SOURCE);
+				fields.add(VectorDatabaseCSVTable.MODALITY);
+				fields.add(VectorDatabaseCSVTable.DIVIDER);
+				fields.add(VectorDatabaseCSVTable.PART);
+				fields.add(VectorDatabaseCSVTable.TOKENS);
+				fields.add(VectorDatabaseCSVTable.CONTENT);
+			}
+			search.add("fields", fields);
+			search.addProperty("_source", false);
+		}
+		return search;
 	}
 	
 	/**
