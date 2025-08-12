@@ -25,6 +25,7 @@ import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.GetMCPInternalToolsReactor;
 import prerna.reactor.agent.mcp.GetMCPToolsReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -122,7 +123,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
     }
 
     private List<Map<String, Object>> getToolJson(String appId) {
-        GetMCPToolsReactor getMCPToolsReactor = new GetMCPToolsReactor();
+    	GetMCPInternalToolsReactor getMCPToolsReactor = new GetMCPInternalToolsReactor();
         getMCPToolsReactor.In();
 
         GenRowStruct grs1 = new GenRowStruct();
