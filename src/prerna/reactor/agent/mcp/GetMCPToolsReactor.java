@@ -71,10 +71,8 @@ public class GetMCPToolsReactor extends AbstractReactor {
 			try {
 				String jsonTxt = FileUtils.readFileToString(jsonFile, "UTF-8");
 				JSONObject json = new JSONObject(jsonTxt);
-				// the tools is what has it
-				JSONArray toolObj = null;
 				if(json.has(node)) {
-					toolObj = (JSONArray)json.getJSONArray(node);
+					JSONArray toolObj = json.getJSONArray(node);
 					return toolObj;
 				}
 			} catch (FileNotFoundException e) {

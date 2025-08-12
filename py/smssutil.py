@@ -977,7 +977,11 @@ def gen_mcp(src_file=None, dest_file=None):
     tools_block = {}
     tools = []
     tools = []
-    for node in ast.walk(tree):
+    # switching to tree.body so that we only parse out the main functions
+    # defined in the python file
+    # functions within functions are not exposed as tools
+    # for node in ast.walk(tree):
+    for node in tree.body:
         function = {}
         input_schema = {}
         ## {"name":"compare_stocks","description":"\n    Compare the current stock prices of two ticker symbols.\n    Returns a formatted message comparing the two stock prices.\n    \n    Parameters:\n        symbol1: The first stock ticker symbol.\n        symbol2: The second stock ticker symbol.\n    ",

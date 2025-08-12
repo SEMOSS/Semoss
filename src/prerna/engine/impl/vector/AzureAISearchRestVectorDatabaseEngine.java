@@ -194,7 +194,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	}
 
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -208,14 +208,15 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		// send all the strings to embed in one shot
 		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
-
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
 		JsonObject bulkInsert = new JsonObject();
 		{
 			JsonArray value = new JsonArray();
-
+		
 			Map<String, Integer> sourceId = new HashMap<>();
 			for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
 				String source = row.getSource();
+				fileRecordCountMap.put(source, fileRecordCountMap.getOrDefault(source, 0) + 1);
 				int index = 0;
 				if(sourceId.containsKey(source)) {
 					index = sourceId.get(source);
@@ -252,13 +253,46 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		}
 
 		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
-		List<Object> insertions = (List<Object>) responseMap.get("value");
+		List<Map<String, Object>> insertions = (List<Map<String, Object>>) responseMap.get("value");
 		classLogger.info("Inserted " + insertions.size() + " bulk inserts (create index + record value) into azure ai search index " + this.indexName);
+		Map<String, Long> successCountMap = new HashMap<>();
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+		for (Map<String, Object> result : insertions) {
+			String docId = (String) result.get("key");
+			boolean succeeded = (boolean) result.getOrDefault("status", true); // true if no error
 
+			String source = docId.substring(0, docId.lastIndexOf("_"));
+			if (succeeded) {
+				successCountMap.put(source, successCountMap.getOrDefault(source, 0L) + 1);
+			}
+		}
+
+		// Prepare FileEmbeddingStatus Map
+		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+			String file = entry.getKey();
+			int totalRecords = entry.getValue();
+			long inserted = successCountMap.getOrDefault(file, 0L);
+			long failed = totalRecords - inserted;
+
+			String status;
+			if (inserted == totalRecords) {
+				status = "SUCCESS";
+			} else if (inserted > 0 && inserted < totalRecords) {
+				status = "PARTIAL";
+			} else {
+				status = "FAILED";
+			}
+
+			fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+		}
 		Boolean errors = (Boolean) responseMap.get("errors");
 		if(errors != null && errors) {
 			classLogger.warn("There were errors with some of the bulk insertions in the azure ai search index " + this.indexName);
+		}else {
+			classLogger.info("All records inserted successfully into Azure AI Search index '{}'", this.indexName);
 		}
+
+		return fileStatusList;
 	}
 
 	@Override
@@ -304,7 +338,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		JsonObject responseJsonSearchId = JsonParser.parseString(responseSearchId).getAsJsonObject();
 		JsonArray sourceArrId = responseJsonSearchId.getAsJsonObject().getAsJsonArray("value");
 		classLogger.info("Response source ids :: "+sourceArrId);		
-		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 		//Delete Rq
 		JsonArray valueArr = new JsonArray();
 				
@@ -466,8 +500,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			indexClass = (String) parameters.get("indexClass");
 		}
  
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR
-				+ DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 		List<Map<String, Object>> returnSources = new ArrayList<>();
 		for (JsonElement bucket : sourceArr) {
 			JsonObject bucketDetails = bucket.getAsJsonObject();
