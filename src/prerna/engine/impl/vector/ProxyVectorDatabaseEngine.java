@@ -116,7 +116,7 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	@Override
 	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws Exception {
-		proxy.addDocument(fileNames, parameters);
+		proxy.removeDocument(fileNames, parameters);
 	}
 	@Override
 	public List<FileEmbeddingStatus> addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters)
