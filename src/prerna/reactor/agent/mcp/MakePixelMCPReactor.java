@@ -63,10 +63,12 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		
 		JSONObject mcpJson = new JSONObject();
 		mcpJson.put("tools", toolsArray);
+		JSONObject _meta = new JSONObject();
 		LocalDate todayUTC = LocalDate.now(ZoneOffset.UTC);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-		mcpJson.put("last_modified_date", todayUTC.format(formatter));
-		
+        _meta.put("last_modified_date", todayUTC.format(formatter));
+		mcpJson.put("_meta", _meta);
+
 		String outputFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
 		File outputFile = new File(outputFileLoc);
 		if(!outputFile.getParentFile().exists() || !outputFile.getParentFile().isDirectory()) {
