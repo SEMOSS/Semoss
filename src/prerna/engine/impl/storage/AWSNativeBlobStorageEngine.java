@@ -380,8 +380,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			
 			// Normalize prefix using the utility method
 			String prefix = Utility.normalizePath(s3FolderPath);
-			if (!prefix.endsWith("/") && !prefix.isEmpty()) {
-//				prefix += "/";
+			if (!prefix.isEmpty()) {
+				prefix += "/";
 			}
 
 			ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(this.bucket).prefix(prefix)
