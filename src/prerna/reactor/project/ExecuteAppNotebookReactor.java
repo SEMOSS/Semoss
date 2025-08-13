@@ -18,7 +18,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
-import prerna.om.InsightStore;
 
 
 public class ExecuteAppNotebookReactor extends AbstractReactor {

@@ -26,7 +26,7 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
 	 */
     public AskImageModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
-        this.messageType = IMAGE; // Ensure message type is set
+        this.messageType = IMAGE; 
     }
 
     /**

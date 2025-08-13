@@ -213,100 +213,96 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return true;
 			} else {
 				// not added by admin
-				// lets see if he exists or not
-				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getUsername(), newUser.getEmail());
-				if (!userExists) {
-					String salt = AbstractSecurityUtils.generateSalt();
-					String hashedPassword = (AbstractSecurityUtils.hash(password, salt));
+				String salt = AbstractSecurityUtils.generateSalt();
+				String hashedPassword = (AbstractSecurityUtils.hash(password, salt));
 
-					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-					
-					String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
-							+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE, "
-							+ "MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY, MODELUSAGERESTRICTION) "
-							+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-					
-					PreparedStatement ps = null;
-					try {
-						int parameterIndex = 1;
-						ps = securityDb.getPreparedStatement(insertQuery);
-						ps.setString(parameterIndex++, newUser.getId());
-						if(newUser.getName() == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getName());
-						}
-						if(newUser.getUsername() == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getUsername());
-						}
-						if(newUser.getEmail() == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getEmail());
-						}
-						ps.setString(parameterIndex++, newUser.getProvider().toString());
-						// we never add ADMIN this way
-						ps.setBoolean(parameterIndex++, false);
-						ps.setString(parameterIndex++, hashedPassword);
-						ps.setString(parameterIndex++, salt);
-						ps.setTimestamp(parameterIndex++, timestamp);
-						// not locked ...
-						ps.setBoolean(parameterIndex++, false);
-						if(newUser.getPhone() == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getPhone());
-						}
-						if(newUser.getPhoneExtension() == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getPhoneExtension());
-						}
-						if(newUser.getCountryCode() == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getCountryCode());
-						}
-						if(newUser.getModelMaxTokens() == 0) {
-							ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
-						} else {
-							ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
-						}
-						if(newUser.getModelMaxResponseTime() == 0.0) {
-							ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
-						} else {
-							ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
-						}
-						if(newUser.getModelUsageRestriction() == null || newUser.getModelUsageRestriction().isEmpty()) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
-						}
-						if(newUser.getModelUsageFrequency() == null || newUser.getModelUsageFrequency().isEmpty()) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
-						}
-						ps.execute();
-						if(!ps.getConnection().getAutoCommit()) {
-							ps.getConnection().commit();
-						}
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					} finally {
-						if(ps != null) {
-							ps.close();
-						}
-						if(ps != null && securityDb.isConnectionPooling()) {
-							ps.getConnection().close();
-						}
+				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
+
+				String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
+						+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE, "
+						+ "MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY, MODELUSAGERESTRICTION) "
+						+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+				PreparedStatement ps = null;
+				try {
+					int parameterIndex = 1;
+					ps = securityDb.getPreparedStatement(insertQuery);
+					ps.setString(parameterIndex++, newUser.getId());
+					if (newUser.getName() == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getName());
 					}
-					
-					storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp);
-					return true;
+					if (newUser.getUsername() == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getUsername());
+					}
+					if (newUser.getEmail() == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getEmail());
+					}
+					ps.setString(parameterIndex++, newUser.getProvider().toString());
+					// we never add ADMIN this way
+					ps.setBoolean(parameterIndex++, false);
+					ps.setString(parameterIndex++, hashedPassword);
+					ps.setString(parameterIndex++, salt);
+					ps.setTimestamp(parameterIndex++, timestamp);
+					// not locked ...
+					ps.setBoolean(parameterIndex++, false);
+					if (newUser.getPhone() == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getPhone());
+					}
+					if (newUser.getPhoneExtension() == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getPhoneExtension());
+					}
+					if (newUser.getCountryCode() == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getCountryCode());
+					}
+					if (newUser.getModelMaxTokens() == 0) {
+						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
+					} else {
+						ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
+					}
+					if (newUser.getModelMaxResponseTime() == 0.0) {
+						ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
+					} else {
+						ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
+					}
+					if (newUser.getModelUsageRestriction() == null || newUser.getModelUsageRestriction().isEmpty()) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
+					}
+					if (newUser.getModelUsageFrequency() == null || newUser.getModelUsageFrequency().isEmpty()) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
+					}
+					ps.execute();
+					if (!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				} finally {
+					if (ps != null) {
+						ps.close();
+					}
+					if (ps != null && securityDb.isConnectionPooling()) {
+						ps.getConnection().close();
+					}
 				}
+
+				storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp);
+				return true;
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -434,8 +430,12 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 */
 	static void validInformation(AccessToken newUser, String password, boolean isNewUser) {
 		String error = "";
-		if (newUser.getUsername() == null || newUser.getUsername().isEmpty()) {
-			error += "User name can not be empty. ";
+		// User name validation
+		try {
+			validUsername(newUser.getUsername());
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			error += e.getMessage();
 		}
 		try {
 			validEmail(newUser.getEmail(), isNewUser);
