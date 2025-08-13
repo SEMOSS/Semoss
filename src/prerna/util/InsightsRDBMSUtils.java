@@ -15,19 +15,19 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
-public class ProjectUtils {
+public final class InsightsRDBMSUtils {
 	
-	private static final Logger classLogger = LogManager.getLogger(ProjectUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(InsightsRDBMSUtils.class);
 	
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static final String DIR_SEPARATOR = "/";
 	private static final String PROJECT_DIRECTORY;
 	static {
 		PROJECT_DIRECTORY = DIR_SEPARATOR + Constants.PROJECT_FOLDER + DIR_SEPARATOR;
 	}
 
-	//	public static void importFromEngine(String engineId) {
-	//
-	//	}
+	private InsightsRDBMSUtils() {
+		
+	}
 
 
 	/**

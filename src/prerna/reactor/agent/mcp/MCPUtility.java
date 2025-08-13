@@ -38,6 +38,7 @@ public final class MCPUtility {
 		String pyFolderLoc = projectAssetFolder + "/py";
 		String sysImport = "import sys";
 		String getpath = "sys.path";
+		pyFolderLoc = pyFolderLoc.replace("\\", "/");
 		String setpath = "sys.path.insert(0,'" + pyFolderLoc + "')";
 		//String loadLib = "import smss_driver as smss";
 	    String importSmssIfNeeded =
