@@ -95,7 +95,16 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", getUserGroupFiltersQs(user)));
+		
+		//check if user has groups
+	    Collection<String> userGroups = getUserGroupFiltersQs(user);
+	    if (!userGroups.isEmpty()) {
+	        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", userGroups));
+	    } else {
+	        // If no groups - return empty list
+	        return new ArrayList<>();
+	    }
+	    
 		List<String> permissions = new ArrayList<>();
 		IRawSelectWrapper wrapper = null;
 		try {

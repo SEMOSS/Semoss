@@ -2565,7 +2565,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!groupEngineOrFilters.isEmpty()) {
 				SelectQueryStruct qs3 = new SelectQueryStruct();
 				qs3.addSelector(new QueryColumnSelector(groupProjectPermissionPrefix + "PROJECTID", "PROJECTID"));
-				qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupProjectPermissionPrefix + "PERMISSION", "PERMISSION"));
 				qs3.addExplicitFilter(groupEngineOrFilters);
 
 				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", existingAccessComparator, qs3));
@@ -2645,7 +2644,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			OrQueryFilter orFilter = new OrQueryFilter();
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", getUserGroupFiltersQs(user)));
+			
+			Collection<String> groupIds = getUserGroupFiltersQs(user);
+			if (!groupIds.isEmpty()) {
+			    orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", groupIds));
+			}
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
