@@ -1,12 +1,6 @@
 package prerna.sablecc2.translations;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -14,26 +8,17 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSRenameColumnConverter;
 import prerna.query.querystruct.transform.QsToPixelConverter;
-import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelUtility;
-import prerna.sablecc2.lexer.Lexer;
-import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.PRoutine;
-import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.parser.Parser;
-import prerna.sablecc2.parser.ParserException;
 import prerna.util.Utility;
 
 public class ReplaceDatasourceTranslation extends AbstractDatasourceModificationTranslation {

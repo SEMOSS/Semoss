@@ -15,6 +15,8 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.om.ClientProcessWrapper;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -31,7 +33,7 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 	private String engineDirectoryPath = null;
 	private File cacheFolder;
 	private ClientProcessWrapper cpw = null;
-	private PyTranslator pyt = null;
+	private PyTranslator pyTranslator = null;
 
 	public DetoxifyGuardrailEngine() {
 		this.keysToGet = new String[] {"prompt", "threshold"};
@@ -51,7 +53,7 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 			}
 		}
 		
-		this.engineDirectoryPath = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
+		this.engineDirectoryPath = EngineUtility.getSpecificEngineAssetsFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
 		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
 		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
 		
@@ -77,7 +79,7 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 			threshold = Double.parseDouble(this.keyValue.get("threshold"));
 		}
 		String script = "model.predict(\"\"\""+prompt+"\"\"\")";
-		Map<String, Object> value = (Map<String, Object>) pyt.runSmssWrapperEval(script, insight);
+		Map<String, Object> value = (Map<String, Object>) pyTranslator.runDirectPy(script);
 		
 		boolean pass = true;
 		for(String category : value.keySet()) {
@@ -166,15 +168,16 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 		}
 		
 		// create the py translator
-		pyt = new PyTranslator();
-		pyt.setSocketClient(cpwToInit.getSocketClient());
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		
 		try {
 			String execCommand = "from detoxify import Detoxify\n" 
 					+ "model = Detoxify('original')"
 					;
 
-			this.pyt.runScript(execCommand);
+			this.pyTranslator.runScript(execCommand);
 			
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 

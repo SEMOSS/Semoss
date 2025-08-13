@@ -94,7 +94,7 @@ public class JsonAPIEngine extends AbstractDatabaseEngine {
 							// we will make the name
 							File dF = new File(dataFile);
 							owlFileName = this.engineName + "_OWL.OWL";
-							owlFile = dF.getParentFile() + DIR_SEPARATOR + owlFileName;
+							owlFile = dF.getParentFile() + FILE_SEPARATOR + owlFileName;
 						} else {
 							owlFileName = FilenameUtils.getName(owlFile);
 						}
@@ -106,7 +106,7 @@ public class JsonAPIEngine extends AbstractDatabaseEngine {
 				}
 				// set the owl file
 				if(owlFile != null) {
-					owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
+					owlFile = SmssUtilities.getOwlFile(this.smssFilePath, this.smssProp).getAbsolutePath();
 					classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
 					setOwlFilePath(owlFile);
 				}

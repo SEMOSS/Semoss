@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,6 +47,7 @@ import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
+import prerna.query.querystruct.selectors.QueryTypedColumnSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.reactor.export.ClustergramFormatter;
 import prerna.reactor.export.GraphFormatter;
@@ -90,6 +93,7 @@ public class GsonUtility {
 				// selectors
 				.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdapter())
 				.registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter())
+				.registerTypeAdapter(QueryTypedColumnSelector.class, new QueryTypedColumnSelectorAdapter())
 				.registerTypeAdapter(QueryFunctionSelector.class, new QueryFunctionSelectorAdapter())
 				.registerTypeAdapter(QueryArithmeticSelector.class, new QueryArithmeticSelectorAdapter())
 				.registerTypeAdapter(QueryOpaqueSelector.class, new QueryOpaqueSelectorAdapter())
@@ -138,6 +142,10 @@ public class GsonUtility {
 				// pixel objects
 				.registerTypeAdapter(Pixel.class, new PixelAdapter())
 				.registerTypeAdapter(PixelList.class, new PixelListAdapter())
+				
+				// dates
+				.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+				.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
 				;
 		
 		if(pretty) {
@@ -171,7 +179,9 @@ public class GsonUtility {
 		JsonReader jReader = null;
 		BufferedReader fReader = null;
 		try {
-			Gson gson = new Gson();
+			Gson gson = new GsonBuilder()
+					.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
+					.create();
 			fReader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
 			jReader = new JsonReader(fReader);
 	        return gson.fromJson(jReader, type);

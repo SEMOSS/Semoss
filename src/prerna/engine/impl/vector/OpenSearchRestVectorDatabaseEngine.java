@@ -9,15 +9,17 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.http.HttpHeaders;
-import org.apache.http.entity.ContentType;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -150,7 +152,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	}
 
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -170,10 +172,12 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		}
 
 		List<JsonObject> bulkInsert = new ArrayList<>();
-
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
+		Set<String> fileNamesSet = new HashSet<>();
 		Map<String, Integer> sourceId = new HashMap<>();
 		for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
 			String source = row.getSource();
+			fileRecordCountMap.put(source, fileRecordCountMap.getOrDefault(source, 0) + 1);
 			int index = 0;
 			if(sourceId.containsKey(source)) {
 				index = sourceId.get(source);
@@ -220,11 +224,45 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
 		Number insertions = (Number) responseMap.get("took");
 		classLogger.info("Inserted " + insertions.intValue() + " bulk inserts (create index + record value) into open search index " + this.indexName);
+		List<Map<String, Object>> items = (List<Map<String, Object>>) responseMap.get("items");
+		Map<String, Integer> failedCountPerFile = new HashMap<>();
+	    for (Map<String, Object> item : items) {
+	        Map<String, Object> index = (Map<String, Object>) item.get("index");
+	        if (index.containsKey("error")) {
+	            String id = (String) index.get("_id"); // format: fileName_index
+	            String[] parts = id.split("_");
+	            String fileName = parts[0];
+	            failedCountPerFile.put(fileName, failedCountPerFile.getOrDefault(fileName, 0) + 1);
+	        }
+	    }
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+	    for (String fileName : fileNamesSet) {
+	        int total = fileRecordCountMap.getOrDefault(fileName, 0);
+	        int failed = failedCountPerFile.getOrDefault(fileName, 0);
+	        int inserted = total - failed;
 
-		Boolean errors = (Boolean) responseMap.get("errors");
+	        String status;
+	        if (failed == 0) {
+	        	status = "SUCCESS";
+	        }
+	        else if (inserted == 0) {
+	        	status = "FAILED";
+	        }
+	        else {
+	        	status = "PARTIAL";
+	        }
+
+	        fileStatusList.add(new FileEmbeddingStatus(fileName, status, inserted, failed, total));
+	    }
+	    
+	    Boolean errors = (Boolean) responseMap.get("errors");
 		if(errors) {
 			classLogger.warn("There were errors with some of the bulk insertions in the open search index " + this.indexName);
+		} else {
+			classLogger.info("All records inserted successfully into OpenSearchRest index '{}'", this.indexName);
 		}
+
+	    return fileStatusList;
 	}
 
 	@Override
@@ -245,7 +283,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			}
 		}
 
-		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 
 		// construct search query
 		JsonObject search = new JsonObject();
@@ -342,7 +380,38 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 									JsonObject embedding = new JsonObject();
 									embedding.add("vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
 									embedding.addProperty("k", limit);
-									// store key using the field name for the vector in parent
+
+									JsonObject filterParent = new JsonObject();
+									{
+										JsonObject filterBool = new JsonObject();
+										{
+											//Filtration logic starts here
+											//filter contains simple or AND conditions
+											JsonArray filter = new JsonArray();
+
+											//should contains OR condition filters
+											JsonArray should = new JsonArray();
+
+											//must not contains not equals to filters
+											JsonArray must_not = new JsonArray();
+
+											List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
+											for(IQueryFilter queryFilter : filters) {
+												RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
+											}
+
+											//call to process filter
+											filterBool.add("filter", filter);
+											filterBool.add("should", should);
+											filterBool.add("must_not", must_not);
+
+											if (should.size() > 1) {
+												filterBool.addProperty("minimum_should_match", 1);
+											}
+										}
+										filterParent.add("bool", filterBool);
+									}
+									embedding.add("filter", filterParent);
 									knn.add(this.embeddings, embedding);
 								}
 								knnParent.add("knn", knn);
@@ -350,30 +419,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 							must.add(knnParent);
 						}
 						bool.add("must", must);
-
-						//filteration logic starts here
-						//filter contains simple or AND conditions
-						JsonArray filter = new JsonArray();
-
-						//should contains OR condition filters
-						JsonArray should = new JsonArray();
-
-						//must not contains not equals to filters
-						JsonArray must_not = new JsonArray();
-
-						List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
-						for(IQueryFilter queryFilter : filters) {
-							RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
-						}
-
-						//call to process filter
-						bool.add("filter", filter);
-						bool.add("should", should);
-						bool.add("must_not", must_not);
-
-						if (should.size() > 1) {
-							bool.addProperty("minimum_should_match", 1);
-						}
 					}
 					query.add("bool", bool);
 				}
@@ -381,6 +426,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			// add to parent
 			search.add("query", query);
 		}
+		
+		classLogger.debug("OPENSEARCH FINAL SEARCH QUERY : " + search.toString());
 
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();
@@ -451,7 +498,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 
 		List<Map<String, Object>> returnSources = new ArrayList<>();
 		for (JsonElement bucket : bucketsArr) {
@@ -564,7 +611,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	    headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
 	    headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
 	    try {
-	        int status = HttpHelperUtility.headRequest2(url, headersMap, null, null, null);
+	        int status = HttpHelperUtility.headRequestStatus(url, headersMap, null, null, null);
 	        switch (status) {
 	            case 200: 
 	            	classLogger.info("Recieved 200, indicating that index does exist.");
