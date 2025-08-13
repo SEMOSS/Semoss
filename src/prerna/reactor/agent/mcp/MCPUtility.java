@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import prerna.ds.py.PyTranslator;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.sablecc2.PixelRunner;
@@ -33,16 +34,19 @@ public final class MCPUtility {
 	public static String runPythonTool(IProject project, Insight insight, 
 			String functionName, JSONObject functionProperties, Map<String, Object> paramMap) {
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectId());
-
+		
 		// load the path to have access to the file
 		String pyFolderLoc = projectAssetFolder + "/py";
 		String sysImport = "import sys";
 		String getpath = "sys.path";
+		pyFolderLoc = pyFolderLoc.replace("\\", "/");
 		String setpath = "sys.path.insert(0,'" + pyFolderLoc + "')";
 		//String loadLib = "import smss_driver as smss";
 	    String importSmssIfNeeded =
 	            "if 'smss' not in globals():\n" +
 	            "    import smss_driver as smss";
+	    
+	    PyTranslator pyt = project.getProjectPyTranslator();
 
 		// iterate function properties and find if it is string etc. 
 		Iterator <String> props = functionProperties.keys();
@@ -78,17 +82,20 @@ public final class MCPUtility {
 		
 		String runMethod = "smss." + functionName + "(" + paramString + ")";
 		classLogger.info("Running python tool '" + runMethod + "' from project " + project.getProjectId());
-		String curPath = insight.getPyTranslator().runScript(sysImport, getpath)+"";
+		String curPath = pyt.runScript(sysImport, getpath)+"";
 		curPath = curPath.replace("\\", "/");
 		if(!curPath.contains(pyFolderLoc)) {
-			insight.getPyTranslator().runScript(setpath);
+			pyt.runScript(setpath);
 		}
 		
 	    // Always import smss if needed
-	    insight.getPyTranslator().runScript(importSmssIfNeeded);
+		pyt.runScript(importSmssIfNeeded);
+
+	    //insight.getPyTranslator().runScript(importSmssIfNeeded);
 	    
 		// run method
-		return insight.getPyTranslator().runScript(runMethod)+"";
+		//return insight.getPyTranslator().runScript(runMethod)+"";
+		return pyt.runScript(runMethod)+"";
 	}
 	
 	/**
