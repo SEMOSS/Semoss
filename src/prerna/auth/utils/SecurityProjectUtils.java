@@ -55,7 +55,7 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.ProjectUtils;
+import prerna.util.InsightsRDBMSUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -599,8 +599,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IProject project = Utility.getProject(projectId);
 		RdbmsTypeEnum insightType = project.getInsightDatabase().getQueryUtil().getDbType();
 		
-		RDBMSNativeEngine newInsightDatabase = ProjectUtils.generateInsightsDatabase(projectId, insightType, folderPath);
-		ProjectUtils.runInsightCreateTableQueries(newInsightDatabase);
+		RDBMSNativeEngine newInsightDatabase = InsightsRDBMSUtils.generateInsightsDatabase(projectId, insightType, folderPath);
+		InsightsRDBMSUtils.runInsightCreateTableQueries(newInsightDatabase);
 		
 		InsightAdministrator admin = new InsightAdministrator(newInsightDatabase);
 		{
@@ -1865,6 +1865,69 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "ENGINE__ENGINEID", "inner.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @param userId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, String userId){
+	    SelectQueryStruct qs = new SelectQueryStruct();
+	    qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
+	    qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
+	    qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
+	    qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
+	    qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
+	    qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
+	    qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
+	    qs.addRelation("PROJECTDEPENDENCIES__ENGINEID","ENGINE__ENGINEID", "inner.join");
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID","==", projectId));
+	    // ENGINEMETA sub-query
+	    {
+	        SelectQueryStruct metaQs = new SelectQueryStruct();
+	        metaQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID","ENGINEID"));
+	        metaQs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE","DESCRIPTION"));  
+	        metaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY","==","description"));
+	        metaQs.addGroupBy(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
+	        metaQs.addGroupBy(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
+	        
+	        SubqueryRelationship metaRel = new SubqueryRelationship(metaQs,"EM","left.outer.join",new String[]{ "EM__ENGINEID","ENGINE__ENGINEID","=" });
+	        qs.addRelation(metaRel);
+	        qs.addSelector(new QueryColumnSelector("EM__DESCRIPTION","description"));
+	    }
+	    // ENGINEPERMISSION sub-query
+	    {
+	        SelectQueryStruct permQs = new SelectQueryStruct();
+	        permQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID","ENGINEID"));
+	        permQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION","PERMISSION"));
+	        permQs.addRelation("ENGINEPERMISSION__PERMISSION","PERMISSION__ID","inner.join");
+	        permQs.addSelector(new QueryColumnSelector("PERMISSION__NAME","PERMISSION_NAME"));     
+	        permQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID","==", userId));
+	        permQs.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+	        permQs.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+	        permQs.addGroupBy(new QueryColumnSelector("PERMISSION__NAME"));
+	 
+	        SubqueryRelationship permRel = new SubqueryRelationship(permQs,"EP","left.outer.join",new String[]{ "EP__ENGINEID","ENGINE__ENGINEID","=" });
+	        qs.addRelation(permRel);
+	        qs.addSelector(new QueryColumnSelector("EP__PERMISSION","permission"));
+	        qs.addSelector(new QueryColumnSelector("EP__PERMISSION_NAME","permission_name"));
+	    }
+	    // ENGINEACCESSREQUEST sub-query
+	    {
+	    	  SelectQueryStruct engAccReqQs = new SelectQueryStruct();
+	    	  engAccReqQs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION","PERMISSION"));
+	    	  engAccReqQs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__ENGINEID","ENGINEID"));
+	    	  engAccReqQs.addRelation("ENGINEACCESSREQUEST__ENGINEID","ENGINE__ENGINEID","inner.join");
+	    	  engAccReqQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__REQUEST_USERID","==", userId));
+	    	  engAccReqQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__APPROVER_DECISION", "==", "NEW_REQUEST"));
+	    	 
+	    	  SubqueryRelationship engAReqRel = new SubqueryRelationship(engAccReqQs,"EAR","left.outer.join",new String[]{ "EAR__ENGINEID","ENGINE__ENGINEID","=" });
+		      qs.addRelation(engAReqRel);
+		      qs.addSelector(new QueryColumnSelector("EAR__PERMISSION","access_permission"));
+	    }
+	    return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 	/*
