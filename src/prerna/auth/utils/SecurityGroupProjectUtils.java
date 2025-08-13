@@ -122,6 +122,9 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		for(AuthProvider login : logins) {
 			if(user.getAccessToken(login).getUserGroups().isEmpty()) {
 				continue;
+			} else {
+				// one of the logins has a group. set checker to false
+				anyUserGroups=true;
 			}
 			
 			AndQueryFilter andFilter = new AndQueryFilter();
@@ -191,6 +194,9 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		for(AuthProvider login : logins) {
 			if(user.getAccessToken(login).getUserGroups().isEmpty()) {
 				continue;
+			} else {
+				// one of the logins has a group. set checker to false
+				anyUserGroups=true;
 			}
 			
 			AndQueryFilter andFilter = new AndQueryFilter();
