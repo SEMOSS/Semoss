@@ -2495,9 +2495,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (!groupEngineOrFilters.isEmpty()) {
 				SelectQueryStruct qs3 = new SelectQueryStruct();
 				qs3.addSelector(new QueryColumnSelector(groupEnginePermissionPrefix + "ENGINEID", "ENGINEID"));
-				qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupEnginePermissionPrefix + "PERMISSION", "PERMISSION"));
 				qs3.addExplicitFilter(groupEngineOrFilters);
-
 				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(enginePrefix + "ENGINEID", existingAccessComparator, qs3));
 			}
 		}
