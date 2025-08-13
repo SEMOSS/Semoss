@@ -64,7 +64,8 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
         if (!ModelInferenceLogsUtils.validUserRoom(roomId, userId)) {
             throw new IllegalArgumentException("User does not have access to room " + roomId);
         }
-        Room room = ModelInferenceLogsUtils.getRoomById(roomId, userId);
+		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+
         room.setInsight(insight);
         room.parseMessages();
 
