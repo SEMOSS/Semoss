@@ -80,7 +80,16 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", getUserGroupFiltersQs(user)));
+		
+		//check if user has groups
+	    Collection<String> userGroups = getUserGroupFiltersQs(user);
+	    if (!userGroups.isEmpty()) {
+	        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", userGroups));
+	    } else {
+	        // If no groups - return empty list
+	        return new ArrayList<>();
+	    }
+
 		List<String> permissions = new ArrayList<>();
 		IRawSelectWrapper wrapper = null;
 		try {

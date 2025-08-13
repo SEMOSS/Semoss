@@ -2730,7 +2730,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", Arrays.asList(true, null), PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", getUserGroupFiltersQs(user)));
+			Collection<String> groupIds = getUserGroupFiltersQs(user);
+			if (!groupIds.isEmpty()) {
+			    orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupIds));
+			}
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
