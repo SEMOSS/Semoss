@@ -54,7 +54,7 @@ public class InitMCPReactor extends AbstractReactor {
 		String projectName = project.getProjectName();
 		
 		JSONObject resultJson = new JSONObject();
-		resultJson.put("protocolVersion", "2024-11-05");
+		resultJson.put("protocolVersion", "2025-06-18");
 		
 		JSONObject serverJson = new JSONObject();
 		serverJson.put("name", projectName);

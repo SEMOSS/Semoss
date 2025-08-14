@@ -46,9 +46,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
@@ -62,8 +60,6 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.io.connector.secrets.ISecrets;
-import prerna.io.connector.secrets.SecretsFactory;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.SparqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -82,7 +78,7 @@ import prerna.util.Utility;
  * An Abstract Engine that sets up the base constructs needed to create an
  * engine.
  */
-public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
+public abstract class AbstractDatabaseEngine extends AbstractEngine implements IDatabaseEngine {
 
 	/**
 	 * Static members
@@ -91,8 +87,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	public static final String USE_FILE = "USE_FILE";
 	public static final String DATA_FILE = "DATA_FILE";
 	public static final String OWL_POSITION_FILENAME = "positions.json";
-
-	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractDatabaseEngine.class);
 	
@@ -103,13 +97,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	/**
 	 * Class members
 	 */
-	
-	protected String smssFilePath = null;
-	protected CaseInsensitiveProperties origSmssProp = null;
-	protected CaseInsensitiveProperties smssProp = null;
-	
-	protected String engineId = null;
-	protected String engineName = null;
 	
 	protected Properties generalEngineProp = null;
 	protected Properties ontoProp = null;
@@ -128,11 +115,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	 * This is used for tracking audit modifications 
 	 */
 	private AuditDatabase auditDatabase = null;
-
-	/**
-	 * This is if we have a connection but no OWL
-	 */
-	private boolean isBasic = false;
 
 	protected ZoneId databaseZoneId;
 	
@@ -155,33 +137,13 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
-		// this sets this.smssProp and this.origSmssProp
-		setSmssProp(smssProp);
-		// if smss prop is empty
-		// then no metadata is associated with this database
-		if(smssProp.isEmpty()) {
-			return;
-		}
-				
-		// grab the main properties
-		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
-		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
+		super.open(smssProp);
+		// basic would be an insights database for example
 		if(this.isBasic) {
 			// still try to set the db zone id...
 			setDatabaseZoneId();
 			// if this is a basic database, we dont care about the OWL or any other SMSS values
 			return;
-		}
-		
-		ISecrets secretStore = SecretsFactory.getSecretConnector();
-		if(secretStore != null) {
-			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets == null || engineSecrets.isEmpty()) {
-				classLogger.info("No secrets found for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-			} else {
-				classLogger.info("Successfully pulled secrets for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-				this.smssProp.putAll(engineSecrets);
-			}
 		}
 		
 		// try to set the db zone id if defined
@@ -222,10 +184,14 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		} else {
 			// if its not one of these special values
 			// then lets grab the owlFile
-			File owlF = SmssUtilities.getOwlFile(this.smssProp);
-			if(owlF == null || !owlF.exists()) {
+			File owlF = SmssUtilities.getOwlFile(this.smssFilePath, this.smssProp);
+			if(owlF == null) {
 				// make a new empty owl
 				owlFile = UploadUtilities.generateOwlFile(getCatalogType(), this.engineId, this.engineName).getAbsolutePath();
+				setOwlFilePath(owlFile);
+			} else if(!owlF.exists() || !owlF.isFile()) {
+				// load default OWL based on file location
+				owlFile = UploadUtilities.generateEmptyRDFXMLFile(owlF.getAbsolutePath()).getAbsolutePath();
 				setOwlFilePath(owlFile);
 			} else {
 				owlFile = owlF.getAbsolutePath();
@@ -243,7 +209,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 				// so that the local master can pick up the OWL 
 				if(owlPropStr == null || (owlPropStr=owlPropStr.trim()).isEmpty()) {
 					Map<String, String> mods = new HashMap<>();
-					mods.put(Constants.OWL, Constants.DATABASE_FOLDER+"/@ENGINE@/"+new File(owlFile).getName());
+					mods.put(Constants.OWL, new File(owlFile).getName());
 					Utility.addKeysAtLocationIntoPropertiesFile(this.smssFilePath, null, mods);
 				}
 				ExternalDatabaseMetadataHelper.parseJsonToOwl(this);
@@ -252,7 +218,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-
+		
 		// load properties object for db
 		File engineProps = SmssUtilities.getEngineProperties(this.smssProp);
 		if (engineProps != null) {
@@ -313,16 +279,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	}
 	
 	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-	
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-	
-	@Override
 	public String getProperty(String key) {
 		String retProp = null;
 
@@ -347,55 +303,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	@Override
 	public boolean isConnected() {
 		return false;
-	}
-
-	/**
-	 * Sets the unique id for the engine 
-	 * @param engineId - id to set the engine 
-	 */
-	@Override
-	public void setEngineId(String engineId) {
-		this.engineId = engineId;
-	}
-
-	/**
-	 * Gets the engine name for this engine	
-	 * @return Name of the engine
-	 */
-	@Override
-	public String getEngineId() {
-		return this.engineId;
-	}
-	
-	@Override
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
-	}
-
-	@Override
-	public String getEngineName() {
-		return this.engineName;
-	}
-	
-	/**
-	 * Writes the database back with updated properties if necessary
-	 */
-	public void saveConfiguration() {
-		FileOutputStream fileOut = null;
-		try {
-			classLogger.debug("Writing to file " + smssFilePath);
-			fileOut = new FileOutputStream(smssFilePath);
-			smssProp.store(fileOut, null);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			try {
-				if(fileOut!=null)
-					fileOut.close();
-			}catch(IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
 	}
 
 	/**
@@ -466,15 +373,12 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		// new base data engine being made
 		RDFFileSesameEngine baseRelEngine = new RDFFileSesameEngine();
 		baseRelEngine.setBasic(true);
-		Hashtable baseHash = new Hashtable<>();
-		// If OWL file doesn't exist, go the old way and create the base
-		// relation engine
-		// String owlFileName =
-		// (String)DIHelper.getInstance().getCoreProp().get(engine.getEngineName()
-		// + "_" + Constants.OWL);
+		baseRelEngine.setEngineId(this.engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
+		Hashtable<String, String> baseHash = new Hashtable<>();
+		// If OWL file doesn't exist, go the old way and create the base relation engine
 		if (this.owlFileLocation == null) {
-			this.owlFileLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, getEngineId(), getEngineName())
-					+ DIR_SEPARATOR +
+			this.owlFileLocation = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, getEngineId(), getEngineName())
+					+ FILE_SEPARATOR +
 					getEngineName()	+ "_OWL.OWL"; 
 		}
 		baseRelEngine.setFilePath(this.owlFileLocation);
@@ -528,16 +432,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	@Override
 	public String getOwlFilePath() {
 		return this.owlFileLocation;
-	}
-	
-	@Override
-	public void setSmssFilePath(String smssFilePath) {
-		this.smssFilePath = smssFilePath;
-	}
-	
-	@Override
-	public String getSmssFilePath() {
-		return this.smssFilePath;
 	}
 	
 	public String getOWLDefinition() {
@@ -605,7 +499,9 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		return retString;
 	}
 
-
+	/**
+	 * 
+	 */
 	public Object doAction(IDatabaseEngine.ACTION_TYPE actionType, Object[] args){
 		// Iterate through methods on the engine -- do this on startup
 		// Find the method on the engine that matches the action type passed in
@@ -629,56 +525,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	}
 
 	@Override
-	public void delete() throws IOException {
-		classLogger.debug("Delete database engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		try {
-			this.close();
-		} catch(IOException e) {
-			classLogger.warn("Error occurred trying to close the connection");
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		
-		File engineFolder = new File(
-				EngineUtility.getSpecificEngineBaseFolder
-					(IEngine.CATALOG_TYPE.DATABASE, this.engineId, this.engineName)
-				);
-		
-		String folderName = engineFolder.getName();
-		File owlFile = SmssUtilities.getOwlFile(this.smssProp);
-
-		if(owlFile != null && owlFile.exists()) {
-			classLogger.info("Deleting owl file " + owlFile.getAbsolutePath());
-			try {
-				FileUtils.forceDelete(owlFile);
-			} catch(IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		//this check is to ensure we are deleting the right folder.
-		classLogger.info("Checking folder name is matching up : " + folderName + " against " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		if(folderName.equals(SmssUtilities.getUniqueName(this.engineName, this.engineId))) {
-			classLogger.info("folder getting deleted is " + engineFolder.getAbsolutePath());
-			try {
-				FileUtils.deleteDirectory(engineFolder);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		classLogger.debug("Deleting smss " + this.smssFilePath);
-		File smssFile = new File(this.smssFilePath);
-		try {
-			FileUtils.forceDelete(smssFile);
-		} catch(IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		// remove from DIHelper
-		UploadUtilities.removeEngineFromDIHelper(this.engineId);
-	}
-	
-	@Override
 	public Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery) {
 		IDatabaseEngine engine = this;
 		if(!isDbQuery){
@@ -688,16 +534,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		return Utility.getVectorOfReturn(sparqlQuery, engine, true);
 	} 
 
-	@Override
-	public boolean isBasic() {
-		return this.isBasic;
-	}
-	
-	@Override
-	public void setBasic(boolean isBasic) {
-		this.isBasic = isBasic;
-	}
-	
 	@Override
 	public String getNodeBaseUri(){
 		if(baseUri == null) {
@@ -870,7 +706,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		// put in same location
 		File owlF = new File(owlFileLocation);
 		String baseFolder = owlF.getParent();
-		String positionJson = baseFolder + DIR_SEPARATOR + AbstractDatabaseEngine.OWL_POSITION_FILENAME;
+		String positionJson = baseFolder + FILE_SEPARATOR + AbstractDatabaseEngine.OWL_POSITION_FILENAME;
 		File positionFile = new File(positionJson);
 		return positionFile;
 	}
@@ -1024,10 +860,10 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		try {
 			File propF = new File(propFile);
 			Properties prop = Utility.loadProperties(propFile);
-			String dir = propF.getParent() + DIR_SEPARATOR + SmssUtilities.getUniqueName(prop);
-			String passwordFileName = dir + DIR_SEPARATOR + ".pass";
+			String dir = propF.getParent() + FILE_SEPARATOR + SmssUtilities.getUniqueName(prop);
+			String passwordFileName = dir + FILE_SEPARATOR + ".pass";
 			if(insight) {
-				passwordFileName = dir + DIR_SEPARATOR + ".insight";
+				passwordFileName = dir + FILE_SEPARATOR + ".insight";
 			}
 
 			String creationTime = Files.getAttribute(Paths.get(propFile), "creationTime") + "";		
@@ -1089,9 +925,9 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 				// I will use creation time as the password so if you move the file
 				// it wont work and you need reset the password
 				String creationTime = Files.getAttribute(Paths.get(propFile), "creationTime") + "";		
-				String dir = propF.getParent() + DIR_SEPARATOR + SmssUtilities.getUniqueName(prop);
+				String dir = propF.getParent() + FILE_SEPARATOR + SmssUtilities.getUniqueName(prop);
 				if(passToEncrypt != null) {
-					String passwordFileName = dir + DIR_SEPARATOR + ".pass";
+					String passwordFileName = dir + FILE_SEPARATOR + ".pass";
 					
 					File passFile = new File(Utility.normalizePath(passwordFileName));
 					if(passFile.exists()) {
@@ -1104,7 +940,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 				}
 				
 				if(insightPassToEncrypt != null) {
-					String passwordFileName = dir + DIR_SEPARATOR + ".insight";
+					String passwordFileName = dir + FILE_SEPARATOR + ".insight";
 					
 					File passFile = new File(Utility.normalizePath(passwordFileName));
 					if(passFile.exists()) {
@@ -1134,7 +970,10 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		return null;
 	}
 	
-	public String [] getUDF() {
+	/**
+	 * 
+	 */
+	public String[] getUDF() {
 		if(smssProp.containsKey("UDF")) {
 			return smssProp.get("UDF").toString().split(";");
 		}
@@ -1155,40 +994,5 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	public String getCatalogSubType(Properties smssProp) {
 		return getDatabaseType().toString();
 	}
-	
-	/////////////////////////////////////////////////////////////////////////////////////
 
-	/*
-	 * Testing
-	 */
-	
-//	public static void main(String [] args) throws Exception
-//	{
-//		DIHelper.getInstance().loadCoreProp("C:\\workspace\\SEMOSSDev\\RDF_Map.prop");
-//		FileInputStream fileIn = null;
-//		try{
-//			Properties prop = new Properties();
-//			String fileName = "C:\\workspace\\SEMOSSDev\\db\\Movie_Test.smss";
-//			fileIn = new FileInputStream(fileName);
-//			prop.load(fileIn);
-//			System.err.println("Loading DB " + fileName);
-//			Utility.loadEngine(fileName, prop);
-//		}catch(IOException e){
-//			classLogger.error(Constants.STACKTRACE, e);
-//		}finally{
-//			try{
-//				if(fileIn!=null) {
-//					fileIn.close();
-//				}
-//			} catch(IOException e) {
-//				classLogger.error(Constants.STACKTRACE, e);
-//			}
-//		}
-//		IDatabase eng = (IDatabase) DIHelper.getInstance().getLocalProp("Movie_Test");
-//		List<String> props = eng.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/Title");
-//		while(!props.isEmpty()){
-//			System.out.println(props.remove(0));
-//		}
-//	}
-	
 }
