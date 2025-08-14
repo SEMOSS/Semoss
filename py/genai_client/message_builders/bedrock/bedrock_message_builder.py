@@ -19,6 +19,8 @@ from .bedrock_models import (
     BedrockSystemBlock,
     BedrockTextContentBlock,
     BedrockImageContentBlock,
+    BedrockToolUseContentBlock,
+    BedrockToolResultContentBlock,
 )
 
 
@@ -26,8 +28,35 @@ class BedrockMessageBuilder:
     def build_messages(
         self, semoss_messages: List[SEMOSSMessage], system_prompt: str = None
     ) -> Dict[str, Any]:
+        """Convert SEMOSS messages to Bedrock format with enhanced tool support."""
         bedrock_messages = []
         param_map = {}
+        tools = None
+        stream = False
+        system_block = None
+        inference_config = None
+
+        # Track tool execution state more carefully
+        pending_tool_results = []
+        expected_tool_count = 0
+
+        has_tool_content = any(
+            (message.type == SEMOSSMessageType.RESPONSE_TOOL and message.tool_calls)
+            or message.type == SEMOSSMessageType.INPUT_TOOL_EXEC
+            for message in semoss_messages
+        )
+
+        if has_tool_content:
+            for message in semoss_messages:
+                if message.param_map.get("tools"):
+                    tools = self._convert_mcp_to_bedrock_tools(
+                        message.param_map["tools"]
+                    )
+                    break
+
+            if not tools:
+                tools = self._extract_tools_from_tool_calls(semoss_messages)
+
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
             role = self._message_type_to_role(message.type)
@@ -41,28 +70,233 @@ class BedrockMessageBuilder:
                 image_blocks = self._build_image_blocks(message.image_content)
                 content_blocks.extend(image_blocks)
 
-            bedrock_messages.append(
-                BedrockMessage(
-                    role=role,
-                    content=content_blocks,
-                )
-            )
+            # Handle tool calls (RESPONSE_TOOL messages)
+            if message.type == SEMOSSMessageType.RESPONSE_TOOL and message.tool_calls:
+                expected_tool_count = len(message.tool_calls)
 
+                for tool_call in message.tool_calls:
+                    tool_use_block = self._build_tool_use_block(tool_call)
+                    content_blocks.append(tool_use_block)
+
+            # Handle tool execution results (INPUT_TOOL_EXEC messages)
+            elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
+                if expected_tool_count > 0:
+                    tool_call_info = self._find_tool_call_info(
+                        semoss_messages, i, message.tool_call_id
+                    )
+
+                    if tool_call_info:
+                        tool_result_block = self._build_tool_result_block(
+                            tool_call_info["id"],
+                            tool_call_info["name"],
+                            message.content,
+                        )
+                        pending_tool_results.append(tool_result_block)
+
+                        if len(pending_tool_results) == expected_tool_count:
+                            bedrock_messages.append(
+                                BedrockMessage(
+                                    role="user",
+                                    content=pending_tool_results,
+                                )
+                            )
+                            pending_tool_results = []
+                            expected_tool_count = 0
+                            continue
+
+            if content_blocks:
+                bedrock_messages.append(
+                    BedrockMessage(
+                        role=role,
+                        content=content_blocks,
+                    )
+                )
+
+            # Extract parameters from the last message
             if is_last:
                 inference_config, param_map = self._build_request_parameters(
                     message.param_map
                 )
+
+                last_message_tools = message.param_map.get("tools")
+                if last_message_tools:
+                    tools = self._convert_mcp_to_bedrock_tools(last_message_tools)
+
+                stream = message.param_map.get("stream", False)
+
                 system_block = self.build_system_block(system_prompt)
+
                 param_map = self.clean_param_map(param_map)
 
-        return BedrockRequest(
-            messages=bedrock_messages,
-            system=system_block,
-            inferenceConfig=inference_config,
-            additionalModelRequestFields=param_map,
-        ).model_dump(exclude_none=True, by_alias=True)
+        messages_dict = [msg.model_dump(exclude_none=True) for msg in bedrock_messages]
+        system_dict = (
+            [block.model_dump(exclude_none=True) for block in system_block]
+            if system_block
+            else None
+        )
+        inference_config_dict = (
+            inference_config.model_dump(exclude_none=True) if inference_config else None
+        )
+
+        return {
+            "messages": messages_dict,
+            "system": system_dict,
+            "inferenceConfig": inference_config_dict,
+            "toolConfig": tools,
+            "additionalModelRequestFields": param_map,
+            "stream": stream,
+        }
+
+    def _extract_tools_from_tool_calls(
+        self, semoss_messages: List[SEMOSSMessage]
+    ) -> Dict[str, Any]:
+        """Extract tool definitions from tool calls in the messages."""
+        tools_dict = {}
+
+        for message in semoss_messages:
+            if message.type == SEMOSSMessageType.RESPONSE_TOOL and message.tool_calls:
+                for tool_call in message.tool_calls:
+                    tool_name = tool_call["function"]["name"]
+                    if tool_name not in tools_dict:
+
+                        arguments = tool_call["function"].get("arguments", {})
+                        properties = {}
+                        required = []
+
+                        # Build properties from the arguments
+                        for key, value in arguments.items():
+                            if isinstance(value, bool):
+                                prop_type = "boolean"
+                            elif isinstance(value, int):
+                                prop_type = "integer"
+                            elif isinstance(value, float):
+                                prop_type = "number"
+                            elif isinstance(value, list):
+                                prop_type = "array"
+                            elif isinstance(value, dict):
+                                prop_type = "object"
+                            else:
+                                prop_type = "string"
+
+                            properties[key] = {
+                                "type": prop_type,
+                                "description": f"Parameter {key}",
+                            }
+                            required.append(key)
+
+                        tools_dict[tool_name] = {
+                            "name": tool_name,
+                            "description": f"Tool function {tool_name}",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": properties,
+                                "required": required,
+                            },
+                        }
+
+        if tools_dict:
+            return self._convert_mcp_to_bedrock_tools(list(tools_dict.values()))
+
+        return None
+
+    def _find_tools_from_messages(
+        self, semoss_messages: List[SEMOSSMessage]
+    ) -> Dict[str, Any]:
+        """Find tools configuration from earlier messages if not present in the last message."""
+        for message in reversed(semoss_messages):
+            tools = message.param_map.get("tools")
+            if tools:
+                return self._convert_mcp_to_bedrock_tools(tools)
+
+        return None
+
+    def convert_mcp_to_bedrock_tools(self, mcp_tools: List[Dict]) -> Dict[str, Any]:
+        """
+        Convert MCP-formatted tools to Bedrock tool configuration format.
+        Args:
+            mcp_tools: List of tools in MCP format
+        Returns:
+            Bedrock tool configuration
+        """
+        tools_list = []
+
+        for tool in mcp_tools:
+            bedrock_tool = {
+                "toolSpec": {
+                    "name": tool["name"],
+                    "description": tool["description"],
+                    "inputSchema": {"json": tool["inputSchema"]},
+                }
+            }
+            tools_list.append(bedrock_tool)
+
+        return {
+            "tools": tools_list,
+            "toolChoice": {"auto": {}},
+        }
+
+    def _build_tool_use_block(
+        self, tool_call: Dict[str, Any]
+    ) -> BedrockToolUseContentBlock:
+        """Build a tool use content block from a SEMOSS tool call."""
+        tool_use_data = {
+            "toolUseId": tool_call.get("id", ""),
+            "name": tool_call["function"]["name"],
+            "input": tool_call["function"]["arguments"],
+        }
+
+        return BedrockToolUseContentBlock(toolUse=tool_use_data)
+
+    def _build_tool_result_block(
+        self, tool_use_id: str, tool_name: str, result_content: str
+    ) -> BedrockToolResultContentBlock:
+        """Build a tool result content block."""
+        tool_result_data = {
+            "toolUseId": tool_use_id,
+            "content": [{"text": result_content}],
+        }
+
+        return BedrockToolResultContentBlock(toolResult=tool_result_data)
+
+    def _find_tool_call_info(
+        self,
+        semoss_messages: List[SEMOSSMessage],
+        current_index: int,
+        tool_call_id: str,
+    ) -> Dict[str, str]:
+        """Find the tool call information by looking backwards through messages."""
+        for j in range(current_index - 1, -1, -1):
+            prev_msg = semoss_messages[j]
+            if prev_msg.type == SEMOSSMessageType.RESPONSE_TOOL and prev_msg.tool_calls:
+                for tool_call in prev_msg.tool_calls:
+                    if str(tool_call.get("id")) == str(tool_call_id):
+                        return {
+                            "id": tool_call.get("id", ""),
+                            "name": tool_call["function"]["name"],
+                        }
+        return None
+
+    def _convert_mcp_to_bedrock_tools(self, mcp_tools: List[Dict]) -> Dict[str, Any]:
+        """Convert MCP-formatted tools to Bedrock tool configuration."""
+        tools_list = []
+
+        for tool in mcp_tools:
+            bedrock_tool = {
+                "toolSpec": {
+                    "name": tool["name"],
+                    "description": tool["description"],
+                    "inputSchema": {"json": tool["inputSchema"]},
+                }
+            }
+            tools_list.append(bedrock_tool)
+
+        return {
+            "tools": tools_list,
+            "toolChoice": {"auto": {}},
+        }
 
     def clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
+        """Remove parameters that shouldn't be passed to Bedrock."""
         param_map.pop("max_completion_tokens", None)
         param_map.pop("max_tokens", None)
         param_map.pop("max_new_tokens", None)
@@ -72,6 +306,9 @@ class BedrockMessageBuilder:
         param_map.pop("context", None)
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
+        param_map.pop("tools", None)  # Remove tools from additional fields
+        param_map.pop("stream", None)
+        param_map.pop("streaming", None)
         return param_map
 
     def _message_type_to_role(self, message_type: SEMOSSMessageType) -> str:
@@ -100,7 +337,7 @@ class BedrockMessageBuilder:
     def _build_image_blocks(
         self, image_content: List[SEMOSSImageContent] = []
     ) -> List[BedrockImageContentBlock]:
-
+        """Build image content blocks from SEMOSS image content."""
         bedrock_content_blocks = []
         for image in image_content:
             if image.type == SEMOSSImageType.URL:
@@ -164,6 +401,7 @@ class BedrockMessageBuilder:
     def _build_request_parameters(
         self, param_map: Dict[str, Any]
     ) -> Tuple[BedrockInferenceConfig, Dict[str, Any]]:
+        """Build inference configuration and remaining parameters."""
         max_tokens = (
             param_map.pop("max_tokens", None)
             or param_map.pop("max_completion_tokens", None)
