@@ -11,6 +11,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -64,7 +65,8 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
         if (!ModelInferenceLogsUtils.validUserRoom(roomId, userId)) {
             throw new IllegalArgumentException("User does not have access to room " + roomId);
         }
-        Room room = ModelInferenceLogsUtils.getRoomById(roomId, userId);
+		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+
         room.setInsight(insight);
         room.parseMessages();
 
