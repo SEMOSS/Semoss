@@ -36,7 +36,7 @@ public class MapLambdaReactor extends TaskBuilderReactor {
 		mapLambda.init(this.task.getHeaderInfo(), columns);
 		
 		// create a new task and add to stores
-		prerna.reactor.task.lambda.map.MapLambdaReactor newTask = new prerna.reactor.task.lambda.map.MapLambdaReactor();
+		prerna.reactor.task.lambda.map.MapLambdaTask newTask = new prerna.reactor.task.lambda.map.MapLambdaTask();
 		newTask.setInnerTask(this.task);
 		newTask.setLambda(mapLambda);
 		newTask.setHeaderInfo(mapLambda.getModifiedHeaderInfo());
