@@ -282,6 +282,7 @@ public enum ReactorKeysEnum {
 	VALUE("value", 												"The instance value in a column, or the numeric or string value used in a operation"),
 	VALUES("values", 											"Numeric or string values used as input text or inputs to an operation"),
 	VECTORDB("vectorDb", 										"The id/name of the vector db engine to use"),
+	VECTORDBS("vectorDbs", 										"List of the ids/names of the vector db engines to use"),
 	VECTORDB_DETAILS("vectorDbDetails", 						"Map containing the necessary details to establish a connection to vector db engine"),
 	VENV("venv",												"The id/name of the virtual environment engine"),
 	VENV_DETAILS("venvDetails", 								"Map containing the necessary details to establish a connection to venv engine"),
