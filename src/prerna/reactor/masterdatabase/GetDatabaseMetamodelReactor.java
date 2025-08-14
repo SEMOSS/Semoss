@@ -6,11 +6,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
@@ -32,14 +28,10 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 	
 	private static final String CLASS_NAME = GetDatabaseMetamodelReactor.class.getName();
 	
-	private static final Logger classLogger = LogManager.getLogger(GetDatabaseMetamodelReactor.class);
-	private static final Gson gson = new GsonBuilder().create();
-
 	/*
 	 * Get the database metamodel + meta options
 	 * OPTIONS include datatypes, logicalnames, descriptions
 	 */
-
 	public GetDatabaseMetamodelReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.OPTIONS.getKey()};
 	}
