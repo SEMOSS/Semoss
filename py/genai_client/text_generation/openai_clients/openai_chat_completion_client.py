@@ -219,6 +219,10 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         # Update model specific kwargs
         kwargs = self._update_model_specific_kwargs(**kwargs)
 
+        if "stop" in kwargs and isinstance(kwargs.get("stop"), list):
+            # kwargs["stop"] = kwargs["stop"][:4]
+            kwargs.pop("stop")
+
         response = self.client.chat.completions.create(model=self.model_name, **kwargs)
 
         if "tool_choice" in kwargs:
