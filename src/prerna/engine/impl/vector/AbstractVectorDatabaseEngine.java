@@ -169,7 +169,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	protected abstract String getDefaultDistanceMethod();
 	
 	@Override
-	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+		List<FileEmbeddingStatus> resultList = new ArrayList<>();
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -398,7 +399,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				throw new IllegalArgumentException("Unable to extract any text from " + fileNamesAttemptedUpload);
 			}
 			
-			addEmbeddingFiles(extractedFiles, insight, parameters);
+			resultList = addEmbeddingFiles(extractedFiles, insight, parameters);
 			
 			if (ClusterUtil.IS_CLUSTER) {
 				// push the actual documents over to the cloud
@@ -415,6 +416,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		} finally {
 			cleanUpAddDocument(indexFilesDir);
 		}
+		return resultList;
 	}
 	
 	protected void addIndexClass(String indexClass) {
@@ -463,31 +465,43 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	}
 	
 	@Override
-	public void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		for(String vectorCsvFile : vectorCsvFiles) {
 			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
-			addEmbeddings(vectorCsvTable, insight, parameters);
+			fileStatusList = addEmbeddings(vectorCsvTable, insight, parameters);
 		}
+		
+		return fileStatusList;
 	}
 	
 	@Override
-	public void addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
-		addEmbeddings(vectorCsvTable, insight, parameters);
+		return addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override
-	public void addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
-		for(File vectorCsvFile : vectorCsvFiles) {
-			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-			addEmbeddings(vectorCsvTable, insight, parameters);
+	public List<FileEmbeddingStatus> addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+		for (File vectorCsvFile : vectorCsvFiles) {
+			try {
+				VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
+				List<FileEmbeddingStatus> resultList = addEmbeddings(vectorCsvTable, insight, parameters);
+	            fileStatusList.addAll(resultList);
+			} catch (Exception e) {
+				// File failed completely
+				FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0);
+	            fileStatusList.add(failedStatus);
+			}
 		}
+		return fileStatusList;
 	}
 	
 	@Override
-	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-		addEmbeddings(vectorCsvTable, insight, parameters);
+		return addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override
