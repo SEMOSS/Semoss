@@ -2,10 +2,12 @@ package prerna.reactor.function.upload;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,6 +29,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AddFileUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
@@ -35,10 +38,18 @@ import prerna.util.Utility;
 public class CreateRestFunctionEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateRestFunctionEngineReactor.class);
+	
+	public static final String FILE_PATHS_KEY = "filePaths";
+	public static final String FILE_PATH_KEY = "filePath";
+	public static final String DOUBLE_BACKWARD_SLASH = "\\\\";
+	public static final String NEW_LINE = "\n";
+	public static final String SMSS_KEY_SERVICE_ACCOUNT_FILE = "SERVICE_ACCOUNT_FILE";
+	public static final String SMSS_KEY_SERVICE_ACCOUNT_CREDENTIALS = "SERVICE_ACCOUNT_CREDENTIALS";
+	private final static String FILE_NAME_SUFFIX = "_service_account_file";
 
 	public CreateRestFunctionEngineReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.FUNCTION_DETAILS.getKey(), ReactorKeysEnum.FILE_NAME.getKey()};
-		this.keyRequired = new int [] {1, 1, 0};
+		this.keysToGet = new String[] {ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.FUNCTION_DETAILS.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), FILE_PATHS_KEY};
+		this.keyRequired = new int [] {1, 1, 0, 0};
 	}
 	
 	@Override
@@ -103,6 +114,16 @@ public class CreateRestFunctionEngineReactor extends AbstractReactor {
 			
 			if (functionType == FunctionTypeEnum.LOCAL_PYTHON) {
 				moveFilesToEngineFolder(specificEngineFolder);
+			}
+			
+			String filePaths = this.keyValue.get(FILE_PATHS_KEY); 			
+			if (StringUtils.isNotEmpty(filePaths)) {
+				List<Map<String, String>> responseMap = AddFileUtils.addFileToModel(this.store, functionId, functionName,
+						this.insight, IEngine.CATALOG_TYPE.FUNCTION, FILE_NAME_SUFFIX);
+				String filePath = Utility.normalizePath(responseMap.get(0).get(FILE_PATH_KEY));
+				String fileContent = FileUtils.readFileToString(new File(filePath), StandardCharsets.UTF_8)
+						.replaceAll(NEW_LINE, "").replaceAll(DOUBLE_BACKWARD_SLASH, DOUBLE_BACKWARD_SLASH + DOUBLE_BACKWARD_SLASH);
+				functionDetails.put(SMSS_KEY_SERVICE_ACCOUNT_CREDENTIALS, fileContent);
 			}
 			
 			String functionClass = functionType.getFunctionClass();

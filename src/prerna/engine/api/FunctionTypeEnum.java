@@ -2,6 +2,7 @@ package prerna.engine.api;
 
 import prerna.engine.impl.function.AWSTextractFunctionEngine;
 import prerna.engine.impl.function.AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine;
+import prerna.engine.impl.function.GoogleOCRFunctionEngine;
 import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
@@ -18,7 +19,7 @@ public enum FunctionTypeEnum {
 	// special function engines for custom embeddings w/ vector databases
 	AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS("AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS", AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine.class.getName()),
 	LOCAL_PYTHON_CUSTOM_EMBEDDINGS("LOCAL_PYTHON_CUSTOM_EMBEDDINGS", LocalPythonCustomEmbeddingsFunctionEngine.class.getName()),
-
+	GOOGLE_OCR("GOOGLE_OCR", GoogleOCRFunctionEngine.class.getName()),
 	;
 	
 	private String functionName;

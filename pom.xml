@@ -2599,6 +2599,28 @@
 		    <artifactId>mcp</artifactId>
 		    <version>0.10.0</version>
 		</dependency>
+		<!-- Google Cloud Document AI Client -->
+	    <dependency>
+			<groupId>com.google.cloud</groupId>
+	        <artifactId>google-cloud-document-ai</artifactId>
+	        <!-- <version>2.58.0</version> -->
+	    </dependency>
+	    <!-- Google Cloud speech Client -->
+	    <dependency>
+			<groupId>com.google.cloud</groupId>
+	        <artifactId>google-cloud-speech</artifactId>
+	       <!--  <version>4.0.0</version> -->
+	    </dependency>
+	    <dependency>
+	    	<groupId>com.google.cloud</groupId>
+	        <artifactId>google-cloud-storage</artifactId>
+	       <!--  <version>2.22.0</version> -->
+	    </dependency>
+	    <dependency>
+			<groupId>com.google.auth</groupId>
+	        <artifactId>google-auth-library-oauth2-http</artifactId>
+	        <!-- <version>1.30.0</version> -->
+	    </dependency>
 		
 
 		<!--  testing jars  -->
@@ -2660,4 +2682,16 @@
 
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
+	
+	<dependencyManagement>
+	  <dependencies>
+	    <dependency>
+	      <groupId>com.google.cloud</groupId>
+	      <artifactId>libraries-bom</artifactId>
+	      <version>26.50.0</version>
+	      <type>pom</type>
+	      <scope>import</scope>
+	    </dependency>
+	  </dependencies>
+	</dependencyManagement>
 </project>
