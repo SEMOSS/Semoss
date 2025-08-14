@@ -339,6 +339,7 @@ import prerna.reactor.scheduler.ResumeJobTriggerReactor;
 import prerna.reactor.scheduler.ScheduleJobReactor;
 import prerna.reactor.security.DatabaseInfoReactor;
 import prerna.reactor.security.DatabaseUsersReactor;
+import prerna.reactor.security.GetDatabaseCategoryReactor;
 import prerna.reactor.security.GetInsightsReactor;
 import prerna.reactor.security.MyDatabasesReactor;
 import prerna.reactor.task.AutoTaskOptionsReactor;
@@ -1067,6 +1068,7 @@ public class ReactorFactory {
 		reactorHash.put("MyDatabases", MyDatabasesReactor.class);
 		reactorHash.put("DatabaseInfo", DatabaseInfoReactor.class);
 		reactorHash.put("DatabaseUsersReactor", DatabaseUsersReactor.class);
+		reactorHash.put("GetDatabaseCategoryReactor", GetDatabaseCategoryReactor.class);
 		// TODO: to be removed once FE changes to only use GetInsights
 		reactorHash.put("GetAppInsights", GetInsightsReactor.class);
 		reactorHash.put("GetInsights", GetInsightsReactor.class);

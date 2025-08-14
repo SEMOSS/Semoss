@@ -30,12 +30,14 @@ import prerna.util.Utility;
  * 2. Validates user permissions based on query type
  * 3. Delegates to appropriate existing reactors
  * 
- * Usage: SqlQuery(database=["myDb"], query=["SELECT * FROM table"], limit=[100])
+ * Usage: SqlQuery(database=["myDb"], query=["SELECT * FROM table"], limit=[100], commit=[true])
  */
 public class SqlQueryReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(SqlQueryReactor.class);
 	
+	private static final int DEFAULT_LIMIT = 50;
+	private static final int MAX_LIMIT = 50;
 	
 	public SqlQueryReactor() {
 		this.keysToGet = new String[]{
@@ -54,7 +56,7 @@ public class SqlQueryReactor extends AbstractReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		String limitStr = this.keyValue.get(this.keysToGet[2]);
 		String commitStr = this.keyValue.get(this.keysToGet[3]);
-		
+
 		if (sqlQuery == null || sqlQuery.trim().isEmpty()) {
 			throw new SemossPixelException("SQL query cannot be empty");
 		}
@@ -73,11 +75,11 @@ public class SqlQueryReactor extends AbstractReactor {
 			QueryType queryType = detectQueryType(sqlQuery);
 			classLogger.info("Detected query type: " + queryType + " for user: " + user.getPrimaryLogin());
 			
-
 			validateUserPermissions(user, databaseId, queryType);
 			
 			// create query structure and delegate
 			return delegateToAppropriateReactor(sqlQuery, databaseId, queryType, limitStr, commitStr);
+
 			
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -110,7 +112,6 @@ public class SqlQueryReactor extends AbstractReactor {
 		}
 	}
 	
-
 	private void validateUserPermissions(User user, String databaseId, QueryType queryType) {
 		switch (queryType) {
 			case SELECT:
@@ -134,6 +135,7 @@ public class SqlQueryReactor extends AbstractReactor {
 		
 		if (queryType == QueryType.SELECT) {
 			return executeSelectQuery(sqlQuery, databaseId, limitStr);
+
 		} else {
 			return executeModificationQuery(sqlQuery, databaseId, commitStr);
 		}
@@ -147,18 +149,7 @@ public class SqlQueryReactor extends AbstractReactor {
 			HardSelectQueryStruct qs = getQs(sqlQuery, databaseId);
 			
 			//set limit if provided
-			int limit = 500; // default
-			if (limitStr != null && !limitStr.trim().isEmpty()) {
-				try {
-					limit = Integer.parseInt(limitStr.trim());
-					if (limit <= 0) {
-						classLogger.warn("Non-positive limit value: " + limit + ", using default 500");
-						limit = 500;
-					}
-				} catch (NumberFormatException e) {
-					classLogger.warn("Invalid limit value: " + limitStr + ", using default 500");
-				}
-			}
+			int limit = parseLimit(limitStr);
 			
 			BasicIteratorTask task = new BasicIteratorTask(qs);
 			task.setNumCollect(limit);
@@ -177,6 +168,33 @@ public class SqlQueryReactor extends AbstractReactor {
 		}
 	}
 	
+	/**
+	 * Parse and validate limit parameter
+	 */
+	private int parseLimit(String limitStr) {
+		int limit = DEFAULT_LIMIT; // default
+		
+		if (limitStr != null && !limitStr.trim().isEmpty()) {
+			try {
+				limit = Integer.parseInt(limitStr.trim());
+				
+				if (limit <= 0) {
+					classLogger.warn("Non-positive limit value: " + limit + ", using default " + DEFAULT_LIMIT);
+					limit = DEFAULT_LIMIT;
+				} else if (limit > MAX_LIMIT) {
+					classLogger.warn("Limit value " + limit + " exceeds maximum " + MAX_LIMIT + ", using maximum");
+					limit = MAX_LIMIT;
+				}
+				
+			} catch (NumberFormatException e) {
+				classLogger.warn("Invalid limit value: " + limitStr + ", using default " + DEFAULT_LIMIT);
+			}
+		}
+		
+		return limit;
+	}
+	
+
 	private NounMetadata executeModificationQuery(String sqlQuery, String databaseId, String commitStr) {
 		try {
 			HardSelectQueryStruct qs = getQs(sqlQuery, databaseId);
@@ -207,7 +225,6 @@ public class SqlQueryReactor extends AbstractReactor {
 		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		return qs;
 	}
-	
 
 	private NounMetadata delegateToExecQueryReactor(String commitStr) {
 		try {
@@ -230,11 +247,16 @@ public class SqlQueryReactor extends AbstractReactor {
 		}
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "SQL Query reactor that executes SQL queries with pagination support (limit and offset)";
+	}
+
 	private enum QueryType {
 		SELECT,
 		INSERT, 
 		UPDATE,
 		DELETE,
-		OTHER  // CREATE, ALTER, DROP, etc.
+		OTHER 
 	}
 }
