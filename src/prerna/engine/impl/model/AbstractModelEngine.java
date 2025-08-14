@@ -17,6 +17,7 @@ import com.google.gson.GsonBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -77,7 +78,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> hyperParameters);
 	
 	@Override
-	public AskModelEngineResponse askRoom(String question, String context, Room room, Map<String, Object> parameters) {
+	public AskModelEngineResponse askRoom(String question, String context, Room room, AbstractMessage inputMessage, Map<String, Object> parameters) {
 		/*
 		 * We will check if there are any restrictions for the user's current token usage
 		 * There might be a value set on the user-engine permission which takes priority 
@@ -102,8 +103,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		String insightId = room.getInsight().getInsightId();		
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/ ((parameters.containsKey("inputMessageId") && parameters.get("inputMessageId") != null) 
-										? parameters.get("inputMessageId") : UUID.randomUUID()).toString(),
+					/*messageId*/ inputMessage.getMessageId(),
 					/*transactionId*/askModelResponse.getMessageId(), 
 					/*messageMethod*/"ask", 
 					/*engine*/this,
@@ -156,8 +156,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/ ((parameters.containsKey("inputMessageId") && parameters.get("inputMessageId") != null) 
-										? parameters.get("inputMessageId") : UUID.randomUUID()).toString(),
+					/*messageId*/askModelResponse.getMessageId(),
 					/*transactionId*/askModelResponse.getMessageId(), 
 					/*messageMethod*/"ask", 
 					/*engine*/this, 
@@ -217,7 +216,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/ messageId,
-					/*transactionId*/null, 
+					/*transactionId*/messageId, 
 					/*messageMethod*/"instruct", 
 					/*engine*/this, 
 					/*insightId*/insight.getInsightId(),
@@ -267,7 +266,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			String messageId = UUID.randomUUID().toString();;
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/ messageId,
-					/*transactionId*/null, 
+					/*transactionId*/messageId, 
 					/*messageMethod*/"embeddings", 
 					/*engine*/this, 
 					/*insightId*/insight.getInsightId(),
@@ -316,7 +315,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			String messageId = UUID.randomUUID().toString();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/ messageId,
-					/*transactionId*/null, 
+					/*transactionId*/messageId, 
 					/*messageMethod*/"embeddings", 
 					/*engine*/this, 
 					/*insightId*/insight.getInsightId(),

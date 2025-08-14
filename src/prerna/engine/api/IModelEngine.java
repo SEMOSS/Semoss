@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -60,7 +61,7 @@ public interface IModelEngine extends IEngine {
 	 *  			- messageId : The unique identifier of a message (the user's input and the model response)
 	 *  			- roomId: The insightId that the runPixel endpoint is being called from
 	 */
-	AskModelEngineResponse askRoom(String question, String context, Room room, Map<String, Object> parameters);
+	AskModelEngineResponse askRoom(String question, String context, Room room, AbstractMessage inputMessage, Map<String, Object> parameters);
 
 	/**
 	 * Passes the string task along with other parameters such as context and temperature to the python client 

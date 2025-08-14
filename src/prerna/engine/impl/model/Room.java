@@ -101,7 +101,7 @@ public class Room {
 	    	kwArgMap.put("message_json", singleMessageJson);
 
 	        AskModelEngineResponse llmResponse = modelEngine.askRoom(
-	            msg.getInputPrompt(), this.getSystemMessage(), this, kwArgMap
+	            msg.getInputPrompt(), this.getSystemMessage(), this, msg, kwArgMap
 	        );
 	        ResponseMessage response = ResponseMessage.Builder
 	            .fromAskModelEngineResponse(llmResponse)
@@ -137,10 +137,9 @@ public class Room {
 //		}
 
 		kwArgMap.put("message_json", messageJsonString);
-		kwArgMap.put("inputMessageId", msg.getMessageId());
 		
 		AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,
-				kwArgMap);
+				msg, kwArgMap);
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 		response.setMessageId(llmResponse.getMessageId());
 
@@ -267,7 +266,7 @@ public class Room {
 			String messageJsonString = getMessagesWithImageDataAsString();
 			Map<String, Object> params = new HashMap<>();
 			params.put("message_json", messageJsonString);
-			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, params);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, toolExecution, params);
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);

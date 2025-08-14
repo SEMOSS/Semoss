@@ -148,16 +148,16 @@ public final class RoomUtils {
         if(room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
         	RoomUtils.updateRoom(room, insight);
         }
-        List<AbstractMessage> messages = room.getMessages();
-        if (messages.size() > 0) {
-        	// if the message id in room table does not match message ids in message table, probably needs migration
-        	boolean migratedMessageIds = ModelInferenceLogsUtils.doCheckMessageIdMigration(roomId, messages.get(0).getMessageId());
-        	if (!migratedMessageIds) {
-        		for (AbstractMessage m : messages) {
-        			ModelInferenceLogsUtils.updateMessageIds(m.getTransactionId(), m.getMessageId(), m.getMessageType());
-        		}
-        	}
-        }
+//        List<AbstractMessage> messages = room.getMessages();
+//        if (messages.size() > 0) {
+//        	// if the message id in room table does not match message ids in message table, probably needs migration
+//        	boolean migratedMessageIds = ModelInferenceLogsUtils.doCheckMessageIdMigration(roomId, messages.get(0).getMessageId());
+//        	if (!migratedMessageIds) {
+//        		for (AbstractMessage m : messages) {
+//        			ModelInferenceLogsUtils.updateMessageIds(m.getTransactionId(), m.getMessageId(), m.getMessageType());
+//        		}
+//        	}
+//        }
         room.setInsight(insight);
         room.parseMessages();
         insight.getUser().roomHash.put(roomId, room);

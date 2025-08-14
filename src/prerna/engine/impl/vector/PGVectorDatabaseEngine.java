@@ -1147,9 +1147,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 		if (inferenceLogsEnbaled && this.keepInputOutput) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String messageId = UUID.randomUUID().toString();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/UUID.randomUUID().toString(), 
-					/*transactionId*/null, 
+					/*messageId*/messageId, 
+					/*transactionId*/messageId, 
 					/*messageMethod*/"nearestNeighbor", 
 					/*engine*/this, 
 					/*insightId*/insight.getInsightId(),
