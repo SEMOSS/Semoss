@@ -13,11 +13,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 
-public class GetMCPPromptsReactor extends GetMCPToolsReactor {
+public class GetMCPResourcesTemplatesReactor extends GetMCPToolsReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GetMCPPromptsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetMCPResourcesTemplatesReactor.class);
 
-	public GetMCPPromptsReactor() {
+	public GetMCPResourcesTemplatesReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
 		this.keyRequired = new int[] {1};
 	}
@@ -43,13 +43,13 @@ public class GetMCPPromptsReactor extends GetMCPToolsReactor {
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(keyValue.get(keysToGet[0]));
 		// need to apply the same from java etc. 
 		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
-		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "prompts");
+		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "resourceTemplates");
 		jsonFileLoc = projectAssetFolder + "/mcp/java_mcp.json";
-		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "prompts");
+		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "resourceTemplates");
 		pyToolArray.putAll(javaToolArray);
 		
 		JSONObject toolMap = new JSONObject();
-		toolMap.put("prompts", pyToolArray);
+		toolMap.put("resourceTemplates", pyToolArray);
 		return new NounMetadata(toolMap, PixelDataType.JSON_OBJECT);
 	}
 	
