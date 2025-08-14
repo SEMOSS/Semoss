@@ -1357,8 +1357,6 @@ public class ModelInferenceLogsUtils {
 		    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 
 		    if (modelInferenceLogsDb.getDbType().equals(RdbmsTypeEnum.POSTGRES)) {
-	          System.out.println("I'm here");
-	          
 	          QueryFunctionSelector convert_selector = new QueryFunctionSelector();
 	          convert_selector.setFunction("CONVERT_FROM");
 	          convert_selector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
@@ -2776,3 +2774,4 @@ public class ModelInferenceLogsUtils {
 	}
 
 }
+
