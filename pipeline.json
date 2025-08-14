@@ -1,97 +1,260 @@
 {
-  "pipelines": {
-    "ask": {
-      "input": [
-        {
-          "reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
-          "params": {
-            "logLevel": "INFO",
-            "logMessage": "Executing ASK method..."
-          }
-        },
-        {
-          "reactorClass": "prerna.reactor.interceptor.PIIInputReactor",
-          "params": {
-            "blockOnPII": true,
-            "piiTypes": ["SSN", "CREDIT_CARD"]
-          }
-        }
-      ],
-      "output": [
-		{
-          "reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
-          "params": {
-            "logLevel": "INFO",
-            "logMessage": "Executing ASK method..."
-          }
-        },
-        {
-          "reactorClass": "prerna.reactor.interceptor.PHIOutputReactor",
-          "params": {
-            "redactionMask": "[REDACTED_PHI]"
-          }
-        }
-      ]
-    },
-	"addDocument": {
-      "input": [
-        {
-          "reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
-          "params": {
-            "logLevel": "INFO",
-            "logMessage": "Executing ASK method..."
-          }
-        }
-      ],
-      "output": [
-		{
-          "reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
-          "params": {
-            "logLevel": "INFO",
-            "logMessage": "Executing ASK method..."
-          }
-        }
-      ]
-    },
-	"removeDocument": {
-      "input": [
-        {
-          "reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
-          "params": {
-            "logLevel": "INFO",
-            "logMessage": "Executing ASK method..."
-          }
-        }
-      ],
-      "output": [
-		{
-          "reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
-          "params": {
-            "logLevel": "INFO",
-            "logMessage": "Executing ASK method..."
-          }
-        }
-      ]
-    },
-	"embeddings": {
-      "input": [
-        {
-          "reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
-          "params": {
-            "logLevel": "INFO",
-            "logMessage": "Executing ASK method..."
-          }
-        }
-      ],
-      "output": [
-		{
-          "reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
-          "params": {
-            "logLevel": "INFO",
-            "logMessage": "Executing ASK method..."
-          }
-        }
-      ]
-    }
-  }
+	"pipelines": {
+		"ask": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing ASK method..."
+					}
+				},
+				{
+					"reactorClass": "prerna.reactor.interceptor.PIIInputReactor",
+					"params": {
+						"blockOnPII": true,
+						"piiTypes": [
+							"SSN",
+							"CREDIT_CARD"
+						]
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing ASK method..."
+					}
+				},
+				{
+					"reactorClass": "prerna.reactor.interceptor.PHIOutputReactor",
+					"params": {
+						"redactionMask": "[REDACTED_PHI]"
+					}
+				}
+			]
+		},
+		"addDocument": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing ASK method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing ASK method..."
+					}
+				}
+			]
+		},
+		"removeDocument": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing ASK method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing ASK method..."
+					}
+				}
+			]
+		},
+		"embeddings": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing ASK method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing ASK method..."
+					}
+				}
+			]
+		},
+		"list": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing LIST method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing LIST method..."
+					}
+				}
+			]
+		},
+		"listDetails": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing LISTDetails method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing LISTDetails method..."
+					}
+				}
+			]
+		},
+		"copyToLocal": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing copyToLocal method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing copyToLocal method..."
+					}
+				}
+			]
+		},
+		"copyToStorage": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing copyToStorage method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing copyToStorage method..."
+					}
+				}
+			]
+		},
+		"deleteFromStorage": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing deleteFromStorage method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing deleteFromStorage method..."
+					}
+				}
+			]
+		},
+		"deleteFolderFromStorage": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing deleteFromStorage method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing deleteFromStorage method..."
+					}
+				}
+			]
+		},
+		"syncStorageToLocal": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing syncStorageToLocal method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing syncStorageToLocal method..."
+					}
+				}
+			]
+		},
+		"syncLocalToStorage": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing syncLocalToStorage method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing syncLocalToStorage method..."
+					}
+				}
+			]
+		}
+	}
 }

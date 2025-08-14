@@ -60,6 +60,7 @@ public class LoggingInputReactor extends AbstractReactor implements IInputReacto
 
 			mapMessage.put(Constants.AUDIT_LOG_SESSION_ID, ThreadStore.getSessionId());
 			mapMessage.put(Constants.AUDIT_LOG_INSIGHT_ID, ThreadStore.getInsightId());
+			mapMessage.put(Constants.AUDIT_LOG_USER_ID, ThreadStore.getUser().getPrimaryLoginToken().getId());
 
 			IEngine engine = (IEngine) arguments.get(PipelineReactorUtils.ENGINE);
 
@@ -74,12 +75,12 @@ public class LoggingInputReactor extends AbstractReactor implements IInputReacto
 			} else if (engine instanceof IDatabaseEngine) {
 
 				mapMessage = extractArguments(arguments, mapMessage);
-				mapMessage.put(Constants.AUDIT_LOG_ENGINE_TYPE,
-						String.valueOf(((IDatabaseEngine) engine).getDatabaseType()));
+				mapMessage.put(Constants.AUDIT_LOG_ENGINE_TYPE,String.valueOf(((IDatabaseEngine) engine).getDatabaseType()));
 
 			} else if (engine instanceof IStorageEngine) {
-				mapMessage.put(Constants.AUDIT_LOG_ENGINE_TYPE,
-						String.valueOf(((IStorageEngine) engine).getStorageType()));
+				
+				mapMessage = extractArguments(arguments, mapMessage);
+				mapMessage.put(Constants.AUDIT_LOG_ENGINE_TYPE,String.valueOf(((IStorageEngine) engine).getStorageType()));
 
 			} else if (engine instanceof IVectorDatabaseEngine) {
 
@@ -180,11 +181,9 @@ public class LoggingInputReactor extends AbstractReactor implements IInputReacto
 					} else if (checkListType(entry.getValue(), Map.class)) {
 
 						List<Map<String, Object>> listOfRequests = (List<Map<String, Object>>) arguments.get("arg0");
-						listOfRequests.forEach((map) -> {
-							map.forEach((key, value) -> {
-								mapMessage.put(key, String.valueOf(value));
-							});
-						});
+						String result = listOfRequests.stream().map(Map::toString).collect(Collectors.joining(","));				
+						mapMessage.put(Constants.AUDIT_LOG_REQUEST, result);
+						
 					} else if (entry.getValue() instanceof VectorDatabaseMetadataCSVTable) {
 
 						VectorDatabaseMetadataCSVTable vectorDatabaseMetadataCSVTable = (VectorDatabaseMetadataCSVTable) arguments

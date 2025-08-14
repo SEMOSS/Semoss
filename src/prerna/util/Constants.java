@@ -1052,6 +1052,7 @@ public class Constants {
     public static final String AUDIT_LOG_METHOD_SPAN_ID = "methodSpanId";
     public static final String AUDIT_LOG_INPUT_REACTOR_NAME = "inputReactorName";
     public static final String AUDIT_LOG_OUTPUT_REACTOR_NAME = "outputReactorName";
+    public static final String AUDIT_LOG_IS_SUCCESS = "isSuccess";
     
     public static final String KAFKA_BOOTSTRAP_SERVERS_CONFIG = "KAFKA_BOOTSTRAP_SERVERS_CONFIG";
     public static final String KAFKA_ACKS_CONFIG = "KAFKA_ACKS_CONFIG";

@@ -19,6 +19,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.om.Insight;
 import prerna.reactor.IReactor;
 import prerna.reactor.interceptor.IInputReactor;
@@ -157,8 +158,14 @@ public class PipelineInvocationHandler implements InvocationHandler {
      */
     private static String getJsonData(IEngine engine) {
 		String jsonString = null;
+		String versionFolder = null;
 		try {
-			String versionFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(), engine.getEngineName());
+			if(engine.getCatalogType().equals(CATALOG_TYPE.FUNCTION)) {
+				 versionFolder = EngineUtility.getSpecificEngineBaseFolder(engine.getCatalogType(), engine.getEngineId(), engine.getEngineName());
+			}else {
+				 versionFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(), engine.getEngineName());
+			}
+			
 			String pipelineFile = versionFolder + "/" + engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			pipelineFile = pipelineFile.replace("\\", "/");
 			jsonString = FileUtils.readFileToString(new File(pipelineFile), "UTF-8");
