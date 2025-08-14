@@ -36,10 +36,6 @@ class BedrockMessageBuilder:
         system_block = None
         inference_config = None
 
-        # Track tool execution state more carefully
-        pending_tool_results = []
-        expected_tool_count = 0
-
         has_tool_content = any(
             (message.type == SEMOSSMessageType.RESPONSE_TOOL and message.tool_calls)
             or message.type == SEMOSSMessageType.INPUT_TOOL_EXEC
@@ -57,13 +53,15 @@ class BedrockMessageBuilder:
             if not tools:
                 tools = self._extract_tools_from_tool_calls(semoss_messages)
 
-        for i, message in enumerate(semoss_messages):
+        i = 0
+        while i < len(semoss_messages):
+            message = semoss_messages[i]
             is_last = i == len(semoss_messages) - 1
             role = self._message_type_to_role(message.type)
 
             content_blocks = []
 
-            if message.content:
+            if message.content and message.type != SEMOSSMessageType.INPUT_TOOL_EXEC:
                 content_blocks.append(self._build_text_content_block(message.content))
 
             if message.image_content:
@@ -72,47 +70,43 @@ class BedrockMessageBuilder:
 
             # Handle tool calls (RESPONSE_TOOL messages)
             if message.type == SEMOSSMessageType.RESPONSE_TOOL and message.tool_calls:
-                expected_tool_count = len(message.tool_calls)
-
                 for tool_call in message.tool_calls:
                     tool_use_block = self._build_tool_use_block(tool_call)
                     content_blocks.append(tool_use_block)
 
-            # Handle tool execution results (INPUT_TOOL_EXEC messages)
-            elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
-                if expected_tool_count > 0:
-                    tool_call_info = self._find_tool_call_info(
-                        semoss_messages, i, message.tool_call_id
-                    )
-
-                    if tool_call_info:
-                        tool_result_block = self._build_tool_result_block(
-                            tool_call_info["id"],
-                            tool_call_info["name"],
-                            message.content,
+                if content_blocks:
+                    bedrock_messages.append(
+                        BedrockMessage(
+                            role=role,
+                            content=content_blocks,
                         )
-                        pending_tool_results.append(tool_result_block)
-
-                        if len(pending_tool_results) == expected_tool_count:
-                            bedrock_messages.append(
-                                BedrockMessage(
-                                    role="user",
-                                    content=pending_tool_results,
-                                )
-                            )
-                            pending_tool_results = []
-                            expected_tool_count = 0
-                            continue
-
-            if content_blocks:
-                bedrock_messages.append(
-                    BedrockMessage(
-                        role=role,
-                        content=content_blocks,
                     )
+
+                tool_call_ids = [tc.get("id") for tc in message.tool_calls]
+                tool_results, next_i = self._collect_tool_results(
+                    semoss_messages, i + 1, tool_call_ids
                 )
 
-            # Extract parameters from the last message
+                if tool_results:
+                    bedrock_messages.append(
+                        BedrockMessage(
+                            role="user",
+                            content=tool_results,
+                        )
+                    )
+
+                i = next_i
+                continue
+
+            elif message.type != SEMOSSMessageType.INPUT_TOOL_EXEC:
+                if content_blocks:
+                    bedrock_messages.append(
+                        BedrockMessage(
+                            role=role,
+                            content=content_blocks,
+                        )
+                    )
+
             if is_last:
                 inference_config, param_map = self._build_request_parameters(
                     message.param_map
@@ -123,10 +117,10 @@ class BedrockMessageBuilder:
                     tools = self._convert_mcp_to_bedrock_tools(last_message_tools)
 
                 stream = message.param_map.get("stream", False)
-
                 system_block = self.build_system_block(system_prompt)
-
                 param_map = self.clean_param_map(param_map)
+
+            i += 1
 
         messages_dict = [msg.model_dump(exclude_none=True) for msg in bedrock_messages]
         system_dict = (
@@ -147,6 +141,81 @@ class BedrockMessageBuilder:
             "stream": stream,
         }
 
+    def _group_tool_calls_and_results(
+        self, semoss_messages: List[SEMOSSMessage]
+    ) -> Dict[int, Dict]:
+        """Pre-process messages to group tool calls with their results."""
+        tool_groups = {}
+
+        for i, message in enumerate(semoss_messages):
+            if message.type == SEMOSSMessageType.RESPONSE_TOOL and message.tool_calls:
+                tool_call_ids = [tc.get("id") for tc in message.tool_calls]
+                tool_groups[i] = {
+                    "tool_calls": message.tool_calls,
+                    "tool_call_ids": tool_call_ids,
+                    "results": [],
+                }
+
+                for j in range(i + 1, len(semoss_messages)):
+                    result_msg = semoss_messages[j]
+                    if result_msg.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
+                        if result_msg.tool_call_id in tool_call_ids:
+                            tool_groups[i]["results"].append((j, result_msg))
+                    elif result_msg.type != SEMOSSMessageType.INPUT_TOOL_EXEC:
+                        break
+
+        return tool_groups
+
+    def _collect_tool_results(
+        self,
+        semoss_messages: List[SEMOSSMessage],
+        start_index: int,
+        expected_tool_call_ids: List[str],
+    ) -> Tuple[List[BedrockToolResultContentBlock], int]:
+        """Collect all tool results for the given tool call IDs."""
+        tool_results = []
+        current_index = start_index
+        found_tool_call_ids = set()
+
+        while current_index < len(semoss_messages):
+            message = semoss_messages[current_index]
+
+            if message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
+                tool_call_id = message.tool_call_id
+
+                if tool_call_id in expected_tool_call_ids:
+                    tool_name = self._find_tool_name_by_id(
+                        semoss_messages, tool_call_id
+                    )
+
+                    tool_result_block = self._build_tool_result_block(
+                        tool_call_id,
+                        tool_name or "unknown_tool",
+                        message.content or "",
+                    )
+                    tool_results.append(tool_result_block)
+                    found_tool_call_ids.add(tool_call_id)
+
+                    if len(found_tool_call_ids) == len(expected_tool_call_ids):
+                        break
+
+                current_index += 1
+            else:
+                break
+
+        return tool_results, current_index
+
+    def _find_tool_name_by_id(
+        self, semoss_messages: List[SEMOSSMessage], tool_call_id: str
+    ) -> str:
+        """Find the tool name for a given tool call ID."""
+        for message in semoss_messages:
+            if message.type == SEMOSSMessageType.RESPONSE_TOOL and message.tool_calls:
+                for tool_call in message.tool_calls:
+                    if str(tool_call.get("id")) == str(tool_call_id):
+                        return tool_call["function"]["name"]
+        return None
+
     def _extract_tools_from_tool_calls(
         self, semoss_messages: List[SEMOSSMessage]
     ) -> Dict[str, Any]:
@@ -163,7 +232,6 @@ class BedrockMessageBuilder:
                         properties = {}
                         required = []
 
-                        # Build properties from the arguments
                         for key, value in arguments.items():
                             if isinstance(value, bool):
                                 prop_type = "boolean"
@@ -199,25 +267,8 @@ class BedrockMessageBuilder:
 
         return None
 
-    def _find_tools_from_messages(
-        self, semoss_messages: List[SEMOSSMessage]
-    ) -> Dict[str, Any]:
-        """Find tools configuration from earlier messages if not present in the last message."""
-        for message in reversed(semoss_messages):
-            tools = message.param_map.get("tools")
-            if tools:
-                return self._convert_mcp_to_bedrock_tools(tools)
-
-        return None
-
-    def convert_mcp_to_bedrock_tools(self, mcp_tools: List[Dict]) -> Dict[str, Any]:
-        """
-        Convert MCP-formatted tools to Bedrock tool configuration format.
-        Args:
-            mcp_tools: List of tools in MCP format
-        Returns:
-            Bedrock tool configuration
-        """
+    def _convert_mcp_to_bedrock_tools(self, mcp_tools: List[Dict]) -> Dict[str, Any]:
+        """Convert MCP-formatted tools to Bedrock tool configuration."""
         tools_list = []
 
         for tool in mcp_tools:
@@ -258,43 +309,6 @@ class BedrockMessageBuilder:
 
         return BedrockToolResultContentBlock(toolResult=tool_result_data)
 
-    def _find_tool_call_info(
-        self,
-        semoss_messages: List[SEMOSSMessage],
-        current_index: int,
-        tool_call_id: str,
-    ) -> Dict[str, str]:
-        """Find the tool call information by looking backwards through messages."""
-        for j in range(current_index - 1, -1, -1):
-            prev_msg = semoss_messages[j]
-            if prev_msg.type == SEMOSSMessageType.RESPONSE_TOOL and prev_msg.tool_calls:
-                for tool_call in prev_msg.tool_calls:
-                    if str(tool_call.get("id")) == str(tool_call_id):
-                        return {
-                            "id": tool_call.get("id", ""),
-                            "name": tool_call["function"]["name"],
-                        }
-        return None
-
-    def _convert_mcp_to_bedrock_tools(self, mcp_tools: List[Dict]) -> Dict[str, Any]:
-        """Convert MCP-formatted tools to Bedrock tool configuration."""
-        tools_list = []
-
-        for tool in mcp_tools:
-            bedrock_tool = {
-                "toolSpec": {
-                    "name": tool["name"],
-                    "description": tool["description"],
-                    "inputSchema": {"json": tool["inputSchema"]},
-                }
-            }
-            tools_list.append(bedrock_tool)
-
-        return {
-            "tools": tools_list,
-            "toolChoice": {"auto": {}},
-        }
-
     def clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
         """Remove parameters that shouldn't be passed to Bedrock."""
         param_map.pop("max_completion_tokens", None)
@@ -306,7 +320,7 @@ class BedrockMessageBuilder:
         param_map.pop("context", None)
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
-        param_map.pop("tools", None)  # Remove tools from additional fields
+        param_map.pop("tools", None)
         param_map.pop("stream", None)
         param_map.pop("streaming", None)
         return param_map
