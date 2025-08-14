@@ -79,7 +79,8 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 	    	  	+ "- Do not ignore any part of the user’s prompt regarding data filtering, graph type, color scheme, or other preferences.\n\n";
 	   
 	   // TODO: Clean the user input 
-	   String userInput = this.keyValue.get(this.keysToGet[2]);
+//	   String userInput = this.keyValue.get(this.keysToGet[2]);
+	   String userInput = "Create the best line graph possible";
 	   String PROMPT = "Here is the user input:\n\n" + userInput
 	    	    + "\"Please generate a valid Vega-Lite chart specification in JSON format that accurately and clearly visualizes the given data.\\n\\n\" +\n"
 	    	    + " \n"
@@ -109,7 +110,12 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 
 		///////// MODEL ///////////
 		String QUESTION = PROMPT + buildVegaPrompt(sourceFrame);
-        AskModelEngineResponse modelResponse = callLLM(
+		
+		System.out.println("DEBUG: ");
+		System.out.println(CONTEXT);
+		System.out.println(QUESTION);
+		
+		AskModelEngineResponse modelResponse = callLLM(
             CONTEXT, QUESTION
 //            this.insight.getInsightFolder() // TODO: Unsure about this
         );
