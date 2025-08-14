@@ -67,9 +67,6 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
         }
 		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 
-        room.setInsight(insight);
-        room.parseMessages();
-
         List<AbstractMessage> messages = room.getMessages();
         if (messages.isEmpty()) {
             throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
