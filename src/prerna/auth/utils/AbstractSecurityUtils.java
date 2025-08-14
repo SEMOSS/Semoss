@@ -2526,6 +2526,20 @@ public abstract class AbstractSecurityUtils {
 
 		return filters;
 	}
+	
+	static Collection<String> getUserGroupFiltersQs(User user) {
+	    List<String> filters = new ArrayList<String>();
+	    if(user != null) {
+	        List<AuthProvider> logins = user.getLogins();
+	        for(AuthProvider thisLogin : logins) {
+	            Collection<String> groups = user.getAccessToken(thisLogin).getUserGroups();
+	            for (String group : groups) {
+	                filters.add(Utility.inputSQLSanitizer(group));
+	            }
+	        }
+	    }
+	    return filters;
+	}
 
 	////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////
