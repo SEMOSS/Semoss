@@ -24,6 +24,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -715,6 +716,7 @@ public abstract class AbstractReactor implements IReactor {
 			name = name.substring(0, name.length()-"Reactor".length());
 		}
 		tool.put("name", name);
+		tool.put("title", MCPUtility.formatToTitleCase(name));
 		tool.put("description", getReactorDescription());
 		JSONObject inputSchema = new JSONObject();
 		inputSchema.put("properties", getMcpProperties());
