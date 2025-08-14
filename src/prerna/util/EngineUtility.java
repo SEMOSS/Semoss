@@ -1,11 +1,24 @@
 package prerna.util;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.io.connector.couch.CouchUtil;
+import prerna.project.api.IProject;
 
 public class EngineUtility {
+	
+	private static final Logger classLogger = LogManager.getLogger(EngineUtility.class);
+	
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	private static final String BASE_FOLDER;
 	static {
@@ -240,5 +253,20 @@ public class EngineUtility {
         String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
         return EngineUtility.getSpecificEngineBaseFolder(catalogType,  engineId,  engineName);
     }
-	
+    
+    public static void createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) throws IOException  {
+		String engineAssetLoc = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId, engineName)+ DIR_SEPARATOR + Utility.getDIHelperProperty(Settings.PIPELINE);
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String pipelineFile = baseFolder + DIR_SEPARATOR + Utility.getDIHelperProperty(Settings.PIPELINE);
+		
+		Path source = Paths.get(pipelineFile);
+		Path destination = Paths.get(engineAssetLoc);
+		
+		try {
+			Files.copy(source, destination);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException("Could not create pipeline.json file for the model");
+		}
+	}
 }

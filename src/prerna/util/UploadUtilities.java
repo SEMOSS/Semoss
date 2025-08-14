@@ -1075,19 +1075,29 @@ public final class UploadUtilities {
 		try (FileWriter writer = new FileWriter(engineTempSmss); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
 			writeDefaultEngineSettings(bufferedWriter, engineId, engineName, className, newLine, tab);
 			bufferedWriter.write(newLine);
-			
+			boolean fromUI = false;
 			if(properties != null) {
+				
 				for(String key : properties.keySet()) {
+					if(key != null && key.equalsIgnoreCase("EnableGuardRails")) {
+						fromUI = true;
+					}
 					bufferedWriter.write(key.toUpperCase() + tab + properties.get(key)+newLine);
+				}
+				if(!fromUI) {
+					bufferedWriter.write("EnableGuardRails".toUpperCase() + tab + "true"+newLine);
+					bufferedWriter.write("PIPELINE".toUpperCase() + tab + "pipeline.json"+newLine);
 				}
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for model");
-		} 
+		}
 
 		return engineTempSmss;
 	}
+	
+	
 	
 	
 	/**

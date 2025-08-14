@@ -30,6 +30,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -154,6 +155,8 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			vectorDb.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(vectorDbId, vectorDbName, vectorDb, smssFile);
 			SecurityEngineUtils.addEngine(vectorDbId, global, user);
+			
+			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.VECTOR, vectorDbId, vectorDbName);
 			
 			// even if no security, just add user as database owner
 			if (user != null) {

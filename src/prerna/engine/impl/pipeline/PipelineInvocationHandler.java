@@ -29,9 +29,7 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Settings;
-import prerna.util.Utility;
+import prerna.util.EngineUtility;
 
 /**
  * The invocation handler for the dynamic proxy. This class intercepts all method calls,
@@ -160,10 +158,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
     private static String getJsonData(IEngine engine) {
 		String jsonString = null;
 		try {
-			//String versionFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(), engine.getEngineName());
-			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			String pipelineFile = baseFolder + DIR_SEPARATOR + Utility.getDIHelperProperty(Settings.PIPELINE);
-			//String pipelineFile = versionFolder + "/" + engine.getSmssProp().getProperty(IEngine.PIPELINE);
+			String versionFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(), engine.getEngineName());
+			String pipelineFile = versionFolder + "/" + engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			pipelineFile = pipelineFile.replace("\\", "/");
 			jsonString = FileUtils.readFileToString(new File(pipelineFile), "UTF-8");
 		} catch (IOException e) {

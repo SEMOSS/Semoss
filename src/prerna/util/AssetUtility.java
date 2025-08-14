@@ -3,6 +3,8 @@ package prerna.util;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 import org.apache.logging.log4j.LogManager;
@@ -13,6 +15,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
@@ -386,5 +389,23 @@ public class AssetUtility {
 			}
 		}
 	}
+	
+	public static void createPipelineJsonInSpecificEngineFolder( String projectName, String projectId) throws IOException  {
+		String projectVersionFolder = AssetUtility.getProjectAssetsFolder(projectName, projectId) + DIR_SEPARATOR + Utility.getDIHelperProperty(Settings.PIPELINE);
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String pipelineFile = baseFolder + DIR_SEPARATOR + Utility.getDIHelperProperty(Settings.PIPELINE);
+		
+		Path source = Paths.get(pipelineFile);
+		Path destination = Paths.get(projectVersionFolder);
+		
+		try {
+			Files.copy(source, destination);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException("Could not create pipeline.json file for the app");
+		}
+	}
+	
+	
 	
 }

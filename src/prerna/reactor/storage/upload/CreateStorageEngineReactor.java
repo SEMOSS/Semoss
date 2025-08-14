@@ -28,6 +28,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -122,6 +123,8 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			storage.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(storageId, storageName, storage, smssFile);
 			SecurityEngineUtils.addEngine(storageId, global, user);
+			
+			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageId, storageName);
 			
 			// even if no security, just add user as database owner
 			if (user != null) {

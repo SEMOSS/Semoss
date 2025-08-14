@@ -29,6 +29,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -97,7 +98,9 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 			function.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(functionId, functionName, function, smssFile);
 			SecurityEngineUtils.addEngine(functionId, false, user);
-
+			
+			
+			
 			// even if no security, just add user as database owner
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
@@ -107,6 +110,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 			}
 
 			ClusterUtil.pushEngine(functionId);
+			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineFolder);

@@ -72,7 +72,11 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 			if (engine instanceof IModelEngine) {
 				
 				mapMessage = extractArguments(arguments, mapMessage);
-				mapMessage = getIModelEngineResponse(engine, mapMessage, result);
+				if(isSuccess) {
+					mapMessage = getIModelEngineResponse(engine, mapMessage, result);
+				}else {
+					mapMessage.put(Constants.AUDIT_LOG_RESPONSE, result != null ? (String) result : isSuccess ? "Success" : "Failed");
+				}
 				mapMessage.put(Constants.AUDIT_LOG_ENGINE_TYPE, String.valueOf(((IModelEngine) engine).getModelType()));
 				
 			} else if (engine instanceof IDatabaseEngine) {

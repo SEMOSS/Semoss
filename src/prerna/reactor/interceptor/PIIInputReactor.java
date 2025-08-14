@@ -65,7 +65,7 @@ public class PIIInputReactor extends AbstractReactor implements IInputReactor {
 		}
 		Map <String, Object> resultMap = new HashMap<String, Object>();
 		resultMap.put(PipelineReactorUtils.INTERCEPTOR, this.getClass().getName());
-		resultMap.put(PipelineReactorUtils.PASS, false);
+		resultMap.put(PipelineReactorUtils.PASS, true);
 		arguments.put(PipelineReactorUtils.INTERIM_RESULT, resultMap);
 		return new NounMetadata(arguments, PixelDataType.MAP);
 	}

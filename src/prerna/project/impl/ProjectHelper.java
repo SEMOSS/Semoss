@@ -44,6 +44,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.InsightsRDBMSUtils;
@@ -173,6 +174,9 @@ public final class ProjectHelper {
 				logger.info("Syncing project for cloud backup");
 				ClusterUtil.pushProject(projectId);
 			}
+			
+			
+			AssetUtility.createPipelineJsonInSpecificEngineFolder(projectName, projectId);
 
 			SecurityProjectUtils.addProject(projectId, global, user);
 			if (user != null) {

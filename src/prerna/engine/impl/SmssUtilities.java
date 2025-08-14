@@ -547,6 +547,8 @@ public class SmssUtilities {
 			}
 			String connectionUrl = getParamedNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
+			bufferedWriter.write("EnableGuardRails".toUpperCase() + tab + "true"+newLine);
+			bufferedWriter.write("PIPELINE".toUpperCase() + tab + "pipeline.json"+newLine);
 		} catch (IOException e) {
 			classLogger.info(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate project smss file");
