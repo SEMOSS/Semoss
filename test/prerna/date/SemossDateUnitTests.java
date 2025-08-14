@@ -39,8 +39,8 @@ public class SemossDateUnitTests {
         assertEquals(time.getMonth(), reactor.getZonedDateTime().getMonth());
         assertEquals(time.getDayOfMonth(), reactor.getZonedDateTime().getDayOfMonth());
 
-        reactor = new SemossDate(date, "yyyy-mm-dd", null);
-        assertEquals("yyyy-mm-dd", reactor.getPattern());
+        reactor = new SemossDate(date, "yyyy-MM-dd", null);
+        assertEquals("yyyy-MM-dd", reactor.getPattern());
         assertEquals(time.getYear(), reactor.getZonedDateTime().getYear());
         assertEquals(time.getMonth(), reactor.getZonedDateTime().getMonth());
         assertEquals(time.getDayOfMonth(), reactor.getZonedDateTime().getDayOfMonth());
@@ -90,8 +90,8 @@ public class SemossDateUnitTests {
         assertEquals(time.getMonth(), reactor.getZonedDateTime().getMonth());
         assertEquals(time.getDayOfMonth(), reactor.getZonedDateTime().getDayOfMonth());
 
-        reactor = new SemossDate(System.currentTimeMillis(), "yyyy-mm-dd", null);
-        assertEquals("yyyy-mm-dd", reactor.getPattern());
+        reactor = new SemossDate(System.currentTimeMillis(), "yyyy-MM-dd", null);
+        assertEquals("yyyy-MM-dd", reactor.getPattern());
         assertEquals(time.getYear(), reactor.getZonedDateTime().getYear());
         assertEquals(time.getMonth(), reactor.getZonedDateTime().getMonth());
         assertEquals(time.getDayOfMonth(), reactor.getZonedDateTime().getDayOfMonth());

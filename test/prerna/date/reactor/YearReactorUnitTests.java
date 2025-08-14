@@ -15,7 +15,7 @@ public class YearReactorUnitTests {
     @Test
     void test() {
         reactor = new YearReactor();
-        reactor.keyValue.put("Years", "1");
+        reactor.keyValue.put("years", "1");
 
         NounMetadata nm = reactor.execute();
         assertEquals(PixelDataType.CONST_YEAR, nm.getNounType());
