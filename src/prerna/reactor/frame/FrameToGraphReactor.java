@@ -69,44 +69,49 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 			System.err.println("Unsupported frame type for query execution");
 		}
 		
-	   String CONTEXT = "\"You are a data visualization expert. Your task is to create a Vega-Lite 6.1.0 JSON specification based on the raw data provided.\\n\\n\" +\n"
-	    	    + " \n"		  
-	    	  	+ "First, carefully consider the user’s input:\n"
-	    	  	+ "- If the user specifies a type of graph, use that graph type.\n"
-	    	  	+ "- If the user specifies a color scheme, apply that color scheme.\n"
-	    	  	+ "- If the user requests showing or comparing only specific data columns, data types, or subsets of the data, ensure the final graph reflects exactly those selections.\n"
-	    	  	+ "- Interpret any specific user instructions carefully. For example, if the user says: “Show me a graph comparing column A and column B only,” or “Plot a bar chart showing sales over time with blue tones,” incorporate these instructions fully.\n"
-	    	  	+ "- Do not ignore any part of the user’s prompt regarding data filtering, graph type, color scheme, or other preferences.\n\n";
+	   String userInput = this.keyValue.get(this.keysToGet[2]);
+		
+	   String CONTEXT = "\"You are a data visualization expert. Your task is to create a Vega-Lite 6.1.0 JSON specification based on the raw data provided";
+			   
+	   if (userInput != null) {
+		   CONTEXT += " \n"		  
+		    	  	+ "First, carefully consider the user’s input:\n"
+		    	  	+ "- If the user specifies a type of graph, use that graph type.\n"
+		    	  	+ "- If the user specifies a color scheme, apply that color scheme.\n"
+		    	  	+ "- If the user requests showing or comparing only specific data columns, data types, or subsets of the data, ensure the final graph reflects exactly those selections.\n"
+		    	  	+ "- Interpret any specific user instructions carefully. For example, if the user says: “Show me a graph comparing column A and column B only,” or “Plot a bar chart showing sales over time with blue tones,” incorporate these instructions fully.\n"
+		    	  	+ "- Do not ignore any part of the user’s prompt regarding data filtering, graph type, color scheme, or other preferences.\n\n";
+	   }
+
 	   
 	   // TODO: Clean the user input 
-	   String userInput = this.keyValue.get(this.keysToGet[2]);
-//	   String userInput = "Create the best line graph possible";
-	   String PROMPT = "Here is the user input:\n\n" + userInput
-	    	    + "\\n\\n\"Please generate a valid Vega-Lite chart specification in JSON format that accurately and clearly visualizes the given data.\\n\\n\" +\n"
-	    	    + " \n"
-	    	    + "            \"Your output must include:\\n\" +\n"
-	    	    + "            \"1. **The complete Vega-Lite JSON spec** only — do not include any explanation, commentary, irregular quotation marks in data values, or code blocks.\\n\" +\n"
-	    	    + "            \"2. Ensure the spec includes appropriate settings for:\\n\" +\n"
-	    	    + "            \"   - `mark` type (e.g., bar, line, point, area, etc.)\\n\" +\n"
-	    	    + "            \"   - `encoding` for x and y axes (use fields and types from the data)\\n\" +\n"
-	    	    + "            \"   - Optional: tooltips, color, and other enhancements to improve clarity\\n\" +\n"
-	    	    + "            \"3. Use reasonable assumptions if the chart type is not specified.\\n\" +\n"
-	    	    + "            \"4. Ensure the JSON is valid and can be used directly with a Vega-Lite renderer.\\n\\n\" +\n"
-	    	    + "            \"5. The most meaningful and suprising patterns, insights, or anomalies possible in the dataset.\\n\\n\" +\n"
-	    	    + " \n"
-	    	    + "            \"Guidelines:\\n\" +\n"
-	    	    + "            \"- Avoid complex transforms unless required.\\n\" +\n"
-	    	    + "            \"- If the data is time-based, use a line or area chart with appropriate time formatting.\\n\" +\n"
-	    	    + "            \"- If comparing categories, use bar or grouped bar charts.\\n\" +\n"
-	    	    + "            \"- Add axis titles based on the field names.\\n\\n\" +\n"
-	    	    + " \n"
-	    	    + "            \"Only return the Vega JSON. Do not include any text, markdown, or notes.\\n\\n\" +\n"
-	    	    + " \n"
-	    	    + "            Here is the raw data:\\n\\n +\n"
-	    	    + " \n"
-	    	    + " \n"
-	    	    + " \n"
-	    	    + "    } ";
+	   String PROMPT = "";
+	   if (userInput != null) { 
+//		   String userInput = this.keyValue.get(this.keysToGet[2]);
+		   PROMPT = "Here is the user input:\n" + userInput;
+	   }
+	   
+	   PROMPT += "\nPlease generate a valid Vega-Lite chart specification in JSON format that accurately and clearly visualizes the given data.\"\n"
+    	    + " \n"
+    	    + "            \"Your output must include:\n"
+    	    + "            \"1. **The complete Vega-Lite JSON spec** only — do not include any explanation, commentary, irregular quotation marks in data values, or code blocks.\"\n"
+    	    + "            \"2. Ensure the spec includes appropriate settings for:\"\n"
+    	    + "            \"   - `mark` type (e.g., bar, line, point, area, etc.)\"\n"
+    	    + "            \"   - `encoding` for x and y axes (use fields and types from the data)\"\n"
+    	    + "            \"   - Optional: tooltips, color, and other enhancements to improve clarity\"\n"
+    	    + "            \"3. Use reasonable assumptions if the chart type is not specified.\"\n"
+    	    + "            \"4. Ensure the JSON is valid and can be used directly with a Vega-Lite renderer.\"\n"
+    	    + "            \"5. The most meaningful and suprising patterns, insights, or anomalies possible in the dataset.\"\n"
+    	    + " \n"
+    	    + "            \"Guidelines:\"\n"
+    	    + "            \"- Avoid complex transforms unless required.\"\n"
+    	    + "            \"- If the data is time-based, use a line or area chart with appropriate time formatting.\"\n"
+    	    + "            \"- If comparing categories, use bar or grouped bar charts.\"\n"
+    	    + "            \"- Add axis titles based on the field names.\"\n"
+    	    + " \n"
+    	    + "            \"ONLY return the Vega JSON. Do not include any text, markdown, or notes.\"\n"
+    	    + " \n"
+    	    + "  \"Here is the raw data:\": {\n";
 
 		///////// MODEL ///////////
 		String QUESTION = PROMPT + buildVegaPrompt(sourceFrame);
@@ -208,7 +213,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
         }
 
         // Begin JSON template
-        promptBuilder.append("  \"Here is the raw data:\": {\n");
+        
         
         System.out.println("Starting to embed data into Vega Prompt: " + promptBuilder.toString());
 
@@ -351,7 +356,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
             }
         }
         
-        promptBuilder.append("    ]\n");
+        promptBuilder.append("    ]\n}");
 
         // Minimal encoding: for demonstration use first categorical as x and first numerical as y (if available)
         // Waiting on prompt for mark, encoding, x field and x type. y field and y type. 
