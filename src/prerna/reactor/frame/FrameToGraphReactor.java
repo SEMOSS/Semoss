@@ -19,8 +19,16 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+
+import java.io.IOException;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.HashMap;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -38,9 +46,15 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
     private static final String NUMERICAL="NUMERICAL";
     private static final String TEMPORAL="TEMPORAL";
     private static final String USER_INPUT="userInput";
+	private static final Logger classLogger = LogManager.getLogger(FrameToGraphReactor.class);
     
     public FrameToGraphReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.MODEL.getKey(), USER_INPUT };
+		this.keysToGet = new String[] { 
+				ReactorKeysEnum.FRAME.getKey(), 
+				ReactorKeysEnum.MODEL.getKey(), 
+				USER_INPUT,
+				ReactorKeysEnum.INSIGHT_NAME.getKey() 
+		};
 	}
 	
 	@Override
@@ -69,11 +83,23 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 			System.err.println("Unsupported frame type for query execution");
 		}
 		
-	   String userInput = this.keyValue.get(this.keysToGet[2]);
+//		String projectID = ""; //however you want to get it
+//		Insight insight = this.insight;
+//		if (insight != null) {
+//		    projectID = this.insight.getContextProjectId();
+//		    if (projectID == null || projectID.trim().isEmpty()) {
+//		        throw new IllegalArgumentException(
+//		                "Project does not exist or user does not have access to this project");
+//		    }
+//		}
 		
-	   String CONTEXT = "\"You are a data visualization expert. Your task is to create a Vega-Lite 6.1.0 JSON specification based on the raw data provided";
+//		String assetsDir = AssetUtility.getProjectAssetFolder(projectID).replace("\\", "/");
+		
+		Insight insight = ensureInsightId(this.insight);
+	    String userInput = this.keyValue.get(this.keysToGet[2]);
+	    String CONTEXT = "\"You are a data visualization expert. Your task is to create a Vega-Lite 6.1.0 JSON specification based on the raw data provided";
 			   
-	   if (userInput != null) {
+	    if (userInput != null) {
 		   CONTEXT += " \n"		  
 		    	  	+ "First, carefully consider the user’s input:\n"
 		    	  	+ "- If the user specifies a type of graph, use that graph type.\n"
@@ -81,13 +107,12 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		    	  	+ "- If the user requests showing or comparing only specific data columns, data types, or subsets of the data, ensure the final graph reflects exactly those selections.\n"
 		    	  	+ "- Interpret any specific user instructions carefully. For example, if the user says: “Show me a graph comparing column A and column B only,” or “Plot a bar chart showing sales over time with blue tones,” incorporate these instructions fully.\n"
 		    	  	+ "- Do not ignore any part of the user’s prompt regarding data filtering, graph type, color scheme, or other preferences.\n\n";
-	   }
+	    }
 
 	   
 	   // TODO: Clean the user input 
 	   String PROMPT = "";
 	   if (userInput != null) { 
-//		   String userInput = this.keyValue.get(this.keysToGet[2]);
 		   PROMPT = "Here is the user input:\n" + userInput;
 	   }
 	   
@@ -120,8 +145,9 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		System.out.println(CONTEXT);
 		System.out.println(QUESTION);
 		
+		
 		AskModelEngineResponse modelResponse = callLLM(
-            CONTEXT, QUESTION
+            CONTEXT, QUESTION, insight
 //            this.insight.getInsightFolder() // TODO: Unsure about this
         );
         
@@ -134,6 +160,15 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		
 		return new NounMetadata(modelResponse.getResponse(), PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
+	
+	public Insight ensureInsightId(Insight insight) {
+	    if (insight.getInsightId() == null) {
+	        String newId = UUID.randomUUID().toString();
+	        insight.setInsightId(newId);
+	    }
+	    return insight;
+	}
+
 	
 	protected ITableDataFrame getFrame() {
 		GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.getKey());
@@ -217,101 +252,97 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
         
         System.out.println("Starting to embed data into Vega Prompt: " + promptBuilder.toString());
 
-        /**
-         * UNCOMMENT WHEN IS_NUMER_DATA function is working
-         * 
-        if (!categoricalHeaders.isEmpty()) {
-            // Embed categorical data
-        	promptBuilder.append("    \"categorical\": [\n");
-            
-            // Each row entry in [] should start with '{' and end with '}'
-            for (int r = 0; r < sampleRows; r++) {
-            	promptBuilder.append("      {");
-                for (int i = 0; i < categoricalHeaders.size(); i++) {
-                	// Get the corresponding numericRowData for the current header
-                    String header = categoricalHeaders.get(i);
-                    Double[] categoricalRowData = sourceFrame.getColumnAsNumeric(header);
-                    
-                    // "Fruit" : "Apple"
-                    promptBuilder.append("\"").append(header).append("\": \"").append(categoricalRowData[r]).append("\"");
-                    if (i < categoricalHeaders.size() - 1) {
-                        promptBuilder.append(", ");
-                    }
-                }
-                
-                // Handles inserting ',' after each row entry
-                promptBuilder.append("}");
-                if (r < sampleRows - 1) {
-                    promptBuilder.append(",\n");
-                } else {
-                    promptBuilder.append("\n");
-                }
-            }
-            promptBuilder.append("    ],\n");
-            
-        }
-            
-        if (!numericalHeaders.isEmpty()) {
-            // Embed numerical data
-            promptBuilder.append("    \"numerical\": [\n");
-            
-            // Each row entry in [] should start with '{' and end with '}'
-            for (int r = 0; r < sampleRows; r++) {
-                promptBuilder.append("      {");
-                for (int i = 0; i < numericalHeaders.size(); i++) {
-                	// Get the corresponding numericRowData for the current header
-                    String header = numericalHeaders.get(i);
-                    Object[] numericRowData = sourceFrame.getColumn(header);
-                    
-                    // "Temperature" : 21
-                    promptBuilder.append("\"").append(header).append("\": ").append(numericRowData[r]);
-                    if (i < numericalHeaders.size() - 1) {
-                        promptBuilder.append(", ");
-                    }
-                }
-                promptBuilder.append("}");
-                
-                // Handles inserting ',' after each row entry
-                if (r < sampleRows - 1) {
-                    promptBuilder.append(",\n");
-                } else {
-                    promptBuilder.append("\n");
-                }
-            }
-            promptBuilder.append("    ]\n");
-        }
-        
-        if (!temporalHeaders.isEmpty()) {
-            // Embed numerical data
-            promptBuilder.append("    \"numerical\": [\n");
-            
-            // Each row entry in [] should start with '{' and end with '}'
-            for (int r = 0; r < sampleRows; r++) {
-                promptBuilder.append("      {");
-                for (int i = 0; i < numericalHeaders.size(); i++) {
-                	// Get the corresponding numericRowData for the current header
-                    String header = numericalHeaders.get(i);
-                    Object[] numericRowData = sourceFrame.getColumn(header);
-                    
-                    // "Temperature" : 21
-                    promptBuilder.append("\"").append(header).append("\": ").append(numericRowData[r]);
-                    if (i < numericalHeaders.size() - 1) {
-                        promptBuilder.append(", ");
-                    }
-                }
-                promptBuilder.append("}");
-                
-                // Handles inserting ',' after each row entry
-                if (r < sampleRows - 1) {
-                    promptBuilder.append(",\n");
-                } else {
-                    promptBuilder.append("\n");
-                }
-            }
-            promptBuilder.append("    ]\n");
-        }
-        
-        */
+
+//        if (!categoricalHeaders.isEmpty()) {
+//            // Embed categorical data
+//        	promptBuilder.append("    \"Categorical\": [\n");
+//            
+//            // Each row entry in [] should start with '{' and end with '}'
+//            for (int r = 0; r < sampleRows; r++) {
+//            	promptBuilder.append("      {");
+//                for (int i = 0; i < categoricalHeaders.size(); i++) {
+//                	// Get the corresponding numericRowData for the current header
+//                    String header = categoricalHeaders.get(i);
+//                    Double[] categoricalRowData = sourceFrame.getColumnAsNumeric(header);
+//                    
+//                    // "Fruit" : "Apple"
+//                    promptBuilder.append("\"").append(header).append("\": \"").append(categoricalRowData[r]).append("\"");
+//                    if (i < categoricalHeaders.size() - 1) {
+//                        promptBuilder.append(", ");
+//                    }
+//                }
+//                
+//                // Handles inserting ',' after each row entry
+//                promptBuilder.append("}");
+//                if (r < sampleRows - 1) {
+//                    promptBuilder.append(",\n");
+//                } else {
+//                    promptBuilder.append("\n");
+//                }
+//            }
+//            promptBuilder.append("    ],\n");
+//            
+//        }
+//            
+//        if (!numericalHeaders.isEmpty()) {
+//            // Embed numerical data
+//            promptBuilder.append("    \"Numerical\": [\n");
+//            
+//            // Each row entry in [] should start with '{' and end with '}'
+//            for (int r = 0; r < sampleRows; r++) {
+//                promptBuilder.append("      {");
+//                for (int i = 0; i < numericalHeaders.size(); i++) {
+//                	// Get the corresponding numericRowData for the current header
+//                    String header = numericalHeaders.get(i);
+//                    Object[] numericRowData = sourceFrame.getColumn(header);
+//                    
+//                    // "Temperature" : 21
+//                    promptBuilder.append("\"").append(header).append("\": ").append(numericRowData[r]);
+//                    if (i < numericalHeaders.size() - 1) {
+//                        promptBuilder.append(", ");
+//                    }
+//                }
+//                promptBuilder.append("}");
+//                
+//                // Handles inserting ',' after each row entry
+//                if (r < sampleRows - 1) {
+//                    promptBuilder.append(",\n");
+//                } else {
+//                    promptBuilder.append("\n");
+//                }
+//            }
+//            promptBuilder.append("    ]\n");
+//        }
+//        
+//        if (!temporalHeaders.isEmpty()) {
+//            // Embed numerical data
+//            promptBuilder.append("    \"Temporal\": [\n");
+//            
+//            // Each row entry in [] should start with '{' and end with '}'
+//            for (int r = 0; r < sampleRows; r++) {
+//                promptBuilder.append("      {");
+//                for (int i = 0; i < numericalHeaders.size(); i++) {
+//                	// Get the corresponding numericRowData for the current header
+//                    String header = numericalHeaders.get(i);
+//                    Object[] numericRowData = sourceFrame.getColumn(header);
+//                    
+//                    // "Temperature" : 21
+//                    promptBuilder.append("\"").append(header).append("\": ").append(numericRowData[r]);
+//                    if (i < numericalHeaders.size() - 1) {
+//                        promptBuilder.append(", ");
+//                    }
+//                }
+//                promptBuilder.append("}");
+//                
+//                // Handles inserting ',' after each row entry
+//                if (r < sampleRows - 1) {
+//                    promptBuilder.append(",\n");
+//                } else {
+//                    promptBuilder.append("\n");
+//                }
+//            }
+//            promptBuilder.append("    ]\n");
+//        }
         
 
         // Fallback: if all columns are of one type, embed data under "values"
@@ -370,7 +401,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
      * Calls the model engine using LLMReactor and returns its response.
      */
     @SuppressWarnings("unchecked")
-	private AskModelEngineResponse callLLM(String question, String context) {
+	private AskModelEngineResponse callLLM(String question, String context, Insight insightId) {
         String modelId = (String) this.keyValue.get(this.keysToGet[1]);
         
         //TODO: Change this to prompt???
@@ -383,7 +414,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
         // Instantiate and prepare the reactor
         LLMReactor reactor = new LLMReactor();
         reactor.keyValue = keyValue;
-//        reactor.insight = this.insight;
+        reactor.setInsight(insightId);
 //        reactor.user = insight.getUser();
 
         // Execute the reactor
