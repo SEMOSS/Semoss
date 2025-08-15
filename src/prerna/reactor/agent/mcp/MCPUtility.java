@@ -167,12 +167,32 @@ public final class MCPUtility {
 	}
 	
 	/**
+	 * 
+	 * @param projectId
+	 * @param jsonToolsMap
+	 * @return
+	 */
+	public static JSONObject appendProjectIdToTooslMethodName(String projectId, JSONObject jsonToolsMap) {
+		if(jsonToolsMap == null || !jsonToolsMap.has("tools")) {
+			return jsonToolsMap;
+		}
+		
+		JSONArray toolsArray = jsonToolsMap.getJSONArray("tools");
+		for(int i = 0; i < toolsArray.length(); i++) {
+			JSONObject toolMap = toolsArray.getJSONObject(i);
+			String currentName = toolMap.getString("name");
+			toolMap.put("name", "_"+projectId + "_" + currentName);
+		}
+		return jsonToolsMap;
+	}
+	
+	/**
 	 * Appends a parameter for the SMSS_PROJECT_ID for each tool
 	 * @param projectId
 	 * @param jsonToolsMap
 	 * @return
 	 */
-	public static JSONObject appendProjectIdToTools(String projectId, JSONObject jsonToolsMap) {
+	public static JSONObject appendProjectIdToToolsArgs(String projectId, JSONObject jsonToolsMap) {
 		if(jsonToolsMap == null || !jsonToolsMap.has("tools")) {
 			return jsonToolsMap;
 		}
