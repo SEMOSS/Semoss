@@ -52,8 +52,8 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		this.keysToGet = new String[] { 
 				ReactorKeysEnum.FRAME.getKey(), 
 				ReactorKeysEnum.MODEL.getKey(), 
-				USER_INPUT,
-				ReactorKeysEnum.INSIGHT_NAME.getKey() 
+				USER_INPUT, 
+				ReactorKeysEnum.INSIGHT_NAME.getKey(), 
 		};
 	}
 	
@@ -134,9 +134,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
     	    + "            \"- If comparing categories, use bar or grouped bar charts.\"\n"
     	    + "            \"- Add axis titles based on the field names.\"\n"
     	    + " \n"
-    	    + "            \"ONLY return the Vega JSON. Do not include any text, markdown, or notes.\"\n"
-    	    + " \n"
-    	    + "  \"Here is the raw data:\": {\n";
+    	    + "            \"ONLY return the Vega JSON. Do not include any text, markdown, or notes.\"\n";
 
 		///////// MODEL ///////////
 		String QUESTION = PROMPT + buildVegaPrompt(sourceFrame);
