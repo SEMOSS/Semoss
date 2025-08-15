@@ -2,9 +2,13 @@ package prerna.auth.utils;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -85,6 +89,74 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		}
 
 		return null;
+	}
+	
+	public static List<String> getActualGroupUserProjectPermission(User user, String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+		
+		//check if user has groups
+	    Collection<String> userGroups = getUserGroupFiltersQs(user);
+	    if (!userGroups.isEmpty()) {
+	        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", userGroups));
+	    } else {
+	        // If no groups - return empty list
+	        return new ArrayList<>();
+	    }
+	    
+		List<String> permissions = new ArrayList<>();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null) {
+					int permission = ((Number) val).intValue();
+					permissions.add(AccessPermissionEnum.getPermissionValueById(permission));
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error during getting the project permission");
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Error during getting the project permission");
+				}
+			}
+		}
+
+		// see if project is public
+		if(SecurityProjectUtils.projectIsGlobal(projectId)) {
+			permissions.add(AccessPermissionEnum.READ_ONLY.getPermission());
+		}
+
+		return permissions;
+	}
+	
+	public static String getHighestProjectPermission(String userPermission, List<String> groupUserPermissions) {
+		Map<Integer, String> map = new HashMap<>();
+		if (userPermission != null) {
+			map.put(AccessPermissionEnum.getIdByPermission(userPermission), userPermission);
+		}
+		if (groupUserPermissions != null) {
+			for(String permission : groupUserPermissions) {
+				map.put(AccessPermissionEnum.getIdByPermission(permission), permission);
+			}
+		}
+		if (map.isEmpty()) {
+	        return null;
+	    }
+		Set<Entry<Integer, String>> mpset = map.entrySet();
+		int minPermissionId = Integer.MAX_VALUE;
+		for(Entry<Integer, String> i : mpset) {
+			minPermissionId = Math.min(minPermissionId, i.getKey());
+		}
+		return map.get(minPermissionId);	
 	}
 	
 	/**

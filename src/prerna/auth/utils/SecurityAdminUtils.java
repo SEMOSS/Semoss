@@ -869,6 +869,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					"DELETE FROM ENGINEPERMISSION WHERE USERID=?",
 					"DELETE FROM USERINSIGHTPERMISSION WHERE USERID=?",
 					"DELETE FROM SMSS_USER_ACCESS_KEYS WHERE USERID=?",
+					"DELETE FROM USERMETA WHERE USERID=?",
 					"DELETE FROM SMSS_USER WHERE ID=?",
 			};
 			for(String query : deleteQueries) {
