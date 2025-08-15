@@ -28,7 +28,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import java.io.IOException;
 
 import java.util.Map;
-import java.util.UUID;
 import java.util.HashMap;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -91,34 +90,22 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 //		                "Project does not exist or user does not have access to this project");
 //		    }
 //		}
-<<<<<<< Updated upstream
-=======
  
 //		String assetsDir = AssetUtility.getProjectAssetFolder(projectID).replace("\\", "/");
 		
 	   String userInput = this.keyValue.get(this.keysToGet[2]);
->>>>>>> Stashed changes
 		
-//		String assetsDir = AssetUtility.getProjectAssetFolder(projectID).replace("\\", "/");
-		
-		Insight insight = ensureInsightId(this.insight);
-	    String userInput = this.keyValue.get(this.keysToGet[2]);
-	    String CONTEXT = "\"You are a data visualization expert. Your task is to create a Vega-Lite 6.1.0 JSON specification based on the raw data provided";
+	   String CONTEXT = "\"You are a data visualization expert. Your task is to create a Vega-Lite 6.1.0 JSON specification based on the raw data provided";
 			   
-	    if (userInput != null) {
+	   if (userInput != null) {
 		   CONTEXT += " \n"		  
 		    	  	+ "First, carefully consider the user’s input:\n"
 		    	  	+ "- If the user specifies a type of graph, use that graph type.\n"
 		    	  	+ "- If the user specifies a color scheme, apply that color scheme.\n"
 		    	  	+ "- If the user requests showing or comparing only specific data columns, data types, or subsets of the data, ensure the final graph reflects exactly those selections.\n"
 		    	  	+ "- Interpret any specific user instructions carefully. For example, if the user says: “Show me a graph comparing column A and column B only,” or “Plot a bar chart showing sales over time with blue tones,” incorporate these instructions fully.\n"
-<<<<<<< Updated upstream
 		    	  	+ "- Do not ignore any part of the user’s prompt regarding data filtering, graph type, color scheme, or other preferences.\n\n";
-	    }
-=======
-		    	  	+ "- Do not ignore any part of the user’s prompt regarding data filtering, graph type, color scheme, or other preferences.\"\n";
 	   }
->>>>>>> Stashed changes
 
 	   
 	   // TODO: Clean the user input 
@@ -137,10 +124,10 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
     	    + "               \"- Optional: tooltips, color, and other enhancements to improve clarity\"\n"
     	    + "            3. \"Use reasonable assumptions if the chart type is not specified.\"\n"
     	    + "            4. \"Ensure the JSON is valid and can be used directly with a Vega-Lite renderer.\"\n";
-	    if (userInput != null) { 
-	    	PROMPT += "            5. \"The most meaningful and suprising patterns, insights, or anomalies possible in the dataset.\"\n";
-		}
-   		PROMPT += "\n            Guidelines:\n"
+		    if (userInput != null) { 
+		    	PROMPT += "5. \"The most meaningful and suprising patterns, insights, or anomalies possible in the dataset.\"\n";
+			}
+   		PROMPT += "            Guidelines:\n"
 		    + "            \"- Avoid complex transforms unless specified in the user's prompt\"\n"
 		    + "            \"- Choose the chart type from the appropriate chart family (temporal, categorical, hierarchical, relational, spatial) that best fits the data and user instructions.\"\n"
 		    + "            \"- Add axis titles based on the field names.\"\n"
@@ -156,7 +143,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		
 		
 		AskModelEngineResponse modelResponse = callLLM(
-            CONTEXT, QUESTION, insight
+            CONTEXT, QUESTION
 //            this.insight.getInsightFolder() // TODO: Unsure about this
         );
         
@@ -169,15 +156,6 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		
 		return new NounMetadata(modelResponse.getResponse(), PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
-	
-	public Insight ensureInsightId(Insight insight) {
-	    if (insight.getInsightId() == null) {
-	        String newId = UUID.randomUUID().toString();
-	        insight.setInsightId(newId);
-	    }
-	    return insight;
-	}
-
 	
 	protected ITableDataFrame getFrame() {
 		GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.getKey());
@@ -263,16 +241,9 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
         
         System.out.println("Starting to embed data into Vega Prompt: " + promptBuilder.toString());
 
-<<<<<<< Updated upstream
-
-//        if (!categoricalHeaders.isEmpty()) {
-//            // Embed categorical data
-//        	promptBuilder.append("    \"Categorical\": [\n");
-=======
 //        if (!categoricalHeaders.isEmpty()) {
 //            // Embed categorical data
 //        	promptBuilder.append("    \"categorical\": [\n");
->>>>>>> Stashed changes
 //            
 //            // Each row entry in [] should start with '{' and end with '}'
 //            for (int r = 0; r < sampleRows; r++) {
@@ -298,19 +269,11 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 //                }
 //            }
 //            promptBuilder.append("    ],\n");
-<<<<<<< Updated upstream
-//            
-=======
->>>>>>> Stashed changes
 //        }
 //            
 //        if (!numericalHeaders.isEmpty()) {
 //            // Embed numerical data
-<<<<<<< Updated upstream
-//            promptBuilder.append("    \"Numerical\": [\n");
-=======
 //            promptBuilder.append("    \"numerical\": [\n");
->>>>>>> Stashed changes
 //            
 //            // Each row entry in [] should start with '{' and end with '}'
 //            for (int r = 0; r < sampleRows; r++) {
@@ -340,11 +303,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 //        
 //        if (!temporalHeaders.isEmpty()) {
 //            // Embed numerical data
-<<<<<<< Updated upstream
-//            promptBuilder.append("    \"Temporal\": [\n");
-=======
 //            promptBuilder.append("    \"numerical\": [\n");
->>>>>>> Stashed changes
 //            
 //            // Each row entry in [] should start with '{' and end with '}'
 //            for (int r = 0; r < sampleRows; r++) {
@@ -371,10 +330,6 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 //            }
 //            promptBuilder.append("    ]\n");
 //        }
-<<<<<<< Updated upstream
-        
-=======
->>>>>>> Stashed changes
 
         // Fallback: if all columns are of one type, embed data under "values"
         promptBuilder.append("\n    \"values\": [\n");
@@ -432,7 +387,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
      * Calls the model engine using LLMReactor and returns its response.
      */
     @SuppressWarnings("unchecked")
-	private AskModelEngineResponse callLLM(String question, String context, Insight insightId) {
+	private AskModelEngineResponse callLLM(String question, String context) {
         String modelId = (String) this.keyValue.get(this.keysToGet[1]);
         
         //TODO: Change this to prompt???
@@ -445,7 +400,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
         // Instantiate and prepare the reactor
         LLMReactor reactor = new LLMReactor();
         reactor.keyValue = keyValue;
-        reactor.setInsight(insightId);
+//        reactor.insight = this.insight;
 //        reactor.user = insight.getUser();
 
         // Execute the reactor
