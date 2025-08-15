@@ -975,9 +975,13 @@ def gen_mcp(src_file=None, dest_file=None):
         tree = ast.parse(file.read())
 
     tools_block = {}
+    _meta = {}
     tools = []
-    tools = []
-    for node in ast.walk(tree):
+    # switching to tree.body so that we only parse out the main functions
+    # defined in the python file
+    # functions within functions are not exposed as tools
+    # for node in ast.walk(tree):
+    for node in tree.body:
         function = {}
         input_schema = {}
         ## {"name":"compare_stocks","description":"\n    Compare the current stock prices of two ticker symbols.\n    Returns a formatted message comparing the two stock prices.\n    \n    Parameters:\n        symbol1: The first stock ticker symbol.\n        symbol2: The second stock ticker symbol.\n    ",
@@ -991,6 +995,7 @@ def gen_mcp(src_file=None, dest_file=None):
 
             function_name = node.name
             function.update({"name": function_name})
+            function.update({"title": format_to_title_case(function_name)})
             docstring = ast.get_docstring(node)
             if docstring is not None and len(docstring) > 0:
                 function.update({"description": docstring})
@@ -1037,15 +1042,16 @@ def gen_mcp(src_file=None, dest_file=None):
     # todays date in utc
     todays_date_utc = datetime.datetime.now(datetime.timezone.utc).date()
     date_format = "%Y-%m-%d"
-    tools_block.update({"last_modified_date": todays_date_utc.strftime(date_format)})
+    _meta.update({"last_modified_date": todays_date_utc.strftime(date_format)})
     # date the file was last changed in utc
     file_last_mod_date_utc = datetime.datetime.fromtimestamp(
         os.path.getmtime(src_file), tz=datetime.timezone.utc
     )
-    tools_block.update(
+    _meta.update(
         {"file_last_modified_date": file_last_mod_date_utc.strftime(date_format)}
     )
-    tools_block.update({"source_file": src_file})
+    _meta.update({"source_file": src_file})
+    tools_block.update({"_meta": _meta})
 
     # write this back to a file
     with open(dest_file, "w", encoding="utf-8") as f:
@@ -1076,3 +1082,48 @@ def map_mcp_to_py(input):
         return mapper[input]
     else:
         return "object"
+
+
+def format_to_title_case(input_str):
+    """
+    Converts camelCase, PascalCase, or snake_case strings to title case with spaces
+    Examples:
+      "RunNER" -> "Run NER"
+      "ToUpperCase" -> "To Upper Case"
+      "simpleWord" -> "Simple Word"
+      "XMLParser" -> "XML Parser"
+      "get_stock_price" -> "Get Stock Price"
+    """
+    if not input_str:
+        return input_str
+
+    result = []
+    capitalize_next = True  # Capitalize the first letter
+
+    for i, char in enumerate(input_str):
+        # Handle underscores - replace with space and capitalize next letter
+        if char == "_":
+            result.append(" ")
+            capitalize_next = True
+            continue
+
+        # Add space before uppercase letters (except the first character)
+        if i > 0 and char.isupper() and result and result[-1] != " ":
+            # Check if previous character is lowercase or if next character is lowercase
+            # This handles cases like "XMLParser" -> "XML Parser" correctly
+            prev_char = input_str[i - 1]
+            prev_is_lower = prev_char.islower()
+            next_is_lower = i + 1 < len(input_str) and input_str[i + 1].islower()
+
+            if prev_is_lower or next_is_lower:
+                result.append(" ")
+                capitalize_next = True
+
+        # Apply capitalization logic
+        if capitalize_next:
+            result.append(char.upper())
+            capitalize_next = False
+        else:
+            result.append(char)
+
+    return "".join(result)

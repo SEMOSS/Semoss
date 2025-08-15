@@ -227,6 +227,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             strings_to_embed = [strings_to_embed]
 
         assert isinstance(strings_to_embed, list)
+        encoded_string = [f"<encode>{s}</encode>" for s in strings_to_embed]
 
         epoc = super().get_next_epoc()
 
@@ -236,7 +237,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             else ""
         )
 
-        pixel = f'Embeddings(engine="{self.engine_id}", values={strings_to_embed}{optionalParamDict});'
+        pixel = f'Embeddings(engine="{self.engine_id}",values={encoded_string}{optionalParamDict},encoded=true);'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
