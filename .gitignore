@@ -35,6 +35,7 @@ replay_pid*
 
 # vscode
 .vscode/
+.continue/
 
 # Python
 # Byte-compiled / optimized / DLL files
