@@ -13,6 +13,7 @@ import prerna.engine.impl.vector.WeaviateVectorDatabaseEngine;
 
 public enum VectorDatabaseTypeEnum {
 
+	AWS_S3("AWS_S3", AwsS3VectorDatabaseEngine.class.getName()),
 	AZURE_AI_SEARCH("AZURE_AI_SEARCH", AzureAISearchRestVectorDatabaseEngine.class.getName()),
 	CHROMA("CHROMA", ChromaVectorDatabaseEngine.class.getName()),
 	ELASTIC_SEARCH("ELASTIC_SEARCH", ElasticSearchRestVectorDatabaseEngine.class.getName()),
@@ -22,7 +23,6 @@ public enum VectorDatabaseTypeEnum {
 	PGVECTOR("PGVECTOR", PGVectorDatabaseEngine.class.getName()),
 	PINECONE("PINECONE", PineConeVectorDatabaseEngine.class.getName()),
 	WEAVIATE("WEAVIATE", WeaviateVectorDatabaseEngine.class.getName()), 
-	AWS_S3("AWS_S3", AwsS3VectorDatabaseEngine.class.getName())
 	;
 		
 	private String vectorDbName;
