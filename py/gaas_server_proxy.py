@@ -53,11 +53,11 @@ class ServerProxy:
         Returns:
             `List[Dict]`: A list that contains the response from the tomcat server engine.
         """
-        if insight_id is None:
-            # get the original payload from the current thread so that we can get the insight id
-            # orig_payload = getattr(current_thread(), "payload", None)
-            orig_payload = getattr(self.server.thread_local, "payload", None)
+        # get the original payload from the current thread so that we can get the insight id
+        # orig_payload = getattr(current_thread(), "payload", None)
+        orig_payload = getattr(self.server.thread_local, "payload", None)
 
+        if insight_id is None:
             assert (
                 orig_payload is not None
             ), "Unable to determine insight id from the original payload"
@@ -77,6 +77,9 @@ class ServerProxy:
             "payloadClassNames": method_arg_types,
             "insightId": insight_id,
             "operation": operation,
+            "executionInsightId": (
+                orig_payload.get("executionInsightId") if orig_payload else None
+            ),
         }
 
         # adds itself to the monitor block
@@ -180,3 +183,18 @@ class ServerProxy:
             raise Exception(new_payload_struct["ex"])
         else:
             return new_payload_struct["payload"]
+
+    def get_thread_insight_id(self):
+        """Helper function to get insight_id from the current thread's payload"""
+        try:
+            # get the original payload from the current thread so that we can get the insight id
+            orig_payload = getattr(self.server.thread_local, "payload", None)
+
+            if orig_payload:
+                return orig_payload.get("executionInsightId") or orig_payload.get(
+                    "insightId"
+                )
+            else:
+                return None
+        except AttributeError:
+            return None

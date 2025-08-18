@@ -82,7 +82,7 @@ public class S3FileDownloadToAssetsReactor extends AbstractReactor {
 		}
 
 		String space = this.keyValue.get(TARGET_SPACE);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		if(assetFolder == null || assetFolder.isEmpty()) {
 			return getError("Unable to retrieve asset directory");
 		}

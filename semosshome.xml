@@ -66,6 +66,10 @@
 			<outputDirectory>user</outputDirectory>
 		</fileSet>
 		<fileSet>
+			<directory>room</directory>
+			<outputDirectory>room</outputDirectory>
+		</fileSet>
+		<fileSet>
 			<directory>export</directory>
 			<outputDirectory>export</outputDirectory>
 			<includes>
@@ -127,9 +131,6 @@
 		</file>
 		<file>
 			<source>quartz.properties</source>
-		</file>
-		<file>
-			<source>ver.txt</source>
 		</file>
 		<file>
 			<source>AuditModificationView.json</source>

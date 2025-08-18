@@ -1,37 +1,41 @@
 from typing import List, Dict
 from .openai_chat_completion_client import OpenAiChatCompletion
 from .openai_completion_client import OpenAiCompletion
+from .openai_response_client import OpenAIResponses
 from .azure_openai_chat_completion import AzureOpenAiChatCompletion
 from .azure_openai_completion import AzureOpenAiCompletion
+from .azure_openai_response import AzureOpenAIResponses
 from .openai_api_inference_server import (
     OpenAiChatCompletionServer,
     OpenAiCompletionServer,
+    OpenAiResponsesServer,
 )
 
 
 class OpenAiClientController:
     def __init__(self, **kwargs):
-        self.chat_type = kwargs.pop("chat_type", "chat-completion")
+        self.chat_type = kwargs.get("chat_type", "chat-completion")
         endpoint = kwargs.pop("endpoint", None)
 
         if (endpoint != None) and (endpoint != "https://api.openai.com/v1"):
-            self.openai_class = (
-                OpenAiChatCompletionServer(endpoint=endpoint, **kwargs)
-                if self.chat_type == "chat-completion"
-                else OpenAiCompletionServer(endpoint=endpoint, **kwargs)
-            )
+            if self.chat_type == "chat-completion":
+                self.openai_class = OpenAiChatCompletionServer(
+                    endpoint=endpoint, **kwargs
+                )
+            elif self.chat_type == "responses":
+                self.openai_class = OpenAiResponsesServer(endpoint=endpoint, **kwargs)
+            else:
+                self.openai_class = OpenAiCompletionServer(endpoint=endpoint, **kwargs)
         else:
-            self.openai_class = (
-                OpenAiChatCompletion(**kwargs)
-                if self.chat_type == "chat-completion"
-                else OpenAiCompletion(**kwargs)
-            )
+            if self.chat_type == "chat-completion":
+                self.openai_class = OpenAiChatCompletion(**kwargs)
+            elif self.chat_type == "responses":
+                self.openai_class = OpenAIResponses(**kwargs)
+            else:
+                self.openai_class = OpenAiCompletion(**kwargs)
 
     def ask(self, **kwargs) -> Dict:
         return self.openai_class.ask(**kwargs)
-
-    def instruct(self, **kwargs) -> Dict:
-        return self.openai_class.instruct(**kwargs)
 
     def embeddings(self, **kwargs) -> List[float]:
         return self.openai_class.embeddings(**kwargs)
@@ -40,11 +44,12 @@ class OpenAiClientController:
 class AzureOpenAiClientController:
     def __init__(self, **kwargs):
         self.chat_type = kwargs.pop("chat_type", "chat-completion")
-        self.azure_openai_class = (
-            AzureOpenAiChatCompletion(**kwargs)
-            if self.chat_type == "chat-completion"
-            else AzureOpenAiCompletion(**kwargs)
-        )
+        if self.chat_type == "chat-completion":
+            self.azure_openai_class = AzureOpenAiChatCompletion(**kwargs)
+        elif self.chat_type == "responses":
+            self.azure_openai_class = AzureOpenAIResponses(**kwargs)
+        else:
+            self.azure_openai_class = AzureOpenAiCompletion(**kwargs)
 
     def ask(self, **kwargs) -> Dict:
         return self.azure_openai_class.ask(**kwargs)

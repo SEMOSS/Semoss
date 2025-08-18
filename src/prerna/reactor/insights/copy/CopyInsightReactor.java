@@ -111,7 +111,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 			// aside from preview
 			in.setDeleteFilesOnDropInsight(false);
 			in.setDeleteREnvOnDropInsight(false);
-			in.setDeletePythonTupleOnDropInsight(false);
+			in.setDeletePythonGlobalsOnDropInsight(false);
 			
 			// i will loop through the current frames
 			// and load them in + set them in the new insight

@@ -1,6 +1,7 @@
 package prerna.auth;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +42,8 @@ public class AccessToken implements Serializable {
 	String modelUsageRestriction = null;
 	
 	Map<String, String> sans = null;
+	
+	Map<String, Collection<String>> meta = null;
 	
 	boolean locked = false;
 	SemossDate lastLogin = null;
@@ -203,6 +206,14 @@ public class AccessToken implements Serializable {
 
 	public void setSAN(String sanName, String sanValue) {
 		this.sans.put(sanName, sanValue);
+	}
+	
+	public Map<String, Collection<String>> getMeta() {
+		return this.meta;
+	}
+
+	public void setMeta(Map<String, Collection<String>> meta) {
+		this.meta = meta;
 	}
 
 	public boolean isLocked() {

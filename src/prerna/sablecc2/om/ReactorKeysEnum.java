@@ -16,6 +16,7 @@ public enum ReactorKeysEnum {
 	ATTRIBUTES("attributes", 									"List of columns used as properties/characteristics to describe an instance/object"),
 	BASE_URL("baseUrl",                                     	"The base SEMOSS url"),
 	BREAKS("breaks", 											"Number of divisions"),
+	BLOCK_ENTRY("block_enrty",  								"Block entry input map from frontend"),	
 	CLEAN("clean", 												"Boolean if we should clean up the strings before insertion. (default is true)"),
 	CLEAN_UP_CLOUD_STORAGE("cleanUpCloudStorage",				"Boolean whether to clean up the cloud storage account used to persist databases in the cluster (defaults to false)"),
 	CLONE_PANEL_KEY("cloneId", 									"Id to assign the new clone panel"),
@@ -71,8 +72,10 @@ public enum ReactorKeysEnum {
 	EXPORT_TEMPLATE("export_template",					    	"Template file to use for the export of this data"),
 	EXPRESSION("expression",                                	"R / Python expression that needs to be dynamically calculated for this variable"),
 	FIELDS("form_fields", 										"Fields required for the form filler"),	
+	// should be using filePath instead of fileName...
+	@Deprecated
 	FILE_NAME("fileName", 										"Name of the file"),
-	FILE_PATH("filePath", 										"Absolute file path location"),
+	FILE_PATH("filePath", 										"Relative file path location"),
 	FILTERS("filters", 											"Filters automatically persisted on queries affecting this frame or panel"),
 	FILTER_WORD("filterWord", 									"Regex to apply for searches"),
 	FORMAT("format", 											"The format to save the information as Jpeg, Gif, PNG"),
@@ -183,6 +186,7 @@ public enum ReactorKeysEnum {
 	PDF_SIGNATURE_LABEL("pdfSignatureLabel",                	"String containing text to add above the signature block to specify signature label"),
 	PERMISSION("permission", 									"Permission level"),
 	PERMISSION_FILTERS("permissionFilters",						"Additional filter to append based on permission level (1=Owner, 2=Editor, 3=ReadOnly)"),
+	PINNED("pinned",                                            "Boolean for pinned room"),
 	PIXEL("pixel", 												"Pixel script as string"),
 	PIXEL_ID("pixelId", 										"The pixel id for this pixel step"),
 	PLACE_HOLDER_DATA("placeHolderData",						"Updated place holder information of the template"),
@@ -214,6 +218,7 @@ public enum ReactorKeysEnum {
 	RELOAD("reload", 											"Reload an object or connection"),
 	REPLACE("replace",											"Replace data when adding to existing app"),
 	REPOSITORY("repository", 									"Name of the repository. Usually namespaced to be username\\appname"),
+	ROOM_ID("roomId",												"Room ID used for llm calls"),
 	ROUTE_ID("routeId",											"Id of the route cookie"),
 	ROUTINE("routine",											"The name of the routine"),
 	ROW_COUNT("rowCount",										"Boolean get the number of rows"),
@@ -223,6 +228,7 @@ public enum ReactorKeysEnum {
 	SCALE("scale", 												"How much to scale the graph, default value is set at 20 based on screen size"),
 	SCHEMA("schema",                	                        "The database schema."),
 	SEARCH("search",											"The search term."),
+	SECTION("section", 											"The section to use as input from addBlockReactor"),
 	SEPARATOR("separator",										"Separator for file processing to be used. Defaults to \\r\\n\\r\\n"),
 	SESSION_ID("sessionId", 									"Id of the session"),
 	SHAPE_INDEX("shapeIndex",                 		            "Which particular shape to replace on the powerpoint"),
@@ -243,6 +249,7 @@ public enum ReactorKeysEnum {
 	STORAGE_PATH("storagePath", 								"File path location on storage engine"),
 	SUBTOTALS("subtotals",										"All the columns in a pivot that you need subtotal for. Default is all. "),	
 	SUM_RANGE("sumRange", 										"Range that values to sum over"),
+	SUB_TYPE("subType", 										"Sub Type of each type Project or Engine"),
 	SYNC_PULL("dual", 											"True/False value to determine if the sync should also pull the latest updates from the repository"),
 	SYNC_DATABASE("syncDatabase", 								"True/False value to detetermine if the database should be published with the app"),
 	SPLOT("splot", 								                "Seaborn plot expression"),
@@ -259,7 +266,8 @@ public enum ReactorKeysEnum {
     TEMPLATE_FILE("template_file",								"File Name of the template to be used for export"),
     TEMPLATE("template",										"Template folder name"),
     THRESHOLD("threshold", 										"Threshold to be used for search"),
-    TOKEN_COUNT("tokenCount",                                   "Number of tokens to create in GPT based generators"),					
+    TOKEN_COUNT("tokenCount",                                   "Number of tokens to create in GPT based generators"),	
+    TYPE("type", 											    "Type Project or Engine"),
 	UNIQUE_COLUMN("uniqueColumn", 								"Unique column identifier for csv/excel table uploads"),
 	USE_FRAME_FILTERS("useFrameFilters", 						"A boolean indication (true or false) to use frame filters"), 	
 	USERNAME("username", 										"Unique identifier for the user to access a service"),
@@ -279,7 +287,10 @@ public enum ReactorKeysEnum {
 	VOTE("vote",												"Either upvote or downvote"),		
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
-	WIDTH("width", 											    "The width to use for screenshot capture");
+	WIDTH("width", 											    "The width to use for screenshot capture"),
+	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
+	X("x",		 											    "The X coordiante."),
+	Y("y",		 											    "The Y coordiante.");
 
 	private String key;
 	private String description;

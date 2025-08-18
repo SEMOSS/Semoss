@@ -26,6 +26,7 @@ import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
 import prerna.util.Settings;
@@ -45,7 +46,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	protected String workingDirectory;
 	protected String workingDirectoryBasePath = null;
 	
-	protected PyTranslator pyt = null;
+	protected PyTranslator pyTranslator = null;
 	protected File cacheFolder;
 	private ClientProcessWrapper cpw = null;
 	
@@ -80,7 +81,23 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			this.vars.put(key, this.smssProp.getProperty(key));
 		}
 	}
-
+	
+	/**
+	 * Gets a PyTranslator instance
+	 * 
+	 * @return A configured PyTranslator instance
+	 * @throws IllegalArgumentException if insight is null
+	 * @throws IllegalStateException if the engine is not properly initialized or connection fails
+	 */
+	public PyTranslator getEnginePyTranslator() {
+	    try {
+	        this.checkSocketStatus();
+	        return this.pyTranslator;
+	    } catch (Exception e) {
+	        classLogger.error(Constants.STACKTRACE, "Failed to create PyTranslator for engine: " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+	        throw new IllegalStateException("Failed to get PyTranslator: " + e.getMessage(), e);
+	    }
+	}
 	
 	/**
 	 * This method is responsible for starting the python process that is linked to this model engine.
@@ -147,8 +164,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		
 		// create the py translator
-		pyt = new PyTranslator();
-		pyt.setSocketClient(cpwToInit.getSocketClient());
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		
 		try {
 			// execute all the basic commands
@@ -159,7 +177,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
 				commands[commandIndex] = fillVars(commands[commandIndex]);
 			}
-			pyt.runEmptyPy(commands);
+			this.pyTranslator.runEmptyPy(commands);
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", commands));	
@@ -214,6 +232,20 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			callMaker.append(FULL_PROMPT)
 					.append("=")
 					.append(PyUtils.determineStringType(fullPrompt));
+			if(context != null) {
+				if(context.startsWith("\"")) {
+					context = " " + context;
+				}
+				if(context.endsWith("\"")) {
+					context = context + " ";
+				}
+				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+				callMaker.append(",")
+					.append("context=")
+					.append(TRIPLE_QUOTE)
+					.append(context)
+					.append(TRIPLE_QUOTE);	
+			}
 		} else {
 			if(question.startsWith("\"")) {
 				question = " " + question;
@@ -281,7 +313,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
-		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		Object output = pyTranslator.runDirectPy(callMaker.toString());
 		AskModelEngineResponse response = null;
 		try {
 			response = AskModelEngineResponse.fromObject(output);
@@ -301,6 +333,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	        outputMap.put(ROLE, "assistant");
 	        
+	        //TODO: handle multiple tools being returned
+	        //TODO: handle multiple tools being returned
+	        //TODO: handle multiple tools being returned
 			if(response.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
 				AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) response;
 	            // Create the tool call structure
@@ -386,7 +421,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		callMaker.append(")");
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
-		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		Object output = pyTranslator.runDirectPy(callMaker.toString());
 		InstructModelEngineResponse response = null;
 		try {
 			response = InstructModelEngineResponse.fromObject(output);
@@ -428,7 +463,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			
 		callMaker.append(")");
 		
-		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		Object output = pyTranslator.runDirectPy(callMaker.toString());
 		EmbeddingsModelEngineResponse response = null;
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);
@@ -470,7 +505,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			
 		callMaker.append(")");
 		
-		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		Object output = pyTranslator.runDirectPy(callMaker.toString());
 		EmbeddingsModelEngineResponse response = null;
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);

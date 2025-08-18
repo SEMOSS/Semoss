@@ -44,7 +44,9 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 		@Deprecated
 		APP, // this is now just an IProject
 		JENA, 
-		SESAME, 
+		JENA_TDB,
+		SESAME,
+		RDF4J,
 		RDBMS, 
 		@Deprecated
 		IMPALA, 

@@ -37,7 +37,7 @@ public class LocalPythonCustomEmbeddingsFunctionEngine extends LocalPythonFuncti
 						.append(PyUtils.determineStringType(fileToProcess))
 						.append("')");
 		
-		return (boolean) pyt.runScript(callMaker.toString());
+		return (boolean) pyTranslator.runDirectPy(callMaker.toString());
 	}
 
 	@Override
@@ -50,7 +50,7 @@ public class LocalPythonCustomEmbeddingsFunctionEngine extends LocalPythonFuncti
 							.append(",parameters=").append(PyUtils.determineStringType(parameters))
 							.append(")");
 
-		return ((Number) pyt.runScript(callMaker.toString())).intValue();
+		return ((Number) pyTranslator.runDirectPy(callMaker.toString())).intValue();
 	}
 	
 	@Override

@@ -36,6 +36,9 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PASSWORD_HISTORY");
 		conceptsRequired.add("PASSWORD_RESET");
 		conceptsRequired.add("SESSION_SHARE");
+		conceptsRequired.add("USERMETA");
+		conceptsRequired.add("USERMETAKEYS");
+		
 		//conceptsRequired.add("DATABASEACCESSREQUEST");
 		conceptsRequired.add("ENGINEACCESSREQUEST");
 		conceptsRequired.add("PROJECTACCESSREQUEST");
@@ -47,10 +50,6 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("GROUPENGINEPERMISSION");
 		conceptsRequired.add("GROUPPROJECTPERMISSION");
 		conceptsRequired.add("GROUPINSIGHTPERMISSION");
-		
-		conceptsRequired.add(Constants.ENGINE_METAKEYS);
-		conceptsRequired.add(Constants.PROJECT_METAKEYS);
-		conceptsRequired.add(Constants.INSIGHT_METAKEYS);
 		
 		// trusted token security
 		conceptsRequired.add("TOKEN");
@@ -205,6 +204,7 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECT", "CREATEDBY", "VARCHAR(255)");
 		owler.addProp("PROJECT", "CREATEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("PROJECT", "DATECREATED", "TIMESTAMP");
+		owler.addProp("PROJECT", "DATELASTEDITED", "TIMESTAMP");
 		
 		// PROJECTPERMISSION
 		owler.addConcept("PROJECTPERMISSION", null, null);
@@ -436,6 +436,14 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHTACCESSREQUEST", "SUBMITTED_BY_USERID", "VARCHAR(255)");
 		owler.addProp("INSIGHTACCESSREQUEST", "SUBMITTED_BY_TYPE", "VARCHAR(255)");
 		
+		// USERMETA
+		owler.addConcept("USERMETA", null, null);
+		owler.addProp("USERMETA", "USERID", "VARCHAR(255)");
+		owler.addProp("USERMETA", "TYPE", "VARCHAR(255)");
+		owler.addProp("USERMETA", "METAKEY", "VARCHAR(255)");
+		owler.addProp("USERMETA", "METAVALUE", "CLOB");
+		owler.addProp("USERMETA", "METAORDER", "INT");
+		
 		// joins
 		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
 		owler.addRelation("ENGINE", "ENGINEPERMISSION", "ENGINE.ENGINEID.ENGINEPERMISSION.ENGINEID");
@@ -453,6 +461,7 @@ public class SecurityOwlCreator {
 		owler.addRelation("SMSS_USER", "USERINSIGHTPERMISSION", "SMSS_USER.ID.USERINSIGHTPERMISSION.USERID");
 		owler.addRelation("SMSS_USER", "ENGINEPERMISSION", "SMSS_USER.ID.ENGINEPERMISSION.USERID");
 		owler.addRelation("SMSS_USER", "PROJECTPERMISSION", "SMSS_USER.ID.PROJECTPERMISSION.USERID");
+		owler.addRelation("SMSS_USER", "USERMETA", "SMSS_USER.ID.USERMETA.USERID");
 
 		owler.addRelation("ENGINEPERMISSION", "PERMISSION", "ENGINEPERMISSION.PERMISSION.PERMISSION.ID");
 		owler.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "USERINSIGHTPERMISSION.PERMISSION.PERMISSION.ID");
@@ -470,7 +479,7 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_GROUP", "ID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "TYPE", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "DESCRIPTION", "CLOB");
-		owler.addProp("SMSS_GROUP", "IS_CUSTOM_GROUP", "BOOLEAN");
+//		owler.addProp("SMSS_GROUP", "IS_CUSTOM_GROUP", "BOOLEAN
 		owler.addProp("SMSS_GROUP", "DATEADDED", "TIMESTAMP");
 		owler.addProp("SMSS_GROUP", "USERID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "USERIDTYPE", "VARCHAR(255)");
@@ -519,8 +528,8 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		
-		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
-		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
+		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
+		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS, Constants.USER_METAKEYS);
 		for(String tableName : metaKeyTableNames) {
 			// all have the same columns and default values
 			owler.addConcept(tableName, null, null);

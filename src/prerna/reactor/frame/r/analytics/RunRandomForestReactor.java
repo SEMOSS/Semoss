@@ -72,7 +72,7 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 		String fileName = this.keyValue.get(this.keysToGet[6]);
 		// get asset path
 		String space = this.keyValue.get(this.keysToGet[2]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true) + "/" + fileName;
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true) + "/" + fileName;
 		
 		// initialize vars
 		String targetDt = null;

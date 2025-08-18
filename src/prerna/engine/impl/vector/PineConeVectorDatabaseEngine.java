@@ -16,8 +16,8 @@ import java.util.TreeSet;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.http.HttpHeaders;
-import org.apache.http.entity.ContentType;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +78,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -107,9 +107,10 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// loop through and make the giant json
 		int fileCounter = 0;
 		String previousFileName = null;
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
 		for (int rowIndex = 0; rowIndex < vectorCsvTable.rows.size(); rowIndex++) {
 			VectorDatabaseCSVRow row = vectorCsvTable.getRows().get(rowIndex);
-
+			fileRecordCountMap.put(row.getSource(), fileRecordCountMap.getOrDefault(row.getSource(), 0) + 1);
 			JsonObject metadataJson = new JsonObject();
 			metadataJson.addProperty(VectorDatabaseCSVTable.SOURCE, row.getSource());
 			metadataJson.addProperty(VectorDatabaseCSVTable.MODALITY, row.getModality());
@@ -134,10 +135,54 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			vectors.add(thisChunkJson);
 		}
 
-		JsonObject vectorsMap = new JsonObject();		
+		JsonObject vectorsMap = new JsonObject();
 		vectorsMap.addProperty("namespace", this.defaultNamespace);
 		vectorsMap.add("vectors", vectors);
-		HttpHelperUtility.postRequestStringBody(url, headersMap, vectorsMap.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+		long insertedCount = 0;
+		try {
+
+			String response = HttpHelperUtility.postRequestStringBody(url, headersMap, vectorsMap.toString(),
+					ContentType.APPLICATION_JSON, null, null, null);
+			JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+			if (json.has("upsertedCount")) {
+				insertedCount = json.get("upsertedCount").getAsLong();
+			} else {
+				classLogger.warn("Pinecone upsert response did not contain 'upsertedCount': " + response);
+			}
+			for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+				String file = entry.getKey();
+				int totalRecords = entry.getValue();
+
+				long inserted = 0;
+				long failed = 0;
+				String status;
+
+				if (insertedCount == totalRecords) {
+					inserted = totalRecords;
+					failed = 0;
+					status = "SUCCESS";
+					insertedCount -= totalRecords;
+				} else if (insertedCount > 0 && insertedCount < totalRecords) {
+					inserted = insertedCount;
+					failed = totalRecords - insertedCount;
+					status = "PARTIAL";
+					insertedCount = 0;
+				} else {
+					inserted = 0;
+					failed = totalRecords;
+					status = "FAILED";
+				}
+				fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+			}
+
+			return fileStatusList;
+		} catch (Exception e) {
+			for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+				fileStatusList.add(new FileEmbeddingStatus(entry.getKey(), "FAILED", 0, entry.getValue(), entry.getValue()));
+			}
+			return fileStatusList;
+		}
 	}
 
 	@Override
@@ -199,7 +244,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", documentName);
+			File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", documentName);
 			try {
 				if (documentFile.exists()) {
 					FileUtils.forceDelete(documentFile);
@@ -362,7 +407,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		List<Map<String, Object>> fileList = new ArrayList<>();
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 		if(documentsDir.exists() && documentsDir.isDirectory()) {
 			for(String fileName : sources) {
 				Map<String, Object> fileInfo = new HashMap<>();

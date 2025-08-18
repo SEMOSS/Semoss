@@ -48,7 +48,7 @@ public class RSourceReactor extends AbstractRFrameReactor {
 		rJavaTranslator.startR();
 
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
 
 		String path = assetFolder + "/" + relativePath;
 		path = path.replace('\\', '/');
@@ -90,7 +90,7 @@ public class RSourceReactor extends AbstractRFrameReactor {
 			removePathVariables += ", APP_ROOT";
 		}
 		try {
-			userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
+			userRootPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, false);
 			userRootPath = userRootPath.replace('\\', '/');
 			userRootAssignment = "USER_ROOT <- '" + userRootPath + "';";
 			removePathVariables += ", USER_ROOT";

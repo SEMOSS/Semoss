@@ -47,9 +47,12 @@ class OpenAiTokenizer(AbstractTokenizer):
             try:
                 return tiktoken.encoding_for_model(encoder_name)
             except KeyError:
-                logger.warning("Warning: model not found. Using WordCountTokenizer.")
+                # Handle gpt-4o model explicitly if not recognized in older tiktoken versions
+                if "gpt-4o" in encoder_name:
+                    return tiktoken.get_encoding("o200k_base")
+                logger.warning("Model not found. Using WordCountTokenizer fallback.")
+                # Standard model
                 from .word_count_tokenizer import WordCountTokenizer
-
                 return WordCountTokenizer()
 
     def format_with_chat_template(self, messages: List[Dict]) -> str:

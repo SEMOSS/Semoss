@@ -75,7 +75,7 @@ public class PushAssetToS3ReactorUnitTests {
              MockedStatic<Files> fs = mockStatic(Files.class);
              MockedStatic<Paths> ps = mockStatic(Paths.class)) {
 
-            au.when(() -> AssetUtility.getAssetBasePath(insight, "space", true))
+            au.when(() -> AssetUtility.getRootFolderPath(insight, "space", true))
                     .thenReturn("path");
 
             AmazonS3 s3Client = mock(AmazonS3.class);
@@ -105,7 +105,7 @@ public class PushAssetToS3ReactorUnitTests {
              MockedStatic<Paths> ps = mockStatic(Paths.class);
              MockedStatic<TransferManagerBuilder> tmBuilder = mockStatic(TransferManagerBuilder.class)) {
 
-            au.when(() -> AssetUtility.getAssetBasePath(insight, "space", true))
+            au.when(() -> AssetUtility.getRootFolderPath(insight, "space", true))
                     .thenReturn("path");
 
             AmazonS3 s3Client = mock(AmazonS3.class);
@@ -154,7 +154,7 @@ public class PushAssetToS3ReactorUnitTests {
              MockedStatic<Paths> ps = mockStatic(Paths.class);
              MockedStatic<TransferManagerBuilder> tmBuilder = mockStatic(TransferManagerBuilder.class)) {
 
-            au.when(() -> AssetUtility.getAssetBasePath(insight, "space", true))
+            au.when(() -> AssetUtility.getRootFolderPath(insight, "space", true))
                     .thenReturn("path");
 
             AmazonS3 s3Client = mock(AmazonS3.class);
@@ -203,7 +203,7 @@ public class PushAssetToS3ReactorUnitTests {
              MockedStatic<Paths> ps = mockStatic(Paths.class);
              MockedStatic<TransferManagerBuilder> tmBuilder = mockStatic(TransferManagerBuilder.class)) {
 
-            au.when(() -> AssetUtility.getAssetBasePath(insight, "space", true))
+            au.when(() -> AssetUtility.getRootFolderPath(insight, "space", true))
                     .thenReturn("path");
 
             AmazonS3 s3Client = mock(AmazonS3.class);
@@ -242,7 +242,7 @@ public class PushAssetToS3ReactorUnitTests {
         try (MockedStatic<AssetUtility> au = mockStatic(AssetUtility.class);
              MockedStatic<S3Utils> s3 = mockStatic(S3Utils.class)) {
 
-            au.when(() -> AssetUtility.getAssetBasePath(insight, "space", true))
+            au.when(() -> AssetUtility.getRootFolderPath(insight, "space", true))
                     .thenReturn("path");
 
             AmazonS3 s3Client = mock(AmazonS3.class);
@@ -266,7 +266,7 @@ public class PushAssetToS3ReactorUnitTests {
         try (MockedStatic<AssetUtility> au = mockStatic(AssetUtility.class);
              MockedStatic<S3Utils> s3 = mockStatic(S3Utils.class)) {
 
-            au.when(() -> AssetUtility.getAssetBasePath(insight, "space", true))
+            au.when(() -> AssetUtility.getRootFolderPath(insight, "space", true))
                     .thenReturn("path");
 
             AmazonS3 s3Client = mock(AmazonS3.class);
