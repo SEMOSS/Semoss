@@ -7,7 +7,7 @@ name: Semoss Ubuntu Builder
 
 on:
   push:
-    branches: [ "dev, main" ]      #TODO: When merging to dev, main replace branch names
+    branches: [ "dev", "main" ]      #TODO: When merging to dev, main replace branch names
     paths:
       - 'docker/Dockerfile.ubuntu22.04'
       - '.github/workflows/ubuntu2204.yml'
@@ -58,13 +58,33 @@ jobs:
             DATE=$(date +'%Y-%m-%d')
             echo "IMAGE_REPO=semoss/semoss-dev" >> $GITHUB_ENV
             echo "IMAGE_TAG=${{ vars.VERSION }}-SNAPSHOT-ubuntu22-$DATE" >> $GITHUB_ENV
+            echo "IMAGE_TAG_LATEST=${{ vars.VERSION }}-SNAPSHOT-ubuntu22-latest" >> $GITHUB_ENV
           fi
           
-      - name: Build and push Ubuntu Docker image
+      - name: Build and push Ubuntu Docker image - Release Build
+        if: ${{ vars.RELEASE == 'true' }}
         uses: docker/build-push-action@v2
         with:
           context: ./docker
           file: ./docker/Dockerfile.ubuntu22.04
           push: true
+          pull: true
           tags: quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
           no-cache: true
+          build-args: |
+            SEMOSS_VERSION=${{ vars.VERSION }}
+      
+      - name: Build and push Ubuntu Docker image - Non-Release Build
+        if: ${{ vars.RELEASE == 'false' }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile.ubuntu22.04
+          push: true
+          pull: true
+          tags: |
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}
+          no-cache: true
+          build-args: |
+            SEMOSS_VERSION=${{ vars.VERSION }}-SNAPSHOT

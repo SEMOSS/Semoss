@@ -36,7 +36,7 @@ import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class PixelRunner {
+public class PixelRunner extends Thread {
 
 	private static final Logger classLogger = LogManager.getLogger(PixelRunner.class);
 

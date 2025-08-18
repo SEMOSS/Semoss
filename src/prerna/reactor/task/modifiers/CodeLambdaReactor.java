@@ -6,7 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.task.lambda.map.GenericMapLambda;
-import prerna.reactor.task.lambda.map.MapLambdaReactor;
+import prerna.reactor.task.lambda.map.MapLambdaTask;
 import prerna.util.Constants;
 
 public class CodeLambdaReactor extends AbstractLambdaTaskReactor {
@@ -39,7 +39,7 @@ public class CodeLambdaReactor extends AbstractLambdaTaskReactor {
 		}
 
 		// create a new task and add to stores
-		MapLambdaReactor newTask = new MapLambdaReactor();
+		MapLambdaTask newTask = new MapLambdaTask();
 		newTask.setInnerTask(this.task);
 		newTask.setLambda(lambda);
 		this.task = newTask;

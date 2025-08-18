@@ -170,6 +170,7 @@ import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.IVenvEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.pipeline.EngineProxyFactory;
 import prerna.masterdatabase.AddToMasterDB;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
@@ -2071,10 +2072,19 @@ public final class Utility {
 	 * @return
 	 */
 	private static IEngine loadEngine(String smssFilePath, Properties smssProp) {
+		// trim all the values the SMSS file
+		for (String name : smssProp.stringPropertyNames()) {
+			String value = smssProp.getProperty(name);
+			if (value != null) {
+				smssProp.setProperty(name, value.trim());
+			}
+		}
+		
 		IEngine engine = null;
 		try {
 			String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
 			String engineId = smssProp.getProperty(Constants.ENGINE);
+			String engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 			String engineClass = smssProp.getProperty(Constants.ENGINE_TYPE);
 
 			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";") || engines.endsWith(";" + engineId)) {
@@ -2100,6 +2110,12 @@ public final class Utility {
 			// create and open the class
 			engine = (IEngine) Class.forName(engineClass).newInstance();
 			engine.setEngineId(engineId);
+			
+			// before we open, let us see if we have the assets folder
+			File engineAssets = new File(EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engineId, engineName));
+			boolean hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
+			classLogger.info("Engine assets directory for " + SmssUtilities.getUniqueName(engineName, engineId) + " exists = " + hasAssetsFolder);
+
 			if(smssFilePath == null) {
 				engine.open(smssProp);
 			} else {
@@ -2121,19 +2137,28 @@ public final class Utility {
 					|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core")+"")) {
 				// for database, load into local master as well
 				if(engine.getCatalogType() == IEngine.CATALOG_TYPE.DATABASE) {
-					boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB);
-					boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
-					boolean isScheduler = engineId.equals(Constants.SCHEDULER_DB);
-					boolean isThemes = engineId.equals(Constants.THEMING_DB);
-					boolean isUserTracking = engineId.equals(Constants.USER_TRACKING_DB);
-
-					if (!isLocal && !isSecurity && !isScheduler && !isThemes && !isUserTracking) {
+					if (!SemossDefaultEngines.getDatabaseIgnoreLocalMaster().contains(engineId)) {
 						synchronizeEngineMetadata(engineId);
 					}
 				}
 				
 				// always load into security
 				SecurityEngineUtils.addEngine(engineId, null);
+			}
+			
+			if(!hasAssetsFolder) {
+				// we didn't have the assets directory when we started, do we have it now?
+				hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
+				if(hasAssetsFolder) {
+					if(SemossDefaultEngines.getDatabasesWithGeneratedOwl().contains(engineId)) {
+						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId) + " assets directory exists. This enigne will not be synced to cloud");
+					} else {
+						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId) + " assets directory exists. Sync to cloud storage if enabled");
+						ClusterUtil.pushEngine(engineId);
+					}
+				} else {
+					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId) + " assets directory still does not exist");
+				}
 			}
 		} catch (Exception e) {
 			// null out the engine
@@ -2230,6 +2255,14 @@ public final class Utility {
 	 * @return
 	 */
 	public static IProject loadProject(String smssFilePath, Properties smssProp) {
+		// trim all the values the SMSS file
+		for (String name : smssProp.stringPropertyNames()) {
+			String value = smssProp.getProperty(name);
+			if (value != null) {
+				smssProp.setProperty(name, value.trim());
+			}
+		}
+		
 		IProject project = null;
 		try {
 			String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
@@ -2349,13 +2382,28 @@ public final class Utility {
 
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 		Date rdbmsDate = MasterDatabaseUtility.getEngineDate(engineId);
-		File owlFile = SmssUtilities.getOwlFile(prop);
+		File owlFile = SmssUtilities.getOwlFile(smssFile, prop);
 		if(owlFile == null) {
 			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			return;
+		}
+		// block for removal in future version 
+		// required for assets in engine
+		// since we might not have the engine loaded yet
+		{
+			if(!owlFile.exists()) {
+				// try the old location
+				String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+				String engineBaseFolder = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName);
+				String legacyLocation = engineBaseFolder + "/" + owlFile.getName();
+				File legacyOwlFile = new File(legacyLocation);
+				if(legacyOwlFile.exists() && legacyOwlFile.isFile()) {
+					owlFile = legacyOwlFile;
+				}
+			}
 		}
 		String engineDbTime = df.format(new Date(owlFile.lastModified()));
 
@@ -2374,7 +2422,7 @@ public final class Utility {
 		if (rdbmsDate == null) {
 			AddToMasterDB adder = new AddToMasterDB();
 			// logic to register the engine into the local master
-			adder.registerEngineLocal(prop);
+			adder.registerEngineLocal(smssFile, prop);
 		} else if (!engineRdbmsDbTime.equalsIgnoreCase(engineDbTime)) {
 			// if it has a time stamp, it means it was previously in local master
 			// logic to delete an engine from the local master
@@ -2382,7 +2430,7 @@ public final class Utility {
 			remover.deleteEngineRDBMS(engineId);
 			// logic to add the engine into the local master
 			AddToMasterDB adder = new AddToMasterDB();
-			adder.registerEngineLocal(prop);
+			adder.registerEngineLocal(smssFile, prop);
 		}
 		
 		// clear the caching of engine metadata
@@ -2485,7 +2533,8 @@ public final class Utility {
 			}
 		}
 		
-		return project;
+		// pipeline
+		return EngineProxyFactory.createGuardedProject(project);
 	}
 	
 	public static IProject getUserAssetWorkspaceProject(String projectId, boolean isAsset) {
@@ -2684,9 +2733,7 @@ public final class Utility {
 					// TODO >>>timb: remove node exists error or catch it
 					// TODO >>>cluster: tag
 					// Start with because the insights RDBMS has the id security_InsightsRDBMS
-					if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase")
-							|| engineId.startsWith("form_builder_engine") || engineId.startsWith("themes") || engineId.startsWith("scheduler") 
-							|| engineId.startsWith("UserTrackingDatabase") )) {
+					if (!SemossDefaultEngines.valueStartsWith(engineId, SemossDefaultEngines.getDatabaseIgnoreSecurity())) {
 						Map<String, String> envMap = System.getenv();
 						if (envMap.containsKey(ZKClient.ZK_SERVER)
 								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
@@ -2745,7 +2792,10 @@ public final class Utility {
 	 * @return
 	 */
 	public static IDatabaseEngine getDatabase(String engineId, boolean pullIfNeeded) {
-		return (IDatabaseEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedDatabaseEngine((IDatabaseEngine) engine);
+		return (IDatabaseEngine) engine;
 	}
 	
 	/**
@@ -2764,7 +2814,10 @@ public final class Utility {
 	 * @return
 	 */
 	public static IStorageEngine getStorage(String engineId, boolean pullIfNeeded) {
-		return (IStorageEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedStorageEngine((IStorageEngine) engine);
+		return (IStorageEngine) engine;
 	}
 
 	/**
@@ -2783,9 +2836,11 @@ public final class Utility {
 	 * @return
 	 */
 	public static IModelEngine getModel(String engineId, boolean pullIfNeeded) {
-		return (IModelEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedModelEngine((IModelEngine) engine);
+		return (IModelEngine) engine;
 	}
-	
 	
 	/**
 	 * 
@@ -2803,7 +2858,10 @@ public final class Utility {
 	 * @return
 	 */
 	public static IVectorDatabaseEngine getVectorDatabase(String engineId, boolean pullIfNeeded) {
-		return (IVectorDatabaseEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedVectorEngine((IVectorDatabaseEngine) engine);
+		return (IVectorDatabaseEngine) engine;
 	}
 	
 	/**
@@ -2822,7 +2880,10 @@ public final class Utility {
 	 * @return
 	 */
 	public static IReactorFunctionEngine getReactorEngine(String engineId, boolean pullIfNeeded) {
-		return (IReactorFunctionEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedReactorEngine((IReactorFunctionEngine) engine);
+		return (IReactorFunctionEngine) engine;
 	}
 	
 	/**
@@ -2841,7 +2902,10 @@ public final class Utility {
 	 * @return
 	 */
 	public static IFunctionEngine getFunctionEngine(String engineId, boolean pullIfNeeded) {
-		return (IFunctionEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedFunctionEngine((IFunctionEngine) engine);
+		return (IFunctionEngine) engine;
 	}
 	
 	/**
@@ -2860,7 +2924,10 @@ public final class Utility {
 	 * @return
 	 */
 	public static IVenvEngine getVenvEngine(String engineId, boolean pullIfNeeded) {
-		return (IVenvEngine) baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedVenvEngine((IVenvEngine) engine);
+		return (IVenvEngine) engine;
 	}
 	
 	/**
@@ -3708,6 +3775,12 @@ public final class Utility {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
 				classLogger.error(Constants.STACKTRACE, ioe);
 			}
+		}
+		for (String name : retProp.stringPropertyNames()) {
+		    String value = retProp.getProperty(name);
+		    if (value != null) {
+		    	retProp.setProperty(name, value.trim());
+		    }
 		}
 		return retProp;
 	}
@@ -5812,6 +5885,9 @@ public final class Utility {
 		options.add("-cp");
 		options.add(classpath);
 		options.add("-proc:none");
+		options.add("-g:source,lines,vars");
+		options.add("-Xlint:all");
+//		options.add("-verbose");
 
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
@@ -6123,5 +6199,42 @@ public final class Utility {
         int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
         return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
     }
+	/**
+	* Determine if admins only are able to view left hand menu
+	* @return
+	*/
+    public static boolean getAdminOnlyViewMenuBarFlag() {
+		String coreFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VIEW_MENU_BAR);
+		if(coreFlag == null) {
+			// default option is true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(coreFlag);
+    }
+		
+	/**
+	 * Determine if admins only are able to create non approved engines
+	 * @return
+	 */
+    public static boolean getAdminOnlyNonApprovedFlag() {
+		String nonApprovedFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_NON_APPROVED_PROD_ITEM);
+		if(nonApprovedFlag == null) {
+			// default option is true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(nonApprovedFlag);
+	}
+    
+    public static boolean folderHasAnyFiles(String folderPath) {
+        File folder = new File(folderPath);
+        if (!folder.exists() || !folder.isDirectory()) {
+            return false;
+        }
+        // Check for at least one non-directory file
+        File[] files = folder.listFiles(f -> f.isFile());
+        return files != null && files.length > 0;
+    }
 
-}
+    } 

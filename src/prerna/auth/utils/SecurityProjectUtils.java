@@ -55,7 +55,7 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.ProjectUtils;
+import prerna.util.InsightsRDBMSUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -449,8 +449,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			String projectType, String projectCost, 
 			boolean hasPortal, String portalName,
 			boolean global, User user) {
-		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, HASPORTAL, PORTALNAME) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, HASPORTAL, PORTALNAME) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -471,6 +471,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			}
+			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			ps.setBoolean(parameterIndex++, hasPortal);
 			if(portalName != null) {
@@ -514,10 +515,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+    
 	public static void updateProject(String projectID, String projectName, String projectType, String projectCost, boolean hasPortal, String portalName, boolean global) {
 		String query = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=?, HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?";
-
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -534,6 +534,25 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 			ps.setString(parameterIndex++, projectID);
 			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+	//For updating Last Edited Date for Block Apps
+	public static void updateProjectLastEditedDate(String projectID) {
+		String query = "UPDATE PROJECT SET DATELASTEDITED=? WHERE PROJECTID=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+			ps.setString(parameterIndex++, projectID);
+	        ps.executeUpdate();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
@@ -580,8 +599,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IProject project = Utility.getProject(projectId);
 		RdbmsTypeEnum insightType = project.getInsightDatabase().getQueryUtil().getDbType();
 		
-		RDBMSNativeEngine newInsightDatabase = ProjectUtils.generateInsightsDatabase(projectId, insightType, folderPath);
-		ProjectUtils.runInsightCreateTableQueries(newInsightDatabase);
+		RDBMSNativeEngine newInsightDatabase = InsightsRDBMSUtils.generateInsightsDatabase(projectId, insightType, folderPath);
+		InsightsRDBMSUtils.runInsightCreateTableQueries(newInsightDatabase);
 		
 		InsightAdministrator admin = new InsightAdministrator(newInsightDatabase);
 		{
@@ -833,7 +852,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getActualUserProjectPermission(User user, String projectId) {
-		return SecurityUserProjectUtils.getActualUserProjectPermission(user, projectId);
+		String userPermission = SecurityUserProjectUtils.getActualUserProjectPermission(user, projectId);
+		List<String> groupUserPermissions = SecurityUserProjectUtils.getActualGroupUserProjectPermission(user, projectId);
+		return SecurityUserProjectUtils.getHighestProjectPermission(userPermission, groupUserPermissions);
 	}
 	
 	/**
@@ -1073,11 +1094,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	
 	public static void setPortalPublish(User user, String projectId) {
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
-		String updateQ = "UPDATE PROJECT SET PORTALPUBLISHED=?, PORTALPUBLISHEDUSER=?, PORTALPUBLISHEDTYPE=? WHERE PROJECTID=?";
+		String updateQ = "UPDATE PROJECT SET DATELASTEDITED=?, PORTALPUBLISHED=?, PORTALPUBLISHEDUSER=?, PORTALPUBLISHEDTYPE=? WHERE PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
 			int i = 1;
+			ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
 			ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
 			ps.setString(i++, token.getId());
 			ps.setString(i++, token.getProvider().toString());
@@ -1846,6 +1868,69 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @param userId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, String userId){
+	    SelectQueryStruct qs = new SelectQueryStruct();
+	    qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
+	    qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
+	    qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
+	    qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
+	    qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
+	    qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
+	    qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
+	    qs.addRelation("PROJECTDEPENDENCIES__ENGINEID","ENGINE__ENGINEID", "inner.join");
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID","==", projectId));
+	    // ENGINEMETA sub-query
+	    {
+	        SelectQueryStruct metaQs = new SelectQueryStruct();
+	        metaQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID","ENGINEID"));
+	        metaQs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE","DESCRIPTION"));  
+	        metaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY","==","description"));
+	        metaQs.addGroupBy(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
+	        metaQs.addGroupBy(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
+	        
+	        SubqueryRelationship metaRel = new SubqueryRelationship(metaQs,"EM","left.outer.join",new String[]{ "EM__ENGINEID","ENGINE__ENGINEID","=" });
+	        qs.addRelation(metaRel);
+	        qs.addSelector(new QueryColumnSelector("EM__DESCRIPTION","description"));
+	    }
+	    // ENGINEPERMISSION sub-query
+	    {
+	        SelectQueryStruct permQs = new SelectQueryStruct();
+	        permQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID","ENGINEID"));
+	        permQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION","PERMISSION"));
+	        permQs.addRelation("ENGINEPERMISSION__PERMISSION","PERMISSION__ID","inner.join");
+	        permQs.addSelector(new QueryColumnSelector("PERMISSION__NAME","PERMISSION_NAME"));     
+	        permQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID","==", userId));
+	        permQs.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+	        permQs.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+	        permQs.addGroupBy(new QueryColumnSelector("PERMISSION__NAME"));
+	 
+	        SubqueryRelationship permRel = new SubqueryRelationship(permQs,"EP","left.outer.join",new String[]{ "EP__ENGINEID","ENGINE__ENGINEID","=" });
+	        qs.addRelation(permRel);
+	        qs.addSelector(new QueryColumnSelector("EP__PERMISSION","permission"));
+	        qs.addSelector(new QueryColumnSelector("EP__PERMISSION_NAME","permission_name"));
+	    }
+	    // ENGINEACCESSREQUEST sub-query
+	    {
+	    	  SelectQueryStruct engAccReqQs = new SelectQueryStruct();
+	    	  engAccReqQs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION","PERMISSION"));
+	    	  engAccReqQs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__ENGINEID","ENGINEID"));
+	    	  engAccReqQs.addRelation("ENGINEACCESSREQUEST__ENGINEID","ENGINE__ENGINEID","inner.join");
+	    	  engAccReqQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__REQUEST_USERID","==", userId));
+	    	  engAccReqQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__APPROVER_DECISION", "==", "NEW_REQUEST"));
+	    	 
+	    	  SubqueryRelationship engAReqRel = new SubqueryRelationship(engAccReqQs,"EAR","left.outer.join",new String[]{ "EAR__ENGINEID","ENGINE__ENGINEID","=" });
+		      qs.addRelation(engAReqRel);
+		      qs.addSelector(new QueryColumnSelector("EAR__PERMISSION","access_permission"));
+	    }
+	    return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
 
 	/*
 	 * Project Metadata
@@ -2184,6 +2269,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getUserProjectList(
 			User user, 
+			List<String> projectTypes,
 			List<String> projectIdFilters,
 			boolean favoritesOnly, 
 			boolean portalsOnly,
@@ -2212,6 +2298,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBY", "project_created_by"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBYTYPE", "project_created_by_type"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"DATECREATED", "project_date_created"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"DATELASTEDITED", "project_date_last_edited"));
+		
 		// dont forget reactors/portal information
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"HASPORTAL", "project_has_portal"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"PORTALNAME", "project_portal_name"));
@@ -2336,6 +2424,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs1.addExplicitFilter(orFilter);
 		}
 		
+		if(projectTypes != null && !projectTypes.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"TYPE", "==", projectTypes));
+		}
+		
 		// filter based on permission filters
 		if(permissionFilters != null && !permissionFilters.isEmpty()) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "==", permissionFilters, PixelDataType.CONST_INT));
@@ -2352,6 +2444,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if(portalsOnly) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"HASPORTAL", "==", true, PixelDataType.BOOLEAN));
 		}
+		
 		if(hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTID", searchTerm));
@@ -2472,7 +2565,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!groupEngineOrFilters.isEmpty()) {
 				SelectQueryStruct qs3 = new SelectQueryStruct();
 				qs3.addSelector(new QueryColumnSelector(groupProjectPermissionPrefix + "PROJECTID", "PROJECTID"));
-				qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupProjectPermissionPrefix + "PERMISSION", "PERMISSION"));
 				qs3.addExplicitFilter(groupEngineOrFilters);
 
 				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", existingAccessComparator, qs3));
@@ -2530,6 +2622,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DATECREATED", "project_date_created"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__DATELASTEDITED", "project_date_last_edited"));
+		
 		// dont forget reactors/portal information
 		qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL", "project_has_portal"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME", "project_portal_name"));
@@ -2539,6 +2633,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED", "project_reactors_compiled_date"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE", "project_favorite"));
 		// for sorting
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
 		// back to the others
@@ -2549,9 +2644,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			OrQueryFilter orFilter = new OrQueryFilter();
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+			
+			Collection<String> groupIds = getUserGroupFiltersQs(user);
+			if (!groupIds.isEmpty()) {
+			    orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", groupIds));
+			}
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
+		qs.addRelation("PROJECT", "GROUPPROJECTPERMISSION", "left.outer.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
@@ -2605,6 +2706,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DATECREATED", "project_date_created"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__DATELASTEDITED", "project_date_last_edited"));
 		// dont forget reactors/portal information
 		qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL", "project_has_portal"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME", "project_portal_name"));
@@ -2662,6 +2764,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__DATECREATED", "project_date_created"));
+		qs1.addSelector(new QueryColumnSelector("PROJECT__DATELASTEDITED", "project_date_last_edited"));
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
 		// only care about discoverable engines
 		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
@@ -2905,7 +3008,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
 				// need to update
-				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET FAVORITE=? WHERE USERID=?");
+				PreparedStatement ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET FAVORITE=? WHERE USERID=? AND PROJECTID=?");
 				if(ps == null) {
 					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
 				}
@@ -2916,6 +3019,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						int parameterIndex = 1;
 						ps.setBoolean(parameterIndex++, isFavorite);
 						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, projectId);
 						ps.addBatch();
 					}
 					ps.executeBatch();

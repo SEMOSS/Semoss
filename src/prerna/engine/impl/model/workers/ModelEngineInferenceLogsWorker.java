@@ -13,9 +13,7 @@ import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
-import prerna.om.Insight;
 import prerna.project.api.IProject;
-import prerna.reactor.job.JobReactor;
 import prerna.util.Utility;
 
 public class ModelEngineInferenceLogsWorker implements Runnable {
@@ -26,7 +24,12 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private String messageId;
 	private String messageMethod;
     private IEngine engine;
-    private Insight insight;
+    private String insightId;
+    private String projectContextId;
+    private String projectId;
+    private User user;
+    private String sessionId;
+    private String roomId;
     private String context;
     private String prompt;
     private Object fullPrompt;
@@ -40,7 +43,12 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		String messageId, 
 		String messageMethod, 
 		IEngine engine,
-		Insight insight, 
+		String insightId,
+	    String projectContextId,
+	    String projectId,
+	    User user,
+		String sessionId,
+		String roomId,
 	   	String context,
 	   	String prompt,
 	   	Object fullPrompt,
@@ -53,7 +61,12 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     	this.messageId = messageId;
     	this.messageMethod = messageMethod;
     	this.engine = engine;
-    	this.insight = insight;
+    	this.insightId = insightId;
+    	this.projectContextId = projectContextId;
+    	this.projectId = projectId;
+    	this.user = user;
+    	this.sessionId = sessionId;
+    	this.roomId = roomId;
     	this.context = context;
         this.prompt = prompt;
         if(this.prompt != null) {
@@ -71,15 +84,10 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     public void run() {
     	String agentType = engine.getCatalogSubType(engine.getSmssProp());
     	
-    	String sessionId = null;
-		if (insight.getVarStore().containsKey(JobReactor.SESSION_KEY)) {
-			sessionId = (String) insight.getVarStore().get(JobReactor.SESSION_KEY).getValue();
-		}
-		
 		// assumption, if project level, then they will be inferencing through a saved insight or SetContext
-		String projectId = insight.getContextProjectId();
+		String projectId = this.projectContextId;
 		if (projectId == null) {
-			projectId = insight.getProjectId();
+			projectId = this.projectId;
 		}
 		String projectName = null;
 		if (projectId != null) {
@@ -87,9 +95,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			projectName = project.getProjectName();
 		}
 		
-		String insightId = insight.getInsightId();
-		
-		User user = insight.getUser();
 		AccessToken userToken = user.getPrimaryLoginToken();
 		String userId = userToken.getId();
 		String userName = userToken.getName();
@@ -128,25 +133,28 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					agentType, user.getPrimaryLoginToken().getId());
 		}
 		
-		if (!ModelInferenceLogsUtils.doCheckConversationExists(insightId)) {
+		if (!ModelInferenceLogsUtils.doCheckRoomExists(roomId)) {
 			String roomName = prompt.substring(0, Math.min(prompt.length(), 100));
 			ModelInferenceLogsUtils.doCreateNewConversation(
-				insightId, 
+				insightId,
+				roomId,
 				roomName, 
 				null, 
 				userId,
 				userName,
-				agentType, 
+				userEmail,
+				agentType,
+				engine.getEngineId(),
 				true, 
 				projectId, 
-				projectName, 
-				engine.getEngineId()
+				projectName,
+				null
 			);
 		}
 		
 		if (this.context != null) {
 			// set the context for the room / insight
-			ModelInferenceLogsUtils.setRoomContext(insightId, userId, userName);
+			ModelInferenceLogsUtils.setRoomContext(roomId, userId, context);
 		}
 		
 		boolean keepInputOutput = false;
@@ -161,61 +169,69 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		
 		if(keepInputOutput) {
 			ModelInferenceLogsUtils.doRecordMessage(
-				messageId, 
+				this.messageId, 
 				INPUT,
-				prompt,
+				this.prompt,
 				this.messageMethod,
-				promptTokens,
+				this.promptTokens,
 				millisecondsDouble,
-				inputTime,
-				engine.getEngineId(),
+				this.inputTime,
+				this.engine.getEngineId(),
 				insightId,
-				sessionId,
+				this.sessionId,
+				this.roomId,
 				userId,
-				userName
+				userName,
+				userEmail
 			);
 			ModelInferenceLogsUtils.doRecordMessage(
-				messageId, 
+				this.messageId, 
 				RESPONSE,
-				response,
+				this.response,
 				this.messageMethod,
-				responseTokens,
+				this.responseTokens,
 				millisecondsDouble,
-				responseTime,
-				engine.getEngineId(),
+				this.responseTime,
+				this.engine.getEngineId(),
 				insightId,
-				sessionId,
+				this.sessionId,
+				this.roomId,
 				userId,
-				userName
+				userName,
+				userEmail
 			);
 		} else {
 			ModelInferenceLogsUtils.doRecordMessage(
-				messageId, 
+				this.messageId, 
 				INPUT,
 				null,
 				this.messageMethod,
-				promptTokens,
+				this.promptTokens,
 				millisecondsDouble,
-				inputTime,
-				engine.getEngineId(),
+				this.inputTime,
+				this.engine.getEngineId(),
 				insightId,
-				sessionId,
+				this.sessionId,
+				this.roomId,
 				userId,
-				userName
+				userName,
+				userEmail
 			);
 			ModelInferenceLogsUtils.doRecordMessage(
-				messageId, 
+				this.messageId, 
 				RESPONSE,
 				null,
 				this.messageMethod,
-				responseTokens,
+				this.responseTokens,
 				millisecondsDouble,
-				responseTime,
-				engine.getEngineId(),
+				this.responseTime,
+				this.engine.getEngineId(),
 				insightId,
-				sessionId,
+				this.sessionId,
+				this.roomId,
 				userId,
-				userName
+				userName,
+				userEmail
 			);
 		}
     }

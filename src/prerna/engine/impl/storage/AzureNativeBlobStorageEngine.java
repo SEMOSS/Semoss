@@ -32,6 +32,8 @@ import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import prerna.engine.api.StorageTypeEnum;
+import prerna.util.Utility;
+
 
 public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 	private static final Logger classLogger = LogManager.getLogger(AzureNativeBlobStorageEngine.class);
@@ -141,13 +143,14 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		// Extract container and blob directory
 		String[] containerAndPath = extractContainerAndPath(storagePath);
 		String containerName = containerAndPath[0];
-		String blobDirectory = containerAndPath[1];
+		String blobDirectory = Utility.normalizePath(containerAndPath[1]);
 		Path localDirectory = Paths.get(localPath);
 
 		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
 		Files.createDirectories(localDirectory); // Ensure local directory exists
-		blobDirectory = blobDirectory.replace("\\", "/").replaceFirst("^/", "");
-
+		if (blobDirectory.startsWith("/")) {
+	        blobDirectory = blobDirectory.substring(1);
+	    }
 		Set<String> cloudFiles = new HashSet<>();
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
 		boolean found = false;
@@ -327,8 +330,10 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 	public void deleteFromStorage(String storagePath) throws Exception {
 		String[] containerAndPath = extractContainerAndPath(storagePath);
 		String containerName = containerAndPath[0];
-		String blobDirectory = containerAndPath[1];
-		blobDirectory = blobDirectory.replace("\\", "/").replaceFirst("^/", "");
+		String blobDirectory = Utility.normalizePath(containerAndPath[1]);
+		if (blobDirectory.startsWith("/")) {
+	        blobDirectory = blobDirectory.substring(1);
+	    }
 
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
@@ -373,8 +378,10 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		// Extract container and blob directory
 		String[] containerAndPath = extractContainerAndPath(storagePath);
 		String containerName = containerAndPath[0];
-		String blobDirectory = containerAndPath[1];
-		blobDirectory = blobDirectory.replace("\\", "/").replaceFirst("^/", "");
+		String blobDirectory = Utility.normalizePath(containerAndPath[1]);
+		if (blobDirectory.startsWith("/")) {
+	        blobDirectory = blobDirectory.substring(1);
+	    }
 
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
@@ -456,9 +463,9 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 	private String uploadFileToBlob(Path file, Path basePath, BlobContainerClient containerClient, String blobDirectory,
 			Map<String, Object> metadata) {
 		// Generate relative path for blob
-		String relativePath = basePath.relativize(file).toString().replace("\\", "/").replaceAll("/+", "/").trim();
+		String relativePath = Utility.normalizePath(basePath.relativize(file).toString()).trim();
 		String blobName = blobDirectory.isEmpty() ? relativePath
-				: blobDirectory + (blobDirectory.endsWith("/") ? "" : "/") + relativePath;
+				: Utility.normalizePath(blobDirectory + "/" + relativePath);
 
 		BlobClient blobClient = containerClient.getBlobClient(blobName);
 
@@ -538,10 +545,10 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	private String uploadFile(BlobContainerClient containerClient, Path rootPath, Path file, String blobDirectory,
 			Map<String, Object> metadata) throws IOException {
-
-		String relativePath = rootPath.relativize(file).toString().replace("\\", "/").replaceAll("/+", "/").trim();
+		String relativePath = Utility.normalizePath(rootPath.relativize(file).toString()).trim();
+		
 		String blobName = blobDirectory.isEmpty() ? relativePath
-				: blobDirectory + (blobDirectory.endsWith("/") ? "" : "/") + relativePath;
+				: Utility.normalizePath(blobDirectory + "/" + relativePath);
 		BlobClient blobClient = containerClient.getBlobClient(blobName);
 
 		retryOperation(() -> {
@@ -705,10 +712,8 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		if (storagePath == null || storagePath.trim().isEmpty()) {
 			throw new IllegalArgumentException("Storage path cannot be null or empty.");
 		}
-
-		// Normalize path
-		String normalizedPath = storagePath.replace("\\", "/").replaceAll("/+", "/").trim();
-
+		// Use the utility method for normalization
+	    String normalizedPath = Utility.normalizePath(storagePath).trim();
 		// Remove leading slash if present
 		if (normalizedPath.startsWith("/")) {
 			normalizedPath = normalizedPath.substring(1);

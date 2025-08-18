@@ -103,33 +103,28 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param description
 	 * @throws Exception
 	 */
-	public void addGroup(User user, String groupId, String groupType, String description, boolean isCustomGroup) throws Exception {
+	public void addGroup(User user, String groupId, String groupType, String description) throws Exception {
 		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
 
-			// need to ensure that the group is unique...
 			if(groupExists(groupId, groupType)) {
 				throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " already exists");
 			}
-
+			if(groupType == null) {
+				classLogger.error("Group type cannot be null");
+			}
 			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 			Gson gson = new Gson();
-			String query = "INSERT INTO SMSS_GROUP (ID, TYPE, DESCRIPTION, IS_CUSTOM_GROUP, DATEADDED, USERID, USERIDTYPE) "
-					+ "VALUES (?,?,?,?,?,?,?)";
+			String query = "INSERT INTO SMSS_GROUP (ID, TYPE, DESCRIPTION, DATEADDED, USERID, USERIDTYPE) "
+					+ "VALUES (?,?,?,?,?,?)";
 			try (PreparedStatement ps = conn.prepareStatement(query)) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, groupId);
-				// handle null type for custom groups
-				if(groupType == null || groupType.isEmpty()) {
-					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-				} else {
-					ps.setString(parameterIndex++, groupType);
-				}
+				ps.setString(parameterIndex++, groupType);
 				securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, description, parameterIndex++, gson);
-				ps.setBoolean(parameterIndex++, isCustomGroup);
 				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
@@ -164,14 +159,17 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
-
+		if(groupType == null) {
+			classLogger.error("Group type cannot be null");
+		}
 		String[] queries = null;
-		if(groupType == null || groupType.isEmpty()) {
+		
+		if(groupType == "CUSTOM") {
 			queries = new String[] { 
-					"DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE IS NULL",
-					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE IS NULL",
-					"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE IS NULL",
-					"DELETE FROM SMSS_GROUP WHERE ID=? AND TYPE IS NULL",
+					"DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
+					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=?",
+					"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=?",
+					"DELETE FROM SMSS_GROUP WHERE ID=? AND TYPE=?",
 					"DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?"
 				};
 		} else {
@@ -192,10 +190,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					try (PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, groupId);
-						// if group type is not null
-						if(groupType != null) {
-							ps.setString(parameterIndex++, groupType);
-						}
+						ps.setString(parameterIndex++, groupType);
 						ps.execute();
 					}
 				}
@@ -236,31 +231,24 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public void editGroupAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
-			String newGroupType, String newDescription, boolean newIsCustomGroup) throws Exception {
+			String newGroupType, String newDescription) throws Exception {
 		curGroupType = curGroupType == null ? curGroupType : curGroupType.toUpperCase();
 		newGroupType = newGroupType == null ? newGroupType : newGroupType.toUpperCase();
 
 		if(!groupExists(curGroupId, curGroupType)) {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
 		}
+		if(newGroupType == null || curGroupType == null) {
+			classLogger.error("Type cannot be null");
+		}
 		String groupQuery = null;
 		String[] propagateQueries = null;
-		
-		if(curGroupType == null ) {
-			groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE IS NULL";
-			propagateQueries = new String[] {
-					"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE IS NULL",
-					"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE IS NULL",
-					"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE IS NULL", 
-				};	
-		} else {
-			groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE=?";
-			propagateQueries = new String[] {
-					"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
-					"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
-					"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?", 
-				};	
-		}
+		groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE=?";
+		propagateQueries = new String[] {
+				"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
+				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
+				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?", 
+			};
 		
 		Connection conn = null;
 		try {
@@ -274,6 +262,160 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
+					ps.setString(parameterIndex++, newGroupType);
+					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, gson);
+					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					// where
+					ps.setString(parameterIndex++, curGroupId);
+					ps.setString(parameterIndex++, curGroupType);
+					ps.execute();
+				}
+
+				// propagation
+				for (String query : propagateQueries) {
+					try (PreparedStatement ps = conn.prepareStatement(query)) {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newGroupId);
+						ps.setString(parameterIndex++, newGroupType);
+						ps.setString(parameterIndex++, curGroupId);
+						ps.setString(parameterIndex++, curGroupType);
+						ps.execute();
+					}
+				}
+				if(!conn.getAutoCommit()) {
+					conn.commit();
+				}
+			} catch (SQLException e) {
+				if(!conn.getAutoCommit()) {
+					conn.rollback();
+				}
+				throw e;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			if(securityDb.isConnectionPooling() && conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	public void editGroupDetailsAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId, String newGroupType, String newDescription) throws Exception {
+		curGroupType = curGroupType == null ? curGroupType : curGroupType.toUpperCase();
+		newGroupType = newGroupType == null ? newGroupType : newGroupType.toUpperCase();
+
+		if(!groupExists(curGroupId, curGroupType)) {
+			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
+		}
+		if(newGroupType == null || curGroupType == null) {
+			classLogger.error("Type cannot be null");
+		}
+		String groupQuery = null;
+		String[] propagateQueries = null;
+
+		groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=? WHERE ID=?";
+		propagateQueries = new String[] {
+				"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=?",
+				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=?",
+				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=?", 
+		};
+		
+		Connection conn = null;
+		try {
+			conn = securityDb.makeConnection();
+
+			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
+			Gson gson = new Gson();
+			try {
+				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, newGroupId);
+					ps.setString(parameterIndex++, newGroupType);
+					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, gson);
+					ps.setString(parameterIndex++, curGroupId);
+					ps.execute();
+				}
+
+				// propagation
+				for (String query : propagateQueries) {
+					try (PreparedStatement ps = conn.prepareStatement(query)) {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newGroupId);
+						ps.setString(parameterIndex++, newGroupType);
+						ps.setString(parameterIndex++, curGroupId);
+						ps.execute();
+					}
+				}
+				if(!conn.getAutoCommit()) {
+					conn.commit();
+				}
+			} catch (SQLException e) {
+				if(!conn.getAutoCommit()) {
+					conn.rollback();
+				}
+				throw e;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			if(securityDb.isConnectionPooling() && conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Edit an existing group across all the tables
+	 * 
+	 * @param curGroupId
+	 * @param curGroupType
+	 * @param newGroupId
+	 * @param newGroupType
+	 * @param newDescription
+	 * @param newIsCustomGroup
+	 * @throws Exception
+	 */
+	public void editGroupDetailsAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId, String newGroupType, String newDescription, boolean newIsCustomGroup) throws Exception {
+		curGroupType = curGroupType == null ? curGroupType : curGroupType.toUpperCase();
+		newGroupType = newGroupType == null ? newGroupType : newGroupType.toUpperCase();
+
+		if(!groupExists(curGroupId, curGroupType)) {
+			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
+		}
+		String groupQuery = null;
+		String[] propagateQueries = null;
+
+		groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=? WHERE ID=?";
+		propagateQueries = new String[] {
+				"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=?",
+				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=?",
+				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=?", 
+		};
+		
+		Connection conn = null;
+		try {
+			conn = securityDb.makeConnection();
+
+			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
+			Gson gson = new Gson();
+			try {
+				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, newGroupId);
 					// handle null type for custom groups
 					if(newGroupType == null || newGroupType.isEmpty()) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
@@ -282,15 +424,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					}
 					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, gson);
 					ps.setBoolean(parameterIndex++, newIsCustomGroup);
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					// where
 					ps.setString(parameterIndex++, curGroupId);
-					// do we have a current group type that is not null
-					if(curGroupType != null) {
-						ps.setString(parameterIndex++, curGroupType);
-					}
 					ps.execute();
 				}
 
@@ -306,10 +440,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 							ps.setString(parameterIndex++, newGroupType);
 						}
 						ps.setString(parameterIndex++, curGroupId);
-						// do we have a current group type that is not null
-						if(curGroupType != null) {
-							ps.setString(parameterIndex++, curGroupType);
-						}
 						ps.execute();
 					}
 				}
@@ -344,7 +474,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @throws Exception 
 	 */
 	public void addUserToGroup(User user, String groupId, String userId, String userType, String endDate) throws Exception {
-		if(!groupExists(groupId, null)) {
+		if(!groupExists(groupId, "CUSTOM")) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
 
@@ -412,7 +542,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @throws Exception 
 	 */
 	public void removeUserFromGroup(String groupId, String userId, String userType) throws Exception {
-		if(!groupExists(groupId, null)) {
+		if(!groupExists(groupId, "CUSTOM")) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
 
@@ -462,7 +592,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DESCRIPTION"));
-		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__IS_CUSTOM_GROUP"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__USERID", "CREATED_BY_USERID"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__USERIDTYPE", "CREATED_BY_USERIDTYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DATEADDED"));
@@ -486,8 +615,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getGroupMembers(String groupId, String searchTerm, long limit, long offset) {
-		if(!groupExists(groupId, null)) {
-			throw new IllegalArgumentException("Group " + groupId + " with type null does not exist");
+		if(!groupExists(groupId, "CUSTOM")) {
+			throw new IllegalArgumentException("Group " + groupId + " with type custom does not exist");
 		}
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -535,8 +664,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumMembersInGroup(String groupId, String searchTerm) {
-		if(!groupExists(groupId, null)) {
-			throw new IllegalArgumentException("Group " + groupId + " with type null does not exist");
+		if(!groupExists(groupId, "CUSTOM")) {
+			throw new IllegalArgumentException("Group " + groupId + " with type custom does not exist");
 		}
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -561,8 +690,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getNonGroupMembers(String groupId, String searchTerm, long limit, long offset) {
-		if(!groupExists(groupId, null)) {
-			throw new IllegalArgumentException("Group " + groupId + " with type null does not exist");
+		if(!groupExists(groupId, "CUSTOM")) {
+			throw new IllegalArgumentException("Group " + groupId + " with type custom does not exist");
 		}
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -611,8 +740,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumNonMembersInGroup(String groupId, String searchTerm) {
-		if(!groupExists(groupId, null)) {
-			throw new IllegalArgumentException("Group " + groupId + " with type null does not exist");
+		if(!groupExists(groupId, "CUSTOM")) {
+			throw new IllegalArgumentException("Group " + groupId + " with type custom does not exist");
 		}
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -646,7 +775,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param groupType
 	 * @param projectId
 	 * @param permission
-	 * @param endDate
+	 * @param endDat
 	 */
 	public void addGroupProjectPermission(User user, String groupId, String groupType, String projectId, int permission, String endDate) {
 		groupType = groupType == null ? groupType : groupType.toUpperCase();
@@ -713,7 +842,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Group " + groupId + " already has permission level " 
 					+ AccessPermissionEnum.getPermissionValueById(curPermission) + " to project " + projectId);
 		}
-		
+		if(groupType == null) {
+			classLogger.error("Group type cannot be null");
+		}
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
@@ -723,11 +854,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		
 		String updateQuery = null;
-		if(groupType == null || groupType.isEmpty()) {
-			updateQuery = "UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND PROJECTID=? AND TYPE IS NULL";
-		} else {
-			updateQuery = "UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND PROJECTID=? AND TYPE=?";
-		}
+		updateQuery = "UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND PROJECTID=? AND TYPE=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQuery);
@@ -743,9 +870,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, projectId);
-			if(groupType != null) {
-				ps.setString(parameterIndex++, groupType);
-			}
+			ps.setString(parameterIndex++, groupType);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -771,22 +896,18 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if(curPermission == -1) {
 			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to project " + projectId + " to remove");
 		}
-		
-		String deleteQuery = null;
-		if(groupType == null || groupType.isEmpty()) {
-			deleteQuery = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND PROJECTID=? AND TYPE IS NULL";
-		} else {
-			deleteQuery = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND PROJECTID=? AND TYPE=?";
+		if(groupType == null) {
+			classLogger.error("Group type cannot be null");
 		}
+		String deleteQuery = null;
+		deleteQuery = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND PROJECTID=? AND TYPE=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(deleteQuery);
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, projectId);
-			if(groupType != null) {
-				ps.setString(parameterIndex++, groupType);
-			}
+			ps.setString(parameterIndex++, groupType);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -813,7 +934,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
-		
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
 
 		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
@@ -839,6 +959,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBYTYPE", "project_created_by_type"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"DATECREATED", "project_date_created"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"DATELASTEDITED", "project_date_last_edited"));
 		// dont forget reactors/portal information
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"HASPORTAL", "project_has_portal"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALNAME", "project_portal_name"));
@@ -1115,7 +1236,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Group " + groupId + " already has permission level " 
 					+ AccessPermissionEnum.getPermissionValueById(curPermission) + " to engine " + engineId);
 		}
-		
+		if(groupType == null) {
+			classLogger.error("Group type cannot be null");
+		}
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
@@ -1125,11 +1248,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		
 		String updateQuery = null;
-		if(groupType == null || groupType.isEmpty()) {
-			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE IS NULL";
-		} else {
-			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
-		}
+		updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQuery);
@@ -1145,9 +1264,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, engineId);
-			if(groupType != null) {
-				ps.setString(parameterIndex++, groupType);
-			}
+			ps.setString(parameterIndex++, groupType);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -1173,22 +1290,18 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if(curPermission == -1) {
 			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to engine " + engineId + " to remove");
 		}
-		
-		String deleteQuery = null;
-		if(groupType == null || groupType.isEmpty()) {
-			deleteQuery = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND ENGINEID=? AND TYPE IS NULL";
-		} else {
-			deleteQuery = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND ENGINEID=? AND TYPE=?";
+		if(groupType == null) {
+			classLogger.error("Group type cannot be null");
 		}
+		String deleteQuery = null;
+		deleteQuery = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND ENGINEID=? AND TYPE=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(deleteQuery);
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, engineId);
-			if(groupType != null) {
-				ps.setString(parameterIndex++, groupType);
-			}
+			ps.setString(parameterIndex++, groupType);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -1454,15 +1567,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param groupType
 	 * @return
 	 */
+	
 	public boolean groupExists(String groupId, String groupType) {
 		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
-		if(groupType == null || (groupType = groupType.trim()).isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true,
-					PixelDataType.BOOLEAN));
-		} else {
+		if(groupType != null && !(groupType = groupType.trim()).isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
 		}
 		IRawSelectWrapper wrapper = null;
@@ -1486,18 +1597,19 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		return false;
 	}
 
+
 	/**
 	 * 
 	 * @param groupId
 	 * @return
 	 * @throws Exception 
 	 */
+
 	public boolean isCustomGroup(String groupId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", "CUSTOM"));
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1519,6 +1631,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
 		return false;
 	}
+	
 	
 	/**
 	 * 

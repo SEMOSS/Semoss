@@ -1,0 +1,277 @@
+from typing import Optional, Tuple
+from enum import Enum
+import re
+import base64
+from urllib.parse import urlparse
+import requests
+from enum import Enum
+import base64
+from pathlib import Path
+
+
+class StringEnum(Enum):
+    """Base enum that can be compared directly with strings"""
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.value == other
+        return super().__eq__(other)
+
+    def __hash__(self):
+        return hash(self.value)
+
+    @classmethod
+    def values(cls):
+        """Return list of all enum values"""
+        return [member.value for member in cls]
+
+
+def is_base64_image_url(url: str) -> bool:
+    """
+    Determine if a URL is a base64 encoded image data URL.
+    Args:
+        url (str): The URL to check
+    Returns:
+        bool: True if the URL is a base64 encoded image, False otherwise
+    """
+    if not isinstance(url, str):
+        return False
+
+    data_url_pattern = r"^data:image/[a-zA-Z]+;base64,"
+
+    if re.match(data_url_pattern, url):
+        try:
+            base64_part = url.split(",", 1)[1]
+            base64.b64decode(base64_part, validate=True)
+            return True
+        except (IndexError, ValueError):
+            return False
+
+    return False
+
+
+def is_standard_web_url(url: str) -> bool:
+    """
+    Determine if a URL is a standard web URL (http/https).
+    Args:
+        url (str): The URL to check
+    Returns:
+        bool: True if the URL is a standard web URL, False otherwise
+    """
+    if not isinstance(url, str):
+        return False
+
+    try:
+        parsed = urlparse(url)
+        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+    except Exception:
+        return False
+
+
+class URLClassification(StringEnum):
+    BASE64_IMAGE = "base64_image"
+    WEB_URL = "web_url"
+    UNKNOWN = "unknown"
+
+
+def classify_url(url: str) -> str:
+    """
+    Classify a URL as either 'base64_image', 'web_url', or 'unknown'.
+    Args:
+        url (str): The URL to classify
+    Returns:
+        str: Classification of the URL
+    """
+    if is_base64_image_url(url):
+        return URLClassification.BASE64_IMAGE
+    elif is_standard_web_url(url):
+        return URLClassification.WEB_URL
+    else:
+        return URLClassification.UNKNOWN
+
+
+def get_image_extension(url_or_base64: str) -> Optional[str]:
+    """
+    Extract the file extension from a base64 encoded image or web URL.
+
+    Args:
+        url_or_base64 (str): Either a base64 data URL or a standard web URL
+
+    Returns:
+        Optional[str]: The file extension (e.g., 'jpg', 'png', 'gif') or None if not found
+
+    Examples:
+        >>> get_image_extension("data:image/jpeg;base64,/9j/4AAQ...")
+        'jpg'
+        >>> get_image_extension("https://example.com/image.png")
+        'png'
+        >>> get_image_extension("https://example.com/image.PNG?size=large")
+        'png'
+    """
+    if not isinstance(url_or_base64, str):
+        return None
+
+    classification = classify_url(url_or_base64)
+
+    if classification == URLClassification.BASE64_IMAGE:
+        return extract_extension_from_base64(url_or_base64)
+    elif classification == URLClassification.WEB_URL:
+        return _extract_extension_from_web_url(url_or_base64)
+    else:
+        return None
+
+
+def extract_extension_from_base64(data_url: str) -> Optional[str]:
+    """
+    Extract file extension from a base64 data URL.
+
+    Args:
+        data_url (str): Base64 data URL (e.g., "data:image/jpeg;base64,...")
+
+    Returns:
+        Optional[str]: File extension or None if not found
+    """
+    try:
+        mime_match = re.match(r"^data:image/([a-zA-Z]+);base64,", data_url)
+        if not mime_match:
+            return None
+
+        mime_subtype = mime_match.group(1).lower()
+
+        mime_to_extension = {
+            "jpeg": "jpeg",
+            "jpg": "jpeg",
+            "png": "png",
+            "gif": "gif",
+            "webp": "webp",
+            "bmp": "bmp",
+            "tiff": "tiff",
+            "tif": "tiff",
+            "svg+xml": "svg",
+            "svg": "svg",
+            "ico": "ico",
+            "x-icon": "ico",
+        }
+
+        return mime_to_extension.get(mime_subtype)
+
+    except Exception:
+        return None
+
+
+def _extract_extension_from_web_url(url: str) -> Optional[str]:
+    """
+    Extract file extension from a web URL.
+
+    Args:
+        url (str): Web URL (e.g., "https://example.com/image.jpg")
+
+    Returns:
+        Optional[str]: File extension or None if not found
+    """
+    try:
+        parsed = urlparse(url)
+        path = parsed.path
+
+        if "." in path:
+            extension = path.split(".")[-1].lower()
+
+            extension = extension.split("?")[0].split("#")[0]
+
+            valid_extensions = {
+                "jpg",
+                "jpeg",
+                "png",
+                "gif",
+                "webp",
+                "bmp",
+                "tiff",
+                "tif",
+                "svg",
+                "ico",
+            }
+
+            if extension in valid_extensions:
+                return "jpeg" if extension == "jpg" else extension
+
+        return None
+
+    except Exception:
+        return None
+
+
+def fetch_and_encode_image(url: str) -> Tuple[str, str]:
+    """Fetch image from URL and return base64 data with media type"""
+    response = requests.get(url)
+    response.raise_for_status()
+
+    content_type = response.headers.get("content-type", "")
+    if content_type.startswith("image/"):
+        media_type = content_type
+    else:
+        extension = get_image_extension(url)
+        media_type = f"image/{extension.lower()}"
+
+    image_data = base64.b64encode(response.content).decode("utf-8")
+
+    return image_data, media_type
+
+
+import base64
+from pathlib import Path
+
+
+def image_to_base64(image_path: str):
+    """
+    Convert an image file to a base64 encoded string.
+
+    Args:
+        image_path (str or Path): Path to the image file
+
+    Returns:
+        str: Base64 encoded string of the image
+
+    Raises:
+        FileNotFoundError: If the image file doesn't exist
+        IOError: If there's an error reading the file
+    """
+    try:
+        path = Path(image_path)
+
+        if not path.exists():
+            raise FileNotFoundError(f"Image file not found: {image_path}")
+
+        with open(path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read())
+            # Convert bytes to string
+            return encoded_string.decode("utf-8")
+
+    except Exception as e:
+        raise IOError(f"Error reading image file: {e}")
+
+
+def string_to_bool(value) -> bool:
+    """
+    Convert a string representation of a boolean to a boolean value.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return bool(value)
+    if isinstance(value, str):
+        value = value.lower()
+        if value in [
+            "true",
+            "t",
+            "yes",
+            "y",
+            "1",
+        ]:
+            return True
+        else:
+            return False
+    else:
+        instance_type = type(value)
+        raise ValueError(
+            f"Invalid value type: {instance_type}. Expected str, int, or bool."
+        )
