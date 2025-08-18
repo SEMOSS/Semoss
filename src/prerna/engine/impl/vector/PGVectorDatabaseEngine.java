@@ -728,7 +728,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	    return finalResults;
 	}
 
-	// Helper to log the top result
 	private void logTopResult(List<Map<String, Object>> results, String label) {
 	    if (!results.isEmpty()) {
 	        Map<String, Object> topResult = results.get(0);
@@ -741,7 +740,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	    }
 	}
 
-	// Dummy vector search method (replace with your actual implementation)
 	private List<Map<String, Object>> runVectorSearch(
 	        Insight insight, String searchStatement, int topN, Map<String, Object> parameters) throws Exception {
 		System.out.println("[INFO] TRYING VECTOR SEARCH");
@@ -861,94 +859,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	    return fused;
 	}
-
-	
-//	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
-//
-//	    if (insight == null) {
-//	        throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
-//	    }
-//
-//	    if (!this.modelPropsLoaded) {
-//	        verifyModelProps();
-//	    }
-//
-//
-//	    List<IQueryFilter> filters = null;
-//	    List<IQueryFilter> metaFilters = null;
-//	    if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
-//	        filters = PGVectorQueryFitlerTranslationHelper.convertFilters( 
-//	                    (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY), this.vectorTableName
-//	                );
-//	    }
-//	    if (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY)) {
-//	        metaFilters = PGVectorQueryMetaFitlerTranslationHelper.convertFilters(
-//	                    (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY), this.vectorTableMetadataName
-//	                );
-//	    }
-//	    if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey())) {}
-//	    if (parameters.containsKey(VectorDatabaseParamOptionsEnum.RETURN_THRESHOLD.getKey())) {}
-//	    if (parameters.containsKey(VectorDatabaseParamOptionsEnum.ASCENDING.getKey())) {}
-//	    IModelEngine engine = Utility.getModel(this.embedderEngineId);
-//	    EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] {searchStatement}), insight, null);
-//	    final String tablePrefix = this.vectorTableName+"__";
-//	    SelectQueryStruct qs = new SelectQueryStruct();
-//	    qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.SOURCE, VectorDatabaseCSVTable.SOURCE));
-//	    qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.MODALITY, VectorDatabaseCSVTable.MODALITY));
-//	    qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.DIVIDER, VectorDatabaseCSVTable.DIVIDER));
-//	    qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.PART, VectorDatabaseCSVTable.PART));
-//	    qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.TOKENS, VectorDatabaseCSVTable.TOKENS));
-//	    qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.CONTENT, VectorDatabaseCSVTable.CONTENT));
-//	    // Determine the distanceMethod to use for the query
-//	    // Store the result in the "Score" field,
-//	    if ("Cosine Similarity".equalsIgnoreCase(distanceMethod)) {
-//	        qs.addSelector(new QueryOpaqueSelector("1 - (EMBEDDING <=> '" + embeddingsResponse.getResponse().get(0) + "')", "Score"));
-//	        qs.addOrderBy("Score", "DESC"); 
-//	    } else {
-//	        qs.addSelector(new QueryOpaqueSelector(
-//	                "POWER((EMBEDDING <-> '" + embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
-//	        qs.addOrderBy("Score", "ASC");
-//	    }
-//	    if(filters != null && !filters.isEmpty()) {
-//	        qs.addExplicitFilter(new GenRowFilters(filters), true);
-//	    }
-//	    if(metaFilters != null && !metaFilters.isEmpty()) {
-//	        qs.addRelation(this.vectorTableName, this.vectorTableMetadataName, "inner.join");
-//	        qs.addExplicitFilter(new GenRowFilters(metaFilters), true);
-//	    }
-//	    if(limit != null) {
-//	        qs.setLimit(limit.longValue());
-//	    }
-//	    List<Map<String, Object>> vectorSearchResults = QueryExecutionUtility.flushRsToMap(this, qs);
-//	    return vectorSearchResults;
-//	    // --- END VECTOR SEARCH LOGIC ---
-//
-//	    // --- BM25 SEARCH LOGIC ---
-//	    
-//	    System.out.println("[INFO] BM25 results answer");
-//
-//	    List<Map<String, Object>> bm25Results = new ArrayList<>();
-//
-//	    try {
-//	        int topN = (limit != null) ? limit.intValue() : 3; // Default to 3 if limit is not set
-//	        bm25Results = bm25Service.search(searchStatement, topN);
-//
-//	        if (!bm25Results.isEmpty()) {
-//	            Map<String, Object> topResult = bm25Results.get(0);
-//	            System.out.println("[INFO] BM25 top result:");
-//	            System.out.println("  docId: " + topResult.get("docId"));
-//	            System.out.println("  score: " + topResult.get("score"));
-//	            System.out.println("  content: " + topResult.get("content"));
-//	        } else {
-//	            System.out.println("[INFO] BM25 search returned no results.");
-//	        }
-//	    } catch (Exception e) {
-//	        classLogger.error("BM25 search failed", e);
-//	        // Optionally, rethrow or handle as needed
-//	    }
-//
-//	    return bm25Results;
-//	}
 
 
 	@Override
