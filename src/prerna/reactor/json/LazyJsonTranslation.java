@@ -1294,7 +1294,9 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
      * Sets the PKSL operations in the reactor
      */
     private IReactor getReactor(String reactorId, String nodeString) {
-    	return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) getDataMaker(), curReactor);
+    	IReactor newReactor = ReactorFactory.getReactor(this.insight, reactorId, this.curReactor, (ITableDataFrame) getDataMaker());
+    	newReactor.setPixel(reactorId, nodeString);
+    	return newReactor;
     }
     
     public void defaultIn(Node node)

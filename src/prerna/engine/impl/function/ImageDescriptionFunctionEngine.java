@@ -17,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -65,7 +64,7 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine imple
 
 	@Override
 	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
-		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
+		Insight insight = getInsight(parameters.get(Constants.INSIGHT));
 
 		Map<String, Object> result = null;
 		try {

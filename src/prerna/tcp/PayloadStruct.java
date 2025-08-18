@@ -55,5 +55,16 @@ public class PayloadStruct implements Serializable {
 	// set the insight id
 	public String insightId = null;
 	
-	
+	// set the job id
+	public String jobId = null;
+
+	/*
+	 * This is really important
+	 * If we have a User invoking an engine python process
+	 * The engine python process has its own unique insight for variable encapsulation
+	 * However, we need to know from what insight is the user invoking this request
+	 * So that if the engine is making a call back/reactor request
+	 * It knows which User invoked for security permissions
+	 */
+	public String executionInsightId = null;
 }

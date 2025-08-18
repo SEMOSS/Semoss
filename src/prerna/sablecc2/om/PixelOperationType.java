@@ -167,6 +167,9 @@ public enum PixelOperationType {
 	FILE_REFERENCE,
 	FILE,
 	
+	// MCP
+	MCP_TOOL_EXECUTION,
+	
 	// OLD INSIGHT
 	OLD_INSIGHT,
 	PLAYSHEET_PARAMS,
@@ -218,9 +221,6 @@ public enum PixelOperationType {
 	// HELP
 	HELP,
 	HELP_JSON,
-	
-	// JOB REACTOR
-	JOB_ID,
 	
 	// MESSAGES ERRORS
 	SUCCESS,
