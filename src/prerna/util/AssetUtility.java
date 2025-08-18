@@ -20,9 +20,11 @@ import prerna.util.git.GitRepoUtils;
 
 public class AssetUtility {
 
+	// TODO: see which parts should be merged with EngineUtility
+	
 	private static final Logger classLogger = LogManager.getLogger(AssetUtility.class);
 
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static final String DIR_SEPARATOR = "/";
 
 	public static String USER_SPACE_KEY = "USER";
 	public static String INSIGHT_SPACE_KEY = "INSIGHT";
@@ -87,7 +89,7 @@ public class AssetUtility {
 			}
 		}
 		assetFolder = Utility.normalizePath(assetFolder.replace('\\', '/'));
-		return assetFolder;
+		return assetFolder.replace("\\","/");
 	}
 	
 	/**
@@ -126,7 +128,7 @@ public class AssetUtility {
 		if (!file.exists()) {
 			file.mkdir();
 		}
-		return projectFolder;
+		return projectFolder.replace("\\","/");
 	}
 	
 	/**
@@ -155,7 +157,7 @@ public class AssetUtility {
 		if (!file.exists()) {
 			file.mkdir();
 		}
-		return portalsFolder;
+		return portalsFolder.replace("\\","/");
 	}
 	
 	/**
@@ -166,14 +168,14 @@ public class AssetUtility {
 	 */
 	public static String getProjectNotebookFolder(String projectName, String projectId) {
 		String assetFolder = getProjectAssetsFolder(projectName, projectId);
-		String portalsFolder = assetFolder + DIR_SEPARATOR + IProject.NOTEBOOK_FOLDER;
+		String notebookFolder = assetFolder + DIR_SEPARATOR + IProject.NOTEBOOK_FOLDER;
 
 		// if this folder does not exist create it
-		File file = new File(portalsFolder);
+		File file = new File(notebookFolder);
 		if (!file.exists()) {
 			file.mkdir();
 		}
-		return portalsFolder;
+		return notebookFolder.replace("\\","/");
 	}
 	
 	/**
@@ -194,7 +196,7 @@ public class AssetUtility {
 		if(!isGit(gitFolder)) {
 			GitRepoUtils.init(gitFolder);
 		}
-		return gitFolder;
+		return gitFolder.replace("\\","/");
 	}
 	
 	/**
@@ -213,7 +215,7 @@ public class AssetUtility {
 			relativePath = "";
 			//relativePath = Constants.ASSETS_FOLDER;
 		}	
-		return relativePath;
+		return relativePath.replace("\\","/");
 	}
 	
 	/**
@@ -259,7 +261,7 @@ public class AssetUtility {
 			rehomeProjectForAppRoot(projectName, projectId, baseProjectFolder);
 		}
 		// try to see if there is a version folder and if so move it into app_root
-		return baseProjectFolder;
+		return baseProjectFolder.replace("\\","/");
 	}
 	
 	/**
@@ -312,7 +314,7 @@ public class AssetUtility {
 		if(!isGit(gitFolder)) {
 			GitRepoUtils.init(gitFolder);
 		}
-		return gitFolder;
+		return gitFolder.replace("\\","/");
 	}
 	
 	/**
@@ -330,7 +332,7 @@ public class AssetUtility {
 		if (!file.exists()) {
 			file.mkdir();
 		}
-		return projectFolder;
+		return projectFolder.replace("\\","/");
 	}
 	
 	/**
@@ -355,7 +357,7 @@ public class AssetUtility {
 			rehomeUserForAppRoot(projectName, projectId, baseProjectFolder);
 		}
 		// try to see if there is a version folder and if so move it into app_root
-		return baseProjectFolder;
+		return baseProjectFolder.replace("\\","/");
 	}
 	
 	/**

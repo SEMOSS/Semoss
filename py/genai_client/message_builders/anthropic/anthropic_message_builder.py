@@ -51,8 +51,16 @@ class AnthropicMessageBuilder:
 
             if is_last:
                 param_map = message.param_map
+                param_map = self._clean_param_map(param_map)
 
         return anthropic_messages, param_map
+
+    def _clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
+        """Remove any keys that are not needed in the param map."""
+        keys_to_remove = ["history"]
+        for key in keys_to_remove:
+            param_map.pop(key, None)
+        return param_map
 
     def _message_type_to_role(self, message_type: SEMOSSMessageType) -> AnthropicRoles:
         """Convert SEMOSS message type to Anthropic role."""
