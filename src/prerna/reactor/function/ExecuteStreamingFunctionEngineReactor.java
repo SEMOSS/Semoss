@@ -7,8 +7,9 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.function.StreamRESTFunctionEngine;
+import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.job.JobReactor;
+import prerna.sablecc2.comm.PixelJobThread;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -35,7 +36,7 @@ public class ExecuteStreamingFunctionEngineReactor extends AbstractReactor {
 		}
 		
 		Map<String, Object> parameterValues = getMap();
-		parameterValues.put(JobReactor.JOB_KEY, this.getJobId());
+		parameterValues.put(PixelJobThread.JOB_KEY, ThreadStore.getJobId());
 		
 		Object execValue = engine.execute(parameterValues);
 		return new NounMetadata(execValue, PixelDataType.CUSTOM_DATA_STRUCTURE);

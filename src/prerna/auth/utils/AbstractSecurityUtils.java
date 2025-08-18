@@ -1946,6 +1946,64 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(queryUtil.createTable("API_KEY", colNames, types));
 				}
 			}
+			
+			// USERMETA
+			colNames = new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, INTEGER_DATATYPE_NAME };
+			if(allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("USERMETA", colNames, types);
+				classLogger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "USERMETA", database, schema)) {
+					// make the table
+					String sql = queryUtil.createTable("USERMETA", colNames, types);
+					classLogger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+			}
+			if(allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("USERMETA_USERID_INDEX", "USERMETA", "USERID");
+				classLogger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "USERMETA_USERID_INDEX", "USERMETA", database, schema)) {
+					String sql = queryUtil.createIndex("USERMETA_USERID_INDEX", "USERMETA", "USERID");
+					classLogger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+			}
+			
+			// USERMETAKEYS
+			colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS", "DEFAULTVALUES"};
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(500)"};
+			defaultValues = new Object[]{null, null, null, true, false};
+			if(allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists(Constants.USER_METAKEYS, colNames, types);
+				classLogger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, Constants.USER_METAKEYS, database, schema)) {
+					// make the table
+					String sql = queryUtil.createTable(Constants.USER_METAKEYS, colNames, types);
+					classLogger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+			}
+			// check all the columns we want are there
+			List<String> allCols = queryUtil.getTableColumns(conn, Constants.USER_METAKEYS, database, schema);
+			for (int i = 0; i < colNames.length; i++) {
+				String col = colNames[i];
+				if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+					classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+					String addColumnSql = queryUtil.alterTableAddColumn(Constants.USER_METAKEYS, col, types[i]);
+					classLogger.info("Running sql " + addColumnSql);
+					securityDb.insertData(addColumnSql);
+				}
+			}
 	
 			if(!conn.getAutoCommit()) {
 				conn.commit();
@@ -2526,6 +2584,20 @@ public abstract class AbstractSecurityUtils {
 
 		return filters;
 	}
+	
+	static Collection<String> getUserGroupFiltersQs(User user) {
+	    List<String> filters = new ArrayList<String>();
+	    if(user != null) {
+	        List<AuthProvider> logins = user.getLogins();
+	        for(AuthProvider thisLogin : logins) {
+	            Collection<String> groups = user.getAccessToken(thisLogin).getUserGroups();
+	            for (String group : groups) {
+	                filters.add(Utility.inputSQLSanitizer(group));
+	            }
+	        }
+	    }
+	    return filters;
+	}
 
 	////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////
@@ -2578,15 +2650,28 @@ public abstract class AbstractSecurityUtils {
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 
+	/**
+	 * 
+	 * @param email
+	 * @param isNewUser
+	 * @throws Exception
+	 */
 	public static void validEmail(String email, boolean isNewUser) throws Exception {
 		if(email == null || !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
 			throw new IllegalArgumentException(email + " is not a valid email address. ");
 		}
 		if(isNewUser && SecurityNativeUserUtils.userEmailExists(email)) {
-			throw new IllegalArgumentException("This email already exists. Please login");
+			throw new IllegalArgumentException("This email already exists. Please login. ");
 		}
 	}
 
+	/**
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param password
+	 * @throws Exception
+	 */
 	public static void validPassword(String userId, AuthProvider type, String password) throws Exception {
 		if(password == null || password.isEmpty()) {
 			throw new IllegalArgumentException("Password cannot be empty. ");
@@ -2597,6 +2682,12 @@ public abstract class AbstractSecurityUtils {
 		}
 	}
 
+	/**
+	 * 
+	 * @param phone
+	 * @return
+	 * @throws Exception
+	 */
 	public static String formatPhone(String phone) throws Exception {
 		if (phone != null && !phone.isEmpty()) {
 			if (!phone.matches("[\\d\\s.()-]+")) {
@@ -2609,6 +2700,20 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		return phone;
+	}
+	
+	/**
+	 * 
+	 * @param username
+	 * @throws IllegalArgumentException
+	 */
+	public static void validUsername(String username) throws IllegalArgumentException {
+		if (username == null || username.trim().isEmpty()) {
+			throw new IllegalArgumentException("Username cannot be empty. ");
+		}
+		if (SecurityQueryUtils.checkUsernameExist(username)) {
+			throw new IllegalArgumentException("Username already exists. ");
+		}
 	}
 
 	/**
@@ -2652,4 +2757,5 @@ public abstract class AbstractSecurityUtils {
 		LocalDateTime formattedEndDate = endDate.getLocalDateTime();
 		return formattedEndDate.isBefore(currentTime);
 	}
+	
 }

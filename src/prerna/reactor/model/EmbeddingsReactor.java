@@ -20,9 +20,10 @@ public class EmbeddingsReactor extends AbstractReactor {
 		this.keysToGet = new String[] {
 			ReactorKeysEnum.ENGINE.getKey(), 
 			ReactorKeysEnum.VALUES.getKey(), 
-			ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
+			ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+			ReactorKeysEnum.ENCODED.getKey()
 		};
-		this.keyRequired = new int[] {1, 1, 0};
+		this.keyRequired = new int[] {1, 1, 0, 0};
 	}
 
 	@Override
@@ -33,7 +34,8 @@ public class EmbeddingsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
 		}
 		
-		List<String> stringsToEmbed = getInputStrings();
+		boolean isEncoded = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3])+"");
+		List<String> stringsToEmbed = getInputStrings(isEncoded);
 		Map<String, Object> paramMap = getMap();
 		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
@@ -46,9 +48,10 @@ public class EmbeddingsReactor extends AbstractReactor {
 	
 	/**
 	 * Get input strings to embed
+	 * @param isEncoded			true if the strings are encoded
 	 * @return list of engines to delete
 	 */
-	public List<String> getInputStrings() {
+	public List<String> getInputStrings(boolean isEncoded) {
 		List<String> inputStrings = new ArrayList<>();
 
 		// see if added as key
@@ -56,7 +59,11 @@ public class EmbeddingsReactor extends AbstractReactor {
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
-				inputStrings.add(grs.get(i).toString());
+				if(isEncoded) {
+					inputStrings.add(Utility.decodeURIComponent(grs.get(i).toString()));
+				} else {
+					inputStrings.add(grs.get(i).toString());
+				}
 			}
 			return inputStrings;
 		}
@@ -64,14 +71,22 @@ public class EmbeddingsReactor extends AbstractReactor {
 		// no key is added, grab all inputs
 		int size = this.curRow.size();
 		for (int i = 0; i < size; i++) {
-			inputStrings.add(this.curRow.get(i).toString());
+			if(isEncoded) {
+				inputStrings.add(Utility.decodeURIComponent(this.curRow.get(i).toString()));
+			} else {
+				inputStrings.add(this.curRow.get(i).toString());
+			}
 		}
 		
 		return inputStrings;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getNoun(keysToGet[2]);
+        GenRowStruct mapGrs = this.store.getNoun(this.keysToGet[2]);
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if(mapInputs != null && !mapInputs.isEmpty()) {
@@ -95,7 +110,9 @@ public class EmbeddingsReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.VALUES.getKey())) {
 			return "Specify the string value(s) serving as input text, from which you aim to generate embeddings vector(s).";
-		} 
+		}  else if(key.equals(ReactorKeysEnum.ENCODED.getKey())) {
+			return "True if the string values are encoded via <encode></encode> blocks";
+		}
 		return super.getDescriptionForKey(key);
 	}
 }

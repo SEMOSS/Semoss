@@ -381,11 +381,12 @@ public class Constants {
 	
 	// folder names on engines / projects
 	public static final String DATABASE_FOLDER = "db";
-	public static final String STORAGE_FOLDER = "storage";
-	public static final String MODEL_FOLDER = "model";
-	public static final String FUNCTION_FOLDER = "function";
-	public static final String VECTOR_FOLDER = "vector";
 	public static final String GUARDRAIL_FOLDER = "guardrail";
+	public static final String FUNCTION_FOLDER = "function";
+	public static final String MODEL_FOLDER = "model";
+	public static final String ROOM_FOLDER = "room";
+	public static final String STORAGE_FOLDER = "storage";
+	public static final String VECTOR_FOLDER = "vector";
 	public static final String VENV_FOLDER = "venv";
 	// project is just a special engine..
 	public static final String PROJECT_FOLDER = "project";
@@ -850,11 +851,13 @@ public class Constants {
 	public static final String ENGINE_METAKEYS = "ENGINEMETAKEYS";
 	public static final String PROJECT_METAKEYS = "PROJECTMETAKEYS";
 	public static final String INSIGHT_METAKEYS = "INSIGHTMETAKEYS";
+	public static final String USER_METAKEYS = "USERMETAKEYS";
 	public static final String PROMPT_METAKEYS = "PROMPTMETAKEYS";
 	public static final String METAKEY = "METAKEY";
 	public static final String SINGLE_MULTI = "SINGLEMULTI";
 	public static final String DISPLAY_ORDER = "DISPLAYORDER";
 	public static final String DISPLAY_OPTIONS = "DISPLAYOPTIONS";
+	public static final String DEFAULT_VALUES = "DEFAULTVALUES";
 	
 	// Metamodel keys
 	public static final String NODE_PROP = "nodeProp";

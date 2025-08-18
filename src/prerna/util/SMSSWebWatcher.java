@@ -186,56 +186,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			return;
 		}
 		
-		String themingDbName = Constants.THEMING_DB + this.extension;
-		int themingDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, themingDbName);
-		if(themingDbNameIndex > -1) {
-			loadExistingEngine(fileNames[themingDbNameIndex]);
-			// initialize the security database
-			try {
-				AbstractThemeUtils.loadThemingDatabase();
-			} catch (Exception e) {
-				// we couldn't initialize the db
-				// remove it from DIHelper
-				DIHelper.getInstance().removeEngineProperty(Constants.THEMING_DB);
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		
-		
-		if(Utility.isPromptDatabaseEnabled()) {
-			String promptDbName = Constants.PROMPT_DB + this.extension;
-			int promptDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, promptDbName);
-			if (promptDbNameIndex > -1) {
-				loadExistingEngine(fileNames[promptDbNameIndex]);
-				// initialize the security database
-				try {
-					AbstractPromptUtils.loadPromptDatabase();
-				} catch (Exception e) {
-					// we couldn't initialize the db
-					// remove it from DIHelper
-					DIHelper.getInstance().removeEngineProperty(Constants.PROMPT_DB);
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-
-		// change to scheduler info
-		if(!Utility.schedulerForceDisable()) {
-			String schedulerDbName = Constants.SCHEDULER_DB + this.extension;
-			int schedulerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, schedulerDbName);
-			if(schedulerDbNameIndex > -1) {
-				loadExistingEngine(fileNames[schedulerDbNameIndex]);
-				// initialize the scheduler database
-				try {
-					SchedulerDatabaseUtility.startServer();
-				} catch (Exception sqe) {
-					// we couldn't initialize the db remove it from DIHelper
-					DIHelper.getInstance().removeEngineProperty(Constants.SCHEDULER_DB);
-					classLogger.error(Constants.STACKTRACE, sqe);
-				}
-			}	
-		}
-		
 		// load user tracking database
 		if(Utility.isUserTrackingEnabled()) {
 			String userTrackerDBName = Constants.USER_TRACKING_DB + this.extension;
@@ -254,6 +204,38 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 		}
 		
+		String themingDbName = Constants.THEMING_DB + this.extension;
+		int themingDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, themingDbName);
+		if(themingDbNameIndex > -1) {
+			loadExistingEngine(fileNames[themingDbNameIndex]);
+			// initialize the security database
+			try {
+				AbstractThemeUtils.loadThemingDatabase();
+			} catch (Exception e) {
+				// we couldn't initialize the db
+				// remove it from DIHelper
+				DIHelper.getInstance().removeEngineProperty(Constants.THEMING_DB);
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		
+		// change to scheduler info
+		if(!Utility.schedulerForceDisable()) {
+			String schedulerDbName = Constants.SCHEDULER_DB + this.extension;
+			int schedulerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, schedulerDbName);
+			if(schedulerDbNameIndex > -1) {
+				loadExistingEngine(fileNames[schedulerDbNameIndex]);
+				// initialize the scheduler database
+				try {
+					SchedulerDatabaseUtility.startServer();
+				} catch (Exception sqe) {
+					// we couldn't initialize the db remove it from DIHelper
+					DIHelper.getInstance().removeEngineProperty(Constants.SCHEDULER_DB);
+					classLogger.error(Constants.STACKTRACE, sqe);
+				}
+			}	
+		}
+		
 		// load model inference logs database
 		if(Utility.isModelInferenceLogsEnabled()) {
 			String modelInferenceLogsDBName = Constants.MODEL_INFERENCE_LOGS_DB + this.extension;
@@ -267,6 +249,23 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					// we couldn't initialize the db
 					// remove it from DIHelper
 					DIHelper.getInstance().removeEngineProperty(Constants.MODEL_INFERENCE_LOGS_DB);
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		if(Utility.isPromptDatabaseEnabled()) {
+			String promptDbName = Constants.PROMPT_DB + this.extension;
+			int promptDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, promptDbName);
+			if (promptDbNameIndex > -1) {
+				loadExistingEngine(fileNames[promptDbNameIndex]);
+				// initialize the security database
+				try {
+					AbstractPromptUtils.loadPromptDatabase();
+				} catch (Exception e) {
+					// we couldn't initialize the db
+					// remove it from DIHelper
+					DIHelper.getInstance().removeEngineProperty(Constants.PROMPT_DB);
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
