@@ -26,8 +26,9 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.GetMCPInternalToolsReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -107,10 +108,52 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		ResponseMessage response = room.ask(msg, context, modelEngine);
 
 		// parse the response for code blocks
-		if(response.getMessageType().equals(MessageType.RESPONSE_TEXT)) {
+		if(response.getMessageType() == MessageType.RESPONSE_TEXT) {
 			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
 					room.getMessagesAsString());
+		} else if(response.getMessageType() == MessageType.RESPONSE_TOOL) {
+			Map<String, JSONObject> mcpToolsJsonCache = new HashMap<>();
+			List<Map<String, Object>> toolResponses = response.getToolResponses();
+			for(int toolResponseIndex = 0; toolResponseIndex < toolResponses.size(); toolResponseIndex++) {
+				Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
+				// we start the function name with _projectid_ so lets remove that
+				String responseProjectIdToolFunctionName = (String) responseToolMap.get("name");
+				String[] responseProjectIdToolFunctionNameSplit = responseProjectIdToolFunctionName.substring(1).split("_", 2);
+				String projectId = responseProjectIdToolFunctionNameSplit[0];
+				String origFunctionName = responseProjectIdToolFunctionNameSplit[1];
+				
+				// now that we have the projectId
+				// lets append some of the mcp metadata back into the response
+				
+				JSONObject mcpToolsJson = mcpToolsJsonCache.get(projectId);
+				if(mcpToolsJson == null) {
+					IProject project = Utility.getProject(projectId);
+					mcpToolsJson = MCPUtility.getAggregatedTools(project);
+					mcpToolsJsonCache.put(projectId, mcpToolsJson);
+				}
+				
+				if(mcpToolsJson != null) {
+					JSONArray mcpToolsArray = mcpToolsJson.getJSONArray("tools");
+					JSONObject mcpTool = null;
+					PROJECT_MCP_LOOP : for(int toolIndex = 0; toolIndex < mcpToolsArray.length(); toolIndex++) {
+						JSONObject _tool = mcpToolsArray.getJSONObject(toolIndex);
+						if(_tool.has("name") && _tool.getString("name").equals(origFunctionName)) {
+							mcpTool = _tool;
+							break PROJECT_MCP_LOOP;
+						}
+					}
+					
+					// add back the title from mcp structure
+					if(mcpTool != null && mcpTool.has("title")) {
+						responseToolMap.put("title", mcpTool.getString("title"));
+					}
+					
+					if(mcpToolsJson.has("_meta")) {
+						responseToolMap.put("_meta", mcpToolsJson.get("_meta"));
+					}
+				}
+			}
 		}
 
 		// ---- Return both messages as a Map
@@ -122,30 +165,24 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
+	/**
+	 * 
+	 * @param appId
+	 * @return
+	 */
 	private List<Map<String, Object>> getToolJson(String appId) {
-		GetMCPInternalToolsReactor getMCPToolsReactor = new GetMCPInternalToolsReactor();
-		getMCPToolsReactor.In();
-
-		GenRowStruct grs1 = new GenRowStruct();
-		grs1.add(new NounMetadata(appId, PixelDataType.CONST_STRING));
-		getMCPToolsReactor.getNounStore().addNoun(ReactorKeysEnum.PROJECT.getKey(), grs1);
-		getMCPToolsReactor.setInsight(insight);
-
-		NounMetadata retNoun = getMCPToolsReactor.execute();
-		Object value = retNoun.getValue();
-		if (value instanceof JSONObject) {
-			JSONObject obj = (JSONObject)value;
-			if (obj.has("tools")) {
-				JSONArray arr = obj.getJSONArray("tools");
-				List<Map<String, Object>> result = new ArrayList<>();
-				for (int i = 0; i < arr.length(); i++) {
-					JSONObject toolObj = arr.getJSONObject(i);
-					Map<String, Object> map = gson.fromJson(toolObj.toString(),
-							new TypeToken<Map<String, Object>>() {}.getType());
-					result.add(map);
-				}
-				return result;
+		IProject project = Utility.getProject(appId);
+		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
+		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTooslMethodName(appId, toolMap);
+		if(updatedToolMap != null && updatedToolMap.has("tools")) {
+			JSONArray arr = updatedToolMap.getJSONArray("tools");
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (int i = 0; i < arr.length(); i++) {
+				JSONObject toolObj = arr.getJSONObject(i);
+				Map<String, Object> map = toolObj.toMap();
+				result.add(map);
 			}
+			return result;
 		}
 
 		// Fallback: always return an empty list if nothing found
