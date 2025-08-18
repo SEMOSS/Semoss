@@ -1,5 +1,7 @@
 package prerna.reactor.vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.*;
@@ -8,6 +10,8 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.*;
 import org.apache.lucene.store.ByteBuffersDirectory;
+
+import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 
 import java.io.*;
 import java.nio.file.*;
@@ -18,6 +22,7 @@ public class BM25RankerService implements Closeable {
     private Directory luceneDirectory;
     private Analyzer analyzer;
     private IndexWriter writer;
+    private static final Logger classLogger = LogManager.getLogger(AbstractVectorDatabaseEngine.class);
     private String indexPath; // For disk-based index
 
     // --- Constructors ---
@@ -30,14 +35,16 @@ public class BM25RankerService implements Closeable {
         this.indexPath = null;
     }
 
-    // Disk-based index
     public BM25RankerService(String indexPath) throws IOException {
+        classLogger.info("Initializing BM25RankerService with index path: " + indexPath);
         this.luceneDirectory = FSDirectory.open(Paths.get(indexPath));
         this.analyzer = new StandardAnalyzer();
         this.writer = new IndexWriter(luceneDirectory, new IndexWriterConfig(analyzer));
         this.indexPath = indexPath;
+        classLogger.info("BM25RankerService initialized with disk-based index at: " + indexPath);   
     }
-
+    
+    
     // S3-based index (download to temp dir, then open)
     public static BM25RankerService loadFromS3(String bucket, String key) throws IOException {
         // Implement your S3 download logic here
@@ -77,7 +84,8 @@ public class BM25RankerService implements Closeable {
             added++;
         }
         writer.commit();
-        System.out.println("BM25RankerService: Added " + added + " new documents (out of " + newDocs.size() + ")");
+        String location = (indexPath == null) ? "in-memory" : indexPath;
+        classLogger.info("BM25RankerService: Added " + added + " new documents (out of " + newDocs.size() + ") to index at: " + location);
     }
 
     // --- Search ---
@@ -137,6 +145,7 @@ public class BM25RankerService implements Closeable {
     // --- Save index to disk (for disk or S3 upload) ---
 
     public void saveIndex(String path) throws IOException {
+    	classLogger.info("Lucene index is saved on disk at: " + path);
         // For disk, Lucene index is already on disk at 'path'
         // For S3, upload all files in the index directory
         if (luceneDirectory instanceof FSDirectory) {
@@ -158,6 +167,7 @@ public class BM25RankerService implements Closeable {
         switch (method) {
             case "DISK":
                 String diskPath = props.getProperty("BM25_INDEX_PATH");
+                System.out.println(diskPath + " : DiskPath");
                 if (diskPath == null) throw new IllegalArgumentException("BM25_INDEX_PATH must be set for DISK method.");
                 return new BM25RankerService(diskPath);
             case "MEMORY":
