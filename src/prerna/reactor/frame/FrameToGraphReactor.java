@@ -49,10 +49,10 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
     
     public FrameToGraphReactor() {
 		this.keysToGet = new String[] { 
-				ReactorKeysEnum.FRAME.getKey(), 
-				ReactorKeysEnum.MODEL.getKey(), 
-				USER_INPUT, 
-				ReactorKeysEnum.INSIGHT_NAME.getKey(), 
+			ReactorKeysEnum.FRAME.getKey(), 
+			ReactorKeysEnum.MODEL.getKey(), 
+			USER_INPUT, 
+			ReactorKeysEnum.INSIGHT_NAME.getKey(), 
 		};
 	}
 	
@@ -116,23 +116,23 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 	   
 	   PROMPT += "Please generate a valid Vega-Lite chart specification in JSON format that accurately and clearly visualizes the given data.\"\n"
     	    + " \n"
-    	    + "            Your output must include:\n"
-    	    + "            1. \"**The complete Vega-Lite JSON spec** only — do not include any explanation, commentary, irregular quotation marks in data values, or code blocks.\"\n"
-    	    + "            2. \"Ensure the spec includes appropriate settings for:\"\n"
-    	    + "               \"- `mark` type (e.g., bar, line, point, area, etc.)\"\n"
-    	    + "               \"- `encoding` for x and y axes (use fields and types from the data)\"\n"
-    	    + "               \"- Optional: tooltips, color, and other enhancements to improve clarity\"\n"
-    	    + "            3. \"Use reasonable assumptions if the chart type is not specified.\"\n"
+    	    + "Your output must include:\n"
+    	    + "1. \"**The complete Vega-Lite JSON spec** only — do not include any explanation, commentary, irregular quotation marks in data values, or code blocks.\"\n"
+    	    + "2. \"Ensure the spec includes appropriate settings for:\"\n"
+    	    + "     \"- `mark` type (e.g., bar, line, point, area, etc.)\"\n"
+    	    + "     \"- `encoding` for x and y axes (use fields and types from the data)\"\n"
+    	    + "     \"- Optional: tooltips, color, and other enhancements to improve clarity\"\n"
+    	    + "3. \"Use reasonable assumptions if the chart type is not specified.\"\n"
     	    + "            4. \"Ensure the JSON is valid and can be used directly with a Vega-Lite renderer.\"\n";
 		    if (userInput != null) { 
 		    	PROMPT += "5. \"The most meaningful and suprising patterns, insights, or anomalies possible in the dataset.\"\n";
 			}
-   		PROMPT += "            Guidelines:\n"
-		    + "            \"- Avoid complex transforms unless specified in the user's prompt\"\n"
-		    + "            \"- Choose the chart type from the appropriate chart family (temporal, categorical, hierarchical, relational, spatial) that best fits the data and user instructions.\"\n"
-		    + "            \"- Add axis titles based on the field names.\"\n"
-		    + " \n"
-		    + "            \"ONLY return the Vega JSON. Do not include any text, markdown, or notes.\"\n";
+   		PROMPT += "Guidelines:\n"
+		    + "\"- Avoid complex transforms unless specified in the user's prompt\"\n"
+		    + "\"- Choose the chart type from the appropriate chart family (temporal, categorical, hierarchical, relational, spatial) that best fits the data and user instructions.\"\n"
+		    + "\"- Add axis titles based on the field names.\"\n"
+		    + "\n"
+		    + "\"ONLY return the Vega JSON. Do not include any text, markdown, or notes.\"\n";
 
 		///////// MODEL ///////////
 		String QUESTION = PROMPT + buildVegaPrompt(sourceFrame);
