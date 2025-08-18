@@ -1,5 +1,6 @@
 package prerna.engine.api;
 
+import prerna.engine.impl.vector.AwsS3VectorDatabaseEngine;
 import prerna.engine.impl.vector.AzureAISearchRestVectorDatabaseEngine;
 import prerna.engine.impl.vector.ChromaVectorDatabaseEngine;
 import prerna.engine.impl.vector.ElasticSearchRestVectorDatabaseEngine;
@@ -13,6 +14,7 @@ import prerna.engine.impl.vector.WeaviateVectorDatabaseEngine;
 
 public enum VectorDatabaseTypeEnum {
 
+	AWS_S3("AWS_S3", AwsS3VectorDatabaseEngine.class.getName()),
 	AZURE_AI_SEARCH("AZURE_AI_SEARCH", AzureAISearchRestVectorDatabaseEngine.class.getName()),
 	CHROMA("CHROMA", ChromaVectorDatabaseEngine.class.getName()),
 	ELASTIC_SEARCH("ELASTIC_SEARCH", ElasticSearchRestVectorDatabaseEngine.class.getName()),

@@ -852,7 +852,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getActualUserProjectPermission(User user, String projectId) {
-		return SecurityUserProjectUtils.getActualUserProjectPermission(user, projectId);
+		String userPermission = SecurityUserProjectUtils.getActualUserProjectPermission(user, projectId);
+		List<String> groupUserPermissions = SecurityUserProjectUtils.getActualGroupUserProjectPermission(user, projectId);
+		return SecurityUserProjectUtils.getHighestProjectPermission(userPermission, groupUserPermissions);
 	}
 	
 	/**
@@ -2563,7 +2565,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!groupEngineOrFilters.isEmpty()) {
 				SelectQueryStruct qs3 = new SelectQueryStruct();
 				qs3.addSelector(new QueryColumnSelector(groupProjectPermissionPrefix + "PROJECTID", "PROJECTID"));
-				qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupProjectPermissionPrefix + "PERMISSION", "PERMISSION"));
 				qs3.addExplicitFilter(groupEngineOrFilters);
 
 				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", existingAccessComparator, qs3));
@@ -2643,9 +2644,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			OrQueryFilter orFilter = new OrQueryFilter();
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+			
+			Collection<String> groupIds = getUserGroupFiltersQs(user);
+			if (!groupIds.isEmpty()) {
+			    orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", groupIds));
+			}
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
+		qs.addRelation("PROJECT", "GROUPPROJECTPERMISSION", "left.outer.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
