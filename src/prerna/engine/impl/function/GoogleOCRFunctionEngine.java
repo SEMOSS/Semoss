@@ -160,8 +160,8 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine implements I
 		metadata.put("utility", fileToProcess.getName() + "- GoogleOCR_functionality");
 
 		try {
-			// storageeng.copyToStorage(fileToProcess.toString(),OUTPUTBUCKET+
-			// DIR_SEPARATOR+SUB_FOLDER + fileToProcess.getName(), metadata);
+			storageeng.copyToStorage(fileToProcess.toString(),
+					OUTPUTBUCKET + DIR_SEPARATOR + SUB_FOLDER + fileToProcess.getName(), metadata);
 
 			classLogger.info(WAITING_INFO);
 			extractedTextFromDoc = getExtractedText(fileToProcess);
@@ -251,8 +251,9 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine implements I
 				.list(Storage.BlobListOption.prefix(SUB_FOLDER + OUTPUT + DIR_SEPARATOR + outputFileName));
 		for (Blob blob : blobs.iterateAll()) {
 			if (!blob.isDirectory()) {
+				File tempFile = null;
 				try {
-					File tempFile = File.createTempFile("file", JSON_EXT);
+					tempFile = File.createTempFile("file", JSON_EXT);
 					Blob fileInfo = storage.get(BlobId.of(OUTPUTBUCKET, blob.getName()));
 					fileInfo.downloadTo(tempFile.toPath());
 					try (FileReader reader = new FileReader(tempFile)) {
@@ -265,14 +266,14 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine implements I
 							extractedTextFromDoc.add(pageText); // Store page-wise text
 						}
 
-					} finally {
-						if (tempFile.exists()) {
-							tempFile.delete();
-						}
 					}
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
+				} finally {
+					if (tempFile != null && tempFile.exists()) {
+						tempFile.delete();
+					}
 				}
 			}
 		}
@@ -291,7 +292,16 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine implements I
 
 	@Override
 	public void close() throws IOException {
-		// not used..
+		if (this.client != null) {
+			this.client.close();
+		}
+		if (this.storage != null) {
+			try {
+				this.storage.close();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 	}
 
 	@Override
