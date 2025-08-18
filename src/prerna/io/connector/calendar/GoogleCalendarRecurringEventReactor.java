@@ -14,11 +14,13 @@ public class GoogleCalendarRecurringEventReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarRecurringEventReactor.class);
 
+	private static final String NONE = "NONE";
+	
 	public GoogleCalendarRecurringEventReactor() {
 		this.keysToGet = new String[] { "summary", "location",
 				ReactorKeysEnum.DESCRIPTION.getKey(), "startDate",
 				"endDate", "email", "frequency", "until", "video"};
-		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1 };
 	}
 
 	@Override
@@ -30,9 +32,16 @@ public class GoogleCalendarRecurringEventReactor extends AbstractReactor {
 		String startdatetime = this.keyValue.get(this.keysToGet[3]);
 		String enddatetime = this.keyValue.get(this.keysToGet[4]);
 		String emailsInput = this.keyValue.get(this.keysToGet[5]);
-		String frequency = this.keyValue.get(this.keysToGet[6]);
-		String until = this.keyValue.get(this.keysToGet[7]);
+		String frequency = null;
+		String until = null;
 		String enablevideo = this.keyValue.get(this.keysToGet[8]);
+		
+		if (this.keyValue.get(this.keysToGet[6]) != null && !this.keyValue.get(this.keysToGet[6]).isEmpty()) {
+			frequency = this.keyValue.get(this.keysToGet[6]);
+		}
+		if (this.keyValue.get(this.keysToGet[7]) != null && !this.keyValue.get(this.keysToGet[7]).isEmpty()) {
+			until = this.keyValue.get(this.keysToGet[7]);
+		}
 
 		try {
 			User user = this.insight.getUser();
@@ -48,18 +57,24 @@ public class GoogleCalendarRecurringEventReactor extends AbstractReactor {
 				}
 			}
 			boolean video = Boolean.parseBoolean(enablevideo);
-			return GoogleCalendarHelper.recurringEvent(accessToken, summary, location, desc,
-					startdatetime, enddatetime, attendeeEmails, frequency, until, video);
+			boolean isRecurring = frequency != null && !frequency.isEmpty() && !frequency.equals(NONE);
+			if (!isRecurring) {
+				return GoogleCalendarHelper.createEvent(accessToken, summary, location, desc, startdatetime,
+						enddatetime, attendeeEmails, video);
+			}
+			else {
+				return GoogleCalendarHelper.recurringEvent(accessToken, summary, location, desc,
+						startdatetime, enddatetime, attendeeEmails, frequency, until, video);
+			}
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
 		}
-
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to create recurring events in the Google Calender.";
+		return "This reactor is used to create non-recurring and recurring events in the Google Calender.";
 	}
 	
 	@Override
