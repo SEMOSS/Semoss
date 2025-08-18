@@ -220,8 +220,15 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         kwargs = self._update_model_specific_kwargs(**kwargs)
 
         if "stop" in kwargs and isinstance(kwargs.get("stop"), list):
-            # kwargs["stop"] = kwargs["stop"][:4]
-            kwargs.pop("stop")
+            # keep only unique, non-empty strings and cap to first 4 as safety
+            cleaned_stops = [s for s in kwargs["stop"] if isinstance(s, str) and s]
+            # deduplicate while preserving order
+            seen = set()
+            cleaned_stops = [s for s in cleaned_stops if not (s in seen or seen.add(s))]
+            if cleaned_stops:
+                kwargs["stop"] = cleaned_stops[:4]
+            else:
+                kwargs.pop("stop")
 
         response = self.client.chat.completions.create(model=self.model_name, **kwargs)
 
