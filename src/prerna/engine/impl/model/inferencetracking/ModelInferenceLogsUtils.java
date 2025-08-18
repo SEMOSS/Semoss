@@ -8,7 +8,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -2703,9 +2702,15 @@ public class ModelInferenceLogsUtils {
 		}
 		return bestPermission;
 	}
-	
-	public static List<Map<String, Object>> getModelInferenceUserReport(String agentId, String startDate,
-			String endDate) {
+
+	/**
+	 * 
+	 * @param agentId
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 */
+	public static List<Map<String, Object>> getModelInferenceUserReport(String agentId, String startDate, String endDate) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		// SELECT fields
@@ -2723,7 +2728,7 @@ public class ModelInferenceLogsUtils {
 		sumTokens.setFunction(QueryFunctionHelper.SUM);
 		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(sumTokens);
-		
+
 		QueryFunctionSelector avgTokens = new QueryFunctionSelector();
 		avgTokens.setAlias("avg_tokens");
 		avgTokens.setFunction(QueryFunctionHelper.AVERAGE_2);
@@ -2751,8 +2756,14 @@ public class ModelInferenceLogsUtils {
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
-	public static List<Map<String, Object>> getModelInferenceAppReport(String agentId, String startDate,
-			String endDate) {
+	/**
+	 * 
+	 * @param agentId
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 */
+	public static List<Map<String, Object>> getModelInferenceAppReport(String agentId, String startDate, String endDate) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// SELECT fields
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME", "project_name"));
@@ -2769,7 +2780,7 @@ public class ModelInferenceLogsUtils {
 		sumTokens.setFunction(QueryFunctionHelper.SUM);
 		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(sumTokens);
-		
+
 		QueryFunctionSelector avgTokens = new QueryFunctionSelector();
 		avgTokens.setAlias("avg_tokens");
 		avgTokens.setFunction(QueryFunctionHelper.AVERAGE_2);
@@ -2788,7 +2799,6 @@ public class ModelInferenceLogsUtils {
 		// Filter on AGENT_ID
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", agentId));
 
-		
 		if (startDate != null && endDate != null) {
 			addStartDateEndDateFitler(qs, startDate, endDate);
 		}
