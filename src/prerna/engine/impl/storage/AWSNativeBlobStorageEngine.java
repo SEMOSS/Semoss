@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.ResponseInputStream;
@@ -75,6 +76,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	public static final String S3_BUCKET_KEY = "S3_BUCKET";
 	public static final String S3_ACCESS_KEY = "S3_ACCESS";
 	public static final String S3_SECRET_KEY = "S3_SECRET";
+	public static final String S3_ENDPOINT_KEY = "S3_ENDPOINT";
+	public static final String S3_PATH_STYLE_ACCESS_KEY = "S3_PATH_STYLE_ACCESS";
 	public static final String S3_CHECKSUM_FUNCTION = "s3-chceksum-function";
 	public static final String S3_CHECKSUM_ENABLE = "enable-checksum";
 	// for checksum this  must be greater than or equal to 5MB.
@@ -84,6 +87,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	private String secretKey;
 	private String region;
 	private String bucket;
+	private String endpoint;
+	private boolean pathStyleAccess = false;
 
 	private S3Client client = null;
 	private static final Set<String> SUPPORTED_CHECKSUMS = new HashSet<>(
@@ -97,6 +102,11 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		this.secretKey = smssProp.getProperty(S3_SECRET_KEY);
 		this.region = smssProp.getProperty(S3_REGION_KEY);
 		this.bucket = smssProp.getProperty(S3_BUCKET_KEY);
+		this.endpoint = smssProp.getProperty(S3_ENDPOINT_KEY);
+		String pathStyleAccessStr = smssProp.getProperty(S3_PATH_STYLE_ACCESS_KEY);
+		if (pathStyleAccessStr != null && !pathStyleAccessStr.isEmpty()) {
+			this.pathStyleAccess = Boolean.parseBoolean(pathStyleAccessStr);
+		}
 
 		if (this.accessKey == null || this.accessKey.isEmpty()) {
 			throw new RuntimeException("Must pass in an access key");
@@ -114,9 +124,24 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	}
 
 	public void createServiceClient() {
-		this.client = S3Client.builder().region(Region.of(this.region))
-				.credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
-				.build();
+		software.amazon.awssdk.services.s3.S3ClientBuilder builder = S3Client.builder();
+		builder.region(Region.of(this.region))
+				.credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)));
+
+		if (this.endpoint != null && !this.endpoint.isEmpty()) {
+			try {
+				builder.endpointOverride(new java.net.URI(this.endpoint));
+				if (this.pathStyleAccess) {
+					builder.forcePathStyle(true);
+				}
+				classLogger.info("Using S3 endpoint override: " + this.endpoint);
+			} catch (java.net.URISyntaxException e) {
+				classLogger.error("Invalid S3 endpoint URI: " + this.endpoint, e);
+				throw new RuntimeException("Invalid S3 endpoint URI: " + this.endpoint, e);
+			}
+		}
+
+		this.client = builder.build();
 		classLogger.info("S3 Blob Service client created successfully.");
 	}
 
@@ -128,7 +153,16 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	@Override
 	public List<String> list(String path) throws Exception {
 		List<String> fileList = new ArrayList<String>();
-		path = path.replace("\\", "/").replaceAll("/+", "/").replaceFirst("^/", "").replaceAll("/+$", "");
+		 // Normalize the path using the utility method
+	    path = Utility.normalizePath(path);
+
+	    // Remove leading and trailing slashes, if any
+	    if (path.startsWith("/")) {
+	        path = path.substring(1);
+	    }
+	    if (path.endsWith("/")) {
+	        path = path.substring(0, path.length() - 1);
+	    }
 		try {
 			ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(path);
 			for (S3Object object : listObjectsV2Response.contents()) {
@@ -145,7 +179,16 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	@Override
 	public List<Map<String, Object>> listDetails(String path) throws Exception {
 		List<Map<String, Object>> objectDetails = new ArrayList<>();
-		path = path.replace("\\", "/").replaceAll("/+", "/").replaceFirst("^/", "").replaceAll("/+$", "");
+		 // Normalize the path using the utility method
+	    path = Utility.normalizePath(path);
+
+	    // Remove leading and trailing slashes, if any
+	    if (path.startsWith("/")) {
+	        path = path.substring(1);
+	    }
+	    if (path.endsWith("/")) {
+	        path = path.substring(0, path.length() - 1);
+	    }
 
 		try {
 			ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(path);
@@ -365,10 +408,10 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		for (String s3FolderPath : paths) {
 			// Delete empty folder blobs
 			deleteEmptyBlobsFromS3(s3FolderPath);
-
-			// Normalize prefix
-			String prefix = s3FolderPath.replace("\\", "/").replaceAll("/+", "/").trim();
-			if (!prefix.endsWith("/")) {
+			
+			// Normalize prefix using the utility method
+			String prefix = Utility.normalizePath(s3FolderPath);
+			if (!prefix.endsWith("/") && !prefix.isEmpty()) {
 				prefix += "/";
 			}
 
@@ -431,7 +474,15 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public void deleteFromStorage(String storagePath) throws Exception {
-		storagePath = storagePath.replace("\\", "/").replaceAll("//+", "/").replaceAll("^/+", "").replaceAll("/+$", "");
+		storagePath = Utility.normalizePath(storagePath);
+		
+	    // Remove leading and trailing slashes if present
+	    if (storagePath.startsWith("/")) {
+	        storagePath = storagePath.substring(1);
+	    }
+	    if (storagePath.endsWith("/")) {
+	        storagePath = storagePath.substring(0, storagePath.length() - 1);
+	    }
 
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
@@ -473,7 +524,15 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
-		storagePath = storagePath.replace("\\", "/").replaceFirst("^/", "").replaceAll("/+$", "");
+		storagePath = Utility.normalizePath(storagePath);
+		
+	    // Remove leading and trailing slashes if present
+	    if (storagePath.startsWith("/")) {
+	        storagePath = storagePath.substring(1);
+	    }
+	    if (storagePath.endsWith("/")) {
+	        storagePath = storagePath.substring(0, storagePath.length() - 1);
+	    }
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
 		ListObjectsV2Response responseListObjects = s3ListObjectResponse(storagePath);
@@ -512,7 +571,15 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
 
-		storageFolderPath = storageFolderPath.replace("\\", "/").replaceFirst("^/", "").replaceAll("/+$", "");
+		storageFolderPath = Utility.normalizePath(storageFolderPath);
+		
+	    // Remove leading and trailing slashes if present
+	    if (storageFolderPath.startsWith("/")) {
+	    	storageFolderPath = storageFolderPath.substring(1);
+	    }
+	    if (storageFolderPath.endsWith("/")) {
+	    	storageFolderPath = storageFolderPath.substring(0, storageFolderPath.length() - 1);
+	    }
 		boolean folderExists = false;
 
 		classLogger.info(
@@ -550,8 +617,9 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	private String uploadFileToS3(String storagePath, Path filePath, Path basePath, Map<String, Object> metadata)
 			throws Exception {
-		String relativePath = basePath.relativize(filePath).toString().replace("\\", "/");
-		String fileKey = storagePath + (storagePath.endsWith("/") ? "" : "/") + relativePath;
+		String relativePath = Utility.normalizePath(basePath.relativize(filePath).toString());
+		String normalizedStoragePath = Utility.normalizePath(storagePath);
+		String fileKey = normalizedStoragePath + (normalizedStoragePath.endsWith("/") ? "" : "/") + relativePath;
 
 		try {
 			HeadObjectRequest headRequest = HeadObjectRequest.builder().bucket(this.bucket).key(fileKey).build();
@@ -1125,12 +1193,12 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	private String uploadFile(Path rootPath, Path file, String storageFolderPath, Map<String, Object> metadata)
 			throws IOException {
-		String normalizedPath = storageFolderPath.replace("\\", "/").replaceAll("/+", "/").trim();
+		String normalizedPath = Utility.normalizePath(storageFolderPath).trim();
 		if (normalizedPath.startsWith("/")) {
 			normalizedPath = normalizedPath.substring(1);
 		}
 
-		String relativePath = rootPath.relativize(file).toString().replace("\\", "/").replaceAll("/+", "/").trim();
+		String relativePath = Utility.normalizePath(rootPath.relativize(file).toString()).trim();
 		String fileKey = normalizedPath.isEmpty() ? relativePath
 				: (normalizedPath.endsWith("/") ? normalizedPath + relativePath : normalizedPath + "/" + relativePath);
 		
