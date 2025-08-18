@@ -19,10 +19,10 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	public static final String USAGE_RESTRICTION_CURRENT_VALUE = "currentValue";
 	public static final String USAGE_RESTRICTION_MAX_VALUE = "maxValue";
 	
-	private T response;
-	private Integer numberOfTokensInPrompt;
-	private Integer numberOfTokensInResponse;
-	private Map<String, Object> usageRestriction = null;
+	protected T response;
+	protected Integer numberOfTokensInPrompt;
+	protected Integer numberOfTokensInResponse;
+	protected Map<String, Object> usageRestriction = null;
 
     public AbstractModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         this.response = response;

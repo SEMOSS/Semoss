@@ -36,7 +36,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 	 */
 
 	public CreateAppFromTemplateReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), "projectTemplate", 
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TEMPLATE.getKey(), 
 				ReactorKeysEnum.GLOBAL.getKey(), 
 				ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey()};
 	}
@@ -71,8 +71,8 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 				gitProvider, gitCloneUrl, this.insight.getUser(), logger);
 		
 		// now we just need to move over the files for assets
-		String templateProjectAssetFolder = AssetUtility.getProjectAssetFolder(projectTemplateId);
-		String newProjectAssetFolder = AssetUtility.getProjectAssetFolder(newProject.getProjectId());
+		String templateProjectAssetFolder = AssetUtility.getProjectAssetsFolder(projectTemplateId);
+		String newProjectAssetFolder = AssetUtility.getProjectAssetsFolder(newProject.getProjectId());
 		
 		Path sourceDir = Paths.get(templateProjectAssetFolder);
         Path destinationDir = Paths.get(newProjectAssetFolder);

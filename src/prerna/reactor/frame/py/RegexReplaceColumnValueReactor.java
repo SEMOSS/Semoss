@@ -1,7 +1,7 @@
 package prerna.reactor.frame.py;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 import java.util.regex.Pattern;
 
 import prerna.algorithm.api.SemossDataType;
@@ -92,7 +92,7 @@ public class RegexReplaceColumnValueReactor extends AbstractPyFrameReactor {
 		}
 
 		// execute all of the routines after we have done our validation
-		insight.getPyTranslator().runPyAndReturnOutput(scripts);
+		insight.getPyTranslator().runEmptyPy(scripts);
 		for(String script : scripts) {
 			this.addExecutedCode(script);
 		}
@@ -105,7 +105,7 @@ public class RegexReplaceColumnValueReactor extends AbstractPyFrameReactor {
 	}
 
 	private List<String> getColumns() {
-		List<String> cols = new Vector<String>();
+		List<String> cols = new ArrayList<String>();
 
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
 		if (grs != null && !grs.isEmpty()) {

@@ -12,7 +12,6 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.reactor.job.JobReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -36,11 +35,6 @@ public class VarStoreAdapter extends TypeAdapter<VarStore> {
 		
 		if(collectFrames) {
 			for(String k : keys) {
-				// ignore these 3 variables
-				if(k.equals(JobReactor.JOB_KEY) || k.equals(JobReactor.SESSION_KEY) || k.equals(JobReactor.ROUTE_KEY) 
-						|| k.equals(JobReactor.INSIGHT_KEY)) {
-					continue;
-				}
 				NounMetadata noun = value.get(k);
 				if(noun.getNounType() == PixelDataType.TASK) {
 					continue;
@@ -80,10 +74,6 @@ public class VarStoreAdapter extends TypeAdapter<VarStore> {
 			}
 		} else {
 			for(String k : keys) {
-				// ignore these 3 variables
-				if(k.equals(JobReactor.JOB_KEY) || k.equals(JobReactor.SESSION_KEY) || k.equals(JobReactor.INSIGHT_KEY)) {
-					continue;
-				}
 				if(this.keysToIgnore.contains(k)) {
 					continue;
 				}
