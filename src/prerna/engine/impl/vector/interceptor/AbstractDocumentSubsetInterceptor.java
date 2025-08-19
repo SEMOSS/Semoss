@@ -11,8 +11,8 @@ public abstract class AbstractDocumentSubsetInterceptor extends AbstractIntercep
 	
 	protected final Set<String> documents;
 	
-	public AbstractDocumentSubsetInterceptor(IVectorDatabaseEngine target, Object[] constructorArgs) {
-		super(target, constructorArgs);
+	public AbstractDocumentSubsetInterceptor(IVectorDatabaseEngine proxyEngine, IVectorDatabaseEngine targetEngine, Object[] constructorArgs) {
+		super(proxyEngine, targetEngine, constructorArgs);
 		if(constructorArgs != null) {
 			if(constructorArgs.length > 0){
 				String[] stringArgs = new String[constructorArgs.length];

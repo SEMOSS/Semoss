@@ -83,7 +83,7 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		try {
-			targetInterceptor = AbstractInterceptor.buildInterceptor(targetInterceptorType, targetEngine, targetParameters);
+			targetInterceptor = AbstractInterceptor.buildInterceptor(targetInterceptorType, this, targetEngine, targetParameters);
 		} catch(ClassNotFoundException | ClassCastException e) {
 			throw new IllegalArgumentException("Unable to create interceptor for proxy vector database engine", e);
 		}
@@ -116,7 +116,7 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	@Override
 	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws Exception {
-		proxy.addDocument(fileNames, parameters);
+		proxy.removeDocument(fileNames, parameters);
 	}
 	@Override
 	public List<FileEmbeddingStatus> addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters)
