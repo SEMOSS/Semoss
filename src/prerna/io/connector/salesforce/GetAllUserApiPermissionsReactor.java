@@ -3,6 +3,7 @@ package prerna.io.connector.salesforce;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,10 +35,15 @@ public class GetAllUserApiPermissionsReactor extends AbstractReactor {
 				throw new SemossPixelException("User Api Permission table not found in database.");
 			}
 			
-			String query = "SELECT * FROM " + tableName;
-			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
-			System.out.println("HashMap: " + hashmap);
-			Object rsObj = hashmap.get("RESULTSET_OBJECT");
+			String query = "SELECT ID, USERID, API_ID, TYPE FROM " + tableName;
+			Object execResult = database.execQuery(query);
+			if (!(execResult instanceof Map)) {
+			    classLogger.error("Unexpected execQuery return type: {}", execResult == null ? "null" : execResult.getClass());
+			    throw new SemossPixelException("Unexpected database response.");
+			}
+			@SuppressWarnings("unchecked")
+			Map<String, Object> resultMap = (Map<String, Object>) execResult;
+			Object rsObj = resultMap.get("RESULTSET_OBJECT");
 			List<HashMap<String, String>> resultList = new ArrayList<>();
 			
 			if(rsObj instanceof ResultSet) {

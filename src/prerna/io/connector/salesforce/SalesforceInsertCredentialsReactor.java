@@ -36,7 +36,7 @@ public class SalesforceInsertCredentialsReactor extends AbstractReactor {
 	public SalesforceInsertCredentialsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.INSTANCE_URL.getKey(), ReactorKeysEnum.CLIENT_ID.getKey(),
 				ReactorKeysEnum.CLIENT_SECRET.getKey(), ReactorKeysEnum.REDIRECT_URI.getKey(), ReactorKeysEnum.KEY_NAME.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 1 };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 1 };
 	}
 
 	// centralized table name lookup
