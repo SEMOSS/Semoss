@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -13,9 +14,11 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
@@ -26,14 +29,16 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 
 public class MakePixelMCPReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MakePixelMCPReactor.class);
 
 	public MakePixelMCPReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey()};
-		this.keyRequired = new int[] {1, 0};
+		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
+				ReactorKeysEnum.COMMENT_KEY.getKey()};
+		this.keyRequired = new int[] {1, 0, 0};
 	}
 
 	@Override
@@ -84,6 +89,28 @@ public class MakePixelMCPReactor extends AbstractReactor {
         	classLogger.error(Constants.STACKTRACE, e);
         	throw new IllegalArgumentException("Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
 		}
+
+		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
+		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
+		if(comment == null) {
+			comment = "add: MakePixelMCP executed";
+		}
+		
+		// add file to git
+		List<String> gitRelativeFilePaths = new ArrayList<>();
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + "/mcp/pixel_mcp.json");		
+		
+		// Get the user's email
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
+		String author = accessToken.getUsername();
+		
+		GitRepoUtils.addSpecificFiles(versionGitFolder, gitRelativeFilePaths);
+		// commit it
+		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
+		// handle synchronization to the cloud
+		ClusterUtil.pushProjectFolder(project, assetFolder);
 		
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}
@@ -99,6 +126,8 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			return "The unique id for the project/app";
 		} else if(key.equals(ReactorKeysEnum.REACTOR.getKey())) {
 			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
+		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+			return "Comment to add while saving the files within the git repository for the project";
 		}
 		return super.getDescriptionForKey(key);
 	}
