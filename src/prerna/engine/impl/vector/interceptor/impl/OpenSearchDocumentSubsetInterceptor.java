@@ -69,7 +69,9 @@ public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetI
 	
 	@SuppressWarnings("unchecked")
 	public Object doIntercept(Object obj, Method method, Object[] args, MethodProxy proxy) throws Throwable {
-		if(!documents.isEmpty()) {
+		// null documents means no filter needed
+		// empty documents means no files visible
+		if(documents != null) {
 			Map<String, Object> parameters = (Map<String, Object>) args[args.length-1];
 			IQueryFilter documentFilter = SimpleQueryFilter.makeColToValFilter("Source", "==", documents);
 			List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");

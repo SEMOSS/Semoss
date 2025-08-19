@@ -13,21 +13,25 @@ public abstract class AbstractDocumentSubsetInterceptor extends AbstractIntercep
 	
 	public AbstractDocumentSubsetInterceptor(IVectorDatabaseEngine proxyEngine, IVectorDatabaseEngine targetEngine, Object[] constructorArgs) {
 		super(proxyEngine, targetEngine, constructorArgs);
+		// null documents means no filter needed.
+		// empty documents filter means no files allowed.
 		if(constructorArgs != null) {
 			if(constructorArgs.length > 0){
 				String[] stringArgs = new String[constructorArgs.length];
 				for(int i=0; i<constructorArgs.length; i++) {
 					stringArgs[i] = constructorArgs[i] == null ? null : constructorArgs[i].toString();
 				}
-				documents = Sets.newHashSet(stringArgs);
-				if(documents.contains("*")) {
-					documents.clear();
+				Set<String> documentsGiven = Sets.newHashSet(stringArgs);
+				if(documentsGiven.contains("*")) {
+					documents = null;
+				} else {
+					documents = documentsGiven;
 				}
 			} else {
 				documents = new HashSet<>();
 			}
 		} else {
-			documents = new HashSet<>();
+			documents = null;
 		}
 	}
 	
