@@ -54,7 +54,9 @@ public class ThemeOwlCreator {
 				Pair.with("BLOCK_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("DATE_ADDED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("IS_LATEST", BOOLEAN_DATATYPE_NAME),
-				Pair.with("CREATED_BY", "VARCHAR(255)")
+				Pair.with("CREATED_BY", "VARCHAR(255)"),
+				Pair.with("BLOCK_QUERIES", CLOB_DATATYPE_NAME),
+				Pair.with("BLOCK_VARIABLE", CLOB_DATATYPE_NAME)
 				);
 		
 		this.allSchemas = Arrays.asList(

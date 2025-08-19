@@ -35,10 +35,10 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	private static BlocksThemeUtils instance = new BlocksThemeUtils();
 
-	private static final String BLOCK_QUERY = "INSERT INTO " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName() + " (ID, NAME, SECTION, HOVER_TEXT, BLOCK_JSON, DATE_ADDED, IS_LATEST, CREATED_BY) "
-			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+	private static final String BLOCK_QUERY = "INSERT INTO " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName() + " (ID, NAME, SECTION, HOVER_TEXT, BLOCK_JSON, DATE_ADDED, IS_LATEST, CREATED_BY, BLOCK_QUERIES, BLOCK_VARIABLE) "
+			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-	public static String[] BLOCK_COLUMN_NAMES = new String[] { "ID", "NAME", "SECTION", "HOVER_TEXT", "BLOCK_JSON" , "DATE_ADDED", "IS_LATEST" , "CREATED_BY" };
+	public static String[] BLOCK_COLUMN_NAMES = new String[] { "ID", "NAME", "SECTION", "HOVER_TEXT", "BLOCK_JSON" , "DATE_ADDED", "IS_LATEST" , "CREATED_BY", "BLOCK_QUERIES", "BLOCK_VARIABLE" };
 
 	
 	private BlocksThemeUtils() {
@@ -92,13 +92,29 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	// convert block_json field into json for output
 	private static void convertBlockJsonStringToJSONObject(Map<String, Object> map) {
 	    try {
-	        String blockJson = (String) map.get("BLOCK_JSON");
 	        Gson gson = new Gson();
 	        Type type = new TypeToken<Map<String, Object>>() {}.getType();
-	        map.put("json", gson.fromJson(blockJson, type));
+	        // Convert BLOCK_JSON
+	        String blockJson = (String) map.get("BLOCK_JSON");
+	        if (blockJson != null) {
+	            map.put("json", gson.fromJson(blockJson, type));
+	        }
+	        // Convert BLOCK_QUERIES
+	        String blockQueries = (String) map.get("BLOCK_QUERIES");
+	        if (blockQueries != null) {
+	            map.put("queries", gson.fromJson(blockQueries, type));
+	        }
+	        // Convert BLOCK_VARIABLE
+	        String blockVariable = (String) map.get("BLOCK_VARIABLE");
+	        if (blockVariable != null) {
+	            map.put("variable", gson.fromJson(blockVariable, type));
+	        }
+	       
 	        map.remove("BLOCK_JSON");
+	        map.remove("BLOCK_QUERIES");
+	        map.remove("BLOCK_VARIABLE");
 	    } catch (Exception e) {
-	        throw new SemossPixelException("Error converting BLOCK_JSON to json object", e);
+	        throw new SemossPixelException("Error converting BLOCK_* to json object", e);
 	    }
 	}
 	 
@@ -170,6 +186,9 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		validateString(blockDetails, "name", false, false);
 		validateString(blockDetails, "section", false, false);
 		validateString(blockDetails, "json", false, false);
+		validateString(blockDetails, "queries", false, false);
+		validateString(blockDetails, "variable", false, false);
+
 	}
 	
 	// validate the individual fields
@@ -202,6 +221,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("name")));
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("section")).toUpperCase());
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("hover_text")));
+			// BLOCK_JSON
 			if (allowClob) {
 				Clob toclob = themeDb.getConnection().createClob();
 				toclob.setString(1, String.valueOf(blockDetails.get("json")));
@@ -213,6 +233,24 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			blockPS.setBoolean(parameterIndex++, true);
 			//blockPS.setBoolean(parameterIndex++, true); // IS_LATEST
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("created_by"))); // CREATED_BY
+			
+			// BLOCK_QUERIES
+		     if (allowClob) {
+		         Clob queryClob = themeDb.getConnection().createClob();
+		         queryClob.setString(1, String.valueOf(blockDetails.get("queries")));
+		         blockPS.setClob(parameterIndex++, queryClob);
+		     } else {
+		         blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("queries")));
+		     }
+			
+			// BLOCK_VARIABLE
+		     if (allowClob) {
+		         Clob varClob = themeDb.getConnection().createClob();
+		         varClob.setString(1, String.valueOf(blockDetails.get("variable")));
+		         blockPS.setClob(parameterIndex++, varClob);
+		     } else {
+		         blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("variable")));
+		     }
 			blockPS.executeUpdate();
 			if (!blockPS.getConnection().getAutoCommit()) {
 				blockPS.getConnection().commit();
@@ -254,7 +292,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	}
 
 	public static String[] getThemeColTypes(AbstractSqlQueryUtil queryUtil) {
-		return new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(500)", queryUtil.getClobDataTypeName(), queryUtil.getDateWithTimeDataType(), queryUtil.getBooleanDataTypeName(),"varchar(255)" };
+		return new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(500)", queryUtil.getClobDataTypeName(), queryUtil.getDateWithTimeDataType(), queryUtil.getBooleanDataTypeName(),"varchar(255)", queryUtil.getClobDataTypeName(), queryUtil.getClobDataTypeName() };
 	}
 
 }

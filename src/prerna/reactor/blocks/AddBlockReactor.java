@@ -19,7 +19,8 @@ import prerna.theme.BlocksThemeUtils;
 public class AddBlockReactor extends AbstractReactor {
 
 	public AddBlockReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.SECTION.getKey(), ReactorKeysEnum.JSON.getKey() };
+		this.keysToGet = new String[]{ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.SECTION.getKey(), ReactorKeysEnum.JSON.getKey(),
+				ReactorKeysEnum.QUERIES.getKey(), ReactorKeysEnum.VARIABLE.getKey()};
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -58,17 +59,30 @@ public class AddBlockReactor extends AbstractReactor {
 	        blockMap.put("name", keyValue.get(ReactorKeysEnum.NAME.getKey()));
 	        blockMap.put("section",keyValue.get(ReactorKeysEnum.SECTION.getKey()));
 	        
-	        String rawJson = keyValue.get(ReactorKeysEnum.JSON.getKey());
-	        // Removes <encode> wrapper for json field
-	        if (rawJson != null) {
-	            try {
-					rawJson = URLDecoder.decode(rawJson, "UTF-8");
-				} catch (UnsupportedEncodingException e) {
-					e.printStackTrace();
-				}
-	        }
+	        String rawJson = decodeIfNeeded(keyValue.get(ReactorKeysEnum.JSON.getKey()));
 	        blockMap.put("json", rawJson);
+	       // QUERIES
+	        String rawQueries = decodeIfNeeded(keyValue.get(ReactorKeysEnum.QUERIES.getKey()));
+	        blockMap.put("queries", rawQueries);
+
+	        //VARIABLES 
+	        String rawVariables = decodeIfNeeded(keyValue.get(ReactorKeysEnum.VARIABLE.getKey()));
+	        blockMap.put("variable", rawVariables);
+	        
 	        blockMap.put("created_by",this.insight.getUserId());
 		       return blockMap;
-		}		 
+		}	
+	
+	  // helper to decode <encode> wrapped fields
+    private String decodeIfNeeded(String rawValue) {
+        if (rawValue == null) {
+            return "{}";
+        }
+        try {
+            return URLDecoder.decode(rawValue, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return rawValue;
+        }
+    }
 }

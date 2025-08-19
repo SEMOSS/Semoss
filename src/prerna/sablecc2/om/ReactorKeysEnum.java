@@ -291,6 +291,7 @@ public enum ReactorKeysEnum {
 	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
 	X("x",		 											    "The X coordiante."),
 	Y("y",		 											    "The Y coordiante."),
+	QUERIES("queries",		 								    "The queries passing from ui"),
 	;
 
 	private String key;
