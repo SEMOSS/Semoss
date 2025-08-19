@@ -12,32 +12,96 @@ from google.genai import types
 
 class GoogleGenAIMessageBuilder:
 
-    def build_messages(
-        self, semoss_messages: List[SEMOSSMessage]
-    ) -> Tuple[List[Content], Dict[str, Any]]:
-        """Convert SEMOSS messages to Google GenAI Content and return the param map from the latest message."""
+    def build_messages(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
+        """Convert SEMOSS messages to Google GenAI Content."""
         google_messages = []
         param_map = {}
+        stream = False
+
+        pending_tool_responses = []
+        expected_tool_count = 0
 
         for i, message in enumerate(semoss_messages):
             parts = []
 
-            content = message.content
-            if content:
-                parts.extend([self._build_text_content_part(content)])
+            if (
+                message.type == SEMOSSMessageType.INPUT_TEXT
+                or message.type == SEMOSSMessageType.INPUT_MEDIA
+            ):
+                if message.content:
+                    parts.append(self._build_text_content_part(message.content))
 
-            if message.image_content:
-                parts.extend(self._build_image_content_parts(message.image_content))
+                if message.image_content:
+                    parts.extend(self._build_image_content_parts(message.image_content))
 
-            # TODO: Handle tool calls and responses..
-
-            role = self._message_type_to_role(message.type)
-            google_messages.append(
-                Content(
-                    role=role,
-                    parts=parts,
+                google_messages.append(
+                    Content(
+                        role=GoogleRoles.USER,
+                        parts=parts,
+                    )
                 )
-            )
+
+            elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
+                if message.tool_calls:
+                    expected_tool_count = len(message.tool_calls)
+
+                    for tool_call in message.tool_calls:
+                        parts.append(
+                            Part.from_function_call(
+                                name=tool_call["function"]["name"],
+                                args=tool_call["function"]["arguments"],
+                            )
+                        )
+
+                    google_messages.append(
+                        Content(
+                            role=GoogleRoles.MODEL,
+                            parts=parts,
+                        )
+                    )
+
+            elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
+                if expected_tool_count > 0:
+                    tool_name = None
+                    for j in range(i - 1, -1, -1):
+                        prev_msg = semoss_messages[j]
+                        if prev_msg.type == SEMOSSMessageType.RESPONSE_TOOL:
+                            if prev_msg.tool_calls:
+                                for tool_call in prev_msg.tool_calls:
+                                    if str(tool_call.get("id")) == str(
+                                        message.tool_call_id
+                                    ):
+                                        tool_name = tool_call["function"]["name"]
+                                        break
+                            break
+
+                    if tool_name and message.content:
+                        pending_tool_responses.append(
+                            Part.from_function_response(
+                                name=tool_name, response={"result": message.content}
+                            )
+                        )
+
+                        if len(pending_tool_responses) == expected_tool_count:
+                            google_messages.append(
+                                Content(
+                                    role=GoogleRoles.USER,
+                                    parts=pending_tool_responses,
+                                )
+                            )
+                            pending_tool_responses = []
+                            expected_tool_count = 0
+
+            elif message.type == SEMOSSMessageType.RESPONSE_TEXT:
+                if message.content:
+                    parts.append(self._build_text_content_part(message.content))
+
+                google_messages.append(
+                    Content(
+                        role=GoogleRoles.MODEL,
+                        parts=parts,
+                    )
+                )
 
             if i == len(semoss_messages) - 1:
                 param_map, stream = self._convert_args_to_provider_config(
@@ -50,54 +114,35 @@ class GoogleGenAIMessageBuilder:
             "stream": stream,
         }
 
-    def _handle_tools_conversion(self, tools: List[Dict]) -> List[types.Tool]:
+    def convert_mcp_to_google_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
         """
-        Converting from the OpenAI tools format I recieve to the Google Gen AI tools format.
+        Convert MCP-formatted tools to Google GenAI function calling format.
+        Args:
+            mcp_tools: List of tools in MCP format
+        Returns:
+            List of function declarations for Google GenAI
         """
-        google_tools = []
+        function_declarations = []
 
-        for tool in tools:
-            if tool.get("type", None) == "function":
-                func_def = tool["function"]
-                # if func_def.get("name", None) == "function_engine":
-                #     function_engine_id_actual = (
-                #         func_def.get("parameters")
-                #         .get("properties")
-                #         .get("id")
-                #         .get("enum")[0]
-                #     )
-                #     func_def["name"] = f"function_engine_{function_engine_id_actual}"
+        for tool in mcp_tools:
+            function_declaration = {
+                "name": tool["name"],
+                "description": tool["description"],
+                "parameters": {
+                    "type": tool["inputSchema"]["type"],
+                    "properties": {},
+                    "required": tool["inputSchema"].get("required", []),
+                },
+            }
 
-                parameters_schema = None
-                if "parameters" in func_def:
-                    params = func_def["parameters"]
+            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
+                function_declaration["parameters"]["properties"][prop_name] = {
+                    k: v for k, v in prop_def.items() if k != "title"
+                }
 
-                    properties = {}
-                    for prop_name, prop_def in params.get("properties", {}).items():
-                        properties[prop_name] = types.Schema(
-                            type=prop_def["type"].upper(),
-                            description=prop_def.get("description", ""),
-                        )
+            function_declarations.append(function_declaration)
 
-                    parameters_schema = types.Schema(
-                        type="OBJECT",
-                        properties=properties,
-                        required=params.get("required", []),
-                    )
-
-                function_declaration = types.FunctionDeclaration(
-                    name=func_def["name"],
-                    description=func_def["description"],
-                    parameters=parameters_schema,
-                )
-
-                google_tools.append(
-                    types.Tool(function_declarations=[function_declaration])
-                )
-            else:
-                raise ValueError("Unsupported tool type in SEMOSS tools.")
-
-        return google_tools
+        return function_declarations
 
     def _convert_args_to_provider_config(
         self, **kwargs
@@ -113,7 +158,9 @@ class GoogleGenAIMessageBuilder:
 
         tools = kwargs.pop("tools", None)
         if tools is not None:
-            tools = self._handle_tools_conversion(tools)
+            func_declarations = self.convert_mcp_to_google_tools(tools)
+
+            tools = [types.Tool(function_declarations=func_declarations)]
 
         max_output_tokens = kwargs.get("max_new_tokens", None)
         if max_output_tokens is None:

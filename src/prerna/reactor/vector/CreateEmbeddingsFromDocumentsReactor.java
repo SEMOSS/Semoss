@@ -19,6 +19,7 @@ import org.apache.tika.metadata.Metadata;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.impl.vector.FileEmbeddingStatus;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.CreateEmbeddingsParamOptions;
 import prerna.sablecc2.om.GenRowStruct;
@@ -76,6 +77,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		// this is coming from an insight so i assume its just the file names
 		List<String> validFiles = new ArrayList<>();
 		List<String> invalidFiles = new ArrayList<>();
+		List<FileEmbeddingStatus> fileStatusList;
 		try {
 			getFiles(rootFolder, validFiles, invalidFiles);
 			if (validFiles.isEmpty()) {
@@ -90,7 +92,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				}
 			}
 
-			vectorDatabase.addDocument(validFiles, paramMap);
+			fileStatusList = vectorDatabase.addDocument(validFiles, paramMap);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
@@ -104,8 +106,8 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				}
 			}
 		}
-
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+		
+		NounMetadata noun = new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		if(!invalidFiles.isEmpty()) {
 			List<String> invalidFileNamesRelative = new ArrayList<>(invalidFiles.size());
 			for(String invalidF : invalidFiles) {

@@ -28,7 +28,9 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.net.ssl.HostnameVerifier;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hc.client5.http.ClientProtocolException;
@@ -38,6 +40,8 @@ import org.apache.hc.client5.http.classic.methods.HttpHead;
 import org.apache.hc.client5.http.classic.methods.HttpPatch;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpPut;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.cookie.CookieStore;
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -46,8 +50,8 @@ import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
-import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactoryBuilder;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
@@ -57,15 +61,20 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.FileEntity;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
+import org.apache.hc.core5.http.ssl.TLS;
+import org.apache.hc.core5.reactor.ssl.SSLBufferMode;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.TrustStrategy;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
+
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
@@ -86,12 +95,13 @@ public final class HttpHelperUtility {
 	//////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////
 
+
 	/**
 	 * Get a custom client using the info passed in
 	 * @param cookieStore
-	 * @param keyStore				the keystore location
-	 * @param keyStorePass			the password for the keystore
-	 * @param keyPass				the password for the certificate if different from the keystore password
+	 * @param keyStore the keystore location
+	 * @param keyStorePass the password for the keystore
+	 * @param keyPass the password for the certificate if different from the keystore password
 	 * @return
 	 */
 	public static CloseableHttpClient getCustomClient(CookieStore cookieStore, String keyStore, String keyStorePass, String keyPass) {
@@ -102,8 +112,9 @@ public final class HttpHelperUtility {
 			}
 		};
 
-		HostnameVerifier verifier = new NoopHostnameVerifier();
-		SSLConnectionSocketFactoryBuilder sslConnFactory = null;
+		HostnameVerifier verifier = NoopHostnameVerifier.INSTANCE;
+		DefaultClientTlsStrategy tlsStrategy = null;
+
 		try {
 			SSLContextBuilder sslContextBuilder = SSLContextBuilder.create().loadTrustMaterial(trustStrategy);
 
@@ -121,11 +132,14 @@ public final class HttpHelperUtility {
 				}
 			}
 
-			sslConnFactory = SSLConnectionSocketFactoryBuilder.create()
-					.setHostnameVerifier(verifier)
-					.setSslContext(sslContextBuilder.build())
-					.setTlsVersions(new String[] {"TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"})
-					;
+			tlsStrategy = new DefaultClientTlsStrategy(
+					sslContextBuilder.build(),
+					new String[] {TLS.V_1_2.getId(), TLS.V_1_3.getId()}, // Removed deprecated TLS versions
+					null, // Use default cipher suites
+					SSLBufferMode.DYNAMIC,
+					verifier
+					);
+
 		} catch (KeyManagementException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (NoSuchAlgorithmException e) {
@@ -141,14 +155,26 @@ public final class HttpHelperUtility {
 		}
 
 		PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
-			.setSSLSocketFactory(sslConnFactory.build())
-			.build();
-
+				.setTlsSocketStrategy(tlsStrategy)
+				.build();
+		
+		connectionManager.setDefaultConnectionConfig(
+				ConnectionConfig.custom()
+	                .setConnectTimeout(Timeout.DISABLED)
+	                .build()
+				);
+		 
 		HttpClientBuilder builder = HttpClients.custom();
 		if(cookieStore != null) {
 			builder.setDefaultCookieStore(cookieStore);
 		}
 		builder.setConnectionManager(connectionManager);
+		builder.setDefaultRequestConfig(
+				RequestConfig.custom()
+					.setConnectionRequestTimeout(Timeout.DISABLED)
+					.setResponseTimeout(Timeout.DISABLED)
+					.build()
+				);
 		return builder.build();
 	}
 
@@ -163,11 +189,9 @@ public final class HttpHelperUtility {
 	 */
 	public static String getRequest(String url, Map<String, String> headerMap, String keyStore, String keyStorePass, String keyPass) {
 		CloseableHttpResponse response = null;
-		CloseableHttpClient httpClient = null;
 		HttpEntity entity = null;
 		String responseData = null;
-		try {
-			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
 			HttpGet httpGet = new HttpGet(url);
 			if(headerMap != null && !headerMap.isEmpty()) {
 				for(String key : headerMap.keySet()) {
@@ -204,13 +228,6 @@ public final class HttpHelperUtility {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(httpClient != null) {
-				try {
-					httpClient.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 	}
 
@@ -237,15 +254,13 @@ public final class HttpHelperUtility {
 		}
 
 		CloseableHttpResponse response = null;
-		CloseableHttpClient httpClient = null;
 		InputStream is = null;
 		// used if virus scanning
 		ByteArrayOutputStream baos = null;
 		ByteArrayInputStream bais = null;
 		HttpEntity entity = null;
 
-		try {
-			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
 			HttpGet httpGet = new HttpGet(url);
 			if(headerMap != null && !headerMap.isEmpty()) {
 				for(String key : headerMap.keySet()) {
@@ -323,13 +338,6 @@ public final class HttpHelperUtility {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(httpClient != null) {
-				try {
-					httpClient.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 	}
 
@@ -345,11 +353,9 @@ public final class HttpHelperUtility {
 	 */
 	public static String postRequestUrlEncodedBody(String url, Map<String, String> headersMap, Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass) {
 		String responseData = null;
-		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
-		try {
-			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
 			HttpPost httpPost = new HttpPost(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(String key : headersMap.keySet()) {
@@ -378,7 +384,7 @@ public final class HttpHelperUtility {
 		} catch (IOException | ParseException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url + " and received error = " + e.getMessage());
-		}
+		} 
 	}
 
 	/**
@@ -394,11 +400,9 @@ public final class HttpHelperUtility {
 	 */
 	public static String postRequestStringBody(String url, Map<String, String> headersMap, String body, ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
 		String responseData = null;
-		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
-		try {
-			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
 			HttpPost httpPost = new HttpPost(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(String key : headersMap.keySet()) {
@@ -440,11 +444,9 @@ public final class HttpHelperUtility {
 	 */
 	public static String putRequestStringBody(String url, Map<String, String> headersMap, String body, ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
 		String responseData = null;
-		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
-		try {
-			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
 			HttpPut httpPut = new HttpPut(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(String key : headersMap.keySet()) {
@@ -484,11 +486,9 @@ public final class HttpHelperUtility {
 	 */
 	public static String putRequestUrlEncodedBody(String url, Map<String, String> headersMap, Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass) {
 		String responseData = null;
-		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
-		try {
-			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
 			HttpPut httpPost = new HttpPut(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(String key : headersMap.keySet()) {
@@ -577,11 +577,9 @@ public final class HttpHelperUtility {
 	 */
 	public static String headRequest(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
 		String responseData = null;
-		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
-		try {
-			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
 			HttpHead httpHead = new HttpHead(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(String key : headersMap.keySet()) {
@@ -613,12 +611,18 @@ public final class HttpHelperUtility {
 		}
 	}
 
-	
-	public static int headRequest2(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
-	    CloseableHttpClient httpClient = null;
+	/**
+	 * 
+	 * @param url
+	 * @param headersMap
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @param keyPass
+	 * @return
+	 */
+	public static int headRequestStatus(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
 	    CloseableHttpResponse response = null;
-	    try {
-	        httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
 	        HttpHead httpHead = new HttpHead(url);
 	        if (headersMap != null && !headersMap.isEmpty()) {
 	            for (String key : headersMap.keySet()) {
@@ -633,7 +637,6 @@ public final class HttpHelperUtility {
 	        throw new IllegalArgumentException("Could not connect to URL at " + url, e);
 	    } finally {
 	        if (response != null) { try { response.close(); } catch (Exception ignore) {} }
-	        if (httpClient != null) { try { httpClient.close(); } catch (Exception ignore) {} }
 	    }
 	}
 	/**
@@ -648,11 +651,9 @@ public final class HttpHelperUtility {
 	 */
 	public static String deleteRequestStringBody(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
 		String responseData = null;
-		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
-		try {
-			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
 			HttpDelete httpHead = new HttpDelete(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(String key : headersMap.keySet()) {

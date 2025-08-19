@@ -1,27 +1,28 @@
-package prerna.engine.impl.model;
+package prerna.reactor.model;
 
-
+import java.util.List;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import java.util.*;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * AddToolExecutionReactor:
  *   Input: roomId, toolId, toolName, tool_execution_response
  */
-public class AddToolExecutionReactor extends prerna.reactor.AbstractReactor {
+public class AddToolExecutionReactor extends AbstractReactor {
+	
     public AddToolExecutionReactor() {
         this.keysToGet = new String[]{
         	ReactorKeysEnum.ENGINE.getKey(),		
@@ -55,9 +56,8 @@ public class AddToolExecutionReactor extends prerna.reactor.AbstractReactor {
         if (!ModelInferenceLogsUtils.validUserRoom(roomId, userId)) {
             throw new IllegalArgumentException("User does not have access to room " + roomId);
         }
-        Room room = ModelInferenceLogsUtils.getRoomById(roomId, userId);
-        room.setInsight(insight);
-        room.parseMessages();
+        
+        Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 
         List<AbstractMessage> messages = room.getMessages();
         if (messages.isEmpty()) {

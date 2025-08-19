@@ -1,4 +1,4 @@
-package prerna.engine.impl.model;
+package prerna.reactor.model;
 
 import java.util.Arrays;
 import java.util.HashMap;
