@@ -383,8 +383,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return vectorSearchResults;
 	}
 
-	
-	
 	protected JsonObject getNearestNeighborSearchJson(Insight insight, String searchStatement, Number limit,
 			Map<String, Object> parameters) {
 		IModelEngine engine = Utility.getModel(this.embedderEngineId);
@@ -401,29 +399,16 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 					JsonObject embedding = new JsonObject();
 					embedding.add("vector", convertListNumToJsonArray(searchStatementEmbedding));
 					embedding.addProperty("k", limit);
+					
+					if (parameters.containsKey("filters")) {
+						JsonObject filter = getFilterAggregation(parameters);
+						embedding.add("filter", filter);
+					}
 					knn.add(this.embeddings, embedding);
 				}
-				
-				if (!parameters.containsKey("filters")) {
-					query.add("knn", knn);
-				} else {
-					JsonObject bool = new JsonObject();
-					{
-						JsonArray must = new JsonArray();
-						{
-							JsonObject knnParent = new JsonObject();
-							knnParent.add("knn", knn);
-							must.add(knnParent);
-						}
-						bool.add("must", must);
-						
-						JsonObject filter = getFilterAggregation(parameters);
-						bool.add("filter", filter);
-					}
-					query.add("bool", bool);
-				}
-				search.add("query", query);
+				query.add("knn", knn);
 			}
+			search.add("query", query);
 		}
 		return search;
 	}
@@ -490,7 +475,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 					JsonObject terms = new JsonObject();
 					terms.addProperty("field", VectorDatabaseCSVTable.SOURCE);
 					terms.addProperty("min_doc_count", 1);
-					// Pull upto 9999 unique terms for the aggregation
+					// Pull up to 9999 unique terms for the aggregation
 					terms.addProperty("size", 9999);
 					uniqueSources.add("terms", terms);
 				}

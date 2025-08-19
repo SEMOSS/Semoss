@@ -31,21 +31,11 @@ public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetI
 	private static final Logger classLogger = LogManager.getLogger(OpenSearchDocumentSubsetInterceptor.class);
 
 	public static final Set<String> INTERCEPTED_METHOD_NAMES = Sets.newHashSet(
-//			"getNearestNeighborSearchJson"
-//			, "getListDocumentSearchJson"
-//			, "getListAllRecordsSearchJson"
 			"listAllRecords"
 			, "listDocuments"
-			, "nearestNeighborCall",
-			"removeDocument"
+			, "nearestNeighbor"
+			, "removeDocument"
 			// TODO: , "addDocument", (check edit permission and actually add in target? or just verify in target vector to alter doc list prop)
-			// TODO: , "removeDocument" (check edit permission and actually remove in target? or just alter doc list prop)
-	);
-	
-	public static final Set<String> PASSTHROUGH_METHOD_NAMES = Sets.newHashSet(
-			"getIndexFilesPath",
-			"getDocumentsFilesPath",
-			"getFilterAggregation"
 	);
 	
 	public OpenSearchDocumentSubsetInterceptor(IVectorDatabaseEngine proxyEngine, IVectorDatabaseEngine targetEngine, Object[] constructorArgs) {
@@ -71,10 +61,8 @@ public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetI
             }
             // Otherwise, standard filter+proxy call logic
             result = doIntercept(obj, method, args, proxyMethod);
-        } else if (PASSTHROUGH_METHOD_NAMES.contains(methodName)) {
-            result = proxyMethod.invoke(targetEngine, args);
         } else {
-            result = proxyMethod.invoke(targetEngine, args);
+            result = proxyMethod.invokeSuper(obj, args);
         }
         return result;
     }
@@ -92,7 +80,7 @@ public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetI
 				parameters.put("filters", Lists.newArrayList(new AndQueryFilter(filters)));
 			}
 		}
-		return proxy.invoke(targetEngine, args);
+		return proxy.invokeSuper(obj, args);
 	}
 	
 	

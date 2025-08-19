@@ -82,6 +82,8 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			this.targetParameters = new Gson().fromJson(targetParametersStr, Object[].class);
 		}
 		
+		this.smssProp.put(Constants.EMBEDDER_ENGINE_ID, targetEngine.getSmssProp().get(Constants.EMBEDDER_ENGINE_ID));
+		
 		try {
 			targetInterceptor = AbstractInterceptor.buildInterceptor(targetInterceptorType, this, targetEngine, targetParameters);
 		} catch(ClassNotFoundException | ClassCastException e) {
@@ -95,10 +97,12 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
         
         try {
         	proxy = (IVectorDatabaseEngine) enhancer.create();
+        	proxy.open(targetEngine.getSmssFilePath());
         } catch(Exception e) {
         	classLogger.error(Constants.STACKTRACE, e);
         	throw new IllegalArgumentException("Unable to create proxy for vector database", e);
         }
+        
 	}
 	@Override
 	protected void verifyModelProps() {
