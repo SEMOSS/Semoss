@@ -339,9 +339,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			deleteFilesFromCloudThread.start();
 		}
 	}
-
+	
 	@Override
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
+		return nearestNeighborCall(insight, searchStatement, limit, parameters, false);
+	}
+
+	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters, boolean meta) {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -352,7 +356,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		
 		JsonObject search = getNearestNeighborSearchJson(insight, searchStatement, limit, parameters);
 		
-		classLogger.debug("OPENSEARCH FINAL SEARCH QUERY : " + search.toString());
+//		TODO: Change back to debug
+		classLogger.warn("OPENSEARCH FINAL SEARCH QUERY : " + search.toString());
 
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();
@@ -379,6 +384,9 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
 			thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
 			thisMatch.put(VectorDatabaseCSVTable.CONTENT, sourceDetails.get(VectorDatabaseCSVTable.CONTENT).getAsString());
+			if (meta) {
+				
+			}
 		}
 		return vectorSearchResults;
 	}

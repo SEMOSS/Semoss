@@ -294,7 +294,7 @@ public enum ReactorKeysEnum {
 	Y("y",		 											    "The Y coordiante."),
 	;
 
-	private String key;
+	private final String key;
 	private String description;
 	
 	private ReactorKeysEnum(String key, String description) {
@@ -302,7 +302,7 @@ public enum ReactorKeysEnum {
 		this.description = description;
 	}
 	
-	public String getKey() {
+	public final String getKey() {
 		return this.key;
 	}
 	
