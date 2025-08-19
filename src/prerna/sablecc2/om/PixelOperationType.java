@@ -167,6 +167,9 @@ public enum PixelOperationType {
 	FILE_REFERENCE,
 	FILE,
 	
+	// MCP
+	MCP_TOOL_EXECUTION,
+	
 	// OLD INSIGHT
 	OLD_INSIGHT,
 	PLAYSHEET_PARAMS,
