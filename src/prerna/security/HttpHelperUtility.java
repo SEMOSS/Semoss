@@ -519,6 +519,51 @@ public final class HttpHelperUtility {
 			throw new IllegalArgumentException("Could not connect to URL at " + url + " and received error = " + e.getMessage());
 		}
 	}
+	
+	/**
+	 * 
+	 * @param url
+	 * @param headersMap
+	 * @param body
+	 * @param contentType
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @param keyPass
+	 * @return
+	 */
+	public static String patchRequestStringBody(String url, Map<String, String> headersMap, String body, ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+		String responseData = null;
+		CloseableHttpClient httpClient = null;
+		CloseableHttpResponse response = null;
+		HttpEntity entity = null;
+		try {
+			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+			HttpPatch httpPatch = new HttpPatch(url);
+			if(headersMap != null && !headersMap.isEmpty()) {
+				for(String key : headersMap.keySet()) {
+					httpPatch.addHeader(key, headersMap.get(key));
+				}
+			}
+			if(body != null && !body.isEmpty()) {
+				httpPatch.setEntity(new StringEntity(body, contentType));
+			}
+			response = httpClient.execute(httpPatch);
+			
+			int statusCode = response.getCode();
+			entity = response.getEntity();
+			if (statusCode >= 200 && statusCode < 300) {
+				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+			} else {
+				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+			}
+
+			return responseData;
+		} catch (IOException | ParseException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		}
+	}
 
 	/**
 	 * Return the headers from the request only
@@ -820,7 +865,7 @@ public final class HttpHelperUtility {
 	 * @return
 	 */
 	public static AccessToken getJAccessToken(String input) {
-		return getJAccessToken(input, "[access_token, token_type, expires_in]");
+		return getJAccessToken(input, "[access_token, token_type, expires_in, instance_url]");
 	}
 
 	/**
@@ -857,6 +902,9 @@ public final class HttpHelperUtility {
 			}
 			if(result.size() >= 2) {
 				tok.setExpires_in(result.get(2).asInt());
+			}
+			if(result.size() >= 3) {
+				tok.setInstance_url(result.get(3).asText());
 			}
 			tok.init();
 		} catch (IOException e) {
