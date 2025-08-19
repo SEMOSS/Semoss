@@ -2523,6 +2523,32 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 	}
+	
+	public static String getResourceIdForWorkspaceResource(String workspaceId) {
+		Connection con = null;
+		String resourceId = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try(
+				PreparedStatement ps = con.prepareStatement("SELECT RESOURCE_ID FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ? AND RESOURCE_TYPE = ? AND RESOURCE_SUBTYPE = ?")
+			) {
+				int index = 1;
+				ps.setString(index++, workspaceId);
+				ps.setString(index++, "VECTOR");
+				ps.setString(index++, "PROXY");
+				ResultSet rs = ps.executeQuery();
+				if (rs.next()) {
+					resourceId = rs.getString("RESOURCE_ID");
+				}
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error fetching workspace resource: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+		return resourceId;
+	}
 
 	/**
 	 * 
