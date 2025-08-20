@@ -197,8 +197,6 @@ public class Insight implements Serializable {
 	// pragamp for all the pragmas like cache / raw / parquet etc. 
 	private Map pragmap = new HashMap();
 	
-	public transient SocketClient nc = null;
-	
 	// base URL
 	private String baseURL = null;
 	
@@ -219,7 +217,7 @@ public class Insight implements Serializable {
 	int idCount = 0;
 	
 	// Playwright Browser Util
-	private PlaywrightBrowserUtil playwrightUtil = null;
+	private transient PlaywrightBrowserUtil playwrightUtil = null;
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -1478,8 +1476,7 @@ public class Insight implements Serializable {
 	//TODO: on tomcat side, when context changes needs to be told
 	//TODO: on tomcat side, when context changes needs to be told
 	//TODO: on tomcat side, when context changes needs to be told
-	public boolean setContext(String projectId) 
-	{
+	public boolean setContext(String projectId) {
 		// sets the context space for the user
 		// also set the cmd context right here
 		if(this.contextProjectId != null && this.contextProjectId.equals(projectId)) {
@@ -1490,9 +1487,11 @@ public class Insight implements Serializable {
 		}
 		this.contextProjectId = projectId;
 		this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-		String appRootFolder = AssetUtility.getProjectAssetsFolder(this.contextProjectName, this.contextProjectId);
-		this.getCmdUtil().setWorkingDir(appRootFolder);
-			
+		if(getUser() != null) {
+			String appRootFolder = AssetUtility.getProjectAssetsFolder(this.contextProjectName, this.contextProjectId);
+			this.getCmdUtil().setWorkingDir(appRootFolder);
+		}
+		
 		this.contextReinitialized = true;
 		return true;
 	}
@@ -1502,6 +1501,9 @@ public class Insight implements Serializable {
 	 * @return
 	 */
 	public CmdExecUtil getCmdUtil() {
+		if(getUser() == null) {
+			throw new NullPointerException("No user defined within the insight to get the shell utilities");
+		}
 		if(this.cmdUtil == null) {
 			// if first time, set the working directory if we have it
 			if(this.contextProjectId != null) {
