@@ -1,18 +1,25 @@
-package prerna.io.connector.calendar;
+package prerna.io.connector.google.calendar;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.apache.hc.core5.http.ContentType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import org.apache.hc.core5.http.ContentType;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import prerna.security.HttpHelperUtility;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.security.HttpHelperUtility;
 
 public class GoogleCalendarHelper {
 	

@@ -1,15 +1,22 @@
-package prerna.io.connector.calendar;
+package prerna.io.connector.google.calendar;
 
-import java.util.*;
-import org.apache.logging.log4j.Logger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
+import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 	
@@ -61,7 +68,7 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 		}
 		try {
 			User user = this.insight.getUser();
-			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			List<String> attendeeEmails = new ArrayList<>();
 			if (emailsInput != null && !emailsInput.isEmpty()) {
 			    String[] emailArray = emailsInput.split(",");
@@ -78,6 +85,9 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 			Map<String, Object> map = new HashMap<>();
 			map.put(STATUS_KEY, result);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		} catch(SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);

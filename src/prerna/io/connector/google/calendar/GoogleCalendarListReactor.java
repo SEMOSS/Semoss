@@ -1,19 +1,28 @@
-package prerna.io.connector.calendar;
+package prerna.io.connector.google.calendar;
 
 import java.net.URLEncoder;
-import java.util.*;
-import org.apache.logging.log4j.Logger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
-import prerna.security.HttpHelperUtility;
-import prerna.auth.User;
-import com.google.gson.reflect.TypeToken;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import prerna.auth.User;
+import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.security.HttpHelperUtility;
+import prerna.util.Constants;
 
 public class GoogleCalendarListReactor extends AbstractReactor{
 
@@ -54,10 +63,13 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 		String enddate = this.keyValue.get(this.keysToGet[1]);
 		try {
 			User user = this.insight.getUser();
-			String accessToken = GoogleCalendarUtils.getGoogleAccessToken(user);
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			List<Map<String, Object>> eventList = getEventList(accessToken, startdate, enddate);
 			return new NounMetadata(eventList, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
+		} catch(SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} catch (Exception e) {
 			classLogger.error("Unauthorized access or Please provide valid input");
 			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
