@@ -5,7 +5,6 @@ import org.apache.logging.log4j.LogManager;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -14,7 +13,7 @@ public class SalesforceObjectSchemaReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(SalesforceObjectSchemaReactor.class);
 	
 	public SalesforceObjectSchemaReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.SOBJECT_NAME.getKey() };
+		this.keysToGet = new String[] { "sObjectName" };
 		this.keyRequired = new int[] { 0 };
 	}
 
@@ -40,14 +39,6 @@ public class SalesforceObjectSchemaReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Fetches all Salesforce sObjects and (optionally) fields metadata for a specific object using the REST API.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.SOBJECT_NAME.getKey())) {
-			return "This field specifies the name of the Salesforce object " + ReactorKeysEnum.SOBJECT_NAME.getKey();
-		}
-		return super.getDescriptionForKey(key);
 	}
 
 }

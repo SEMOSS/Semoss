@@ -18,7 +18,6 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
@@ -34,8 +33,7 @@ public class SalesforceInsertCredentialsReactor extends AbstractReactor {
 	static IRDBMSEngine salesforceDb;
 
 	public SalesforceInsertCredentialsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.INSTANCE_URL.getKey(), ReactorKeysEnum.CLIENT_ID.getKey(),
-				ReactorKeysEnum.CLIENT_SECRET.getKey(), ReactorKeysEnum.REDIRECT_URI.getKey(), ReactorKeysEnum.KEY_NAME.getKey() };
+		this.keysToGet = new String[] { "instanceUrl", "clientId", "clientSecret", "redirectUri", "keyName" };
 		this.keyRequired = new int[] { 1, 1, 1, 1, 1 };
 	}
 
@@ -199,22 +197,6 @@ public class SalesforceInsertCredentialsReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Inserts a row into SALESFORCE_CREDENTIALS table. Duplicate (INSTANCEURL+CLIENTID) prevented.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.INSTANCE_URL.getKey())) {
-			return "Salesforce instance URL for the user's org " + ReactorKeysEnum.INSTANCE_URL.getKey();
-		} else if (key.equals(ReactorKeysEnum.CLIENT_ID.getKey())) {
-			return "Salesforce application's client ID " + ReactorKeysEnum.CLIENT_ID.getKey();
-		} else if (key.equals(ReactorKeysEnum.CLIENT_SECRET.getKey())) {
-			return "Client secret for authentication " + ReactorKeysEnum.CLIENT_SECRET.getKey();
-		} else if (key.equals(ReactorKeysEnum.REDIRECT_URI.getKey())) {
-			return "Redirect Uri which is the Callback Url of my salesforce connected app " + ReactorKeysEnum.REDIRECT_URI.getKey();
-		} else if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
-			return "Key Name for users to identify the connection " + ReactorKeysEnum.KEY_NAME.getKey();
-		}
-		return super.getDescriptionForKey(key);
 	}
 	
 }

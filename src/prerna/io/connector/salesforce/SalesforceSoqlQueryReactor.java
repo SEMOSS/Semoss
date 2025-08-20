@@ -5,7 +5,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -14,7 +13,7 @@ public class SalesforceSoqlQueryReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(SalesforceSoqlQueryReactor.class);
 	
 	public SalesforceSoqlQueryReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.SOQL_QUERY.getKey() };
+		this.keysToGet = new String[] { "soqlQuery" };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -41,13 +40,4 @@ public class SalesforceSoqlQueryReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return "Executes an arbitrary SOQL query on Salesforce via the REST API and returns the result records.";
 	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.SOQL_QUERY.getKey())) {
-			return "This field returns the SOQL query to be executed " + ReactorKeysEnum.SOQL_QUERY.getKey();
-		}
-		return super.getDescriptionForKey(key);
-	}
-
 }

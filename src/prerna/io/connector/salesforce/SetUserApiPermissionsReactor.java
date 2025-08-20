@@ -32,8 +32,7 @@ public class SetUserApiPermissionsReactor extends AbstractReactor {
 	static IRDBMSEngine userApiPermissionDb;
 	
 	public SetUserApiPermissionsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.USERID.getKey(), ReactorKeysEnum.API_ID.getKey(),
-				ReactorKeysEnum.TYPE.getKey() };
+		this.keysToGet = new String[] { "userId", "apiId", ReactorKeysEnum.TYPE.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 	
@@ -181,12 +180,8 @@ public class SetUserApiPermissionsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.USERID.getKey())) {
-			return "Unique identifier for the user who gets the permission " + ReactorKeysEnum.USERID.getKey();
-		} else if (key.equals(ReactorKeysEnum.API_ID.getKey())) {
-			return "Identifier of the API being permitted " + ReactorKeysEnum.API_ID.getKey();
-		} else if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
-			return "Permission type/category " + ReactorKeysEnum.TYPE.getKey();
+		if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
+			return "Type of engine " + ReactorKeysEnum.TYPE.getKey();
 		}
 		return super.getDescriptionForKey(key);
 	}

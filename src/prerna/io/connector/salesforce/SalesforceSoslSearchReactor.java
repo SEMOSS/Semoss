@@ -5,7 +5,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -14,7 +13,7 @@ public class SalesforceSoslSearchReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(SalesforceSoslSearchReactor.class);
 	
 	public SalesforceSoslSearchReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.SOSL_QUERY.getKey() };
+		this.keysToGet = new String[] { "soslQuery" };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -41,12 +40,5 @@ public class SalesforceSoslSearchReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return "Executes a Salesforce SOSL search against the org, returning records that match the query.";
 	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.SOSL_QUERY.getKey())) {
-			return "This field returns the SOSL query to be executed " + ReactorKeysEnum.SOSL_QUERY.getKey();
-		}
-		return super.getDescriptionForKey(key);
-	}
+	
 }
