@@ -187,6 +187,20 @@ public final class MCPUtility {
 	}
 	
 	/**
+	 * 
+	 * @param projectId
+	 * @param functionName
+	 * @return
+	 */
+	public static String removeProjectIdFromToolsMethodName(String projectId, String functionName) {
+		String internalFunctionNamePrefix = "_"+projectId+"_";
+		if(functionName.startsWith(internalFunctionNamePrefix)) {
+			return functionName.replaceFirst(internalFunctionNamePrefix, "");
+		}
+		return functionName;
+	}
+	
+	/**
 	 * Appends a parameter for the SMSS_PROJECT_ID for each tool
 	 * @param projectId
 	 * @param jsonToolsMap
