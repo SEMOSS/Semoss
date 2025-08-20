@@ -1,4 +1,4 @@
-package prerna.io.connector.gmail;
+package prerna.io.connector.google.gmail;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;

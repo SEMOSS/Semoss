@@ -1,4 +1,4 @@
-package prerna.io.connector.gmail;
+package prerna.io.connector.google;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,9 +10,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public final class GoogleGmailUtils {
+public final class GoogleLoginUtils {
 	
-	private GoogleGmailUtils() {
+	private GoogleLoginUtils() {
 		
 	}
 	

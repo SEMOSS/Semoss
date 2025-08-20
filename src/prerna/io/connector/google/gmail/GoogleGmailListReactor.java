@@ -1,4 +1,4 @@
-package prerna.io.connector.gmail;
+package prerna.io.connector.google.gmail;
 
 import java.util.List;
 import java.util.Map;
@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -30,7 +31,7 @@ public class GoogleGmailListReactor extends AbstractReactor {
 		String limitStr = this.keyValue.get(this.keysToGet[0]);
 		try {
 			User user = this.insight.getUser();
-			String accessToken = GoogleGmailUtils.getGoogleAccessToken(user);
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			int limit = Integer.parseInt(limitStr);
 			List<Map<String, Object>> result = GoogleGmailHelper.getEmailList(accessToken, limit);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);

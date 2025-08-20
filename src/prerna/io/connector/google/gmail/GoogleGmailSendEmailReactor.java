@@ -1,4 +1,4 @@
-package prerna.io.connector.gmail;
+package prerna.io.connector.google.gmail;
 
 import java.util.Map;
 
@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -39,7 +40,7 @@ public class GoogleGmailSendEmailReactor extends AbstractReactor {
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = GoogleGmailUtils.getGoogleAccessToken(user);
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			Map<String, Object> retMap = GoogleGmailHelper.sendEmail(accessToken, subject, body, to);
 	        return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch(SemossPixelException e) {
