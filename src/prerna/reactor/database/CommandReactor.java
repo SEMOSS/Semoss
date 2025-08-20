@@ -42,18 +42,24 @@ public class CommandReactor extends GitBaseReactor {
 
 	@Override
 	public NounMetadata execute() {
+		/*
+		 * Due to security, we are only allowing this when there is chroot
+		 */
+		if (!Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			return NounMetadata.getErrorNounMessage("Terminal/Shell operations are not allowed if chroot is not enabled on the instance");
+		}
+		
 		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
 		if (disable_terminal != null && !disable_terminal.isEmpty()) {
 			if (Boolean.parseBoolean(disable_terminal)) {
-				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
+				throw new IllegalArgumentException("Terminal/Shell and user code execution has been disabled.");
 			}
 		}
 
-		// check if git is disabled
 		String disable_git_terminal = Utility.getDIHelperProperty(Constants.DISABLE_GIT_TERMINAL);
 		if (disable_git_terminal != null && !disable_git_terminal.isEmpty()) {
 			if (Boolean.parseBoolean(disable_git_terminal)) {
-				throw new IllegalArgumentException("Git terminal has been disabled.");
+				throw new IllegalArgumentException("Terminal/Shell has been disabled.");
 			}
 		}
 
@@ -138,14 +144,6 @@ public class CommandReactor extends GitBaseReactor {
 			}
 			cmdUtil.executeCommand("git config user.name " + userEmail[0]);
 			cmdUtil.executeCommand("git config user.email " + userEmail[1]);
-		}
-
-		if (git != null && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("config")) {
-			// dont allow config global unless chroot
-			if (!Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)) &&
-					command.contains("global")) {
-				return NounMetadata.getErrorNounMessage("Global config cannot be set in this environment");
-			}
 		}
 
 		// check that it is only git pull or git clone in prod for CFG
