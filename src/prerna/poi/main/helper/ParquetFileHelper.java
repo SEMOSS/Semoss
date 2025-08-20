@@ -270,6 +270,7 @@ public class ParquetFileHelper {
 					    } else {
 					        row[i] = group.getLong(headerIndex, 0);
 					    }
+						break;
 
 					case FLOAT:
 						row[i] = group.getFloat(headerIndex, 0);
