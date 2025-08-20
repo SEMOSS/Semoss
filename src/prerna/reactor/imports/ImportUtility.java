@@ -1,6 +1,5 @@
 package prerna.reactor.imports;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -562,7 +561,7 @@ public class ImportUtility {
 				String type = dataTypes.get(column);
 				metaData.setDataTypeToProperty(uniqueHeader, type);
 				
-				if(additionalTypes.get(column) != null) {
+				if(additionalTypes != null && additionalTypes.get(column) != null) {
 					metaData.setAddtlDataTypeToProperty(uniqueHeader, additionalTypes.get(column));
 				}
 			}
