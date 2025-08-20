@@ -26,9 +26,9 @@
 			<Policies>
 				<TimeBasedTriggeringPolicy interval="1"
 					modulate="true" />
-				<SizeBasedTriggeringPolicy size="1KB" />
+				<SizeBasedTriggeringPolicy size="250MB" />
 			</Policies>
-			<DefaultRolloverStrategy max="7" />
+			<DefaultRolloverStrategy max="1000" />
 		</RollingFile>
 	</Appenders>
 
