@@ -464,6 +464,7 @@ public class NotebookHelper implements INotebookHelper {
 					Please break out the inputs into variables in case they are within string inputs. 
 					Please provide a docstring and input types for the function.
 					Ensure that the function has a return. 
+					Give the function a meaningful name. 
 					Only reply with the code in markdown and make sure the syntax is executable with proper spacing:  
 					""";
 			return prompt;
