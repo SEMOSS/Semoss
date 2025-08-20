@@ -1743,6 +1743,7 @@ public class Project implements IProject {
 		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			this.createProjectTcpServer(-1);
 		}
+		this.pyTranslator.setSocketClient(this.cpw.getSocketClient());
 		return this.pyTranslator;
 	}
 	
