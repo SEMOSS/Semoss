@@ -269,7 +269,7 @@ public enum ReactorKeysEnum {
     TOKEN_COUNT("tokenCount",                                   "Number of tokens to create in GPT based generators"),	
     TYPE("type", 											    "Type Project or Engine"),
 	UNIQUE_COLUMN("uniqueColumn", 								"Unique column identifier for csv/excel table uploads"),
-	USE_FRAME_FILTERS("useFrameFilters", 						"A boolean indication (true or false) to use frame filters"),
+	USE_FRAME_FILTERS("useFrameFilters", 						"A boolean indication (true or false) to use frame filters"), 	
 	USERNAME("username", 										"Unique identifier for the user to access a service"),
 	QUERY_KEY("query", 											"Query string to be executed on the database"),
 	QUERY_STRUCT("qs", 											"QueryStruct object that contains selectors, filters, and joins"),
