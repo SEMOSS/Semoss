@@ -1,4 +1,4 @@
-package prerna.io.connector.gmail;
+package prerna.io.connector.google.gmail;
 
 import java.util.List;
 import java.util.Map;
@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -15,11 +16,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
-public class GoogleGmailSummarizeTopKEmailsReactor extends AbstractReactor {
+public class GoogleGmailGetUnreadEmailsReactor extends AbstractReactor {
 	
-	private static final Logger classLogger = LogManager.getLogger(GoogleGmailSummarizeTopKEmailsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleGmailGetUnreadEmailsReactor.class);
 	
-	public GoogleGmailSummarizeTopKEmailsReactor() {
+	public GoogleGmailGetUnreadEmailsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -30,29 +31,30 @@ public class GoogleGmailSummarizeTopKEmailsReactor extends AbstractReactor {
 		String limitStr = this.keyValue.get(this.keysToGet[0]);
 		try {
 			User user = this.insight.getUser();
-			String accessToken = GoogleGmailUtils.getGoogleAccessToken(user);
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			int limit = Integer.parseInt(limitStr);
-			List<Map<String, Object>> result = GoogleGmailHelper.summarizeTopKEmails(accessToken, limit);
+			List<Map<String, Object>> result = GoogleGmailHelper.getUnreadEmails(accessToken, limit);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch(SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("An error occurred summarizing the emails. Error message: " + e.getMessage());
+			throw new SemossPixelException("An error occurred getting the unread emails. Error message: " + e.getMessage());
 		}
 	}
 	
 	@Override
 	public String getReactorDescription() {
-		return "Summarize the top k emails";
+		return "Get the list of unread email";
 	}
-
+	
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "The limit for the number of emails to summarize";
+			return "The limit for the maximum number of unread emails";
 		}
 		return super.getDescriptionForKey(key);
 	}
+
 }
