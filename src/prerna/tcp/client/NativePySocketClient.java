@@ -375,7 +375,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				}
 			}
 			connected = false;
-			System.err.println("NativePySocketClient is disconnected");
 			classLogger.warn("NativePySocketClient is disconnected");
 		}
 	}
@@ -708,7 +707,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 
 		this.close();
-		throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+		classLogger.fatal("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 	}
 
 }
