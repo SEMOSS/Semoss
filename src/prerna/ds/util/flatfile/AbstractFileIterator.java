@@ -102,19 +102,22 @@ public abstract class AbstractFileIterator implements IFileIterator {
 		Object[] cleanRow = new Object[row.length];
 		for(int i = 0; i < row.length; i++) {
 			SemossDataType type = types[i];
-			String val = row[i].toString().trim();
+			Object val = row[i];
+			if(val == null) {
+				cleanRow[i] = null;
+			}
 			// try to get correct type
-			if(type == SemossDataType.INT) {
+			else if(type == SemossDataType.INT) {
 				// so we are consistent with the predict types
-				cleanRow[i] = Utility.getInteger(val.replaceAll("[$,\\s]", ""));
+				cleanRow[i] = Utility.getInteger((val+"").replaceAll("[$,\\s]", ""));
 			} else if(type == SemossDataType.DOUBLE) {
 				// so we are consistent with the predict types
-				cleanRow[i] = Utility.getDouble(val.replaceAll("[$,\\s]", ""));
+				cleanRow[i] = Utility.getDouble((val+"").replaceAll("[$,\\s]", ""));
 			} else if(type == SemossDataType.BOOLEAN) {
 				if(val.equals("null")) {
 					cleanRow[i] = null;
 				} else {
-					cleanRow[i] = Boolean.parseBoolean(val);
+					cleanRow[i] = Boolean.parseBoolean(val+"");
 				}
 			} else if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
 				if(val.equals("null")) {
@@ -126,14 +129,14 @@ public abstract class AbstractFileIterator implements IFileIterator {
 					// send the date object
 					Object date = null;
 					if(additionalTypeData != null) {
-						date = new SemossDate(val, additionalTypeData);
+						date = new SemossDate((val+""), additionalTypeData);
 					} else {
 						date = val;
 					}
 					cleanRow[i] = date;
 				}
 			} else {
-				cleanRow[i] = val; //Utility.cleanString(val, true, true, false);
+				cleanRow[i] = val; 
 			}
 		}
 		
