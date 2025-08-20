@@ -1,33 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="INFO" packages="prerna.logging">
 	<Appenders>
-		<QueueAppender name="QueueAppender">
-
+		<QueueAppender name="QueueAppender"
+		    destinationType="kafka" topicOrQueue="logs1"
+			bootstrapServers="localhost:9092"> <!-- boostrapServers has to be set based on instance eg:dev/uat/prod -->
+			
 			<PatternLayout>
-				<Pattern>{"timestamp":"%d{ISO8601}","level":"%p","thread":"%t","logger":"%c","message":"%m","mdc":%X}
+				<Pattern>{"timestamp":"%d{yyyy-MM-dd HH:mm:ss}","level":"%p","thread":"%t","logger":"%c","message":"%m","mdc":%X}%n
 				</Pattern>
 			</PatternLayout>
-			<loggerClass>prerna.logging.KafkaLogger</loggerClass>
-            <loggerConfig>bootstrap.servers=localhost:9092,topic=logs1</loggerConfig>
-			<Console name="Console" target="SYSTEM_OUT">
-				<PatternLayout>
-					<Pattern>{"timestamp":"%d{ISO8601}","level":"%p","thread":"%t","logger":"%c","message":"%m","mdc":%X}
-					</Pattern>
-				</PatternLayout>
-			</Console>
+			<KafkaRabbitMQAvaliabilityFilter  onMatch="ACCEPT" onMismatch="DENY" />
 		</QueueAppender>
+		<!-- <loggerClass>prerna.logging.KafkaLogger</loggerClass> <loggerConfig>bootstrap.servers=localhost:9092,topic=logs1</loggerConfig> -->
+		<Console name="Console" target="SYSTEM_OUT">
+			<PatternLayout>
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L %m%n
+				</Pattern>
+			</PatternLayout>
+		</Console>
+		<RollingFile name="RollingFile" fileName="${sys:catalina.base}/logs/semossLog.log"
+			filePattern="${sys:catalina.base}/logs/$${date:yyyy-MM-dd}/semossLog-%d{yyyy-MM-dd}-%i.log">
+			<PatternLayout>
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L %m%n</Pattern>
+			</PatternLayout>
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1"
+					modulate="true" />
+				<SizeBasedTriggeringPolicy size="1KB" />
+			</Policies>
+			<DefaultRolloverStrategy max="7" />
+		</RollingFile>
 	</Appenders>
 
 	<Loggers>
-	<Logger name ="org.apache.kafka" level="off" additivity="false"/>
-	<Logger name ="org.apache.kafka.clients" level="off" additivity="false"/>
-	<Logger name ="org.apache.kafka.common" level="off" additivity="false"/>
-	<Logger name ="kafka" level="off" additivity="false"/>
-	<Logger name ="kafka.producer" level="off" additivity="false"/>
-	<Logger name ="kafka.client" level="off" additivity="false"/>
+		<Logger name="org.apache.kafka" level="off" additivity="false" />
+		<Logger name="org.apache.kafka.clients" level="off"
+			additivity="false" />
+		<Logger name="org.apache.kafka.common" level="off"
+			additivity="false" />
+		<Logger name="kafka" level="off" additivity="false" />
+		<Logger name="kafka.producer" level="off" additivity="false" />
+		<Logger name="kafka.client" level="off" additivity="false" />
 		<Root level="info">
 			<AppenderRef ref="QueueAppender" />
 			<AppenderRef ref="Console" />
+			<AppenderRef ref="RollingFile" />
 		</Root>
 	</Loggers>
 </Configuration>

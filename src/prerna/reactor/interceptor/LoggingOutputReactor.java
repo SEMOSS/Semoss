@@ -119,7 +119,7 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 
 			String logLevel = "INFO";
 			if (arguments.containsKey("logLevel")) {
-				logLevel = arguments.get("logLevel").toString();
+				logLevel = isSuccess ?  arguments.get("logLevel").toString() : "ERROR";
 			}
 
 			String logMessage = "Executing method: " + methodName;

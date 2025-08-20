@@ -56,6 +56,26 @@
 				}
 			]
 		},
+		"addEmbeddingFiles": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing ASK method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing ASK method..."
+					}
+				}
+			]
+		},
 		"removeDocument": {
 			"input": [
 				{

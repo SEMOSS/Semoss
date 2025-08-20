@@ -800,12 +800,14 @@ SQL_SERVER_KEYWORDS GROUP
 
 PYTHONHOME C:\\Users\\pmagudapathy\\.pyenv\\pyenv-win\\versions\\3.11.9
 
-KAFKA_BOOTSTRAP_SERVERS_CONFIG localhost:9092
+## Kafka boostrapServers has to be set based on instance eg:dev/uat/prod
+KAFKA_BOOTSTRAP_SERVERS_CONFIG localhost:9092 
 KAFKA_ACKS_CONFIG 1
 KAFKA_RETRIES_CONFIG 3
 KAFKA_KEY_SERIALIZER_CLASS_CONFIG org.apache.kafka.common.serialization.StringSerializer
 KAFKA_VALUE_SERIALIZER_CLASS_CONFIG org.apache.kafka.common.serialization.StringSerializer
 KAFKA_AUDIT_LOG_TOPIC logs1
 
+## ReportingService project - LOGGER_MICROSERVICE_URL has to be set based on instance eg:dev/uat/prod -  http://localhost:8081
 LOGGER_MICROSERVICE_URL http://localhost:8081/api/audit
 PIPELINE pipeline.json
