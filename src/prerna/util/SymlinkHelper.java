@@ -42,28 +42,34 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * 
+	 * Initialization for cross-platform support
 	 */
 	private void initalizeChrootFolder() {
-		String baseFolder = Utility.getBaseFolder();
-		symlinkFolder(baseFolder + "/" + Constants.PY_BASE_FOLDER);
-		symlinkFolder(Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR));
-		// Read paths from DIHelper or configuration
-		String pathsToSymlink = Utility.getDIHelperProperty("CHROOT_SYMLINK_PATHS");
-		if (pathsToSymlink != null && !pathsToSymlink.isEmpty()) {
-			String[] paths = pathsToSymlink.split(",");
-			for (String path : paths) {
-				symlinkFolder(path.trim());
-			}
-		} else {
-			classLogger.warn("No paths specified for symlinking.");
-		}
+	    String baseFolder = Utility.getBaseFolder();
+	    symlinkFolder(baseFolder + "/" + Constants.PY_BASE_FOLDER);
+	    symlinkFolder(Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR));
+	    
+	    // Read paths from DIHelper or configuration
+	    String pathsToSymlink = Utility.getDIHelperProperty("CHROOT_SYMLINK_PATHS");
+	    if (pathsToSymlink != null && !pathsToSymlink.isEmpty()) {
+	        String[] paths = pathsToSymlink.split(",");
+	        for (String path : paths) {
+	            symlinkFolder(path.trim());
+	        }
+	    } else {
+	        classLogger.warn("No paths specified for symlinking.");
+	    }
 
-		createChrootDirectory("/root");
-		createChrootDirectory("/home/default");
-		// Setup minimal bash environment for chroot
-		setupBashForChroot();
-		setupGitForChroot();
+	    createChrootDirectory("/root");
+	    createChrootDirectory("/home/default");
+	    
+	    // Set proper ownership for home directories
+	    setDirectoryOwnership("/home/default", "1001", "1001");
+	    
+	    // Setup basic shell environment
+	    setupBashForChroot();
+	    // Setup Git
+	    setupGitForChroot();
 	}
 
 	/**
@@ -219,49 +225,322 @@ public class SymlinkHelper {
 
 	/**
 	 * Setup Git inside the chroot by copying the binary, its dependencies,
-	 * and required helper programs.
+	 * and required helper programs for both RHEL/UBI and Ubuntu systems.
 	 */
 	private void setupGitForChroot() {
+	    try {
+	        // Main git binary
+	        copySystemBinary("/usr/bin/git");
+	        copyRequiredLibraries("/usr/bin/git");
+
+	        // Setup git helpers (handles both RHEL and Ubuntu)
+	        setupGitHelpersForCrossPlatform();
+
+	        // Setup essential binaries for git operations
+	        setupGitEssentialBinaries();
+
+	        // Setup git templates
+	        setupGitTemplatesForCrossPlatform();
+
+	        // Setup SSL certificates (handles both RHEL and Ubuntu)
+	        setupSSLCertsForCrossPlatform();
+
+	        // Create necessary directories
+	        createChrootDirectory("/tmp");
+	        createChrootDirectory("/var/tmp");
+	        createChrootDirectory("/etc/git");
+
+	        classLogger.info("Git setup completed for chroot: " + userChrootFolder);
+
+	    } catch (Exception e) {
+	        classLogger.error("Error setting up git for chroot: " + e.getMessage(), e);
+	    }
+	}
+
+	/**
+	 * Setup git helper programs for both RHEL/UBI and Ubuntu systems
+	 */
+	private void setupGitHelpersForCrossPlatform() {
+	    try {
+	        // Try RHEL/UBI path first
+	        Path gitHelpersHost = Paths.get("/usr/libexec/git-core");
+	        Path gitHelpersChroot = Paths.get(userChrootFolder).resolve("usr/libexec/git-core");
+	        
+	        if (Files.exists(gitHelpersHost)) {
+	            copyDirectoryRecursively(gitHelpersHost, gitHelpersChroot);
+	            classLogger.info("Copied git helpers from RHEL/UBI location: " + gitHelpersHost);
+	        } else {
+	            // Fallback to Ubuntu path
+	            gitHelpersHost = Paths.get("/usr/lib/git-core");
+	            gitHelpersChroot = Paths.get(userChrootFolder).resolve("usr/lib/git-core");
+	            
+	            if (Files.exists(gitHelpersHost)) {
+	                copyDirectoryRecursively(gitHelpersHost, gitHelpersChroot);
+	                classLogger.info("Copied git helpers from Ubuntu location: " + gitHelpersHost);
+	            } else {
+	                classLogger.warn("Git helpers directory not found at expected locations");
+	                // Try to find git helpers using git itself
+	                findAndCopyGitHelpers();
+	            }
+	        }
+	    } catch (IOException e) {
+	        classLogger.error("Error setting up git helpers: " + e.getMessage(), e);
+	    }
+	}
+
+	/**
+	 * Find git helpers using git --exec-path command
+	 */
+	private void findAndCopyGitHelpers() {
+	    try {
+	        ProcessBuilder pb = new ProcessBuilder("git", "--exec-path");
+	        Process process = pb.start();
+	        
+	        try (java.io.BufferedReader reader = new java.io.BufferedReader(
+	                new java.io.InputStreamReader(process.getInputStream()))) {
+	            
+	            String gitExecPath = reader.readLine();
+	            if (gitExecPath != null && !gitExecPath.trim().isEmpty()) {
+	                Path gitHelpersHost = Paths.get(gitExecPath.trim());
+	                Path gitHelpersChroot = Paths.get(userChrootFolder).resolve(gitExecPath.substring(1));
+	                
+	                if (Files.exists(gitHelpersHost)) {
+	                    copyDirectoryRecursively(gitHelpersHost, gitHelpersChroot);
+	                    classLogger.info("Found and copied git helpers from: " + gitExecPath);
+	                }
+	            }
+	        }
+	        
+	        process.waitFor();
+	    } catch (Exception e) {
+	        classLogger.warn("Could not find git helpers using git --exec-path: " + e.getMessage());
+	    }
+	}
+
+	/**
+	 * Setup essential binaries for git operations on both platforms
+	 */
+	private void setupGitEssentialBinaries() {
+	    String[] essentialBinaries = {
+	        "/usr/bin/curl",      // Required for git-remote-https
+	        "/usr/bin/ssh",       // For git@... URLs  
+	        "/bin/tar",           // Archive operations
+	        "/bin/gzip",          // Compression
+	        "/usr/bin/openssl",   // SSL/TLS operations
+	        "/usr/bin/wget"       // Alternative HTTP client
+	    };
+
+	    for (String bin : essentialBinaries) {
+	        if (Files.exists(Paths.get(bin))) {
+	            copySystemBinary(bin);
+	            copyRequiredLibraries(bin);
+	            classLogger.debug("Copied git dependency: " + bin);
+	        } else {
+	            classLogger.debug("Optional git dependency not found: " + bin);
+	        }
+	    }
+	    
+	    // Copy git-specific libraries that might be needed
+	    copyGitSpecificLibraries();
+	}
+
+	/**
+	 * Copy git-specific libraries for both RHEL and Ubuntu
+	 */
+	private void copyGitSpecificLibraries() {
+	    // RHEL/UBI library paths
+	    String[] rhelLibs = {
+	        "/usr/lib64/libcurl.so.4",
+	        "/usr/lib64/libssl.so.3",
+	        "/usr/lib64/libcrypto.so.3",
+	        "/usr/lib64/libz.so.1",
+	        "/usr/lib64/libgssapi_krb5.so.2"
+	    };
+	    
+	    // Ubuntu library paths
+	    String[] ubuntuLibs = {
+	        "/usr/lib/x86_64-linux-gnu/libcurl.so.4",
+	        "/usr/lib/x86_64-linux-gnu/libssl.so.3",
+	        "/usr/lib/x86_64-linux-gnu/libcrypto.so.3",
+	        "/usr/lib/x86_64-linux-gnu/libz.so.1"
+	    };
+	    
+	    // Try RHEL paths first
+	    boolean foundRhelLibs = false;
+	    for (String lib : rhelLibs) {
+	        if (Files.exists(Paths.get(lib))) {
+	            copyLibraryIfExists(lib);
+	            foundRhelLibs = true;
+	        }
+	    }
+	    
+	    // If no RHEL libs found, try Ubuntu paths
+	    if (!foundRhelLibs) {
+	        for (String lib : ubuntuLibs) {
+	            copyLibraryIfExists(lib);
+	        }
+	    }
+	}
+
+	/**
+	 * Setup git templates for cross-platform compatibility
+	 */
+	private void setupGitTemplatesForCrossPlatform() {
+	    String[] templatePaths = {
+	        "/usr/share/git-core/templates",  // Common location
+	        "/usr/local/share/git-core/templates"  // Alternative location
+	    };
+	    
+	    for (String templatePath : templatePaths) {
+	        Path templatesSource = Paths.get(templatePath);
+	        if (Files.exists(templatesSource)) {
+	            Path templatesTarget = Paths.get(userChrootFolder).resolve(templatePath.substring(1));
+	            try {
+	                copyDirectoryRecursively(templatesSource, templatesTarget);
+	                classLogger.info("Copied git templates from: " + templatePath);
+	                break; // Only copy the first one found
+	            } catch (IOException e) {
+	                classLogger.debug("Could not copy git templates from: " + templatePath);
+	            }
+	        }
+	    }
+	}
+
+	/**
+	 * Setup SSL certificates for both RHEL/UBI and Ubuntu systems
+	 */
+	private void setupSSLCertsForCrossPlatform() {
+	    try {
+	        // Detect OS type and setup accordingly
+	    	boolean isRHELBased = isRHELBasedSystem();
+	        if (isRHELBased) {
+	        	classLogger.info("Predicted OS as RHEL");
+	            setupSSLCertsForRHEL();
+	        } else {
+	        	classLogger.info("Predicted OS as Ubuntu");
+	            setupSSLCertsForUbuntu();
+	        }
+	    } catch (Exception e) {
+	        classLogger.warn("Could not setup SSL certificates: " + e.getMessage());
+	        // Try both approaches as fallback
+	        setupSSLCertsForRHEL();
+	        setupSSLCertsForUbuntu();
+	    }
+	}
+
+	/**
+	 * Detect if the system is RHEL-based
+	 */
+	private boolean isRHELBasedSystem() {
+	    // Check for RHEL-specific files/directories
+	    return Files.exists(Paths.get("/etc/redhat-release")) ||
+	           Files.exists(Paths.get("/etc/rhel-release")) ||
+	           Files.exists(Paths.get("/etc/pki"));
+	}
+
+	/**
+	 * Setup SSL certificates for RHEL/UBI systems
+	 */
+	private void setupSSLCertsForRHEL() {
+	    try {
+	        String[] caCertFiles = {
+	            "/etc/pki/tls/certs/ca-bundle.crt",
+	            "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
+	            "/etc/pki/tls/cert.pem"
+	        };
+
+	        // Copy CA certificate files
+	        for (String certPath : caCertFiles) {
+	            Path sourceCerts = Paths.get(certPath);
+	            if (Files.exists(sourceCerts)) {
+	                Path targetCerts = Paths.get(userChrootFolder).resolve(certPath.substring(1));
+	                Files.createDirectories(targetCerts.getParent());
+	                Files.copy(sourceCerts, targetCerts, StandardCopyOption.REPLACE_EXISTING);
+	                classLogger.info("Copied RHEL CA certificates from: " + certPath);
+	            } else {
+					classLogger.warn("Could not find file at " + certPath);
+				}
+	        }
+
+	        // Copy certificate directories
+	        String[] certDirs = {
+	            "/etc/pki/tls/certs",
+	            "/etc/pki/ca-trust/extracted",
+	            "/etc/pki/tls"
+	        };
+
+	        for (String certDir : certDirs) {
+	            Path sourceCertDir = Paths.get(certDir);
+	            if (Files.exists(sourceCertDir)) {
+	                Path targetCertDir = Paths.get(userChrootFolder).resolve(certDir.substring(1));
+	                copyDirectoryRecursively(sourceCertDir, targetCertDir);
+	                classLogger.debug("Copied RHEL certificate directory: " + certDir);
+	            } else {
+					classLogger.warn("Could not find directory at " + certDir);
+	            }
+	        }
+
+	    } catch (IOException e) {
+	        classLogger.debug("Could not setup RHEL SSL certificates: " + e.getMessage());
+	    }
+	}
+
+	/**
+	 * Setup SSL certificates for Ubuntu systems
+	 */
+	private void setupSSLCertsForUbuntu() {
 		try {
-			// main git binary
-			copySystemBinary("/usr/bin/git");
-			copyRequiredLibraries("/usr/bin/git");
+			String[] caCertFiles = { "/etc/ssl/certs/ca-certificates.crt" };
 
-			// git helper programs (git-remote-https, git-upload-pack, etc.)
-			Path gitHelpersHost = Paths.get("/usr/lib/git-core");
-			Path gitHelpersChroot = Paths.get(userChrootFolder).resolve("usr/lib/git-core");
-			copyDirectoryRecursively(gitHelpersHost, gitHelpersChroot);
-
-			// common dependencies (needed for cloning, fetching, archiving)
-			String[] extraBinaries = {
-					"/usr/bin/ssh",   // for git@... URLs
-					"/bin/tar",       // archive ops
-					"/bin/gzip"       // compression
-			};
-
-			for (String bin : extraBinaries) {
-				if (Files.exists(Paths.get(bin))) {
-					copySystemBinary(bin);
-					copyRequiredLibraries(bin);
+			// Copy CA certificate files
+			for (String certPath : caCertFiles) {
+				Path sourceCerts = Paths.get(certPath);
+				if (Files.exists(sourceCerts)) {
+					Path targetCerts = Paths.get(userChrootFolder).resolve(certPath.substring(1));
+					Files.createDirectories(targetCerts.getParent());
+					Files.copy(sourceCerts, targetCerts, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+					classLogger.info("Copied Ubuntu CA certificates from: " + certPath);
+				} else {
+					classLogger.warn("Could not find file at " + certPath);
 				}
 			}
 
-			// git templates
-			copyDirectoryRecursively(
-					Paths.get("/usr/share/git-core/templates"),
-					Paths.get(userChrootFolder).resolve("usr/share/git-core/templates")
-					);
-
-			// SSL CA certs (needed for https remotes)
-			copySystemBinary("/etc/ssl/certs/ca-certificates.crt");
-			copyDirectoryRecursively(
-					Paths.get("/etc/ssl/certs"),
-					Paths.get(userChrootFolder).resolve("etc/ssl/certs")
-					);
-
-		} catch (Exception e) {
-			classLogger.error("Error setting up git for chroot: " + e.getMessage(), e);
+			// Copy certificate directories with symlink preservation
+			String[] certDirs = { "/etc/ssl/certs", "/usr/share/ca-certificates" };
+			for (String certDir : certDirs) {
+	            Path sourceCertDir = Paths.get(certDir);
+	            if (Files.exists(sourceCertDir)) {
+	                Path targetCertDir = Paths.get(userChrootFolder).resolve(certDir.substring(1));
+	                copyDirectoryRecursively(sourceCertDir, targetCertDir);
+					classLogger.debug("Copied Ubuntu certificate directory (with symlinks): " + certDir);
+	            } else {
+					classLogger.warn("Could not find directory at " + certDir);
+	            }
+	        }
+		} catch (IOException e) {
+			classLogger.debug("Could not setup Ubuntu SSL certificates: " + e.getMessage());
 		}
+	}
+	
+	/**
+	 * Set ownership of a directory in chroot (works on both platforms)
+	 */
+	private void setDirectoryOwnership(String relativePath, String uid, String gid) {
+	    try {
+	        Path chrootDir = Paths.get(userChrootFolder, relativePath);
+	        if (Files.exists(chrootDir)) {
+	            ProcessBuilder pb = new ProcessBuilder("chown", uid + ":" + gid, chrootDir.toString());
+	            Process process = pb.start();
+	            int exitCode = process.waitFor();
+	            if (exitCode == 0) {
+	                classLogger.debug("Set ownership " + uid + ":" + gid + " for: " + relativePath);
+	            } else {
+	                classLogger.warn("Could not set ownership for: " + relativePath + " (exit code: " + exitCode + ")");
+	            }
+	        }
+	    } catch (Exception e) {
+	        classLogger.warn("Could not set ownership for: " + relativePath, e);
+	    }
 	}
 
 	/**

@@ -4,6 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
@@ -193,6 +195,7 @@ public class CmdExecUtil {
 	 * Fixed runCommand method that handles chroot commands properly
 	 */
 	private String[] runCommand(String command) {
+		Map<String, String> environment = null;
 	    String[] foutput = new String[2];
 	    boolean success = true;
 	    
@@ -221,6 +224,8 @@ public class CmdExecUtil {
 	    
 	    // Check if we need to use chroot
 	    if (this.chrootFolderPath != null && !this.chrootFolderPath.isEmpty()) {
+	    	environment = new HashMap<>();
+	    	environment.put("HOME", "/home/default");
 	        // Validate chroot setup
 	        File chrootDir = new File(this.chrootFolderPath);
 	        if (!chrootDir.exists()) {
@@ -274,7 +279,11 @@ public class CmdExecUtil {
 	        
 	        int exitValue = -1;
 	        try {
-	            exitValue = executor.execute(cmdLine);
+	        	if(environment != null) {
+	        		exitValue = executor.execute(cmdLine);
+	        	} else {
+	        		exitValue = executor.execute(cmdLine, environment);
+	        	}
 	            classLogger.debug("Command executed successfully with exit code: " + exitValue);
 	        } catch (Exception ex) {
 	            success = false;
