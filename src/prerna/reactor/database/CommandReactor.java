@@ -1,8 +1,6 @@
 package prerna.reactor.database;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -17,12 +15,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
+import prerna.auth.User;
+import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitPushUtils;
 import prerna.util.git.GitRepoUtils;
@@ -32,15 +33,7 @@ public class CommandReactor extends GitBaseReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CommandReactor.class);
 
-	private static final String CLASS_NAME = CommandReactor.class.getName();
-
-	static final Set<String> approvedProdCommands = new HashSet<String>(
-			Arrays.asList("PULL", "CLONE", "RESET", "STATUS"));
-	// takes in a the name and engine and mounts the engine assets as that variable
-	// name in both python and R
-	// I need to accomodate for when I should over ride
-	// for instance a user could have saved a recipe with some mapping and then
-	// later, they would like to use a different mapping
+	private static final Set<String> APPROVED_PROD_COMMANDS = new HashSet<String>(Arrays.asList("PULL", "CLONE", "RESET", "STATUS"));
 
 	public CommandReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COMMAND.getKey() };
@@ -70,10 +63,11 @@ public class CommandReactor extends GitBaseReactor {
 		}
 
 		organizeKeys();
-		String command = keyValue.get(keysToGet[0]);
-		CmdExecUtil util = this.insight.getCmdUtil();
+		String command = Utility.decodeURIComponent(this.keyValue.get(keysToGet[0]));
+		User user = this.insight.getUser();
+		CmdExecUtil cmdUtil = this.insight.getCmdUtil();
 
-		if (util == null) {
+		if (cmdUtil == null) {
 			return getError("No context is set - please use SetContext(<mount point>) to set context");
 		}
 
@@ -97,7 +91,7 @@ public class CommandReactor extends GitBaseReactor {
 		// process push
 		// try to see if this is a push
 		if (git != null && git.equalsIgnoreCase("git") && gitCommand != null && gitCommand.equalsIgnoreCase("push")) {
-			NounMetadata pushOutput = processPush(command, util.getWorkingDir());
+			NounMetadata pushOutput = processPush(command, cmdUtil.getWorkingDir());
 			if (pushOutput != null) {
 				return pushOutput;
 			}
@@ -106,30 +100,30 @@ public class CommandReactor extends GitBaseReactor {
 		// pre processing for clone
 		Boolean isCloneAllowed = null;
 		if (git != null && git.equalsIgnoreCase("git") && gitCommand != null && gitCommand.equalsIgnoreCase("clone")) {
-			isCloneAllowed = preProcessClone(command, util.getWorkingDir());
+			isCloneAllowed = preProcessClone(command, cmdUtil.getWorkingDir());
 
 			// allow it but basically say we will blow your git folder away
-			if (isCloneAllowed != null && !isCloneAllowed)
+			if (isCloneAllowed != null && !isCloneAllowed) {
 				preCloneMessage = "You are cloning into a folder that is already part of git. Tracking at this level will be disabled";
-			// return NounMetadata.getErrorNounMessage("Clone is not allowed at this level
-			// ");
+			}
 		}
 
 		// pre-processing for cd
 		// basically we try to see if the cd dir being done exists
 		// if so no issue ootherwise need to gitclone from the repository
 		if (git != null && git.equalsIgnoreCase("cd") && gitCommand != null) {
-			File file = new File(Utility.normalizePath(util.getWorkingDir()) + "/" + gitCommand);
+			File file = new File(Utility.normalizePath(cmdUtil.getWorkingDir()) + "/" + gitCommand);
 			if (!file.exists()) {
 				// clone the git repository
-				cloneRepo(gitCommand, util.getWorkingDir());
+				cloneRepo(gitCommand, cmdUtil.getWorkingDir());
 			}
 		}
 
 		// pre-process mkdir to say you cannot create folders at main level
-		if (git.equalsIgnoreCase("mkdir") && util.getWorkingDir().endsWith("app_root"))
+		if (git.equalsIgnoreCase("mkdir") && cmdUtil.getWorkingDir().endsWith("app_root")) {
 			return NounMetadata.getErrorNounMessage("You cannot make directory in app root folder");
-
+		}
+		
 		// pre process commit
 		// add user name and email
 		if (git != null && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("commit")) {
@@ -137,32 +131,34 @@ public class CommandReactor extends GitBaseReactor {
 			// git config user.name
 			// git confir user.email
 			// and user email
-			String[] userEmail = this.insight.getUser().getUserCredential(AuthProvider.GITHUB);
+			String[] userEmail = user.getUserCredential(AuthProvider.GITHUB);
 			if (userEmail[0] == null) {
 				// get it from the email
 				userEmail[0] = userEmail[1].substring(0, userEmail[1].indexOf("@"));
 			}
-			this.insight.getCmdUtil().executeCommand("git config user.name " + userEmail[0]);
-			this.insight.getCmdUtil().executeCommand("git config user.email " + userEmail[1]);
+			cmdUtil.executeCommand("git config user.name " + userEmail[0]);
+			cmdUtil.executeCommand("git config user.email " + userEmail[1]);
 		}
 
 		if (git != null && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("config")) {
-			// command should not be allowed..
-			if (command.contains("global")) {
+			// dont allow config global unless chroot
+			if (!Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)) &&
+					command.contains("global")) {
 				return NounMetadata.getErrorNounMessage("Global config cannot be set in this environment");
 			}
 		}
 
 		// check that it is only git pull or git clone in prod for CFG
 		// for this, trusted repo and default branch must be limited
-		if (git != null && git.equalsIgnoreCase("git")
+		if (git != null 
+				&& git.equalsIgnoreCase("git")
 				&& gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
 			String trustedRepo = Utility.getDIHelperProperty(Constants.GIT_TRUSTED_REPO);
 			String defaultBranch = Utility.getDIHelperProperty(Constants.GIT_DEFAULT_BRANCH);
 
 			if (trustedRepo != null && !trustedRepo.isEmpty()) {
 				if (defaultBranch != null && !defaultBranch.isEmpty()) {
-					if (!approvedProdCommands.contains(gitCommand.toUpperCase())) {
+					if (!APPROVED_PROD_COMMANDS.contains(gitCommand.toUpperCase())) {
 						return NounMetadata.getErrorNounMessage(
 								"Only git clone, pull, status, reset are allowed in this environment");
 					}
@@ -170,37 +166,35 @@ public class CommandReactor extends GitBaseReactor {
 			}
 		}
 
-		if (git != null && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("pull")
+		if (git != null 
+				&& git.equalsIgnoreCase("git") 
+				&& gitCommand.equalsIgnoreCase("pull")
 				&& gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
 			String token = getToken();
-			return GitPushUtils.pull(util.getWorkingDir(), token, AuthProvider.GITLAB);
-			// return new NounMetadata("Git Pulled", PixelDataType.CONST_STRING,
-			// PixelOperationType.HELP);
-
+			return GitPushUtils.pull(cmdUtil.getWorkingDir(), token, AuthProvider.GITLAB);
 		}
 
-		if (git != null && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("checkout")
+		if (git != null 
+				&& git.equalsIgnoreCase("git") 
+				&& gitCommand.equalsIgnoreCase("checkout")
 				&& gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
 			String token = getToken();
 			String branch = commands.nextToken();
 
-			return GitPushUtils.checkout(util.getWorkingDir(), branch, token, AuthProvider.GITLAB);
-			// return new NounMetadata("Checked out " + branch, PixelDataType.CONST_STRING,
-			// PixelOperationType.HELP);
-
+			return GitPushUtils.checkout(cmdUtil.getWorkingDir(), branch, token, AuthProvider.GITLAB);
 		}
 
-		if (git != null && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("clone")
+		if (git != null 
+				&& git.equalsIgnoreCase("git") 
+				&& gitCommand.equalsIgnoreCase("clone")
 				&& gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
 			String token = getToken();
 			String repo = commands.nextToken();
 
-			return GitPushUtils.clone(util.getWorkingDir(), repo, token, AuthProvider.GITLAB);
-			// return new NounMetadata("Cloned " + repo, PixelDataType.CONST_STRING,
-			// PixelOperationType.HELP);
+			return GitPushUtils.clone(cmdUtil.getWorkingDir(), repo, token, AuthProvider.GITLAB);
 		}
 
-		String output = util.executeCommand(command);
+		String output = cmdUtil.executeCommand(command);
 
 		////////////////////////////////////////// 
 		// POST PROCESSING
@@ -209,24 +203,26 @@ public class CommandReactor extends GitBaseReactor {
 		// post processing
 		if (git != null && git.equalsIgnoreCase("git") && gitCommand != null && gitCommand.equalsIgnoreCase("clone")) {
 			// try to see if this is a clone if so add it to the clone properties
-			postProcessClone(command, util.getWorkingDir(), isCloneAllowed);
+			postProcessClone(command, cmdUtil.getWorkingDir(), isCloneAllowed);
 			postCloneMessage = "If this is a java project, please make sure to adjust the target directory (XML Element build/directory) to ${classesDir}";
 		}
 
 		if ((command.startsWith("dir") || command.startsWith("ls"))) {
 			// try to see if this is a clone if so add it to the clone properties
-			String dir = util.getWorkingDir();
+			String dir = cmdUtil.getWorkingDir();
 			// if(gitCommand != null) - this will break for ls -l
 			// dir = gitCommand;
 			output = postProcessDir(command, dir, output);
 		}
-		if (preCloneMessage != null)
+		if (preCloneMessage != null) {
 			output = preCloneMessage + "\n" + output;
-
-		if (postCloneMessage != null)
+		}
+		
+		if (postCloneMessage != null) {
 			output = output + "\n" + postCloneMessage;
-
-		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.HELP);
+		}
+		
+		return new NounMetadata(output, PixelDataType.CONST_STRING);
 	}
 
 
@@ -247,13 +243,15 @@ public class CommandReactor extends GitBaseReactor {
 				// check should be if its not master, its probably okay
 
 				String remoteName = "origin";
-				if (commands.hasMoreTokens())
+				if (commands.hasMoreTokens()) {
 					remoteName = commands.nextToken();
-
+				}
+				
 				String branch = "master";
-				if (commands.hasMoreTokens())
+				if (commands.hasMoreTokens()) {
 					branch = commands.nextToken();
-
+				}
+				
 				// need to process this further
 				// typically git push origin master
 
@@ -282,13 +280,14 @@ public class CommandReactor extends GitBaseReactor {
 		StringTokenizer commands = new StringTokenizer(command);
 		if (commands.countTokens() >= 2) {
 			String gitCommand = commands.nextToken().trim();
-			String push = commands.nextToken().trim();
+			String gitOperation = commands.nextToken().trim();
 
-			if (gitCommand.equalsIgnoreCase("git") && push.equalsIgnoreCase("clone")) {
+			if (gitCommand.equalsIgnoreCase("git") && gitOperation.equalsIgnoreCase("clone")) {
 				String repoURL = null;
-				if (commands.hasMoreTokens())
+				if (commands.hasMoreTokens()) {
 					repoURL = commands.nextToken();
-
+				}
+				
 				String dirName = Utility.getInstanceName(repoURL);
 
 				// see if this directory exists in base folder
@@ -298,19 +297,17 @@ public class CommandReactor extends GitBaseReactor {
 					// we are in the right location process now
 					// add this to the properties
 					// get the root
-					FileInputStream fis = null;
-					FileOutputStream fos = null;
-					try {
-						File repoFile = new File(appBaseFolder + "/version/repoList.txt");
-						if (!repoFile.exists())
+					File repoFile = new File(appBaseFolder + "/version/repoList.txt");
+					if (!repoFile.exists()) {
+						try {
 							repoFile.createNewFile();
-
-						Properties prop = new Properties();
-						fis = new FileInputStream(repoFile);
-
-						prop.load(fis);
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
+					}
+					Properties prop = Utility.loadProperties(repoFile);
+					try (FileOutputStream fos = new FileOutputStream(repoFile)){
 						prop.put(dirName, repoURL);
-						fos = new FileOutputStream(repoFile);
 						prop.store(fos, "Updating");
 
 						// need to commit this file
@@ -326,24 +323,8 @@ public class CommandReactor extends GitBaseReactor {
 						// here else it
 						// complains on
 						// config
-
-					} catch (FileNotFoundException e) {
-						classLogger.error(Constants.STACKTRACE, e);
 					} catch (IOException e) {
 						classLogger.error(Constants.STACKTRACE, e);
-					} finally {
-						try {
-							if (fis != null)
-								fis.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-						try {
-							if (fos != null)
-								fos.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
 					}
 				}
 
@@ -370,23 +351,14 @@ public class CommandReactor extends GitBaseReactor {
 		StringTokenizer commands = new StringTokenizer(command);
 		if (commands.countTokens() >= 2) {
 			String gitCommand = commands.nextToken().trim();
-			String push = commands.nextToken().trim();
-
-			if (gitCommand.equalsIgnoreCase("git") && push.equalsIgnoreCase("clone")) {
-				String repoURL = null;
-				if (commands.hasMoreTokens())
-					repoURL = commands.nextToken();
-
-				String dirName = Utility.getInstanceName(repoURL);
-
-				// see if this directory exists in base folder
-				String appBaseFolder = workingDir;
-				if (appBaseFolder.endsWith("app_root") && new File(appBaseFolder + "/version").exists()) {
-					// we are in the right location process now
-					// add this to the properties
-					return true;
-				} else
+			String gitOperation = commands.nextToken().trim();
+			if (gitCommand.equalsIgnoreCase("git") && gitOperation.equalsIgnoreCase("clone")) {
+				// are you part of a version folder ?
+				if(workingDir.startsWith(EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT))
+						&& workingDir.contains("/version")) {
 					return false;
+				}
+				return true;
 			}
 		}
 		return null;
@@ -397,30 +369,11 @@ public class CommandReactor extends GitBaseReactor {
 	 * @param workingDir
 	 */
 	private void cloneRepo(String repoName, String workingDir) {
-		FileInputStream fis = null;
-		try {
-			File repoFile = new File(Utility.normalizePath(workingDir) + "/version/repoList.txt");
-
-			if (repoFile.exists()) {
-				Properties prop = new Properties();
-				fis = new FileInputStream(repoFile);
-				prop.load(fis);
-
-				String url = prop.getProperty(repoName);
-				
-				insight.getCmdUtil().executeCommand("git clone " + url);
-			}
-		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			try {
-				if (fis != null)
-					fis.close();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
+		File repoFile = new File(Utility.normalizePath(workingDir) + "/version/repoList.txt");
+		if (repoFile.exists()) {
+			Properties prop = Utility.loadProperties(repoFile);
+			String url = prop.getProperty(repoName);
+			insight.getCmdUtil().executeCommand("git clone " + url);
 		}
 	}
 
@@ -434,33 +387,17 @@ public class CommandReactor extends GitBaseReactor {
 		String newOutput = output;
 		File repoFile = new File(Utility.normalizePath(workingDir) + "/version/repoList.txt");
 		if (repoFile.exists()) {
-			Properties prop = new Properties();
-			FileInputStream fis = null;
-			try {
-				fis = new FileInputStream(repoFile);
-				prop.load(fis);
-
-				String repos = "While the directories are not shown, Following Repos are available:";
-				Enumeration keys = prop.keys();
-				while (keys.hasMoreElements())
-					repos = repos + "   " + keys.nextElement();
-
-				repos = repos + "\n"
-						+ "You can cd into any of these dirs and when you do the git clone will be invoked at this level automatically ";
-				repos = repos + "\n\n" + "Version is SEMOSS's default git repository.";
-				newOutput = newOutput + "\n" + repos;
-			} catch (FileNotFoundException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				try {
-					if (fis != null)
-						fis.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
+			Properties prop = Utility.loadProperties(repoFile);
+			String repos = "While the directories are not shown, Following Repos are available:";
+			Enumeration<Object> keys = prop.keys();
+			while (keys.hasMoreElements()) {
+				repos = repos + "   " + keys.nextElement();
 			}
+
+			repos = repos + "\n"
+					+ "You can cd into any of these dirs and when you do the git clone will be invoked at this level automatically ";
+			repos = repos + "\n\n" + "Version is SEMOSS's default git repository.";
+			newOutput = newOutput + "\n" + repos;
 		}
 		return newOutput;
 	}

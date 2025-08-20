@@ -1,379 +1,449 @@
 package prerna.util;
 
-import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.List;
+import java.time.Duration;
 
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.commons.io.input.NullInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.tcp.PayloadStruct;
-import prerna.tcp.client.SocketClient;
+import prerna.auth.User;
 
 public class CmdExecUtil {
 
 	private static final Logger classLogger = LogManager.getLogger(CmdExecUtil.class);
 	
-	// the user already keeps a list of mappings
-	// just need to use that directly
-	String mountName = "appName";
-	String mountDir =  "c:/users/pkapaleeswaran/workspacej3/gittest";
-	String workingDir = mountDir;
-	String commandAppender = "cmd";
-	String pwdCommand = "pwd";
-	SocketClient tcpClient = null;
-	String insightId = null;
-	boolean init = false;
-
+	private String insightId = null;
+	private String chrootFolderPath = null;
+	private String workingDir = null;
+	private String contextDir = null;
+	private String commandAppender = "cmd";
 	
-	public CmdExecUtil(String mountName, String mountDir, SocketClient tcpClient) {
+	/**
+	 * Constructor
+	 */
+	public CmdExecUtil(User user, String insightId, String contextDir) {
+		if(user != null && Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			SymlinkHelper chrootHelper = user.getUserSymlinkHelper();
+			this.chrootFolderPath = chrootHelper.getUserChrootFolder();
+		}
 		getCommandAppender();
-		mountDir = mountDir.replace("\\", "/");
-		this.mountName = mountName;
-		this.mountDir = mountDir;
-		this.workingDir = mountDir;
-		this.tcpClient = tcpClient;
-		classLogger.info("Working Dir is set to ..  " + workingDir);
+		this.insightId = insightId;
+		if(contextDir == null) {
+			contextDir = "/";
+		}
+		this.contextDir = contextDir.replace("\\", "/");
+		this.workingDir = this.contextDir;
+		classLogger.info("Insight id / Project " + insightId + " set at working directory " + workingDir);
+	}
+	
+	/**
+	 * Convert a chroot-relative path to the actual system path for file operations
+	 * @param chrootRelativePath Path as it appears inside the chroot
+	 * @return Actual system path for file operations
+	 */
+	private String chrootToSystemPath(String chrootRelativePath) {
+		if (this.chrootFolderPath == null || this.chrootFolderPath.isEmpty()) {
+			return chrootRelativePath;
+		}
 		
-		if(tcpClient != null) {
-			pushMountToSocket();
+		// Ensure the path starts with /
+		if (!chrootRelativePath.startsWith("/")) {
+			chrootRelativePath = "/" + chrootRelativePath;
 		}
+		
+		// Remove duplicate slashes and normalize
+		String systemPath = this.chrootFolderPath + chrootRelativePath;
+		systemPath = systemPath.replaceAll("/+", "/"); // Replace multiple slashes with single slash
+		return Utility.normalizePath(systemPath);
 	}
 	
-	public void pushMountToSocket()
-	{
-		if(	//(tcpClient != null && !(tcpClient instanceof NativePySocketClient))
-				//&&
-				(DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))
-		   )
-		{
-			PayloadStruct ps = new PayloadStruct();
-			ps.operation = ps.operation.CMD;
-			ps.payload = new Object[] {mountName, mountDir};
-			ps.methodName = "constructor";
-			ps.hasReturn = false;
-			ps.insightId = mountName + "__" + mountDir;
-			PayloadStruct retPS = (PayloadStruct)tcpClient.executeCommand(ps);	
-			//init = true;
+	/**
+	 * Convert a system path back to chroot-relative path
+	 * @param systemPath Full system path
+	 * @return Path as it appears inside chroot
+	 */
+	private String systemToChrootPath(String systemPath) {
+		if (this.chrootFolderPath == null || this.chrootFolderPath.isEmpty()) {
+			return systemPath;
 		}
+		
+		if (systemPath.startsWith(this.chrootFolderPath)) {
+			String chrootPath = systemPath.substring(this.chrootFolderPath.length());
+			return chrootPath.isEmpty() ? "/" : chrootPath;
+		}
+		
+		return systemPath;
 	}
 	
-	public String executeCommand(String command)
-	{
+	/**
+	 * Check if a directory exists, accounting for chroot
+	 * @param chrootRelativePath Path relative to chroot
+	 * @return true if directory exists
+	 */
+	private boolean directoryExists(String chrootRelativePath) {
+		String systemPath = chrootToSystemPath(chrootRelativePath);
+		File dir = new File(systemPath);
+		boolean exists = dir.exists() && dir.isDirectory();
+		
+		classLogger.debug("Directory check - chroot path: '" + chrootRelativePath + 
+						  "', system path: '" + systemPath + "', exists: " + exists);
+		
+		return exists;
+	}
+	
+	/**
+	 * Execute command with proper path handling
+	 */
+	public String executeCommand(String command) {
 		String output = null;
-		
-//		// may be do the check to see if tcp server is there
-//		if(	//(tcpClient != null && !(tcpClient instanceof NativePySocketClient))
-//			//		&&
-//				(DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))
-//		   )
-//		{
-//			if(tcpClient == null)
-//			{
-//				return "Client is not connected on socket";
-//			}
-//
-//			PayloadStruct ps = new PayloadStruct();
-//			ps.operation = ps.operation.CMD;
-//			ps.payload = new Object[] {command};
-//			ps.methodName = "executeCommand";
-//			ps.insightId = mountName + "__" + mountDir;
-//			ps.payloadClasses = new Class[] {String.class};
-//
-//			PayloadStruct retPS = (PayloadStruct)tcpClient.executeCommand(ps);
-//			return (String)retPS.payload[0];
-//		}
-//		else
-		{
-	
-			// need a way to whitelist all the stuff here
-			// like rm, del etc. etc. 
-			String commandNotAllowed = commandAllowed(command);
-			// allowing all commands
-			
-			/*if(commandNotAllowed != null)
-				return commandNotAllowed;
-			*/
-			
-			try {
+		try {
+			if (command.equalsIgnoreCase("reset")) {
+				this.workingDir = this.contextDir;
+				output = this.workingDir;
+			} else if (command.startsWith("cd")) {
+				// remove the cd and then add to working dir
+				String originalCommand = command;
+				command = command.replace("cd", "");
+				command = command.trim();
+				classLogger.debug("CD command processing: original='" + originalCommand + "', after cd removal='" + command + "'");
 				
-				if(command.equalsIgnoreCase("reset"))
-				{
-					workingDir = mountDir;
-					output = workingDir;
+				// Remove quotes if present
+				command = removeQuotes(command);
+				classLogger.debug("CD command after quote removal: '" + command + "'");
+				
+				output = adjustWorkingDir(command);
+			} else if (command.startsWith("pwd")) {
+				output = this.workingDir;
+			} else {
+				// this is where we allow other commands
+				String[] foutput = runCommand(command);
+				String success = foutput[0];
+				output = foutput[1];
+				
+				// If command succeeded but has no output, that's normal for many commands (mkdir, rm, etc.)
+				if (Boolean.parseBoolean(success) && (output == null || output.trim().isEmpty())) {
+					output = "Command executed successfully";
+				} else if (!Boolean.parseBoolean(success) && (output == null || output.trim().isEmpty())) {
+					output = "Command failed with no output";
 				}
-				else if(command.startsWith("cd"))
-				{
-					// remoe the cd and then add to working dir
-					command = command.replace("cd", "");
-					command = command.trim();
-					// disable this
-					if(command.startsWith("/"))
-					{
-						output =  " Invalid command ";
-					}
-					else
-						output = adjustWorkingDir(command);
+				
+				// Clean up output formatting if we have output
+				if (output != null) {
+					output = output.replace("\\", "/");
+					output = output.replace("\\r", "");
+					output = output.replace("\\n", "");
+					output = output.trim();
 				}
-				else if(command.startsWith("pwd"))
-				{
-					output = workingDir;
-				}
-				else if(!command.startsWith("cd") && !command.startsWith("dir"))
-				{
-					String finalCommand = new String("");
-					//command = "cd " + workingDir + " && " + command;
-					// concat everything and then execute
-					output = runCommand(command)[1];
-				}
-				else if(command.toLowerCase().startsWith("dir") || command.toLowerCase().startsWith("ls"))
-				{
-					
-					StringBuilder finalCommand = new StringBuilder("");
-					//command = "cd " + workingDir + " && " + command;
-					String [] foutput = runCommand(command);
-					boolean success = foutput[0].equalsIgnoreCase("true");
-					output = foutput[1];
-					
-					if(success && output.length() > 0 && !output.toUpperCase().contains(mountDir.toUpperCase()))
-						output = "No Such Directory ";
-					else if(success && output.length() > 0)
-					{
-						//output = output.replace(mountDir, mountName);
-					}
-				}
-				else // this is where we allow other commands
-				{
-					String []foutput = runCommand(command);
-					output = foutput[1];
-					if(output.length() == 0)
-					{
-						// add only if the output is not resulting
-						String newCommand = command; // + " & cd"; 
-						output = runCommand(newCommand)[1];
-						output = output.replace("\\", "/");
-						output = output.replace("\\r","");
-						output = output.replace("\\n","");
-						output = output.trim();
-						System.err.println("[" + output + "]");
-						if(output.toUpperCase().contains(mountDir.toUpperCase()))
-						{
-							workingDir = output;
-						}
-						else if(output.length() > 0)
-							output = "Already at the root";
-					}
-					//output = output.replace(mountDir, mountName);
-	
-				}
-			}  catch (Exception e) {
-				// TODO Auto-generated catch block
-				classLogger.error(Constants.STACKTRACE, e);
 			}
-			// replace the mount dir location
-			output = replaceAppAlias(output);
-			return output;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
+		return output;
 	}
 	
-	private String commandAllowed(String command)
-	{
-		// Commands allowed cd, dir, ls, copy, cp, mv, move, del <specific file>, rm <specific file>, git
-		String upCommand = command.toUpperCase();
-		upCommand = upCommand.trim();
-		upCommand = upCommand.replace("\\","/"); // replace to forward slashes
-		
-		if(workingDir.equalsIgnoreCase(mountDir) && command.contains("..")) // you cannot do anything in the root
-			return mountName;
-
-		//if((upCommand.startsWith("DEL") || upCommand.startsWith("RM") || upCommand.startsWith("CP") || upCommand.startsWith("COPY") || upCommand.startsWith("MV") || upCommand.startsWith("MOVE") ||  upCommand.startsWith("LS") || upCommand.startsWith("DIR") || upCommand.startsWith("PWD")) && (command.contains("..") || command.contains("\\") || command.contains("/")))
-		//	return " Delete, move, copy, list is only allowed for a single level ";
-		
-		if(command.contains("&") || command.contains("&&"))
-			return "Concatenating commands is not allowed";
-
-		if(!upCommand.startsWith("CP") && !upCommand.startsWith("COPY") 
-				&& !upCommand.startsWith("CD") 
-				&& !upCommand.startsWith("DIR") && !upCommand.startsWith("LS") 
-				&& !upCommand.startsWith("MV") && !upCommand.startsWith("MOVE") 
-				&& !upCommand.startsWith("GIT") && !upCommand.startsWith("PWD") 
-				&& !upCommand.startsWith("RESET") && !upCommand.startsWith("MVN")
-				&& !upCommand.startsWith("DEL"))
-			return "Commands allowed cd, dir, ls, copy, cp, mv, move, del <specific file>, rm <specific file>, pwd, git, mvn (Experimental) ";
-		
-		return null;
-		
-	}
-
 	private void getCommandAppender() {
 		String osName = System.getProperty("os.name").toLowerCase();
 		if (osName.indexOf("win") >= 0) {
 			String terminalMode = Utility.getDefaultTerminalMode();
 			if(terminalMode.equals("cmd")) {
 				this.commandAppender = "cmd";
-				this.pwdCommand = "cd";
 			} else {
 				// if not cmd, then we are powershell
 				this.commandAppender = "powershell.exe";
-				this.pwdCommand = "pwd";
 			}
 		} else {
 			this.commandAppender = "/bin/bash";
-			this.pwdCommand = "pwd";
 		}
 	}
 	
-	private String replaceAppAlias(String output)
-	{
-		String origOutput = output;
-		while(output.toUpperCase().contains(mountDir.toUpperCase()))
-		{
-			// there could be 
-			int index = output.toUpperCase().indexOf(mountDir.toUpperCase());
-			output = output.substring(0, index) + mountName + output.substring(index + mountDir.length());
+	private String removeQuotes(String input) {
+		if (input == null || input.length() < 2) {
+			return input;
 		}
-		return output;
-	}
-	
-	private String[] runCommand(String command) 
-	{
-		boolean success = true;
-		DefaultExecutor executor;
-		CommandLine cmdLine = new CommandLine(commandAppender);
-		if(commandAppender.equalsIgnoreCase("/bin/bash")) {
-			cmdLine.addArgument("-c");
-		} else {
-			cmdLine.addArgument("/C");
-		}
-		//command = "\"" + command + "\"";
-		cmdLine.addArgument(command, false);
 		
-		//System.err.println("Running command ..  " + cmdLine);
-		String [] foutput = new String[2];
-		try(CollectingLogOutputStream clos = new CollectingLogOutputStream()){
-			executor = new DefaultExecutor();
-			PumpStreamHandler streamHandler = new PumpStreamHandler(clos);
-			executor.setStreamHandler(streamHandler);
-			executor.setWorkingDirectory(new File(Utility.normalizePath(workingDir)));
-			ExecuteWatchdog watchdog = new ExecuteWatchdog(20000); // 20 seconds is plenty of time.. if the process doesnt return kill it
-			executor.setWatchdog(watchdog);
-			try
-			{
-				int exitValue = executor.execute(cmdLine);
-			}catch(Exception ex)
-			{
-				success = false;
-			}
-			List <String> lines = clos.getLines();
-			StringBuilder builder = new StringBuilder();
-			for(int lineIndex = 0;lineIndex < lines.size();builder.append(lines.get(lineIndex)).append("\n"), lineIndex++);
-			//System.out.println(" List " + lines);
-			String output = builder.toString();;
-			output = output.replace("\\", "/");
-			
-			foutput[0] = success +"";
-			foutput[1] = output;
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}		
+		String result = input.trim();
 		
-		return foutput;
-	}
-	
-	
-	public void runUserCommand()
-	{
-		try(BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
-			String data = br.readLine();
-			while(data != null)
-			{
-				String output = executeCommand(data);
-				System.err.println(output);
-				System.err.println("Next Command : ");
-				data = br.readLine();
+		// Keep removing outer quotes until no more are found
+		boolean quotesRemoved;
+		do {
+			quotesRemoved = false;
+			// Check for single quotes
+			if (result.length() >= 2 && result.startsWith("'") && result.endsWith("'")) {
+				result = result.substring(1, result.length() - 1);
+				quotesRemoved = true;
 			}
-		} catch(Exception e) {
-			System.err.println("Exception is  " + e);
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+			// Check for double quotes
+			if (result.length() >= 2 && result.startsWith("\"") && result.endsWith("\"")) {
+				result = result.substring(1, result.length() - 1);
+				quotesRemoved = true;
+			}
+		} while (quotesRemoved);
+		
+		return result;
 	}
 	
-	private String adjustWorkingDir(String command)
-	{
-		//System.out.println("Working Dir Before " + workingDir);
+	/**
+	 * Fixed runCommand method that handles chroot commands properly
+	 */
+	private String[] runCommand(String command) {
+	    String[] foutput = new String[2];
+	    boolean success = true;
+	    
+//	    // Prepend safe.directory if this is a git command
+//	    // This is because the clone sets the directory ownership as root
+//	    // Even when we run with --userspec
+//	    if (command.startsWith("git")) {
+//	        command = command.replaceFirst("git", "git -c safe.directory='" + this.workingDir+"'");
+//	    }
+	    
+	    org.apache.commons.exec.ExecuteWatchdog.Builder executeWatchdogBuilder = ExecuteWatchdog.builder();
+	    executeWatchdogBuilder.setTimeout(Duration.ofSeconds(20));
+	    
+	    org.apache.commons.exec.DefaultExecutor.Builder<?> executorBuilder = DefaultExecutor.builder();
+	    
+	    // For chroot, we need to set working directory to the chroot base, not the target directory
+	    File workingDirectory;
+	    if (this.chrootFolderPath != null && !this.chrootFolderPath.isEmpty()) {
+	        workingDirectory = new File(this.chrootFolderPath);
+	    } else {
+	        workingDirectory = new File(Utility.normalizePath(workingDir));
+	    }
+	    executorBuilder.setWorkingDirectory(workingDirectory);
+	    
+	    CommandLine cmdLine = null;
+	    
+	    // Check if we need to use chroot
+	    if (this.chrootFolderPath != null && !this.chrootFolderPath.isEmpty()) {
+	        // Validate chroot setup
+	        File chrootDir = new File(this.chrootFolderPath);
+	        if (!chrootDir.exists()) {
+	            classLogger.error("Chroot directory does not exist: " + this.chrootFolderPath);
+	            foutput[0] = "false";
+	            foutput[1] = "Chroot directory does not exist: " + this.chrootFolderPath;
+	            return foutput;
+	        }
+	        
+	        File bashInChroot = new File(chrootDir, "bin/bash");
+	        if (!bashInChroot.exists()) {
+	            classLogger.error("Bash does not exist in chroot: " + bashInChroot.getAbsolutePath());
+	            foutput[0] = "false";
+	            foutput[1] = "Bash does not exist in chroot: " + bashInChroot.getAbsolutePath();
+	            return foutput;
+	        }
+	        
+	        // Build the complete command as a single string argument
+	        String escapedWorkingDir = workingDir.replace("'", "'\"'\"'");  // Proper shell escaping
+	        cmdLine = new CommandLine("fakechroot");
+	        cmdLine.addArgument("fakeroot");
+	        cmdLine.addArgument("chroot");
+	        cmdLine.addArgument("--userspec=1001:1001");
+	        cmdLine.addArgument(this.chrootFolderPath);
+	        cmdLine.addArgument(commandAppender);
+	        cmdLine.addArgument("-c");
+	        cmdLine.addArgument("cd '" + escapedWorkingDir + "' && " + command, false);
+	    } else {
+	        // non-chroot execution
+	        cmdLine = new CommandLine(commandAppender);
+	        if (commandAppender.equalsIgnoreCase("/bin/bash")) {
+	            cmdLine.addArgument("-c");
+	        } else {
+	            cmdLine.addArgument("/C");
+	        }
+	        cmdLine.addArgument(command, false);
+	    }
+	    
+	    classLogger.info("Running command executable: " + cmdLine.getExecutable());
+	    classLogger.info("Complete command: " + cmdLine);
+
+	    try (ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+	         ByteArrayOutputStream stderr = new ByteArrayOutputStream()) {
+	        DefaultExecutor executor = executorBuilder.get();
+	        
+	        PumpStreamHandler streamHandler = new PumpStreamHandler(stdout, stderr, NullInputStream.nullInputStream());
+	        executor.setStreamHandler(streamHandler);
+
+	        ExecuteWatchdog watchdog = executeWatchdogBuilder.get();
+	        executor.setWatchdog(watchdog);
+	        
+	        int exitValue = -1;
+	        try {
+	            exitValue = executor.execute(cmdLine);
+	            classLogger.debug("Command executed successfully with exit code: " + exitValue);
+	        } catch (Exception ex) {
+	            success = false;
+	            classLogger.error("Command execution failed with exit code: " + exitValue, ex);
+	        }
+
+	        // Combine stdout and stderr
+	        String stdoutStr = stdout.toString();
+	        String stderrStr = stderr.toString();
+	        String output = stdoutStr + stderrStr;
+	        output = output.trim().replace("\\", "/");
+	        
+	        // Log the output for debugging
+	        if (!stdoutStr.isEmpty()) {
+	            classLogger.debug("Command stdout: " + stdoutStr);
+	        }
+	        if (!stderrStr.isEmpty()) {
+	            classLogger.debug("Command stderr: " + stderrStr);
+	        }
+	        
+	        // If command failed but we don't have error output, add exit code info
+	        if (!success && output.isEmpty()) {
+	            output = "Command failed with exit code: " + exitValue;
+	        }
+	        
+	        foutput[0] = String.valueOf(success);
+	        foutput[1] = output;
+	        
+	    } catch (IOException e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	        success = false;
+	        foutput[0] = String.valueOf(success);
+	        foutput[1] = "IO Exception occurred: " + e.getMessage();
+	    }
+
+	    return foutput;
+	}
+	
+	/**
+	 * Adjust working directory with chroot awareness
+	 */
+	private String adjustWorkingDir(String command) {
+		String currentWorkingDir = this.workingDir;
+		
+		classLogger.debug("Adjusting working dir - current: '" + currentWorkingDir + 
+						  "', command: '" + command + "', chroot: '" + this.chrootFolderPath + "'");
+		
+		// Handle absolute paths
+		if (command.startsWith("/")) {
+			// For chroot, we need to check if the path exists within the chroot
+			if (directoryExists(command)) {
+				this.workingDir = command;
+				classLogger.debug("Set working dir to absolute path: " + this.workingDir);
+				return this.workingDir;
+			} else {
+				this.workingDir = currentWorkingDir;
+				return "Directory doesn't exist: " + command;
+			}
+		}
+		
+		// Handle relative paths
 		String [] cdTokens = command.split("/");
-		for(int tokenIndex = 0;tokenIndex < cdTokens.length;tokenIndex++)
-		{
+		for(int tokenIndex = 0; tokenIndex < cdTokens.length; tokenIndex++) {
 			String curToken = cdTokens[tokenIndex];
 			
-			//System.out.println("Processing CD " + curToken);
-			if(curToken.equalsIgnoreCase(".."))
-			{
-				String [] workdirTokens = workingDir.split("/");
+			// Skip empty tokens (from double slashes)
+			if (curToken.isEmpty()) {
+				continue;
+			}
+			
+			if(curToken.equalsIgnoreCase("..")) {
+				String [] workdirTokens = this.workingDir.split("/");
 				// take out the last one
 				int wdTokenLength = workdirTokens.length;
-				if(wdTokenLength > 1)
-				{
+				if(wdTokenLength > 1) {
 					String lastToken = workdirTokens[workdirTokens.length -1];
 					int lastIndex = workingDir.lastIndexOf("/" + lastToken);
 					
-					String newDir = Utility.normalizePath(workingDir.substring(0, lastIndex));
-					if(new File(newDir).exists())
-						workingDir = newDir;
-					//System.out.println("Working Dir " + workingDir);
+					String newDir;
+					if(lastIndex == 0 || workingDir.equals("/")) {
+						// we are at or going to the root
+						newDir = "/";
+					} else {
+						newDir = Utility.normalizePath(workingDir.substring(0, lastIndex));
+					}
+					
+					if(directoryExists(newDir)) {
+						this.workingDir = newDir;
+						classLogger.debug("Moved up to directory: " + this.workingDir);
+					} else {
+						classLogger.debug("Cannot move up - directory doesn't exist: " + newDir);
+					}
+				} else {
+					this.workingDir = currentWorkingDir;
+					return "Directory levels doesn't match navigation. Cannot go up from root.";
 				}
-				else
-				{
-					workingDir = mountDir;
-					return " Directory levels doesnt match navigation ";
-				}
-			}
-			else 
-			{
+			} else if (curToken.equals(".")) {
+				// Current directory, do nothing
+				continue;
+			} else {
 				String newDir = null;
-				if(!workingDir.endsWith("/"))
-					newDir = workingDir + "/" + curToken;
-				else
-					newDir = workingDir + curToken;					
+				if(!this.workingDir.endsWith("/")) {
+					newDir = this.workingDir + "/" + curToken;
+				} else {
+					newDir = this.workingDir + curToken;					
+				}
 				
-				// check to see if this is valid
-				if(new File(Utility.normalizePath( newDir )).exists())
-					workingDir = newDir;
-
+				// Normalize the path
+				newDir = Utility.normalizePath(newDir);
+				
+				// check to see if this is valid using chroot-aware directory check
+				if(directoryExists(newDir)) {
+					this.workingDir = newDir;
+					classLogger.debug("Changed to directory: " + this.workingDir);
+				} else {
+					this.workingDir = currentWorkingDir;
+					return "Directory doesn't exist: " + newDir;
+				}
 			}
 		}
 		
-		//System.out.println("Working Dir Set to " + workingDir);
-		return workingDir;
-	}
-	
-	public String getWorkingDir()
-	{
+		classLogger.debug("Final working directory: " + this.workingDir);
 		return this.workingDir;
 	}
 	
-	public String getMountName()
-	{
-		return this.mountName;
+	public String getWorkingDir() {
+		return this.workingDir;
 	}
 	
-	public void setTcpClient(SocketClient tcpClient)
-	{
-		this.tcpClient = tcpClient;
-		pushMountToSocket();
+	public void setWorkingDir(String workingDir) {
+		this.workingDir = workingDir;
 	}
 	
-//	public static void main(String[] args) throws Exception{
-//		// TODO Auto-generated method stub
-//		CmdExecUtil test = new CmdExecUtil("mango", "c:/users/pkapaleeswaran/workspacej3/gittest", null);
-//		test.runUserCommand();
-//	}
+	/**
+	 * Get the actual system path for the current working directory (useful for debugging)
+	 */
+	public String getSystemWorkingDir() {
+		return chrootToSystemPath(this.workingDir);
+	}
+	
+	/**
+	 * Check if chroot is enabled
+	 */
+	public boolean isChrootEnabled() {
+		return this.chrootFolderPath != null && !this.chrootFolderPath.isEmpty();
+	}
+	
+	/**
+	 * Get the chroot base path
+	 */
+	public String getChrootPath() {
+		return this.chrootFolderPath;
+	}
+	
+	// keeping example of payload struct format for sending to py socket
+	// but will stop using python for this moving forward
+	
+//	/**
+//	 * 
+//	 */
+//	public void pushMountToSocket() {
+//		PayloadStruct ps = new PayloadStruct();
+//		ps.operation = ps.operation.CMD;
+//		ps.payload = new Object[] {mountName, mountDir};
+//		ps.methodName = "constructor";
+//		ps.hasReturn = false;
+//		ps.insightId = mountName + "__" + mountDir;
+//		PayloadStruct retPS = (PayloadStruct) tcpClient.executeCommand(ps);	
+//	}	
 	
 }
 
