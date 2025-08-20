@@ -2,8 +2,10 @@ package prerna.io.connector.gmail;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.logging.log4j.Logger;
+
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -11,14 +13,15 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
-public class GoogleDeleteGmailReactor extends AbstractReactor {
+public class GoogleGmailDeleteEmailReactor extends AbstractReactor {
 	
-	private static final Logger classLogger = LogManager.getLogger(GoogleDeleteGmailReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleGmailDeleteEmailReactor.class);
 	
 	private static final String STATUS_KEY = "status";
 	
-	public GoogleDeleteGmailReactor() {
+	public GoogleGmailDeleteEmailReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -34,16 +37,18 @@ public class GoogleDeleteGmailReactor extends AbstractReactor {
 			Map<String, Object> map = new HashMap<>();
 			map.put(STATUS_KEY, result);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		} catch(SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} catch (Exception e) {
-			classLogger.error("Unauthorized access or Please provide valid input");
-			throw new SemossPixelException("Please provide valid input: " + e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("An error occurred deleting the email. Error message: " + e.getMessage());
 		}
-		
 	}
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to delete the email";
+		return "Delete an email from your gmail account";
 	}
 	
 	@Override

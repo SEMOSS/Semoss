@@ -15,11 +15,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
-public class GoogleGmailListReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(GoogleGmailListReactor.class);
+public class GoogleGmailGetUnreadEmailsReactor extends AbstractReactor {
 	
-	public GoogleGmailListReactor() {
+	private static final Logger classLogger = LogManager.getLogger(GoogleGmailGetUnreadEmailsReactor.class);
+	
+	public GoogleGmailGetUnreadEmailsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -32,20 +32,20 @@ public class GoogleGmailListReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			String accessToken = GoogleGmailUtils.getGoogleAccessToken(user);
 			int limit = Integer.parseInt(limitStr);
-			List<Map<String, Object>> result = GoogleGmailHelper.getEmailList(accessToken, limit);
+			List<Map<String, Object>> result = GoogleGmailHelper.getUnreadEmails(accessToken, limit);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch(SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("An error occurred getting the emails. Error message: " + e.getMessage());
+			throw new SemossPixelException("An error occurred getting the unread emails. Error message: " + e.getMessage());
 		}
 	}
 	
 	@Override
 	public String getReactorDescription() {
-		return "Get the list of emails";
+		return "Get the list of unread email";
 	}
 	
 	@Override
@@ -55,4 +55,5 @@ public class GoogleGmailListReactor extends AbstractReactor {
 		}
 		return super.getDescriptionForKey(key);
 	}
+
 }

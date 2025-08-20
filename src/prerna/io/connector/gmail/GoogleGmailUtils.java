@@ -10,12 +10,20 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GoogleGmailUtils {
+public final class GoogleGmailUtils {
 	
+	private GoogleGmailUtils() {
+		
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @return
+	 * @throws Exception
+	 */
 	public static String getGoogleAccessToken(User user) throws Exception {
-
 		String accessToken = null;
-
 		try {
 			if (user == null) {
 				Map<String, Object> retMap = new HashMap<>();
@@ -35,7 +43,12 @@ public class GoogleGmailUtils {
 		return accessToken;
 	}
 	
-	public static void throwLoginError(Map<String, Object> details) {
+	/**
+	 * 
+	 * @param details
+	 * @throws SemossPixelException
+	 */
+	public static void throwLoginError(Map<String, Object> details) throws SemossPixelException {
 		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(details, PixelOperationType.LOGGIN_REQUIRED_ERROR));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
