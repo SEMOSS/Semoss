@@ -342,10 +342,19 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	
 	@Override
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
-		return nearestNeighborCall(insight, searchStatement, limit, parameters, false);
+		return nearestNeighborCall(insight, searchStatement, limit, parameters, List.of());
 	}
 
-	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters, boolean meta) {
+	/**
+	 * Taking an additional metadata list parameter, 
+	 * @param insight
+	 * @param searchStatement
+	 * @param limit
+	 * @param parameters
+	 * @param metadataParams
+	 * @return
+	 */
+	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters, List<String> metadataParams) {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -356,7 +365,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		
 		JsonObject search = getNearestNeighborSearchJson(insight, searchStatement, limit, parameters);
 		
-//		TODO: Change back to debug
 		classLogger.warn("OPENSEARCH FINAL SEARCH QUERY : " + search.toString());
 
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
@@ -366,7 +374,12 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
+		
 		JsonArray hits = getHitsFromSearch(responseJson);
+		
+		classLogger.warn("OPENSEARCH hits: ", hits.toString());
+		
+		System.out.println(hits.toString());
 		
 		List<Map<String, Object>> vectorSearchResults = new ArrayList<>();
 		for(JsonElement e : hits) {
@@ -384,8 +397,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
 			thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
 			thisMatch.put(VectorDatabaseCSVTable.CONTENT, sourceDetails.get(VectorDatabaseCSVTable.CONTENT).getAsString());
-			if (meta) {
-				
+			for (String metaParam : metadataParams) {
+				try {
+					JsonObject param = sourceDetails.get(metaParam).getAsJsonObject();
+					thisMatch.put(metaParam, param);
+				} catch (Exception e1) {
+					classLogger.warn("Unable to get parameter " + metaParam + ": ", e1);
+				}
 			}
 		}
 		return vectorSearchResults;
