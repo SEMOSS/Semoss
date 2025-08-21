@@ -27,9 +27,11 @@ public class InitMCPReactor extends AbstractReactor {
 	//"serverInfo":{"name":"Stock Price Server","version":"1.8.0"}}}
 	private static final Logger classLogger = LogManager.getLogger(InitMCPReactor.class);
 
+	private final String PROTOCOL_VERSION = "protocolVersion";
+	
 	public InitMCPReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-		this.keyRequired = new int[] {1};
+		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), PROTOCOL_VERSION};
+		this.keyRequired = new int[] {1, 1};
 	}
 	
 	@Override
@@ -53,8 +55,12 @@ public class InitMCPReactor extends AbstractReactor {
 		IProject project = Utility.getProject(keyValue.get(keysToGet[0]));
 		String projectName = project.getProjectName();
 		
+		// need to return the protocol version of the client request
+		// as part of initialization 
+		String protocolVersion = this.keyValue.get(PROTOCOL_VERSION);
+
 		JSONObject resultJson = new JSONObject();
-		resultJson.put("protocolVersion", "2024-11-05");
+		resultJson.put("protocolVersion", protocolVersion);
 		
 		JSONObject serverJson = new JSONObject();
 		serverJson.put("name", projectName);
@@ -66,19 +72,29 @@ public class InitMCPReactor extends AbstractReactor {
 		
 		JSONObject promptJson = new JSONObject();
 		promptJson.put("listChanged", false);
+		promptJson.put("subscribe", true);
 		capabilitiesJson.put("prompts", promptJson);
 		
 		JSONObject resourcesJson = new JSONObject();
 		resourcesJson.put("listChanged", false);
-		resourcesJson.put("subscribe", false);
+		resourcesJson.put("subscribe", true);
 		capabilitiesJson.put("resources", resourcesJson);
 		
 		JSONObject toolsJson = new JSONObject();
 		toolsJson.put("listChanged", false);
+		toolsJson.put("subscribe", true);
 		capabilitiesJson.put("tools", toolsJson);
 
 		resultJson.put("capabilities", capabilitiesJson);
 		return new NounMetadata(resultJson, PixelDataType.JSON_OBJECT);
 	}
 
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(PROTOCOL_VERSION)) {
+			return "The protocol version that was specified in the Initialization phase from the client"; 
+		}
+		return super.getDescriptionForKey(key);
+	}
+	
 }

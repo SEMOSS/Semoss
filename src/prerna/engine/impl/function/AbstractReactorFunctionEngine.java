@@ -151,6 +151,12 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	public Map<String, Object> buildBedrockToolSpec() {
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
+	
+	@Override
+	public Map<String, Object> buildFunctionEngineToolMap() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 	@Override
 	public void setEngineId(String engineId) {
@@ -258,8 +264,13 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	}
 
 	@Override
-	public Map<String, Object> buildFunctionEngineToolMap() {
-		// TODO Auto-generated method stub
-		return null;
+	public boolean isBasic() {
+		return false;
 	}
+	
+	@Override
+	public void setBasic(boolean isBasic) {
+		// always false
+	}
+
 }
