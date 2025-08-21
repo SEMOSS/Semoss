@@ -1,11 +1,14 @@
 package prerna.io.connector.google.calendar;
 
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -27,19 +30,20 @@ public class GoogleCalendarDeleteEventReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			return GoogleCalendarHelper.deleteEvent(accessToken, id);
+			Map<String, Object> result = GoogleCalendarHelper.deleteEvent(accessToken, id);
+            return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch(SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Unauthorized access or Please provide valid input");
-			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("An error occurred deleting the event. Error message: " + e.getMessage());
 		}
 	}
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to delete event in the Google Calender.";
+		return "Delete an existing event in Google Calender";
 	}
 	
 	@Override

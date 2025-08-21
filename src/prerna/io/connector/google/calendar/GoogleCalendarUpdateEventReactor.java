@@ -89,15 +89,15 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Unauthorized access or Please provide valid input");
-			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("An error occurred updating the event. Error message: " + e.getMessage());
 		}
 
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to update an existing event in the Google Calender.";
+		return "Update an existing event in Google Calender";
 	}
 	
 	@Override
