@@ -29,6 +29,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.spi.json.GsonJsonProvider;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
@@ -79,6 +83,10 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private String indexEngine = "lucene";
 	private int efConstruction = 128;
 	private int m = 24;
+	
+	protected String customTemplateQuery = null;
+	protected String customResultsPath = null;
+	protected static List<String> highlightFieldKeys = null;
 
 	private Map<String, String> otherPropsToType = new HashMap<>();
 
@@ -145,7 +153,15 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		this.otherPropsToType.put(VectorDatabaseCSVTable.CONTENT, TEXT_DATATYPE);
 
 		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.distanceMethod, this.indexEngine, this.efConstruction, this.m);
-		updateIndexMapping(this.indexName, this.otherPropsToType);		
+		updateIndexMapping(this.indexName, this.otherPropsToType);	
+		
+//		try {
+//			this.customTemplateQuery = JsonParser.parseString(this.smssProp.getProperty(Constants.CUSTOM_TEMPLATE_QUERY)).getAsJsonObject();
+//		} catch (NullPointerException e) {
+//			classLogger.warn("No json template found");
+//		}
+		this.customTemplateQuery = this.smssProp.getProperty(Constants.CUSTOM_TEMPLATE_QUERY);
+		this.customResultsPath = this.smssProp.getProperty(Constants.CUSTOM_RESULTS_PATH);
 	}
 	
 	@Override
@@ -340,21 +356,159 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		}
 	}
 	
+	public List<Map<String, Object>> customNearestNeighborSearch(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters, boolean meta) {
+		
+		/**
+		 * Flow:
+		 * 1. From SMSS, check custom json template or not
+		 * 1a. If not, pass this on to the original nearest neighbor call function.
+		 * 1b. If so, use the custom template and string substitute the search phrase into the json template
+		 * 2. Call <index>/_search
+		 * 3. From SMSS, check to see if there's a custom results path or not
+		 * 3a. If not, get via parent hits.hits
+		 * 3b. If so, get via the custom results path
+		 * 4. Are we asking for metadata through the meta param?
+		 * 4a. If not, done
+		 * 4b. If so, iterate over hits.hits._source and create map for each doc, then done
+		 */
+		
+		/**
+		 * 1
+		 */
+		JsonObject search = null;
+		if (this.customTemplateQuery != null) {
+			classLogger.info("Found a custom template query for this engine");
+			this.customTemplateQuery.replaceAll("%QUERY_PLACEHOLDER%", searchStatement);
+			try {
+				search = JsonParser.parseString(this.customTemplateQuery).getAsJsonObject();
+				// From the custom query template, get the metadata field keys under highlight > fields
+				if (highlightFieldKeys == null) {
+					highlightFieldKeys = new ArrayList<>();
+					JsonObject highlightFields = search.getAsJsonObject("highlight").getAsJsonObject("fields");
+					for (Map.Entry<String, JsonElement> entry : highlightFields.entrySet()) {
+						String fieldName = entry.getKey();
+						highlightFieldKeys.add(fieldName);
+					}
+				}
+				classLogger.info(highlightFieldKeys);
+			} catch (Exception e) {
+				classLogger.error(e);
+				throw e;
+			}
+		} else {
+			search = getNearestNeighborSearchJson(insight, searchStatement, limit, parameters);
+		}
+		
+		/**
+		 * 2
+		 */
+		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
+		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
+
+		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		
+		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
+		
+		JsonArray hits = getHitsFromSearch(responseJson);
+		
+		List<Map<String, Object>> vectorSearchResults = new ArrayList<>();
+		
+		/**
+		 * 3
+		 */
+
+		for(JsonElement e : hits) {
+			JsonObject hitJson = e.getAsJsonObject();
+			Double score = (Double) hitJson.get("_score").getAsDouble();
+			
+			// If we have custom results path, use it to get sourceDetails
+			if (this.customResultsPath != null) {
+				classLogger.info("Using custom results path: " + this.customResultsPath);
+				try {
+					Configuration configuration = Configuration.builder()
+						.jsonProvider(new GsonJsonProvider())
+						.build();
+					DocumentContext jsonContext = JsonPath.using(configuration).parse(hitJson);
+					JsonArray sourceDetailsArray = jsonContext.read(this.customResultsPath);
+					
+					// Create a separate match for each element in sourceDetailsArray
+					for (JsonElement sd : sourceDetailsArray) {
+						Map<String, Object> thisMatch = new HashMap<>();
+						vectorSearchResults.add(thisMatch);
+						
+						// Add base information to each match
+						thisMatch.put("Score", score);
+						
+						JsonObject sourceDetails = sd.getAsJsonObject();
+						thisMatch.put(VectorDatabaseCSVTable.SOURCE, sourceDetails.get(VectorDatabaseCSVTable.SOURCE).getAsString());
+						thisMatch.put(VectorDatabaseCSVTable.MODALITY, sourceDetails.get(VectorDatabaseCSVTable.MODALITY).getAsString());
+						thisMatch.put(VectorDatabaseCSVTable.DIVIDER, sourceDetails.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
+						thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
+						thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
+						
+						/**
+						 * 4 - Add metadata if requested
+						 */
+						if (meta) {
+							addMetadataToMatch(thisMatch, hitJson);
+						}
+					}
+				} catch (Exception e1) {
+					throw new RuntimeException("Failed to parse results using custom path: " + this.customResultsPath, e1);
+				}
+			} else {
+				// Standard path - single match per hit
+				Map<String, Object> thisMatch = new HashMap<>();
+				vectorSearchResults.add(thisMatch);
+				
+				// Add base information
+				thisMatch.put("Score", score);
+				
+				JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
+				thisMatch.put(VectorDatabaseCSVTable.CONTENT, sourceDetails.get(VectorDatabaseCSVTable.CONTENT).getAsString());
+				thisMatch.put(VectorDatabaseCSVTable.SOURCE, sourceDetails.get(VectorDatabaseCSVTable.SOURCE).getAsString());
+				thisMatch.put(VectorDatabaseCSVTable.MODALITY, sourceDetails.get(VectorDatabaseCSVTable.MODALITY).getAsString());
+				thisMatch.put(VectorDatabaseCSVTable.DIVIDER, sourceDetails.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
+				thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
+				thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
+			}
+		}
+
+		return vectorSearchResults;
+	}
+	
+	private void addMetadataToMatch(Map<String, Object> thisMatch, JsonObject hitJson) {
+		if (highlightFieldKeys != null && !highlightFieldKeys.isEmpty()) {
+			JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
+			for (String fieldKey : highlightFieldKeys) {
+				try {
+					JsonElement fieldElement = sourceDetails.get(fieldKey);
+					if (fieldElement != null && !fieldElement.isJsonNull()) {
+						// Handle different types of field elements
+						if (fieldElement.isJsonArray()) {
+							thisMatch.put(fieldKey, fieldElement.getAsJsonArray().toString());
+						} else if (fieldElement.isJsonPrimitive()) {
+							thisMatch.put(fieldKey, fieldElement.getAsString());
+						} else if (fieldElement.isJsonObject()) {
+							thisMatch.put(fieldKey, fieldElement.getAsJsonObject().toString());
+						} else {
+							thisMatch.put(fieldKey, fieldElement.toString());
+						}
+					} else {
+						thisMatch.put(fieldKey, null);
+					}
+				} catch (Exception e) {
+					classLogger.warn("Failed to extract metadata field '{}' from hit: {}", fieldKey, e.getMessage());
+					thisMatch.put(fieldKey, null);
+				}
+			}
+		}
+	}
+	
 	@Override
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
-		return nearestNeighborCall(insight, searchStatement, limit, parameters, List.of());
-	}
-
-	/**
-	 * Taking an additional metadata list parameter, 
-	 * @param insight
-	 * @param searchStatement
-	 * @param limit
-	 * @param parameters
-	 * @param metadataParams
-	 * @return
-	 */
-	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters, List<String> metadataParams) {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -365,7 +519,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		
 		JsonObject search = getNearestNeighborSearchJson(insight, searchStatement, limit, parameters);
 		
-		classLogger.warn("OPENSEARCH FINAL SEARCH QUERY : " + search.toString());
+		classLogger.debug("OPENSEARCH FINAL SEARCH QUERY : " + search.toString());
 
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();
@@ -376,10 +530,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
 		
 		JsonArray hits = getHitsFromSearch(responseJson);
-		
-		classLogger.warn("OPENSEARCH hits: ", hits.toString());
-		
-		System.out.println(hits.toString());
 		
 		List<Map<String, Object>> vectorSearchResults = new ArrayList<>();
 		for(JsonElement e : hits) {
@@ -397,14 +547,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
 			thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
 			thisMatch.put(VectorDatabaseCSVTable.CONTENT, sourceDetails.get(VectorDatabaseCSVTable.CONTENT).getAsString());
-			for (String metaParam : metadataParams) {
-				try {
-					JsonObject param = sourceDetails.get(metaParam).getAsJsonObject();
-					thisMatch.put(metaParam, param);
-				} catch (Exception e1) {
-					classLogger.warn("Unable to get parameter " + metaParam + ": ", e1);
-				}
-			}
 		}
 		return vectorSearchResults;
 	}
