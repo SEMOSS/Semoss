@@ -54,7 +54,6 @@ public class CsvFileIterator extends AbstractFileIterator {
 			this.helper.parseColumns(this.headers);
 		} else {
 			setUnknownTypes();
-			setSelectors(qs.getSelectors());
 			qs.setColumnTypes(this.dataTypeMap);
 		}
 
