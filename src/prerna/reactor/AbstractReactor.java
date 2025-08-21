@@ -625,7 +625,7 @@ public abstract class AbstractReactor implements IReactor {
 	 * Convenience method to allow order or named noun for basic string inputs
 	 */
 	protected void organizeKeys() {
-		if(this.getNounStore().size() > 1) {
+		if(this.getNounStore().size() > 0) {
 			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
 				String key = keysToGet[keyIndex];
 				if(this.store.getNoun(key) != null) {

@@ -2914,6 +2914,15 @@ public final class Utility {
 	/**
 	 * 
 	 * @param engineId
+	 * @return
+	 */
+	public static IGuardrailReactorFunctionEngine getGuardrailEngine(String engineId) {
+		return getGuardrailEngine(engineId, true);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
 	 * @param pullIfNeeded
 	 * @return
 	 */

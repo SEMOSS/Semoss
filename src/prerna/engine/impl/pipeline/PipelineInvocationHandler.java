@@ -69,27 +69,30 @@ public class PipelineInvocationHandler implements InvocationHandler {
         // === INPUT PIPELINE EXECUTION ===
         try {
             for (IInputReactor reactor : specificPipeline.getInputPipeline()) {
+                // mapArguments will now also add argN parameters and set Insight
                 processedArguments = mapArguments(reactor, method, args);
+
                 NounStore inputNouns = new NounStore("input-pipeline");
-                
                 GenRowStruct grs = new GenRowStruct();
+                
+                // Add core context to processedArguments
                 processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
                 processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
                 processedArguments.put(PipelineReactorUtils.CONFIG, specificPipeline.getInputParams().get(inputIndex));
+                
                 grs.add(new NounMetadata(processedArguments, PixelDataType.MAP));
                 inputNouns.addNoun(PipelineReactorUtils.ARGUMENTS, grs);
                 reactor.setNounStore(inputNouns);
 
                 NounMetadata resultNoun = reactor.execute();
+                // Reactors return a NounMetadata whose value is the updated processedArguments map
                 processedArguments = (Map<String, Object>) resultNoun.getValue();
                 inputIndex++;
                 
-                // get the decision and if it is false
-                // stop the execution. 
                 Map<String, Object> resultMap = (Map<String, Object>) processedArguments.get(PipelineReactorUtils.INTERIM_RESULT);
                 boolean pass = (boolean)resultMap.get(PipelineReactorUtils.PASS);
                 if(!pass) {
-                	throw new SecurityException("Input Guardrail issue detected");
+                    throw new SecurityException("Input Guardrail issue detected");
                 }
             }
         } catch (SecurityException e) {
@@ -97,6 +100,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
             throw e;
         }
 
+        // The unmapArguments method will now correctly use the updated processedArguments
         Object[] finalArgs = unmapArguments(method, processedArguments);
 
         // === ACTUAL METHOD EXECUTION ===
@@ -107,11 +111,25 @@ public class PipelineInvocationHandler implements InvocationHandler {
         // === OUTPUT PIPELINE EXECUTION ===
         inputIndex = 0;
         for (IOutputReactor reactor : specificPipeline.getOutputPipeline()) {
+            // mapArguments will now also add argN parameters and set Insight
+            // For output reactors, we need to ensure Insight is set if present.
+            // We can reuse mapArguments, but it will re-map the original args.
+            // It's better to just set Insight directly here if mapArguments is not called.
+            for (int i = 0; i < args.length; i++) {
+                if (args[i] instanceof Insight) {
+                    reactor.setInsight((Insight) args[i]);
+                    break;
+                }
+            }
+
             NounStore outputNouns = new NounStore("output-pipeline");
             GenRowStruct grs = new GenRowStruct();
+            
+            // Add core context to processedArguments for output reactors
             processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
             processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
             processedArguments.put(PipelineReactorUtils.CONFIG, specificPipeline.getOutputParams().get(inputIndex));
+            
             grs.add(new NounMetadata(processedArguments, PixelDataType.MAP));
             outputNouns.addNoun(PipelineReactorUtils.ARGUMENTS, grs);            
             reactor.setNounStore(outputNouns);
@@ -120,7 +138,6 @@ public class PipelineInvocationHandler implements InvocationHandler {
             processedArguments = (Map<String, Object>)resultNoun.getValue();
             inputIndex++;
             
-            // eval result	
             Map<String, Object> resultMap = (Map <String, Object>) processedArguments.get(PipelineReactorUtils.INTERIM_RESULT);
             boolean pass = (boolean)resultMap.get(PipelineReactorUtils.PASS);
             if(!pass) {
@@ -131,6 +148,45 @@ public class PipelineInvocationHandler implements InvocationHandler {
         return processedArguments.get(PipelineReactorUtils.RESULT);
     }
     
+    /**
+     * Maps the method arguments into a Map, including both named parameters and argN.
+     * Also sets Insight on the reactor if present.
+     * @param reactor The reactor to set Insight on.
+     * @param method The method being invoked.
+     * @param args The arguments of the method.
+     * @return A Map containing the arguments.
+     */
+    private Map<String, Object> mapArguments(IReactor reactor, Method method, Object[] args) {
+        Map<String, Object> map = new HashMap<>();
+        Parameter[] parameters = method.getParameters();
+        for (int i = 0; i < parameters.length; i++) {
+            // Set Insight if present
+    		if(args[i] instanceof Insight) {
+    			reactor.setInsight((Insight)args[i]);
+    		}
+            // Add by parameter name
+            map.put(parameters[i].getName(), args[i]);
+            // Add by argN for consistent indexing
+            map.put("arg" + i, args[i]);
+        }
+        return map;
+    }
+
+    /**
+     * Reconstructs the method arguments array from the processed arguments map.
+     * @param method The method being invoked.
+     * @param argMap The map containing the processed arguments.
+     * @return An array of arguments.
+     */
+    private Object[] unmapArguments(Method method, Map<String, Object> argMap) {
+        Parameter[] parameters = method.getParameters();
+        Object[] args = new Object[parameters.length];
+        for (int i = 0; i < parameters.length; i++) {
+            args[i] = argMap.get(parameters[i].getName());
+        }
+        return args;
+    }
+
     /**
      * 
      * @param pipelineFile
@@ -206,40 +262,6 @@ public class PipelineInvocationHandler implements InvocationHandler {
         	classLogger.error(Constants.STACKTRACE, e);
             throw new RuntimeException("Failed to create reactor: " + className, e);
         }
-    }
-
-    /**
-     * 
-     * @param reactor
-     * @param method
-     * @param args
-     * @return
-     */
-    private Map<String, Object> mapArguments(IReactor reactor, Method method, Object[] args) {
-        Map<String, Object> map = new HashMap<>();
-        Parameter[] parameters = method.getParameters();
-        for (int i = 0; i < parameters.length; i++) {
-    		if(args[i] instanceof Insight) {
-    			reactor.setInsight((Insight)args[i]);
-    		}
-            map.put(parameters[i].getName(), args[i]);
-        }
-        return map;
-    }
-
-    /**
-     * 
-     * @param method
-     * @param argMap
-     * @return
-     */
-    private Object[] unmapArguments(Method method, Map<String, Object> argMap) {
-        Parameter[] parameters = method.getParameters();
-        Object[] args = new Object[parameters.length];
-        for (int i = 0; i < parameters.length; i++) {
-            args[i] = argMap.get(parameters[i].getName());
-        }
-        return args;
     }
 
     /**

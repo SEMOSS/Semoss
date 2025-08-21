@@ -100,6 +100,7 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 	@Override
 	public GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow) {
 		checkSocketStatus();
+		System.out.println("what?");
 		Map<String, String> keyValue = organizeKeys(ns, curRow);
 		String prompt = keyValue.get(this.keysToGet[0]);
 		if(prompt == null) {

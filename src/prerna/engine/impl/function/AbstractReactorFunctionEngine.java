@@ -78,7 +78,7 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	 */
 	public Map<String, String> organizeKeys(NounStore ns, GenRowStruct curRow) {
 		Map<String, String> keyValue = new HashMap<>();
-		if(ns.size() > 1) {
+		if(ns.size() > 0) {
 			for(int keyIndex = 0; keyIndex < this.keysToGet.length; keyIndex++) {
 				String key = this.keysToGet[keyIndex];
 				if(ns.getNoun(key) != null) {
@@ -93,9 +93,9 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 		// fill in order based on whatever is left
 		int counter = 0;
 		if(curRow != null && !curRow.isEmpty()) {
-			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
-				if(!keyValue.containsKey(keysToGet[keyIndex])) {
-					keyValue.put(keysToGet[keyIndex], curRow.get(counter) + "");
+			for(int keyIndex = 0; keyIndex < this.keysToGet.length; keyIndex++) {
+				if(!keyValue.containsKey(this.keysToGet[keyIndex])) {
+					keyValue.put(this.keysToGet[keyIndex], curRow.get(counter) + "");
 					// increase counter index
 					counter++;
 				}
