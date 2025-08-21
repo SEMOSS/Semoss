@@ -35,6 +35,7 @@ import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
@@ -1527,7 +1528,7 @@ public class Project implements IProject {
 	        
 	        if(!built) { // may be maven is not set but mvn as a executor is available
 				// need to make the modification to this
-				CmdExecUtil ceu = new CmdExecUtil(projectName, pomFile.getParent(), null);
+				CmdExecUtil ceu = new CmdExecUtil(null, SmssUtilities.getUniqueName(this.projectName, this.projectId), pomFile.getParent());
 				// mvn dependency:list -DoutputType=graphml -DoutputFile=./mvn_dep.output -DincludeScope=runtime -f pom.xml
 				ceu.executeCommand("mvn dependency:list -DoutputType=graphml -DoutputFile=\"" + outputFile.getAbsolutePath() + "\" -DincludeScope=runtime -f \"" + pomFile + "\"");
 			}
@@ -1742,6 +1743,7 @@ public class Project implements IProject {
 		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			this.createProjectTcpServer(-1);
 		}
+		this.pyTranslator.setSocketClient(this.cpw.getSocketClient());
 		return this.pyTranslator;
 	}
 	
@@ -1918,6 +1920,11 @@ public class Project implements IProject {
 
 		return toolMap;
 	}
+	
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
 
 	@Deprecated
 	/**
@@ -1971,5 +1978,15 @@ public class Project implements IProject {
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return this.projectType.name();
+	}
+	
+	@Override
+	public boolean isBasic() {
+		return false;
+	}
+	
+	@Override
+	public void setBasic(boolean isBasic) {
+		// always false
 	}
 }

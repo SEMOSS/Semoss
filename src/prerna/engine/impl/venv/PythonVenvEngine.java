@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.SystemUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.CheckoutCommand;
@@ -45,7 +44,6 @@ import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
-
 
 public class PythonVenvEngine extends AbstractVenvEngine {
 
@@ -438,11 +436,6 @@ public class PythonVenvEngine extends AbstractVenvEngine {
 	}
 	
 	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-	
-	@Override
 	public VenvTypeEnum getVenvType() {
 		return VenvTypeEnum.PYTHON;
 	}
@@ -455,4 +448,15 @@ public class PythonVenvEngine extends AbstractVenvEngine {
     		return  this.localVenvVersionFolder;
     	}
 	}
+	
+	@Override
+	public boolean isBasic() {
+		return false;
+	}
+	
+	@Override
+	public void setBasic(boolean isBasic) {
+		// always false
+	}
+	
 }

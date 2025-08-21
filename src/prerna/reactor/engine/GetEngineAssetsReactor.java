@@ -54,6 +54,8 @@ public class GetEngineAssetsReactor extends AbstractReactor {
 		if(!filePath.startsWith("/")) {
 			filePath = "/" + filePath;
 		}
+		filePath = Utility.normalizePath(filePath);
+
 		String assetFolder = EngineUtility.getSpecificEngineBaseFolder(engineId);
 
 		String output = null;

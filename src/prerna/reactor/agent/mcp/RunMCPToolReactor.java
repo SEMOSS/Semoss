@@ -20,6 +20,7 @@ import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -57,6 +58,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 		if(functionName == null || (functionName=functionName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Function name must be passed in to execute the mcp tool");
 		}
+		functionName = MCPUtility.removeProjectIdFromToolsMethodName(projectId, functionName);
 		
 		// these are the params
 		Map<String, Object> paramMap = getMap();
@@ -74,15 +76,15 @@ public class RunMCPToolReactor extends AbstractReactor {
 		JSONObject functionProperties = getFunction(functionName, pythonJsonFileLoc);
 		if(functionProperties != null) {
 			// this is a python mcp tool
-			output = MCPToolExecution.runPythonTool(project, this.insight, functionName, functionProperties, paramMap);
-			return new NounMetadata(output, PixelDataType.CONST_STRING);
+			output = MCPUtility.runPythonTool(project, this.insight, functionName, functionProperties, paramMap);
+			return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
 		}
 		
 		functionProperties = getFunction(functionName, pixelJsonFileLoc);
 		if(functionProperties != null) {
 			// this is a pixel mcp tool
-			output = MCPToolExecution.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
-			return new NounMetadata(output, PixelDataType.CONST_STRING);
+			output = MCPUtility.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
+			return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
 		}
 		
 		throw new SemossMCPException("Unknown tool: invalid_tool_name", MCPErrorCode.INVALID_PARAMS);

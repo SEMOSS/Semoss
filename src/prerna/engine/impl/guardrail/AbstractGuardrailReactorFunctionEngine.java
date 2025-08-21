@@ -25,5 +25,10 @@ public abstract class AbstractGuardrailReactorFunctionEngine extends AbstractRea
 	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
+	
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
 
 }

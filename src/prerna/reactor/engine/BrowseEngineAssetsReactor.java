@@ -1,7 +1,8 @@
 package prerna.reactor.engine;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +19,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
+import prerna.util.Utility;
 
 public class BrowseEngineAssetsReactor extends AbstractReactor {
 
@@ -31,18 +33,19 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 		organizeKeys();
 
 		User user = this.insight.getUser();
-        String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-        // check if user is logged in
+		// check if user is logged in
  		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
  			throwAnonymousUserError();
  		}
-     		
-        if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-            throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to this engine");
-        }
+		 		
+        String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to edit assets.");
+		}
+		
 		String relativeFilePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		if(relativeFilePath != null) {
-			relativeFilePath = relativeFilePath.trim();
+			relativeFilePath = Utility.normalizePath(relativeFilePath.trim());
 			if(!relativeFilePath.isEmpty()) {
 				relativeFilePath = relativeFilePath.replace('\\', '/');
 				if(!relativeFilePath.startsWith("/")) {
@@ -66,7 +69,7 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("The path " + relativeFilePath + " exists within the engine folder but is not a directory");
 		}
 		
-		SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").withZone(user.getZoneId());
 		
 		List<Map<String, Object>> retObj = new ArrayList<>();
 		File[] allFiles = directory.listFiles();
@@ -82,7 +85,7 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 			} else {
 				fileMap.put("type", FilenameUtils.getExtension(f.getName()));
 			}
-			fileMap.put("lastModified", dateFormat.format(f.lastModified()));
+			fileMap.put("lastModified", dateTimeFormatter.format(Instant.ofEpochMilli(f.lastModified())));
 			fileMap.put("path", f.getAbsolutePath().substring(pathSubstringIndex));
 			retObj.add(fileMap);
 		}
