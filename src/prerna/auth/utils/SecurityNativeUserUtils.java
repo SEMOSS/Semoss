@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.*;
 import java.util.Map;
 import java.util.UUID;
 
@@ -33,6 +34,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 
 	private static final String SMSS_USER_TABLE_NAME = "SMSS_USER";
 	private static final String USERID_COL = SMSS_USER_TABLE_NAME + "__ID";
+	private static final String ID_COL = "CUSTOMGROUPASSIGNMENT__GROUPID";
+	private static final String GROUP_USERID_COL = "CUSTOMGROUPASSIGNMENT__USERID";
 	private static final String NAME_COL = SMSS_USER_TABLE_NAME + "__NAME";
 	private static final String USERNAME_COL = SMSS_USER_TABLE_NAME + "__USERNAME";
 	private static final String EMAIL_COL = SMSS_USER_TABLE_NAME + "__EMAIL";
@@ -574,6 +577,43 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Brings the list of custom groups from database.
+	 * 
+	 * @param userid
+	 * @return list of custom groups
+	 */
+	public static List<String> getUserCustomGroups(String userid) {
+		/*	String query = "SELECT GROUPID FROM CUSTOMGROUPASSIGNMENT WHERE USERID = '?1'";
+			query = query.replace("?1", id);
+			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
+		List<String> groups = new ArrayList<>();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", userid));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				if (values != null) {
+					groups.add((String) values[0]);
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return groups;
 	}
 
 	/**

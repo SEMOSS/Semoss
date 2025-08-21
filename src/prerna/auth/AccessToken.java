@@ -1,7 +1,6 @@
 package prerna.auth;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,6 +16,7 @@ public class AccessToken implements Serializable {
 	// this will store all the groups that the user has
 	// will be provided to us when the user logs in 
 	// from an IDP
+	Collection<String> userCustomGroups = null;
 	Collection<String> userGroups = null;
 	String userGroupType = null;
 	
@@ -42,7 +42,6 @@ public class AccessToken implements Serializable {
 	String modelUsageRestriction = null;
 	
 	Map<String, String> sans = null;
-	
 	Map<String, Collection<String>> meta = null;
 	
 	boolean locked = false;
@@ -88,6 +87,14 @@ public class AccessToken implements Serializable {
 
 	public void setUserGroupType(String userGroupType) {
 		this.userGroupType = userGroupType;
+	}
+
+	public Collection<String> getUserCustomGroups() {
+		return userCustomGroups;
+	}
+
+	public void setUserCustomGroups(Set<String> userCustomGroups) {
+		this.userCustomGroups = userCustomGroups;
 	}
 
 	public void setExpires_in(int expires_in) {
@@ -166,6 +173,7 @@ public class AccessToken implements Serializable {
 
 	public void setId(String id) {
 		this.id = id.trim();
+		System.out.println(id);
 	}
 
 	public String getUsername() {
@@ -272,5 +280,4 @@ public class AccessToken implements Serializable {
 		this.modelUsageRestriction = modelUsageRestriction;
 	}
 
-	
 }

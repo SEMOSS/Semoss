@@ -2594,6 +2594,13 @@ public abstract class AbstractSecurityUtils {
 	            for (String group : groups) {
 	                filters.add(Utility.inputSQLSanitizer(group));
 	            }
+	            if (user.getAccessToken(thisLogin).getUserCustomGroups() != null && !user.getAccessToken(thisLogin).getUserCustomGroups().isEmpty()) {
+	            	Collection<String> customGroups = user.getAccessToken(thisLogin).getUserCustomGroups();
+	            	for (String group : customGroups) {
+	            		filters.add(Utility.inputSQLSanitizer(group));
+	            	}
+	            }
+	  
 	        }
 	    }
 	    return filters;

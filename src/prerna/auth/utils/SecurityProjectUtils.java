@@ -2395,7 +2395,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
 					continue;
 				}
-				
+				if(!user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
+					AndQueryFilter customAndFilter = new AndQueryFilter();
+					customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", "CUSTOM"));
+					customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserCustomGroups()));
+					groupProjectOrFilters.addFilter(customAndFilter);
+				}
 				AndQueryFilter andFilter = new AndQueryFilter();
 				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
 				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
@@ -2470,6 +2475,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			for(AuthProvider login : logins) {
 				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
 					continue;
+				}
+				if(!user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
+					AndQueryFilter customAndFilter = new AndQueryFilter();
+					customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", "CUSTOM"));
+					customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserCustomGroups()));
+					groupProjectOrFilters.addFilter(customAndFilter);
 				}
 				AndQueryFilter andFilter = new AndQueryFilter();
 				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
