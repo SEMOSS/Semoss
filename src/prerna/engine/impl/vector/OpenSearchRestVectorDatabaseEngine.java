@@ -86,7 +86,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	
 	protected String customTemplateQuery = null;
 	protected String customResultsPath = null;
-	protected static List<String> highlightFieldKeys = null;
+	protected List<String> highlightFieldKeys = null;
 
 	private Map<String, String> otherPropsToType = new HashMap<>();
 
