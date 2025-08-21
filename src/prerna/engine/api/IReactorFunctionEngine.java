@@ -1,6 +1,7 @@
 package prerna.engine.api;
 
 import prerna.reactor.IReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -19,5 +20,5 @@ public interface IReactorFunctionEngine extends IReactor, IFunctionEngine {
 	 * @param ns
 	 * @return
 	 */
-	NounMetadata execute(NounStore ns);
+	NounMetadata execute(NounStore ns, GenRowStruct curRow);
 }

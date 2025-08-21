@@ -19,6 +19,8 @@ import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -96,14 +98,14 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 	}
 	
 	@Override
-	public GuardrailNounMetadata execute() {
+	public GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow) {
 		checkSocketStatus();
-		organizeKeys();
-		String prompt = this.keyValue.get(this.keysToGet[0]);
+		Map<String, String> keyValue = organizeKeys(ns, curRow);
+		String prompt = keyValue.get(this.keysToGet[0]);
 		if(prompt == null) {
 			throw new IllegalArgumentException("No prompt has been defined");
 		}
-		List<String> labels = getNounAsStringList(this.keysToGet[1]);
+		List<String> labels = getNounAsStringList(ns, this.keysToGet[1]);
 		if(labels == null || labels.isEmpty()) {
 			labels = defaultLabels;
 		}
@@ -111,8 +113,8 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 			throw new IllegalArgumentException("No named entity recognition lables have been defined");
 		}
 		double threshold = this.defaultThreshold;
-		if(this.keyValue.containsKey(this.keysToGet[2])) {
-			threshold = Double.parseDouble(this.keyValue.get(this.keysToGet[2]));
+		if(keyValue.containsKey(this.keysToGet[2])) {
+			threshold = Double.parseDouble(keyValue.get(this.keysToGet[2]));
 		}
 		
 		String script = "model.predict_entities(\"\"\""+prompt+"\"\"\", "+new Gson().toJson(labels)+")";

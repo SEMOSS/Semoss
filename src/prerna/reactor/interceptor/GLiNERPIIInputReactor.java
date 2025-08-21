@@ -64,7 +64,7 @@ public class GLiNERPIIInputReactor extends AbstractReactor implements IInputReac
 				}
 			}
 			
-			GuardrailNounMetadata output = (GuardrailNounMetadata) gliner.execute(glinerNounStore);
+			GuardrailNounMetadata output = (GuardrailNounMetadata) gliner.execute(glinerNounStore, null);
 			
 			Map <String, Object> resultMap = new HashMap<String, Object>();
 			resultMap.put(PipelineReactorUtils.INTERCEPTOR, this.getClass().getName());
