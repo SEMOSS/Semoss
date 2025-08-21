@@ -2165,6 +2165,12 @@
 			<artifactId>aws-java-sdk-textract</artifactId>
 			<version>1.12.770</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-transcribe -->
+		<dependency>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>aws-java-sdk-transcribe</artifactId>
+		    <version>1.12.770</version>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/me.xdrop/fuzzywuzzy -->
 		<!--
 		<dependency>
@@ -2621,8 +2627,7 @@
 	        <artifactId>google-auth-library-oauth2-http</artifactId>
 	        <!-- <version>1.30.0</version> -->
 	    </dependency>
-		
-
+	    
 		<!--  testing jars  -->
 		<!--
 		https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->

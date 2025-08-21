@@ -7,6 +7,7 @@ import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
+import prerna.engine.impl.function.AWSTranscribeFunctionEngine;
 
 public enum FunctionTypeEnum {
 
@@ -20,6 +21,7 @@ public enum FunctionTypeEnum {
 	AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS("AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS", AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine.class.getName()),
 	LOCAL_PYTHON_CUSTOM_EMBEDDINGS("LOCAL_PYTHON_CUSTOM_EMBEDDINGS", LocalPythonCustomEmbeddingsFunctionEngine.class.getName()),
 	GOOGLE_OCR("GOOGLE_OCR", GoogleOCRFunctionEngine.class.getName()),
+	AWS_Transcribe("AWS_Transcribe", AWSTranscribeFunctionEngine.class.getName()),
 	;
 	
 	private String functionName;
