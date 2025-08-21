@@ -24,6 +24,7 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 
 	public GenericGuardrailInputReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
+		this.keysToGet = new String[] {};
 	}
 
 	@Override
@@ -99,7 +100,7 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		    }
 		}
 
-		// *** NEW LOGIC: Add direct parameters from the 'directParameters' map in the reactor's config ***
+		// Add direct parameters from the 'directParameters' map in the reactor's config
 		Map<String, Object> directParameters = helper.getConfigParameter("directParameters", Map.class);
 		if (directParameters != null) {
 		    guardrailEngineParams.putAll(directParameters);
@@ -133,7 +134,12 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		return new NounMetadata(processedArguments, PixelDataType.MAP);
 	}
 
-    // Helper method to create the interim result map (already exists)
+	/**
+	 * Helper method to create the interim result map (already exists)
+	 * @param pass
+	 * @param interceptorName
+	 * @return
+	 */
     private Map<String, Object> createInterimResult(boolean pass, String interceptorName) {
         Map<String, Object> resultMap = new HashMap<>();
         resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
