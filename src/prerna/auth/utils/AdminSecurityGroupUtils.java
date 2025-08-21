@@ -767,6 +767,36 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
+	
+	/**
+	 * This return the group type of the group.
+	 * 
+	 * @return
+	 */
+	public String getGroupType(String groupId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return (String) wrapper.next().getValues()[0];
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return null;
+	}
+
 
 	/**
 	 * 
