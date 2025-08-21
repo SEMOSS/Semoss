@@ -38,6 +38,7 @@ import com.google.protobuf.util.JsonFormat;
 
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.reactor.export.pdf.PDFUtility;
@@ -74,7 +75,9 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine implements I
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
-
+		// preset these - don't need user to define
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "Google OCR - For Use With Vector Database Engines");
+		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute Google OCR");
 		super.open(smssProp);
 
 		this.projectId = smssProp.getProperty(PROJECT_ID);

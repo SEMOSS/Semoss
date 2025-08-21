@@ -27,6 +27,7 @@ import com.amazonaws.services.textract.model.StartDocumentTextDetectionResult;
 
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.reactor.export.pdf.PDFUtility;
@@ -66,17 +67,19 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine implements
 	AmazonS3 s3Client = null;
 
 	@Override
-	public void open(Properties smssProp) throws Exception {
+	public void open(Properties smssProp) throws Exception {		
+		
+		// preset these - don't need user to define
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "AWS Textract - For Use With Vector Database Engines");
+		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute AWS Textract");
+		
 		super.open(smssProp);
-
+		
 		this.accessKey = smssProp.getProperty(ACCESS_KEY);
 		this.secretKey = smssProp.getProperty(SECRET_KEY);
 		this.region = smssProp.getProperty(REGION);
 		this.bucketEngineId = smssProp.getProperty(BUCKETENGINEID);
 
-		if (this.requiredParameters == null || (this.requiredParameters.isEmpty())) {
-			throw new RuntimeException(REQUIREDPARM_ERRMSG);
-		}
 		if (this.accessKey == null || this.accessKey.isEmpty()) {
 			throw new RuntimeException(ACCESS_KEY_ERRMSG);
 		}

@@ -34,6 +34,7 @@ import com.amazonaws.services.transcribe.model.Media;
 import com.amazonaws.services.transcribe.model.StartTranscriptionJobRequest;
 
 import prerna.engine.api.FunctionTypeEnum;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.om.Insight;
@@ -81,19 +82,26 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
+		
+		// preset these - don't need user to define
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "AWS Transcribe - For Use With Vector Database Engines");
+		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute AWS Transcribe");
+		
 		super.open(smssProp);
 
 		this.accessKey = smssProp.getProperty(ACCESS_KEY);
 		this.secretKey = smssProp.getProperty(SECRET_KEY);
 		this.region = smssProp.getProperty(REGION);
 		this.bucketEngineId = smssProp.getProperty(BUCKETENGINEID);
-		if (this.vectorDbProcessor) {
-			this.vectorDbProcessorId = this.smssProp.getProperty(VECTOR_DB_PROCESSOR_ID);
+
+		this.vectorDbProcessorId = this.smssProp.getProperty(VECTOR_DB_PROCESSOR_ID);
+
+		if (this.vectorDbProcessorId == null || (this.vectorDbProcessorId.isEmpty())) {
+			throw new RuntimeException(VECTOR_DB_ID_ERRMSG);
+		} else {
 			this.vectorDbProcessor = true;
-			if (this.vectorDbProcessorId == null || (this.vectorDbProcessorId.isEmpty())) {
-				throw new RuntimeException(VECTOR_DB_ID_ERRMSG);
-			}
 		}
+
 		if (this.requiredParameters == null || (this.requiredParameters.isEmpty())) {
 			throw new RuntimeException(REQUIREDPARM_ERRMSG);
 		}
@@ -167,14 +175,15 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 				}
 			} else {
 				throw new IllegalArgumentException(INSIGHT_FILE_ERRMSG);
-			}			
-			
+			}
+
 			folderPath = SUB_FOLDER + audioFileName;
 			IStorageEngine storage = Utility.getStorage(this.bucketEngineId);
 			Map<String, Object> metadata = new HashMap<>();
 			metadata.put("functionalityUsed", audioFileName + "-Transcribe_functionality");
 
-			storage.copyToStorage(filedir.toString(), OUTPUTBUCKET + DIR_SEPARATOR + SUB_FOLDER, metadata);
+			storage.copyToStorage(filedir.toString(), OUTPUTBUCKET + DIR_SEPARATOR +
+			 SUB_FOLDER, metadata);
 
 			if (this.vectorDbProcessor) {
 
@@ -205,7 +214,7 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 				File file1 = new File(instanceDir, textFileName);
 				if (!file1.exists() && !file1.isFile()) {
 					throw new IllegalArgumentException(
-							"The file- " + instanceDir + "doesnot exists in the insight folder");
+							"The file- " + instanceDir + "does not exists in the insight folder");
 				}
 				Map<String, Object> paramMap = new HashMap<String, Object>();
 				paramMap.put(Constants.INSIGHT, insight);
