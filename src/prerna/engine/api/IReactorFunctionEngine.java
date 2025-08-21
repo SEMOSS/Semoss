@@ -20,5 +20,13 @@ public interface IReactorFunctionEngine extends IReactor, IFunctionEngine {
 	 * @param ns
 	 * @return
 	 */
+	NounMetadata execute(NounStore ns);
+
+	/**
+	 * Execute with the provided noun store and curRow
+	 * @param ns
+	 * @param curRow
+	 * @return
+	 */
 	NounMetadata execute(NounStore ns, GenRowStruct curRow);
 }

@@ -68,6 +68,11 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 		return execute(ns, null);
 	}
 	
+	@Override
+	public NounMetadata execute(NounStore ns) {
+		return execute(ns, null);
+	}
+	
 	/**
 	 * Convenience method to allow order or named noun for basic string inputs
 	 */
