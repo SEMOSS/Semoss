@@ -29,10 +29,13 @@ public class SetUserApiPermissionsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(SetUserApiPermissionsReactor.class);
 
+	private static final String USER_ID = "userId";
+	private static final String API_ID = "apiId";
+	
 	static IRDBMSEngine userApiPermissionDb;
 	
 	public SetUserApiPermissionsReactor() {
-		this.keysToGet = new String[] { "userId", "apiId", ReactorKeysEnum.TYPE.getKey() };
+		this.keysToGet = new String[] { USER_ID, API_ID, ReactorKeysEnum.TYPE.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 	
@@ -180,7 +183,11 @@ public class SetUserApiPermissionsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
+		if (key.equals(USER_ID)) {
+			return "Unique identifier for the user who gets the permission " + USER_ID;
+		} else if (key.equals(API_ID)) {
+			return "Identifier of the API being permitted " + API_ID;
+		} else if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
 			return "Type of engine " + ReactorKeysEnum.TYPE.getKey();
 		}
 		return super.getDescriptionForKey(key);

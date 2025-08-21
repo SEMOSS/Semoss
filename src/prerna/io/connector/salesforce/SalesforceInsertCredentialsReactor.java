@@ -30,10 +30,16 @@ public class SalesforceInsertCredentialsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(SalesforceInsertCredentialsReactor.class);
 
+	private static final String INSTANCE_URL = "instanceUrl";
+	private static final String CLIENT_ID = "clientId";
+	private static final String CLIENT_SECRET = "clientSecret";
+	private static final String REDIRECT_URI = "redirectUri";
+	private static final String KEY_NAME = "keyName";
+	
 	static IRDBMSEngine salesforceDb;
 
 	public SalesforceInsertCredentialsReactor() {
-		this.keysToGet = new String[] { "instanceUrl", "clientId", "clientSecret", "redirectUri", "keyName" };
+		this.keysToGet = new String[] { INSTANCE_URL, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, KEY_NAME };
 		this.keyRequired = new int[] { 1, 1, 1, 1, 1 };
 	}
 
@@ -197,6 +203,22 @@ public class SalesforceInsertCredentialsReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Inserts a row into SALESFORCE_CREDENTIALS table. Duplicate (INSTANCEURL+CLIENTID) prevented.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(INSTANCE_URL)) {
+			return "Salesforce instance URL for the user's org " + INSTANCE_URL;
+		} else if (key.equals(CLIENT_ID)) {
+			return "Salesforce application's client ID " + CLIENT_ID;
+		} else if (key.equals(CLIENT_SECRET)) {
+			return "Client secret for authentication " + CLIENT_SECRET;
+		} else if (key.equals(REDIRECT_URI)) {
+			return "Redirect Uri which is the Callback Url of my salesforce connected app " + REDIRECT_URI;
+		} else if (key.equals(KEY_NAME)) {
+			return "Key Name for users to identify the connection " + KEY_NAME;
+		}
+		return super.getDescriptionForKey(key);
 	}
 	
 }

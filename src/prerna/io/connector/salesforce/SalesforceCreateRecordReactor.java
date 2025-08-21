@@ -18,8 +18,10 @@ public class SalesforceCreateRecordReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(SalesforceCreateRecordReactor.class);
 	
+	private static final String SOBJECT_NAME = "sObjectName";
+	
 	public SalesforceCreateRecordReactor() {
-		this.keysToGet = new String[] { "sObjectName", ReactorKeysEnum.MAP.getKey() };
+		this.keysToGet = new String[] { SOBJECT_NAME, ReactorKeysEnum.MAP.getKey() };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -71,7 +73,9 @@ public class SalesforceCreateRecordReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.MAP.getKey())) {
+		if (key.equals(SOBJECT_NAME)) {
+			return "This field specifies the name of the Salesforce object " + SOBJECT_NAME;
+		} else if (key.equals(ReactorKeysEnum.MAP.getKey())) {
 			return "A map of input fields and their values " + ReactorKeysEnum.MAP.getKey();
 		}
 		return super.getDescriptionForKey(key);

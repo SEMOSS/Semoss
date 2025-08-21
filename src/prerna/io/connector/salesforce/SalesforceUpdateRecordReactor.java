@@ -18,8 +18,11 @@ public class SalesforceUpdateRecordReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(SalesforceUpdateRecordReactor.class);
 	
+	private static final String SOBJECT_NAME = "sObjectName";
+	private static final String RECORD_ID = "recordId";
+	
 	public SalesforceUpdateRecordReactor() {
-		this.keysToGet = new String[] { "sObjectName", "recordId", ReactorKeysEnum.MAP.getKey() };
+		this.keysToGet = new String[] { SOBJECT_NAME, RECORD_ID, ReactorKeysEnum.MAP.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
@@ -72,7 +75,11 @@ public class SalesforceUpdateRecordReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.MAP.getKey())) {
+		if (key.equals(SOBJECT_NAME)) {
+			return "This field specifies the name of the Salesforce object " + SOBJECT_NAME;
+		} else if (key.equals(RECORD_ID)) {
+			return "The Salesforce record Id to update " + RECORD_ID;
+		} else if (key.equals(ReactorKeysEnum.MAP.getKey())) {
 			return "A map of updated fields and their values " + ReactorKeysEnum.MAP.getKey();
 		}
 		return super.getDescriptionForKey(key);

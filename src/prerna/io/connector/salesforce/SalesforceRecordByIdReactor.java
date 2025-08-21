@@ -12,8 +12,11 @@ public class SalesforceRecordByIdReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(SalesforceRecordByIdReactor.class);
 	
+	private static final String SOBJECT_NAME = "sObjectName";
+	private static final String RECORD_ID = "recordId";
+	
 	public SalesforceRecordByIdReactor() {
-		this.keysToGet = new String[] { "sObjectName", "recordId" };
+		this.keysToGet = new String[] { SOBJECT_NAME, RECORD_ID };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -40,6 +43,16 @@ public class SalesforceRecordByIdReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Fetches a Salesforce record by sObject name and record Id using the REST API.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(SOBJECT_NAME)) {
+			return "This field specifies the name of the Salesforce object " + SOBJECT_NAME;
+		} else if (key.equals(RECORD_ID)) {
+			return "The Salesforce record Id to fetch " + RECORD_ID;
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

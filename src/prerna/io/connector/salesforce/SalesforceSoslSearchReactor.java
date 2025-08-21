@@ -12,8 +12,10 @@ public class SalesforceSoslSearchReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(SalesforceSoslSearchReactor.class);
 	
+	private static final String SOSL_QUERY = "soslQuery";
+	
 	public SalesforceSoslSearchReactor() {
-		this.keysToGet = new String[] { "soslQuery" };
+		this.keysToGet = new String[] { SOSL_QUERY };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -39,6 +41,14 @@ public class SalesforceSoslSearchReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Executes a Salesforce SOSL search against the org, returning records that match the query.";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(SOSL_QUERY)) {
+			return "This field returns the SOSL query to be executed " + SOSL_QUERY;
+		}
+		return super.getDescriptionForKey(key);
 	}
 	
 }
