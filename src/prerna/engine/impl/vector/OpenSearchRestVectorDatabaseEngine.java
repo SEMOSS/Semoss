@@ -486,7 +486,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				try {
 					JsonElement fieldElement = sourceDetails.get(fieldKey);
 					if (fieldElement != null && !fieldElement.isJsonNull()) {
-						// Handle different types of field elements
 						if (fieldElement.isJsonArray()) {
 							thisMatch.put(fieldKey, fieldElement.getAsJsonArray().toString());
 						} else if (fieldElement.isJsonPrimitive()) {
