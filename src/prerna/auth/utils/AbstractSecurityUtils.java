@@ -1819,6 +1819,60 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 			
+			//SERVICE_NOW
+			colNames = new String[] { "ID", "INSTANCE_URL", "CLIENT_ID", "CLIENT_SECRET", "CREATED_BY", "DATE_CREATED", "KEY_NAME","REDIRECT_URL","SCOPE","USER_INFO_URL","CODE_CHALLENGE_METHOD","BEANPROPS","JSONPATTERN","LOGIN_APPLICABLE","AUTO_ADD","ACCESS_KEYS_ALLOWED"};
+
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)","VARCHAR(255)","VARCHAR(255)", "VARCHAR(255)"};
+
+			if (allowIfExistsTable) {
+			    securityDb.insertData(queryUtil.createTableIfNotExists("SERVICENOW", colNames, types));
+			} else {
+			    // see if table exists
+			    if (!queryUtil.tableExists(conn, "SERVICENOW", database, schema)) {
+			        // make the table
+			        securityDb.insertData(queryUtil.createTable("SERVICENOW", colNames, types));
+			    }
+			}
+
+			{
+			    List<String> allCols = queryUtil.getTableColumns(conn, "SERVICENOW", database, schema);
+			    for (int i = 0; i < colNames.length; i++) {
+			        String col = colNames[i];
+			        if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+			            classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+			            String addColumnSql = queryUtil.alterTableAddColumn("SERVICENOW", col, types[i]);
+			            securityDb.insertData(addColumnSql);
+			        }
+			    }
+			}
+			
+			//USERAPIPERMISSION
+			colNames = new String[] { "USERID", "UUID", "API_ID", "TYPE"};
+
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
+
+			if (allowIfExistsTable) {
+			    securityDb.insertData(queryUtil.createTableIfNotExists("USERAPIPERMISSION", colNames, types));
+			} else {
+			    // see if table exists
+			    if (!queryUtil.tableExists(conn, "USERAPIPERMISSION", database, schema)) {
+			        // make the table
+			        securityDb.insertData(queryUtil.createTable("USERAPIPERMISSION", colNames, types));
+			    }
+			}
+
+			{
+			    List<String> allCols = queryUtil.getTableColumns(conn, "USERAPIPERMISSION", database, schema);
+			    for (int i = 0; i < colNames.length; i++) {
+			        String col = colNames[i];
+			        if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+			            classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+			            String addColumnSql = queryUtil.alterTableAddColumn("USERAPIPERMISSION", col, types[i]);
+			            securityDb.insertData(addColumnSql);
+			        }
+			    }
+			}
+			
 			// SESSION SHARE
 			colNames = new String[] { "SHARE_VAL", "SESSION_VAL", "ROUTE_VAL", 
 					"IS_SESSION_SHARE", "IS_AUTH_SHARE",

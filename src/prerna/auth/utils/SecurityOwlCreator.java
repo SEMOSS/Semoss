@@ -184,6 +184,32 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEPERMISSION", "USAGEFREQUENCY", "VARCHAR(255)");
 		owler.addProp("ENGINEPERMISSION", "MAXTOKENS", "INT");
 		owler.addProp("ENGINEPERMISSION", "MAXRESPONSETIME", "DOUBLE");
+		
+		// SERVICE_NOW CREDENTIALS
+		owler.addConcept("SERVICENOW", null, null);
+		owler.addProp("SERVICENOW", "KEY_NAME", "VARCHAR(255)"); 
+		owler.addProp("SERVICENOW", "ID", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "INSTANCE_URL", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "CLIENT_ID", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "CLIENT_SECRET", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "CREATED_BY", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "DATE_CREATED", "TIMESTAMP");
+		owler.addProp("SERVICENOW", "REDIRECT_URL", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "SCOPE", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "USER_INFO_URL", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "CODE_CHALLENGE_METHOD", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "BEANPROPS", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "JSONPATTERN", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "LOGIN_APPLICABLE", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "AUTO_ADD", "VARCHAR(255)");
+		owler.addProp("SERVICENOW", "ACCESS_KEYS_ALLOWED", "VARCHAR(255)");
+		
+		//USERAPIPERMISSION
+		owler.addConcept("USERAPIPERMISSION", null, null);
+		owler.addProp("USERAPIPERMISSION", "USERID", "VARCHAR(255)");
+		owler.addProp("USERAPIPERMISSION", "UUID", "VARCHAR(255)");
+		owler.addProp("USERAPIPERMISSION", "API_ID", "VARCHAR(255)");
+		owler.addProp("USERAPIPERMISSION", "TYPE", "VARCHAR(255)");
 
 		// PROJECT
 		owler.addConcept("PROJECT", null, null);

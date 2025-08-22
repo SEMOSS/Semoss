@@ -1216,4 +1216,73 @@ public final class HttpHelperUtility {
 	private HttpHelperUtility() {
 
 	}
+
+	/**
+	 * Executes a PATCH request with a JSON string body.
+	 *
+	 * @param url          The endpoint URL.
+	 * @param headersMap   Headers to include in the request.
+	 * @param body         JSON string body.
+	 * @param contentType  Content type (usually ContentType.APPLICATION_JSON).
+	 * @param keyStore     Keystore path (null if not used).
+	 * @param keyStorePass Keystore password (null if not used).
+	 * @param keyPass      Key password (null if not used).
+	 * @return The response body as a String.
+	 */
+	public static String patchRequestStringBody(String url, Map<String, String> headersMap, String body,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+		String responseData = null;
+		CloseableHttpClient httpClient = null;
+		CloseableHttpResponse response = null;
+		HttpEntity entity = null;
+		try {
+			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+			HttpPatch httpPatch = new HttpPatch(url);
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (String key : headersMap.keySet()) {
+					httpPatch.addHeader(key, headersMap.get(key));
+				}
+			}
+			if (body != null && !body.isEmpty()) {
+				httpPatch.setEntity(new StringEntity(body, contentType));
+			}
+			response = httpClient.execute(httpPatch);
+
+			int statusCode = response.getCode();
+			entity = response.getEntity();
+			if (statusCode >= 200 && statusCode < 300) {
+				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+			} else {
+				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+			}
+			return responseData;
+		} catch (IOException | ParseException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		} finally {
+			if (entity != null) {
+				try {
+					EntityUtils.consume(entity);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if (response != null) {
+				try {
+					response.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if (httpClient != null) {
+				try {
+					httpClient.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+
 }
