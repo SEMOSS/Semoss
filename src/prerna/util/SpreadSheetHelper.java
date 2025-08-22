@@ -173,7 +173,7 @@ public class SpreadSheetHelper {
 			JSONArray values = json.optJSONArray("values");
 			List<List<String>> result = new ArrayList<>();
 			if (values != null) {
-				for (int i = 0; i < values.length(); i++) { 
+				for (int i = 0; i < values.length(); i++) {
 					JSONArray row = values.getJSONArray(i);
 					List<String> rowList = new ArrayList<>();
 					for (int j = 0; j < row.length(); j++) {

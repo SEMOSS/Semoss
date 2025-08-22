@@ -1,4 +1,4 @@
-package prerna.io.connector.google;
+package prerna.io.connector.google.spreadsheet;
 
 import java.util.HashMap;
 import java.util.List;
@@ -13,7 +13,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
@@ -23,48 +22,26 @@ public class GoogleUpdateSheetReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GoogleUpdateSheetReactor.class);
 
 	public GoogleUpdateSheetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_ID.getKey(), ReactorKeysEnum.SHEET_ID.getKey(),
-				ReactorKeysEnum.DATA.getKey() };
+		this.keysToGet = new String[] { "titleSheetID", "SheetID", "data" };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		try {
+			User user = this.insight.getUser();
 			this.organizeKeys();
 			String titleSheetID = this.keyValue.get(this.keysToGet[0]);
 			String sheetID = this.keyValue.get(this.keysToGet[1]);
-			String accessToken = getAccessToken();
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			String rawData = this.keyValue.get(this.keysToGet[2]);
 			ObjectMapper mapper = new ObjectMapper();
 			List<List<String>> data = mapper.readValue(rawData, List.class);
 			return SpreadSheetHelper.updateData(titleSheetID, sheetID, data, accessToken);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			throw new SemossPixelException("An error occurred in updating sheet. Error message: " + e.getMessage());
 		}
-	}
-
-	private String getAccessToken() {
-		String accessToken = null;
-		User user = this.insight.getUser();
-		try {
-			if (user == null) {
-				Map<String, Object> retMap = new HashMap<String, Object>();
-				retMap.put("type", "google");
-				retMap.put("message", "Please login to your Google account");
-				throwLoginError(retMap);
-			} else {
-				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
-				accessToken = msToken.getAccess_token();
-			}
-		} catch (Exception e) {
-			Map<String, Object> retMap = new HashMap<>();
-			retMap.put("type", "google");
-			retMap.put("message", "Please login to your Google account");
-			throwLoginError(retMap);
-		}
-		return accessToken;
 	}
 
 	@Override
@@ -74,12 +51,12 @@ public class GoogleUpdateSheetReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.TITLESHEET_NAME.getKey())) {
-			return "TitleSheet name of the Google spread sheet" + ReactorKeysEnum.TITLESHEET_NAME.getKey();
-		} else if (key.equals(ReactorKeysEnum.SHEET_NAME.getKey())) {
-			return "Sheet name from Google spreadsheet" + ReactorKeysEnum.SHEET_NAME.getKey();
-		} else if (key.equals(ReactorKeysEnum.DATA.getKey())) {
-			return "Data to be updated in Google spreadsheet" + ReactorKeysEnum.DATA.getKey();
+		if (key.equals("titleSheetID")) {
+			return "TitleSheet name of the Google spread sheet";
+		} else if (key.equals("sheetName")) {
+			return "Sheet name from Google spreadsheet";
+		} else if (key.equals("data")) {
+			return "Data to be updated in Google spreadsheet";
 		}
 		return super.getDescriptionForKey(key);
 	}

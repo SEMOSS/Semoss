@@ -1,4 +1,4 @@
-package prerna.io.connector.google;
+package prerna.io.connector.google.spreadsheet;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,11 +31,12 @@ public class GoogleGetAllSheetsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		User user = this.insight.getUser();
 		this.organizeKeys();
 		ResultSet rs = null;
 		List<Map<String, Object>> spreadsheets = new ArrayList<>();
 		try {
-			String accessToken = getAccessToken();
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			if (accessToken == null || accessToken.isEmpty()) {
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put("type", "Google");
@@ -47,7 +48,8 @@ public class GoogleGetAllSheetsReactor extends AbstractReactor {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			throw new SemossPixelException(
+					"An error occurred in getting sheet details. Error message: " + e.getMessage());
 		} finally {
 			if (rs != null) {
 				try {
@@ -105,35 +107,9 @@ public class GoogleGetAllSheetsReactor extends AbstractReactor {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			throw new SemossPixelException(
+					"An error occurred in fetching spreadsheet metadata. Error message: " + e.getMessage());
 		}
 		return spreadsheets;
-	}
-
-	/**
-	 * To get access token of google logged in user
-	 */
-	private String getAccessToken() {
-		String accessToken = null;
-		User user = this.insight.getUser();
-		try {
-			if (user == null) {
-				Map<String, Object> retMap = new HashMap<>();
-				retMap.put("type", "google");
-				retMap.put("message", "Please login to your Google account");
-				classLogger.error("user can not be null");
-				throwLoginError(retMap);
-			} else {
-				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
-				accessToken = msToken.getAccess_token();
-			}
-		} catch (Exception e) {
-			Map<String, Object> retMap = new HashMap<>();
-			retMap.put("type", "google");
-			retMap.put("message", "Please login to your Google account");
-			classLogger.error("Error while getting access token");
-			throwLoginError(retMap);
-		}
-		return accessToken;
 	}
 }

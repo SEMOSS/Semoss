@@ -1,4 +1,4 @@
-package prerna.io.connector.google;
+package prerna.io.connector.google.spreadsheet;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +10,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
@@ -20,46 +19,24 @@ public class GoogleCreateMainSheetReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GoogleCreateMainSheetReactor.class);
 
 	public GoogleCreateMainSheetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TITLESHEET_NAME.getKey() };
+		this.keysToGet = new String[] { "titleSheetName" };
 		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		try {
+			User user = this.insight.getUser();
 			this.organizeKeys();
 			String titleSheetName = this.keyValue.get(this.keysToGet[0]);
-			String accessToken = getAccessToken();
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			return SpreadSheetHelper.createNewSpreadSheet(titleSheetName, accessToken);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			throw new SemossPixelException(
+					"An error occurred in creating main spreadsheet. Error message: " + e.getMessage());
 		}
 
-	}
-
-	private String getAccessToken() {
-		String accessToken = null;
-		User user = this.insight.getUser();
-		try {
-			if (user == null) {
-				Map<String, Object> retMap = new HashMap<>();
-				retMap.put("type", "google");
-				retMap.put("message", "Please login to your Google account");
-				classLogger.error("user can not be null");
-				throwLoginError(retMap);
-			} else {
-				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
-				accessToken = msToken.getAccess_token();
-			}
-		} catch (Exception e) {
-			Map<String, Object> retMap = new HashMap<>();
-			retMap.put("type", "google");
-			retMap.put("message", "Please login to your Google account");
-			classLogger.error("Error while getting access token");
-			throwLoginError(retMap);
-		}
-		return accessToken;
 	}
 
 	@Override
@@ -69,8 +46,8 @@ public class GoogleCreateMainSheetReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.TITLESHEET_NAME.getKey())) {
-			return "TitleSheet name of the Google spread sheet" + ReactorKeysEnum.TITLESHEET_NAME.getKey();
+		if (key.equals("titleSheetName")) {
+			return "TitleSheet name of the Google spread sheet";
 		}
 		return super.getDescriptionForKey(key);
 	}
