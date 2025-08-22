@@ -105,4 +105,17 @@ public class BM25RankerInsertReactor extends AbstractReactor {
         }
         return null;
     }
+    
+    @Override
+    public String getReactorDescription() {
+        StringBuilder headerBuilder = new StringBuilder();
+        headerBuilder.append("'Document ID', ")
+            .append("'Content', ")
+            .append("'Index Path', ")
+            .append("'Index Method'");
+
+        return "Insert a batch of documents into the BM25 vector index. "
+            + "This operation will add new documents and their IDs to the index and return summary fields: "
+            + headerBuilder.toString();
+    }
 }
