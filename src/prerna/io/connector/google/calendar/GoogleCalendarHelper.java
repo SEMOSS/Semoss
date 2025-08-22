@@ -1,6 +1,7 @@
 package prerna.io.connector.google.calendar;
 
 import java.net.URLEncoder;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -50,7 +51,6 @@ public class GoogleCalendarHelper {
 	private static final String END = "end";
 	private static final String DATE_TIME = "dateTime";
 	private static final String TIME_ZONE = "timeZone";
-	private static final String ASIA_KOLKATA = "Asia/Kolkata";
 	private static final String ATTENDEES = "attendees";
 	private static final String EMAIL = "email";
 	private static final String REMINDERS = "reminders";
@@ -95,10 +95,16 @@ public class GoogleCalendarHelper {
     private static final String ITEMS = "items";
     private static final String NEXT_PAGE_TOKEN = "nextPageToken";
     
+    private static final String systemTimeZone = ZoneId.systemDefault().toString();
+    
     private static final String GOOGLE_CALENDAR_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events?conferenceDataVersion=1";
 	private static final String GOOGLE_CALENDAR_EVENT_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/primary/events/%s";
 	private static final String GOOGLE_CALENDAR_UPDATE_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events/%s?conferenceDataVersion=1";
     private static final String GOOGLE_CALENDAR_LIST_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events";
+    
+    private GoogleCalendarHelper() {
+
+	}
     
 	/**
 	 * 
@@ -126,14 +132,14 @@ public class GoogleCalendarHelper {
 
 			Map<String, Object> start = new HashMap<>();
 			start.put(DATE_TIME, startdatetime);
-			start.put(TIME_ZONE, ASIA_KOLKATA);
+			start.put(TIME_ZONE, systemTimeZone);
 			event.put(START, start);
 
 			Map<String, Object> end = new HashMap<>();
 			end.put(DATE_TIME, enddatetime);
-			end.put(TIME_ZONE, ASIA_KOLKATA);
+			end.put(TIME_ZONE, systemTimeZone);
 			event.put(END, end);
-
+			
 			List<Map<String, Object>> attendees = new ArrayList<>();
 			for (String email : attendeeEmails) {
 				Map<String, Object> attendee = new HashMap<>();
@@ -292,12 +298,12 @@ public class GoogleCalendarHelper {
 
 			Map<String, Object> start = new HashMap<>();
 			start.put(DATE_TIME, startdatetime);
-			start.put(TIME_ZONE, ASIA_KOLKATA);
+			start.put(TIME_ZONE, systemTimeZone);
 			event.put(START, start);
 
 			Map<String, Object> end = new HashMap<>();
 			end.put(DATE_TIME, enddatetime);
-			end.put(TIME_ZONE, ASIA_KOLKATA);
+			end.put(TIME_ZONE, systemTimeZone);
 			event.put(END, end);
 
 			List<Map<String, Object>> attendees = new ArrayList<>();
@@ -404,15 +410,15 @@ public class GoogleCalendarHelper {
 			event.put(SUMMARY, summary);
 			event.put(LOCATION, location);
 			event.put(DESCRIPTION, description);
-
+			
 			Map<String, Object> start = new HashMap<>();
 			start.put(DATE_TIME, startdatetime);
-			start.put(TIME_ZONE, ASIA_KOLKATA);
+			start.put(TIME_ZONE, systemTimeZone);
 			event.put(START, start);
 
 			Map<String, Object> end = new HashMap<>();
 			end.put(DATE_TIME, enddatetime);
-			end.put(TIME_ZONE, ASIA_KOLKATA);
+			end.put(TIME_ZONE, systemTimeZone);
 			event.put(END, end);
 			List<Map<String, Object>> attendees = new ArrayList<>();
 			for (String email : attendeeEmails) {

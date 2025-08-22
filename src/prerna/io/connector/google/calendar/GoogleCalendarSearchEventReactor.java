@@ -51,7 +51,7 @@ public class GoogleCalendarSearchEventReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 	    if (key.equals(ReactorKeysEnum.ID.getKey())) {
-	        return "Unique identifier of the event to search for " + ReactorKeysEnum.ID.getKey();
+	        return "Unique identifier of the event to be searched " + ReactorKeysEnum.ID.getKey();
 	    }
 	    return super.getDescriptionForKey(key);
 	}
