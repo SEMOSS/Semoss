@@ -723,7 +723,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	        switch (rankMethod) {
 	            case "BM25":
 	                bm25Results = bm25ServiceForCall.search(searchStatement, topN);
-	                logTopResult(bm25Results, "BM25");
 	                finalResults = bm25Results;
 	                break;
 
@@ -732,7 +731,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	                bm25Results = bm25Service.search(searchStatement, candidatePoolSize);
 	                vectorResults = runVectorSearch(insight, searchStatement, candidatePoolSize, parameters);
 	                finalResults = VectorRankingUtils.rrfFuse(bm25Results, vectorResults, topN);
-	                logTopResult(finalResults, "RRF");
 	                break;
 	            }
 
@@ -743,14 +741,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	                double alpha = 0.35, beta = 0.65;
 	                finalResults = VectorRankingUtils.hybridFuse(bm25Results, vectorResults, topN, alpha, beta);
-	                logTopResult(finalResults, "Hybrid");
 	                break;
 	            }
 
 	            case "SEMANTIC":
 	            default:
 	                vectorResults = runVectorSearch(insight, searchStatement, topN, parameters);
-	                logTopResult(vectorResults, "Semantic (Vector)");
 	                finalResults = vectorResults;
 	                break;
 	        }
@@ -770,29 +766,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	    return finalResults;
 	}
 
-	private void logTopResult(List<Map<String, Object>> results, String label) {
-	    int count = Math.min(3, results.size());
-	    for (int i = 0; i < count; i++) {
-	        Map<String, Object> result = results.get(i);
-	        System.out.println("[INFO] " + label + " top result:");
-	        System.out.println("  docId: " + getFirstNonNull(result, "docId", "Id"));
-	        System.out.println("  score: " + getFirstNonNull(result, "score", "Score"));
-	        System.out.println("  content: " + getFirstNonNull(result, "content", "Content"));
-	    }
-	    if (results.isEmpty()) {
-	        System.out.println("[INFO] " + label + " search returned no results.");
-	    }
-	}
-
-	// Helper method to check multiple key variants
-	private Object getFirstNonNull(Map<String, Object> map, String... keys) {
-	    for (String key : keys) {
-	        if (map.containsKey(key) && map.get(key) != null) {
-	            return map.get(key);
-	        }
-	    }
-	    return null;
-	}
 
 	private List<Map<String, Object>> runVectorSearch(
 	        Insight insight, String searchStatement, int topN, Map<String, Object> parameters) throws Exception {
