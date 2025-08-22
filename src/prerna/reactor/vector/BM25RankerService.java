@@ -10,31 +10,51 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.*;
 import org.apache.lucene.store.ByteBuffersDirectory;
-
 import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
+/**
+ * BM25RankerService
+ * 
+ * Provides indexing, searching, and management of documents using Lucene's BM25 ranking.
+ * Supports in-memory, disk-based, and S3-backed indexes.
+ */
 public class BM25RankerService implements Closeable {
+
+    // Lucene directory for index storage
     private Directory luceneDirectory;
+    // Analyzer for text processing
     private Analyzer analyzer;
+    // Lucene IndexWriter for index modifications
     private IndexWriter writer;
+    // Logger for class-level logging
     private static final Logger classLogger = LogManager.getLogger(AbstractVectorDatabaseEngine.class);
-    private String indexPath; // For disk-based index
+    // Path to disk-based index (null if in-memory)
+    private String indexPath;
 
-    // --- Constructors ---
+    // ------------------------------- Constructors -------------------------------
 
-    // In-memory index
+    /**
+     * Constructor: Initializes an in-memory BM25 index.
+     * 
+     * @throws IOException if index initialization fails
+     */
     public BM25RankerService() throws IOException {
-    	this.luceneDirectory = new ByteBuffersDirectory();
+        this.luceneDirectory = new ByteBuffersDirectory();
         this.analyzer = new StandardAnalyzer();
         this.writer = new IndexWriter(luceneDirectory, new IndexWriterConfig(analyzer));
         this.indexPath = null;
     }
 
+    /**
+     * Constructor: Initializes a disk-based BM25 index at the specified path.
+     * 
+     * @param indexPath Path to store the Lucene index
+     * @throws IOException if index initialization fails
+     */
     public BM25RankerService(String indexPath) throws IOException {
         classLogger.info("Initializing BM25RankerService with index path: " + indexPath);
         this.luceneDirectory = FSDirectory.open(Paths.get(indexPath));
@@ -43,33 +63,33 @@ public class BM25RankerService implements Closeable {
         this.indexPath = indexPath;
         classLogger.info("BM25RankerService initialized with disk-based index at: " + indexPath);   
     }
-    
-    
-    // S3-based index (download to temp dir, then open)
+
+    /**
+     * Static Factory: Loads a BM25 index from S3 by downloading to a temp directory.
+     * 
+     * @param bucket S3 bucket name
+     * @param key S3 object key
+     * @return BM25RankerService instance
+     * @throws IOException if download or index initialization fails
+     */
     public static BM25RankerService loadFromS3(String bucket, String key) throws IOException {
         // Implement your S3 download logic here
-        // For example, download and unzip index to a temp directory:
         Path tempDir = Files.createTempDirectory("lucene_index_s3");
         // ... download S3 object to tempDir ...
-        // (You must implement the S3 download logic using your AWS SDK of choice)
         BM25RankerService svc = new BM25RankerService(tempDir.toString());
         return svc;
     }
 
-    // --- Indexing ---
+    // ------------------------------- Indexing Methods -------------------------------
 
-    public void indexDocuments(List<String> docs, List<String> ids) throws IOException {
-        if (docs.size() != ids.size()) throw new IllegalArgumentException("Docs and IDs must be same length.");
-        for (int i = 0; i < docs.size(); i++) {
-            Document doc = new Document();
-            doc.add(new StringField("id", ids.get(i), Field.Store.YES));
-            doc.add(new TextField("content", docs.get(i) == null ? "" : docs.get(i), Field.Store.YES));
-            writer.addDocument(doc);
-        }
-        writer.commit();
-    }
-
-    // Insert new documents (skips duplicate IDs)
+    /**
+     * Inserts new documents into the index, skipping duplicates by ID.
+     * 
+     * @param newDocs List of document contents
+     * @param newIds List of document IDs (must match newDocs size)
+     * @throws IOException if indexing fails
+     * @throws IllegalArgumentException if input lists are mismatched
+     */
     public void insertDocuments(List<String> newDocs, List<String> newIds) throws IOException {
         if (newDocs.size() != newIds.size()) throw new IllegalArgumentException("Docs and IDs must be same length.");
         Set<String> existingIds = new HashSet<>(getDocIds());
@@ -85,11 +105,68 @@ public class BM25RankerService implements Closeable {
         }
         writer.commit();
         String location = (indexPath == null) ? "in-memory" : indexPath;
-        classLogger.info("BM25RankerService: Added " + added + " new documents (out of " + newDocs.size() + ") to index at: " + location);
+        classLogger.info("BM25RankerService: Added " + added + " new document chunks (out of " + newDocs.size() + ") to index at: " + location);
     }
 
-    // --- Search ---
+    /**
+     * Removes multiple documents from the index by their IDs.
+     *
+     * @param docIds List of document IDs to remove
+     * @throws IOException if deletion fails
+     */
+    public void removeDocumentsByIds(List<String> docIds) throws IOException {
+        if (docIds == null || docIds.isEmpty()) {
+            throw new IllegalArgumentException("docIds list must not be null or empty.");
+        }
+        int removed = 0;
+        for (String id : docIds) {
+            if (id == null) continue; // Skip null IDs
+            Term idTerm = new Term("id", id);
+            writer.deleteDocuments(idTerm);
+            removed++;
+        }
+        writer.commit();
+        String location = (indexPath == null) ? "in-memory" : indexPath;
+        classLogger.info("BM25RankerService: Removed " + removed + " document chunks (out of " + docIds.size() + ") from index at: " + location);
+    }
 
+    /**
+     * Deletes all documents and index files (if disk-based).
+     * 
+     * @throws IOException if deletion fails
+     */
+    public void deleteIndex() throws IOException {
+        writer.deleteAll();
+        writer.commit();
+        classLogger.info("BM25RankerService: Deleted all document chunks from index.");
+        // If disk-based, also delete index files from disk
+        if (indexPath != null) {
+            writer.close(); // Close writer before deleting files
+            luceneDirectory.close(); // Close directory before deleting files
+            Path indexDirPath = Paths.get(indexPath);
+            try {
+                Files.walk(indexDirPath)
+                    .sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+                classLogger.info("BM25RankerService: Deleted index directory at: " + indexPath);
+            } catch (IOException e) {
+                classLogger.error("BM25RankerService: Failed to delete index directory at: " + indexPath, e);
+                throw e;
+            }
+        }
+    }
+
+    // ------------------------------- Search Methods -------------------------------
+
+    /**
+     * Searches the index for documents matching the query using BM25 ranking.
+     * 
+     * @param query Query string
+     * @param topN Maximum number of results to return
+     * @return List of result maps (docId, score, content)
+     * @throws Exception if search fails
+     */
     public List<Map<String, Object>> search(String query, int topN) throws Exception {
         List<Map<String, Object>> results = new ArrayList<>();
         try (DirectoryReader reader = DirectoryReader.open(luceneDirectory)) {
@@ -105,12 +182,22 @@ public class BM25RankerService implements Closeable {
                 result.put("content", doc.get("content"));
                 results.add(result);
             }
+        } catch (Exception e) {
+            System.out.println("[ERROR] Exception during search: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
         return results;
     }
 
-    // --- Utility methods ---
+    // ------------------------------- Utility Methods -------------------------------
 
+    /**
+     * Retrieves all document IDs currently in the index.
+     * 
+     * @return List of document IDs
+     * @throws IOException if reading fails
+     */
     public List<String> getDocIds() throws IOException {
         List<String> ids = new ArrayList<>();
         String[] files = luceneDirectory.listAll();
@@ -128,6 +215,12 @@ public class BM25RankerService implements Closeable {
         return ids;
     }
 
+    /**
+     * Retrieves the raw corpus (all document contents) from the index.
+     * 
+     * @return List of document contents
+     * @throws IOException if reading fails
+     */
     public List<String> getRawCorpus() throws IOException {
         List<String> corpus = new ArrayList<>();
         try (DirectoryReader reader = DirectoryReader.open(luceneDirectory)) {
@@ -142,26 +235,26 @@ public class BM25RankerService implements Closeable {
         return corpus;
     }
 
-    // --- Save index to disk (for disk or S3 upload) ---
-
-    public void saveIndex(String path) throws IOException {
-    	classLogger.info("Lucene index is saved on disk at: " + path);
-        // For disk, Lucene index is already on disk at 'path'
-        // For S3, upload all files in the index directory
-        if (luceneDirectory instanceof FSDirectory) {
-            // Implement S3 upload logic here if needed
-            // Example: upload all files in 'path' directory to S3
-        }
-    }
-
+    /**
+     * Closes the index writer and directory resources.
+     * 
+     * @throws IOException if closing fails
+     */
     @Override
     public void close() throws IOException {
         writer.close();
         luceneDirectory.close();
     }
 
-    // --- Config-based loader ---
+    // ------------------------------- Config-Based Loader -------------------------------
 
+    /**
+     * Loads a BM25RankerService instance from configuration properties.
+     * 
+     * @param props Configuration properties
+     * @return BM25RankerService instance
+     * @throws Exception if loading fails
+     */
     public static BM25RankerService loadFromConfig(Properties props) throws Exception {
         String method = props.getProperty("BM25_INDEX_METHOD").toUpperCase();
         switch (method) {

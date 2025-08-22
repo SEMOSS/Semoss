@@ -9,44 +9,32 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import java.io.File;
 import java.util.*;
 
-public class BM25RankerReactor extends AbstractReactor {
+public class BM25RankerInsertReactor extends AbstractReactor {
 
-    private static final String INDEX_FILENAME     = "bm25_index_dir"; // Now a directory, not a .ser file
+    private static final String INDEX_FILENAME     = "bm25_index_dir";
     private static final String INDEX_OVERRIDE_KEY = "INDEX_PATH_OVERRIDE";
-    private static final String ACTION_KEY         = "BM25_ACTION"; // "insert" or "search"
-    private static final String INDEX_METHOD_KEY   = "INDEX_METHOD_KEY"; // Options: DISK, MEMORY, S3
+    private static final String INDEX_METHOD_KEY   = "INDEX_METHOD_KEY";
     private static final String S3_BUCKET_KEY      = "S3_BUCKET_KEY";
     private static final String S3_KEY_KEY         = "S3_KEY_KEY";
 
-    public BM25RankerReactor() {
+    public BM25RankerInsertReactor() {
         this.keysToGet   = new String[] {
             ReactorKeysEnum.CORPUS_KEY.getKey(),
             ReactorKeysEnum.CORPUS_IDS_KEY.getKey(),
-            "QUERY", "TOP_N", INDEX_OVERRIDE_KEY, ACTION_KEY, INDEX_METHOD_KEY
+            INDEX_OVERRIDE_KEY, INDEX_METHOD_KEY
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0 };
     }
 
     @Override
     public NounMetadata execute() {
-
         List<String> corpus = getAsStringListFromNounStore(ReactorKeysEnum.CORPUS_KEY.getKey());
         List<String> ids    = getAsStringListFromNounStore(ReactorKeysEnum.CORPUS_IDS_KEY.getKey());
-        String query        = getLiteralFromNounStore("QUERY");
-        int topN            = parseTopN(getLiteralFromNounStore("TOP_N"), 3);
         String indexFp      = getLiteralFromNounStore(INDEX_OVERRIDE_KEY);
-        String action       = getLiteralFromNounStore(ACTION_KEY);
-
-        if (indexFp == null || indexFp.isEmpty()) {
-            indexFp = INDEX_FILENAME;
-        }
+        String indexMethod  = getLiteralFromNounStore(INDEX_METHOD_KEY);
+        if (indexFp == null || indexFp.isEmpty()) indexFp = INDEX_FILENAME;
         File idxDir = new File(indexFp);
-
-        // Default to "search" if action is missing or invalid
-        boolean isInsert = "insert".equalsIgnoreCase(action);
-
-        String indexMethod = getLiteralFromNounStore(INDEX_METHOD_KEY);
-        if (indexMethod == null) indexMethod = "DISK"; // default
+        if (indexMethod == null) indexMethod = "DISK";
 
         BM25RankerService service = null;
         Map<String,Object> payload = new HashMap<>();
@@ -54,12 +42,8 @@ public class BM25RankerReactor extends AbstractReactor {
         try {
             switch (indexMethod.toUpperCase()) {
                 case "DISK":
-                    // indexFp should be a directory path
-                    if (!idxDir.exists() && isInsert) {
-                        idxDir.mkdirs();
-                    }
+                    if (!idxDir.exists()) idxDir.mkdirs();
                     service = new BM25RankerService(indexFp);
-                    // If index is empty and not inserting, you may want to build it
                     break;
                 case "S3":
                     String bucket = getLiteralFromNounStore(S3_BUCKET_KEY);
@@ -74,51 +58,23 @@ public class BM25RankerReactor extends AbstractReactor {
                 default:
                     throw new IllegalArgumentException("Unknown BM25_INDEX_METHOD: " + indexMethod);
             }
-
-            if (isInsert) {
-                // Insert mode: add new documents and IDs, then save
-            	System.out.println("BM25RankerReactor: Inserting " + corpus.size() + " documents");
-                service.insertDocuments(corpus, ids);
-                service.saveIndex(indexFp); // For S3, implement upload in saveIndex
-                payload.put("BM25_INSERTED", corpus.size());
-                payload.put("BM25_INDEX_FILE", indexFp);
-                payload.put("BM25_DOC_COUNT", service.getDocIds().size());
-            } else {
-                // Search mode: run query and return results
-                List<Map<String,Object>> results = service.search(query, topN);
-                payload.put("BM25_RESULTS", results);
-                payload.put("BM25_INDEX_FILE", indexFp);
-            }
+            service.insertDocuments(corpus, ids);
+            // If you have a saveIndex method for S3/disk, call it here
+            payload.put("BM25_INSERTED", corpus.size());
+            payload.put("BM25_INDEX_FILE", indexFp);
+            payload.put("BM25_DOC_COUNT", service.getDocIds().size());
         } catch (Exception e) {
-            throw new RuntimeException("Error in BM25RankerReactor", e);
+            throw new RuntimeException("Error in BM25InsertReactor", e);
         } finally {
-            if (service != null) {
-                try { service.close(); } catch (Exception ignore) {}
-            }
+            if (service != null) try { service.close(); } catch (Exception ignore) {}
         }
-
-        // Single diagnostic print at the end
-        System.out.println("BM25RankerReactor payload: " + payload);
-
         return new NounMetadata(payload, PixelDataType.CUSTOM_DATA_STRUCTURE);
-    }
-
-    private int parseTopN(String str, int defaultN) {
-        if (str == null || str.isEmpty()) {
-            return defaultN;
-        }
-        try {
-            int val = Integer.parseInt(str);
-            return val > 0 ? val : defaultN;
-        } catch (NumberFormatException e) {
-            return defaultN;
-        }
     }
 
     /**
      * Extracts a List<String> from a GenRowStruct in the NounStore.
      */
-    private List<String> getAsStringListFromNounStore(String key) {
+    public List<String> getAsStringListFromNounStore(String key) {
         Object noun = this.getNounStore().getNoun(key);
         List<String> result = new ArrayList<>();
         if (noun instanceof GenRowStruct) {
@@ -136,7 +92,7 @@ public class BM25RankerReactor extends AbstractReactor {
     /**
      * Extracts a single literal value (String) from a NounStore key.
      */
-    private String getLiteralFromNounStore(String key) {
+    public String getLiteralFromNounStore(String key) {
         Object noun = this.getNounStore().getNoun(key);
         if (noun instanceof GenRowStruct) {
             GenRowStruct grs = (GenRowStruct) noun;

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
@@ -52,6 +53,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVRow;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVWriter;
+import prerna.engine.impl.vector.VectorRankingUtils;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -61,11 +63,8 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
-import prerna.reactor.vector.BM25RankerReactor;
 import prerna.reactor.vector.BM25RankerService;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
-import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounStore;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -422,19 +421,36 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	        }
 	    }
 
-	    // BM25 logic remains active
-	    if (bm25Service != null) {
-	    	System.out.println("[INFO] STARTING BM25 indexing");
+	    BM25RankerService bm25ServiceForCall = this.bm25Service;
+	    boolean isTempService = false;
+
+	    if (parameters != null && parameters.containsKey("bm25_fp")) {
+	        String bm25Fp = (String) parameters.get("bm25_fp");
+	        try {
+	            bm25ServiceForCall = new BM25RankerService(bm25Fp);
+	            isTempService = true;
+	        } catch (Exception e) {
+	            classLogger.error("Failed to initialize BM25RankerService with fp: " + bm25Fp, e);
+	        }
+	    }
+
+	    if (bm25ServiceForCall != null) {
+	        System.out.println("[INFO] STARTING BM25 indexing");
 	        List<String> contents = new ArrayList<>();
 	        List<String> ids = new ArrayList<>();
 	        for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
+	            String mergedId = row.getSource() + "|" + row.getDivider() + "|" + row.getPart();
+	            ids.add(mergedId);
 	            contents.add(row.getContent());
-	            ids.add(row.getSource()); // Or another unique field
 	        }
 	        try {
-	            bm25Service.insertDocuments(contents, ids);
+	            bm25ServiceForCall.insertDocuments(contents, ids);
 	        } catch (Exception e) {
 	            classLogger.error("BM25 insert failed", e);
+	        } finally {
+	            if (isTempService) {
+	                try { bm25ServiceForCall.close(); } catch (Exception ignore) {}
+	            }
 	        }
 	    }
 
@@ -676,11 +692,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
 	public List<Map<String, Object>> nearestNeighborCall(
 	        Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
-		System.out.println("[INFO] STARTING NN CALL");
+
+	    System.out.println("[INFO] STARTING NN CALL");
 	    if (insight == null) {
 	        throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 	    }
-
 	    if (!this.modelPropsLoaded) {
 	        verifyModelProps();
 	    }
@@ -692,27 +708,44 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	    List<Map<String, Object>> vectorResults = new ArrayList<>();
 	    List<Map<String, Object>> finalResults = new ArrayList<>();
 
+	    BM25RankerService bm25ServiceForCall = this.bm25Service;
+	    if (parameters != null && parameters.containsKey("bm25_fp")) {
+	        String bm25Fp = (String) parameters.get("bm25_fp");
+	        try {
+	            bm25ServiceForCall = new BM25RankerService(bm25Fp);
+	        } catch (IOException e) {
+	            classLogger.error("Failed to initialize BM25RankerService with fp: " + bm25Fp, e);
+	            throw new IllegalArgumentException("Invalid BM25 fp: " + bm25Fp);
+	        }
+	    }
+
 	    try {
 	        switch (rankMethod) {
 	            case "BM25":
-	                bm25Results = bm25Service.search(searchStatement, topN);
+	                bm25Results = bm25ServiceForCall.search(searchStatement, topN);
 	                logTopResult(bm25Results, "BM25");
 	                finalResults = bm25Results;
 	                break;
 
-	            case "RRF":
-	                bm25Results = bm25Service.search(searchStatement, topN);
-	                vectorResults = runVectorSearch(insight, searchStatement, topN, parameters);
-	                System.out.println("BM25 results count: " + bm25Results.size());
-	                System.out.println("Vector results count: " + vectorResults.size());
-	                System.out.println("topN: " + topN);
-	                Set<String> uniqueContents = new HashSet<>();
-	                for (Map<String, Object> result : bm25Results) uniqueContents.add((String) result.get("content"));
-	                for (Map<String, Object> result : vectorResults) uniqueContents.add((String) result.get("content"));
-	                System.out.println("Unique content count: " + uniqueContents.size());
-	                finalResults = rrfFuse(bm25Results, vectorResults, topN);
+	            case "RRF": {
+	                int candidatePoolSize = Math.min(50, topN * 3);
+	                bm25Results = bm25Service.search(searchStatement, candidatePoolSize);
+	                vectorResults = runVectorSearch(insight, searchStatement, candidatePoolSize, parameters);
+	                finalResults = VectorRankingUtils.rrfFuse(bm25Results, vectorResults, topN);
 	                logTopResult(finalResults, "RRF");
 	                break;
+	            }
+
+	            case "HYBRID": {
+	                int candidatePoolSize = Math.min(50, topN);
+	                bm25Results = bm25Service.search(searchStatement, candidatePoolSize);
+	                vectorResults = runVectorSearch(insight, searchStatement, candidatePoolSize, parameters);
+
+	                double alpha = 0.35, beta = 0.65;
+	                finalResults = VectorRankingUtils.hybridFuse(bm25Results, vectorResults, topN, alpha, beta);
+	                logTopResult(finalResults, "Hybrid");
+	                break;
+	            }
 
 	            case "SEMANTIC":
 	            default:
@@ -724,20 +757,41 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	    } catch (Exception e) {
 	        classLogger.error("Search failed", e);
 	    }
+	    
+	    if (bm25ServiceForCall != this.bm25Service) {
+	        try {
+	        	bm25ServiceForCall.close();
+	        } catch (Exception e) {
+	            classLogger.error("BM25 insert failed", e);
+	        }
+	    }
+
 
 	    return finalResults;
 	}
 
 	private void logTopResult(List<Map<String, Object>> results, String label) {
-	    if (!results.isEmpty()) {
-	        Map<String, Object> topResult = results.get(0);
+	    int count = Math.min(3, results.size());
+	    for (int i = 0; i < count; i++) {
+	        Map<String, Object> result = results.get(i);
 	        System.out.println("[INFO] " + label + " top result:");
-	        System.out.println("  docId: " + topResult.get("docId"));
-	        System.out.println("  score: " + topResult.get("score"));
-	        System.out.println("  content: " + topResult.get("content"));
-	    } else {
+	        System.out.println("  docId: " + getFirstNonNull(result, "docId", "Id"));
+	        System.out.println("  score: " + getFirstNonNull(result, "score", "Score"));
+	        System.out.println("  content: " + getFirstNonNull(result, "content", "Content"));
+	    }
+	    if (results.isEmpty()) {
 	        System.out.println("[INFO] " + label + " search returned no results.");
 	    }
+	}
+
+	// Helper method to check multiple key variants
+	private Object getFirstNonNull(Map<String, Object> map, String... keys) {
+	    for (String key : keys) {
+	        if (map.containsKey(key) && map.get(key) != null) {
+	            return map.get(key);
+	        }
+	    }
+	    return null;
 	}
 
 	private List<Map<String, Object>> runVectorSearch(
@@ -778,6 +832,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	                "POWER((EMBEDDING <-> '" + embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
 	        qs.addOrderBy("Score", "ASC");
 	    }
+	    if (topN > 0) {
+	        qs.setLimit(topN);
+	    }
 	    if(filters != null && !filters.isEmpty()) {
 	        qs.addExplicitFilter(new GenRowFilters(filters), true);
 	    }
@@ -786,80 +843,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	        qs.addExplicitFilter(new GenRowFilters(metaFilters), true);
 	    }
 	    List<Map<String, Object>> vectorSearchResults = QueryExecutionUtility.flushRsToMap(this, qs);
+	    
 	    return vectorSearchResults;
 	}
-
-	public static List<Map<String, Object>> rrfFuse(
-	        List<Map<String, Object>> bm25Results,
-	        List<Map<String, Object>> vectorResults,
-	        int topN) {
-
-	    Map<String, Double> rrfScores = new HashMap<>();
-	    int k = 60; // RRF constant
-
-	    // Helper to accumulate RRF scores by content
-	    BiConsumer<List<Map<String, Object>>, Integer> accumulate = (results, offset) -> {
-	        for (int i = 0; i < results.size(); i++) {
-	            String content = (String) results.get(i).get("content");
-	            if (content == null) continue; // Defensive
-	            double score = 1.0 / (k + i + offset);
-	            double prevScore = rrfScores.getOrDefault(content, 0.0);
-	            rrfScores.put(content, prevScore + score);
-	            System.out.printf("Accumulating: content='%s', rank=%d, score=%.5f, prevScore=%.5f, newScore=%.5f%n",
-	                    content, i, score, prevScore, prevScore + score);
-	        }
-	    };
-
-	    System.out.println("Accumulating BM25 results...");
-	    accumulate.accept(bm25Results, 0);
-
-	    System.out.println("Accumulating vector results...");
-	    accumulate.accept(vectorResults, 0);
-
-	    // Merge content and scores for output
-	    Map<String, Map<String, Object>> contentMap = new HashMap<>();
-	    for (Map<String, Object> result : bm25Results) {
-	        String content = (String) result.get("content");
-	        if (content != null) contentMap.put(content, new HashMap<>(result));
-	    }
-	    for (Map<String, Object> result : vectorResults) {
-	        String content = (String) result.get("content");
-	        if (content != null && !contentMap.containsKey(content)) {
-	            contentMap.put(content, new HashMap<>(result));
-	        }
-	    }
-
-	    // Print all RRF scores before sorting
-	    System.out.println("RRF Scores before sorting:");
-	    for (Map.Entry<String, Double> entry : rrfScores.entrySet()) {
-	        System.out.printf("Content: '%s', RRF Score: %.5f%n", entry.getKey(), entry.getValue());
-	    }
-
-	    // Sort by RRF score
-	    List<Map.Entry<String, Double>> sorted = rrfScores.entrySet().stream()
-	            .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
-	            .collect(Collectors.toList());
-
-	    // Print the top 10 results by RRF score, regardless of topN
-	    System.out.println("Top 10 RRF results:");
-	    int printLimit = Math.min(10, sorted.size());
-	    for (int i = 0; i < printLimit; i++) {
-	        Map.Entry<String, Double> entry = sorted.get(i);
-	        System.out.printf("Rank %d: Content='%s', RRF Score=%.5f%n", i + 1, entry.getKey(), entry.getValue());
-	    }
-
-	    // Only return topN results (ensure topN > 1)
-	    List<Map<String, Object>> fused = new ArrayList<>();
-	    for (int i = 0; i < Math.min(topN, sorted.size()); i++) {
-	        Map.Entry<String, Double> entry = sorted.get(i);
-	        Map<String, Object> doc = contentMap.get(entry.getKey());
-	        doc.put("rrf_score", entry.getValue());
-	        fused.add(doc);
-	    }
-
-	    return fused;
-	}
-
 
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
