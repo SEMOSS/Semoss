@@ -378,7 +378,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			// Remove the surrounding quotes since we're doing string replacement
 			escapedSearchStatement = escapedSearchStatement.substring(1, escapedSearchStatement.length() - 1);
 			String query = String.valueOf(this.customTemplateQuery)
-				.replace("{{QUERY_PLACEHOLDER}}", escapedSearchStatement)
+				.replace("%QUERY_PLACEHOLDER%", escapedSearchStatement)
 				.replace("%%LIMIT%%", limit.toString());
 			classLogger.info(query);
 			try {
