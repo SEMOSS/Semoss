@@ -9,6 +9,7 @@ import prerna.engine.impl.vector.MilvusVectorDatabaseEngine;
 import prerna.engine.impl.vector.OpenSearchRestVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 import prerna.engine.impl.vector.PineConeVectorDatabaseEngine;
+import prerna.engine.impl.vector.ProxyVectorDatabaseEngine;
 import prerna.engine.impl.vector.WeaviateVectorDatabaseEngine;
 
 public enum VectorDatabaseTypeEnum {
@@ -22,6 +23,7 @@ public enum VectorDatabaseTypeEnum {
 	OPEN_SEARCH("OPEN_SEARCH", OpenSearchRestVectorDatabaseEngine.class.getName()),
 	PGVECTOR("PGVECTOR", PGVectorDatabaseEngine.class.getName()),
 	PINECONE("PINECONE", PineConeVectorDatabaseEngine.class.getName()),
+	PROXY("PROXY", ProxyVectorDatabaseEngine.class.getName()),
 	WEAVIATE("WEAVIATE", WeaviateVectorDatabaseEngine.class.getName()),
 	;
 		
