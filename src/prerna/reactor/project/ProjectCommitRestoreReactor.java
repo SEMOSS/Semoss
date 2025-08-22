@@ -91,7 +91,7 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor returns the details of all the commits in a project";
+		return "This reactor reverts to the requested commit id";
 	}
 
 	@Override
