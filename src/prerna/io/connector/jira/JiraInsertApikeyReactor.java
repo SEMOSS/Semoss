@@ -32,8 +32,8 @@ public class JiraInsertApikeyReactor extends AbstractReactor {
 	static IRDBMSEngine jiraDB;
 
 	public JiraInsertApikeyReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.USERID.getKey(), ReactorKeysEnum.API_KEY.getKey(),
-				ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.KEY_NAME.getKey() , ReactorKeysEnum.PROJECT.getKey()};
+		this.keysToGet = new String[] { "userid", ReactorKeysEnum.API_KEY.getKey(), ReactorKeysEnum.URL.getKey(),
+				"keyname", ReactorKeysEnum.PROJECT.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1, 1, 1 };
 	}
 
@@ -101,46 +101,47 @@ public class JiraInsertApikeyReactor extends AbstractReactor {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			String error = "Error in executing the reactor"+e.getMessage();
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(error));
+			throw new SemossPixelException(
+					"An error occurred while inserting API KEY details in JIRA DB. Error message: " + e.getMessage());
 		}
 	}
 
 	/**
-	 * To return primary key of the user after inserting data in DB, now also using project.
+	 * To return primary key of the user after inserting data in DB, now also using
+	 * project.
 	 */
 	private String readData(IRDBMSEngine jiraDB, String tableName, String userId, String apiKey, String url,
-	        Timestamp date, Timestamp lused, String keyName, String project) {
-	    jiraDB = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
-	    String profileKey = null;
+			Timestamp date, Timestamp lused, String keyName, String project) {
+		jiraDB = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		String profileKey = null;
 
-	    if (!isValidTableName(tableName)) {
-	        classLogger.error("Invalid table name");
-	        throw new IllegalArgumentException("Invalid table name");
-	    }
+		if (!isValidTableName(tableName)) {
+			classLogger.error("Invalid table name");
+			throw new IllegalArgumentException("Invalid table name");
+		}
 
-	    String query = "SELECT " + JIRA_UNIQUE_ID + " FROM " + tableName
-	            + " WHERE USER_ID=? AND API_KEY=? AND URL=? AND DATE_CREATED=? AND DATE_LAST_USED=? AND KEY_NAME=? AND PROJECT=?";
+		String query = "SELECT " + JIRA_UNIQUE_ID + " FROM " + tableName
+				+ " WHERE USER_ID=? AND API_KEY=? AND URL=? AND DATE_CREATED=? AND DATE_LAST_USED=? AND KEY_NAME=? AND PROJECT=?";
 
-	    try (Connection conn = jiraDB.makeConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
-	        pstmt.setString(1, userId);
-	        pstmt.setString(2, apiKey);
-	        pstmt.setString(3, url);
-	        pstmt.setTimestamp(4, date);
-	        pstmt.setTimestamp(5, lused);
-	        pstmt.setString(6, keyName);
-	        pstmt.setString(7, project);
+		try (Connection conn = jiraDB.makeConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
+			pstmt.setString(1, userId);
+			pstmt.setString(2, apiKey);
+			pstmt.setString(3, url);
+			pstmt.setTimestamp(4, date);
+			pstmt.setTimestamp(5, lused);
+			pstmt.setString(6, keyName);
+			pstmt.setString(7, project);
 
-	        try (ResultSet rs = pstmt.executeQuery()) {
-	            if (rs.next()) {
-	                profileKey = rs.getString(JIRA_UNIQUE_ID);
-	            }
-	        }
-	    } catch (Exception e) {
-	        classLogger.error(Constants.STACKTRACE, e);
-	        throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
-	    }
-	    return profileKey;
+			try (ResultSet rs = pstmt.executeQuery()) {
+				if (rs.next()) {
+					profileKey = rs.getString(JIRA_UNIQUE_ID);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+		}
+		return profileKey;
 	}
 
 	private boolean isValidTableName(String tableName) {
@@ -148,73 +149,75 @@ public class JiraInsertApikeyReactor extends AbstractReactor {
 	}
 
 	/**
-	 * To insert user data in DB, ensuring KEY_NAME is unique, and also storing project.
+	 * To insert user data in DB, ensuring KEY_NAME is unique, and also storing
+	 * project.
 	 */
 	private HashMap<String, Object> insertData(IRDBMSEngine jiraDB, String tableName, String userId, String apiToken,
-	        String url, Timestamp dateCreated, Timestamp lastUsed, String insightusername, String keyName, UUID id, String project) {
-	    jiraDB = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
-	    HashMap<String, Object> map = new HashMap<>();
-	    boolean flag = false;
-	    ResultSet rs = null;
+			String url, Timestamp dateCreated, Timestamp lastUsed, String insightusername, String keyName, UUID id,
+			String project) {
+		jiraDB = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		HashMap<String, Object> map = new HashMap<>();
+		boolean flag = false;
+		ResultSet rs = null;
 
-	    try (Connection conn = jiraDB.makeConnection()) {
-	        // Validate table name
-	        if (!isValidTableName(tableName)) {
-	            map.put("Data inserted successfully", false);
-	            map.put("Error", "Invalid table name");
-	            return map;
-	        }
+		try (Connection conn = jiraDB.makeConnection()) {
+			// Validate table name
+			if (!isValidTableName(tableName)) {
+				map.put("Data inserted successfully", false);
+				map.put("Error", "Invalid table name");
+				return map;
+			}
 
-	        // Check if KEY_NAME already exists for this user
-	        String checkQuery = "SELECT COUNT(*) AS CNT FROM " + tableName + " WHERE KEY_NAME = ? AND USER_ID = ?";
-	        try (PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
-	            checkStmt.setString(1, keyName);
-	            checkStmt.setString(2, userId);
-	            rs = checkStmt.executeQuery();
-	            if (rs.next() && rs.getInt("CNT") > 0) {
-	                String msg = "Error: KEY_NAME '" + keyName + "' already exists for this user.";
-	                map.put("Data inserted successfully", false);
-	                map.put("Error", msg);
-	                return map;
-	            }
-	        } finally {
-	            if (rs != null) {
-	                try {
-	                    rs.close();
-	                } catch (Exception ex) {
-	                    classLogger.error(Constants.STACKTRACE, ex);
-	                    throw new SemossPixelException(NounMetadata.getErrorNounMessage(ex.getMessage()));
-	                }
-	            }
-	        }
+			// Check if KEY_NAME already exists for this user
+			String checkQuery = "SELECT COUNT(*) AS CNT FROM " + tableName + " WHERE KEY_NAME = ? AND USER_ID = ?";
+			try (PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
+				checkStmt.setString(1, keyName);
+				checkStmt.setString(2, userId);
+				rs = checkStmt.executeQuery();
+				if (rs.next() && rs.getInt("CNT") > 0) {
+					String msg = "Error: KEY_NAME '" + keyName + "' already exists for this user.";
+					map.put("Data inserted successfully", false);
+					map.put("Error", msg);
+					return map;
+				}
+			} finally {
+				if (rs != null) {
+					try {
+						rs.close();
+					} catch (Exception ex) {
+						classLogger.error(Constants.STACKTRACE, ex);
+						throw new SemossPixelException(NounMetadata.getErrorNounMessage(ex.getMessage()));
+					}
+				}
+			}
 
-	        // Insert data using parameterized query, now including PROJECT
-	        String insertQuery = "INSERT INTO " + tableName
-	                + " (ID, API_KEY, USER_ID, URL, DATE_CREATED, DATE_LAST_USED, CREATED_BY, KEY_NAME, PROJECT) "
-	                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-	        try (PreparedStatement insertStmt = conn.prepareStatement(insertQuery)) {
-	            insertStmt.setString(1, id.toString());
-	            insertStmt.setString(2, apiToken);
-	            insertStmt.setString(3, userId);
-	            insertStmt.setString(4, url);
-	            insertStmt.setTimestamp(5, dateCreated);
-	            insertStmt.setTimestamp(6, lastUsed);
-	            insertStmt.setString(7, insightusername);
-	            insertStmt.setString(8, keyName);
-	            insertStmt.setString(9, project);
+			// Insert data using parameterized query, now including PROJECT
+			String insertQuery = "INSERT INTO " + tableName
+					+ " (ID, API_KEY, USER_ID, URL, DATE_CREATED, DATE_LAST_USED, CREATED_BY, KEY_NAME, PROJECT) "
+					+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+			try (PreparedStatement insertStmt = conn.prepareStatement(insertQuery)) {
+				insertStmt.setString(1, id.toString());
+				insertStmt.setString(2, apiToken);
+				insertStmt.setString(3, userId);
+				insertStmt.setString(4, url);
+				insertStmt.setTimestamp(5, dateCreated);
+				insertStmt.setTimestamp(6, lastUsed);
+				insertStmt.setString(7, insightusername);
+				insertStmt.setString(8, keyName);
+				insertStmt.setString(9, project);
 
-	            int rowsInserted = insertStmt.executeUpdate();
-	            flag = rowsInserted > 0;
-	            map.put("Data inserted successfully", flag);
-	        }
+				int rowsInserted = insertStmt.executeUpdate();
+				flag = rowsInserted > 0;
+				map.put("Data inserted successfully", flag);
+			}
 
-	    } catch (Exception e) {
-	        classLogger.error(Constants.STACKTRACE, e);
-	        map.put("Data inserted unsuccessfully", flag);
-	        map.put("Error", e.getMessage());
-	        throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
-	    }
-	    return map;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			map.put("Data inserted unsuccessfully", flag);
+			map.put("Error", e.getMessage());
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+		}
+		return map;
 	}
 
 	@Override
@@ -224,14 +227,16 @@ public class JiraInsertApikeyReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.USERID.getKey())) {
+		if (key.equals("userid")) {
 			return "User ID (email) of the user who intends to perform Jira operations.";
 		} else if (key.equals(ReactorKeysEnum.API_KEY.getKey())) {
-			return "API key of the user which will be used for authentication for various Jira operations.";
+			return "The api key of the token created by user to interact with JIRA Dashboard";
 		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "Base URL using which URLs for create, delete, list issues etc. will be created.";
-		} else if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
-			return "Key name for each entry to identify user ID while performing different Jira operations.";
+			return "The Jira URL on which all projects are present and tickets can be created";
+		} else if (key.equals("keyname")) {
+			return "The keyname of the connection from DB through which details can be fetched of a user.";
+		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "Name of the project on JIRA Dashboard";
 		}
 		return super.getDescriptionForKey(key);
 	}

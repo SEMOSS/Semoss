@@ -4,7 +4,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
@@ -15,9 +14,8 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(JiraCreateTicketReactor.class);
 
 	public JiraCreateTicketReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.KEY_NAME.getKey(), ReactorKeysEnum.SUMMARY.getKey(),
-				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.ISSUETYPE.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 1};
+		this.keysToGet = new String[] { "keyname", "summary", "description", "issuetype" };
+		this.keyRequired = new int[] { 1, 1, 1, 1 };
 	}
 
 	@Override
@@ -31,7 +29,7 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 			return JiraHelper.createIssue(summary, description, issuetype, keyName);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			throw new SemossPixelException("An error occurred while creating ticket. Error message: " + e.getMessage());
 		}
 	}
 
@@ -42,16 +40,16 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
+		if (key.equals("keyname")) {
 			return "The unique key name for the Jira issue.";
-		} else if (key.equals(ReactorKeysEnum.SUMMARY.getKey())) {
+		} else if (key.equals("summary")) {
 			return "A brief summary/title for the Jira issue.";
-		} else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+		} else if (key.equals("description")) {
 			return "A detailed description of the Jira issue.";
-		} else if (key.equals(ReactorKeysEnum.ISSUETYPE.getKey())) {
+		} else if (key.equals("issuetype")) {
 			return "The type of Jira issue (e.g., Bug, Task, Story).";
-		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The Jira project key where the issue will be created.";
+		} else if (key.equals("project")) {
+			return "The Jira project where the issue will be created.";
 		}
 		return super.getDescriptionForKey(key);
 	}

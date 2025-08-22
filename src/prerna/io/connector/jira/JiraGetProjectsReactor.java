@@ -15,8 +15,8 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(JiraGetProjectsReactor.class);
 
 	public JiraGetProjectsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.USERID.getKey() , ReactorKeysEnum.API_KEY.getKey()};
-		this.keyRequired = new int[] { 1 ,1 ,1};
+		this.keysToGet = new String[] { ReactorKeysEnum.URL.getKey(), "keyname", ReactorKeysEnum.API_KEY.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
@@ -24,12 +24,13 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 		try {
 			this.organizeKeys();
 			String url = this.keyValue.get(this.keysToGet[0]);
-			String userId = this.keyValue.get(this.keysToGet[1]); 
+			String userId = this.keyValue.get(this.keysToGet[1]);
 			String apiKey = this.keyValue.get(this.keysToGet[2]);
-			return JiraHelper.getAllProjects(url,userId, apiKey);
+			return JiraHelper.getAllProjects(url, userId, apiKey);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			throw new SemossPixelException(
+					"An error occurred while getting project details. Error message: " + e.getMessage());
 		}
 	}
 
@@ -40,8 +41,12 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
-			return "The unique key name used for authentication or context.";
+		if (key.equals("keyname")) {
+			return "The keyname of the connection from DB through which details can be fetched of a user.";
+		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
+			return "The Jira URL on which all projects are present and tickets can be created";
+		} else if (key.equals(ReactorKeysEnum.API_KEY.getKey())) {
+			return "The api key of the token created by user to interact with JIRA Dashboard";
 		}
 		return super.getDescriptionForKey(key);
 	}

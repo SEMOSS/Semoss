@@ -4,7 +4,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
@@ -15,7 +14,7 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(JiraDeleteTicketReactor.class);
 
 	public JiraDeleteTicketReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.KEY_NAME.getKey(), ReactorKeysEnum.JIRAID.getKey()};
+		this.keysToGet = new String[] { "keyname", "jiraid" };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -28,7 +27,7 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 			return JiraHelper.deleteIssue(jiraId, keyName);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			throw new SemossPixelException("An error occurred while deleting ticket. Error message: " + e.getMessage());
 		}
 	}
 
@@ -39,12 +38,10 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.KEY_NAME.getKey())) {
+		if (key.equals("keyname")) {
 			return "The unique key name for the Jira issue to be deleted.";
-		} else if (key.equals(ReactorKeysEnum.JIRAID.getKey())) {
+		} else if (key.equals("jiraid")) {
 			return "The Jira ID of the ticket/issue to be deleted.";
-		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The Jira project key where the issue exists.";
 		}
 		return super.getDescriptionForKey(key);
 	}

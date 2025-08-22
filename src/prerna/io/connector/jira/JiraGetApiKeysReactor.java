@@ -81,8 +81,8 @@ public class JiraGetApiKeysReactor extends AbstractReactor {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			String error = "Error in the reactor JiraGetReactor: " + e.getMessage();
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(error));
+			throw new SemossPixelException(
+					"An error occurred while getting API KEYs from JIRA DB. Error message: " + e.getMessage());
 		} finally {
 			try {
 				if (rs != null)
