@@ -55,8 +55,6 @@ public final class MCPUtility {
 	            "if 'smss' not in globals():\n" +
 	            "    import smss_driver as smss";
 	    
-	    PyTranslator pyt = project.getProjectPyTranslator();
-
 		// iterate function properties and find if it is string etc. 
 		Iterator <String> props = functionProperties.keys();
 		StringBuilder paramString = new StringBuilder();
@@ -89,22 +87,27 @@ public final class MCPUtility {
 			}
 		}
 		
+	    PyTranslator pyt = project.getProjectPyTranslator();
+
 		String runMethod = "smss." + functionName + "(" + paramString + ")";
 		classLogger.info("Running python tool '" + runMethod + "' from project " + project.getProjectId());
-		String curPath = pyt.runScript(sysImport, getpath)+"";
+		String curPath = pyt.runScript(insight, sysImport, getpath)+"";
 		curPath = curPath.replace("\\", "/");
 		if(!curPath.contains(pyFolderLoc)) {
-			pyt.runScript(setpath);
+			pyt.runScript(insight, setpath);
 		}
 		
-	    // Always import smss if needed
-		pyt.runScript(importSmssIfNeeded);
+		// previous insight execution
+//	    // Always import smss if needed
+//	    insight.getPyTranslator().runScript(importSmssIfNeeded);
+//	    // run method
+//	    return insight.getPyTranslator().runScript(runMethod)+"";
 
-	    //insight.getPyTranslator().runScript(importSmssIfNeeded);
-	    
+		// Running via project py
+	    // Always import smss if needed
+		pyt.runScript(insight, importSmssIfNeeded);
 		// run method
-		//return insight.getPyTranslator().runScript(runMethod)+"";
-		return pyt.runScript(runMethod)+"";
+		return pyt.runScript(insight, runMethod)+"";
 	}
 	
 	/**
@@ -184,6 +187,20 @@ public final class MCPUtility {
 			toolMap.put("name", "_"+projectId + "_" + currentName);
 		}
 		return jsonToolsMap;
+	}
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @param functionName
+	 * @return
+	 */
+	public static String removeProjectIdFromToolsMethodName(String projectId, String functionName) {
+		String internalFunctionNamePrefix = "_"+projectId+"_";
+		if(functionName.startsWith(internalFunctionNamePrefix)) {
+			return functionName.replaceFirst(internalFunctionNamePrefix, "");
+		}
+		return functionName;
 	}
 	
 	/**
