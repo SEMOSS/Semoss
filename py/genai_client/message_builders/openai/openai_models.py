@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any, Union
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from ...utils import StringEnum
 
 
@@ -37,6 +37,40 @@ class OpenAIResponsesImageContentPart(BaseModel):
     image_url: str
 
 
+class FunctionParameters(BaseModel):
+    """JSON schema for the function parameters."""
+
+    type: str = Field("object", description="Must be 'object'")
+    properties: Dict[str, Any] = Field(
+        ..., description="Parameters definition as JSON schema"
+    )
+    required: Optional[List[str]] = Field(
+        default_factory=list, description="List of required parameter names"
+    )
+
+
+class FunctionDef(BaseModel):
+    """Function definition for OpenAI tools."""
+
+    name: str = Field(..., description="The function name")
+    description: Optional[str] = Field(None, description="What the function does")
+    parameters: FunctionParameters = Field(..., description="Parameters JSON schema")
+
+
+class Tool(BaseModel):
+    """Tool object for OpenAI chat.completions API."""
+
+    type: str = Field("function", Literal=True, description="Must be 'function'")
+    function: FunctionDef
+
+
+class OpenAIToolContentPart(BaseModel):
+    """Tool object for OpenAI chat.completions API."""
+
+    role: str
+    content: List[Tool]
+
+
 class OpenAIMessage(BaseModel):
     role: str
     content: Union[
@@ -46,6 +80,7 @@ class OpenAIMessage(BaseModel):
                 OpenAITextContentPart,
                 OpenAIImageContentPart,
                 OpenAIResponsesImageContentPart,
+                OpenAIToolContentPart,
             ]
         ],
     ]
