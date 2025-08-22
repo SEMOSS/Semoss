@@ -373,7 +373,14 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		JsonObject search = null;
 		if (this.customTemplateQuery != null) {
 			classLogger.info("Found a custom template query for this engine");
-			String query = String.valueOf(this.customTemplateQuery).replaceAll("%QUERY_PLACEHOLDER%", searchStatement);
+			// Use Gson to properly escape the search statement for JSON
+			String escapedSearchStatement = new Gson().toJson(searchStatement);
+			// Remove the surrounding quotes since we're doing string replacement
+			escapedSearchStatement = escapedSearchStatement.substring(1, escapedSearchStatement.length() - 1);
+			String query = String.valueOf(this.customTemplateQuery)
+				.replace("{{QUERY_PLACEHOLDER}}", escapedSearchStatement)
+				.replace("%%LIMIT%%", limit.toString());
+			classLogger.info(query);
 			try {
 				search = JsonParser.parseString(query).getAsJsonObject();
 				// From the custom query template, get the metadata field keys under highlight > fields
@@ -391,6 +398,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				throw e;
 			}
 		} else {
+			classLogger.info("No template query found, using default search");
 			search = getNearestNeighborSearchJson(insight, searchStatement, limit, parameters);
 		}
 		
@@ -423,7 +431,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			
 			// If we have custom results path, use it to get sourceDetails
 			if (this.customResultsPath != null) {
-				classLogger.info("Using custom results path: " + this.customResultsPath);
 				try {
 					Configuration configuration = Configuration.builder()
 						.jsonProvider(new GsonJsonProvider())
@@ -474,6 +481,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				thisMatch.put(VectorDatabaseCSVTable.DIVIDER, sourceDetails.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
 				thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
 				thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
+				
+				/**
+				 * 4 - Add metadata if requested
+				 */
+				if (meta) {
+					addMetadataToMatch(thisMatch, hitJson);
+				}
 			}
 		}
 
