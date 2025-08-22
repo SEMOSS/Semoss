@@ -399,6 +399,11 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			}
 		} else {
 			classLogger.info("No template query found, using default search");
+			
+			if (!this.modelPropsLoaded) {
+				verifyModelProps();
+			}
+			
 			search = getNearestNeighborSearchJson(insight, searchStatement, limit, parameters);
 		}
 		
@@ -481,13 +486,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				thisMatch.put(VectorDatabaseCSVTable.DIVIDER, sourceDetails.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
 				thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
 				thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
-				
-				/**
-				 * 4 - Add metadata if requested
-				 */
-				if (meta) {
-					addMetadataToMatch(thisMatch, hitJson);
-				}
 			}
 		}
 
