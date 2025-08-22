@@ -117,10 +117,11 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			List<Map<String, Object>> toolResponses = response.getToolResponses();
 			for(int toolResponseIndex = 0; toolResponseIndex < toolResponses.size(); toolResponseIndex++) {
 				Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
-				String responseToolFunctionName = (String) responseToolMap.get("name");
-				Map<String, Object> responseToolArguments = (Map<String, Object>) responseToolMap.get("arguments");
-				// we appended a SMSS_PROJECT_ID tool key
-				String projectId = (String) responseToolArguments.remove(MCPUtility.SMSS_PROJECT_ID);
+				// we start the function name with _projectid_ so lets remove that
+				String responseProjectIdToolFunctionName = (String) responseToolMap.get("name");
+				String[] responseProjectIdToolFunctionNameSplit = responseProjectIdToolFunctionName.substring(1).split("_", 2);
+				String projectId = responseProjectIdToolFunctionNameSplit[0];
+				String origFunctionName = responseProjectIdToolFunctionNameSplit[1];
 				
 				// now that we have the projectId
 				// lets append some of the mcp metadata back into the response
@@ -137,7 +138,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 					JSONObject mcpTool = null;
 					PROJECT_MCP_LOOP : for(int toolIndex = 0; toolIndex < mcpToolsArray.length(); toolIndex++) {
 						JSONObject _tool = mcpToolsArray.getJSONObject(toolIndex);
-						if(_tool.has("name") && _tool.getString("name").equals(responseToolFunctionName)) {
+						if(_tool.has("name") && _tool.getString("name").equals(origFunctionName)) {
 							mcpTool = _tool;
 							break PROJECT_MCP_LOOP;
 						}
@@ -172,7 +173,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	private List<Map<String, Object>> getToolJson(String appId) {
 		IProject project = Utility.getProject(appId);
 		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTools(appId, toolMap);
+		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTooslMethodName(appId, toolMap);
 		if(updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
