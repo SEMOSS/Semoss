@@ -1,6 +1,8 @@
 package prerna.io.connector.google.docs;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import prerna.auth.User;
@@ -16,17 +18,13 @@ public class GoogleDocsListReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GoogleDocsListReactor.class);
 
-	private static final String DOCID_LIST = "docIdList";
-
 	@Override
 	public NounMetadata execute() {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			List<List<String>> docIdList = GoogleDocsHelper.getDocsIdList(accessToken);
-			HashMap<String, Object> res = new HashMap<>();
-			res.put(DOCID_LIST, docIdList);
-			return new NounMetadata(res, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			List<Map<String, Object>> result = GoogleDocsHelper.getDocsIdList(accessToken);
+			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;

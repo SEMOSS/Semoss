@@ -31,13 +31,9 @@ public class GoogleDocsHelper {
 			.create();
 
 	private static final String MIME_TYPE = "application/vnd.google-apps.document";
-	private static final String NAME = "name";
-	private static final String ID = "id";
 	private static final String DOCUMENT_ID_KEY = "documentId";
-	private static final String ID_KEY = "id";
 	private static final String TITLE_KEY = "title";
 	private static final String CONTENT_KEY = "content";
-	private static final String NAME_KEY = "name";
 
 	private static final String PARAGRAPH = "paragraph";
 	private static final String ELEMENTS = "elements";
@@ -101,7 +97,7 @@ public class GoogleDocsHelper {
             	updateDoc(accessToken, docId, content);
             }
             Map<String, Object> map = new HashMap<>();
-            map.put(ID_KEY, json.get(DOCUMENT_ID_KEY));
+            map.put(Constants.USER_MAP_ID, json.get(DOCUMENT_ID_KEY));
             map.put(SUCCESS_KEY, true);
             return map;
         } catch (Exception e) {
@@ -256,7 +252,7 @@ public class GoogleDocsHelper {
             Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
             List<Map<String, Object>> files = (List<Map<String, Object>>) json.get(FILES);
             for (Map<String, Object> file : files) {
-                if (file.get(NAME_KEY) != null && file.get(NAME_KEY).toString().equalsIgnoreCase(title)) {
+                if (file.get(Constants.USER_MAP_NAME) != null && file.get(Constants.USER_MAP_NAME).toString().equalsIgnoreCase(title)) {
                     return true;
                 }
             }
@@ -274,8 +270,8 @@ public class GoogleDocsHelper {
 	 * @throws Exception
 	 */
     @SuppressWarnings("unchecked")
-    public static List<List<String>> getDocsIdList(String accessToken) throws Exception {
-        List<List<String>> docList = new ArrayList<>();
+    public static List<Map<String, Object>> getDocsIdList(String accessToken) throws Exception {
+        List<Map<String, Object>> docList = new ArrayList<>();
         try {
             String queryParam = String.format(QUERY_PARAM_TEMPLATE, MIME_TYPE);
             String fullUrl = DRIVE_API_URL + "?q=" + java.net.URLEncoder.encode(queryParam, "UTF-8") + "&fields=" + java.net.URLEncoder.encode(FIELDS_PARAM, "UTF-8");
@@ -291,10 +287,13 @@ public class GoogleDocsHelper {
                 Map<String, Object> json = GSON.fromJson(in, new TypeToken<Map<String, Object>>() {}.getType());
                 List<Map<String, Object>> files = (List<Map<String, Object>>) json.get(FILES);
                 for (Map<String, Object> file : files) {
-                    String name = (String) file.get(NAME);
-                    String id = (String) file.get(ID);
+                	Map<String, Object> map = new HashMap<>();
+                    String name = (String) file.get(Constants.USER_MAP_NAME);
+                    String id = (String) file.get(Constants.USER_MAP_ID);
                     if (name != null && id != null) {
-                        docList.add(Arrays.asList(name, id));
+                    	map.put(TITLE_KEY, name);
+                    	map.put(Constants.USER_MAP_ID, id);
+                        docList.add(map);
                     }
                 }
             }
