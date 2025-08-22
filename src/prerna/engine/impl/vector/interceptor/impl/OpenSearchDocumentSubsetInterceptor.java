@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -50,6 +51,7 @@ public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetI
         if (INTERCEPTED_METHOD_NAMES.contains(methodName)) {
         	// Customized interceptor logic!
             if ("removeDocument".equals(methodName)) {
+                // Customized interceptor logic!
                 List<String> toRemove = (List<String>) args[0];
                 // TODO: support removing from * to get a not in condition
                 boolean changed = documents != null && documents.removeAll(toRemove);
@@ -61,7 +63,10 @@ public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetI
                 return null;
             } else if ("addDocument".equals(methodName)) {
                 List<String> toAdd = (List<String>) args[0];
-                boolean changed = documents != null && documents.addAll(toAdd);
+                boolean changed = false;
+                for(String s : toAdd) {
+                	changed = documents != null && documents.add(FilenameUtils.getName(s)) || changed;
+                }
                 if (changed) {
                     // Also add to the persistent config file (TARGET_PARAMETERS) for the proxy
                     writeBackDocumentSubset((AbstractEngine) proxyEngine, documents);
