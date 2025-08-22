@@ -11,12 +11,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Settings;
@@ -48,7 +48,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 			throw new IllegalArgumentException("Please enter the name of the python file used to instantiate the function.");
 		}
 		
-		this.engineDirectoryPath = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
+		this.engineDirectoryPath = EngineUtility.getSpecificEngineAssetsFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
 		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
 		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
 		
@@ -116,12 +116,10 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		}
 		
 		// create the py translator
-		PyTransporter pyTransporter = new PyTransporter();
-		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		pyTranslator = new PyTranslator();
-		pyTranslator.setInsight(new Insight());
-		pyTranslator.setPyTransporter(pyTransporter);
-		
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
+
 		try {
 			String execCommand = "import sys\n" 
 					+ "import os\n" 
@@ -180,6 +178,8 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 	
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
+		Insight executingInsight = (Insight) parameterValues.remove(Constants.INSIGHT);
+
 		checkSocketStatus();
 		
 		StringBuilder callMaker = new StringBuilder(this.functionName);
@@ -187,7 +187,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 				 .append(PyUtils.determineStringType(parameterValues))
 				 .append(")");
 		
-		return pyTranslator.runScript(callMaker.toString());
+		return pyTranslator.runScript(executingInsight, callMaker.toString());
 	}
 
 	@Override

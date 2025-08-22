@@ -962,3 +962,233 @@ def load_module_from_file(module_name=None, file_path=None, search=None):
         sys.path.remove(search)
     return module
     # import module_name
+
+
+def gen_mcp(src_file=None, dest_file=None):
+    import ast
+    import json
+    import datetime
+    import os
+    import time
+
+    with open(src_file, "r") as file:
+        tree = ast.parse(file.read())
+
+    tools_block = {}
+    _meta = {}
+    tools = []
+
+    for node in tree.body:
+        function = {}
+        input_schema = {}
+
+        if isinstance(node, ast.FunctionDef):
+            function_return_type = "string"
+            if node.returns is not None:
+                function_return_type = node.returns.id
+                function_return_type = map_py_to_mcp(function_return_type)
+
+            function_name = node.name
+            function.update({"name": function_name})
+            function.update({"title": format_to_title_case(function_name)})
+            docstring = ast.get_docstring(node)
+            if docstring is not None and len(docstring) > 0:
+                function.update({"description": docstring})
+
+            # Parse docstring to extract parameter descriptions
+            arg_descriptions = parse_docstring_args(docstring) if docstring else {}
+
+            properties = {}
+            required = []
+
+            for arg in node.args.args:
+                this_arg = {}
+                arg_name = arg.arg
+                this_arg.update({"title": format_to_title_case(arg_name)})
+
+                # Add description if found in docstring
+                if arg_name in arg_descriptions:
+                    this_arg.update({"description": arg_descriptions[arg_name]})
+
+                arg_type = "string"
+                if arg.annotation:
+                    if isinstance(arg.annotation, ast.Name):
+                        arg_type = arg.annotation.id
+                    elif isinstance(arg.annotation, ast.Subscript):
+                        if isinstance(arg.annotation.value, ast.Name):
+                            arg_type = arg.annotation.value.id
+                        else:
+                            arg_type = "string"
+                    else:
+                        arg_type = "string"
+
+                arg_type = map_py_to_mcp(arg_type)
+                function_return_type = "object"
+
+                this_arg.update({"type": arg_type})
+                required.append(arg_name)
+                properties.update({arg_name: this_arg})
+
+            input_schema.update({"properties": properties})
+            input_schema.update({"required": required})
+            input_schema.update({"title": f"{function_name}_Arguments"})
+            input_schema.update({"type": function_return_type})
+            function.update({"inputSchema": input_schema})
+
+            tools.append(function)
+
+    tools_block.update({"tools": tools})
+
+    # Add metadata
+    todays_date_utc = datetime.datetime.now(datetime.timezone.utc).date()
+    date_format = "%Y-%m-%d"
+    _meta.update({"last_modified_date": todays_date_utc.strftime(date_format)})
+    file_last_mod_date_utc = datetime.datetime.fromtimestamp(
+        os.path.getmtime(src_file), tz=datetime.timezone.utc
+    )
+    _meta.update(
+        {"file_last_modified_date": file_last_mod_date_utc.strftime(date_format)}
+    )
+    _meta.update({"source_file": src_file})
+    tools_block.update({"_meta": _meta})
+
+    # Write to file
+    with open(dest_file, "w", encoding="utf-8") as f:
+        json.dump(tools_block, f, indent=4, ensure_ascii=False)
+    return tools_block
+
+
+def parse_docstring_args(docstring):
+    """
+    Parse a docstring to extract argument descriptions.
+    Supports Google-style docstrings with Args: section.
+
+    Returns a dictionary mapping parameter names to their descriptions.
+    """
+    if not docstring:
+        return {}
+
+    lines = docstring.split("\n")
+    args_descriptions = {}
+    in_args_section = False
+    current_arg = None
+    current_description = []
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Check if we're entering the Args section
+        if stripped.lower().startswith("args:"):
+            in_args_section = True
+            continue
+
+        # Check if we're leaving the Args section (hit Returns:, Raises:, etc.)
+        if in_args_section and stripped.lower().startswith(
+            ("returns:", "return:", "raises:", "yields:", "note:", "example:")
+        ):
+            # Save the last argument if we have one
+            if current_arg and current_description:
+                args_descriptions[current_arg] = " ".join(current_description).strip()
+            in_args_section = False
+            break
+
+        if in_args_section and stripped:
+            # Check if this line defines a new argument (format: "param_name (type): description")
+            if ":" in stripped and "(" in stripped and ")" in stripped:
+                # Save previous argument if exists
+                if current_arg and current_description:
+                    args_descriptions[current_arg] = " ".join(
+                        current_description
+                    ).strip()
+
+                # Parse new argument
+                parts = stripped.split(":", 1)
+                if len(parts) == 2:
+                    arg_part = parts[0].strip()
+                    # Extract parameter name (remove type annotation)
+                    if "(" in arg_part:
+                        current_arg = arg_part.split("(")[0].strip()
+                    else:
+                        current_arg = arg_part
+
+                    # Start collecting description
+                    current_description = [parts[1].strip()]
+            elif current_arg:
+                # This is a continuation of the current argument's description
+                current_description.append(stripped)
+
+    # Don't forget the last argument
+    if current_arg and current_description:
+        args_descriptions[current_arg] = " ".join(current_description).strip()
+
+    return args_descriptions
+
+
+def map_py_to_mcp(input):
+    mapper = {
+        "str": "string",
+        "float": "number",
+        "int": "number",
+        "bool": "boolean",
+    }
+    if input in mapper:
+        return mapper[input]
+    else:
+        return "object"
+
+
+def map_mcp_to_py(input):
+    mapper = {
+        "string": "str",
+        "number": "float",
+        "boolean": "bool",
+    }
+    if input in mapper:
+        return mapper[input]
+    else:
+        return "object"
+
+
+def format_to_title_case(input_str):
+    """
+    Converts camelCase, PascalCase, or snake_case strings to title case with spaces
+    Examples:
+      "RunNER" -> "Run NER"
+      "ToUpperCase" -> "To Upper Case"
+      "simpleWord" -> "Simple Word"
+      "XMLParser" -> "XML Parser"
+      "get_stock_price" -> "Get Stock Price"
+    """
+    if not input_str:
+        return input_str
+
+    result = []
+    capitalize_next = True  # Capitalize the first letter
+
+    for i, char in enumerate(input_str):
+        # Handle underscores - replace with space and capitalize next letter
+        if char == "_":
+            result.append(" ")
+            capitalize_next = True
+            continue
+
+        # Add space before uppercase letters (except the first character)
+        if i > 0 and char.isupper() and result and result[-1] != " ":
+            # Check if previous character is lowercase or if next character is lowercase
+            # This handles cases like "XMLParser" -> "XML Parser" correctly
+            prev_char = input_str[i - 1]
+            prev_is_lower = prev_char.islower()
+            next_is_lower = i + 1 < len(input_str) and input_str[i + 1].islower()
+
+            if prev_is_lower or next_is_lower:
+                result.append(" ")
+                capitalize_next = True
+
+        # Apply capitalization logic
+        if capitalize_next:
+            result.append(char.upper())
+            capitalize_next = False
+        else:
+            result.append(char)
+
+    return "".join(result)

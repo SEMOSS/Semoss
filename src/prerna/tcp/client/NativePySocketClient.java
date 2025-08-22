@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
+import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
@@ -284,6 +285,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						    new Thread(() -> {
 						        classLogger.debug("Starting reactor operation for epoc: {}", finalPs.epoc);
 						        ByteArrayOutputStream output = new ByteArrayOutputStream();
+						        String pixelOp = null;
 						        try {
 						            String insightId = finalPs.insightId;
 						            Insight insight = InsightStore.getInstance().get(insightId);
@@ -295,9 +297,15 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						    		ThreadStore.setSessionId(sessionId);
 						    		ThreadStore.setRouteId(routeId);
 						    		ThreadStore.setJobId(jobId);
-						    		ThreadStore.setUser(insight.getUser());
+						    		String executionInsightId = finalPs.executionInsightId;
+						    		if(executionInsightId != null) {
+						    			Insight executionInsight = InsightStore.getInstance().get(executionInsightId);
+							            if(executionInsight != null) {
+							            	ThreadStore.setUser(executionInsight.getUser());
+							            }
+						    		}
 						    		
-						            String pixelOp = (String) finalPs.payload[0];
+						            pixelOp = (String) finalPs.payload[0];
 						            if(!(pixelOp=pixelOp.trim()).endsWith(";")) {
 						                pixelOp+=";";
 						            }
@@ -311,7 +319,11 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						        } catch(Exception e) {
 					                classLogger.error(Constants.STACKTRACE, e);
 						        	finalPs.response = true;
-						        	finalPs.ex = "An error occurred running the pixel";
+						        	String errorMessage = "An error occurred running the pixel = " + pixelOp;
+						        	if(e.getMessage() != null) {
+						        		errorMessage += ". Error message = " + e.getMessage();
+						        	}
+					        		finalPs.ex = errorMessage;
 						            executeCommand(finalPs);
 						        } finally {
 						            try {
@@ -363,7 +375,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				}
 			}
 			connected = false;
-			System.err.println("NativePySocketClient is disconnected");
 			classLogger.warn("NativePySocketClient is disconnected");
 		}
 	}
@@ -390,7 +401,17 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			executeCommand(ps);
 			return;
 		}
-		user = insight.getUser();
+		User user = null;
+		String executionInsightId = ps.executionInsightId;
+		if(executionInsightId != null) {
+			Insight executionInsight = InsightStore.getInstance().get(executionInsightId);
+            if(executionInsight != null) {
+            	ThreadStore.setUser(executionInsight.getUser());
+            }
+		}
+		if(user == null) {
+			user = insight.getUser();
+		}
 		if(user == null) {
 			ps.response = true;
 			ps.ex = "There is no user associated with this insight id";
@@ -398,7 +419,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			executeCommand(ps);
 			return;
 		} else {
-			NativePyEngineWorker worker = new NativePyEngineWorker(this.getUser(), ps, insight);
+			NativePyEngineWorker worker = new NativePyEngineWorker(user, ps, insight);
 			worker.run();
 			executeCommand(worker.getOutput());
 		}
@@ -686,7 +707,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 
 		this.close();
-		throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+		classLogger.fatal("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 	}
 
 }

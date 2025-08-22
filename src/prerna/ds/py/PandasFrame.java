@@ -188,7 +188,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String newFileLoc = Utility.getInsightCacheDir() + "/" + Utility.getRandomString(6) + ".json";
 			
 			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-				Insight in = this.pyTranslator.insight;
+				Insight in = this.pyTranslator.getGlobalStoreInsight();
 				String insightFolder = in.getInsightFolder();
 				new File(Utility.normalizePath(insightFolder)).mkdirs();
 				if(in.getUser() != null) {
@@ -408,15 +408,17 @@ public class PandasFrame extends AbstractTableDataFrame {
 		Map<String, String> newHeaders = qs.getNewHeaderNames();
 		String[] selectedHeaders = it.getHeaders();
 		
-		String [] cleanNewHeaders = new String [selectedHeaders.length];
+		String [] cleanNewHeaders = new String[selectedHeaders.length];
 		int i = 0;
 		for(String newColName : selectedHeaders) {
-			String oldColName = newHeaders.get(newColName);
-			if (oldColName != null) {
-				cleanNewHeaders[i] = oldColName;
-			} else {
-				cleanNewHeaders[i] = newColName;
+			String colNameToUse = newColName;
+			if(newHeaders != null) {
+				String oldName = newHeaders.get(newColName);
+				if(oldName != null) {
+					colNameToUse = oldName;
+				}
 			}
+			cleanNewHeaders[i] = colNameToUse;
 			i++;
 		}
 		
@@ -424,6 +426,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String headerS = PandasSyntaxHelper.setColumnNames(tableName, selectedHeaders);
 		String makeWrapper = PandasSyntaxHelper.makeWrapper(PandasSyntaxHelper.createFrameWrapperName(tableName), tableName);
 		pyTranslator.runEmptyPy(selectedColumns, headerS, makeWrapper);
+
 	}
 	
 	/**

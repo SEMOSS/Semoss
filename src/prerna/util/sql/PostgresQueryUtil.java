@@ -315,4 +315,14 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		return alterString.toString();
 	}
 	
+	@Override
+	public String modColumnNotNull(String tableName, String columnName, String dataType) {
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
+		return "ALTER TABLE " + tableName + " ALTER " + columnName + " TYPE " + dataType + ", ALTER " + columnName + " SET NOT NULL";
+	}
 }

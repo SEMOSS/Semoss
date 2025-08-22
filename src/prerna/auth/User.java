@@ -22,16 +22,12 @@ import org.javatuples.Pair;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.ds.py.PyTransporter;
-import prerna.ds.py.PyUtils;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
 import prerna.reactor.mgmt.MgmtUtil;
 import prerna.tcp.client.SocketClient;
-import prerna.util.AssetUtility;
-import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.SymlinkHelper;
@@ -49,6 +45,9 @@ public class User implements Serializable {
 	// storing the timezone the user is in
 	private ZoneId zoneId;
 	
+	// store model conversation rooms
+	public Map<String,Object> roomHash = new HashMap<>();
+	
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
 	
@@ -58,7 +57,6 @@ public class User implements Serializable {
 
 	// python related stuff
 	private transient ClientProcessWrapper pythonCPW = new ClientProcessWrapper();
-	private transient PyTransporter pyTransporter = null;
 	private transient Process pyProcess = null;
 
 	// r
@@ -76,7 +74,6 @@ public class User implements Serializable {
 	private transient Object workspaceSyncObject = null;
 
 	public transient CopyObject cp = null;
-	private transient CmdExecUtil cmdUtil = null;
 	
 	private int rPort = -1;
 	private int pyPort = -1;
@@ -622,83 +619,6 @@ public class User implements Serializable {
 	 * 
 	 * @return
 	 */
-	public PyTransporter getPyTransporter() {
-		return getPyTransporter(true);
-	}
-	
-	/**
-	 * 
-	 * @param create
-	 * @return
-	 */
-	public PyTransporter getPyTransporter(boolean create) {
-		return getPyTransporter(create, null);
-	}
-	
-	/**
-	 * 
-	 * @param create
-	 * @param venvEngineId
-	 * @return
-	 */
-	public PyTransporter getPyTransporter(boolean create, String venvEngineId) {
-		if(!PyUtils.pyEnabled()) {
-			throw new IllegalArgumentException("Python is not enabled for this instance");
-		}
-		if(this.pyTransporter == null && create) {
-			// all of the logic should go here now ?
-			synchronized(this) {
-				SocketClient sc = getPythonSocketClient(create, -1, venvEngineId);
-				if(sc != null) {
-					PyTransporter pyTransporter = new PyTransporter();
-					pyTransporter.setSocketClient(sc);
-					this.pyTransporter = pyTransporter;
-				}
-			}
-		}
-		else {
-			SocketClient sc = getPythonSocketClient(create, -1, venvEngineId);
-			if(sc != null) {
-				PyTransporter pyTransporter = new PyTransporter();
-				pyTransporter.setSocketClient(sc);
-				this.pyTransporter = pyTransporter;
-			}
-		}
-		
-		// return the translator reference
-		return this.pyTransporter;
-	}
-	
-	/**
-	 * Set the context for the user based on the path defined in the varMap
-	 * @param context
-	 */
-	public void setContext(String projectId, String projectName) {
-		boolean useNettyPy = Utility.getDIHelperProperty(Constants.NETTY_PYTHON) != null
-				&& Utility.getDIHelperProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
-		if(!useNettyPy) {
-			//TODO this breaks the git terminal, but right now that is using payload struct only
-			return;
-		}
-		// sets the context space for the user
-		String projectBaseFolder = AssetUtility.getProjectAppRootFolder(projectName, projectId);
-		projectBaseFolder = projectBaseFolder.replace("\\", "/");
-		// also set the cmd context right here
-		this.cmdUtil = new CmdExecUtil(projectId, projectBaseFolder, null);
-	}
-	
-	public CmdExecUtil getCmdUtil() {
-	    if (this.pythonCPW.getSocketClient() == null) {
-	        this.getPyTransporter();
-	    }
-	    if (cmdUtil != null) {
-	        if (this.pythonCPW.getSocketClient() != null && !this.pythonCPW.getSocketClient().isConnected()) {
-	            cmdUtil.setTcpClient(this.pythonCPW.getSocketClient());
-	        }
-	    }
-	    return this.cmdUtil;
-	}
-	
 	public SymlinkHelper getUserSymlinkHelper() {
 		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if(symlinkHelper == null) {		
@@ -709,11 +629,16 @@ public class User implements Serializable {
 				symlinkHelper = new SymlinkHelper(chrootPath);
 			}
 			return symlinkHelper;
-		} else {
-			throw new IllegalArgumentException("Mounting + Chroot is set to false for this instance");
 		}
+		
+		throw new IllegalArgumentException("Chroot is not enabled on this instance");
 	}
 	
+	/**
+	 * 
+	 * @param port
+	 * @param venvEngineId
+	 */
 	public void startPythonSocketServerAndClient(int port, String venvEngineId) {
 		if(this.pythonCPW == null) {
 			this.pythonCPW = new ClientProcessWrapper();

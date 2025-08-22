@@ -15,7 +15,6 @@ import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,18 +27,16 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
-import prerna.io.connector.secrets.ISecrets;
-import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -48,10 +45,9 @@ import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Settings;
-import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEngine {
+public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implements IVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractVectorDatabaseEngine.class);
 	
@@ -60,11 +56,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			+ "import vector_database;";
 	
 	public static final String LATEST_VECTOR_SEARCH_STATEMENT = "LATEST_VECTOR_SEARCH_STATEMENT";
-	public static final String INSIGHT = "insight";
 	
-	public static final String DIR_SEPARATOR = "/";
-	public static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-
 	public static final String INDEX_CLASS = "indexClass";
 
 	public static final String DOCUMENTS_FOLDER_NAME = "documents";
@@ -77,12 +69,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	public static final String CSVPATH = "csvPath";
 	public static final String DOCUMENT = "document";
 	public static final String PARAMETERS = "parameters";
-	
-	protected String engineId = null;
-	protected String engineName = null;
-	
-	protected Properties smssProp = null;
-	protected String smssFilePath = null;
 	
 	protected String encoderName = null;
 	protected String encoderType = null;
@@ -124,27 +110,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected Map<String, String> vars = new HashMap<>();
 	
 	@Override
-	public void open(String smssFilePath) throws Exception {
-		setSmssFilePath(smssFilePath);
-		this.open(Utility.loadProperties(smssFilePath));
-	}
-	
-	@Override
 	public void open(Properties smssProp) throws Exception {
-		setSmssProp(smssProp);
-		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
-		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
-
-		ISecrets secretStore = SecretsFactory.getSecretConnector();
-		if(secretStore != null) {
-			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets == null || engineSecrets.isEmpty()) {
-				classLogger.info("No secrets found for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-			} else {
-				classLogger.info("Successfully pulled secrets for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-				this.smssProp.putAll(engineSecrets);
-			}
-		}
+		super.open(smssProp);
 		
 		if (this.smssProp.containsKey(Constants.CONTENT_LENGTH)) {
 			this.contentLength = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_LENGTH));
@@ -181,8 +148,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
         }
         
 		// highest directory (first layer inside vector db base folder)
-		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
-		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
+		String engineDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
+		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + FILE_SEPARATOR + "py" + FILE_SEPARATOR));
 		
 		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
 		this.schemaFolder = new File(engineDir, "schema");
@@ -202,7 +169,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected abstract String getDefaultDistanceMethod();
 	
 	@Override
-	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+		List<FileEmbeddingStatus> resultList = new ArrayList<>();
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -245,12 +213,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			chunkingMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNKING_METHOD.getKey());
 		}
         
-		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
+		Insight insight = getInsight(parameters.get(Constants.INSIGHT));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		
-		File indexFilesDir = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, INDEXED_FOLDER_NAME);
+		File indexFilesDir = new File(this.schemaFolder + FILE_SEPARATOR + indexClass, INDEXED_FOLDER_NAME);
 		
 		// store the actual files we are extracting from
 		// since we move this into the vector folder
@@ -311,8 +279,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
 				String documentName = FilenameUtils.getBaseName(document.getName());
-				File extractedFile = new File(indexFilesDir.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
-				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
+				File extractedFile = new File(indexFilesDir.getAbsolutePath() + FILE_SEPARATOR + documentName + ".csv");
+				String extractedFileName = extractedFile.getAbsolutePath().replace("\\", FILE_SEPARATOR);
 				try {
 					if (extractedFile.exists()) {
 						FileUtils.forceDelete(extractedFile);
@@ -350,9 +318,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
 							StringBuilder extractTextFromDocScript = new StringBuilder();
 							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
-								.append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+								.append(document.getAbsolutePath().replace("\\", FILE_SEPARATOR))
 								.append("', target_folder = '")
-								.append(this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files")
+								.append(this.schemaFolder.getAbsolutePath().replace("\\", FILE_SEPARATOR) 
+										+ FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "extraction_files")
 								.append("', output_file_name = '")
 								.append(extractedFileName)
 								.append("')");
@@ -430,7 +399,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				throw new IllegalArgumentException("Unable to extract any text from " + fileNamesAttemptedUpload);
 			}
 			
-			addEmbeddingFiles(extractedFiles, insight, parameters);
+			resultList = addEmbeddingFiles(extractedFiles, insight, parameters);
 			
 			if (ClusterUtil.IS_CLUSTER) {
 				// push the actual documents over to the cloud
@@ -447,6 +416,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		} finally {
 			cleanUpAddDocument(indexFilesDir);
 		}
+		return resultList;
 	}
 	
 	protected void addIndexClass(String indexClass) {
@@ -475,7 +445,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (!this.indexClasses.contains(indexClass)) {
 			throw new IllegalArgumentException("Unable to retieve document csv from a directory that does not exist");
 		}
-		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + INDEXED_FOLDER_NAME);
+		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + INDEXED_FOLDER_NAME);
 	}
 	
 	/**
@@ -491,35 +461,47 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (!this.indexClasses.contains(indexClass)) {
 			throw new IllegalArgumentException("Unable to retieve document csv from a directory that does not exist");
 		}
-		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 	}
 	
 	@Override
-	public void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		for(String vectorCsvFile : vectorCsvFiles) {
 			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
-			addEmbeddings(vectorCsvTable, insight, parameters);
+			fileStatusList = addEmbeddings(vectorCsvTable, insight, parameters);
 		}
+		
+		return fileStatusList;
 	}
 	
 	@Override
-	public void addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
-		addEmbeddings(vectorCsvTable, insight, parameters);
+		return addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override
-	public void addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
-		for(File vectorCsvFile : vectorCsvFiles) {
-			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-			addEmbeddings(vectorCsvTable, insight, parameters);
+	public List<FileEmbeddingStatus> addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+		for (File vectorCsvFile : vectorCsvFiles) {
+			try {
+				VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
+				List<FileEmbeddingStatus> resultList = addEmbeddings(vectorCsvTable, insight, parameters);
+	            fileStatusList.addAll(resultList);
+			} catch (Exception e) {
+				// File failed completely
+				FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0);
+	            fileStatusList.add(failedStatus);
+			}
 		}
+		return fileStatusList;
 	}
 	
 	@Override
-	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-		addEmbeddings(vectorCsvTable, insight, parameters);
+		return addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override
@@ -561,8 +543,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 					/*messageId*/UUID.randomUUID().toString(), 
 					/*messageMethod*/"nearestNeighbor", 
 					/*engine*/this, 
-					/*insight*/insight,
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
 					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null, 
 					/*prompt*/searchStatement,
 					/*fullPrompt*/null,
@@ -749,11 +735,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 
 		// create the py translator
-		PyTransporter pyTransporter = new PyTransporter();
-		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		pyTranslator = new PyTranslator();
-		pyTranslator.setInsight(new Insight());
-		pyTranslator.setPyTransporter(pyTransporter);
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		
 		try {
 			// this is engine specific... or can be
@@ -769,7 +753,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " python process with commands >>> " + String.join("\n", commands));
 			
-			pyTranslator.runEmptyPy(commands);
+			this.pyTranslator.runEmptyPy(commands);
 			
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;
@@ -786,11 +770,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			}
 			throw e;
 		}
-	}
-	
-	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 	
 	/**
@@ -850,51 +829,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	}
 
 	@Override
-	public void setEngineId(String engineId) {
-		this.engineId = engineId;
-	}
-
-	@Override
-	public String getEngineId() {
-		return this.engineId;
-	}
-
-	@Override
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
-	}
-
-	@Override
-	public String getEngineName() {
-		return this.engineName;
-	}
-
-	@Override
-	public void setSmssFilePath(String smssFilePath) {
-		this.smssFilePath = smssFilePath;
-	}
-
-	@Override
-	public String getSmssFilePath() {
-		return this.smssFilePath;
-	}
-
-	@Override
-	public void setSmssProp(Properties smssProp) {
-		this.smssProp = smssProp;
-	}
-
-	@Override
-	public Properties getSmssProp() {
-		return this.smssProp;
-	}
-
-	@Override
-	public Properties getOrigSmssProp() {
-		return null;
-	}
-
-	@Override
 	public IEngine.CATALOG_TYPE getCatalogType() {
 		return IEngine.CATALOG_TYPE.VECTOR;
 	}
@@ -910,39 +844,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if(this.cpw != null) {
 			this.cpw.shutdown(true);
 		}
-	}
-	
-	@Override
-	public void delete() {
-		classLogger.debug("Delete vector database engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		try {
-			this.close();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(getCatalogType(), this.engineId, this.engineName));
-		if(engineFolder.exists()) {
-			classLogger.info("Delete vector database engine folder " + engineFolder);
-			try {
-				FileUtils.deleteDirectory(engineFolder);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		} else {
-			classLogger.info("Vector Database engine folder " + engineFolder + " does not exist");
-		}
-		
-		classLogger.info("Deleting vector database engine smss " + this.smssFilePath);
-		File smssFile = new File(this.smssFilePath);
-		try {
-			FileUtils.forceDelete(smssFile);
-		} catch(IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		// remove from DIHelper
-		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
 	
 	@Override

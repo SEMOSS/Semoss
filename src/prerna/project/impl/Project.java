@@ -35,6 +35,7 @@ import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
@@ -56,7 +57,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyTransporter;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -66,6 +66,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
@@ -1139,6 +1140,24 @@ public class Project implements IProject {
 	}
 	
 	@Override
+	public INotebookHelper getNotebookHelper() {
+		// if not blocks json
+		// then ignore for now
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			return NotebookHelperFactory.getNotebookHelper(blocksF);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+	
+	@Override
 	public synchronized List<File> writeNotebooks() {
 		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
@@ -1509,7 +1528,7 @@ public class Project implements IProject {
 	        
 	        if(!built) { // may be maven is not set but mvn as a executor is available
 				// need to make the modification to this
-				CmdExecUtil ceu = new CmdExecUtil(projectName, pomFile.getParent(), null);
+				CmdExecUtil ceu = new CmdExecUtil(null, SmssUtilities.getUniqueName(this.projectName, this.projectId), pomFile.getParent());
 				// mvn dependency:list -DoutputType=graphml -DoutputFile=./mvn_dep.output -DincludeScope=runtime -f pom.xml
 				ceu.executeCommand("mvn dependency:list -DoutputType=graphml -DoutputFile=\"" + outputFile.getAbsolutePath() + "\" -DincludeScope=runtime -f \"" + pomFile + "\"");
 			}
@@ -1724,6 +1743,7 @@ public class Project implements IProject {
 		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			this.createProjectTcpServer(-1);
 		}
+		this.pyTranslator.setSocketClient(this.cpw.getSocketClient());
 		return this.pyTranslator;
 	}
 	
@@ -1790,11 +1810,9 @@ public class Project implements IProject {
 		}
 		
 		// create the py translator
-		PyTransporter pyTransporter = new PyTransporter();
-		pyTransporter.setSocketClient(cpwToInit.getSocketClient());
-		this.pyTranslator = new PyTranslator();
-		this.pyTranslator.setInsight(new Insight());
-		this.pyTranslator.setPyTransporter(pyTransporter);
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		// finally set the cpw in the class
 		this.cpw = cpwToInit;
 	}
@@ -1902,6 +1920,11 @@ public class Project implements IProject {
 
 		return toolMap;
 	}
+	
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
 
 	@Deprecated
 	/**
@@ -1955,5 +1978,15 @@ public class Project implements IProject {
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return this.projectType.name();
+	}
+	
+	@Override
+	public boolean isBasic() {
+		return false;
+	}
+	
+	@Override
+	public void setBasic(boolean isBasic) {
+		// always false
 	}
 }

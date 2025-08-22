@@ -60,6 +60,7 @@ public class AbstractVectorDatabaseUnitTests {
 	private IModelEngine modelEmbedder;
 	
 	private class VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
+		
 		@Override
 		public VectorDatabaseTypeEnum getVectorDatabaseType() {
 			// TODO Auto-generated method stub
@@ -67,10 +68,9 @@ public class AbstractVectorDatabaseUnitTests {
 		}
 
 		@Override
-		public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters)
-				throws Exception {
+		public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 			// TODO Auto-generated method stub
-			
+			return null;
 		}
 
 		@Override
@@ -266,7 +266,7 @@ public class AbstractVectorDatabaseUnitTests {
 		
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
-		parameters.put(AbstractVectorDatabaseEngine.INSIGHT, insight);
+		parameters.put(Constants.INSIGHT, insight);
 		
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine)); 
 		Path schemaDir = engineFolder.resolve("schema");
@@ -735,7 +735,7 @@ public class AbstractVectorDatabaseUnitTests {
 		
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
-		parameters.put(AbstractVectorDatabaseEngine.INSIGHT, insight);
+		parameters.put(Constants.INSIGHT, insight);
 		
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
 		Path schemaPath = engineFolder.resolve("schema");
