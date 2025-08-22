@@ -378,7 +378,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		JsonObject search = null;
 		if (this.customTemplateQuery != null) {
 			classLogger.info("Found a custom template query for this engine");
-			this.customTemplateQuery.replaceAll("%QUERY_PLACEHOLDER%", searchStatement);
+			this.customTemplateQuery = this.customTemplateQuery.replaceAll("%QUERY_PLACEHOLDER%", searchStatement);
 			try {
 				search = JsonParser.parseString(this.customTemplateQuery).getAsJsonObject();
 				// From the custom query template, get the metadata field keys under highlight > fields
@@ -399,6 +399,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			search = getNearestNeighborSearchJson(insight, searchStatement, limit, parameters);
 		}
 		
+		classLogger.info(search);
+		
 		/**
 		 * 2
 		 */
@@ -412,6 +414,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
 		
 		JsonArray hits = getHitsFromSearch(responseJson);
+		
+		classLogger.info(hits);
 		
 		List<Map<String, Object>> vectorSearchResults = new ArrayList<>();
 		
