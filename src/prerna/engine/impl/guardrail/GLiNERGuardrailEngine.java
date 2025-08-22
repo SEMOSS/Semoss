@@ -4,12 +4,14 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.snowflake.client.jdbc.internal.google.gson.Gson;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.function.FunctionParameter;
@@ -25,25 +27,41 @@ import prerna.util.EngineUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
-public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEngine {
+public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
 
+	private static final String MODEL_NAME = "MODEL_NAME";
+	private static final String NER_LABELS = "NER_LABELS";
 	private static final String DEFAULT_THRESHOLD_KEY = "DEFAULT_THRESHOLD";
-	private Double defaultThreshold = .7;
-	
+
 	private String engineDirectoryPath = null;
 	private File cacheFolder;
 	private ClientProcessWrapper cpw = null;
 	private PyTranslator pyTranslator = null;
 
-	public DetoxifyGuardrailEngine() {
-		this.keysToGet = new String[] {"prompt", "threshold"};
+	private String modelName = null;
+	private List<String> defaultLabels = null;
+	private Double defaultThreshold = .7;
+
+	public GLiNERGuardrailEngine() {
+		this.keysToGet = new String[] {"prompt", "labels", "threshold"};
 	}
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
+		
+		this.modelName = this.smssProp.getProperty(MODEL_NAME);
+		if(this.modelName == null || (this.modelName=this.modelName.trim()).isEmpty()) {
+			classLogger.warn("Must define the GLiNER model name");
+			throw new IllegalArgumentException("Must define the GLiNER model name");
+		}
+		
+		String defaultLabelsStr = this.smssProp.getProperty(NER_LABELS);
+		if(defaultLabelsStr != null && !(defaultLabelsStr=defaultLabelsStr.trim()).isEmpty()) {
+			this.defaultLabels = new Gson().fromJson(defaultLabelsStr, java.util.List.class);
+		}
 		
 		String defaultThresholdStr = this.smssProp.getProperty(DEFAULT_THRESHOLD_KEY);
 		if(defaultThresholdStr != null && !(defaultThresholdStr=defaultThresholdStr.trim()).isEmpty()) {
@@ -59,34 +77,53 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
 		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
 		
-		this.functionDescription = "Applying toxicity analysis on the following categoires ['toxicity', 'severe_toxicity', 'obscene', 'threat', 'insult', 'identity_attack']";
+		this.functionDescription = "Applying Named Entity Recognition based on provided user labels";
 		this.parameters = new ArrayList<>();
 		this.parameters.add(
 				new FunctionParameter("prompt", 
 				"String", 
 				"This is the prompt we are applying the guardrail to"));
+		this.parameters.add(new FunctionParameter("labels", 
+				"List<String>", 
+				"List of named entity lables to apply against the prompt"));
 		this.parameters.add(new FunctionParameter("threshold", 
 				"Double", 
-				"Number between 0-1 for the probability threshold to apply across the categories to reject a prompt. The larger the value, the higher the probability of the prompt containing the category. The default value is "+defaultThreshold));
-		this.requiredParameters = new ArrayList<>(Arrays.asList("prompt"));
+				"Number between 0-1 for the probability threshold to apply across the categories to reject a prompt. The larger the value, the higher the probability of the prompt containing the entity. The default value is "+defaultThreshold));
+
+		if(this.defaultLabels != null && !this.defaultLabels.isEmpty()) {
+			this.requiredParameters = new ArrayList<>(Arrays.asList("labels"));
+		} else {
+			this.requiredParameters = new ArrayList<>(Arrays.asList("prompt", "labels"));
+		}
 	}
 	
 	@Override
 	public GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow) {
 		checkSocketStatus();
+		System.out.println("what?");
 		Map<String, String> keyValue = organizeKeys(ns, curRow);
 		String prompt = keyValue.get(this.keysToGet[0]);
-		double threshold = this.defaultThreshold;
-		if(keyValue.containsKey("threshold")) {
-			threshold = Double.parseDouble(keyValue.get("threshold"));
+		if(prompt == null) {
+			throw new IllegalArgumentException("No prompt has been defined");
 		}
-		String script = "model.predict(\"\"\""+prompt+"\"\"\")";
-		Map<String, Object> value = (Map<String, Object>) pyTranslator.runDirectPy(script);
+		List<String> labels = getNounAsStringList(ns, this.keysToGet[1]);
+		if(labels == null || labels.isEmpty()) {
+			labels = defaultLabels;
+		}
+		if(labels == null) {
+			throw new IllegalArgumentException("No named entity recognition lables have been defined");
+		}
+		double threshold = this.defaultThreshold;
+		if(keyValue.containsKey(this.keysToGet[2])) {
+			threshold = Double.parseDouble(keyValue.get(this.keysToGet[2]));
+		}
 		
+		String script = "model.predict_entities(\"\"\""+prompt+"\"\"\", "+new Gson().toJson(labels)+")";
+		List<Map<String, Object>> predictions = (List<Map<String, Object>>) pyTranslator.runDirectPy(script);
 		boolean pass = true;
-		for(String category : value.keySet()) {
+		for(Map<String, Object> category : predictions) {
 			// account if the type is return 
-			Object categoryScore = value.get(category);
+			Object categoryScore = category.get("score");
 			double score = 0;
 			if(categoryScore instanceof Number) {
 				score = ((Number) categoryScore).doubleValue();
@@ -101,7 +138,7 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 		
 		Map<String, Object> retValue = new HashMap<>();
 		retValue.put("threshold", threshold);
-		retValue.put("return", value);
+		retValue.put("return", predictions);
 		// we do not manipulate the prompt
 		// so return as is
 		return new GuardrailNounMetadata(pass, prompt, retValue);
@@ -175,8 +212,8 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		
 		try {
-			String execCommand = "from detoxify import Detoxify\n" 
-					+ "model = Detoxify('original')"
+			String execCommand = "from gliner import GLiNER\n"
+					+ "model = GLiNER.from_pretrained(\""+this.modelName+"\")"
 					;
 
 			this.pyTranslator.runScript(execCommand);

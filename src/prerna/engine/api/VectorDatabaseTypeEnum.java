@@ -22,7 +22,7 @@ public enum VectorDatabaseTypeEnum {
 	OPEN_SEARCH("OPEN_SEARCH", OpenSearchRestVectorDatabaseEngine.class.getName()),
 	PGVECTOR("PGVECTOR", PGVectorDatabaseEngine.class.getName()),
 	PINECONE("PINECONE", PineConeVectorDatabaseEngine.class.getName()),
-	WEAVIATE("WEAVIATE", WeaviateVectorDatabaseEngine.class.getName()), 
+	WEAVIATE("WEAVIATE", WeaviateVectorDatabaseEngine.class.getName()),
 	;
 		
 	private String vectorDbName;
