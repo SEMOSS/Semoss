@@ -153,6 +153,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return "cosinesimil";
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
@@ -460,11 +461,21 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	}
 
 	protected JsonObject getListDocumentSearchJson(Map<String, Object> parameters) {
+		JsonObject filter = null;
+		if (parameters.containsKey("filters")) {
+			filter = getFilterAggregation(parameters);
+		} else {
+			filter = new JsonObject();
+			{
+				JsonObject matchAll = new JsonObject();
+				filter.add("match_all", matchAll);
+			}
+		}
+		
 		JsonObject search = new JsonObject();
 		search.addProperty("size", 0);
 		{
-			if (parameters.containsKey("filters")) {
-				JsonObject filter = getFilterAggregation(parameters);
+			if (filter != null) {
 				search.add("query", filter);
 			}
 			
@@ -472,12 +483,22 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			{
 				JsonObject uniqueSources = new JsonObject();
 				{
-					JsonObject terms = new JsonObject();
-					terms.addProperty("field", VectorDatabaseCSVTable.SOURCE);
-					terms.addProperty("min_doc_count", 1);
-					// Pull up to 9999 unique terms for the aggregation
-					terms.addProperty("size", 9999);
-					uniqueSources.add("terms", terms);
+					uniqueSources.add("filter", filter);
+					
+					JsonObject nestedAggs = new JsonObject();
+					{
+						JsonObject filteredSources = new JsonObject();
+						{
+							JsonObject terms = new JsonObject();
+							terms.addProperty("field", VectorDatabaseCSVTable.SOURCE);
+							terms.addProperty("min_doc_count", 1);
+							// Pull up to 9999 unique terms for the aggregation
+							terms.addProperty("size", 9999);
+							filteredSources.add("terms", terms);
+						}
+						nestedAggs.add("filtered_sources", filteredSources);
+					}
+					uniqueSources.add("aggs", nestedAggs);
 				}
 				aggs.add(UNIQUE_SOURCES, uniqueSources);
 			}
@@ -521,8 +542,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return filterParent;
 	}
   
-  public List<Map<String, Object>> listAllRecords() {
-		return listAllRecords(null);
+	public List<Map<String, Object>> listAllRecords() {
+		return listAllRecords(new HashMap<>());
 	}
 
 	@Override

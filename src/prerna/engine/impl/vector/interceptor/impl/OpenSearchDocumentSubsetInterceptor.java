@@ -35,30 +35,41 @@ public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetI
 			, "listDocuments"
 			, "nearestNeighbor"
 			, "removeDocument"
-			// TODO: , "addDocument", (check edit permission and actually add in target? or just verify in target vector to alter doc list prop)
+			, "addDocument"
 	);
 	
 	public OpenSearchDocumentSubsetInterceptor(IVectorDatabaseEngine proxyEngine, IVectorDatabaseEngine targetEngine, Object[] constructorArgs) {
 		super(proxyEngine, targetEngine, constructorArgs);
 	}
 	
+	@SuppressWarnings("unchecked")
     @Override
     public Object intercept(Object obj, Method method, Object[] args, MethodProxy proxyMethod) throws Throwable {
         String methodName = method.getName();
         Object result;
         if (INTERCEPTED_METHOD_NAMES.contains(methodName)) {
+        	// Customized interceptor logic!
             if ("removeDocument".equals(methodName)) {
-                // Customized interceptor logic!
-                @SuppressWarnings("unchecked")
                 List<String> toRemove = (List<String>) args[0];
-                boolean changed = documents.removeAll(toRemove);
+                // TODO: support removing from * to get a not in condition
+                boolean changed = documents != null && documents.removeAll(toRemove);
                 if (changed) {
                     // Also remove from the persistent config file (TARGET_PARAMETERS) for the proxy
                     writeBackDocumentSubset((AbstractEngine) proxyEngine, documents);
+                    classLogger.info("[OpenSearch Proxy] Removed from subset: " + toRemove);
                 }
-        		classLogger.info("[OpenSearch Proxy] Removed from subset: " + toRemove);
+                return null;
+            } else if ("addDocument".equals(methodName)) {
+                List<String> toAdd = (List<String>) args[0];
+                boolean changed = documents != null && documents.addAll(toAdd);
+                if (changed) {
+                    // Also add to the persistent config file (TARGET_PARAMETERS) for the proxy
+                    writeBackDocumentSubset((AbstractEngine) proxyEngine, documents);
+                    classLogger.info("[OpenSearch Proxy] Added to subset: " + toAdd);
+                }
                 return null;
             }
+            
             // Otherwise, standard filter+proxy call logic
             result = doIntercept(obj, method, args, proxyMethod);
         } else {
