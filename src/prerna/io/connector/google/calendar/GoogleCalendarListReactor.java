@@ -19,8 +19,11 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 
 	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarListReactor.class);
 	
+	private static final String START_DATE = "startDate";
+	private static final String END_DATE = "endDate";
+	
 	public GoogleCalendarListReactor() {
-		this.keysToGet = new String[] { "startDate", "endDate" };
+		this.keysToGet = new String[] { START_DATE, END_DATE };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -33,8 +36,7 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			List<Map<String, Object>> eventList = GoogleCalendarHelper.getEventList(accessToken, startdate, enddate);
-			return new NounMetadata(eventList, PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.OPERATION);
+			return new NounMetadata(eventList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch(SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
@@ -51,9 +53,9 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 	
 	@Override
 	protected String getDescriptionForKey(String key) {
-	    if (key.equals("startDate")) {
+	    if (key.equals(START_DATE)) {
 	        return "Start date and time for retrieving events";
-	    } else if (key.equals("endDate")) {
+	    } else if (key.equals(END_DATE)) {
 	        return "End date and time for retrieving events";
 	    }
 	    return super.getDescriptionForKey(key);
