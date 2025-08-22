@@ -15,10 +15,7 @@ import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.io.connector.google.GoogleLoginUtils;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
 import org.apache.hc.core5.http.ContentType;
 import prerna.util.Constants;
@@ -32,44 +29,60 @@ public class GoogleDocsHelper {
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.setPrettyPrinting()
 			.create();
-	
-	private static final String MIME_TYPE = "application/vnd.google-apps.document";
-    private static final String DRIVE_API_URL = "https://www.googleapis.com/drive/v3/files";
-    private static final String QUERY_PARAM_TEMPLATE = "mimeType='%s'";
-    private static final String FIELDS_PARAM = "files(id,name)";
-    private static final String AUTHORIZATION = "Authorization";
-    private static final String GET = "GET";
-    private static final String NAME = "name";
-    private static final String ID = "id";
-	private static final String SUCCESS_KEY = "success";
-    private static final String BEARER = "Bearer ";
-    private static final String PARAGRAPH = "paragraph";
-    private static final String ELEMENTS = "elements";
-    private static final String TEXT_RUN = "textRun";
-    private static final String FILES = "files";
-    private static final String REQUESTS = "requests";
-    private static final String DELETE_CONTENT_RANGE = "deleteContentRange";
-    private static final String RANGE = "range";
-    private static final String BODY = "body";
-    private static final String START_INDEX = "startIndex";
-    private static final String END_INDEX = "endIndex";
-    private static final String INSERT_TEXT = "insertText";
-    private static final String LOCATION = "location";
-    private static final String INDEX = "index";
-    private static final String TEXT = "text";
-    private static final String STATUS_KEY = "status";
-    private static final String DOCUMENT_ID_KEY = "documentId";
-    private static final String ID_KEY = "id";
-    private static final String TITLE_KEY = "title";
-    private static final String CONTENT_KEY = "content";
-    private static final String NAME_KEY = "name";
-    private static final String GOOGLE_DOCS_CREATE_URL = "https://docs.googleapis.com/v1/documents";
-    private static final String GOOGLE_DOCS_GET_URL = "https://docs.googleapis.com/v1/documents/%s";
-    private static final String GOOGLE_DOCS_BATCH_UPDATE_URL = "https://docs.googleapis.com/v1/documents/%s:batchUpdate";
-    private static final String GOOGLE_DRIVE_FILE_URL = "https://www.googleapis.com/drive/v3/files/%s";
-    private static final String GOOGLE_DRIVE_FILES_LIST_URL = "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.document'&fields=files(id,name)";
 
-    public static Map<String, Object> createDoc(String accessToken, String title, String content) {
+	private static final String MIME_TYPE = "application/vnd.google-apps.document";
+	private static final String NAME = "name";
+	private static final String ID = "id";
+	private static final String DOCUMENT_ID_KEY = "documentId";
+	private static final String ID_KEY = "id";
+	private static final String TITLE_KEY = "title";
+	private static final String CONTENT_KEY = "content";
+	private static final String NAME_KEY = "name";
+
+	private static final String PARAGRAPH = "paragraph";
+	private static final String ELEMENTS = "elements";
+	private static final String TEXT_RUN = "textRun";
+	private static final String FILES = "files";
+	private static final String REQUESTS = "requests";
+	private static final String DELETE_CONTENT_RANGE = "deleteContentRange";
+	private static final String RANGE = "range";
+	private static final String BODY = "body";
+	private static final String START_INDEX = "startIndex";
+	private static final String END_INDEX = "endIndex";
+	private static final String INSERT_TEXT = "insertText";
+	private static final String LOCATION = "location";
+	private static final String INDEX = "index";
+	private static final String TEXT = "text";
+
+	private static final String SUCCESS_KEY = "success";
+	private static final String STATUS_KEY = "status";
+	
+	private static final String AUTHORIZATION = "Authorization";
+	private static final String BEARER = "Bearer ";
+	private static final String GET = "GET";
+	private static final String QUERY_PARAM_TEMPLATE = "mimeType='%s'";
+	private static final String FIELDS_PARAM = "files(id,name)";
+	
+	private static final String DRIVE_API_URL = "https://www.googleapis.com/drive/v3/files";
+	private static final String GOOGLE_DOCS_CREATE_URL = "https://docs.googleapis.com/v1/documents";
+	private static final String GOOGLE_DOCS_GET_URL = "https://docs.googleapis.com/v1/documents/%s";
+	private static final String GOOGLE_DOCS_BATCH_UPDATE_URL = "https://docs.googleapis.com/v1/documents/%s:batchUpdate";
+	private static final String GOOGLE_DRIVE_FILE_URL = "https://www.googleapis.com/drive/v3/files/%s";
+	private static final String GOOGLE_DRIVE_FILES_LIST_URL = "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.document'&fields=files(id,name)";
+
+	private GoogleDocsHelper() {
+
+	}
+	
+	/**
+	 * 
+	 * @param accessToken
+	 * @param title
+	 * @param content
+	 * @return
+	 * @throws Exception
+	 */
+    public static Map<String, Object> createDoc(String accessToken, String title, String content) throws Exception {
         try {
         	if (title == null || title.trim().isEmpty()) {
         	    throw new IllegalArgumentException("Document title is required and cannot be empty.");
@@ -96,9 +109,16 @@ public class GoogleDocsHelper {
 			throw e;
         }
     }
-
+    
+    /**
+	 * 
+	 * @param accessToken
+	 * @param docId
+	 * @return
+	 * @throws Exception
+	 */
     @SuppressWarnings("unchecked")
-	public static Map<String, Object> readDoc(String accessToken, String docId) {
+	public static Map<String, Object> readDoc(String accessToken, String docId) throws Exception {
         try {
             Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
             String url = String.format(GOOGLE_DOCS_GET_URL, docId);
@@ -139,8 +159,16 @@ public class GoogleDocsHelper {
         }
     }
 
+    /**
+	 * 
+	 * @param accessToken
+	 * @param docId
+	 * @param newContent
+	 * @return
+	 * @throws Exception
+	 */
     @SuppressWarnings("unchecked")
-	public static Map<String, Object> updateDoc(String accessToken, String docId, String newText) {
+	public static Map<String, Object> updateDoc(String accessToken, String docId, String newContent) throws Exception {
         try {
         	Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
             String getDocUrl = String.format(GOOGLE_DOCS_GET_URL, docId);
@@ -173,7 +201,7 @@ public class GoogleDocsHelper {
             location.put(INDEX, 1);
             Map<String, Object> insertText = new HashMap<>();
             insertText.put(LOCATION, location);
-            insertText.put(TEXT, newText);
+            insertText.put(TEXT, newContent);
             Map<String, Object> insertTextRequest = new HashMap<>();
             insertTextRequest.put(INSERT_TEXT, insertText);
             requests.add(insertTextRequest);
@@ -191,8 +219,15 @@ public class GoogleDocsHelper {
 			throw e;
         }
     }
-
-    public static Map<String, Object> deleteDoc(String accessToken, String docId) {
+    
+    /**
+	 * 
+	 * @param accessToken
+	 * @param docId
+	 * @return
+	 * @throws Exception
+	 */
+    public static Map<String, Object> deleteDoc(String accessToken, String docId) throws Exception {
         try {
             Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
             String url = String.format(GOOGLE_DRIVE_FILE_URL, docId);
@@ -206,8 +241,15 @@ public class GoogleDocsHelper {
         }
     }
 
+    /**
+	 * 
+	 * @param accessToken
+	 * @param title
+	 * @return
+	 * @throws Exception
+	 */
     @SuppressWarnings("unchecked")
-	public static boolean titleExists(String accessToken, String title) {
+	public static boolean titleExists(String accessToken, String title) throws Exception {
         try {
             Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
             String response = HttpHelperUtility.getRequest(GOOGLE_DRIVE_FILES_LIST_URL, headers, null, null, null);
@@ -225,6 +267,12 @@ public class GoogleDocsHelper {
         }
     }
     
+    /**
+	 * 
+	 * @param accessToken
+	 * @return
+	 * @throws Exception
+	 */
     @SuppressWarnings("unchecked")
     public static List<List<String>> getDocsIdList(String accessToken) throws Exception {
         List<List<String>> docList = new ArrayList<>();
