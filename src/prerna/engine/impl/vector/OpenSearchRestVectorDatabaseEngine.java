@@ -375,10 +375,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			classLogger.info("Found a custom template query for this engine");
 			// Use Gson to properly escape the search statement for JSON
 			String escapedSearchStatement = new Gson().toJson(searchStatement);
-			// Remove the surrounding quotes since we're doing string replacement
-			escapedSearchStatement = escapedSearchStatement.substring(1, escapedSearchStatement.length() - 1);
 			String query = String.valueOf(this.customTemplateQuery)
-				.replace("%QUERY_PLACEHOLDER%", escapedSearchStatement)
+				.replace("\"%QUERY_PLACEHOLDER%\"", escapedSearchStatement)
 				.replace("%%LIMIT%%", limit.toString());
 			classLogger.info(query);
 			try {
@@ -495,21 +493,23 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private void addMetadataToMatch(Map<String, Object> thisMatch, JsonObject hitJson) {
 		if (highlightFieldKeys != null && !highlightFieldKeys.isEmpty()) {
 			JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
+			Map<String, Object> meta = new HashMap<>();
+			thisMatch.put("meta", meta);
 			for (String fieldKey : highlightFieldKeys) {
 				try {
 					JsonElement fieldElement = sourceDetails.get(fieldKey);
 					if (fieldElement != null && !fieldElement.isJsonNull()) {
 						if (fieldElement.isJsonArray()) {
-							thisMatch.put(fieldKey, fieldElement.getAsJsonArray().toString());
+							meta.put(fieldKey, fieldElement.getAsJsonArray().toString());
 						} else if (fieldElement.isJsonPrimitive()) {
-							thisMatch.put(fieldKey, fieldElement.getAsString());
+							meta.put(fieldKey, fieldElement.getAsString());
 						} else if (fieldElement.isJsonObject()) {
-							thisMatch.put(fieldKey, fieldElement.getAsJsonObject().toString());
+							meta.put(fieldKey, fieldElement.getAsJsonObject().toString());
 						} else {
-							thisMatch.put(fieldKey, fieldElement.toString());
+							meta.put(fieldKey, fieldElement.toString());
 						}
 					} else {
-						thisMatch.put(fieldKey, null);
+						meta.put(fieldKey, null);
 					}
 				} catch (Exception e) {
 					classLogger.warn("Failed to extract metadata field '{}' from hit: {}", fieldKey, e.getMessage());
