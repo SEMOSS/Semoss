@@ -294,7 +294,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getActualUserEnginePermission(User user, String engineId) {
-		return SecurityUserEngineUtils.getActualUserEnginePermission(user, engineId);
+		String userPermission = SecurityUserEngineUtils.getActualUserEnginePermission(user, engineId);
+		List<String> groupUserPermissions = SecurityUserEngineUtils.getActualGroupUserEnginePermission(user, engineId);
+		return SecurityUserEngineUtils.getHighestEnginePermission(userPermission, groupUserPermissions);
 	}
 	
 	/**
@@ -2493,9 +2495,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (!groupEngineOrFilters.isEmpty()) {
 				SelectQueryStruct qs3 = new SelectQueryStruct();
 				qs3.addSelector(new QueryColumnSelector(groupEnginePermissionPrefix + "ENGINEID", "ENGINEID"));
-				qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupEnginePermissionPrefix + "PERMISSION", "PERMISSION"));
 				qs3.addExplicitFilter(groupEngineOrFilters);
-
 				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(enginePrefix + "ENGINEID", existingAccessComparator, qs3));
 			}
 		}
@@ -2730,9 +2730,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", Arrays.asList(true, null), PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+			Collection<String> groupIds = getUserGroupFiltersQs(user);
+			if (!groupIds.isEmpty()) {
+			    orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupIds));
+			}
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		qs.addRelation("ENGINE", "GROUPENGINEPERMISSION", "left.outer.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
