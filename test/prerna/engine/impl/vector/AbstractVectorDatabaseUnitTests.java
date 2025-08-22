@@ -60,6 +60,7 @@ public class AbstractVectorDatabaseUnitTests {
 	private IModelEngine modelEmbedder;
 	
 	private class VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
+		
 		@Override
 		public VectorDatabaseTypeEnum getVectorDatabaseType() {
 			// TODO Auto-generated method stub
@@ -67,10 +68,9 @@ public class AbstractVectorDatabaseUnitTests {
 		}
 
 		@Override
-		public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters)
-				throws Exception {
+		public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 			// TODO Auto-generated method stub
-			
+			return null;
 		}
 
 		@Override

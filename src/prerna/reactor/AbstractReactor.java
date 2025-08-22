@@ -24,6 +24,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -71,18 +72,18 @@ public abstract class AbstractReactor implements IReactor {
 	protected Lambda runner = null;
 	
 	protected String[] defaultOutputAlias;
-	boolean evaluate = false;
+	protected boolean evaluate = false;
 	
 	// all the different keys to get
 	public String[] keysToGet = new String[]{"no keys defined"};
 	// which of these are optional : 1 means required, 0 means optional
-	public int[] keyRequired = null;
+	protected int[] keyRequired = null;
 	// single or multi if 1 multi if 0 single
-	public int[] keyMulti = null;
+	protected int[] keyMulti = null;
 	
 	// defaults if one exists
 	// this I am not so sure.. but let us try
-	public Object[] keyDefaults = new Object[]{};
+	protected Object[] keyDefaults = new Object[]{};
 	public Map<String, String> keyValue = new Hashtable<String, String>();
 	
 	public AbstractReactor() {
@@ -623,8 +624,8 @@ public abstract class AbstractReactor implements IReactor {
 	/**
 	 * Convenience method to allow order or named noun for basic string inputs
 	 */
-	public void organizeKeys() {
-		if(this.getNounStore().size() > 1) {
+	protected void organizeKeys() {
+		if(this.getNounStore().size() > 0) {
 			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
 				String key = keysToGet[keyIndex];
 				if(this.store.getNoun(key) != null) {
@@ -652,16 +653,6 @@ public abstract class AbstractReactor implements IReactor {
 			}
 		}
 		
-//		// if we still are empty
-//		// try to fill via input indices in cur row
-//		if(keyValue.isEmpty()) {
-//			GenRowStruct struct = this.getCurRow();
-//			int structSize = struct.size();
-//			for(int keyIndex = 0; keyIndex < keysToGet.length && keyIndex < structSize; keyIndex++) {
-//				keyValue.put(keysToGet[keyIndex], struct.get(keyIndex)+"");
-//			}
-//		}
-		
 		// check which of these are optional
 		checkOptional();
 	}
@@ -669,7 +660,7 @@ public abstract class AbstractReactor implements IReactor {
 	/**
 	 * Check which inputs are optional or required and throw error if all required are not defined
 	 */
-	private void checkOptional() {
+	protected void checkOptional() {
 		StringBuilder nullMessage = new StringBuilder();
 		for(int keyIndex = 0;keyRequired != null && keyIndex < keyRequired.length;keyIndex++) {
 			int required = keyRequired[keyIndex];
@@ -715,6 +706,7 @@ public abstract class AbstractReactor implements IReactor {
 			name = name.substring(0, name.length()-"Reactor".length());
 		}
 		tool.put("name", name);
+		tool.put("title", MCPUtility.formatToTitleCase(name));
 		tool.put("description", getReactorDescription());
 		JSONObject inputSchema = new JSONObject();
 		inputSchema.put("properties", getMcpProperties());
@@ -912,7 +904,7 @@ public abstract class AbstractReactor implements IReactor {
 	 * @param key
 	 * @return
 	 */
-	public List<String> getNounAsStringList(String key) {
+	protected List<String> getNounAsStringList(String key) {
 		List<String> columns = new ArrayList<>();
 		GenRowStruct colGrs = this.store.getNoun(key);
 		if (colGrs != null && !colGrs.isEmpty()) {

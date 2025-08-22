@@ -8,6 +8,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -380,6 +381,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		// update the last success login
 		if(!newUser.isLocked()) {
 			SecurityUpdateUtils.updateUserLastLogin(newUser.getId(), newUser.getProvider());
+			
+			// if metadata is set on the token, persist it. otherwise load it
+			if(newUser.getMeta() != null) {
+				SecurityUserUtils.updateUserMetadata(newUser.getId(), newUser.getProvider(), newUser.getMeta());
+			} else {
+				newUser.setMeta(SecurityUserUtils.getAggregateUserMetadata(newUser.getId(), newUser.getProvider(), null, true));
+			}
 		}
 	}
 	

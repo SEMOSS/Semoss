@@ -2,6 +2,7 @@ services:
   semoss:
     image: quay.io/semoss/semoss-dev:5.0.0-alpha-SNAPSHOT-ubuntu22-latest
     container_name: semoss
+    pull_policy: always
     user: "1001:1001"
     ports:
       - "9090:8080"
@@ -39,11 +40,11 @@ services:
       # model inference logs
       CUSTOM_MODEL_INFERENCE_LOGS_RDBMS_TYPE : "postgres"
       CUSTOM_MODEL_INFERENCE_LOGS_DRIVER: "org.postgresql.Driver"
-      CUSTOM_MODEL_INFERENCE_LOGS_DATABASE: "semoss_modelogs"
+      CUSTOM_MODEL_INFERENCE_LOGS_DATABASE: "semoss_modellogs"
       CUSTOM_MODEL_INFERENCE_LOGS_SCHEMA: "public"
       CUSTOM_MODEL_INFERENCE_LOGS_USERNAME: "myuser"
       CUSTOM_MODEL_INFERENCE_LOGS_PASSWORD: "mypassword"
-      CUSTOM_MODEL_INFERENCE_LOGS_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_modelogs?currentSchema=public"
+      CUSTOM_MODEL_INFERENCE_LOGS_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_modellogs?currentSchema=public"
       # prompt db
       CUSTOM_PROMPT_RDBMS_TYPE : "postgres"
       CUSTOM_PROMPT_DRIVER: "org.postgresql.Driver"
