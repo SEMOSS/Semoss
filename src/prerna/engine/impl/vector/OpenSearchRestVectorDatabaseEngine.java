@@ -155,11 +155,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.distanceMethod, this.indexEngine, this.efConstruction, this.m);
 		updateIndexMapping(this.indexName, this.otherPropsToType);	
 		
-//		try {
-//			this.customTemplateQuery = JsonParser.parseString(this.smssProp.getProperty(Constants.CUSTOM_TEMPLATE_QUERY)).getAsJsonObject();
-//		} catch (NullPointerException e) {
-//			classLogger.warn("No json template found");
-//		}
 		this.customTemplateQuery = this.smssProp.getProperty(Constants.CUSTOM_TEMPLATE_QUERY);
 		this.customResultsPath = this.smssProp.getProperty(Constants.CUSTOM_RESULTS_PATH);
 	}
@@ -378,9 +373,9 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		JsonObject search = null;
 		if (this.customTemplateQuery != null) {
 			classLogger.info("Found a custom template query for this engine");
-			this.customTemplateQuery = this.customTemplateQuery.replaceAll("%QUERY_PLACEHOLDER%", searchStatement);
+			String query = String.valueOf(this.customTemplateQuery).replaceAll("%QUERY_PLACEHOLDER%", searchStatement);
 			try {
-				search = JsonParser.parseString(this.customTemplateQuery).getAsJsonObject();
+				search = JsonParser.parseString(query).getAsJsonObject();
 				// From the custom query template, get the metadata field keys under highlight > fields
 				if (highlightFieldKeys == null) {
 					highlightFieldKeys = new ArrayList<>();
@@ -425,7 +420,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 		for(JsonElement e : hits) {
 			JsonObject hitJson = e.getAsJsonObject();
-			Double score = (Double) hitJson.get("_score").getAsDouble();
 			
 			// If we have custom results path, use it to get sourceDetails
 			if (this.customResultsPath != null) {
@@ -443,9 +437,10 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 						vectorSearchResults.add(thisMatch);
 						
 						// Add base information to each match
+						Double score = (Double) sd.getAsJsonObject().get("_score").getAsDouble();
 						thisMatch.put("Score", score);
 						
-						JsonObject sourceDetails = sd.getAsJsonObject();
+						JsonObject sourceDetails = sd.getAsJsonObject().get("_source").getAsJsonObject();
 						thisMatch.put(VectorDatabaseCSVTable.SOURCE, sourceDetails.get(VectorDatabaseCSVTable.SOURCE).getAsString());
 						thisMatch.put(VectorDatabaseCSVTable.MODALITY, sourceDetails.get(VectorDatabaseCSVTable.MODALITY).getAsString());
 						thisMatch.put(VectorDatabaseCSVTable.DIVIDER, sourceDetails.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
@@ -466,6 +461,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				// Standard path - single match per hit
 				Map<String, Object> thisMatch = new HashMap<>();
 				vectorSearchResults.add(thisMatch);
+				
+				Double score = (Double) hitJson.get("_score").getAsDouble();
 				
 				// Add base information
 				thisMatch.put("Score", score);
