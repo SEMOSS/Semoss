@@ -90,8 +90,24 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 	
 	@Override
 	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+	    if (key.equals("summary")) {
+	        return "Short summary or title of the event";
+	    } else if (key.equals("location")) {
+	        return "Location where the event will take place";
+	    } else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
 	        return "Detailed description of the event " + ReactorKeysEnum.DESCRIPTION.getKey();
+	    } else if (key.equals("startDate")) {
+	        return "Date and time when the event starts";
+	    } else if (key.equals("endDate")) {
+	        return "Date and time when the event ends";
+	    } else if (key.equals("email")) {
+	        return "Email address of the event organizer or attendee";
+	    } else if (key.equals("frequency")) {
+	        return "Frequency of the recurring event (e.g., daily, weekly)";
+	    } else if (key.equals("until")) {
+	        return "End date for the recurring event";
+	    } else if (key.equals("video")) {
+	        return "Video conferencing details for the event";
 	    }
 	    return super.getDescriptionForKey(key);
 	}

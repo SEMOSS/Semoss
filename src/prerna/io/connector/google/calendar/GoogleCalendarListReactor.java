@@ -39,14 +39,23 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Unauthorized access or Please provide valid input");
-			throw new SemossPixelException("Please provide valid input: " + e.getMessage(), e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("An error occurred retrieving the list of event. Error message: " + e.getMessage());
 		}
 	}
 	
 	@Override
 	public String getReactorDescription() {
-		return "List events in Google Calendar";
+		return "Retrieve Google Calendar events occurring between a specified start and end time.";
 	}
 	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if (key.equals("startDate")) {
+	        return "Start date and time for retrieving events";
+	    } else if (key.equals("endDate")) {
+	        return "End date and time for retrieving events";
+	    }
+	    return super.getDescriptionForKey(key);
+	}
 }

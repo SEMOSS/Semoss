@@ -102,10 +102,26 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 	
 	@Override
 	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
-	        return "Updated description of the event " + ReactorKeysEnum.DESCRIPTION.getKey();
+	    if (key.equals("summary")) {
+	        return "Update the event's title or summary";
+	    } else if (key.equals("location")) {
+	        return "Update the event's location";
+	    } else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+	        return "Update the detailed description of the event";
+	    } else if (key.equals("startDate")) {
+	        return "Update the start date and time of the event";
+	    } else if (key.equals("endDate")) {
+	        return "Update the end date and time of the event";
+	    } else if (key.equals("video")) {
+	        return "Update the video conferencing details for the event";
+	    } else if (key.equals("email")) {
+	        return "Update the email address of the organizer or attendees";
 	    } else if (key.equals(ReactorKeysEnum.ID.getKey())) {
-	        return "Unique identifier of the event to be updated " + ReactorKeysEnum.ID.getKey();
+	        return "Unique identifier of the event to be updated";
+	    } else if (key.equals("frequency")) {
+	        return "Update the recurrence frequency of the event";
+	    } else if (key.equals("until")) {
+	        return "Update the end date for the recurring event";
 	    }
 	    return super.getDescriptionForKey(key);
 	}
