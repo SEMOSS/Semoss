@@ -6,7 +6,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.*;
 import java.util.Map;
 import java.util.UUID;
 
@@ -34,8 +33,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 
 	private static final String SMSS_USER_TABLE_NAME = "SMSS_USER";
 	private static final String USERID_COL = SMSS_USER_TABLE_NAME + "__ID";
-	private static final String ID_COL = "CUSTOMGROUPASSIGNMENT__GROUPID";
-	private static final String GROUP_USERID_COL = "CUSTOMGROUPASSIGNMENT__USERID";
 	private static final String NAME_COL = SMSS_USER_TABLE_NAME + "__NAME";
 	private static final String USERNAME_COL = SMSS_USER_TABLE_NAME + "__USERNAME";
 	private static final String EMAIL_COL = SMSS_USER_TABLE_NAME + "__EMAIL";

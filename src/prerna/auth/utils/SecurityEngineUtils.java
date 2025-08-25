@@ -2312,7 +2312,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
 					continue;
 				}
-				if(!user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
+				if(user.getAccessToken(login).getUserCustomGroups() != null && !user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
 					AndQueryFilter customAndFilter = new AndQueryFilter();
 					customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", "CUSTOM"));
 					customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", user.getAccessToken(login).getUserCustomGroups()));
@@ -2391,7 +2391,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
 					continue;
 				}
-				if(!user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
+				if(user.getAccessToken(login).getUserCustomGroups() != null && !user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
 					AndQueryFilter customAndFilter = new AndQueryFilter();
 					customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", "CUSTOM"));
 					customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", user.getAccessToken(login).getUserCustomGroups()));

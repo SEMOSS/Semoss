@@ -56,7 +56,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				// one of the logins has a group. set checker to false
 				anyUserGroups=true;
 			}
-			if (!user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
+			if (user.getAccessToken(login).getUserCustomGroups() != null && !user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
 		        AndQueryFilter customAndFilter = new AndQueryFilter();
 		        customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", "CUSTOM"));
 		        customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserCustomGroups()));
@@ -133,7 +133,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				// one of the logins has a group. set checker to false
 				anyUserGroups=true;
 			}
-			if (!user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
+			if (user.getAccessToken(login).getUserCustomGroups() != null && !user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
 		        AndQueryFilter customAndFilter = new AndQueryFilter();
 		        customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", "CUSTOM"));
 		        customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserCustomGroups()));
@@ -210,7 +210,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				// one of the logins has a group. set checker to false
 				anyUserGroups=true;
 			}
-			if (!user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
+			if (user.getAccessToken(login).getUserCustomGroups() != null && !user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
 		        AndQueryFilter customAndFilter = new AndQueryFilter();
 		        customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", "CUSTOM"));
 		        customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserCustomGroups()));

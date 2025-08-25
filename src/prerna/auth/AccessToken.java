@@ -173,7 +173,6 @@ public class AccessToken implements Serializable {
 
 	public void setId(String id) {
 		this.id = id.trim();
-		System.out.println(id);
 	}
 
 	public String getUsername() {

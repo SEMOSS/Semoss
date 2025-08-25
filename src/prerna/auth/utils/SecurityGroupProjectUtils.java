@@ -56,7 +56,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				// one of the logins has a group. set checker to false
 				anyUserGroups=true;
 			}
-			if (!user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
+			if (user.getAccessToken(login).getUserCustomGroups() != null && !user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
 		        AndQueryFilter customAndFilter = new AndQueryFilter();
 		        customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", "CUSTOM"));
 		        customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", user.getAccessToken(login).getUserCustomGroups()));
@@ -66,7 +66,6 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
 			orFilter.addFilter(andFilter);
-			
 		}
 		
 		if(!anyUserGroups) {
@@ -133,7 +132,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				// one of the logins has a group. set checker to false
 				anyUserGroups=true;
 			}
-			if (!user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
+			if (user.getAccessToken(login).getUserCustomGroups() != null && !user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
 		        AndQueryFilter customAndFilter = new AndQueryFilter();
 		        customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", "CUSTOM"));
 		        customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", user.getAccessToken(login).getUserCustomGroups()));
@@ -210,7 +209,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				// one of the logins has a group. set checker to false
 				anyUserGroups=true;
 			}
-			if (!user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
+			if (user.getAccessToken(login).getUserCustomGroups() != null && !user.getAccessToken(login).getUserCustomGroups().isEmpty()) {
 		        AndQueryFilter customAndFilter = new AndQueryFilter();
 		        customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", "CUSTOM"));
 		        customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", user.getAccessToken(login).getUserCustomGroups()));
