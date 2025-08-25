@@ -328,8 +328,8 @@ public class SecurityOwlCreator {
 		owler.addProp("JIRA_USER", "DATE_CREATED", "TIMESTAMP");
 		owler.addProp("JIRA_USER", "DATE_LAST_USED", "TIMESTAMP");
 		owler.addProp("JIRA_USER", "URL", "VARCHAR(255)");
-		owler.addProp("JIRA_USER", "USER_ID", "VARCHAR(255");
-		owler.addProp("JIRA_USER", "PROJECT", "VARCHAR(255");
+		owler.addProp("JIRA_USER", "USER_ID", "VARCHAR(255)");
+		owler.addProp("JIRA_USER", "PROJECT", "VARCHAR(255)");
 		
 		// SMSS_USER_ACCESS_KEYS
 		owler.addConcept("SMSS_USER_ACCESS_KEYS", null, null);
