@@ -29,7 +29,8 @@ class AnthropicMessageBuilder:
         anthropic_messages = []
         param_map = {}
         
-        pending_tool_response = False
+        pending_tool_calls = []
+        pending_tool_results = []
         
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
@@ -60,13 +61,14 @@ class AnthropicMessageBuilder:
                 # Handle assistant tool calls
                 if message.tool_calls:
                     for tool_call in message.tool_calls:
-                        content_parts.append(
-                            AnthropicToolUseContentPart(
-                                id=tool_call["id"],
-                                name=tool_call["function"]["name"],
-                                input=tool_call["function"]["arguments"],
-                            )
+                        tool_use_part = AnthropicToolUseContentPart(
+                            id=tool_call["id"],
+                            name=tool_call["function"]["name"],
+                            input=tool_call["function"]["arguments"],
                         )
+                        content_parts.append(tool_use_part)
+                        # Track this tool call as pending
+                        pending_tool_calls.append(tool_call["id"])
 
                     anthropic_messages.append(
                         AnthropicMessage(
@@ -74,58 +76,39 @@ class AnthropicMessageBuilder:
                             content=content_parts,
                         )
                     )
-                    pending_tool_response = True
 
             elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
                 # Handle tool execution results
-                if pending_tool_response:
-                    content_parts.append(
-                        AnthropicToolResultContentPart(
-                            tool_use_id=message.tool_call_id,
-                            content=message.content,
-                        )
+                if message.tool_call_id:
+                    tool_result = AnthropicToolResultContentPart(
+                        tool_use_id=message.tool_call_id,
+                        content=message.content,
                     )
-
+                    pending_tool_results.append(tool_result)
+                    
+                    if message.tool_call_id in pending_tool_calls:
+                        pending_tool_calls.remove(message.tool_call_id)
+                
+                # Check if we have all tool results for pending tool calls
+                # or if this is the last message or next message is not INPUT_TOOL_EXEC
+                should_flush = (
+                    len(pending_tool_calls) == 0 or  # All tool calls have results
+                    is_last or  # This is the last message
+                    (i + 1 < len(semoss_messages) and 
+                     semoss_messages[i + 1].type != SEMOSSMessageType.INPUT_TOOL_EXEC)  # Next message is not tool exec
+                )
+                
+                if should_flush and pending_tool_results:
                     anthropic_messages.append(
                         AnthropicMessage(
                             role=AnthropicRoles.USER,
-                            content=content_parts,
+                            content=pending_tool_results.copy(),
                         )
                     )
-                    pending_tool_response = False
-
-            elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
-                # Handle tool execution results
-                if pending_tool_response:
-                    # Check if this message contains multiple tool results
-                    if hasattr(message, 'tool_results') and message.tool_results:
-                        # Handle multiple tool results in one message (for Anthropic multi-tool support)
-                        for tool_result in message.tool_results:
-                            content_parts.append(
-                                AnthropicToolResultContentPart(
-                                    tool_use_id=tool_result.get('tool_call_id') or tool_result.get('tool_use_id'),
-                                    content=str(tool_result.get('content') or tool_result.get('tool_response', '')),
-                                )
-                            )
-                    else:
-                        # Single tool result (backward compatibility)
-                        content_parts.append(
-                            AnthropicToolResultContentPart(
-                                tool_use_id=message.tool_call_id,
-                                content=message.content,
-                            )
-                        )
-
-                    anthropic_messages.append(
-                        AnthropicMessage(
-                            role=AnthropicRoles.USER,
-                            content=content_parts,
-                        )
-                    )
-                    pending_tool_response = False
+                    pending_tool_results.clear()
+                    pending_tool_calls.clear()
 
             elif message.type == SEMOSSMessageType.RESPONSE_TEXT:
-                # Handle regular assistant text responses
                 if message.content:
                     content_parts.append(self._build_text_content_part(message.content))
 
@@ -140,7 +123,6 @@ class AnthropicMessageBuilder:
                 param_map = message.param_map
                 param_map = self._clean_param_map(param_map)
                 
-                # Convert tools to Anthropic format if present
                 if "tools" in param_map:
                     param_map["tools"] = self._convert_mcp_to_anthropic_tools(param_map["tools"])
 
@@ -252,7 +234,6 @@ class AnthropicMessageBuilder:
                 },
             }
 
-            # Copy properties, excluding 'title' if present
             for prop_name, prop_def in tool["inputSchema"]["properties"].items():
                 anthropic_tool["input_schema"]["properties"][prop_name] = {
                     k: v for k, v in prop_def.items() if k != "title"
