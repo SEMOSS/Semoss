@@ -49,7 +49,7 @@ public class JiraHelper {
 			jiraDB = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		} catch (Exception e) {
 			classLogger.error("Failed to initialize jiraDB", e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			jiraDB = null;
 		}
 	}
 
@@ -60,6 +60,23 @@ public class JiraHelper {
 	 */
 	public static void setJiraDB(IRDBMSEngine db) {
 		jiraDB = db;
+	}
+
+	/**
+	 * Allows code to reinitialize DB if jiraDB is null during initialization
+	 * 
+	 */
+	private static IRDBMSEngine getJiraDB() {
+		if (jiraDB == null) {
+			try {
+				jiraDB = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
+			} catch (Exception e) {
+				classLogger.error("Unable to (re)initialize jiraDB", e);
+				throw new SemossPixelException(
+						NounMetadata.getErrorNounMessage("Jira DB unavailable: " + e.getMessage()));
+			}
+		}
+		return jiraDB;
 	}
 
 	/**
@@ -77,8 +94,8 @@ public class JiraHelper {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Failed to retrieve table name in getTableName():"+e.getMessage()));
+			throw new SemossPixelException(NounMetadata
+					.getErrorNounMessage("Failed to retrieve table name in getTableName():" + e.getMessage()));
 		}
 		return null;
 	}
@@ -101,7 +118,8 @@ public class JiraHelper {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage("Unable to verify user presence:"+e.getMessage()));
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Unable to verify user presence:" + e.getMessage()));
 		}
 	}
 
