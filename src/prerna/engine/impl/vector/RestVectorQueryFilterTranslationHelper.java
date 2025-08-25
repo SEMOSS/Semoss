@@ -217,16 +217,22 @@ public final class RestVectorQueryFilterTranslationHelper {
 				{
 					JsonArray shouldArray = new JsonArray();
 					{
-						for(int i=0; i<normalizedValues.size(); i++) {
+						if(normalizedValues.isEmpty()) {
 							JsonObject matchParent = new JsonObject();
-							{
-								JsonObject match = new JsonObject();
-								{
-									match.addProperty(leftComp.getValue().toString(), normalizedValues.get(i).toString());
-								}	
-								matchParent.add("match", match);
-							}
+							matchParent.add("match_none", new JsonObject());
 							shouldArray.add(matchParent);
+						} else {
+							for(int i=0; i<normalizedValues.size(); i++) {
+								JsonObject matchParent = new JsonObject();
+								{
+									JsonObject match = new JsonObject();
+									{
+										match.addProperty(leftComp.getValue().toString(), normalizedValues.get(i).toString());
+									}	
+									matchParent.add("match", match);
+								}
+								shouldArray.add(matchParent);
+							}
 						}
 					}
 					jsonBuilder.add("should", shouldArray);
