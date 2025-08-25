@@ -37,7 +37,7 @@ class OpenAIResponsesImageContentPart(BaseModel):
     image_url: str
 
 
-class FunctionParameters(BaseModel):
+class ToolFunctionParameters(BaseModel):
     """JSON schema for the function parameters."""
 
     type: str = Field("object", description="Must be 'object'")
@@ -49,26 +49,32 @@ class FunctionParameters(BaseModel):
     )
 
 
-class FunctionDef(BaseModel):
+class Tool_FunctionDef(BaseModel):
     """Function definition for OpenAI tools."""
 
     name: str = Field(..., description="The function name")
     description: Optional[str] = Field(None, description="What the function does")
-    parameters: FunctionParameters = Field(..., description="Parameters JSON schema")
+    parameters: ToolFunctionParameters = Field(
+        ..., description="Parameters JSON schema"
+    )
 
 
-class Tool(BaseModel):
+class OpenAIToolChatCompletionContentPart(BaseModel):
     """Tool object for OpenAI chat.completions API."""
 
     type: str = Field("function", Literal=True, description="Must be 'function'")
-    function: FunctionDef
+    function: Tool_FunctionDef
 
 
-class OpenAIToolContentPart(BaseModel):
-    """Tool object for OpenAI chat.completions API."""
+class OpenAIToolResponsesContentPart(BaseModel):
+    """Tool object for OpenAI responses API."""
 
-    role: str
-    content: List[Tool]
+    type: str = Field("function", Literal=True, description="Must be 'function'")
+    name: str = Field(..., description="The function name")
+    description: Optional[str] = Field(None, description="What the function does")
+    parameters: ToolFunctionParameters = Field(
+        ..., description="Parameters JSON schema"
+    )
 
 
 class OpenAIMessage(BaseModel):
@@ -80,7 +86,8 @@ class OpenAIMessage(BaseModel):
                 OpenAITextContentPart,
                 OpenAIImageContentPart,
                 OpenAIResponsesImageContentPart,
-                OpenAIToolContentPart,
+                OpenAIToolChatCompletionContentPart,
+                OpenAIToolResponsesContentPart,
             ]
         ],
     ]

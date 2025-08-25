@@ -8,6 +8,8 @@ from .openai_models import (
     OpenAITextContentPart,
     OpenAIImageDetail,
     OpenAIResponsesImageContentPart,
+    OpenAIToolChatCompletionContentPart,
+    OpenAIToolResponsesContentPart,
 )
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
@@ -91,25 +93,27 @@ class OpenAIMessageBuilder:
                 )
             )
 
-            # Handle tool calls
-            tools = message.param_map.pop("tools", None)
-            if tools is not None:
-                if self.chat_type == "chat-completion":
-                    structured_tools = (
-                        self.convert_mcp_to_openai_chat_completions_tools(tools)
-                    )
-                elif self.chat_type == "responses":
-                    structured_tools = self.convert_mcp_to_openai_responses_tools(tools)
-
-                message.param_map["tools"] = structured_tools
-
             if is_last:
                 param_map.update(message.param_map)
                 if self.chat_type == "responses":
+                    # convert tools into openai responses format if present
+                    if param_map.get("tools"):
+                        param_map["tools"] = self.convert_mcp_to_openai_responses_tools(
+                            param_map["tools"]
+                        )
+
                     openai_messages, param_map = self._clean_param_map_for_responses(
                         openai_messages, param_map
                     )
                 elif self.chat_type == "chat-completion":
+                    # convert tools into openai chat-completion format if present
+                    if param_map.get("tools"):
+                        param_map["tools"] = (
+                            self.convert_mcp_to_openai_chat_completions_tools(
+                                param_map["tools"]
+                            )
+                        )
+
                     openai_messages, param_map = (
                         self._clean_param_map_for_chat_completions(
                             openai_messages, param_map
@@ -130,15 +134,33 @@ class OpenAIMessageBuilder:
         Args:
             mcp_tools: List of tools in MCP format
         Returns:
-            List of structured tools for OpenAI Chat Completions
+            List of OpenAI tools for Chat Completions
         """
-        structured_tools = []
+        openai_tools = []
 
         for tool in mcp_tools:
-            tool["parameters"] = tool.pop("inputSchema")
-            structured_tools.append({"type": "function", "function": tool})
+            openai_tool = {
+                "name": tool["name"],
+                "description": tool["description"],
+                "parameters": {
+                    "type": tool["inputSchema"]["type"],
+                    "properties": {},
+                    "required": tool["inputSchema"].get("required", []),
+                },
+            }
 
-        return structured_tools
+            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
+                openai_tool["parameters"]["properties"][prop_name] = {
+                    k: v for k, v in prop_def.items() if k != "title"
+                }
+
+            openai_tools.append(
+                OpenAIToolChatCompletionContentPart(
+                    type="function", function=openai_tool
+                )
+            )
+
+        return openai_tools
 
     def convert_mcp_to_openai_responses_tools(
         self, mcp_tools: List[Dict]
@@ -148,21 +170,32 @@ class OpenAIMessageBuilder:
         Args:
             mcp_tools: List of tools in MCP format
         Returns:
-            List of structured tools for OpenAI Responses
+            List of OpenAI tools for Responses
         """
-        structured_tools = []
+        openai_tools = []
 
         for tool in mcp_tools:
-            structured_tools.append(
-                {
-                    "type": "function",
-                    "name": tool.get("name"),
-                    "description": tool.get("description"),
-                    "parameters": tool.pop("inputSchema"),
+            openai_tool_parameters = {
+                "type": tool["inputSchema"]["type"],
+                "properties": {},
+                "required": tool["inputSchema"].get("required", []),
+            }
+
+            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
+                openai_tool_parameters["properties"][prop_name] = {
+                    k: v for k, v in prop_def.items() if k != "title"
                 }
+
+            openai_tools.append(
+                OpenAIToolResponsesContentPart(
+                    type="function",
+                    name=tool["name"],
+                    description=tool["description"],
+                    parameters=openai_tool_parameters,
+                )
             )
 
-        return structured_tools
+        return openai_tools
 
     def _clean_param_map_for_responses(
         self, openai_messages: List[OpenAIMessage], param_map: Dict[str, Any]

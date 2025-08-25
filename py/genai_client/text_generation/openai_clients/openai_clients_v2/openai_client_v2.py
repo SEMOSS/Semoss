@@ -129,7 +129,6 @@ class OpenAIClientV2(AbstractOpenAiClient):
 
         if self.chat_type == "chat-completion":  # chat-completion
             for i, tool_call in enumerate(response.choices[0].message.tool_calls):
-
                 tools_result.append(
                     {
                         "id": tool_call.id,
@@ -141,7 +140,6 @@ class OpenAIClientV2(AbstractOpenAiClient):
 
         elif self.chat_type == "responses":  # responses
             for i, tool_call in enumerate(response.output):
-
                 tools_result.append(
                     {
                         "id": tool_call.id,
