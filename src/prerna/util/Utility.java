@@ -47,6 +47,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -6287,29 +6288,38 @@ public final class Utility {
         File[] files = folder.listFiles(f -> f.isFile());
         return files != null && files.length > 0;
     }
-
-	public static JSONObject httpGetJson(String googledriveUrl, String accessToken) throws IOException {
+    
+    public static JSONObject httpGetJson(String googledriveUrl, String accessToken) throws IOException {
         StringBuilder response = new StringBuilder();
         HttpURLConnection conn = null;
         BufferedReader in = null;
+
         try {
             URL url = new URL(googledriveUrl);
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Authorization", "Bearer " + accessToken);
 
+            // Set timeouts (10 seconds connect, 30 seconds read)
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(30000);
+
             int responseCode = conn.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
-                // Read error stream for details
-                String errorMsg = "";
-                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(conn.getErrorStream()))) {
-                    String line;
-                    while ((line = errorReader.readLine()) != null) {
-                        errorMsg += line;
+                StringBuilder errorMsg = new StringBuilder();
+                InputStream errorStream = conn.getErrorStream();
+                if (errorStream != null) {
+                    try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream))) {
+                        String line;
+                        while ((line = errorReader.readLine()) != null) {
+                            errorMsg.append(line);
+                        }
                     }
+                } else {
+                    errorMsg.append("No error details available.");
                 }
-                classLogger.error("HTTP GET failed: {} - {}", responseCode, errorMsg);
-                throw new IOException("HTTP GET failed with code: " + responseCode + " and body: " + errorMsg);
+                classLogger.error("HTTP GET failed: {} - {}", responseCode, errorMsg.toString());
+                throw new IOException("HTTP GET failed with code: " + responseCode + " and body: " + errorMsg.toString());
             }
 
             in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -6319,9 +6329,12 @@ public final class Utility {
             }
             return new JSONObject(response.toString());
 
+        } catch (SocketTimeoutException e) {
+            classLogger.error("HTTP GET timed out", e);
+            throw new IOException("HTTP GET timed out", e);
         } catch (IOException e) {
             classLogger.error(Constants.STACKTRACE, e);
-            throw e; // Propagate the exception
+            throw e;
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);
             throw new IOException("Unexpected error during HTTP GET", e);
@@ -6334,6 +6347,7 @@ public final class Utility {
             }
         }
     }
+
 
 
     } 
