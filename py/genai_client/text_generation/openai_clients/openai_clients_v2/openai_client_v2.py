@@ -95,8 +95,8 @@ class OpenAIClientV2(AbstractOpenAiClient):
                         final_query += content
                         print(prefix + content, end="")
 
-            response_tokens = (0,)
-            prompt_tokens = (0,)
+            response_tokens = 0
+            prompt_tokens = 0
         else:
             final_query = response.choices[0].message.content
             response_tokens = response.usage.completion_tokens

@@ -62,14 +62,14 @@ class Tool_FunctionDef(BaseModel):
 class OpenAIToolChatCompletionContentPart(BaseModel):
     """Tool object for OpenAI chat.completions API."""
 
-    type: str = Field("function", Literal=True, description="Must be 'function'")
+    type: str = "function"
     function: Tool_FunctionDef
 
 
 class OpenAIToolResponsesContentPart(BaseModel):
     """Tool object for OpenAI responses API."""
 
-    type: str = Field("function", Literal=True, description="Must be 'function'")
+    type: str = "function"
     name: str = Field(..., description="The function name")
     description: Optional[str] = Field(None, description="What the function does")
     parameters: ToolFunctionParameters = Field(
