@@ -32,7 +32,6 @@ public class GoogleGetAllSheetsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
 		this.organizeKeys();
-		ResultSet rs = null;
 		List<Map<String, Object>> spreadsheets = new ArrayList<>();
 		try {
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
@@ -49,16 +48,7 @@ public class GoogleGetAllSheetsReactor extends AbstractReactor {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(
 					"An error occurred in getting sheet details. Error message: " + e.getMessage());
-		} finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException ex) {
-					classLogger.error(Constants.STACKTRACE, ex);
-					throw new SemossPixelException(NounMetadata.getErrorNounMessage(ex.getMessage()));
-				}
-			}
-		}
+		}	
 		return new NounMetadata(spreadsheets, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 

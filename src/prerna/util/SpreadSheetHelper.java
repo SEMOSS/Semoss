@@ -287,10 +287,8 @@ public class SpreadSheetHelper {
 	 */
 	public static NounMetadata createNewSpreadSheet(String titleSheetName, String accessToken) {
 		try {
-			boolean isTitleSheetNamePresent = validateTitleSheetName(titleSheetName, accessToken);
 			SpreadSheetResponse resp = new SpreadSheetResponse();
-			if (!isTitleSheetNamePresent) {
-				String msg = "A Spreadsheet with this title already exists";
+			if (!validateTitleSheetName(titleSheetName, accessToken)) {
 				resp.setSuccess(false);
 				resp.setTitleSheetID(null);
 				resp.setSheetID(null);
