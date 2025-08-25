@@ -785,6 +785,23 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		JsonArray hitsArray = hitsObject.get("hits").getAsJsonArray();
 		return hitsArray;
 	}
+	
+	/**
+	 * 
+	 * @param responseObject
+	 * @return
+	 */
+	public JsonArray getSearchResultsWithFilters(JsonObject searchObject) {
+		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(HttpHeaders.AUTHORIZATION, getCredsBase64Encoded());
+		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
+
+		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, searchObject.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
+		JsonArray hits = getHitsFromSearch(responseJson);
+		return hits;
+	}
 
 	/**
 	 * https://opensearch.org/docs/latest/search-plugins/knn/knn-index/
