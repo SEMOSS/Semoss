@@ -9,6 +9,8 @@ from .anthropic_models import (
     AnthropicImageSourceBase64,
     AnthropicImageContentPart,
     AnthropicTextContentPart,
+    AnthropicToolUseContentPart,
+    AnthropicToolResultContentPart,
 )
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
@@ -26,32 +28,121 @@ class AnthropicMessageBuilder:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
         anthropic_messages = []
         param_map = {}
+        
+        pending_tool_response = False
+        
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
-            # Get the role based on the SEMOSS message type
-            role = self._message_type_to_role(message.type)
-
             content_parts = []
-            # Handle text content
-            if message.content:
-                content_parts.append(self._build_text_content_part(message.content))
 
-            if message.image_content:
-                image_contents_parts = self._build_image_content_part(
-                    message.image_content
-                )
-                content_parts.extend(image_contents_parts)
+            if (
+                message.type == SEMOSSMessageType.INPUT_TEXT
+                or message.type == SEMOSSMessageType.INPUT_MEDIA
+            ):
+                # Handle user input (text/media)
+                if message.content:
+                    content_parts.append(self._build_text_content_part(message.content))
 
-            anthropic_messages.append(
-                AnthropicMessage(
-                    role=role,
-                    content=content_parts,
+                if message.image_content:
+                    image_contents_parts = self._build_image_content_part(
+                        message.image_content
+                    )
+                    content_parts.extend(image_contents_parts)
+
+                anthropic_messages.append(
+                    AnthropicMessage(
+                        role=AnthropicRoles.USER,
+                        content=content_parts,
+                    )
                 )
-            )
+
+            elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
+                # Handle assistant tool calls
+                if message.tool_calls:
+                    for tool_call in message.tool_calls:
+                        content_parts.append(
+                            AnthropicToolUseContentPart(
+                                id=tool_call["id"],
+                                name=tool_call["function"]["name"],
+                                input=tool_call["function"]["arguments"],
+                            )
+                        )
+
+                    anthropic_messages.append(
+                        AnthropicMessage(
+                            role=AnthropicRoles.ASSISTANT,
+                            content=content_parts,
+                        )
+                    )
+                    pending_tool_response = True
+
+            elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
+                # Handle tool execution results
+                if pending_tool_response:
+                    content_parts.append(
+                        AnthropicToolResultContentPart(
+                            tool_use_id=message.tool_call_id,
+                            content=message.content,
+                        )
+                    )
+
+                    anthropic_messages.append(
+                        AnthropicMessage(
+                            role=AnthropicRoles.USER,
+                            content=content_parts,
+                        )
+                    )
+                    pending_tool_response = False
+
+            elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
+                # Handle tool execution results
+                if pending_tool_response:
+                    # Check if this message contains multiple tool results
+                    if hasattr(message, 'tool_results') and message.tool_results:
+                        # Handle multiple tool results in one message (for Anthropic multi-tool support)
+                        for tool_result in message.tool_results:
+                            content_parts.append(
+                                AnthropicToolResultContentPart(
+                                    tool_use_id=tool_result.get('tool_call_id') or tool_result.get('tool_use_id'),
+                                    content=str(tool_result.get('content') or tool_result.get('tool_response', '')),
+                                )
+                            )
+                    else:
+                        # Single tool result (backward compatibility)
+                        content_parts.append(
+                            AnthropicToolResultContentPart(
+                                tool_use_id=message.tool_call_id,
+                                content=message.content,
+                            )
+                        )
+
+                    anthropic_messages.append(
+                        AnthropicMessage(
+                            role=AnthropicRoles.USER,
+                            content=content_parts,
+                        )
+                    )
+                    pending_tool_response = False
+
+            elif message.type == SEMOSSMessageType.RESPONSE_TEXT:
+                # Handle regular assistant text responses
+                if message.content:
+                    content_parts.append(self._build_text_content_part(message.content))
+
+                anthropic_messages.append(
+                    AnthropicMessage(
+                        role=AnthropicRoles.ASSISTANT,
+                        content=content_parts,
+                    )
+                )
 
             if is_last:
                 param_map = message.param_map
                 param_map = self._clean_param_map(param_map)
+                
+                # Convert tools to Anthropic format if present
+                if "tools" in param_map:
+                    param_map["tools"] = self._convert_mcp_to_anthropic_tools(param_map["tools"])
 
         return anthropic_messages, param_map
 
@@ -141,3 +232,32 @@ class AnthropicMessageBuilder:
         )
 
         return AnthropicImageContentPart(source=image_source)
+
+    def _convert_mcp_to_anthropic_tools(
+        self, mcp_tools: List[Dict]
+    ) -> List[Dict]:
+        """
+        Convert MCP-formatted tools to Anthropic tool format.
+        """
+        anthropic_tools = []
+
+        for tool in mcp_tools:
+            anthropic_tool = {
+                "name": tool["name"],
+                "description": tool["description"],
+                "input_schema": {
+                    "type": tool["inputSchema"]["type"],
+                    "properties": {},
+                    "required": tool["inputSchema"].get("required", []),
+                },
+            }
+
+            # Copy properties, excluding 'title' if present
+            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
+                anthropic_tool["input_schema"]["properties"][prop_name] = {
+                    k: v for k, v in prop_def.items() if k != "title"
+                }
+
+            anthropic_tools.append(anthropic_tool)
+
+        return anthropic_tools
