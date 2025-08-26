@@ -29,6 +29,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.spi.json.GsonJsonProvider;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
@@ -56,6 +60,9 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private static final String BULK_ENDPOINT = "/_bulk";
 	private static final String UPDATE_MAPPINGS_ENDPOINT = "/_mapping";
 	private static final String DELETE_BY_QUERY_ENDPOINT = "/_delete_by_query";
+	
+	private static final String UNIQUE_SOURCES = "unique_sources";
+	private static final String FILTERED_SOURCES = "filtered_sources";
 
 	private static final String EMBEDDINGS_COLUMN = "EMBEDDINGS_COLUMN";
 	private static final String DIMENSION_SIZE = "DIMENSION_SIZE";
@@ -77,6 +84,10 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private String indexEngine = "lucene";
 	private int efConstruction = 128;
 	private int m = 24;
+	
+	protected String customTemplateQuery = null;
+	protected String customResultsPath = null;
+	protected List<String> highlightFieldKeys = null;
 
 	private Map<String, String> otherPropsToType = new HashMap<>();
 
@@ -143,7 +154,10 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		this.otherPropsToType.put(VectorDatabaseCSVTable.CONTENT, TEXT_DATATYPE);
 
 		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.distanceMethod, this.indexEngine, this.efConstruction, this.m);
-		updateIndexMapping(this.indexName, this.otherPropsToType);		
+		updateIndexMapping(this.indexName, this.otherPropsToType);	
+		
+		this.customTemplateQuery = this.smssProp.getProperty(Constants.CUSTOM_TEMPLATE_QUERY);
+		this.customResultsPath = this.smssProp.getProperty(Constants.CUSTOM_RESULTS_PATH);
 	}
 	
 	@Override
@@ -151,6 +165,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return "cosinesimil";
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
@@ -181,9 +196,9 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			int index = 0;
 			if(sourceId.containsKey(source)) {
 				index = sourceId.get(source);
-				sourceId.put(source, index+1);
+				sourceId.put(source, index++);
 			} else {
-				sourceId.put(source, new Integer(0));
+				sourceId.put(source, 0);
 			}
 
 			// store creation of the index
@@ -337,7 +352,169 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			deleteFilesFromCloudThread.start();
 		}
 	}
+	
+	public List<Map<String, Object>> customNearestNeighborSearch(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters, boolean meta) {
+		
+		/**
+		 * Flow:
+		 * 1. From SMSS, check custom json template or not
+		 * 1a. If not, pass this on to the original nearest neighbor call function.
+		 * 1b. If so, use the custom template and string substitute the search phrase into the json template
+		 * 2. Call <index>/_search
+		 * 3. From SMSS, check to see if there's a custom results path or not
+		 * 3a. If not, get via parent hits.hits
+		 * 3b. If so, get via the custom results path
+		 * 4. Are we asking for metadata through the meta param?
+		 * 4a. If not, done
+		 * 4b. If so, iterate over hits.hits._source and create map for each doc, then done
+		 */
+		
+		/**
+		 * 1
+		 */
+		JsonObject search = null;
+		if (this.customTemplateQuery != null) {
+			classLogger.info("Found a custom template query for this engine");
+			// Use Gson to properly escape the search statement for JSON
+			String escapedSearchStatement = new Gson().toJson(searchStatement);
+			String query = String.valueOf(this.customTemplateQuery)
+				.replace("\"%QUERY_PLACEHOLDER%\"", escapedSearchStatement)
+				.replace("%%LIMIT%%", limit.toString());
+			classLogger.info(query);
+			try {
+				search = JsonParser.parseString(query).getAsJsonObject();
+				// From the custom query template, get the metadata field keys under highlight > fields
+				if (highlightFieldKeys == null) {
+					highlightFieldKeys = new ArrayList<>();
+					JsonObject highlightFields = search.getAsJsonObject("highlight").getAsJsonObject("fields");
+					for (Map.Entry<String, JsonElement> entry : highlightFields.entrySet()) {
+						String fieldName = entry.getKey();
+						highlightFieldKeys.add(fieldName);
+					}
+				}
+				classLogger.info(highlightFieldKeys);
+			} catch (Exception e) {
+				classLogger.error(e);
+				throw e;
+			}
+		} else {
+			classLogger.info("No template query found, using default search");
+			
+			if (!this.modelPropsLoaded) {
+				verifyModelProps();
+			}
+			
+			search = getNearestNeighborSearchJson(insight, searchStatement, limit, parameters);
+		}
+		
+		classLogger.info(search);
+		
+		/**
+		 * 2
+		 */
+		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
+		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
 
+		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		Configuration configuration = Configuration.builder()
+				.jsonProvider(new GsonJsonProvider())
+				.build();
+		DocumentContext jsonContext = JsonPath.using(configuration).parse(response);
+		
+		List<Map<String, Object>> vectorSearchResults = new ArrayList<>();
+		
+		/**
+		 * 3
+		 */
+		String resultsPath = this.customResultsPath == null ? "$.hits.hits[*]" : this.customResultsPath;
+		JsonArray hits;
+		try {
+			hits = jsonContext.read(resultsPath);
+		} catch (Exception e1) {
+			throw new RuntimeException("Failed to parse results using path: " + resultsPath, e1);
+		}
+		
+		classLogger.info(hits);
+		for(JsonElement e : hits) {
+			JsonObject hitJson = e.getAsJsonObject();
+			Map<String, Object> thisMatch = new HashMap<>();
+			vectorSearchResults.add(thisMatch);
+			
+			Double score = (Double) hitJson.get("_score").getAsDouble();
+			
+			// Add base information
+			thisMatch.put("Score", score);
+			
+			JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
+			thisMatch.put(VectorDatabaseCSVTable.CONTENT, sourceDetails.get(VectorDatabaseCSVTable.CONTENT).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.SOURCE, sourceDetails.get(VectorDatabaseCSVTable.SOURCE).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.MODALITY, sourceDetails.get(VectorDatabaseCSVTable.MODALITY).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.DIVIDER, sourceDetails.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
+		}
+			
+		/**
+		 * 4
+		 */
+		if(meta) {
+			JsonArray metaHits = jsonContext.read("$.hits.hits[*]");
+			
+			Map<String, Object> metaMatch = new HashMap<>();
+			vectorSearchResults.add(metaMatch);
+			
+			for(JsonElement e : metaHits) {
+				JsonObject hitJson = e.getAsJsonObject();
+				Map<String, Object> thisMatch = new HashMap<>();
+				
+				Double score = (Double) hitJson.get("_score").getAsDouble();
+				thisMatch.put("Score", score);
+				
+				JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
+				if(!sourceDetails.has(VectorDatabaseCSVTable.SOURCE)) {
+					continue;
+				}
+				String source = sourceDetails.get(VectorDatabaseCSVTable.SOURCE).getAsString();
+				thisMatch.putAll(sourceDetails.asMap());
+				
+				metaMatch.put(source, thisMatch);
+			}
+		}
+		
+		return vectorSearchResults;
+	}
+	
+	private void addMetadataToMatch(Map<String, Object> thisMatch, JsonObject hitJson) {
+		if (highlightFieldKeys != null && !highlightFieldKeys.isEmpty()) {
+			JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
+			Map<String, Object> meta = new HashMap<>();
+			thisMatch.put("meta", meta);
+			for (String fieldKey : highlightFieldKeys) {
+				try {
+					JsonElement fieldElement = sourceDetails.get(fieldKey);
+					if (fieldElement != null && !fieldElement.isJsonNull()) {
+						if (fieldElement.isJsonArray()) {
+							meta.put(fieldKey, fieldElement.getAsJsonArray().toString());
+						} else if (fieldElement.isJsonPrimitive()) {
+							meta.put(fieldKey, fieldElement.getAsString());
+						} else if (fieldElement.isJsonObject()) {
+							meta.put(fieldKey, fieldElement.getAsJsonObject().toString());
+						} else {
+							meta.put(fieldKey, fieldElement.toString());
+						}
+					} else {
+						meta.put(fieldKey, null);
+					}
+				} catch (Exception e) {
+					classLogger.warn("Failed to extract metadata field '{}' from hit: {}", fieldKey, e.getMessage());
+					thisMatch.put(fieldKey, null);
+				}
+			}
+		}
+	}
+	
 	@Override
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
 		if (insight == null) {
@@ -347,85 +524,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		if (!this.modelPropsLoaded) {
 			verifyModelProps();
 		}
-
-		IModelEngine engine = Utility.getModel(this.embedderEngineId);
-		EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] {searchStatement}), insight, null);
-
-		// construct search query
-		JsonObject search = new JsonObject();
-		search.addProperty("size", limit);
-		{
-			JsonObject query = new JsonObject();
-			{
-				if (!parameters.containsKey("filters")) {
-					JsonObject knn = new JsonObject();
-					{
-						JsonObject embedding = new JsonObject();
-						embedding.add("vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
-						embedding.addProperty("k", limit);
-						// store key using the field name for the vector in parent
-						knn.add(this.embeddings, embedding);
-					}
-					// add to parent
-					query.add("knn", knn);
-				} else if (parameters.containsKey("filters")) {
-					JsonObject bool = new JsonObject();
-					{
-						JsonArray must = new JsonArray();
-						{
-							JsonObject knnParent = new JsonObject();
-							{								
-								JsonObject knn = new JsonObject();
-								{
-									JsonObject embedding = new JsonObject();
-									embedding.add("vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
-									embedding.addProperty("k", limit);
-
-									JsonObject filterParent = new JsonObject();
-									{
-										JsonObject filterBool = new JsonObject();
-										{
-											//Filtration logic starts here
-											//filter contains simple or AND conditions
-											JsonArray filter = new JsonArray();
-
-											//should contains OR condition filters
-											JsonArray should = new JsonArray();
-
-											//must not contains not equals to filters
-											JsonArray must_not = new JsonArray();
-
-											List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
-											for(IQueryFilter queryFilter : filters) {
-												RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
-											}
-
-											//call to process filter
-											filterBool.add("filter", filter);
-											filterBool.add("should", should);
-											filterBool.add("must_not", must_not);
-
-											if (should.size() > 1) {
-												filterBool.addProperty("minimum_should_match", 1);
-											}
-										}
-										filterParent.add("bool", filterBool);
-									}
-									embedding.add("filter", filterParent);
-									knn.add(this.embeddings, embedding);
-								}
-								knnParent.add("knn", knn);
-							}
-							must.add(knnParent);
-						}
-						bool.add("must", must);
-					}
-					query.add("bool", bool);
-				}
-			}
-			// add to parent
-			search.add("query", query);
-		}
+		
+		JsonObject search = getNearestNeighborSearchJson(insight, searchStatement, limit, parameters);
 		
 		classLogger.debug("OPENSEARCH FINAL SEARCH QUERY : " + search.toString());
 
@@ -436,6 +536,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
+		
 		JsonArray hits = getHitsFromSearch(responseJson);
 		
 		List<Map<String, Object>> vectorSearchResults = new ArrayList<>();
@@ -458,31 +559,41 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return vectorSearchResults;
 	}
 
+	
+	protected JsonObject getNearestNeighborSearchJson(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
+		IModelEngine engine = Utility.getModel(this.embedderEngineId);
+		EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] {searchStatement}), insight, null);
+		List<Double> searchStatementEmbedding = embeddingsResponse.getResponse().get(0);
+		
+		JsonObject search = new JsonObject();
+		search.addProperty("size", limit);
+		{
+			JsonObject query = new JsonObject();
+			{
+				JsonObject knn = new JsonObject();
+				{
+					JsonObject embedding = new JsonObject();
+					embedding.add("vector", convertListNumToJsonArray(searchStatementEmbedding));
+					embedding.addProperty("k", limit);
+					
+					if (parameters.containsKey("filters")) {
+						JsonObject filter = getFilterAggregation(parameters);
+						embedding.add("filter", filter);
+					}
+					knn.add(this.embeddings, embedding);
+				}
+				query.add("knn", knn);
+			}
+			search.add("query", query);
+		}
+		return search;
+	}
+
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
-		final String UNIQUE_SOURCES = "unique_sources";
-		// construct search query
-		JsonObject search = new JsonObject();
-		{
-			JsonObject aggs = new JsonObject();
-			{			
-				JsonObject uniqueScores = new JsonObject();
-				{
-					JsonObject terms = new JsonObject();
-					terms.addProperty("field", VectorDatabaseCSVTable.SOURCE);
-					terms.addProperty("min_doc_count", 1);
-					// Pull upto 9999 unique terms for the aggregation.
-					terms.addProperty("size", 9999);
-					// add to parent
-					uniqueScores.add("terms", terms);
-				}
-				// add to parent
-				aggs.add(UNIQUE_SOURCES, uniqueScores);
-			}
-			// add to parent
-			search.add("aggs", aggs);
-			search.addProperty("size", 0);
-		}
+		
+		JsonObject search = getListDocumentSearchJson(parameters);
 
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;// + "?search_type=count";
 		Map<String, String> headersMap = new HashMap<>();
@@ -491,7 +602,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(), ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
-		JsonArray bucketsArr = responseJson.getAsJsonObject("aggregations").getAsJsonObject(UNIQUE_SOURCES).getAsJsonArray("buckets");
+		JsonArray bucketsArr = responseJson.getAsJsonObject("aggregations").getAsJsonObject(UNIQUE_SOURCES).getAsJsonObject(FILTERED_SOURCES).getAsJsonArray("buckets");
 		
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
@@ -525,24 +636,95 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return returnSources;
 	}
 
+	protected JsonObject getListDocumentSearchJson(Map<String, Object> parameters) {
+		JsonObject filter = null;
+		if (parameters.containsKey("filters")) {
+			filter = getFilterAggregation(parameters);
+		} else {
+			filter = new JsonObject();
+			{
+				JsonObject matchAll = new JsonObject();
+				filter.add("match_all", matchAll);
+			}
+		}
+		
+		JsonObject search = new JsonObject();
+		search.addProperty("size", 0);
+		{
+			if (filter != null) {
+				search.add("query", filter);
+			}
+			
+			JsonObject aggs = new JsonObject();
+			{
+				JsonObject uniqueSources = new JsonObject();
+				{
+					uniqueSources.add("filter", filter);
+					
+					JsonObject nestedAggs = new JsonObject();
+					{
+						JsonObject filteredSources = new JsonObject();
+						{	
+							JsonObject terms = new JsonObject();
+							terms.addProperty("field", VectorDatabaseCSVTable.SOURCE);
+							terms.addProperty("min_doc_count", 1);
+							// Pull up to 9999 unique terms for the aggregation
+							terms.addProperty("size", 9999);
+							filteredSources.add("terms", terms);
+						}
+						nestedAggs.add(FILTERED_SOURCES, filteredSources);
+					}
+					uniqueSources.add("aggs", nestedAggs);
+				}
+				aggs.add(UNIQUE_SOURCES, uniqueSources);
+			}
+			search.add("aggs", aggs);
+		}
+		return search;
+	}
+
+	@SuppressWarnings("unchecked")
+	protected JsonObject getFilterAggregation(Map<String, Object> parameters) {
+		JsonObject filterParent = new JsonObject();
+		{
+			JsonObject filterBool = new JsonObject();
+			{
+				//Filtration logic starts here
+				//filter contains simple or AND conditions
+				JsonArray filter = new JsonArray();
+
+				//should contains OR condition filters
+				JsonArray should = new JsonArray();
+
+				//must not contains not equals to filters
+				JsonArray must_not = new JsonArray();
+
+				List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
+				for(IQueryFilter queryFilter : filters) {
+					RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
+				}
+
+				//call to process filter
+				filterBool.add("filter", filter);
+				filterBool.add("should", should);
+				filterBool.add("must_not", must_not);
+
+				if (should.size() > 1) {
+					filterBool.addProperty("minimum_should_match", 1);
+				}
+			}
+			filterParent.add("bool", filterBool);
+		}
+		return filterParent;
+	}
+  
+	public List<Map<String, Object>> listAllRecords() {
+		return listAllRecords(new HashMap<>());
+	}
+
 	@Override
 	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
-		// construct search query
-		JsonObject search = new JsonObject();
-		{
-			JsonArray fields = new JsonArray();
-			{	
-				fields.add(VectorDatabaseCSVTable.SOURCE);
-				fields.add(VectorDatabaseCSVTable.MODALITY);
-				fields.add(VectorDatabaseCSVTable.DIVIDER);
-				fields.add(VectorDatabaseCSVTable.PART);
-				fields.add(VectorDatabaseCSVTable.TOKENS);
-				fields.add(VectorDatabaseCSVTable.CONTENT);
-			}
-			// add to parent
-			search.add("fields", fields);
-			search.addProperty("_source", false);
-		}
+		JsonObject search = getListAllRecordsSearchJson(parameters);
 
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT + "?size=10000";
 		Map<String, String> headersMap = new HashMap<>();
@@ -569,6 +751,29 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		
 		return allDocuments;
 	}
+
+	protected JsonObject getListAllRecordsSearchJson(Map<String, Object> parameters) {
+		JsonObject search = new JsonObject();
+		{
+			if (parameters.containsKey("filters")) {
+				JsonObject filter = getFilterAggregation(parameters);
+				search.add("query", filter);
+			}
+			
+			JsonArray fields = new JsonArray();
+			{	
+				fields.add(VectorDatabaseCSVTable.SOURCE);
+				fields.add(VectorDatabaseCSVTable.MODALITY);
+				fields.add(VectorDatabaseCSVTable.DIVIDER);
+				fields.add(VectorDatabaseCSVTable.PART);
+				fields.add(VectorDatabaseCSVTable.TOKENS);
+				fields.add(VectorDatabaseCSVTable.CONTENT);
+			}
+			search.add("fields", fields);
+			search.addProperty("_source", false);
+		}
+		return search;
+	}
 	
 	/**
 	 * 
@@ -579,6 +784,23 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		JsonObject hitsObject = responseObject.get("hits").getAsJsonObject();
 		JsonArray hitsArray = hitsObject.get("hits").getAsJsonArray();
 		return hitsArray;
+	}
+	
+	/**
+	 * 
+	 * @param responseObject
+	 * @return JsonArry of hits
+	 */
+	public JsonArray getSearchResultsWithFilters(JsonObject searchObject) {
+		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(HttpHeaders.AUTHORIZATION, getCredsBase64Encoded());
+		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
+
+		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, searchObject.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
+		JsonArray hits = getHitsFromSearch(responseJson);
+		return hits;
 	}
 
 	/**
@@ -599,6 +821,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			createIndex(specificIndexName, embeddings, dimension, methodName, spaceType, engine, efConstruction, m);
 		}
 	}
+	
 
 	/**
 	 * 
