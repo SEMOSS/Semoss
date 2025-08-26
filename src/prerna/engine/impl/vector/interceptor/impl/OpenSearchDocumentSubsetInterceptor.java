@@ -19,17 +19,22 @@ import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 
 import net.sf.cglib.proxy.MethodProxy;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.interceptor.AbstractDocumentSubsetInterceptor;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.util.EngineUtility;
+import prerna.util.Utility;
 
 
 public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetInterceptor {
 	
 	private static final Logger classLogger = LogManager.getLogger(OpenSearchDocumentSubsetInterceptor.class);
+	protected static final String FILE_SEPARATOR = "/";
 
 	public static final Set<String> INTERCEPTED_METHOD_NAMES = Sets.newHashSet(
 			"listAllRecords"
@@ -37,6 +42,7 @@ public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetI
 			, "nearestNeighbor"
 			, "removeDocument"
 			, "addDocument"
+			, "getDocumentsFilesPath"
 	);
 	
 	public OpenSearchDocumentSubsetInterceptor(IVectorDatabaseEngine proxyEngine, IVectorDatabaseEngine targetEngine, Object[] constructorArgs) {
@@ -73,6 +79,8 @@ public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetI
                     classLogger.info("[OpenSearch Proxy] Added to subset: " + toAdd);
                 }
                 return null;
+            } else if ("getDocumentsFilesPath".equals(methodName)) {
+            	return getDocumentsFilesPath((AbstractVectorDatabaseEngine) proxyEngine, null);
             }
             
             // Otherwise, standard filter+proxy call logic
@@ -129,5 +137,21 @@ public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetI
             props.store(fw, null);
         }
     }
+    
+	public String getDocumentsFilesPath(AbstractVectorDatabaseEngine proxyEngine, String indexClass) {
+		
+		// highest directory (first layer inside vector db base folder)
+		String engineDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, proxyEngine.getEngineId(), proxyEngine.getEngineName());
+		
+		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
+		File schemaFolder = new File(engineDir, "schema");
+		
+				
+		if(indexClass == null || (indexClass=indexClass.trim()).isEmpty()) {
+			indexClass = "default";
+		}
+
+		return Utility.normalizePath(schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+	}
 	
 }
