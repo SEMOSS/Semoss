@@ -2,17 +2,34 @@ package prerna.reactor.utils;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -40,9 +57,10 @@ public class ExportEngineReactor extends AbstractReactor {
 	private static final String CLASS_NAME = ExportEngineReactor.class.getName();
 
 	private String keepGit = "keepGit";
+	private static final String INCLUDE_DATA = "includeData";
 
 	public ExportEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), keepGit };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), keepGit , INCLUDE_DATA };
 	}
 
 	@Override
@@ -51,6 +69,7 @@ public class ExportEngineReactor extends AbstractReactor {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		boolean keepGit = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]));
+		String includeData = this.keyValue.get(this.keysToGet[2]);
 
 		// security
 		User user = this.insight.getUser();
@@ -169,6 +188,16 @@ public class ExportEngineReactor extends AbstractReactor {
 				}
 			}
 		}
+		
+		//clear the data from database and export it while schema remains the same
+		if(includeData!=null&&includeData.equals("false")) {
+			try {
+				clearDatabaseInZip(zipFilePath);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+
+		}
 
 		// store it in the insight so the FE can download it
 		// only from the given insight
@@ -180,5 +209,88 @@ public class ExportEngineReactor extends AbstractReactor {
 		this.insight.addExportFile(downloadKey, insightFile);
 		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
+	
+	public static void clearDatabaseInZip(String zipFilePath) throws Exception {
+        File zipFile = new File(zipFilePath);
+ 
+        // checking whether database.mv.db is present or not
+        String dbEntryPath = null;
+        try (ZipFile zf = new ZipFile(zipFile)) {
+            Enumeration<? extends ZipEntry> entries = zf.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                if (entry.getName().contains("/database.mv.db")) {
+                    dbEntryPath = entry.getName();
+                    break;
+                }
+            }
+        }
+        if (dbEntryPath == null) {
+            throw new FileNotFoundException("database.mv.db not found inside " + zipFilePath);
+        }
+ 
+        File tempDb = File.createTempFile("h2db", ".mv.db");
+        tempDb.deleteOnExit();
+ 
+        try (ZipFile zf = new ZipFile(zipFile)) {
+            ZipEntry dbEntry = zf.getEntry(dbEntryPath);
+            try (InputStream is = zf.getInputStream(dbEntry);
+                 OutputStream os = new FileOutputStream(tempDb)) {
+                is.transferTo(os);
+            }
+        }
+ 
+        String dbUrl = "jdbc:h2:" + tempDb.getAbsolutePath().replace(".mv.db", "");
+        try (Connection conn = DriverManager.getConnection(dbUrl, "sa", "")) {
+            conn.setAutoCommit(false);
+            
+            // extracting all the tables from database
+            List<String> tables = new ArrayList<>();
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(
+                         "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC' AND TABLE_TYPE='TABLE'")) {
+                while (rs.next()) {
+                    tables.add(rs.getString("TABLE_NAME"));
+                }
+            }
+            
+            // removing all the data from the table while schema remains the same
+            try (Statement stmt = conn.createStatement()) {
+                for (String table : tables) {
+                    stmt.executeUpdate("TRUNCATE TABLE " + table);
+                }
+            }
+ 
+            conn.commit();
+        }
+ 
+        Path tempZipPath = Files.createTempFile("updatedZip", ".zip");
+        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile));
+             ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(tempZipPath.toFile()))) {
+ 
+            ZipEntry entry;
+            byte[] buffer = new byte[4096];
+            while ((entry = zis.getNextEntry()) != null) {
+                String name = entry.getName();
+                if (name.equals(dbEntryPath)) {
+                	// putting the updated files
+                    zos.putNextEntry(new ZipEntry(dbEntryPath));
+                    Files.copy(tempDb.toPath(), zos);
+                    zos.closeEntry();
+                } else {
+                	// putting the unchanged files
+                    zos.putNextEntry(new ZipEntry(name));
+                    int len;
+                    while ((len = zis.read(buffer)) > 0) {
+                        zos.write(buffer, 0, len);
+                    }
+                    zos.closeEntry();
+                }
+            }
+        }
+ 
+        Files.move(tempZipPath, zipFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        
+    }
 	
 }
