@@ -45,7 +45,7 @@ public class GitAddTagReactor extends AbstractReactor {
 		if (projectId == null || projectId.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the projectid");
 		}
-		if (tag == null || tag.isEmpty()) {
+		if (tag == null || tag.trim().isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the tag");
 		}
 		if (commitId == null || commitId.isEmpty()) {
