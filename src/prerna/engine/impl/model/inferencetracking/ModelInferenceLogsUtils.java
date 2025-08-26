@@ -34,7 +34,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteProjectRunner;
-import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -44,13 +43,11 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.Project;
 import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -60,8 +57,6 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.selectors.QueryTypedColumnSelector;
-import prerna.query.querystruct.update.UpdateQueryStruct;
-import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -610,31 +605,27 @@ public class ModelInferenceLogsUtils {
    */
   public static void updateFeedback(String messageId, String feedbackText, boolean rating) {
     try {
-      UpdateQueryStruct qs = new UpdateQueryStruct();
-      qs.setEngine(modelInferenceLogsDb);
-      qs.addExplicitFilter(
-          SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageId));
-      qs.addExplicitFilter(
-          SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_TYPE", "==", "RESPONSE"));
-      List<IQuerySelector> selectors =
-          new ArrayList<>(
-              Arrays.asList(
-                  new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"),
-                  new QueryColumnSelector("FEEDBACK__FEEDBACK_DATE"),
-                  new QueryColumnSelector("FEEDBACK__RATING")));
-
-      List<Object> values =
-          new ArrayList<>(
-              Arrays.asList(
-                  feedbackText, new SemossDate(Utility.getCurrentZonedDateTimeUTC()), rating));
-
-      qs.setSelectors(selectors);
-      qs.setValues(values);
-      qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-      UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-      String updateQ = updateInterp.composeQuery();
-
-      modelInferenceLogsDb.insertData(updateQ);
+    	PreparedStatement ps = modelInferenceLogsDb.getPreparedStatement("UPDATE FEEDBACK SET FEEDBACK_TEXT=?, FEEDBACK_DATE=?, RATING=? WHERE MESSAGE_ID=? AND MESSAGE_TYPE=?");
+		if(ps == null) {
+			throw new IllegalArgumentException("Error generating prepared statement to update feedback");
+		}
+		try {
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, feedbackText);
+			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+			ps.setBoolean(parameterIndex++, rating);
+			ps.setString(parameterIndex++, messageId);
+		    ps.setString(parameterIndex++, "RESPONSE");
+			ps.executeUpdate();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
+		}
     } catch (Exception e) {
       classLogger.error(Constants.STACKTRACE, e);
     }
@@ -1280,21 +1271,25 @@ public class ModelInferenceLogsUtils {
    */
   public static boolean doSetRoomToInactive(String userId, String roomId) {
     try {
-      UpdateQueryStruct qs = new UpdateQueryStruct();
-      qs.setEngine(modelInferenceLogsDb);
-      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
-      List<IQuerySelector> selectors = new ArrayList<>();
-      List<Object> values = new ArrayList<>();
-      selectors.add(new QueryColumnSelector("ROOM__IS_ACTIVE"));
-      values.add(false);
-      qs.setSelectors(selectors);
-      qs.setValues(values);
-      qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-      UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-      String updateQ = updateInterp.composeQuery();
-
-      modelInferenceLogsDb.insertData(updateQ);
+    	PreparedStatement ps = modelInferenceLogsDb.getPreparedStatement("UPDATE ROOM SET IS_ACTIVE=? WHERE USER_ID=? AND ROOM_ID=?");
+		if(ps == null) {
+			throw new IllegalArgumentException("Error generating prepared statement to set room inactive");
+		}
+		try {
+			int parameterIndex = 1;
+			ps.setBoolean(parameterIndex++, false);
+			ps.setString(parameterIndex++, userId);
+			ps.setString(parameterIndex++, roomId);	
+			ps.executeUpdate();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
+		}
     } catch (Exception e) {
       classLogger.error(Constants.STACKTRACE, e);
       return false;
@@ -1309,21 +1304,25 @@ public class ModelInferenceLogsUtils {
    */
   public static boolean doSetRoomToPinned(String userId, String roomId, boolean pinned) {
     try {
-      UpdateQueryStruct qs = new UpdateQueryStruct();
-      qs.setEngine(modelInferenceLogsDb);
-      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
-      List<IQuerySelector> selectors = new ArrayList<>();
-      List<Object> values = new ArrayList<>();
-      selectors.add(new QueryColumnSelector("ROOM__PINNED"));
-      values.add(pinned);
-      qs.setSelectors(selectors);
-      qs.setValues(values);
-      qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-      UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-      String updateQ = updateInterp.composeQuery();
-
-      modelInferenceLogsDb.insertData(updateQ);
+    	PreparedStatement ps = modelInferenceLogsDb.getPreparedStatement("UPDATE ROOM SET PINNED=? WHERE USER_ID=? AND ROOM_ID=?");
+		if(ps == null) {
+			throw new IllegalArgumentException("Error generating prepared statement to set room pinned");
+		}
+		try {
+			int parameterIndex = 1;
+			ps.setBoolean(parameterIndex++, pinned);
+			ps.setString(parameterIndex++, userId);
+			ps.setString(parameterIndex++, roomId);	
+			ps.executeUpdate();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
+		}
     } catch (Exception e) {
       classLogger.error(Constants.STACKTRACE, e);
       return false;
@@ -1339,21 +1338,25 @@ public class ModelInferenceLogsUtils {
    */
   public static boolean doSetNameForRoom(String userId, String roomId, String roomName) {
     try {
-      UpdateQueryStruct qs = new UpdateQueryStruct();
-      qs.setEngine(modelInferenceLogsDb);
-      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
-      List<IQuerySelector> selectors = new ArrayList<>();
-      List<Object> values = new ArrayList<>();
-      selectors.add(new QueryColumnSelector("ROOM__ROOM_NAME"));
-      values.add(roomName);
-      qs.setSelectors(selectors);
-      qs.setValues(values);
-      qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-      UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-      String updateQ = updateInterp.composeQuery();
-
-      modelInferenceLogsDb.insertData(updateQ);
+    	PreparedStatement ps = modelInferenceLogsDb.getPreparedStatement("UPDATE ROOM SET ROOM_NAME=? WHERE USER_ID=? AND ROOM_ID=?");
+		if(ps == null) {
+			throw new IllegalArgumentException("Error generating prepared statement to set room name");
+		}
+		try {
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, roomName);
+			ps.setString(parameterIndex++, userId);
+			ps.setString(parameterIndex++, roomId);	
+			ps.executeUpdate();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
+		}
     } catch (Exception e) {
       classLogger.error(Constants.STACKTRACE, e);
       return false;
@@ -1632,24 +1635,25 @@ public class ModelInferenceLogsUtils {
    */
   public static void setRoomContext(String roomId, String userId, String context) {
     try {
-      UpdateQueryStruct qs = new UpdateQueryStruct();
-      qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-      qs.setEngine(modelInferenceLogsDb);
-
-      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-      qs.addExplicitFilter(
-          SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId)); //TODO: this will break for legacy rooms
-      List<IQuerySelector> selectors = new ArrayList<>();
-      List<Object> values = new ArrayList<>();
-      selectors.add(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
-      values.add(context);
-      qs.setSelectors(selectors);
-      qs.setValues(values);
-
-      UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-      String updateQ = updateInterp.composeQuery();
-
-      modelInferenceLogsDb.insertData(updateQ);
+		PreparedStatement ps = modelInferenceLogsDb.getPreparedStatement("UPDATE ROOM SET CONTEXT=? WHERE USER_ID=? AND ROOM_ID=?");
+		if(ps == null) {
+			throw new IllegalArgumentException("Error generating prepared statement to set room context");
+		}
+		try {
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, context);
+			ps.setString(parameterIndex++, userId);
+			ps.setString(parameterIndex++, roomId);	
+			ps.executeUpdate();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
+		}
     } catch (Exception e) {
       classLogger.error(Constants.STACKTRACE, e);
     }
