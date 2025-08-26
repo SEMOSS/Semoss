@@ -5,6 +5,8 @@ import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.ObjectId;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -15,15 +17,17 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
 public class ProjectCommitRestoreReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ProjectCommitRestoreReactor.class);
+	private static final String COMMIT_ID_KEY = "commitId";
 
 	public ProjectCommitRestoreReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.COMMIT_ID_KEY.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), COMMIT_ID_KEY };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -57,36 +61,28 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 		IProject project = Utility.getProject(projectId);
 		projectVersionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 
+		Git thisGit = null;
 		try {
-			
-			String gitCheckoutCommand = "git checkout " + commitId + " -- .";
-			runCommand(projectVersionFolder, gitCheckoutCommand);
 
-			String gitAddCommand = "git add .";
-			runCommand(projectVersionFolder, gitAddCommand);
-			
+			thisGit = Git.open(new File(projectVersionFolder));
+			ObjectId commitObjectId = thisGit.getRepository().resolve(commitId);
+
+			thisGit.checkout().setStartPoint(commitObjectId.name()).addPath(".").call();
+
+			thisGit.add().addFilepattern(".").call();
+
 		} catch (Exception e) {
-			classLogger.error("Please provide a valid commitid " + commitId, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Please provide a valid commitid " + commitId, e);
+		} finally {
+			if (thisGit != null) {
+				thisGit.close();
+			}
 		}
 
 		GitRepoUtils.commitAddedFiles(projectVersionFolder, "Reverted to commit: " + commitId, user);
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
-	}
-
-	private static void runCommand(String workingDir, String gitCommand) throws IOException, InterruptedException {
-		String[] command=gitCommand.split(" ");
-		ProcessBuilder pb = new ProcessBuilder(command);
-		pb.directory(new File(workingDir));
-		pb.redirectErrorStream(true);
-		Process process = pb.start();
-
-		int exitCode = process.waitFor();
-		if (exitCode != 0) {
-			classLogger.error("Command Failed " + gitCommand);
-			throw new RuntimeException();
-		}
 	}
 
 	@Override
@@ -98,7 +94,7 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "This is a required field containing the project id of a project";
-		} else if (key.equals(ReactorKeysEnum.COMMIT_ID_KEY.getKey())) {
+		} else if (key.equals(COMMIT_ID_KEY)) {
 			return "This is a required field containing the commit id of a project";
 		}
 		return super.getDescriptionForKey(key);
