@@ -11,6 +11,11 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.lib.Ref;
+
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -66,20 +71,20 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 
-		String gitGetLogCommand=null;
+		String gitGetLogCommand = null;
 		try {
-			
+
 			gitGetLogCommand = "git log --pretty=format:%H%n%an%n%ae%n%ad%n%s";
-			String[] command=gitGetLogCommand.split(" ");
+			String[] command = gitGetLogCommand.split(" ");
 			ProcessBuilder builder = new ProcessBuilder(command);
 			IProject project = Utility.getProject(projectId);
 			filePath = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 			builder.directory(new File(filePath));
 			Process process = builder.start();
-			
+
 			int exitCode = process.waitFor();
 			if (exitCode != 0) {
-				classLogger.error("Command Failed "+gitGetLogCommand);
+				classLogger.error("Command Failed " + gitGetLogCommand);
 				throw new RuntimeException();
 			}
 
@@ -98,6 +103,35 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 				details.put("author", authorDetails);
 				details.put("date", lines[i + 3]);
 				details.put("commitMessage", lines[i + 4]);
+
+				Git thisGit = null;
+				List<String> tags = new ArrayList<>();
+
+				try {
+					thisGit = Git.open(new File(filePath));
+					ObjectId commitObjectId = thisGit.getRepository().resolve(lines[i]);
+					RevCommit commit = thisGit.getRepository().parseCommit(commitObjectId);
+
+					// Iterate over all tags
+					for (Ref tagRef : thisGit.tagList().call()) {
+						RevCommit tagCommit = thisGit.getRepository()
+								.parseCommit(thisGit.getRepository().peel(tagRef).getObjectId());
+
+						if (tagCommit.equals(commit)) {
+							String tagName = tagRef.getName().replace("refs/tags/", "");
+							tags.add(tagName);
+						}
+					}
+				} catch (Exception e) {
+					throw new IllegalArgumentException("CommitId not found: " + lines[i], e);
+				} finally {
+					if (thisGit != null) {
+						thisGit.close();
+					}
+				}
+
+				details.put("tags",tags);
+
 				commits.add(details);
 			}
 
