@@ -794,7 +794,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	public JsonArray getSearchResultsWithFilters(JsonObject searchObject) {
 		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
 		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(HttpHeaders.AUTHORIZATION, getCredsBase64Encoded());
+		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
 
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, searchObject.toString(), ContentType.APPLICATION_JSON, null, null, null);
