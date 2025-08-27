@@ -223,21 +223,55 @@ class OpenAIMessageBuilder:
                 else ("response_format", schema)  # Pydantic model
             )
         elif self.chat_type == "responses":
-            return (
-                (
+            if schema_type == "dict":
+                # Ensure the schema has additionalProperties set to False for responses API
+                processed_schema = self._ensure_additional_properties_false(schema)
+                return (
                     "text",
                     {
                         "format": {
                             "type": "json_schema",
                             "name": "schema_name",
-                            "schema": schema,
+                            "schema": processed_schema,
                             "strict": True,
                         }
                     },
                 )
-                if schema_type == "dict"
-                else ("text", schema)  # Pydantic model
-            )
+            else:
+                return ("text", schema)  # Pydantic model
+
+    def _ensure_additional_properties_false(self, schema: dict) -> dict:
+        """
+        Recursively ensure that all objects in the schema have additionalProperties set to False.
+        This is required for OpenAI's responses API strict mode.
+        """
+        if not isinstance(schema, dict):
+            return schema
+
+        # Make a deep copy to avoid modifying the original
+        import copy
+
+        processed_schema = copy.deepcopy(schema)
+
+        def process_object(obj):
+            if isinstance(obj, dict):
+                # If this is a JSON schema object definition
+                if obj.get("type") == "object" or "properties" in obj:
+                    # Set additionalProperties to False if not already specified
+                    if "additionalProperties" not in obj:
+                        obj["additionalProperties"] = False
+
+                # Recursively process all nested objects
+                for key, value in obj.items():
+                    if isinstance(value, dict):
+                        process_object(value)
+                    elif isinstance(value, list):
+                        for item in value:
+                            if isinstance(item, dict):
+                                process_object(item)
+
+        process_object(processed_schema)
+        return processed_schema
 
     def convert_mcp_to_openai_chat_completions_tools(
         self, mcp_tools: List[Dict]
