@@ -33,24 +33,29 @@ public class GoogleCalendarHelper {
 			.setPrettyPrinting()
 			.create();
 	
+	private static final String STATUS_KEY = "status";
+	private static final String ID = "id"; // eventId
+	
 	private static final String UNTIL2 = "UNTIL=";
 	private static final String FREQ = "FREQ=";
 	private static final String RRULE = "RRULE:";
-	private static final String AUDIO = "audio";
-	private static final String VIDEO = "video";
+
 	private static final String UNTIL_PREFIX = ";UNTIL=";
+	private static final String RRULE_PREFIX = "RRULE:FREQ=";
+
 	private static final String NONE = "NONE";
 	private static final String WEEKLY = "WEEKLY";
 	private static final String DAILY = "DAILY";
-	private static final String STATUS_KEY = "status";
 	private static final String CALENDAR_ID = "primary";
 	private static final String SUMMARY = "summary";
 	private static final String LOCATION = "location";
 	private static final String DESCRIPTION = "description";
+	
 	private static final String START = "start";
 	private static final String END = "end";
 	private static final String DATE_TIME = "dateTime";
 	private static final String TIME_ZONE = "timeZone";
+	
 	private static final String ATTENDEES = "attendees";
 	private static final String EMAIL = "email";
 	private static final String REMINDERS = "reminders";
@@ -66,16 +71,13 @@ public class GoogleCalendarHelper {
 	private static final String CONFERENCE_SOLUTION_KEY = "conferenceSolutionKey";
 	private static final String TYPE = "type";
 	private static final String HANGOUTS_MEET = "hangoutsMeet";
-	private static final String ID = "id"; // eventId
 	private static final String HTML_LINK = "htmlLink";
 	private static final String LINK = "link";
 	private static final String RESPONSE_STATUS = "responseStatus";
 	private static final String ORGANIZER = "organizer";
 	private static final String HANGOUT_LINK = "hangoutLink";
 	private static final String RECURRENCE = "recurrence";
-	private static final String FREQUENCY = "frequency";
-	private static final String UNTIL = "until";
-	private static final String RRULE_PREFIX = "RRULE:FREQ=";
+	
 	private static final String SINGLE_EVENT = "singleEvent";
 	private static final String RECURRING_EVENT_ID = "recurringEventId";
 	private static final String START_TIME = "startTime";
@@ -95,8 +97,6 @@ public class GoogleCalendarHelper {
     private static final String ITEMS = "items";
     private static final String NEXT_PAGE_TOKEN = "nextPageToken";
     
-    private static final String systemTimeZone = ZoneId.systemDefault().toString();
-    
     private static final String GOOGLE_CALENDAR_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events?conferenceDataVersion=1";
 	private static final String GOOGLE_CALENDAR_EVENT_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/primary/events/%s";
 	private static final String GOOGLE_CALENDAR_UPDATE_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events/%s?conferenceDataVersion=1";
@@ -106,21 +106,22 @@ public class GoogleCalendarHelper {
 
 	}
     
-	/**
-	 * 
-	 * @param accessToken
-	 * @param summary
-	 * @param location
-	 * @param desc
-	 * @param startdatetime
-	 * @param enddatetime
-	 * @param attendeeEmails
-	 * @param enableVideoConferencing
-	 * @return
-	 * @throws Exception
-	 */
+    /**
+     * 
+     * @param accessToken
+     * @param summary
+     * @param location
+     * @param desc
+     * @param startdatetime
+     * @param enddatetime
+     * @param zoneId
+     * @param attendeeEmails
+     * @param enableVideoConferencing
+     * @return
+     * @throws Exception
+     */
 	public static Map<String, Object> createEvent(String accessToken, String summary, String location, String desc,
-			String startdatetime, String enddatetime, List<String> attendeeEmails, Boolean enableVideoConferencing)
+			String startdatetime, String enddatetime, ZoneId zoneId, List<String> attendeeEmails, Boolean enableVideoConferencing)
 			throws Exception {
 		try {
 			String url = String.format(GOOGLE_CALENDAR_URL_TEMPLATE, CALENDAR_ID);
@@ -132,12 +133,12 @@ public class GoogleCalendarHelper {
 
 			Map<String, Object> start = new HashMap<>();
 			start.put(DATE_TIME, startdatetime);
-			start.put(TIME_ZONE, systemTimeZone);
+			start.put(TIME_ZONE, zoneId.getId());
 			event.put(START, start);
 
 			Map<String, Object> end = new HashMap<>();
 			end.put(DATE_TIME, enddatetime);
-			end.put(TIME_ZONE, systemTimeZone);
+			end.put(TIME_ZONE, zoneId.getId());
 			event.put(END, end);
 			
 			List<Map<String, Object>> attendees = new ArrayList<>();
@@ -199,6 +200,11 @@ public class GoogleCalendarHelper {
 	 */
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> readEvent(String accessToken, String id) throws Exception {
+		final String FREQUENCY = "frequency";
+		final String UNTIL = "until";
+		final String AUDIO = "audio";
+		final String VIDEO = "video";
+		
 		try {
 			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
 			String url = String.format(GOOGLE_CALENDAR_EVENT_URL_TEMPLATE, id);
@@ -276,6 +282,7 @@ public class GoogleCalendarHelper {
 	 * @param desc
 	 * @param startdatetime
 	 * @param enddatetime
+	 * @param zoneId
 	 * @param attendeeEmails
 	 * @param frequency
 	 * @param until
@@ -283,11 +290,9 @@ public class GoogleCalendarHelper {
 	 * @return
 	 * @throws Exception
 	 */
-	@SuppressWarnings("unused")
 	public static Boolean updateEvent(String accessToken, String id, String summary, String location, String desc,
-			String startdatetime, String enddatetime, List<String> attendeeEmails, String frequency, String until,
+			String startdatetime, String enddatetime, ZoneId zoneId, List<String> attendeeEmails, String frequency, String until,
 			Boolean enableVideoConferencing) throws Exception {
-
 		try {
 			String url = String.format(GOOGLE_CALENDAR_UPDATE_URL_TEMPLATE, CALENDAR_ID, id);
 
@@ -298,12 +303,12 @@ public class GoogleCalendarHelper {
 
 			Map<String, Object> start = new HashMap<>();
 			start.put(DATE_TIME, startdatetime);
-			start.put(TIME_ZONE, systemTimeZone);
+			start.put(TIME_ZONE, zoneId.getId());
 			event.put(START, start);
 
 			Map<String, Object> end = new HashMap<>();
 			end.put(DATE_TIME, enddatetime);
-			end.put(TIME_ZONE, systemTimeZone);
+			end.put(TIME_ZONE, zoneId.getId());
 			event.put(END, end);
 
 			List<Map<String, Object>> attendees = new ArrayList<>();
@@ -347,8 +352,7 @@ public class GoogleCalendarHelper {
 
 			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
 			String jsonBody = GSON.toJson(event);
-			String response = HttpHelperUtility.putRequestStringBody(url, headers, jsonBody,
-					ContentType.APPLICATION_JSON, null, null, null);
+			HttpHelperUtility.putRequestStringBody(url, headers, jsonBody, ContentType.APPLICATION_JSON, null, null, null);
 			return true;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -386,6 +390,7 @@ public class GoogleCalendarHelper {
 	 * @param description
 	 * @param startdatetime
 	 * @param enddatetime
+	 * @param zoneId
 	 * @param attendeeEmails
 	 * @param frequency
 	 * @param until
@@ -394,7 +399,7 @@ public class GoogleCalendarHelper {
 	 * @throws Exception
 	 */
 	public static Map<String, Object> recurringEvent(String accessToken, String summary, String location,
-			String description, String startdatetime, String enddatetime, List<String> attendeeEmails, String frequency,
+			String description, String startdatetime, String enddatetime, ZoneId zoneId, List<String> attendeeEmails, String frequency,
 			String until, Boolean enableVideoConferencing) throws Exception {
 		try {
 			if (frequency == null) {
@@ -413,12 +418,12 @@ public class GoogleCalendarHelper {
 			
 			Map<String, Object> start = new HashMap<>();
 			start.put(DATE_TIME, startdatetime);
-			start.put(TIME_ZONE, systemTimeZone);
+			start.put(TIME_ZONE, zoneId.getId());
 			event.put(START, start);
 
 			Map<String, Object> end = new HashMap<>();
 			end.put(DATE_TIME, enddatetime);
-			end.put(TIME_ZONE, systemTimeZone);
+			end.put(TIME_ZONE, zoneId.getId());
 			event.put(END, end);
 			List<Map<String, Object>> attendees = new ArrayList<>();
 			for (String email : attendeeEmails) {
@@ -468,7 +473,7 @@ public class GoogleCalendarHelper {
 	 */
 	@SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> getEventList(String accessToken, String startDateTime, String endDateTime) throws Exception {
-        Map<String,List<List<String>>> events = new LinkedHashMap<>();
+        Map<String, List<List<String>>> events = new LinkedHashMap<>();
 		String url = String.format(GOOGLE_CALENDAR_LIST_TEMPLATE, CALENDAR_ID);
         String pageToken = null;
         do {
@@ -489,6 +494,7 @@ public class GoogleCalendarHelper {
             }
             fullUrl.setLength(fullUrl.length() - 1);
             String response = HttpHelperUtility.getRequest(fullUrl.toString(), headers, null, null, null);
+            
             Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
             List<Map<String, Object>> items = (List<Map<String, Object>>) json.get(ITEMS);
             if (items != null && !items.isEmpty()) {
@@ -513,7 +519,7 @@ public class GoogleCalendarHelper {
         } while (pageToken != null);
         
 	    if (events.isEmpty()) {
-	        classLogger.info("No Events Found In The Given Date Range");
+	        classLogger.info("No events found in the given date range");
 	    }
 	    
 	    List<Map<String, Object>> eventList = new ArrayList<>();

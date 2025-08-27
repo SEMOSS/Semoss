@@ -1,5 +1,6 @@
 package prerna.io.connector.google.calendar;
 
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,6 +18,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 	
@@ -87,9 +89,15 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 			        }
 			    }
 			}
+			
+			ZoneId zoneId = user.getZoneId();
+			if(zoneId == null) {
+				zoneId = Utility.getApplicationZoneIdObj();
+			}
+			
 			boolean video = Boolean.parseBoolean(enablevideo);
 			boolean result = GoogleCalendarHelper.updateEvent(accessToken, id, summary, location, desc, startdatetime,
-					enddatetime, attendeeEmails, frequency, until, video);
+					enddatetime, zoneId, attendeeEmails, frequency, until, video);
 			Map<String, Object> map = new HashMap<>();
 			map.put(STATUS_KEY, result);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);

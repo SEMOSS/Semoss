@@ -1,5 +1,6 @@
 package prerna.io.connector.google.calendar;
 
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 	
@@ -70,16 +72,21 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 					}
 				}
 			}
+			
+			ZoneId zoneId = user.getZoneId();
+			if(zoneId == null) {
+				zoneId = Utility.getApplicationZoneIdObj();
+			}
 			boolean video = Boolean.parseBoolean(enablevideo);
 			boolean isRecurring = frequency != null && !frequency.isEmpty() && !frequency.equals(NONE);
 			if (!isRecurring) {
 				Map<String, Object> result = GoogleCalendarHelper.createEvent(accessToken, summary, location, desc, startdatetime,
-						enddatetime, attendeeEmails, video);
+						enddatetime, zoneId, attendeeEmails, video);
 			    return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 			}
 			else {
 				Map<String, Object> result = GoogleCalendarHelper.recurringEvent(accessToken, summary, location, desc,
-						startdatetime, enddatetime, attendeeEmails, frequency, until, video);
+						startdatetime, enddatetime, zoneId, attendeeEmails, frequency, until, video);
 			    return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 			}
 		} catch(SemossPixelException e) {
