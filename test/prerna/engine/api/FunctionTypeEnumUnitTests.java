@@ -5,8 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
-import prerna.engine.api.FunctionTypeEnum;
-import prerna.engine.impl.function.AWSTextractFunctionEngine;
+import prerna.engine.impl.function.AWSTextractCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine;
 import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
@@ -17,9 +16,9 @@ public class FunctionTypeEnumUnitTests {
 	
 	@Test
 	void testAWSTextract() {
-		FunctionTypeEnum testEnum = FunctionTypeEnum.AWS_TEXTRACT;
+		FunctionTypeEnum testEnum = FunctionTypeEnum.AWS_TEXTRACT_CUSTOM_EMBEDDINGS;
 		assertEquals("AWS_TEXTRACT", testEnum.getFunctionName());
-		assertEquals(AWSTextractFunctionEngine.class.getName(), testEnum.getFunctionClass());
+		assertEquals(AWSTextractCustomEmbeddingsFunctionEngine.class.getName(), testEnum.getFunctionClass());
 	}
 
 	@Test

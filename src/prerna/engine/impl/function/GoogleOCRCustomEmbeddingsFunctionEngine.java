@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.longrunning.OperationFuture;
 import com.google.api.gax.paging.Page;
@@ -24,11 +27,11 @@ import com.google.cloud.documentai.v1.BatchProcessRequest;
 import com.google.cloud.documentai.v1.BatchProcessResponse;
 import com.google.cloud.documentai.v1.Document;
 import com.google.cloud.documentai.v1.DocumentOutputConfig;
+import com.google.cloud.documentai.v1.DocumentOutputConfig.GcsOutputConfig;
 import com.google.cloud.documentai.v1.DocumentProcessorServiceClient;
 import com.google.cloud.documentai.v1.DocumentProcessorServiceSettings;
 import com.google.cloud.documentai.v1.GcsDocument;
 import com.google.cloud.documentai.v1.GcsDocuments;
-import com.google.cloud.documentai.v1.DocumentOutputConfig.GcsOutputConfig;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Bucket;
@@ -45,25 +48,22 @@ import prerna.reactor.export.pdf.PDFUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEngine implements ICustomEmbeddingsFunctionEngine {
 
-public class GoogleOCRFunctionEngine extends AbstractFunctionEngine implements ICustomEmbeddingsFunctionEngine {
-
-	private static final Logger classLogger = LogManager.getLogger(GoogleOCRFunctionEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleOCRCustomEmbeddingsFunctionEngine.class);
 
 	private static final String DIR_SEPARATOR = "/";
 
-	public static final String BUCKETENGINEID = "GOOGLE_BUCKET_ENGINEID";
-	public static final String OUTPUTBUCKET = "gcp-service-repos";
-	public static final String SMSS_KEY_SERVICE_ACCOUNT_CREDENTIALS = "SERVICE_ACCOUNT_CREDENTIALS";
-	public static final String REGION = "REGION";
-	public static final String PROJECT_ID = "PROJECT_ID";
-	public static final String PROCESSOR_ID = "PROCESSOR_ID";
-	public static final String SUB_FOLDER = "ocr/";
-	public static final String BUCKET_PREFIX = "gs://";
-	public static final String JSON_EXT = ".json";
-	public static final String OUTPUT = "output";
+	private static final String BUCKETENGINEID = "GOOGLE_BUCKET_ENGINEID";
+	private static final String OUTPUTBUCKET = "gcp-service-repos";
+	private static final String SMSS_KEY_SERVICE_ACCOUNT_CREDENTIALS = "SERVICE_ACCOUNT_CREDENTIALS";
+	private static final String REGION = "REGION";
+	private static final String PROJECT_ID = "PROJECT_ID";
+	private static final String PROCESSOR_ID = "PROCESSOR_ID";
+	private static final String SUB_FOLDER = "ocr/";
+	private static final String BUCKET_PREFIX = "gs://";
+	private static final String JSON_EXT = ".json";
+	private static final String OUTPUT = "output";
 
 	private String projectId;
 	private String processorId;
@@ -130,7 +130,6 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine implements I
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		}
-
 	}
 
 	@Override
@@ -167,10 +166,10 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine implements I
 					OUTPUTBUCKET + DIR_SEPARATOR + SUB_FOLDER + fileToProcess.getName(), metadata);
 
 			classLogger.info(WAITING_INFO);
+			String fileName = fileToProcess.getName();
 			extractedTextFromDoc = getExtractedText(fileToProcess);
 			for (int i = 0; i < extractedTextFromDoc.size(); i++) {
-				int k = i + 1;
-				writer.writeRow(fileToProcess.getName(), String.valueOf(k), extractedTextFromDoc.get(i));
+				writer.writeRow(fileName, String.valueOf(i + 1), extractedTextFromDoc.get(i));
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -309,7 +308,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine implements I
 
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		return FunctionTypeEnum.GOOGLE_OCR.name();
+		return FunctionTypeEnum.GOOGLE_OCR_CUSTOM_EMBEDDINGS.name();
 	}
 
 }

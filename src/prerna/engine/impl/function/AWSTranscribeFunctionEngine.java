@@ -76,13 +76,12 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 	private String bucketEngineId;
 	private boolean vectorDbProcessor = false;
 	private String vectorDbProcessorId;
-	AmazonTranscribe transcribeClient = null;
-	AmazonS3 s3Client = null;
-	IVectorDatabaseEngine vectorDatabase = null;
+	private AmazonTranscribe transcribeClient = null;
+	private AmazonS3 s3Client = null;
+	private IVectorDatabaseEngine vectorDatabase = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
-		
 		// preset these - don't need user to define
 		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "AWS Transcribe - For Use With Vector Database Engines");
 		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute AWS Transcribe");
@@ -321,7 +320,7 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		return FunctionTypeEnum.AWS_TEXTRACT.name();
+		return FunctionTypeEnum.AWS_TRANSCRIBE.name();
 	}
 
 }
