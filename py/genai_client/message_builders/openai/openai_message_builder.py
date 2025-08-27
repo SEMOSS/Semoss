@@ -112,6 +112,7 @@ class OpenAIMessageBuilder:
                         param_map["tools"] = self.convert_mcp_to_openai_responses_tools(
                             param_map["tools"]
                         )
+                        param_map["stream"] = False
 
                     openai_messages, param_map = self._clean_param_map_for_responses(
                         openai_messages, param_map
@@ -129,6 +130,7 @@ class OpenAIMessageBuilder:
                                 param_map["tools"]
                             )
                         )
+                        param_map["stream"] = False
 
                     openai_messages, param_map = (
                         self._clean_param_map_for_chat_completions(
