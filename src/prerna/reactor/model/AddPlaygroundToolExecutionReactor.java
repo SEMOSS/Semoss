@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
@@ -23,79 +25,82 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-
 /**
- * AddToolExecutionReactor:
- *   Input: roomId, toolId, toolName, tool_execution_response
+ * AddToolExecutionReactor: Input: roomId, toolId, toolName,
+ * tool_execution_response
  */
 public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
+
+	private static final Gson GSON = new GsonBuilder()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping()
+			.create();
 	
-    private static final Gson gson = new Gson();
+	public AddPlaygroundToolExecutionReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0
+				"roomId", // 1
+				"toolId", // 2
+				"toolName", // 3
+				"tool_execution_response", // 4
+				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey() // 5
+		};
+		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 0 };
+	}
 
-    public AddPlaygroundToolExecutionReactor() {
-        this.keysToGet = new String[]{
-        	ReactorKeysEnum.ENGINE.getKey(),		
-            "roomId",          // 1
-            "toolId",          // 2
-            "toolName",        // 3
-            "tool_execution_response" // 4
-        };
-        this.keyRequired = new int[]{1, 1, 1, 1, 1};
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String modelId = this.keyValue.get(this.keysToGet[0]);
+		String roomId = this.keyValue.get(this.keysToGet[1]);
+		String toolId = this.keyValue.get(this.keysToGet[2]);
+		String toolName = this.keyValue.get(this.keysToGet[3]);
+		String toolResponseRaw = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[4]));
+		String parentMessageId = this.keyValue.get(this.keysToGet[5]);
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        String modelId    = this.keyValue.get(this.keysToGet[0]);
-        String roomId    = this.keyValue.get(this.keysToGet[1]);
-        String toolId    = this.keyValue.get(this.keysToGet[2]);
-        String toolName  = this.keyValue.get(this.keysToGet[3]);
-        String toolResponseRaw = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[4]));
+		User user = this.insight.getUser();
+		String userId = user.getPrimaryLoginToken().getId();
 
-        User user = this.insight.getUser();
-        String userId = user.getPrimaryLoginToken().getId();
+		if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
+			throw new IllegalArgumentException(
+					"Model " + modelId + " does not exist or user does not have access to this model");
+		}
+		IModelEngine modelEngine = Utility.getModel(modelId);
 
-    	if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
-    		throw new IllegalArgumentException(
-    				"Model " + modelId + " does not exist or user does not have access to this model");
-    	}
-    	IModelEngine modelEngine = Utility.getModel(modelId);
-
-        // --- 1. Security/room loading ---
-        if (!ModelInferenceLogsUtils.validUserRoom(roomId, userId)) {
-            throw new IllegalArgumentException("User does not have access to room " + roomId);
-        }
+		// --- 1. Security/room loading ---
+		if (!ModelInferenceLogsUtils.validUserRoom(roomId, userId)) {
+			throw new IllegalArgumentException("User does not have access to room " + roomId);
+		}
 		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 
-        List<AbstractMessage> messages = room.getMessages();
-        if (messages.isEmpty()) {
-            throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
-        }
+		List<AbstractMessage> messages = room.getMessages();
+		if (messages.isEmpty()) {
+			throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
+		}
 
-        AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw, modelEngine, insight);
-        
-        Map<String, Object> pixelReturn = new HashMap<>();
+		AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
+				parentMessageId, modelEngine, insight);
 
+		Map<String, Object> pixelReturn = new HashMap<>();
+		if (response == null) {
+			pixelReturn.put("responseMessage",
+					"Tool output added successfully. Additional tool executions required to continue");
+			return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
+		} else {
+			pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(room.getMessages().getLast())));
+			return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
+		}
+	}
 
-         if(response==null) {
-             pixelReturn.put("responseMessage", "Tool output added successfully. Additional tool executions required to continue");
-            return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
-        } else {
-            pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(room.getMessages().getLast())));
-            return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
-        }
-    }
-    
-    /**
-     * Converts a JSON object string to a Map<String, Object>
-     * @param json The JSON string (must be a JSON object: { ... })
-     * @return The parsed Map
-     */
-    public static Map<String, Object> jsonToMap(String json) {
-        if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
-            throw new IllegalArgumentException("Input must be a valid JSON object string.");
-        }
-        return gson.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
-    }
+	/**
+	 * Converts a JSON object string to a Map<String, Object>
+	 * 
+	 * @param json The JSON string (must be a JSON object: { ... })
+	 * @return The parsed Map
+	 */
+	public static Map<String, Object> jsonToMap(String json) {
+		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
+			throw new IllegalArgumentException("Input must be a valid JSON object string.");
+		}
+		return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
+	}
 }
-
