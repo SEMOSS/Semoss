@@ -390,6 +390,11 @@ public class MessageUtils {
 			Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
 			// we start the function name with _projectid_ so lets remove that
 			String responseProjectIdToolFunctionName = (String) responseToolMap.get("name");
+			if(!responseProjectIdToolFunctionName.startsWith("_")) {
+				// if the tool function doesn't start with _projectid_
+				// then this response is already in proper format for the FE
+				continue;
+			}
 			String[] responseProjectIdToolFunctionNameSplit = responseProjectIdToolFunctionName.substring(1).split("_", 2);
 			String projectId = responseProjectIdToolFunctionNameSplit[0];
 			String origFunctionName = responseProjectIdToolFunctionNameSplit[1];
@@ -400,6 +405,11 @@ public class MessageUtils {
 			JSONObject mcpToolsJson = mcpToolsJsonCache.get(projectId);
 			if(mcpToolsJson == null) {
 				IProject project = Utility.getProject(projectId);
+				if(project == null) {
+					// technically speaking you could have a function start with _
+					// but will assume this is in proper format
+					continue;
+				}
 				mcpToolsJson = MCPUtility.getAggregatedTools(project);
 				mcpToolsJsonCache.put(projectId, mcpToolsJson);
 			}
