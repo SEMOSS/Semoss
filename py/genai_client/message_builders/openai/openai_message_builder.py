@@ -144,15 +144,18 @@ class OpenAIMessageBuilder:
 
     def replace_string_false(self, obj):
         """
-        Recursively traverse a dict and replace
-        string 'False' with boolean False.
+        Recursively traverse a structure and replace string booleans with actual booleans.
         """
         if isinstance(obj, dict):
             return {k: self.replace_string_false(v) for k, v in obj.items()}
-        elif obj == "False" or obj == "false":  # exact string match
-            return False
-        else:
-            return obj
+        if isinstance(obj, list):
+            return [self.replace_string_false(v) for v in obj]
+        if isinstance(obj, str):
+            if obj.lower() == "false":
+                return False
+            if obj.lower() == "true":
+                return True
+        return obj
 
     def _get_structured_parameters_format(self, **param_map) -> Tuple[str, int, str]:
         """
