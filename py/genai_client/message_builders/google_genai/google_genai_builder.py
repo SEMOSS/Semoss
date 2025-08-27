@@ -18,7 +18,8 @@ class GoogleGenAIMessageBuilder:
         param_map = {}
         stream = False
 
-        pending_tool_response = False
+        pending_tool_responses = []
+        expected_tool_count = 0
 
         for i, message in enumerate(semoss_messages):
             parts = []
@@ -42,6 +43,8 @@ class GoogleGenAIMessageBuilder:
 
             elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
                 if message.tool_calls:
+                    expected_tool_count = len(message.tool_calls)
+
                     for tool_call in message.tool_calls:
                         parts.append(
                             Part.from_function_call(
@@ -56,16 +59,14 @@ class GoogleGenAIMessageBuilder:
                             parts=parts,
                         )
                     )
-                    pending_tool_response = True
 
             elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
-                if pending_tool_response:
-                    # im finding the tool name from the previous RESPONSE_TOOL message
+                if expected_tool_count > 0:
                     tool_name = None
                     for j in range(i - 1, -1, -1):
                         prev_msg = semoss_messages[j]
                         if prev_msg.type == SEMOSSMessageType.RESPONSE_TOOL:
-                            if prev_msg.tool_calls and prev_msg.tool_calls[0]:
+                            if prev_msg.tool_calls:
                                 for tool_call in prev_msg.tool_calls:
                                     if str(tool_call.get("id")) == str(
                                         message.tool_call_id
@@ -75,20 +76,21 @@ class GoogleGenAIMessageBuilder:
                             break
 
                     if tool_name and message.content:
-                        parts.append(
+                        pending_tool_responses.append(
                             Part.from_function_response(
                                 name=tool_name, response={"result": message.content}
                             )
                         )
 
-                        google_messages.append(
-                            Content(
-                                role=GoogleRoles.USER,
-                                parts=parts,
+                        if len(pending_tool_responses) == expected_tool_count:
+                            google_messages.append(
+                                Content(
+                                    role=GoogleRoles.USER,
+                                    parts=pending_tool_responses,
+                                )
                             )
-                        )
-
-                    pending_tool_response = False
+                            pending_tool_responses = []
+                            expected_tool_count = 0
 
             elif message.type == SEMOSSMessageType.RESPONSE_TEXT:
                 if message.content:
@@ -149,9 +151,11 @@ class GoogleGenAIMessageBuilder:
         Convert our CFG arguments to a GenerateContentConfig object.
         """
         context = kwargs.pop("context", None)
-        response_schema = kwargs.pop("schema", None)
+
+        structured_response_schema = kwargs.pop("schema", None)
+
         response_mime_type = kwargs.pop("response_mime_type", None)
-        if response_schema is not None and response_mime_type is None:
+        if structured_response_schema is not None and response_mime_type is None:
             response_mime_type = "application/json"
 
         tools = kwargs.pop("tools", None)
@@ -182,7 +186,7 @@ class GoogleGenAIMessageBuilder:
             frequency_penalty=kwargs.pop("frequency_penalty", None),
             # TODO: Pass this from the init.. this lives in smss
             safety_settings=None,
-            response_schema=response_schema,
+            response_schema=structured_response_schema,
             response_mime_type=response_mime_type,
             tools=tools,
         )

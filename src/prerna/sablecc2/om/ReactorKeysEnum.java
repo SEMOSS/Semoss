@@ -207,7 +207,7 @@ public enum ReactorKeysEnum {
 	PROP_FILE("propFile", 									    "The path to the properties file."),
 	PROVIDER("provider", 									    "The provider for authorization (i.e. Gitlab/Github)"),
 	RANDOM_VALS("randomVals",									"The number of random values to use for the routine"),
-	QUERY_PART("querypart",										"Specify the query part that is being replaced. This will help toward REPL"),	
+	QUERY_PART("querypart",										"Specify the query part that is being replaced. This will help toward REPL"),
 	REACTOR("reactor", 											"Reactor name"),
 	RECIPE("recipe", 											"Recipe that shows the sequence of pixels resulting in the insight"),
 	RECIPE_PARAMETERS("recipeParameters", 						"Parameters for the recipe to execute on the insight recipe"),
@@ -228,6 +228,7 @@ public enum ReactorKeysEnum {
 	SCALE("scale", 												"How much to scale the graph, default value is set at 20 based on screen size"),
 	SCHEMA("schema",                	                        "The database schema."),
 	SEARCH("search",											"The search term."),
+	SEARCH_RESULTS("searchResults", 							"The result list from a search"),
 	SECTION("section", 											"The section to use as input from addBlockReactor"),
 	SEPARATOR("separator",										"Separator for file processing to be used. Defaults to \\r\\n\\r\\n"),
 	SESSION_ID("sessionId", 									"Id of the session"),
@@ -290,7 +291,8 @@ public enum ReactorKeysEnum {
 	WIDTH("width", 											    "The width to use for screenshot capture"),
 	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
 	X("x",		 											    "The X coordiante."),
-	Y("y",		 											    "The Y coordiante.");
+	Y("y",		 											    "The Y coordiante."),
+	;
 
 	private String key;
 	private String description;

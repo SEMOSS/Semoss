@@ -113,46 +113,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
 					room.getMessagesAsString());
 		} else if(response.getMessageType() == MessageType.RESPONSE_TOOL) {
-			Map<String, JSONObject> mcpToolsJsonCache = new HashMap<>();
-			List<Map<String, Object>> toolResponses = response.getToolResponses();
-			for(int toolResponseIndex = 0; toolResponseIndex < toolResponses.size(); toolResponseIndex++) {
-				Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
-				String responseToolFunctionName = (String) responseToolMap.get("name");
-				Map<String, Object> responseToolArguments = (Map<String, Object>) responseToolMap.get("arguments");
-				// we appended a SMSS_PROJECT_ID tool key
-				String projectId = (String) responseToolArguments.remove(MCPUtility.SMSS_PROJECT_ID);
-				
-				// now that we have the projectId
-				// lets append some of the mcp metadata back into the response
-				
-				JSONObject mcpToolsJson = mcpToolsJsonCache.get(projectId);
-				if(mcpToolsJson == null) {
-					IProject project = Utility.getProject(projectId);
-					mcpToolsJson = MCPUtility.getAggregatedTools(project);
-					mcpToolsJsonCache.put(projectId, mcpToolsJson);
-				}
-				
-				if(mcpToolsJson != null) {
-					JSONArray mcpToolsArray = mcpToolsJson.getJSONArray("tools");
-					JSONObject mcpTool = null;
-					PROJECT_MCP_LOOP : for(int toolIndex = 0; toolIndex < mcpToolsArray.length(); toolIndex++) {
-						JSONObject _tool = mcpToolsArray.getJSONObject(toolIndex);
-						if(_tool.has("name") && _tool.getString("name").equals(responseToolFunctionName)) {
-							mcpTool = _tool;
-							break PROJECT_MCP_LOOP;
-						}
-					}
-					
-					// add back the title from mcp structure
-					if(mcpTool != null && mcpTool.has("title")) {
-						responseToolMap.put("title", mcpTool.getString("title"));
-					}
-					
-					if(mcpToolsJson.has("_meta")) {
-						responseToolMap.put("_meta", mcpToolsJson.get("_meta"));
-					}
-				}
-			}
+			MessageUtils.updateToolResponseWithProjectMeta(response);
 		}
 
 		// ---- Return both messages as a Map
@@ -172,7 +133,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	private List<Map<String, Object>> getToolJson(String appId) {
 		IProject project = Utility.getProject(appId);
 		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTools(appId, toolMap);
+		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTooslMethodName(appId, toolMap);
 		if(updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
