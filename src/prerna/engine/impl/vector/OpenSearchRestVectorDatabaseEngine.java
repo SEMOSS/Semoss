@@ -581,7 +581,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			replacements.put("FROM", Integer.toString(size-remainingToFetch + baseFrom));
 			replacements.put("SIZE", Integer.toString(batchSize));
 			replacements.put("FILTER", filter);
-			replacements.put("QUERY", StringEscapeUtils.escapeJava(searchStatement));
+			replacements.put("QUERY", gson.toJson(searchStatement));
 			replacements.put("EMBEDDINGS", this.embeddings);
 			replacements.put("VECTOR", vectorString);
 			replacements.put("K", Integer.toString(k));
