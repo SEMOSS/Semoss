@@ -754,7 +754,12 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				}
 				metaData.add(data);
 			}
-			searchAfter = sources.getLast();
+			
+			if(sources.isEmpty() || pageResult.isEmpty()) {
+				break;
+			} else {
+				searchAfter = sources.getLast();
+			}
 			
 			remainingToFetch -= batchSize;
 		} while(remainingToFetch > 0);
