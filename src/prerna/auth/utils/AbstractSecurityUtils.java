@@ -885,6 +885,43 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
+			
+			// notification: PROJECTNOTIFICATION
+			// check if column exists
+			colNames = new String[] { "NOTIFICATIONID", "RECIPIENTID", "RECIPIENTTYPE", "NOTIFICATIONTITLE", "MESSAGE", "ACTIONTYPE", 
+                                      "ACTIONTARGET", "ISREAD", "PRIORITY", "NOTIFICATIONTYPE", "PROJECTID", "CREATEDBY", "CREATEDAT", 
+					                  "READAT", "NOTIFICATIONSOURCE", "USERID", "USEREXISTINGROLE", "USERNEWROLE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)","VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "VARCHAR(50)",
+					               "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(20)", "VARCHAR(255)", "VARCHAR(255)","VARCHAR(255)", TIMESTAMP_DATATYPE_NAME,
+					               TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)","VARCHAR(255)" };
+			defaultValues = new Object[]{null, null, null, "NOTIFICATION", null, "NEW",
+					                     null, false, "MEDIUM", null, null, null, null,
+					                     null, null};  //U CAN UTILIZE THIS IN TABLECREATION//CHECK DEF VALUES COMING OR NOT //UPDATE IT AS PER NEW TABLE STRUCT**
+			if(allowIfExistsTable) {
+				     String sql = queryUtil.createTableIfNotExists("PROJECT_NOTIFICATION", colNames, types);
+				     classLogger.info("Running sql " + sql);
+							securityDb.insertData(sql);
+						} else {
+							// see if table exists
+							if(!queryUtil.tableExists(conn, "PROJECT_NOTIFICATION", database, schema)) {
+								// make the table
+								String sql = queryUtil.createTable("PROJECT_NOTIFICATION", colNames, types);
+								classLogger.info("Running sql " + sql);
+								securityDb.insertData(sql);
+							}
+						}
+						if(allowIfExistsIndexs) {
+							String sql = queryUtil.createIndexIfNotExists("PROJECT_NOTIFICATION_NOTIFICATIONID_INDEX", "PROJECT_NOTIFICATION", "NOTIFICATIONID");
+							classLogger.info("Running sql " + sql);
+							securityDb.insertData(sql);
+						} else {
+							// see if index exists
+							if(!queryUtil.indexExists(securityDb, "PROJECT_NOTIFICATION_NOTIFICATIONID_INDEX", "PROJECT_NOTIFICATION", database, schema)) {
+								String sql = queryUtil.createIndex("PROJECT_NOTIFICATION_NOTIFICATIONID_INDEX", "PROJECT_NOTIFICATION", "NOTIFICATIONID");
+								classLogger.info("Running sql " + sql);
+								securityDb.insertData(sql);
+							}
+						}
 	
 			// PROJECTPERMISSION
 			boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema);

@@ -557,4 +557,19 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
+	
+	// notification:  start
+		/**
+		 * Get User Notifications for a logged in user
+		 * @param userId
+		 * @return
+		 */
+		/*public static List<String> getAllUserNotifications(User user) {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__NOTIFICATIONID"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT_NOTIFICATION__RECIPIENTID", "==", getUserFiltersQs(user)));
+			List<String> notificationsList = QueryExecutionUtility.flushToListString(securityDb, qs);
+			return notificationsList;
+		}*/
+		//END
 }

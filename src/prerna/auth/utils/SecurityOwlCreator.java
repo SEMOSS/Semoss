@@ -29,6 +29,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PERMISSION");
 		conceptsRequired.add("PROJECT");
 		conceptsRequired.add("PROJECTPERMISSION");
+		conceptsRequired.add("PROJECT_NOTIFICATION"); // notification
 		conceptsRequired.add("PROJECTMETA");
 		conceptsRequired.add("PROJECTMETAKEYS");
 		conceptsRequired.add("PROJECTDEPENDENCIES");
@@ -99,10 +100,10 @@ public class SecurityOwlCreator {
 		
 		{
 			// dont need to keep adding a million things to this list
-			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SESSION_SHARE/IS_SESSION_SHARE")) {
-				return true;
+			// just need the latest change ...                                                                PROJECT_NOTIFICATION
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PROJECT_NOTIFICATION");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PROJECT_NOTIFICATION")) {
+				return true;                                                  //PROJECT_NOTIFICATION
 			}
 		}
 		
@@ -218,6 +219,28 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTPERMISSION", "DATEADDED", "TIMESTAMP");
 		owler.addProp("PROJECTPERMISSION", "ENDDATE", "TIMESTAMP");
 		
+		
+		// notification: PROJECT_NOTIFICATION**
+		owler.addConcept("PROJECT_NOTIFICATION", null, null);
+		owler.addProp("PROJECT_NOTIFICATION", "NOTIFICATIONID", "VARCHAR(255)");
+		owler.addProp("PROJECT_NOTIFICATION", "RECIPIENTID", "VARCHAR(255)");
+		owler.addProp("PROJECT_NOTIFICATION", "RECIPIENTTYPE", "VARCHAR(255)");
+		owler.addProp("PROJECT_NOTIFICATION", "NOTIFICATIONTITLE", "VARCHAR(255)");
+		owler.addProp("PROJECT_NOTIFICATION", "MESSAGE", "CLOB");
+		owler.addProp("PROJECT_NOTIFICATION", "ACTIONTYPE", "VARCHAR(50)");
+		owler.addProp("PROJECT_NOTIFICATION", "ACTIONTARGET", "VARCHAR(255)");
+		owler.addProp("PROJECT_NOTIFICATION", "ISREAD", "BOOLEAN");
+		owler.addProp("PROJECT_NOTIFICATION", "PRIORITY", "VARCHAR(20)");
+		owler.addProp("PROJECT_NOTIFICATION", "NOTIFICATIONTYPE", "VARCHAR(255)");
+		owler.addProp("PROJECT_NOTIFICATION", "PROJECTID", "VARCHAR(255)");
+		owler.addProp("PROJECT_NOTIFICATION", "CREATEDBY", "VARCHAR(255)");
+	    owler.addProp("PROJECT_NOTIFICATION", "CREATEDAT", "TIMESTAMP");
+		owler.addProp("PROJECT_NOTIFICATION", "READAT", "TIMESTAMP");
+		owler.addProp("PROJECT_NOTIFICATION", "NOTIFICATIONSOURCE", "VARCHAR(255)");
+		owler.addProp("PROJECT_NOTIFICATION", "USERID", "VARCHAR(255)");
+		owler.addProp("PROJECT_NOTIFICATION", "USEREXISTINGROLE", "VARCHAR(255)");
+		owler.addProp("PROJECT_NOTIFICATION", "USERNEWROLE", "VARCHAR(255)");
+	
 		
 		// PROJECTMETA
 		owler.addConcept("PROJECTMETA", null, null);
