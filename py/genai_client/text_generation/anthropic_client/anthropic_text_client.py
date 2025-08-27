@@ -107,7 +107,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         # Handling new history format through message_json
         if self.ask_settings.semoss_messages:
-            msg_history = self._handle_semoss_msgs()
+            return self._handle_semoss_msgs()
 
         # Handling full prompt from Elsa...
         elif self.ask_settings.full_prompt:
