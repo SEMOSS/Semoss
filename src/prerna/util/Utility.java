@@ -159,6 +159,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
+import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -2630,9 +2631,11 @@ public final class Utility {
 			return getVectorDatabase(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return getFunctionEngine(engineId, pullIfNeeded);
+		} else if(IEngine.CATALOG_TYPE.GUARDRAIL == type) {
+			return getGuardrailEngine(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.VENV == type) {
 			return getVenvEngine(engineId, pullIfNeeded);
-		}
+		} 
 		
 		throw new IllegalArgumentException("Unknown engine type with value " + type);
 	}
@@ -2906,6 +2909,28 @@ public final class Utility {
 		// get the pipeline
 		engine = EngineProxyFactory.createGuardedFunctionEngine((IFunctionEngine) engine);
 		return (IFunctionEngine) engine;
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static IGuardrailReactorFunctionEngine getGuardrailEngine(String engineId) {
+		return getGuardrailEngine(engineId, true);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	public static IGuardrailReactorFunctionEngine getGuardrailEngine(String engineId, boolean pullIfNeeded) {
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedFunctionEngine((IFunctionEngine) engine);
+		return (IGuardrailReactorFunctionEngine) engine;
 	}
 	
 	/**
@@ -3773,6 +3798,31 @@ public final class Utility {
 				retProp.load(fis);
 			} catch (IOException ioe) {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
+				classLogger.error(Constants.STACKTRACE, ioe);
+			}
+		}
+		for (String name : retProp.stringPropertyNames()) {
+		    String value = retProp.getProperty(name);
+		    if (value != null) {
+		    	retProp.setProperty(name, value.trim());
+		    }
+		}
+		return retProp;
+	}
+	
+	/**
+	 * Loads the properties from a specified properties file.
+	 * 
+	 * @param file	File object to load
+	 * @return Properties The properties imported from the prop file.
+	 */
+	public static Properties loadProperties(File file) {
+		Properties retProp = new Properties();
+		if (file != null) {
+			try (FileInputStream fis = new FileInputStream(file)){
+				retProp.load(fis);
+			} catch (IOException ioe) {
+				classLogger.info("Unable to read properties file: " + Utility.normalizePath(file.getAbsolutePath()));
 				classLogger.error(Constants.STACKTRACE, ioe);
 			}
 		}

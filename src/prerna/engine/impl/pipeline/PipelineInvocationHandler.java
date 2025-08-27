@@ -27,7 +27,6 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.EngineUtility;
 
 /**
  * The invocation handler for the dynamic proxy. This class intercepts all method calls,
@@ -44,9 +43,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
      * 
      * @param realEngine
      */
-    public PipelineInvocationHandler(IEngine realEngine) {
+    public PipelineInvocationHandler(IEngine realEngine, File jsonFile) {
         this.realEngine = realEngine;
-        String pipelineJson = getJsonData(realEngine);
+        String pipelineJson = getJsonData(jsonFile);
         parseAndLoadPipelines(pipelineJson);
     }
 
@@ -54,7 +53,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String methodName = method.getName();
 
-        // Find the correct pipeline for the called method.
+        // Find the correct pipeline for the called method
         Pipeline specificPipeline = this.pipelinesMap.get(methodName);
         if (specificPipeline == null) {
             specificPipeline = this.pipelinesMap.get("*");
@@ -70,34 +69,38 @@ public class PipelineInvocationHandler implements InvocationHandler {
         // === INPUT PIPELINE EXECUTION ===
         try {
             for (IInputReactor reactor : specificPipeline.getInputPipeline()) {
+                // mapArguments will now also add argN parameters and set Insight
                 processedArguments = mapArguments(reactor, method, args);
+
                 NounStore inputNouns = new NounStore("input-pipeline");
-                
                 GenRowStruct grs = new GenRowStruct();
+                
+                // Add core context to processedArguments
                 processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
                 processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
                 processedArguments.put(PipelineReactorUtils.CONFIG, specificPipeline.getInputParams().get(inputIndex));
+                
                 grs.add(new NounMetadata(processedArguments, PixelDataType.MAP));
                 inputNouns.addNoun(PipelineReactorUtils.ARGUMENTS, grs);
                 reactor.setNounStore(inputNouns);
 
                 NounMetadata resultNoun = reactor.execute();
+                // Reactors return a NounMetadata whose value is the updated processedArguments map
                 processedArguments = (Map<String, Object>) resultNoun.getValue();
                 inputIndex++;
                 
-                // get the decision and if it is false
-                // stop the execution. 
-                Map resultMap = (Map <String, Object>) processedArguments.get(PipelineReactorUtils.INTERIM_RESULT);
+                Map<String, Object> resultMap = (Map<String, Object>) processedArguments.get(PipelineReactorUtils.INTERIM_RESULT);
                 boolean pass = (boolean)resultMap.get(PipelineReactorUtils.PASS);
-                if(!pass)
-                		throw new SecurityException("Input Guardrail issue detected");
-                
+                if(!pass) {
+                    throw new SecurityException("Input Guardrail issue detected");
+                }
             }
         } catch (SecurityException e) {
             classLogger.error("Input pipeline blocked execution for method " + methodName, e);
             throw e;
         }
 
+        // The unmapArguments method will now correctly use the updated processedArguments
         Object[] finalArgs = unmapArguments(method, processedArguments);
 
         // === ACTUAL METHOD EXECUTION ===
@@ -108,11 +111,25 @@ public class PipelineInvocationHandler implements InvocationHandler {
         // === OUTPUT PIPELINE EXECUTION ===
         inputIndex = 0;
         for (IOutputReactor reactor : specificPipeline.getOutputPipeline()) {
+            // mapArguments will now also add argN parameters and set Insight
+            // For output reactors, we need to ensure Insight is set if present.
+            // We can reuse mapArguments, but it will re-map the original args.
+            // It's better to just set Insight directly here if mapArguments is not called.
+            for (int i = 0; i < args.length; i++) {
+                if (args[i] instanceof Insight) {
+                    reactor.setInsight((Insight) args[i]);
+                    break;
+                }
+            }
+
             NounStore outputNouns = new NounStore("output-pipeline");
             GenRowStruct grs = new GenRowStruct();
+            
+            // Add core context to processedArguments for output reactors
             processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
             processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
             processedArguments.put(PipelineReactorUtils.CONFIG, specificPipeline.getOutputParams().get(inputIndex));
+            
             grs.add(new NounMetadata(processedArguments, PixelDataType.MAP));
             outputNouns.addNoun(PipelineReactorUtils.ARGUMENTS, grs);            
             reactor.setNounStore(outputNouns);
@@ -121,29 +138,64 @@ public class PipelineInvocationHandler implements InvocationHandler {
             processedArguments = (Map<String, Object>)resultNoun.getValue();
             inputIndex++;
             
-            // eval result	
-            Map resultMap = (Map <String, Object>) processedArguments.get(PipelineReactorUtils.INTERIM_RESULT);
+            Map<String, Object> resultMap = (Map <String, Object>) processedArguments.get(PipelineReactorUtils.INTERIM_RESULT);
             boolean pass = (boolean)resultMap.get(PipelineReactorUtils.PASS);
-            if(!pass)
-            		throw new SecurityException("Output Guardrail issue detected");
-
+            if(!pass) {
+        		throw new SecurityException("Output Guardrail issue detected");
+            }
         }
 
         return processedArguments.get(PipelineReactorUtils.RESULT);
     }
     
     /**
+     * Maps the method arguments into a Map, including both named parameters and argN.
+     * Also sets Insight on the reactor if present.
+     * @param reactor The reactor to set Insight on.
+     * @param method The method being invoked.
+     * @param args The arguments of the method.
+     * @return A Map containing the arguments.
+     */
+    private Map<String, Object> mapArguments(IReactor reactor, Method method, Object[] args) {
+        Map<String, Object> map = new HashMap<>();
+        Parameter[] parameters = method.getParameters();
+        for (int i = 0; i < parameters.length; i++) {
+            // Set Insight if present
+    		if(args[i] instanceof Insight) {
+    			reactor.setInsight((Insight)args[i]);
+    		}
+            // Add by parameter name
+            map.put(parameters[i].getName(), args[i]);
+            // Add by argN for consistent indexing
+            map.put("arg" + i, args[i]);
+        }
+        return map;
+    }
+
+    /**
+     * Reconstructs the method arguments array from the processed arguments map.
+     * @param method The method being invoked.
+     * @param argMap The map containing the processed arguments.
+     * @return An array of arguments.
+     */
+    private Object[] unmapArguments(Method method, Map<String, Object> argMap) {
+        Parameter[] parameters = method.getParameters();
+        Object[] args = new Object[parameters.length];
+        for (int i = 0; i < parameters.length; i++) {
+            args[i] = argMap.get(parameters[i].getName());
+        }
+        return args;
+    }
+
+    /**
      * 
-     * @param engine
+     * @param pipelineFile
      * @return
      */
-	private static String getJsonData(IEngine engine) {
+	private static String getJsonData(File pipelineFile) {
 		String jsonString = null;
 		try {
-			String versionFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(), engine.getEngineName());
-			String pipelineFile = versionFolder + "/" + engine.getSmssProp().getProperty(IEngine.PIPELINE);
-			pipelineFile = pipelineFile.replace("\\", "/");
-			jsonString = FileUtils.readFileToString(new File(pipelineFile), "UTF-8");
+			jsonString = FileUtils.readFileToString(pipelineFile, "UTF-8");
 		} catch (IOException e) {
         	classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -198,13 +250,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
             T reactor = reactorType.cast(clazz.newInstance());
             GenRowStruct grs = new GenRowStruct();
             if (config.has("params")) {
-                JSONObject params = config.getJSONObject("params");
                 NounStore nounStore = new NounStore("Reactor-params");
-                Map <String,Object> paramMap = new HashMap();
-                for (String key : params.keySet()) {
-                    Object value = params.get(key);
-                    paramMap.put(key, value);
-                }
+                Map <String,Object> paramMap = config.getJSONObject("params").toMap();
                 grs.add(new NounMetadata(paramMap, PixelDataType.MAP));
                 nounStore.addNoun("param", grs);
                 reactor.setNounStore(nounStore);
@@ -215,39 +262,6 @@ public class PipelineInvocationHandler implements InvocationHandler {
         	classLogger.error(Constants.STACKTRACE, e);
             throw new RuntimeException("Failed to create reactor: " + className, e);
         }
-    }
-
-    /**
-     * 
-     * @param reactor
-     * @param method
-     * @param args
-     * @return
-     */
-    private Map<String, Object> mapArguments(IReactor reactor, Method method, Object[] args) {
-        Map<String, Object> map = new HashMap<>();
-        Parameter[] parameters = method.getParameters();
-        for (int i = 0; i < parameters.length; i++) {
-        		if(args[i] instanceof Insight)
-        			reactor.setInsight((Insight)args[i]);
-            map.put(parameters[i].getName(), args[i]);
-        }
-        return map;
-    }
-
-    /**
-     * 
-     * @param method
-     * @param argMap
-     * @return
-     */
-    private Object[] unmapArguments(Method method, Map<String, Object> argMap) {
-        Parameter[] parameters = method.getParameters();
-        Object[] args = new Object[parameters.length];
-        for (int i = 0; i < parameters.length; i++) {
-            args[i] = argMap.get(parameters[i].getName());
-        }
-        return args;
     }
 
     /**

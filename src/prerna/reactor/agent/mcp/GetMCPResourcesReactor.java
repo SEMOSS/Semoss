@@ -43,9 +43,9 @@ public class GetMCPResourcesReactor extends GetMCPToolsReactor {
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(keyValue.get(keysToGet[0]));
 		// need to apply the same from java etc. 
 		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
-		JSONArray pyToolArray = getNode(jsonFileLoc, "resources");
+		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "resources");
 		jsonFileLoc = projectAssetFolder + "/mcp/java_mcp.json";
-		JSONArray javaToolArray = getNode(jsonFileLoc, "resources");
+		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "resources");
 		pyToolArray.putAll(javaToolArray);
 		
 		JSONObject toolMap = new JSONObject();

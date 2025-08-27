@@ -2,6 +2,7 @@ from typing import Any, Dict
 from ....message_builders.openai.openai_message_builder import OpenAIMessageBuilder
 from ..abstract_openai_client import AbstractOpenAiClient
 from ....constants import AskModelEngineResponse
+import json
 
 
 class OpenAIClientV2(AbstractOpenAiClient):
@@ -50,18 +51,30 @@ class OpenAIClientV2(AbstractOpenAiClient):
                     if content != None:
                         final_query += content
                         print(prefix + content, end="")
-            return AskModelEngineResponse(
-                response=final_query, response_tokens=0, prompt_tokens=0
-            )
+            response_tokens = 0
+            input_tokens = 0
         else:
             final_query = response.output_text
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
-        return AskModelEngineResponse(
+
+        # Returning a diff type of AskModelEngineResponse if there are tool calls
+        tool_calls = response.tools
+
+        if tool_calls:
+            return self._parse_tools_call_response(
+                response=response,
+                response_tokens=response_tokens,
+                prompt_tokens=input_tokens,
+            )
+
+        model_engine_response = AskModelEngineResponse(
             response=final_query,
             response_tokens=response_tokens,
             prompt_tokens=input_tokens,
         )
+
+        return model_engine_response
 
     def handle_chat_completion_response(
         self,
@@ -82,14 +95,63 @@ class OpenAIClientV2(AbstractOpenAiClient):
                         final_query += content
                         print(prefix + content, end="")
 
-            return AskModelEngineResponse(
-                response=final_query, response_tokens=0, prompt_tokens=0
-            )
+            response_tokens = 0
+            prompt_tokens = 0
         else:
-
             final_query = response.choices[0].message.content
             response_tokens = response.usage.completion_tokens
+            prompt_tokens = response.usage.prompt_tokens
 
-            return AskModelEngineResponse(
-                response=final_query, response_tokens=response_tokens, prompt_tokens=0
+        # Returning a diff type of AskModelEngineResponse if there are tool calls
+        tool_calls = response.choices[0].message.tool_calls
+        if tool_calls:
+            return self._parse_tools_call_response(
+                response=response,
+                response_tokens=response_tokens,
+                prompt_tokens=prompt_tokens,
             )
+
+        model_engine_response = AskModelEngineResponse(
+            response=final_query,
+            response_tokens=response_tokens,
+            prompt_tokens=prompt_tokens,
+        )
+
+        return model_engine_response
+
+    def _parse_tools_call_response(
+        self,
+        response: AskModelEngineResponse,
+        response_tokens: int,
+        prompt_tokens: int,
+    ) -> AskModelEngineResponse:
+        tools_result = []
+
+        if self.chat_type == "chat-completion":  # chat-completion
+            for i, tool_call in enumerate(response.choices[0].message.tool_calls):
+                tools_result.append(
+                    {
+                        "id": tool_call.id,
+                        "type": tool_call.type,
+                        "name": tool_call.function.name,
+                        "arguments": json.loads(tool_call.function.arguments),
+                    }
+                )
+
+        elif self.chat_type == "responses":  # responses
+            for i, tool_call in enumerate(response.output):
+                tools_result.append(
+                    {
+                        "id": tool_call.id,
+                        "type": tool_call.type,
+                        "name": tool_call.name,
+                        "arguments": json.loads(tool_call.arguments),
+                    }
+                )
+
+        return AskModelEngineResponse(
+            response=tools_result,
+            prompt_tokens=prompt_tokens,
+            response_tokens=response_tokens,
+            messageType="TOOL",
+        )
