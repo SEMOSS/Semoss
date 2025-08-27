@@ -1,4 +1,6 @@
 from typing import List, Dict, Any, Tuple, Union
+import json
+from pydantic import BaseModel
 from ...utils import get_image_extension
 from .openai_models import (
     OpenAIRoles,
@@ -96,6 +98,15 @@ class OpenAIMessageBuilder:
             if is_last:
                 param_map.update(message.param_map)
                 if self.chat_type == "responses":
+                    # Process structured json input
+                    has_schema = param_map.get("schema", False)
+                    if has_schema:
+                        # converting string to boolean for "additionalProperties" key
+                        param_map["schema"] = self.replace_string_false(
+                            param_map["schema"]
+                        )
+                        param_map = self._get_structured_parameters_format(**param_map)
+
                     # convert tools into openai responses format if present
                     if param_map.get("tools"):
                         param_map["tools"] = self.convert_mcp_to_openai_responses_tools(
@@ -106,6 +117,11 @@ class OpenAIMessageBuilder:
                         openai_messages, param_map
                     )
                 elif self.chat_type == "chat-completion":
+                    # Process structured json input
+                    has_schema = param_map.get("schema", False)
+                    if has_schema:
+                        param_map = self._get_structured_parameters_format(**param_map)
+
                     # convert tools into openai chat-completion format if present
                     if param_map.get("tools"):
                         param_map["tools"] = (
@@ -125,6 +141,100 @@ class OpenAIMessageBuilder:
                     raise ValueError(f"Invalid chat type: {self.chat_type}")
 
         return openai_messages, param_map
+
+    def replace_string_false(self, obj):
+        """
+        Recursively traverse a dict and replace
+        string 'False' with boolean False.
+        """
+        if isinstance(obj, dict):
+            return {k: self.replace_string_false(v) for k, v in obj.items()}
+        elif obj == "False" or obj == "false":  # exact string match
+            return False
+        else:
+            return obj
+
+    def _get_structured_parameters_format(self, **param_map) -> Tuple[str, int, str]:
+        """
+        1. Validate the schema and identify the schema type
+        2. Create the structured response format with the correct parameter name
+        3. Make the structured output call to the correct endpoint based on model type
+        4. Extract the structured output from the response
+        """
+        schema = param_map.pop("schema")
+        # Validating the schema and identifying the type
+        schema_type, schema = self._validate_structured_input(schema)
+        # Creating the structured response format with the correct parameter name
+        structured_param_name, structured_param_value = self._create_structured_format(
+            schema_type, schema
+        )
+        # Making new params so I can use dynamic keys
+        params = {structured_param_name: structured_param_value, **param_map}
+
+        return params
+
+    def _validate_structured_input(self, schema) -> Tuple[str, Any]:
+        """
+        Validate the input schema for structured output.
+        Returns a tuple with the schema type as string and the schema instance.
+        Convert to Dict if JSON..
+        """
+        if isinstance(schema, str):
+            # Attempting to parse as JSON
+            try:
+                return "dict", json.loads(schema)
+            except json.JSONDecodeError:
+                raise ValueError("Invalid JSON string provided for schema.")
+        elif isinstance(schema, dict):
+            # Validating that dict can be serialized to JSON
+            try:
+                json.dumps(schema, ensure_ascii=False)
+                return ("dict", schema)
+            except TypeError:
+                raise ValueError("Schema dict contains non-serializable values.")
+        elif isinstance(schema, BaseModel) or (
+            isinstance(schema, type) and issubclass(schema, BaseModel)
+        ):
+            # checking if Pydantic model
+            return ("pydantic", schema)
+        else:
+            raise ValueError("Schema must be a JSON string, dict, or Pydantic model.")
+
+    def _create_structured_format(self, schema_type, schema) -> Tuple[str, Any]:
+        """
+        Create the structure request format for structured output.
+        Returns a tuple with the parameter name as string and the parameter value.
+        These cases are different based on whether we are hitting OpenAI versus vLLM
+        and whether the schema is a dict or Pydantic model.
+        """
+        if self.chat_type == "chat-completion":
+            return (
+                (
+                    "response_format",
+                    {
+                        "type": "json_schema",
+                        "json_schema": {"name": "custom_schema", "schema": schema},
+                    },
+                )
+                if schema_type == "dict"
+                else ("response_format", schema)  # Pydantic model
+            )
+        elif self.chat_type == "responses":
+            return (
+                (
+                    "text",
+                    {
+                        "format": {
+                            "type": "json_schema",
+                            "name": "schema_name",
+                            "schema": schema,
+                            "strict": True,
+                        }
+                    },
+                )
+                if schema_type == "dict"
+                else ("text", schema)  # Pydantic model
+            )
 
     def convert_mcp_to_openai_chat_completions_tools(
         self, mcp_tools: List[Dict]
