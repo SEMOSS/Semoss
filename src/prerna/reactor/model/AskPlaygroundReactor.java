@@ -40,6 +40,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 	private static final Gson GSON = new GsonBuilder()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping()
 			.create();
 
     public AskPlaygroundReactor() {

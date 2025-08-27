@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -21,9 +24,13 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class Room {
+	
+	private static final Logger classLogger = LogManager.getLogger(Room.class);
+	
 	private String room_id;
 	private String userId;
 	private String roomName;
@@ -69,14 +76,27 @@ public class Room {
 		setMessagesFromString(this.messagesJson);
 	}
 	
+	/**
+	 * 
+	 * @param msg
+	 * @param systemMessage
+	 * @param modelEngine
+	 * @return
+	 */
 	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine) {
 		return ask( msg, systemMessage, modelEngine, null);
 	}
 
+	/**
+	 * 
+	 * @param msg
+	 * @param systemMessage
+	 * @param modelEngine
+	 * @param parentMessageId
+	 * @return
+	 */
 	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine, String parentMessageId) {
-
-		// if a specific system message is sent to use, overwrite the existing in the
-		// db.
+		// if a specific system message is sent to use, overwrite the existing in the db
 		if (systemMessage != null) {
 			this.systemMessage = systemMessage;
 			ModelInferenceLogsUtils.setRoomContext(this.insight.getInsightId(),
@@ -97,9 +117,7 @@ public class Room {
 	    }
 
 		// does the model have keep keep input output off or is use_history false? if so then just ask the model and send the response back. 
-
 	    if (!abstractModel.keepInputOutput || !useHistory) {
-	    	
 	    	String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
 	    	kwArgMap.put("message_json", singleMessageJson);
 
@@ -130,40 +148,45 @@ public class Room {
 			if(parentMessageId != null && !parentMessageId.isEmpty() ) {
 				msg.setParentMessageId(parentMessageId);
 			} else {
-			// if no parent message id is passed in, use the last message as the parent. 
-			AbstractMessage lastMsg = messages.get(messages.size() - 1);
-			msg.setParentMessageId(lastMsg.getMessageId());
+				// if no parent message id is passed in, use the last message as the parent. 
+				AbstractMessage lastMsg = messages.get(messages.size() - 1);
+				msg.setParentMessageId(lastMsg.getMessageId());
 			}
 		} else {
 			msg.setParentMessageId(null); // first message
 		}
-
-		messages.add(msg);
-
-		//String messageJsonString = getMessagesWithImageDataAsString();
-		String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, msg.getMessageId());
 		
-//		if (Boolean.TRUE == msg.getParamMap().getOrDefault("use_history", Boolean.TRUE)) {
-//			messageJsonString = getMessagesWithImageDataAsString();
-//		} else {
-//			messageJsonString = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
-//		}
-
-		kwArgMap.put("message_json", messageJsonString);
-
-		AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,
-				kwArgMap);
-		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
-
-		// set transaction id for both pieces
-		msg.setTransactionId(llmResponse.getMessageId());
-		msg.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
-		response.setTransactionId(llmResponse.getMessageId());
-
-		// Create the assistant's response message and add to history
-		response.setModel(modelEngine);
-		response.setParentMessageId(msg.getMessageId());
-		response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+		ResponseMessage response = null;
+		try {
+			// add the message
+			// note that the message must be sent in the message_json string
+			messages.add(msg);
+	
+			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, msg.getMessageId());
+			kwArgMap.put("message_json", messageJsonString);
+	
+			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,
+					kwArgMap);
+			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+	
+			// set transaction id for both pieces
+			msg.setTransactionId(llmResponse.getMessageId());
+			msg.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
+			response.setTransactionId(llmResponse.getMessageId());
+	
+			// Create the assistant's response message and add to history
+			response.setModel(modelEngine);
+			response.setParentMessageId(msg.getMessageId());
+			response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			// removing the last message from the message list
+			// because otherwise the chat history is all sorts of wonky
+			messages.removeLast();
+			throw e;
+		}
+		// the response was successful
+		// so we can now add the response to the list of messages
 		messages.add(response);
 
 		// Save the old (before) roomName for comparison
@@ -198,6 +221,15 @@ public class Room {
 		return response;
 	}
 
+	/**
+	 * 
+	 * @param toolCallId
+	 * @param tool_name
+	 * @param tool_execution_response
+	 * @param modelEngine
+	 * @param insight
+	 * @return
+	 */
 	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String tool_name,
 			String tool_execution_response, IModelEngine modelEngine, Insight insight) {
 		if (messages.isEmpty())
@@ -293,6 +325,11 @@ public class Room {
 		return null;
 	}
 
+	/**
+	 * 
+	 * @param llmResponse
+	 * @return
+	 */
 	private ResponseMessage createResponseMessage(AskModelEngineResponse llmResponse) {
 		if (llmResponse.getMessageType().equals(AskModelEngineResponse.CHAT)) {
 			return ResponseMessage.text(llmResponse.getStringResponse());

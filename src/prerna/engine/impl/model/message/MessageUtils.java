@@ -79,7 +79,8 @@ public class MessageUtils {
 	};
 
 	// For DB: skips "room", "insight", "socket", and "base64Data"
-	private static final Gson gsonForDB = new GsonBuilder()
+	private static final Gson GSON_FOR_DB = new GsonBuilder()
+			.disableHtmlEscaping()
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
@@ -96,7 +97,8 @@ public class MessageUtils {
 
 	// For Python: skips "room", "insight", "socket", "paramMap", includes
 	// base64Data
-	private static final Gson gsonForPy = new GsonBuilder()
+	private static final Gson GSON_FOR_PY = new GsonBuilder()
+			.disableHtmlEscaping()
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
@@ -119,21 +121,23 @@ public class MessageUtils {
 		MessageType type = MessageType.valueOf(jsonObj.get("type").getAsString());
 		AbstractMessage message = null;
 		switch (type) {
-		case RESPONSE_TEXT:
-		case RESPONSE_TOOL:
-			message = gsonForDB.fromJson(json, ResponseMessage.class);
-			break;
-		case INPUT_MEDIA:
-			message = gsonForDB.fromJson(json, InputMessage.class);
-			// re-encode the base64 from file.
-			for (ImageInfo imageInfo : ((InputMessage) message).getImageInfos()) {
-				imageInfo.setRoomFolder(room.getRoomFolderPath());
-				imageInfo.getBase64Data();
-			}
-			break;
-		case INPUT_TEXT:
-			message = gsonForDB.fromJson(json, InputMessage.class);
-			break;
+			case RESPONSE_TEXT:
+			case RESPONSE_TOOL:
+				message = GSON_FOR_DB.fromJson(json, ResponseMessage.class);
+				break;
+			case INPUT_MEDIA:
+				message = GSON_FOR_DB.fromJson(json, InputMessage.class);
+				// re-encode the base64 from file.
+				for (ImageInfo imageInfo : ((InputMessage) message).getImageInfos()) {
+					imageInfo.setRoomFolder(room.getRoomFolderPath());
+					imageInfo.getBase64Data();
+				}
+				break;
+			case INPUT_TEXT:
+				message = GSON_FOR_DB.fromJson(json, InputMessage.class);
+				break;
+			default:
+				classLogger.warn("Unhandled fromJSON for message type = " + type);
 		}
 		if (message != null) {
 			message.setRoom(room);
@@ -143,7 +147,7 @@ public class MessageUtils {
 
 	// Serialize any message to JSON (for DB)
 	public static String toJson(AbstractMessage msg) {
-		return gsonForDB.toJson(msg);
+		return GSON_FOR_DB.toJson(msg);
 	}
 
 	// Deserialize from JSON array string to List<AbstractMessage>
@@ -169,7 +173,7 @@ public class MessageUtils {
 		if (msgs == null || msgs.isEmpty()) {
 			return "[]";
 		}
-		return gsonForDB.toJson(msgs);
+		return GSON_FOR_DB.toJson(msgs);
 	}
 
 	
@@ -195,7 +199,7 @@ public class MessageUtils {
 				}
 			}
 		}
-		return gsonForPy.toJson(msgs);
+		return GSON_FOR_PY.toJson(msgs);
 	}
 	
 	public static List<AbstractMessage> getMessageBranch(List<AbstractMessage> messages, String latestMessageId) {
