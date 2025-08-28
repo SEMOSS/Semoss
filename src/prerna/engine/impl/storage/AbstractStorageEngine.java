@@ -26,64 +26,64 @@ import prerna.util.Utility;
 
 public abstract class AbstractStorageEngine extends AbstractEngine implements IStorageEngine {
 
-  /**
-   * Init the general storage values
-   *
-   * @param builder
-   * @throws Exception
-   */
-  public void open(Properties smssProp) throws Exception {
-    super.open(smssProp);
-  }
+	/**
+	 * Init the general storage values
+	 *
+	 * @param builder
+	 * @throws Exception
+	 */
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+	}
 
-  // Converts comma-separated local file/folder paths to List<Path>
-  protected List<Path> parseLocalPaths(String commaSeparatedPaths) throws Exception {
-    List<Path> result = new ArrayList<>();
-    String[] parts = commaSeparatedPaths.split(",");
+	// Converts comma-separated local file/folder paths to List<Path>
+	protected List<Path> parseLocalPaths(String commaSeparatedPaths) throws Exception {
+		List<Path> result = new ArrayList<>();
+		String[] parts = commaSeparatedPaths.split(",");
 
-    for (String part : parts) {
-      String trimmed = part.trim();
-      if (!trimmed.isEmpty()) {
-        result.add(Paths.get(trimmed));
-      }
-    }
+		for (String part : parts) {
+			String trimmed = part.trim();
+			if (!trimmed.isEmpty()) {
+				result.add(Paths.get(trimmed));
+			}
+		}
 
-    return result;
-  }
+		return result;
+	}
 
-  // Converts comma-separated cloud storage object paths to normalized String list
-  protected List<String> parseStorageObjectPaths(String commaSeparatedPaths) {
-    List<String> result = new ArrayList<>();
-    String[] parts = commaSeparatedPaths.split(",");
+	// Converts comma-separated cloud storage object paths to normalized String list
+	protected List<String> parseStorageObjectPaths(String commaSeparatedPaths) {
+		List<String> result = new ArrayList<>();
+		String[] parts = commaSeparatedPaths.split(",");
 
-    for (String part : parts) {
-      String trimmed = part.trim();
-      if (!trimmed.isEmpty()) {
-        // Normalize the path using the utility method
-        String normalized = Utility.normalizePath(trimmed);
-        // Remove the leading slash if present
-        if (normalized.startsWith("/")) {
-          normalized = normalized.substring(1);
-        }
-        result.add(normalized);
-      }
-    }
+		for (String part : parts) {
+			String trimmed = part.trim();
+			if (!trimmed.isEmpty()) {
+				// Normalize the path using the utility method
+				String normalized = Utility.normalizePath(trimmed);
+				// Remove the leading slash if present
+				if (normalized.startsWith("/")) {
+					normalized = normalized.substring(1);
+				}
+				result.add(normalized);
+			}
+		}
 
-    return result;
-  }
+		return result;
+	}
 
-  @Override
-  public IEngine.CATALOG_TYPE getCatalogType() {
-    return IEngine.CATALOG_TYPE.STORAGE;
-  }
+	@Override
+	public IEngine.CATALOG_TYPE getCatalogType() {
+		return IEngine.CATALOG_TYPE.STORAGE;
+	}
 
-  @Override
-  public String getCatalogSubType(Properties smssProp) {
-    return this.getStorageType().toString();
-  }
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return this.getStorageType().toString();
+	}
 
-  @Override
-  public boolean holdsFileLocks() {
-    return false;
-  }
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
 }

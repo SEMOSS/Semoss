@@ -32,71 +32,65 @@ import prerna.util.Utility;
 
 public class EnginePyReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(EnginePyReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(EnginePyReactor.class);
 
-  public EnginePyReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.CODE.getKey(), ReactorKeysEnum.ENGINE.getKey()};
-  }
+	public EnginePyReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.CODE.getKey(), ReactorKeysEnum.ENGINE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 
-    if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
-      throw new IllegalArgumentException("Must input an engine id");
-    }
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input an engine id");
+		}
 
-    User user = this.insight.getUser();
-    if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-      throw new IllegalArgumentException(
-          "Model "
-              + engineId
-              + " does not exist or user does not have editor access to this model");
-    }
+		User user = this.insight.getUser();
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException(
+					"Model " + engineId + " does not exist or user does not have editor access to this model");
+		}
 
-    String code = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
-    if (code == null || code.trim().isEmpty()) {
-      throw new IllegalArgumentException("Code parameter cannot be null or empty");
-    }
+		String code = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
+		if (code == null || code.trim().isEmpty()) {
+			throw new IllegalArgumentException("Code parameter cannot be null or empty");
+		}
 
-    IEngine rawEngine = Utility.getEngine(engineId);
-    if (!(rawEngine instanceof AbstractPythonModelEngine)) {
-      throw new IllegalArgumentException("Engine " + engineId + " is not a Python model engine");
-    }
-    AbstractPythonModelEngine engine = (AbstractPythonModelEngine) rawEngine;
+		IEngine rawEngine = Utility.getEngine(engineId);
+		if (!(rawEngine instanceof AbstractPythonModelEngine)) {
+			throw new IllegalArgumentException("Engine " + engineId + " is not a Python model engine");
+		}
+		AbstractPythonModelEngine engine = (AbstractPythonModelEngine) rawEngine;
 
-    PyTranslator enginePyTranslator = null;
-    Object output = null;
-    try {
-      enginePyTranslator = engine.getEnginePyTranslator();
-      output = enginePyTranslator.runScript(code);
-    } catch (IllegalArgumentException e) {
-      classLogger.warn(
-          "Invalid argument when getting PyTranslator for engine {}: {}", engineId, e.getMessage());
-      throw e;
-    } catch (IllegalStateException e) {
-      classLogger.error(
-          "Engine {} is not properly initialized or connection failed: {}",
-          engineId,
-          e.getMessage());
-      throw new IllegalArgumentException(
-          "Engine " + engineId + " is currently unavailable. Please try again later.", e);
+		PyTranslator enginePyTranslator = null;
+		Object output = null;
+		try {
+			enginePyTranslator = engine.getEnginePyTranslator();
+			output = enginePyTranslator.runScript(code);
+		} catch (IllegalArgumentException e) {
+			classLogger.warn("Invalid argument when getting PyTranslator for engine {}: {}", engineId, e.getMessage());
+			throw e;
+		} catch (IllegalStateException e) {
+			classLogger.error("Engine {} is not properly initialized or connection failed: {}", engineId,
+					e.getMessage());
+			throw new IllegalArgumentException(
+					"Engine " + engineId + " is currently unavailable. Please try again later.", e);
 
-    } catch (Exception e) {
-      classLogger.error(
-          "Unexpected error executing code on engine {}: {}", engineId, e.getMessage(), e);
-      throw new IllegalArgumentException(
-          "Failed to execute code on engine " + engineId + ": " + e.getMessage(), e);
-    }
+		} catch (Exception e) {
+			classLogger.error("Unexpected error executing code on engine {}: {}", engineId, e.getMessage(), e);
+			throw new IllegalArgumentException("Failed to execute code on engine " + engineId + ": " + e.getMessage(),
+					e);
+		}
 
-    if (output == null) {
-      classLogger.warn("Code execution returned null output for engine {}", engineId);
-      output = "";
-    }
+		if (output == null) {
+			classLogger.warn("Code execution returned null output for engine {}", engineId);
+			output = "";
+		}
 
-    List<NounMetadata> outputs = new ArrayList<>(1);
-    outputs.add(new NounMetadata(output + "", PixelDataType.CONST_STRING));
-    return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
-  }
+		List<NounMetadata> outputs = new ArrayList<>(1);
+		outputs.add(new NounMetadata(output + "", PixelDataType.CONST_STRING));
+		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
+	}
 }

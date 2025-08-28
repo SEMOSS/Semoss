@@ -26,32 +26,23 @@ import prerna.testing.ApiSemossTestUtils;
 
 public class AddVarReactorApiTests extends AbstractBaseSemossApiTests {
 
-  // @Test
-  public void testFullExecute() {
-    // keys (language and format aren't required)
-    String variable = "Test";
-    String frame = "{ContractsPSCCombined1}"; //
-    String expression = "x + y"; // expression that needs to be dynamically calculated
-    String language = "r"; // R Python or Java
-    String format = "jpeg"; // format to save as jpeg gif or png
-    String pixel =
-        ApiSemossTestUtils.buildPixelCall(
-            AddVarReactor.class,
-            ReactorKeysEnum.VARIABLE.getKey(),
-            variable,
-            ReactorKeysEnum.FRAME.getKey(),
-            frame,
-            ReactorKeysEnum.EXPRESSION.getKey(),
-            expression,
-            ReactorKeysEnum.LANGUAGE.getKey(),
-            language,
-            ReactorKeysEnum.FORMAT.getKey(),
-            format);
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+	// @Test
+	public void testFullExecute() {
+		// keys (language and format aren't required)
+		String variable = "Test";
+		String frame = "{ContractsPSCCombined1}"; //
+		String expression = "x + y"; // expression that needs to be dynamically calculated
+		String language = "r"; // R Python or Java
+		String format = "jpeg"; // format to save as jpeg gif or png
+		String pixel = ApiSemossTestUtils.buildPixelCall(AddVarReactor.class, ReactorKeysEnum.VARIABLE.getKey(),
+				variable, ReactorKeysEnum.FRAME.getKey(), frame, ReactorKeysEnum.EXPRESSION.getKey(), expression,
+				ReactorKeysEnum.LANGUAGE.getKey(), language, ReactorKeysEnum.FORMAT.getKey(), format);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 
-    assertNotNull(nm);
-    assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
-  }
+		assertNotNull(nm);
+		assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
+	}
 
-  public void testLangAndFormatNull() {}
+	public void testLangAndFormatNull() {
+	}
 }

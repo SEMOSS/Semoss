@@ -24,145 +24,134 @@ import prerna.engine.impl.rdf.SesameJenaSelectCheater;
 import prerna.om.GraphDataModel;
 
 /**
- * This class is responsible for handling various components related to the engine for the OWL file.
- * It loads concepts from the engine into the specified sesame engine.
+ * This class is responsible for handling various components related to the
+ * engine for the OWL file. It loads concepts from the engine into the specified
+ * sesame engine.
  */
 public class GraphOWLHelper {
 
-  static final Logger logger = LogManager.getLogger(GraphOWLHelper.class.getName());
+	static final Logger logger = LogManager.getLogger(GraphOWLHelper.class.getName());
 
-  /**
-   * Loads the hierarchy of concepts (subjects).
-   *
-   * @param rc Repository connection- interface for updating data in and performing queries on a
-   *     Sesame repository.
-   * @param subjects String
-   * @param objects String
-   * @param ps Graph playsheet.
-   * @throws Exception
-   */
-  public static void loadConceptHierarchy(
-      RepositoryConnection rc, String subjects, String objects, GraphDataModel ps)
-      throws Exception {
-    IDatabaseEngine sesameEngine = new InMemorySesameEngine();
-    ((InMemorySesameEngine) sesameEngine).setRepositoryConnection(rc);
-    String conceptHierarchyForSubject =
-        "SELECT ?Subject ?Predicate ?Object WHERE "
-            + "{"
-            + "{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Object}"
-            + "{?Subject ?Predicate ?Object}"
-            + "} BINDINGS ?Subject { "
-            + subjects
-            + objects
-            + " } "
-            + "";
+	/**
+	 * Loads the hierarchy of concepts (subjects).
+	 *
+	 * @param rc
+	 *            Repository connection- interface for updating data in and
+	 *            performing queries on a Sesame repository.
+	 * @param subjects
+	 *            String
+	 * @param objects
+	 *            String
+	 * @param ps
+	 *            Graph playsheet.
+	 * @throws Exception
+	 */
+	public static void loadConceptHierarchy(RepositoryConnection rc, String subjects, String objects, GraphDataModel ps)
+			throws Exception {
+		IDatabaseEngine sesameEngine = new InMemorySesameEngine();
+		((InMemorySesameEngine) sesameEngine).setRepositoryConnection(rc);
+		String conceptHierarchyForSubject = "SELECT ?Subject ?Predicate ?Object WHERE " + "{"
+				+ "{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Object}"
+				+ "{?Subject ?Predicate ?Object}" + "} BINDINGS ?Subject { " + subjects + objects + " } " + "";
 
-    System.err.println("Predicates are " + conceptHierarchyForSubject);
+		System.err.println("Predicates are " + conceptHierarchyForSubject);
 
-    SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
-    sjsc.setEngine(sesameEngine);
-    sjsc.setQuery(conceptHierarchyForSubject);
-    sjsc.execute();
+		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
+		sjsc.setEngine(sesameEngine);
+		sjsc.setQuery(conceptHierarchyForSubject);
+		sjsc.execute();
 
-    while (sjsc.hasNext()) {
-      // read the subject predicate object
-      // add it to the in memory jena model
-      // get the properties
-      // add it to the in memory jena model
-      SesameJenaConstructStatement st = sjsc.next();
-      PropertySpecData psd = ps.getPredicateData();
-      psd.addConcept(st.getObject() + "", st.getSubject() + "");
-    }
-  }
+		while (sjsc.hasNext()) {
+			// read the subject predicate object
+			// add it to the in memory jena model
+			// get the properties
+			// add it to the in memory jena model
+			SesameJenaConstructStatement st = sjsc.next();
+			PropertySpecData psd = ps.getPredicateData();
+			psd.addConcept(st.getObject() + "", st.getSubject() + "");
+		}
+	}
 
-  /**
-   * Loads the hierarchy of relations (predicates).
-   *
-   * @param rc Repository connection- interface for updating data in and performing queries on a
-   *     Sesame repository.
-   * @param predicates Type of predicates.
-   * @param ps GraphPlaySheet
-   * @throws Exception
-   */
-  public static void loadRelationHierarchy(
-      RepositoryConnection rc, String predicates, GraphDataModel ps) throws Exception {
-    IDatabaseEngine sesameEngine = new InMemorySesameEngine();
-    ((InMemorySesameEngine) sesameEngine).setRepositoryConnection(rc);
-    // same concept as the subject, but only for relations
-    String relationHierarchy =
-        "SELECT ?Subject ?Predicate ?Object WHERE "
-            + "{"
-            + "{?Subject ?Predicate ?Object}"
-            + "{?Subject <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?Object}"
-            + "} BINDINGS ?Subject { "
-            + predicates
-            + " } "
-            + ""; // relation hierarchy
+	/**
+	 * Loads the hierarchy of relations (predicates).
+	 *
+	 * @param rc
+	 *            Repository connection- interface for updating data in and
+	 *            performing queries on a Sesame repository.
+	 * @param predicates
+	 *            Type of predicates.
+	 * @param ps
+	 *            GraphPlaySheet
+	 * @throws Exception
+	 */
+	public static void loadRelationHierarchy(RepositoryConnection rc, String predicates, GraphDataModel ps)
+			throws Exception {
+		IDatabaseEngine sesameEngine = new InMemorySesameEngine();
+		((InMemorySesameEngine) sesameEngine).setRepositoryConnection(rc);
+		// same concept as the subject, but only for relations
+		String relationHierarchy = "SELECT ?Subject ?Predicate ?Object WHERE " + "{" + "{?Subject ?Predicate ?Object}"
+				+ "{?Subject <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?Object}" + "} BINDINGS ?Subject { "
+				+ predicates + " } " + ""; // relation hierarchy
 
-    SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
-    sjsc.setEngine(sesameEngine);
-    sjsc.setQuery(relationHierarchy);
-    sjsc.execute();
+		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
+		sjsc.setEngine(sesameEngine);
+		sjsc.setQuery(relationHierarchy);
+		sjsc.execute();
 
-    while (sjsc.hasNext()) {
-      // read the subject predicate object
-      // add it to the in memory jena model
-      // get the properties
-      // add it to the in memory jena model
-      SesameJenaConstructStatement st = sjsc.next();
-      PropertySpecData psd = ps.getPredicateData();
-      psd.addPredicate2(st.getObject() + "", st.getSubject());
-      // I have to have some logic which will add the type name
-      // basically the object is the main type
-      // subject is the subtype
-    }
-  }
+		while (sjsc.hasNext()) {
+			// read the subject predicate object
+			// add it to the in memory jena model
+			// get the properties
+			// add it to the in memory jena model
+			SesameJenaConstructStatement st = sjsc.next();
+			PropertySpecData psd = ps.getPredicateData();
+			psd.addPredicate2(st.getObject() + "", st.getSubject());
+			// I have to have some logic which will add the type name
+			// basically the object is the main type
+			// subject is the subtype
+		}
+	}
 
-  /**
-   * Loads the hierarchy of properties.
-   *
-   * @param rc Repository connection- interface for updating data in and performing queries on a
-   *     Sesame repository.
-   * @param predicates Predicates.
-   * @param containsRelation Type of relation.
-   * @param ps GraphPlaySheet
-   * @throws Exception
-   */
-  public static void loadPropertyHierarchy(
-      RepositoryConnection rc, String predicates, String containsRelation, GraphDataModel ps)
-      throws Exception {
-    IDatabaseEngine sesameEngine = new InMemorySesameEngine();
-    ((InMemorySesameEngine) sesameEngine).setRepositoryConnection(rc);
-    // same concept as the subject, but only for relations
-    String relationHierarchy =
-        "SELECT ?Subject ?Predicate ?Object WHERE "
-            + "{"
-            + "{?Subject ?Predicate ?Object}"
-            + "{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> "
-            + containsRelation
-            + " }"
-            + "} BINDINGS ?Subject { "
-            + predicates
-            + " } "
-            + ""; // relation hierarchy
+	/**
+	 * Loads the hierarchy of properties.
+	 *
+	 * @param rc
+	 *            Repository connection- interface for updating data in and
+	 *            performing queries on a Sesame repository.
+	 * @param predicates
+	 *            Predicates.
+	 * @param containsRelation
+	 *            Type of relation.
+	 * @param ps
+	 *            GraphPlaySheet
+	 * @throws Exception
+	 */
+	public static void loadPropertyHierarchy(RepositoryConnection rc, String predicates, String containsRelation,
+			GraphDataModel ps) throws Exception {
+		IDatabaseEngine sesameEngine = new InMemorySesameEngine();
+		((InMemorySesameEngine) sesameEngine).setRepositoryConnection(rc);
+		// same concept as the subject, but only for relations
+		String relationHierarchy = "SELECT ?Subject ?Predicate ?Object WHERE " + "{" + "{?Subject ?Predicate ?Object}"
+				+ "{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " + containsRelation + " }"
+				+ "} BINDINGS ?Subject { " + predicates + " } " + ""; // relation hierarchy
 
-    SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
-    sjsc.setEngine(sesameEngine);
-    sjsc.setQuery(relationHierarchy);
-    sjsc.execute();
+		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
+		sjsc.setEngine(sesameEngine);
+		sjsc.setQuery(relationHierarchy);
+		sjsc.execute();
 
-    while (sjsc.hasNext()) {
-      // read the subject predicate object
-      // add it to the in memory jena model
-      // get the properties
-      // add it to the in memory jena model
+		while (sjsc.hasNext()) {
+			// read the subject predicate object
+			// add it to the in memory jena model
+			// get the properties
+			// add it to the in memory jena model
 
-      SesameJenaConstructStatement st = sjsc.next();
-      PropertySpecData psd = ps.getPredicateData();
-      psd.addPredicate2(st.getObject() + "", st.getSubject());
-      // I have to have some logic which will add the type name
-      // basically the object is the main type
-      // subject is the subtype
-    }
-  }
+			SesameJenaConstructStatement st = sjsc.next();
+			PropertySpecData psd = ps.getPredicateData();
+			psd.addPredicate2(st.getObject() + "", st.getSubject());
+			// I have to have some logic which will add the type name
+			// basically the object is the main type
+			// subject is the subtype
+		}
+	}
 }

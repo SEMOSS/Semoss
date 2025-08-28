@@ -25,146 +25,131 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ThemeOwlCreator {
 
-  // each column name paired to its type in a var
-  private List<Pair<String, String>> adminThemeColumns = null;
-  private List<Pair<String, String>> blockThemeColumns = null;
+	// each column name paired to its type in a var
+	private List<Pair<String, String>> adminThemeColumns = null;
+	private List<Pair<String, String>> blockThemeColumns = null;
 
-  // Pairs table name with its respective columns
-  private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
+	// Pairs table name with its respective columns
+	private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
 
-  // concepts are tables within db
-  // props are cols w/i concepts
-  private static List<String> conceptsRequired = new ArrayList<>();
+	// concepts are tables within db
+	// props are cols w/i concepts
+	private static List<String> conceptsRequired = new ArrayList<>();
 
-  static {
-    conceptsRequired.add("ADMIN_THEME");
-    conceptsRequired.add("BLOCKS_TABLE");
-  }
+	static {
+		conceptsRequired.add("ADMIN_THEME");
+		conceptsRequired.add("BLOCKS_TABLE");
+	}
 
-  private IRDBMSEngine themesDb;
+	private IRDBMSEngine themesDb;
 
-  public ThemeOwlCreator(IRDBMSEngine modelInferenceDb) {
-    this.themesDb = modelInferenceDb;
-    createColumnsAndTypes(this.themesDb.getQueryUtil());
-  }
+	public ThemeOwlCreator(IRDBMSEngine modelInferenceDb) {
+		this.themesDb = modelInferenceDb;
+		createColumnsAndTypes(this.themesDb.getQueryUtil());
+	}
 
-  private void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
-    final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
-    final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
-    final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
+	private void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
+		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
+		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
+		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 
-    this.adminThemeColumns =
-        Arrays.asList(
-            Pair.with("ID", "VARCHAR(255)"),
-            Pair.with("THEME_NAME", "VARCHAR(255)"),
-            Pair.with("THEME_MAP", CLOB_DATATYPE_NAME),
-            Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME));
-    this.blockThemeColumns =
-        Arrays.asList(
-            Pair.with("ID", "VARCHAR(255)"),
-            Pair.with("NAME", "VARCHAR(255)"),
-            Pair.with("SECTION", "VARCHAR(255)"),
-            Pair.with("HOVER_TEXT", "VARCHAR(500)"),
-            Pair.with("BLOCK_JSON", CLOB_DATATYPE_NAME),
-            Pair.with("DATE_ADDED", TIMESTAMP_DATATYPE_NAME),
-            Pair.with("IS_LATEST", BOOLEAN_DATATYPE_NAME),
-            Pair.with("CREATED_BY", "VARCHAR(255)"));
+		this.adminThemeColumns = Arrays.asList(Pair.with("ID", "VARCHAR(255)"), Pair.with("THEME_NAME", "VARCHAR(255)"),
+				Pair.with("THEME_MAP", CLOB_DATATYPE_NAME), Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME));
+		this.blockThemeColumns = Arrays.asList(Pair.with("ID", "VARCHAR(255)"), Pair.with("NAME", "VARCHAR(255)"),
+				Pair.with("SECTION", "VARCHAR(255)"), Pair.with("HOVER_TEXT", "VARCHAR(500)"),
+				Pair.with("BLOCK_JSON", CLOB_DATATYPE_NAME), Pair.with("DATE_ADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("IS_LATEST", BOOLEAN_DATATYPE_NAME), Pair.with("CREATED_BY", "VARCHAR(255)"));
 
-    this.allSchemas =
-        Arrays.asList(
-            Pair.with("ADMIN_THEME", this.adminThemeColumns),
-            Pair.with("BLOCKS_TABLE", this.blockThemeColumns));
-  }
+		this.allSchemas = Arrays.asList(Pair.with("ADMIN_THEME", this.adminThemeColumns),
+				Pair.with("BLOCKS_TABLE", this.blockThemeColumns));
+	}
 
-  /**
-   * Determine if we need to remake the OWL
-   *
-   * @return
-   */
-  public boolean needsRemake() {
-    /*
-     * This is a very simple check
-     * Just looking at the tables
-     * Not doing anything with columns but should eventually do that
-     */
+	/**
+	 * Determine if we need to remake the OWL
+	 *
+	 * @return
+	 */
+	public boolean needsRemake() {
+		/*
+		 * This is a very simple check Just looking at the tables Not doing anything
+		 * with columns but should eventually do that
+		 */
 
-    List<String> cleanConcepts = new ArrayList<>();
-    List<String> concepts = themesDb.getPhysicalConcepts();
-    for (String concept : concepts) {
-      if (concept.equals("http://semoss.org/ontologies/Concept")) {
-        continue;
-      }
-      String cTable = Utility.getInstanceName(concept);
-      cleanConcepts.add(cTable);
-    }
+		List<String> cleanConcepts = new ArrayList<>();
+		List<String> concepts = themesDb.getPhysicalConcepts();
+		for (String concept : concepts) {
+			if (concept.equals("http://semoss.org/ontologies/Concept")) {
+				continue;
+			}
+			String cTable = Utility.getInstanceName(concept);
+			cleanConcepts.add(cTable);
+		}
 
-    if (!cleanConcepts.containsAll(conceptsRequired)) {
-      return true;
-    }
+		if (!cleanConcepts.containsAll(conceptsRequired)) {
+			return true;
+		}
 
-    // check all columns
-    for (Pair<String, List<Pair<String, String>>> tableWithColumns : allSchemas) {
-      String tableName = tableWithColumns.getValue0();
-      String[] columnNames =
-          tableWithColumns.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
+		// check all columns
+		for (Pair<String, List<Pair<String, String>>> tableWithColumns : allSchemas) {
+			String tableName = tableWithColumns.getValue0();
+			String[] columnNames = tableWithColumns.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
 
-      for (String columnName : columnNames) {
-        if (columnChecks(tableName, columnName)) {
-          return true;
-        }
-      }
-    }
+			for (String columnName : columnNames) {
+				if (columnChecks(tableName, columnName)) {
+					return true;
+				}
+			}
+		}
 
-    // does not need to be remade
-    return false;
-  }
+		// does not need to be remade
+		return false;
+	}
 
-  private boolean columnChecks(String tableName, String columnName) {
-    String propsURI = "http://semoss.org/ontologies/Concept/" + tableName;
-    String relationURI =
-        "http://semoss.org/ontologies/Relation/Contains/" + columnName + "/" + tableName;
+	private boolean columnChecks(String tableName, String columnName) {
+		String propsURI = "http://semoss.org/ontologies/Concept/" + tableName;
+		String relationURI = "http://semoss.org/ontologies/Relation/Contains/" + columnName + "/" + tableName;
 
-    List<String> props = themesDb.getPropertyUris4PhysicalUri(propsURI);
-    if (!props.contains(relationURI)) {
-      return true;
-    }
+		List<String> props = themesDb.getPropertyUris4PhysicalUri(propsURI);
+		if (!props.contains(relationURI)) {
+			return true;
+		}
 
-    return false;
-  }
+		return false;
+	}
 
-  /**
-   * Remake the OWL
-   *
-   * @throws Exception
-   */
-  public void remakeOwl() throws Exception {
-    try (WriteOWLEngine owlEngine = themesDb.getOWLEngineFactory().getWriteOWL()) {
-      owlEngine.createEmptyOWLFile();
-      // write the new OWL
-      writeNewOwl(owlEngine);
-    }
-  }
+	/**
+	 * Remake the OWL
+	 *
+	 * @throws Exception
+	 */
+	public void remakeOwl() throws Exception {
+		try (WriteOWLEngine owlEngine = themesDb.getOWLEngineFactory().getWriteOWL()) {
+			owlEngine.createEmptyOWLFile();
+			// write the new OWL
+			writeNewOwl(owlEngine);
+		}
+	}
 
-  /**
-   * Method that uses the OWLER to generate a new OWL structure
-   *
-   * @param owlLocation
-   * @throws Exception
-   */
-  private void writeNewOwl(WriteOWLEngine owler) throws Exception {
-    for (Pair<String, List<Pair<String, String>>> columns : allSchemas) {
-      String tableName = columns.getValue0();
-      owler.addConcept(tableName, null, null);
-      for (Pair<String, String> x : columns.getValue1()) {
-        owler.addProp(tableName, x.getValue0(), x.getValue1());
-      }
-    }
+	/**
+	 * Method that uses the OWLER to generate a new OWL structure
+	 *
+	 * @param owlLocation
+	 * @throws Exception
+	 */
+	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
+		for (Pair<String, List<Pair<String, String>>> columns : allSchemas) {
+			String tableName = columns.getValue0();
+			owler.addConcept(tableName, null, null);
+			for (Pair<String, String> x : columns.getValue1()) {
+				owler.addProp(tableName, x.getValue0(), x.getValue1());
+			}
+		}
 
-    owler.commit();
-    owler.export();
-  }
+		owler.commit();
+		owler.export();
+	}
 
-  public List<Pair<String, List<Pair<String, String>>>> getDBSchema() {
-    return this.allSchemas;
-  }
+	public List<Pair<String, List<Pair<String, String>>>> getDBSchema() {
+		return this.allSchemas;
+	}
 }

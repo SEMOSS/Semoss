@@ -27,55 +27,49 @@ import prerna.util.UploadInputUtility;
 
 public class PredictDataTypesReactor extends AbstractReactor {
 
-  private static final String CLASS_NAME = PredictDataTypesReactor.class.getName();
+	private static final String CLASS_NAME = PredictDataTypesReactor.class.getName();
 
-  public PredictDataTypesReactor() {
-    this.keysToGet =
-        new String[] {
-          UploadInputUtility.FILE_PATH,
-          UploadInputUtility.SPACE,
-          UploadInputUtility.DELIMITER,
-          UploadInputUtility.ROW_COUNT
-        };
-  }
+	public PredictDataTypesReactor() {
+		this.keysToGet = new String[]{UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE,
+				UploadInputUtility.DELIMITER, UploadInputUtility.ROW_COUNT};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    Logger logger = getLogger(CLASS_NAME);
-    logger.info("Extracting file headers and determinig data types");
-    organizeKeys();
-    String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
-    if (!new File(filePath).exists()) {
-      throw new IllegalArgumentException("Unable to locate file");
-    }
+	@Override
+	public NounMetadata execute() {
+		Logger logger = getLogger(CLASS_NAME);
+		logger.info("Extracting file headers and determinig data types");
+		organizeKeys();
+		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		if (!new File(filePath).exists()) {
+			throw new IllegalArgumentException("Unable to locate file");
+		}
 
-    String delimiter = UploadInputUtility.getDelimiter(this.store);
-    char delim = delimiter.charAt(0);
-    boolean rowCount = UploadInputUtility.getRowCount(this.store);
-    CSVFileHelper helper = new CSVFileHelper();
-    Map<String, Object> retMap = new HashMap<>();
-    try {
-      helper.setLogger(logger);
-      helper.setDelimiter(delim);
-      helper.parse(filePath);
-      Map[] predictionMaps =
-          FileHelperUtil.generateDataTypeMapsFromPrediction(
-              helper.getHeaders(), helper.predictTypes());
-      retMap.put("headers", helper.getFileOriginalHeaders());
-      retMap.put("cleanHeaders", helper.getHeaders());
-      retMap.put("dataTypes", predictionMaps[0]);
-      retMap.put("additionalDataTypes", predictionMaps[1]);
-      if (rowCount) {
-        // get the row count
-        int count = 1;
-        while ((helper.getNextRow()) != null) {
-          count++;
-        }
-        retMap.put("endRow", count);
-      }
-    } finally {
-      helper.clear();
-    }
-    return new NounMetadata(retMap, PixelDataType.MAP);
-  }
+		String delimiter = UploadInputUtility.getDelimiter(this.store);
+		char delim = delimiter.charAt(0);
+		boolean rowCount = UploadInputUtility.getRowCount(this.store);
+		CSVFileHelper helper = new CSVFileHelper();
+		Map<String, Object> retMap = new HashMap<>();
+		try {
+			helper.setLogger(logger);
+			helper.setDelimiter(delim);
+			helper.parse(filePath);
+			Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(),
+					helper.predictTypes());
+			retMap.put("headers", helper.getFileOriginalHeaders());
+			retMap.put("cleanHeaders", helper.getHeaders());
+			retMap.put("dataTypes", predictionMaps[0]);
+			retMap.put("additionalDataTypes", predictionMaps[1]);
+			if (rowCount) {
+				// get the row count
+				int count = 1;
+				while ((helper.getNextRow()) != null) {
+					count++;
+				}
+				retMap.put("endRow", count);
+			}
+		} finally {
+			helper.clear();
+		}
+		return new NounMetadata(retMap, PixelDataType.MAP);
+	}
 }

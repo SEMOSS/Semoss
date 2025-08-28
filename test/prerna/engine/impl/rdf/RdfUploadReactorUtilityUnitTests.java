@@ -37,86 +37,74 @@ import prerna.util.Constants;
 
 public class RdfUploadReactorUtilityUnitTests {
 
-  // Have a good start here. Need to get API tests in for this to understand real data
+	// Have a good start here. Need to get API tests in for this to understand real
+	// data
 
-  private RDFFileSesameEngine setupRdfFileSesameEngine(Path tempDir) throws Exception {
-    RDFFileSesameEngine engine = new RDFFileSesameEngine();
-    Path rdf = tempDir.resolve("rdf.owl");
-    Files.createDirectories(rdf.getParent());
-    URI uri = rdf.toUri();
-    String baseUri = uri.toString();
-    String rdfPath = rdf.toAbsolutePath().toString();
-    URL url = RdfUploadReactorUtility.class.getResource("movie-book-title.owl");
-    Path p = Paths.get(url.toURI());
-    Files.copy(p, rdf);
+	private RDFFileSesameEngine setupRdfFileSesameEngine(Path tempDir) throws Exception {
+		RDFFileSesameEngine engine = new RDFFileSesameEngine();
+		Path rdf = tempDir.resolve("rdf.owl");
+		Files.createDirectories(rdf.getParent());
+		URI uri = rdf.toUri();
+		String baseUri = uri.toString();
+		String rdfPath = rdf.toAbsolutePath().toString();
+		URL url = RdfUploadReactorUtility.class.getResource("movie-book-title.owl");
+		Path p = Paths.get(url.toURI());
+		Files.copy(p, rdf);
 
-    Properties props = new Properties();
-    props.setProperty(Constants.ENGINE, "engine-01");
-    props.setProperty(Constants.ENGINE_ALIAS, "ea");
-    props.setProperty(Constants.RDF_FILE_NAME, rdfPath);
-    props.setProperty(Constants.RDF_FILE_PATH, rdfPath);
-    props.setProperty(Constants.RDF_FILE_BASE_URI, baseUri);
-    props.setProperty(Constants.RDF_FILE_TYPE, "RDF/XML");
+		Properties props = new Properties();
+		props.setProperty(Constants.ENGINE, "engine-01");
+		props.setProperty(Constants.ENGINE_ALIAS, "ea");
+		props.setProperty(Constants.RDF_FILE_NAME, rdfPath);
+		props.setProperty(Constants.RDF_FILE_PATH, rdfPath);
+		props.setProperty(Constants.RDF_FILE_BASE_URI, baseUri);
+		props.setProperty(Constants.RDF_FILE_TYPE, "RDF/XML");
 
-    String typeQuery =
-        "SELECT ?entity WHERE {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <@entity@>;}";
-    props.setProperty(Constants.TYPE_QUERY, typeQuery);
+		String typeQuery = "SELECT ?entity WHERE {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <@entity@>;}";
+		props.setProperty(Constants.TYPE_QUERY, typeQuery);
 
-    engine.setBasic(true);
+		engine.setBasic(true);
 
-    engine.open(props);
+		engine.open(props);
 
-    return engine;
-  }
+		return engine;
+	}
 
-  private WriteOWLEngine setupWriteOwlEngine(Path tempDir) throws Exception {
-    Semaphore semaphore = new Semaphore(0);
-    RDFFileSesameEngine rdfFileSesameEngine = setupRdfFileSesameEngine(tempDir);
+	private WriteOWLEngine setupWriteOwlEngine(Path tempDir) throws Exception {
+		Semaphore semaphore = new Semaphore(0);
+		RDFFileSesameEngine rdfFileSesameEngine = setupRdfFileSesameEngine(tempDir);
 
-    WriteOWLEngine woe =
-        new WriteOWLEngine(
-            semaphore,
-            rdfFileSesameEngine,
-            IDatabaseEngine.DATABASE_TYPE.SESAME,
-            "engine-01",
-            "ea");
-    return woe;
-  }
+		WriteOWLEngine woe = new WriteOWLEngine(semaphore, rdfFileSesameEngine, IDatabaseEngine.DATABASE_TYPE.SESAME,
+				"engine-01", "ea");
+		return woe;
+	}
 
-  private IRDFDatabase setupDatabaseEngine() throws RepositoryException {
-    InMemorySesameEngine engine = new InMemorySesameEngine();
-    Repository myRepository =
-        new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
-    myRepository.initialize();
-    engine.setRepositoryConnection(myRepository.getConnection());
-    return engine;
-  }
+	private IRDFDatabase setupDatabaseEngine() throws RepositoryException {
+		InMemorySesameEngine engine = new InMemorySesameEngine();
+		Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
+		myRepository.initialize();
+		engine.setRepositoryConnection(myRepository.getConnection());
+		return engine;
+	}
 
-  @Test
-  void testLoadMetadataIntoEngine(@TempDir Path tempDir) throws Exception {
-    IRDFDatabase engine = setupDatabaseEngine();
-    try (WriteOWLEngine woe = setupWriteOwlEngine(tempDir)) {
-      RdfUploadReactorUtility.loadMetadataIntoEngine(engine, woe);
-    }
-    String query =
-        "ASK WHERE { \n"
-            + "<http://semoss.org/ontologies/Relation/Contains/BOOK/TITLE> ?p ?o .\n"
-            + "}";
-    Boolean bool = (Boolean) engine.execQuery(query);
-    assertTrue(bool);
-  }
+	@Test
+	void testLoadMetadataIntoEngine(@TempDir Path tempDir) throws Exception {
+		IRDFDatabase engine = setupDatabaseEngine();
+		try (WriteOWLEngine woe = setupWriteOwlEngine(tempDir)) {
+			RdfUploadReactorUtility.loadMetadataIntoEngine(engine, woe);
+		}
+		String query = "ASK WHERE { \n" + "<http://semoss.org/ontologies/Relation/Contains/BOOK/TITLE> ?p ?o .\n" + "}";
+		Boolean bool = (Boolean) engine.execQuery(query);
+		assertTrue(bool);
+	}
 
-  @Test
-  void testCreateRelationship(@TempDir Path tempDir) throws Exception {
-    IRDFDatabase engine = setupDatabaseEngine();
-    try (WriteOWLEngine woe = setupWriteOwlEngine(tempDir)) {
-      RdfUploadReactorUtility.loadMetadataIntoEngine(engine, woe);
-    }
-    String query =
-        "ASK WHERE { \n"
-            + "<http://semoss.org/ontologies/Relation/Contains/BOOK/TITLE> ?p ?o .\n"
-            + "}";
-    Boolean bool = (Boolean) engine.execQuery(query);
-    assertTrue(bool);
-  }
+	@Test
+	void testCreateRelationship(@TempDir Path tempDir) throws Exception {
+		IRDFDatabase engine = setupDatabaseEngine();
+		try (WriteOWLEngine woe = setupWriteOwlEngine(tempDir)) {
+			RdfUploadReactorUtility.loadMetadataIntoEngine(engine, woe);
+		}
+		String query = "ASK WHERE { \n" + "<http://semoss.org/ontologies/Relation/Contains/BOOK/TITLE> ?p ?o .\n" + "}";
+		Boolean bool = (Boolean) engine.execQuery(query);
+		assertTrue(bool);
+	}
 }

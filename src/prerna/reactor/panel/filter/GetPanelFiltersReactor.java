@@ -25,25 +25,23 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetPanelFiltersReactor extends AbstractFilterReactor {
 
-  public GetPanelFiltersReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PANEL.getKey()};
-  }
+	public GetPanelFiltersReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    InsightPanel panel = getInsightPanel();
-    GenRowFilters filters = null;
-    if (panel != null) {
-      filters = panel.getPanelFilters();
-    } else {
-      throw new IllegalArgumentException("No frame currently exists within the insight");
-    }
-    if (filters == null) {
-      // just return an empty list
-      return new NounMetadata(
-          new ArrayList<Object>(), PixelDataType.FILTER, PixelOperationType.PANEL_FILTER);
-    }
-    return new NounMetadata(
-        filters.getFormatedFilters(), PixelDataType.FILTER, PixelOperationType.PANEL_FILTER);
-  }
+	@Override
+	public NounMetadata execute() {
+		InsightPanel panel = getInsightPanel();
+		GenRowFilters filters = null;
+		if (panel != null) {
+			filters = panel.getPanelFilters();
+		} else {
+			throw new IllegalArgumentException("No frame currently exists within the insight");
+		}
+		if (filters == null) {
+			// just return an empty list
+			return new NounMetadata(new ArrayList<Object>(), PixelDataType.FILTER, PixelOperationType.PANEL_FILTER);
+		}
+		return new NounMetadata(filters.getFormatedFilters(), PixelDataType.FILTER, PixelOperationType.PANEL_FILTER);
+	}
 }

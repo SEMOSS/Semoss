@@ -54,327 +54,286 @@ import prerna.util.gson.GsonUtility;
 
 public class UploadEngineReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(UploadEngineReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(UploadEngineReactor.class);
 
-  private static final String CLASS_NAME = UploadEngineReactor.class.getName();
+	private static final String CLASS_NAME = UploadEngineReactor.class.getName();
 
-  public UploadEngineReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.FILE_PATH.getKey(),
-          ReactorKeysEnum.SPACE.getKey(),
-          ReactorKeysEnum.GLOBAL.getKey()
-        };
-  }
+	public UploadEngineReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
+				ReactorKeysEnum.GLOBAL.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    Logger logger = this.getLogger(CLASS_NAME);
-    int step = 1;
-    String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
-    // do we want this project to be accessible to everyone
-    boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
-    // check security
-    User user = this.insight.getUser();
-    if (user == null) {
-      NounMetadata noun =
-          new NounMetadata(
-              "User must be signed into an account in order to create or update an app",
-              PixelDataType.CONST_STRING,
-              PixelOperationType.ERROR,
-              PixelOperationType.LOGGIN_REQUIRED_ERROR);
-      SemossPixelException err = new SemossPixelException(noun);
-      err.setContinueThreadOfExecution(false);
-      throw err;
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		Logger logger = this.getLogger(CLASS_NAME);
+		int step = 1;
+		String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		// do we want this project to be accessible to everyone
+		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
+		// check security
+		User user = this.insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to create or update an app",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
 
-    // throw error if user is anonymous
-    if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-      throwAnonymousUserError();
-    }
+		// throw error if user is anonymous
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
-    // throw error is user doesn't have rights to publish new apps
-    if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
-      throwUserNotPublisherError();
-    }
+		// throw error is user doesn't have rights to publish new apps
+		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
+			throwUserNotPublisherError();
+		}
 
-    // creating a temp folder to unzip the engine folder and smss
-    String randomIdAsDir = UUID.randomUUID().toString();
-    String randomTempUnzipFolderPath =
-        this.insight.getInsightFolder() + DIR_SEPARATOR + randomIdAsDir;
-    File randomTempUnzipF = new File(randomTempUnzipFolderPath);
+		// creating a temp folder to unzip the engine folder and smss
+		String randomIdAsDir = UUID.randomUUID().toString();
+		String randomTempUnzipFolderPath = this.insight.getInsightFolder() + DIR_SEPARATOR + randomIdAsDir;
+		File randomTempUnzipF = new File(randomTempUnzipFolderPath);
 
-    // gotta keep track of the smssFile and files unzipped
-    Map<String, List<String>> filesAdded = new HashMap<>();
-    List<String> fileList = new ArrayList<>();
-    String smssFileLoc = null;
-    File smssFile = null;
-    // unzip files to temp db folder
-    boolean error = false;
-    try {
-      logger.info(step + ") Unzipping engine");
-      filesAdded = ZipUtils.unzip(zipFilePath, randomTempUnzipFolderPath);
-      logger.info(step + ") Done");
-      step++;
+		// gotta keep track of the smssFile and files unzipped
+		Map<String, List<String>> filesAdded = new HashMap<>();
+		List<String> fileList = new ArrayList<>();
+		String smssFileLoc = null;
+		File smssFile = null;
+		// unzip files to temp db folder
+		boolean error = false;
+		try {
+			logger.info(step + ") Unzipping engine");
+			filesAdded = ZipUtils.unzip(zipFilePath, randomTempUnzipFolderPath);
+			logger.info(step + ") Done");
+			step++;
 
-      // look for smss file
-      fileList = filesAdded.get("FILE");
-      logger.info(step + ") Searching for smss");
-      for (String filePath : fileList) {
-        if (filePath.endsWith(Constants.SEMOSS_EXTENSION)) {
-          smssFileLoc = randomTempUnzipFolderPath + DIR_SEPARATOR + filePath;
-          smssFile = new File(Utility.normalizePath(smssFileLoc));
-          // check if the file exists
-          if (!smssFile.exists()) {
-            // invalid file need to delete the files unzipped
-            smssFileLoc = null;
-          }
-          break;
-        }
-      }
-      logger.info(step + ") Done");
-      step++;
+			// look for smss file
+			fileList = filesAdded.get("FILE");
+			logger.info(step + ") Searching for smss");
+			for (String filePath : fileList) {
+				if (filePath.endsWith(Constants.SEMOSS_EXTENSION)) {
+					smssFileLoc = randomTempUnzipFolderPath + DIR_SEPARATOR + filePath;
+					smssFile = new File(Utility.normalizePath(smssFileLoc));
+					// check if the file exists
+					if (!smssFile.exists()) {
+						// invalid file need to delete the files unzipped
+						smssFileLoc = null;
+					}
+					break;
+				}
+			}
+			logger.info(step + ") Done");
+			step++;
 
-      // delete the files if we were unable to find the smss file
-      if (smssFileLoc == null) {
-        throw new SemossPixelException(
-            "Unable to find " + Constants.SEMOSS_EXTENSION + " file", false);
-      }
-    } catch (SemossPixelException e) {
-      error = true;
-      throw e;
-    } catch (Exception e) {
-      error = true;
-      logger.error(Constants.STACKTRACE, e);
-      throw new SemossPixelException("Error occurred while unzipping the files", false);
-    } finally {
-      if (error) {
-        cleanUpFolders(randomTempUnzipF);
-      }
-    }
+			// delete the files if we were unable to find the smss file
+			if (smssFileLoc == null) {
+				throw new SemossPixelException("Unable to find " + Constants.SEMOSS_EXTENSION + " file", false);
+			}
+		} catch (SemossPixelException e) {
+			error = true;
+			throw e;
+		} catch (Exception e) {
+			error = true;
+			logger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("Error occurred while unzipping the files", false);
+		} finally {
+			if (error) {
+				cleanUpFolders(randomTempUnzipF);
+			}
+		}
 
-    // need to know which type of Engine we are using
-    Properties prop = Utility.loadProperties(smssFileLoc);
-    logger.info(step + ") Reading smss");
-    String engineId = prop.getProperty(Constants.ENGINE);
-    String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-    Object[] typeAndSubtypeAndCost = SecurityEngineUtils.getEngineTypeAndSubTypeAndCost(prop);
-    IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndSubtypeAndCost[0];
+		// need to know which type of Engine we are using
+		Properties prop = Utility.loadProperties(smssFileLoc);
+		logger.info(step + ") Reading smss");
+		String engineId = prop.getProperty(Constants.ENGINE);
+		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+		Object[] typeAndSubtypeAndCost = SecurityEngineUtils.getEngineTypeAndSubTypeAndCost(prop);
+		IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndSubtypeAndCost[0];
 
-    // check if admin only
-    if (AbstractSecurityUtils.adminOnlyEngineAdd(engineType)
-        && !SecurityAdminUtils.userIsAdmin(user)) {
-      throwFunctionalityOnlyExposedForAdminsError();
-    }
+		// check if admin only
+		if (AbstractSecurityUtils.adminOnlyEngineAdd(engineType) && !SecurityAdminUtils.userIsAdmin(user)) {
+			throwFunctionalityOnlyExposedForAdminsError();
+		}
 
-    if (global
-        && (AbstractSecurityUtils.adminOnlyEngineSetPublic(engineType)
-            && !SecurityAdminUtils.userIsAdmin(user))) {
-      SemossPixelException exception =
-          new SemossPixelException(
-              NounMetadata.getErrorNounMessage(
-                  "User can upload an engine but cannot make the engine global"));
-      exception.setContinueThreadOfExecution(false);
-      throw exception;
-    }
+		if (global && (AbstractSecurityUtils.adminOnlyEngineSetPublic(engineType)
+				&& !SecurityAdminUtils.userIsAdmin(user))) {
+			SemossPixelException exception = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("User can upload an engine but cannot make the engine global"));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 
-    // do we have any other checks we want to make based on the SMSS
-    // let us do it now
-    if (engineType == IEngine.CATALOG_TYPE.STORAGE) {
-      String storageTypeStr = (String) typeAndSubtypeAndCost[1];
-      StorageTypeEnum storageType = null;
-      try {
-        storageType = StorageTypeEnum.getEnumFromName(storageTypeStr);
-      } catch (Exception e) {
-        throw new IllegalArgumentException("Invalid storage type " + storageTypeStr);
-      }
-      if (storageType == StorageTypeEnum.LOCAL_FILE_SYSTEM) {
-        // only admin can create a local file system storage engine
-        if (!SecurityAdminUtils.userIsAdmin(user)) {
-          throw new IllegalArgumentException(
-              "Only an admin can create a local file system storage engine");
-        }
-      }
-    }
+		// do we have any other checks we want to make based on the SMSS
+		// let us do it now
+		if (engineType == IEngine.CATALOG_TYPE.STORAGE) {
+			String storageTypeStr = (String) typeAndSubtypeAndCost[1];
+			StorageTypeEnum storageType = null;
+			try {
+				storageType = StorageTypeEnum.getEnumFromName(storageTypeStr);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Invalid storage type " + storageTypeStr);
+			}
+			if (storageType == StorageTypeEnum.LOCAL_FILE_SYSTEM) {
+				// only admin can create a local file system storage engine
+				if (!SecurityAdminUtils.userIsAdmin(user)) {
+					throw new IllegalArgumentException("Only an admin can create a local file system storage engine");
+				}
+			}
+		}
 
-    logger.info(step + ") Done");
-    step++;
+		logger.info(step + ") Done");
+		step++;
 
-    // now we have the path we want to move the unzipped folder and smss to
-    String engineFolderPath = EngineUtility.getLocalEngineBaseDirectory(engineType);
-    logger.info("Determined the engine type = " + engineType);
+		// now we have the path we want to move the unzipped folder and smss to
+		String engineFolderPath = EngineUtility.getLocalEngineBaseDirectory(engineType);
+		logger.info("Determined the engine type = " + engineType);
 
-    String engines = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
+		String engines = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
 
-    File finalEngineSmss = null;
-    File finalEngineFolder = null;
-    try {
-      // zip file has the smss and db folder on the same level
-      // need to move these files around
-      File tempUnzippedEngineF =
-          new File(
-              Utility.normalizePath(
-                  randomTempUnzipF
-                      + DIR_SEPARATOR
-                      + SmssUtilities.getUniqueName(engineName, engineId)));
-      finalEngineFolder =
-          new File(
-              Utility.normalizePath(
-                  engineFolderPath
-                      + DIR_SEPARATOR
-                      + SmssUtilities.getUniqueName(engineName, engineId)));
-      finalEngineSmss =
-          new File(
-              Utility.normalizePath(
-                  engineFolderPath
-                      + DIR_SEPARATOR
-                      + SmssUtilities.getUniqueName(engineName, engineId)
-                      + Constants.SEMOSS_EXTENSION));
+		File finalEngineSmss = null;
+		File finalEngineFolder = null;
+		try {
+			// zip file has the smss and db folder on the same level
+			// need to move these files around
+			File tempUnzippedEngineF = new File(Utility.normalizePath(
+					randomTempUnzipF + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId)));
+			finalEngineFolder = new File(Utility.normalizePath(
+					engineFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId)));
+			finalEngineSmss = new File(Utility.normalizePath(engineFolderPath + DIR_SEPARATOR
+					+ SmssUtilities.getUniqueName(engineName, engineId) + Constants.SEMOSS_EXTENSION));
 
-      // need to ignore file watcher
-      if (!(engines.startsWith(engineId)
-          || engines.contains(";" + engineId + ";")
-          || engines.endsWith(";" + engineId))) {
-        String newEngines = engines + ";" + engineId;
-        DIHelper.getInstance().setEngineProperty(Constants.ENGINES, newEngines);
-      } else {
-        SemossPixelException exception =
-            new SemossPixelException(NounMetadata.getErrorNounMessage("Engine id already exists"));
-        exception.setContinueThreadOfExecution(false);
-        throw exception;
-      }
-      // move engine folder
-      logger.info(step + ") Moving engine folder");
-      FileUtils.copyDirectory(tempUnzippedEngineF, finalEngineFolder);
-      logger.info(step + ") Done");
-      step++;
+			// need to ignore file watcher
+			if (!(engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+					|| engines.endsWith(";" + engineId))) {
+				String newEngines = engines + ";" + engineId;
+				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, newEngines);
+			} else {
+				SemossPixelException exception = new SemossPixelException(
+						NounMetadata.getErrorNounMessage("Engine id already exists"));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+			// move engine folder
+			logger.info(step + ") Moving engine folder");
+			FileUtils.copyDirectory(tempUnzippedEngineF, finalEngineFolder);
+			logger.info(step + ") Done");
+			step++;
 
-      // move smss file
-      logger.info(step + ") Moving smss file");
-      File tempUnzippedSmssF =
-          new File(
-              Utility.normalizePath(
-                  randomTempUnzipF
-                      + DIR_SEPARATOR
-                      + SmssUtilities.getUniqueName(engineName, engineId)
-                      + Constants.SEMOSS_EXTENSION));
-      FileUtils.copyFile(tempUnzippedSmssF, finalEngineSmss);
-      logger.info(step + ") Done");
-      step++;
-    } catch (Exception e) {
-      error = true;
-      logger.error(Constants.STACKTRACE, e);
-      throw new SemossPixelException(e.getMessage(), false);
-    } finally {
-      if (error) {
-        // remove from DIHelper
-        UploadUtilities.removeEngineFromDIHelper(engineId);
-        cleanUpFolders(randomTempUnzipF, finalEngineSmss, finalEngineFolder);
-      } else {
-        // just delete the temp db folder
-        cleanUpFolders(randomTempUnzipF);
-      }
-    }
+			// move smss file
+			logger.info(step + ") Moving smss file");
+			File tempUnzippedSmssF = new File(Utility.normalizePath(randomTempUnzipF + DIR_SEPARATOR
+					+ SmssUtilities.getUniqueName(engineName, engineId) + Constants.SEMOSS_EXTENSION));
+			FileUtils.copyFile(tempUnzippedSmssF, finalEngineSmss);
+			logger.info(step + ") Done");
+			step++;
+		} catch (Exception e) {
+			error = true;
+			logger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(e.getMessage(), false);
+		} finally {
+			if (error) {
+				// remove from DIHelper
+				UploadUtilities.removeEngineFromDIHelper(engineId);
+				cleanUpFolders(randomTempUnzipF, finalEngineSmss, finalEngineFolder);
+			} else {
+				// just delete the temp db folder
+				cleanUpFolders(randomTempUnzipF);
+			}
+		}
 
-    try {
-      DIHelper.getInstance()
-          .setEngineProperty(engineId + "_" + Constants.STORE, finalEngineSmss.getAbsolutePath());
-      if (IEngine.CATALOG_TYPE.DATABASE == engineType) {
-        logger.info(step + ") Synchronizing database structure");
-        Utility.synchronizeEngineMetadata(engineId);
-        logger.info(step + ") Done");
-        step++;
-      }
-      logger.info(step + ") Synchronizing the engine metadata");
-      SecurityEngineUtils.addEngine(engineId, global, user);
-      logger.info(step + ") Done");
-      step++;
+		try {
+			DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE,
+					finalEngineSmss.getAbsolutePath());
+			if (IEngine.CATALOG_TYPE.DATABASE == engineType) {
+				logger.info(step + ") Synchronizing database structure");
+				Utility.synchronizeEngineMetadata(engineId);
+				logger.info(step + ") Done");
+				step++;
+			}
+			logger.info(step + ") Synchronizing the engine metadata");
+			SecurityEngineUtils.addEngine(engineId, global, user);
+			logger.info(step + ") Done");
+			step++;
 
-      // see if we have any dependencies or metadata to load
-      {
-        File metadataFile =
-            new File(
-                Utility.normalizePath(
-                    finalEngineFolder.getAbsolutePath()
-                        + "/"
-                        + engineName
-                        + IEngine.METADATA_FILE_SUFFIX));
-        if (metadataFile.exists() && metadataFile.isFile()) {
-          Map<String, Object> metadata =
-              (Map<String, Object>)
-                  GsonUtility.readJsonFileToObject(
-                      metadataFile, new TypeToken<Map<String, Object>>() {}.getType());
-          SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
-          // delete this file since values can update and file is dynamically generated on export
-          metadataFile.delete();
-        }
-      }
-    } catch (Exception e) {
-      error = true;
-      logger.error(Constants.STACKTRACE, e);
-      throw new SemossPixelException(
-          "Error occurred trying to synchronize the metadata for the zip file", false);
-    } finally {
-      if (error) {
-        // delete all the resources
-        cleanUpFolders(randomTempUnzipF, finalEngineSmss, finalEngineFolder);
-        // remove from DIHelper
-        UploadUtilities.removeEngineFromDIHelper(engineId);
-        if (IEngine.CATALOG_TYPE.DATABASE == engineType) {
-          // delete from local master
-          DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
-          lmDeleter.deleteEngineRDBMS(engineId);
-        }
-        // delete from security
-        SecurityEngineUtils.deleteEngine(engineId);
-      }
-    }
+			// see if we have any dependencies or metadata to load
+			{
+				File metadataFile = new File(Utility.normalizePath(
+						finalEngineFolder.getAbsolutePath() + "/" + engineName + IEngine.METADATA_FILE_SUFFIX));
+				if (metadataFile.exists() && metadataFile.isFile()) {
+					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile,
+							new TypeToken<Map<String, Object>>() {
+							}.getType());
+					SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+					// delete this file since values can update and file is dynamically generated on
+					// export
+					metadataFile.delete();
+				}
+			}
+		} catch (Exception e) {
+			error = true;
+			logger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("Error occurred trying to synchronize the metadata for the zip file", false);
+		} finally {
+			if (error) {
+				// delete all the resources
+				cleanUpFolders(randomTempUnzipF, finalEngineSmss, finalEngineFolder);
+				// remove from DIHelper
+				UploadUtilities.removeEngineFromDIHelper(engineId);
+				if (IEngine.CATALOG_TYPE.DATABASE == engineType) {
+					// delete from local master
+					DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
+					lmDeleter.deleteEngineRDBMS(engineId);
+				}
+				// delete from security
+				SecurityEngineUtils.deleteEngine(engineId);
+			}
+		}
 
-    // add user as engine owner
-    List<AuthProvider> logins = user.getLogins();
-    for (AuthProvider ap : logins) {
-      SecurityEngineUtils.addEngineOwner(engineId, user.getAccessToken(ap).getId());
-    }
+		// add user as engine owner
+		List<AuthProvider> logins = user.getLogins();
+		for (AuthProvider ap : logins) {
+			SecurityEngineUtils.addEngineOwner(engineId, user.getAccessToken(ap).getId());
+		}
 
-    ClusterUtil.pushEngine(engineId);
+		ClusterUtil.pushEngine(engineId);
 
-    Map<String, Object> retMap =
-        UploadUtilities.getEngineReturnData(this.insight.getUser(), engineId);
-    return new NounMetadata(
-        retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-  }
+		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), engineId);
+		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+	}
 
-  /**
-   * @param fileToDelete
-   */
-  private void cleanUpFolders(File... fileToDelete) {
-    for (File f : fileToDelete) {
-      if (f != null && f.exists()) {
-        try {
-          FileUtils.forceDelete(f);
-        } catch (IOException e) {
-          classLogger.warn("Error on clean up attempting to delete " + f.getAbsolutePath());
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
-  }
+	/**
+	 * @param fileToDelete
+	 */
+	private void cleanUpFolders(File... fileToDelete) {
+		for (File f : fileToDelete) {
+			if (f != null && f.exists()) {
+				try {
+					FileUtils.forceDelete(f);
+				} catch (IOException e) {
+					classLogger.warn("Error on clean up attempting to delete " + f.getAbsolutePath());
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
 
-  @Override
-  public String getReactorDescription() {
-    return "Import a new engine. The user who uploads will by default be the owner of the engine";
-  }
+	@Override
+	public String getReactorDescription() {
+		return "Import a new engine. The user who uploads will by default be the owner of the engine";
+	}
 
-  @Override
-  protected String getDescriptionForKey(String key) {
-    if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-      return "This is a required value containing the relative file path of the single zip file to be imported";
-    } else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-      return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-    } else if (key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
-      return "This is a required value to determine if the engine is public or private";
-    }
-    return super.getDescriptionForKey(key);
-  }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "This is a required value containing the relative file path of the single zip file to be imported";
+		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
+			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
+		} else if (key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
+			return "This is a required value to determine if the engine is public or private";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

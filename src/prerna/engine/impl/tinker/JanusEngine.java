@@ -24,19 +24,19 @@ import prerna.util.Utility;
 
 public class JanusEngine extends TinkerEngine {
 
-  private static final Logger classLogger = LoggerFactory.getLogger(JanusEngine.class);
+	private static final Logger classLogger = LoggerFactory.getLogger(JanusEngine.class);
 
-  @Override
-  public void open(Properties smssProp) throws Exception {
-    super.open(smssProp);
-    String janusConfFilePath = SmssUtilities.getJanusFile(this.smssProp).getAbsolutePath();
-    classLogger.info("Opening graph: " + Utility.cleanLogString(janusConfFilePath));
-    g = JanusGraphFactory.open(janusConfFilePath);
-    classLogger.info("Done opening graph: " + Utility.cleanLogString(janusConfFilePath));
-  }
+	@Override
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+		String janusConfFilePath = SmssUtilities.getJanusFile(this.smssProp).getAbsolutePath();
+		classLogger.info("Opening graph: " + Utility.cleanLogString(janusConfFilePath));
+		g = JanusGraphFactory.open(janusConfFilePath);
+		classLogger.info("Done opening graph: " + Utility.cleanLogString(janusConfFilePath));
+	}
 
-  @Override
-  public DATABASE_TYPE getDatabaseType() {
-    return IDatabaseEngine.DATABASE_TYPE.JANUS_GRAPH;
-  }
+	@Override
+	public DATABASE_TYPE getDatabaseType() {
+		return IDatabaseEngine.DATABASE_TYPE.JANUS_GRAPH;
+	}
 }

@@ -23,33 +23,32 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class RemoveDuplicateRowsReactor extends AbstractRFrameReactor {
 
-  /** This reactor removes duplicate rows from the data frame There are no inputs needed */
-  @Override
-  public NounMetadata execute() {
-    // initialize rJavaTranslator
-    init();
+	/**
+	 * This reactor removes duplicate rows from the data frame There are no inputs
+	 * needed
+	 */
+	@Override
+	public NounMetadata execute() {
+		// initialize rJavaTranslator
+		init();
 
-    // get frame
-    RDataTable frame = (RDataTable) getFrame();
+		// get frame
+		RDataTable frame = (RDataTable) getFrame();
 
-    // get table name
-    String table = frame.getName();
+		// get table name
+		String table = frame.getName();
 
-    // define the r script to be executed
-    String script = table + " <- unique(" + table + ")";
+		// define the r script to be executed
+		String script = table + " <- unique(" + table + ")";
 
-    // execute the r script
-    frame.executeRScript(script);
-    this.addExecutedCode(script);
+		// execute the r script
+		frame.executeRScript(script);
+		this.addExecutedCode(script);
 
-    // NEW TRACKING
-    UserTrackerFactory.getInstance()
-        .trackAnalyticsWidget(
-            this.insight,
-            frame,
-            "RemoveDuplicateRows",
-            AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "RemoveDuplicateRows",
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
-    return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-  }
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+	}
 }

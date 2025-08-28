@@ -40,100 +40,97 @@ import prerna.util.Utility;
 
 public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor {
 
-  // private String[] keysToGet;
-  private static final String CLASS_NAME = DropBoxFileRetrieverReactor.class.getName();
+	// private String[] keysToGet;
+	private static final String CLASS_NAME = DropBoxFileRetrieverReactor.class.getName();
 
-  public DropBoxFileRetrieverReactor() {
-    this.keysToGet = new String[] {"path"};
-  }
+	public DropBoxFileRetrieverReactor() {
+		this.keysToGet = new String[]{"path"};
+	}
 
-  @Override
-  protected SelectQueryStruct createQueryStruct() {
+	@Override
+	protected SelectQueryStruct createQueryStruct() {
 
-    // get keys
-    Logger logger = getLogger(CLASS_NAME);
-    organizeKeys();
-    String dropboxPath = this.keyValue.get(this.keysToGet[0]);
-    if (dropboxPath == null || dropboxPath.length() <= 0) {
-      throw new IllegalArgumentException("Need to specify file path");
-    }
+		// get keys
+		Logger logger = getLogger(CLASS_NAME);
+		organizeKeys();
+		String dropboxPath = this.keyValue.get(this.keysToGet[0]);
+		if (dropboxPath == null || dropboxPath.length() <= 0) {
+			throw new IllegalArgumentException("Need to specify file path");
+		}
 
-    // get access token
-    String accessToken = null;
-    User user = this.insight.getUser();
-    try {
-      if (user == null) {
-        Map<String, Object> retMap = new HashMap<String, Object>();
-        retMap.put("type", "dropbox");
-        retMap.put("message", "Please login to your DropBox account");
-        throwLoginError(retMap);
-      } else if (user != null) {
-        AccessToken msToken = user.getAccessToken(AuthProvider.DROPBOX);
-        accessToken = msToken.getAccess_token();
-      }
-    } catch (Exception e) {
-      Map<String, Object> retMap = new HashMap<String, Object>();
-      retMap.put("type", "dropbox");
-      retMap.put("message", "Please login to your DropBox account");
-      throwLoginError(retMap);
-    }
+		// get access token
+		String accessToken = null;
+		User user = this.insight.getUser();
+		try {
+			if (user == null) {
+				Map<String, Object> retMap = new HashMap<String, Object>();
+				retMap.put("type", "dropbox");
+				retMap.put("message", "Please login to your DropBox account");
+				throwLoginError(retMap);
+			} else if (user != null) {
+				AccessToken msToken = user.getAccessToken(AuthProvider.DROPBOX);
+				accessToken = msToken.getAccess_token();
+			}
+		} catch (Exception e) {
+			Map<String, Object> retMap = new HashMap<String, Object>();
+			retMap.put("type", "dropbox");
+			retMap.put("message", "Please login to your DropBox account");
+			throwLoginError(retMap);
+		}
 
-    //
+		//
 
-    // lists the various files for this user
-    // if the
-    // name of the object to return
-    String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
-    String[] beanProps = {"name", "id", "url"}; // add is done when you have a list
-    String jsonPattern = "[metadata.name,metadata.id,link]";
+		// lists the various files for this user
+		// if the
+		// name of the object to return
+		String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
+		String[] beanProps = {"name", "id", "url"}; // add is done when you have a list
+		String jsonPattern = "[metadata.name,metadata.id,link]";
 
-    // you fill what you want to send on the API call
-    String url_str = "https://api.dropboxapi.com/2/files/get_temporary_link";
-    Hashtable params = new Hashtable();
-    params.put("path", dropboxPath);
+		// you fill what you want to send on the API call
+		String url_str = "https://api.dropboxapi.com/2/files/get_temporary_link";
+		Hashtable params = new Hashtable();
+		params.put("path", dropboxPath);
 
-    String output = HttpHelperUtility.makePostCall(url_str, accessToken, params, true);
+		String output = HttpHelperUtility.makePostCall(url_str, accessToken, params, true);
 
-    // fill the bean with the return. This return will have a url to download the file from which is
-    // done below
-    RemoteItem link =
-        (RemoteItem) BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
-    String filePath =
-        DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR)
-            + "\\"
-            + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-    filePath += "\\" + Utility.getRandomString(10) + ".csv";
-    filePath = filePath.replace("\\", "/");
-    try {
-      URL urlDownload = new URL(link.getUrl());
-      File destination = new File(filePath);
-      FileUtils.copyURLToFile(urlDownload, destination);
-    } catch (MalformedURLException e2) {
-      // TODO Auto-generated catch block
-      logger.error(Constants.STACKTRACE, e2);
-    } catch (IOException e1) {
-      // TODO Auto-generated catch block
-      logger.error(Constants.STACKTRACE, e1);
-    }
-    // get datatypes
-    CSVFileHelper helper = new CSVFileHelper();
-    helper.setDelimiter(',');
-    helper.parse(filePath);
-    Map[] predictionMaps =
-        FileHelperUtil.generateDataTypeMapsFromPrediction(
-            helper.getHeaders(), helper.predictTypes());
-    Map<String, String> dataTypes = predictionMaps[0];
-    Map<String, String> additionalDataTypes = predictionMaps[1];
-    CsvQueryStruct qs = new CsvQueryStruct();
-    for (String key : dataTypes.keySet()) {
-      qs.addSelector("DND", key);
-    }
-    helper.clear();
-    qs.merge(this.qs);
-    qs.setFilePath(filePath);
-    qs.setDelimiter(',');
-    qs.setColumnTypes(dataTypes);
-    qs.setAdditionalTypes(additionalDataTypes);
-    return qs;
-  }
+		// fill the bean with the return. This return will have a url to download the
+		// file from which is
+		// done below
+		RemoteItem link = (RemoteItem) BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+		String filePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
+				+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		filePath += "\\" + Utility.getRandomString(10) + ".csv";
+		filePath = filePath.replace("\\", "/");
+		try {
+			URL urlDownload = new URL(link.getUrl());
+			File destination = new File(filePath);
+			FileUtils.copyURLToFile(urlDownload, destination);
+		} catch (MalformedURLException e2) {
+			// TODO Auto-generated catch block
+			logger.error(Constants.STACKTRACE, e2);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			logger.error(Constants.STACKTRACE, e1);
+		}
+		// get datatypes
+		CSVFileHelper helper = new CSVFileHelper();
+		helper.setDelimiter(',');
+		helper.parse(filePath);
+		Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(),
+				helper.predictTypes());
+		Map<String, String> dataTypes = predictionMaps[0];
+		Map<String, String> additionalDataTypes = predictionMaps[1];
+		CsvQueryStruct qs = new CsvQueryStruct();
+		for (String key : dataTypes.keySet()) {
+			qs.addSelector("DND", key);
+		}
+		helper.clear();
+		qs.merge(this.qs);
+		qs.setFilePath(filePath);
+		qs.setDelimiter(',');
+		qs.setColumnTypes(dataTypes);
+		qs.setAdditionalTypes(additionalDataTypes);
+		return qs;
+	}
 }

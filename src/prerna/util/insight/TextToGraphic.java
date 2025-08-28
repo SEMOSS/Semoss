@@ -31,72 +31,68 @@ import prerna.util.Constants;
 @Deprecated
 public class TextToGraphic {
 
-  private static final Logger classLogger = LogManager.getLogger(TextToGraphic.class);
+	private static final Logger classLogger = LogManager.getLogger(TextToGraphic.class);
 
-  private static Random rand = new Random();
+	private static Random rand = new Random();
 
-  public static void makeImage(String name, String imageLocation) {
-    BufferedImage img = buildBufferedImage(name);
-    try {
-      ImageIO.write(img, "png", new File(imageLocation));
-    } catch (IOException ex) {
-      classLogger.error(Constants.STACKTRACE, ex);
-    }
-  }
+	public static void makeImage(String name, String imageLocation) {
+		BufferedImage img = buildBufferedImage(name);
+		try {
+			ImageIO.write(img, "png", new File(imageLocation));
+		} catch (IOException ex) {
+			classLogger.error(Constants.STACKTRACE, ex);
+		}
+	}
 
-  public static BufferedImage buildBufferedImage(String name) {
-    String[] split = TextHelper.formatCompountText(name).split(" ");
-    StringBuilder textBuilder = new StringBuilder();
-    if (split.length == 1) {
-      textBuilder.append(split[0].toUpperCase().charAt(0));
-    } else {
-      textBuilder.append(split[0].toUpperCase().charAt(0));
-      textBuilder.append(split[split.length - 1].toUpperCase().charAt(0));
-    }
-    String text = textBuilder.toString().trim();
+	public static BufferedImage buildBufferedImage(String name) {
+		String[] split = TextHelper.formatCompountText(name).split(" ");
+		StringBuilder textBuilder = new StringBuilder();
+		if (split.length == 1) {
+			textBuilder.append(split[0].toUpperCase().charAt(0));
+		} else {
+			textBuilder.append(split[0].toUpperCase().charAt(0));
+			textBuilder.append(split[split.length - 1].toUpperCase().charAt(0));
+		}
+		String text = textBuilder.toString().trim();
 
-    int width = 125;
-    int height = 105;
-    BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-    Graphics2D g2d = img.createGraphics();
+		int width = 125;
+		int height = 105;
+		BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D g2d = img.createGraphics();
 
-    try {
-      Font font = new Font(Font.SANS_SERIF, Font.PLAIN, 24);
-      g2d.setFont(font);
+		try {
+			Font font = new Font(Font.SANS_SERIF, Font.PLAIN, 24);
+			g2d.setFont(font);
 
-      // Set rendering hints before getting font metrics
-      g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-      g2d.setRenderingHint(
-          RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			// Set rendering hints before getting font metrics
+			g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-      FontMetrics fm = g2d.getFontMetrics();
+			FontMetrics fm = g2d.getFontMetrics();
 
-      // Fill background
-      g2d.setColor(getRandomColor());
-      g2d.fillRect(0, 0, width, height);
-      g2d.setColor(Color.WHITE);
+			// Fill background
+			g2d.setColor(getRandomColor());
+			g2d.fillRect(0, 0, width, height);
+			g2d.setColor(Color.WHITE);
 
-      // Calculate centered position
-      int strWidth = (width - fm.stringWidth(text)) / 2;
-      // Use ascent to position text properly relative to baseline
-      int strHeight = (height - fm.getHeight()) / 2 + fm.getAscent();
+			// Calculate centered position
+			int strWidth = (width - fm.stringWidth(text)) / 2;
+			// Use ascent to position text properly relative to baseline
+			int strHeight = (height - fm.getHeight()) / 2 + fm.getAscent();
 
-      g2d.drawString(text, strWidth, strHeight);
-    } finally {
-      g2d.dispose();
-    }
+			g2d.drawString(text, strWidth, strHeight);
+		} finally {
+			g2d.dispose();
+		}
 
-    return img;
-  }
+		return img;
+	}
 
-  public static Color getRandomColor() {
-    String[] colors =
-        new String[] {
-          "#48BFA8", "#E0BF39", "#E67E22", "#4FA4DE", "#52CF87", "#EB6456", "#bdc3c7", "#9b59b6",
-          "#34495e", "#F28E8E"
-        };
-    int index = rand.nextInt(colors.length);
-    Color c = Color.decode(colors[index]);
-    return c;
-  }
+	public static Color getRandomColor() {
+		String[] colors = new String[]{"#48BFA8", "#E0BF39", "#E67E22", "#4FA4DE", "#52CF87", "#EB6456", "#bdc3c7",
+				"#9b59b6", "#34495e", "#F28E8E"};
+		int index = rand.nextInt(colors.length);
+		Color c = Color.decode(colors[index]);
+		return c;
+	}
 }

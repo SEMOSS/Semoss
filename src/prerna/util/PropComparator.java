@@ -19,29 +19,41 @@ import java.util.Comparator;
 /** Used to compare two properties. */
 public class PropComparator implements Comparator<String> {
 
-  /**
-   * Compares two properties. Checks whether they are equal to the name of a node, type of node,
-   * name of an edge, type of an edge, or URI based on the constants class. Returns -1 if first
-   * string equals one of the listed constants and 1 if the second string equals one of the listed
-   * constants.
-   *
-   * @param str1 String First property to be compared.
-   * @param str2 String Second property to be compared.
-   * @return int Returns -1, 0, or 1
-   */
-  @Override
-  public int compare(String str1, String str2) {
-    if (str1.equals(Constants.VERTEX_NAME)) return -1;
-    else if (str2.equals(Constants.VERTEX_NAME)) return 1;
-    else if (str1.equals(Constants.VERTEX_TYPE)) return -1;
-    else if (str2.equals(Constants.VERTEX_TYPE)) return 1;
-    else if (str1.equals(Constants.EDGE_NAME)) return -1;
-    else if (str2.equals(Constants.EDGE_NAME)) return 1;
-    else if (str1.equals(Constants.EDGE_TYPE)) return -1;
-    else if (str2.equals(Constants.EDGE_TYPE)) return 1;
-    else if (str1.equals(Constants.URI)) return -1;
-    else if (str2.equals(Constants.URI)) return 1;
+	/**
+	 * Compares two properties. Checks whether they are equal to the name of a node,
+	 * type of node, name of an edge, type of an edge, or URI based on the constants
+	 * class. Returns -1 if first string equals one of the listed constants and 1 if
+	 * the second string equals one of the listed constants.
+	 *
+	 * @param str1
+	 *            String First property to be compared.
+	 * @param str2
+	 *            String Second property to be compared.
+	 * @return int Returns -1, 0, or 1
+	 */
+	@Override
+	public int compare(String str1, String str2) {
+		if (str1.equals(Constants.VERTEX_NAME))
+			return -1;
+		else if (str2.equals(Constants.VERTEX_NAME))
+			return 1;
+		else if (str1.equals(Constants.VERTEX_TYPE))
+			return -1;
+		else if (str2.equals(Constants.VERTEX_TYPE))
+			return 1;
+		else if (str1.equals(Constants.EDGE_NAME))
+			return -1;
+		else if (str2.equals(Constants.EDGE_NAME))
+			return 1;
+		else if (str1.equals(Constants.EDGE_TYPE))
+			return -1;
+		else if (str2.equals(Constants.EDGE_TYPE))
+			return 1;
+		else if (str1.equals(Constants.URI))
+			return -1;
+		else if (str2.equals(Constants.URI))
+			return 1;
 
-    return str1.compareToIgnoreCase(str2);
-  }
+		return str1.compareToIgnoreCase(str2);
+	}
 }

@@ -14,4 +14,5 @@
  ***************************************************************************************************/
 package prerna.testing.forms;
 
-public class UpdateFormReactorApiTests {}
+public class UpdateFormReactorApiTests {
+}

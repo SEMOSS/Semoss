@@ -23,59 +23,59 @@ import org.junit.jupiter.api.Test;
 
 public class VectorDatabaseCSVRowUnitTests {
 
-  private final String source = "source";
-  private final String modality = "modality";
-  private final String divider = "divider";
-  private final String part = "part";
-  private final int tokens = 10;
-  private final String content = "content";
-  private List<Double> embeddings;
-  private VectorDatabaseCSVRow row;
+	private final String source = "source";
+	private final String modality = "modality";
+	private final String divider = "divider";
+	private final String part = "part";
+	private final int tokens = 10;
+	private final String content = "content";
+	private List<Double> embeddings;
+	private VectorDatabaseCSVRow row;
 
-  @BeforeEach
-  void setUp() {
-    embeddings = new Vector<>();
-    embeddings.add(0.2);
-    embeddings.add(0.4);
-    embeddings.add(0.6);
-    embeddings.add(0.8);
-    embeddings.add(1.0);
-    row = new VectorDatabaseCSVRow(source, modality, divider, part, tokens, content);
-  }
+	@BeforeEach
+	void setUp() {
+		embeddings = new Vector<>();
+		embeddings.add(0.2);
+		embeddings.add(0.4);
+		embeddings.add(0.6);
+		embeddings.add(0.8);
+		embeddings.add(1.0);
+		row = new VectorDatabaseCSVRow(source, modality, divider, part, tokens, content);
+	}
 
-  @Test
-  void testGetSource() {
-    assertEquals(source, row.getSource());
-  }
+	@Test
+	void testGetSource() {
+		assertEquals(source, row.getSource());
+	}
 
-  @Test
-  void testGetModality() {
-    assertEquals(modality, row.getModality());
-  }
+	@Test
+	void testGetModality() {
+		assertEquals(modality, row.getModality());
+	}
 
-  @Test
-  void testGetDivider() {
-    assertEquals(divider, row.getDivider());
-  }
+	@Test
+	void testGetDivider() {
+		assertEquals(divider, row.getDivider());
+	}
 
-  @Test
-  void testGetPart() {
-    assertEquals(part, row.getPart());
-  }
+	@Test
+	void testGetPart() {
+		assertEquals(part, row.getPart());
+	}
 
-  @Test
-  void testGetTokens() {
-    assertEquals(tokens, row.getTokens());
-  }
+	@Test
+	void testGetTokens() {
+		assertEquals(tokens, row.getTokens());
+	}
 
-  @Test
-  void testGetContent() {
-    assertEquals(content, row.getContent());
-  }
+	@Test
+	void testGetContent() {
+		assertEquals(content, row.getContent());
+	}
 
-  @Test
-  void testEmbeddings() {
-    row.setEmbeddings(embeddings);
-    assertEquals(embeddings, row.getEmbeddings());
-  }
+	@Test
+	void testEmbeddings() {
+		row.setEmbeddings(embeddings);
+		assertEquals(embeddings, row.getEmbeddings());
+	}
 }

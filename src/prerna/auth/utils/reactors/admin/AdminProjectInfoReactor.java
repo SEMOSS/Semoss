@@ -29,45 +29,42 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AdminProjectInfoReactor extends AbstractReactor {
 
-  public AdminProjectInfoReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.META_KEYS.getKey()};
-  }
+	public AdminProjectInfoReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.META_KEYS.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    User user = this.insight.getUser();
-    SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-    if (adminUtils == null) {
-      throw new IllegalArgumentException("User must be an admin to perform this function");
-    }
-    organizeKeys();
-    String projectId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+		if (adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
+		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 
-    if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-      throw new IllegalArgumentException("Must input an project id");
-    }
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input an project id");
+		}
 
-    List<Map<String, Object>> baseInfo =
-        adminUtils.getAllProjectSettings(Arrays.asList(projectId), null, null, null, null);
-    if (baseInfo == null || baseInfo.isEmpty()) {
-      throw new IllegalArgumentException("Could not find any project data");
-    }
+		List<Map<String, Object>> baseInfo = adminUtils.getAllProjectSettings(Arrays.asList(projectId), null, null,
+				null, null);
+		if (baseInfo == null || baseInfo.isEmpty()) {
+			throw new IllegalArgumentException("Could not find any project data");
+		}
 
-    // we filtered to a single project
-    Map<String, Object> projectInfo = baseInfo.get(0);
-    projectInfo.putAll(
-        SecurityProjectUtils.getAggregateProjectMetadata(projectId, getMetaKeys(), true));
-    return new NounMetadata(
-        projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
-  }
+		// we filtered to a single project
+		Map<String, Object> projectInfo = baseInfo.get(0);
+		projectInfo.putAll(SecurityProjectUtils.getAggregateProjectMetadata(projectId, getMetaKeys(), true));
+		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
+	}
 
-  private List<String> getMetaKeys() {
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      return grs.getAllStrValues();
-    }
+	private List<String> getMetaKeys() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues();
+		}
 
-    return null;
-  }
+		return null;
+	}
 }

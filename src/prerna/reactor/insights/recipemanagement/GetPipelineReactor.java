@@ -22,9 +22,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetPipelineReactor extends AbstractReactor {
 
-  @Override
-  public NounMetadata execute() {
-    Map<String, Object> pipelineReturn = PixelUtility.generatePipeline(this.insight);
-    return new NounMetadata(pipelineReturn, PixelDataType.MAP);
-  }
+	@Override
+	public NounMetadata execute() {
+		Map<String, Object> pipelineReturn = PixelUtility.generatePipeline(this.insight);
+		return new NounMetadata(pipelineReturn, PixelDataType.MAP);
+	}
 }

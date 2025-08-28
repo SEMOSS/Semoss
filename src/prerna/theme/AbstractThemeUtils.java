@@ -32,155 +32,136 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public abstract class AbstractThemeUtils {
 
-  private static final Logger classLogger = LogManager.getLogger(AbstractThemeUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractThemeUtils.class);
 
-  static boolean initialized = false;
-  static RDBMSNativeEngine themeDb;
+	static boolean initialized = false;
+	static RDBMSNativeEngine themeDb;
 
-  /** Only used for static references */
-  AbstractThemeUtils() {}
+	/** Only used for static references */
+	AbstractThemeUtils() {
+	}
 
-  public static void loadThemingDatabase() throws Exception {
-    themeDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.THEMING_DB);
-    ThemeOwlCreator owlCreator = new ThemeOwlCreator(themeDb);
-    if (owlCreator.needsRemake()) {
-      owlCreator.remakeOwl();
-    }
-    initialize();
-    initialized = true;
-  }
+	public static void loadThemingDatabase() throws Exception {
+		themeDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.THEMING_DB);
+		ThemeOwlCreator owlCreator = new ThemeOwlCreator(themeDb);
+		if (owlCreator.needsRemake()) {
+			owlCreator.remakeOwl();
+		}
+		initialize();
+		initialized = true;
+	}
 
-  private static void initialize() throws SQLException {
-    String[] adminThemeColNames = null;
-    String[] adminThemeTypes = null;
-    String[] blocksTableTypes = null;
-    /*
-     * Currently used
-     */
+	private static void initialize() throws SQLException {
+		String[] adminThemeColNames = null;
+		String[] adminThemeTypes = null;
+		String[] blocksTableTypes = null;
+		/*
+		 * Currently used
+		 */
 
-    // ADMIN_THEME
-    AbstractSqlQueryUtil queryUtil = themeDb.getQueryUtil();
+		// ADMIN_THEME
+		AbstractSqlQueryUtil queryUtil = themeDb.getQueryUtil();
 
-    adminThemeColNames = new String[] {"ID", "THEME_NAME", "THEME_MAP", "IS_ACTIVE"};
-    adminThemeTypes =
-        new String[] {
-          "varchar(255)",
-          "varchar(255)",
-          queryUtil.getClobDataTypeName(),
-          queryUtil.getBooleanDataTypeName()
-        };
-    if (queryUtil.allowsIfExistsTableSyntax()) {
-      themeDb.insertData(
-          queryUtil.createTableIfNotExists(
-              ThemeDbTable.ADMIN_THEME.getThemeDbTableName(), adminThemeColNames, adminThemeTypes));
-    } else {
-      if (!queryUtil.tableExists(
-          themeDb.getConnection(),
-          ThemeDbTable.ADMIN_THEME.getThemeDbTableName(),
-          themeDb.getDatabase(),
-          themeDb.getSchema())) {
-        themeDb.insertData(
-            queryUtil.createTable(
-                ThemeDbTable.ADMIN_THEME.getThemeDbTableName(),
-                adminThemeColNames,
-                adminThemeTypes));
-      }
-    }
+		adminThemeColNames = new String[]{"ID", "THEME_NAME", "THEME_MAP", "IS_ACTIVE"};
+		adminThemeTypes = new String[]{"varchar(255)", "varchar(255)", queryUtil.getClobDataTypeName(),
+				queryUtil.getBooleanDataTypeName()};
+		if (queryUtil.allowsIfExistsTableSyntax()) {
+			themeDb.insertData(queryUtil.createTableIfNotExists(ThemeDbTable.ADMIN_THEME.getThemeDbTableName(),
+					adminThemeColNames, adminThemeTypes));
+		} else {
+			if (!queryUtil.tableExists(themeDb.getConnection(), ThemeDbTable.ADMIN_THEME.getThemeDbTableName(),
+					themeDb.getDatabase(), themeDb.getSchema())) {
+				themeDb.insertData(queryUtil.createTable(ThemeDbTable.ADMIN_THEME.getThemeDbTableName(),
+						adminThemeColNames, adminThemeTypes));
+			}
+		}
 
-    // BLOCKS_TABLE
+		// BLOCKS_TABLE
 
-    blocksTableTypes = BlocksThemeUtils.getThemeColTypes(queryUtil);
-    if (queryUtil.allowsIfExistsTableSyntax()) {
-      themeDb.insertData(
-          queryUtil.createTableIfNotExists(
-              ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
-              BlocksThemeUtils.BLOCK_COLUMN_NAMES,
-              blocksTableTypes));
-    } else {
-      if (!queryUtil.tableExists(
-          themeDb.getConnection(),
-          ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
-          themeDb.getDatabase(),
-          themeDb.getSchema())) {
-        themeDb.insertData(
-            queryUtil.createTable(
-                ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
-                BlocksThemeUtils.BLOCK_COLUMN_NAMES,
-                blocksTableTypes));
-        populateBlocksTemplateTable(
-            BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes, queryUtil);
-      }
-    }
-    //			if (!BlocksThemeUtils.getBlockNames().containsAll(BlocksThemeUtils.BASE_BLOCKS)) {
-    //				populateBlocksTemplateTable(BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTemplateTypes,
-    // queryUtil);
-    //			}
+		blocksTableTypes = BlocksThemeUtils.getThemeColTypes(queryUtil);
+		if (queryUtil.allowsIfExistsTableSyntax()) {
+			themeDb.insertData(queryUtil.createTableIfNotExists(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
+					BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes));
+		} else {
+			if (!queryUtil.tableExists(themeDb.getConnection(), ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
+					themeDb.getDatabase(), themeDb.getSchema())) {
+				themeDb.insertData(queryUtil.createTable(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
+						BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes));
+				populateBlocksTemplateTable(BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes, queryUtil);
+			}
+		}
+		// if
+		// (!BlocksThemeUtils.getBlockNames().containsAll(BlocksThemeUtils.BASE_BLOCKS))
+		// {
+		// populateBlocksTemplateTable(BlocksThemeUtils.BLOCK_COLUMN_NAMES,
+		// blocksTemplateTypes,
+		// queryUtil);
+		// }
 
-    // commit the changes
-    themeDb.commit();
-  }
+		// commit the changes
+		themeDb.commit();
+	}
 
-  private static void populateBlocksTemplateTable(
-      String[] blocksTemplateColNames, String[] blocksTemplateTypes, AbstractSqlQueryUtil queryUtil)
-      throws SQLException {
+	private static void populateBlocksTemplateTable(String[] blocksTemplateColNames, String[] blocksTemplateTypes,
+			AbstractSqlQueryUtil queryUtil) throws SQLException {
 
-    classLogger.info("Rebuilding Blocks_Table Table");
+		classLogger.info("Rebuilding Blocks_Table Table");
 
-    // delete the contents of the entire table
-    themeDb.removeData("DELETE FROM " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName());
+		// delete the contents of the entire table
+		themeDb.removeData("DELETE FROM " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName());
 
-    //			for (Object[] entry : BlocksThemeUtils.BLOCKS_DEFAULT_ENTRIES) {
-    //
-    //	themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
-    //						blocksTemplateColNames, blocksTemplateTypes, entry));
-    //			}
-  }
+		// for (Object[] entry : BlocksThemeUtils.BLOCKS_DEFAULT_ENTRIES) {
+		//
+		// themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
+		// blocksTemplateColNames, blocksTemplateTypes, entry));
+		// }
+	}
 
-  /**
-   * Determine if the theme db is present to be able to set custom themes
-   *
-   * @return
-   */
-  public static boolean isInitalized() {
-    return AbstractThemeUtils.initialized;
-  }
+	/**
+	 * Determine if the theme db is present to be able to set custom themes
+	 *
+	 * @return
+	 */
+	public static boolean isInitalized() {
+		return AbstractThemeUtils.initialized;
+	}
 
-  static List<Map<String, Object>> flushRsToMap(IRawSelectWrapper wrapper) {
-    List<Map<String, Object>> result = new Vector<Map<String, Object>>();
-    while (wrapper.hasNext()) {
-      IHeadersDataRow headerRow = wrapper.next();
-      String[] headers = headerRow.getHeaders();
-      Object[] values = headerRow.getValues();
-      Map<String, Object> map = new HashMap<String, Object>();
-      for (int i = 0; i < headers.length; i++) {
-        if (values[i] instanceof java.sql.Clob) {
-          try {
-            map.put(headers[i], IOUtils.toString(((java.sql.Clob) values[i]).getAsciiStream()));
-          } catch (IOException | SQLException e) {
-            classLogger.error(Constants.STACKTRACE, e);
-            throw new IllegalArgumentException("Error occurred trying to read theme map");
-          }
-        } else {
-          map.put(headers[i], values[i]);
-        }
-      }
-      result.add(map);
-    }
-    return result;
-  }
+	static List<Map<String, Object>> flushRsToMap(IRawSelectWrapper wrapper) {
+		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
+		while (wrapper.hasNext()) {
+			IHeadersDataRow headerRow = wrapper.next();
+			String[] headers = headerRow.getHeaders();
+			Object[] values = headerRow.getValues();
+			Map<String, Object> map = new HashMap<String, Object>();
+			for (int i = 0; i < headers.length; i++) {
+				if (values[i] instanceof java.sql.Clob) {
+					try {
+						map.put(headers[i], IOUtils.toString(((java.sql.Clob) values[i]).getAsciiStream()));
+					} catch (IOException | SQLException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Error occurred trying to read theme map");
+					}
+				} else {
+					map.put(headers[i], values[i]);
+				}
+			}
+			result.add(map);
+		}
+		return result;
+	}
 
-  static Object flushRsToObject(IRawSelectWrapper wrapper) {
-    Object obj = null;
-    if (wrapper.hasNext()) {
-      obj = wrapper.next().getValues()[0];
-      if (obj instanceof java.sql.Clob) {
-        try {
-          obj = IOUtils.toString(((java.sql.Clob) obj).getAsciiStream());
-        } catch (IOException | SQLException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
-    return obj;
-  }
+	static Object flushRsToObject(IRawSelectWrapper wrapper) {
+		Object obj = null;
+		if (wrapper.hasNext()) {
+			obj = wrapper.next().getValues()[0];
+			if (obj instanceof java.sql.Clob) {
+				try {
+					obj = IOUtils.toString(((java.sql.Clob) obj).getAsciiStream());
+				} catch (IOException | SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return obj;
+	}
 }

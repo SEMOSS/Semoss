@@ -23,47 +23,38 @@ import prerna.util.BeanFiller;
 
 public class MicrosoftTokenFiller implements IAccessTokenFiller {
 
-  public static final String MS_GRAPH_BASE_API = "https://graph.microsoft.com";
-  private static final String USER_INFO_URL = MS_GRAPH_BASE_API + "/v1.0/me/";
-  private static String[] beanProps = {"name", "id", "email"};
-  private static String jsonPattern = "[displayName,id,mail]";
+	public static final String MS_GRAPH_BASE_API = "https://graph.microsoft.com";
+	private static final String USER_INFO_URL = MS_GRAPH_BASE_API + "/v1.0/me/";
+	private static String[] beanProps = {"name", "id", "email"};
+	private static String jsonPattern = "[displayName,id,mail]";
 
-  @Override
-  public void fillAccessToken(
-      AccessToken msAccessToken,
-      String userInfoUrl,
-      String jsonPattern,
-      String[] beanProps,
-      Map<String, Object> params) {
-    if (userInfoUrl == null || (userInfoUrl = userInfoUrl.trim()).isEmpty()) {
-      userInfoUrl = USER_INFO_URL;
-    }
-    if (jsonPattern == null || (jsonPattern = jsonPattern.trim()).isEmpty()) {
-      jsonPattern = MicrosoftTokenFiller.jsonPattern;
-    }
-    if (beanProps == null || beanProps.length == 0) {
-      beanProps = MicrosoftTokenFiller.beanProps;
-    }
+	@Override
+	public void fillAccessToken(AccessToken msAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
+			Map<String, Object> params) {
+		if (userInfoUrl == null || (userInfoUrl = userInfoUrl.trim()).isEmpty()) {
+			userInfoUrl = USER_INFO_URL;
+		}
+		if (jsonPattern == null || (jsonPattern = jsonPattern.trim()).isEmpty()) {
+			jsonPattern = MicrosoftTokenFiller.jsonPattern;
+		}
+		if (beanProps == null || beanProps.length == 0) {
+			beanProps = MicrosoftTokenFiller.beanProps;
+		}
 
-    if (params == null) {
-      params = new HashMap<>();
-    }
+		if (params == null) {
+			params = new HashMap<>();
+		}
 
-    String accessToken = msAccessToken.getAccess_token();
-    String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, params, true);
-    // fill the bean with the return
-    BeanFiller.fillFromJson(output, jsonPattern, beanProps, msAccessToken);
-  }
+		String accessToken = msAccessToken.getAccess_token();
+		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, params, true);
+		// fill the bean with the return
+		BeanFiller.fillFromJson(output, jsonPattern, beanProps, msAccessToken);
+	}
 
-  @Override
-  public void fillAccessToken(
-      AccessToken accessToken,
-      String userInfoUrl,
-      String jsonPattern,
-      String[] beanProps,
-      Map<String, Object> params,
-      boolean sanitizeResponse) {
-    // dont need to sanitize
-    fillAccessToken(accessToken, userInfoUrl, jsonPattern, beanProps, params);
-  }
+	@Override
+	public void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
+			Map<String, Object> params, boolean sanitizeResponse) {
+		// dont need to sanitize
+		fillAccessToken(accessToken, userInfoUrl, jsonPattern, beanProps, params);
+	}
 }

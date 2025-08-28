@@ -31,41 +31,32 @@ import prerna.testing.ApiSemossTestUtils;
 
 public class AdminGetEngineSMSSReactorApiTests extends AbstractBaseSemossApiTests {
 
-  private Path smssFilePath;
-  private String engine;
+	private Path smssFilePath;
+	private String engine;
 
-  @Test
-  public void executeWithEngineKey() throws IOException {
-    // create engine
-    String engine = ApiSemossTestEngineUtils.createBasicEngine();
-    smssFilePath = Files.createTempFile("test-smss", ".txt");
-    Files.write(smssFilePath, createSmssFileContent(engine).getBytes());
-    String concealedSmssContent = createSmssFileContent(engine);
+	@Test
+	public void executeWithEngineKey() throws IOException {
+		// create engine
+		String engine = ApiSemossTestEngineUtils.createBasicEngine();
+		smssFilePath = Files.createTempFile("test-smss", ".txt");
+		Files.write(smssFilePath, createSmssFileContent(engine).getBytes());
+		String concealedSmssContent = createSmssFileContent(engine);
 
-    // run reactor
-    String pixel =
-        ApiSemossTestUtils.buildPixelCall(
-            AdminGetEngineSMSSReactor.class, ReactorKeysEnum.ENGINE.getKey(), engine);
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		// run reactor
+		String pixel = ApiSemossTestUtils.buildPixelCall(AdminGetEngineSMSSReactor.class,
+				ReactorKeysEnum.ENGINE.getKey(), engine);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 
-    assertNotNull(nm);
-    assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
-    assertEquals(concealedSmssContent, nm.getValue().toString());
-  }
+		assertNotNull(nm);
+		assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
+		assertEquals(concealedSmssContent, nm.getValue().toString());
+	}
 
-  private String createSmssFileContent(String engine) {
-    // Create realistic SMSS file content that will be processed by SmssUtilities
-    return "#Base Properties\n"
-        + "ENGINE\t"
-        + engine
-        + "\n"
-        + "ENGINE_ALIAS\ttest\n"
-        + "ENGINE_TYPE\tprerna.engine.impl.rdbms.RDBMSNativeEngine\n"
-        + "OWL\tdb/@ENGINE@/test_OWL.OWL\n"
-        + "RDBMS_TYPE\tH2_DB\n"
-        + "DRIVER\torg.h2.Driver\n"
-        + "USERNAME\tsa\n"
-        + "PASSWORD\t********\n"
-        + "CONNECTION_URL\tjdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768\n";
-  }
+	private String createSmssFileContent(String engine) {
+		// Create realistic SMSS file content that will be processed by SmssUtilities
+		return "#Base Properties\n" + "ENGINE\t" + engine + "\n" + "ENGINE_ALIAS\ttest\n"
+				+ "ENGINE_TYPE\tprerna.engine.impl.rdbms.RDBMSNativeEngine\n" + "OWL\tdb/@ENGINE@/test_OWL.OWL\n"
+				+ "RDBMS_TYPE\tH2_DB\n" + "DRIVER\torg.h2.Driver\n" + "USERNAME\tsa\n" + "PASSWORD\t********\n"
+				+ "CONNECTION_URL\tjdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768\n";
+	}
 }

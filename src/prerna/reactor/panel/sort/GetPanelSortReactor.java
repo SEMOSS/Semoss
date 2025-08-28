@@ -23,19 +23,19 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetPanelSortReactor extends AbstractPanelSortReactor {
 
-  public GetPanelSortReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PANEL.getKey()};
-  }
+	public GetPanelSortReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    InsightPanel panel = getInsightPanel();
-    if (panel == null) {
-      throw new NullPointerException("Panel must be defined to retrieve the sorts");
-    }
-    // pull and send the panel sorts
-    List<IQuerySort> orderBys = panel.getPanelOrderBys();
-    NounMetadata noun = new NounMetadata(orderBys, PixelDataType.CUSTOM_DATA_STRUCTURE);
-    return noun;
-  }
+	@Override
+	public NounMetadata execute() {
+		InsightPanel panel = getInsightPanel();
+		if (panel == null) {
+			throw new NullPointerException("Panel must be defined to retrieve the sorts");
+		}
+		// pull and send the panel sorts
+		List<IQuerySort> orderBys = panel.getPanelOrderBys();
+		NounMetadata noun = new NounMetadata(orderBys, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		return noun;
+	}
 }

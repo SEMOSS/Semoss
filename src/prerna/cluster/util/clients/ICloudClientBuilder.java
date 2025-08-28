@@ -16,37 +16,37 @@ package prerna.cluster.util.clients;
 
 public interface ICloudClientBuilder {
 
-  /**
-   * Build the client
-   *
-   * @return
-   */
-  ICloudClient buildClient();
+	/**
+	 * Build the client
+	 *
+	 * @return
+	 */
+	ICloudClient buildClient();
 
-  /**
-   * @return
-   */
-  ICloudClientBuilder pullValuesFromSystem();
+	/**
+	 * @return
+	 */
+	ICloudClientBuilder pullValuesFromSystem();
 
-  /**
-   * @param rclonePath
-   * @return
-   */
-  ICloudClientBuilder setRClonePath(String rclonePath);
+	/**
+	 * @param rclonePath
+	 * @return
+	 */
+	ICloudClientBuilder setRClonePath(String rclonePath);
 
-  /**
-   * @param rcloneConfigF
-   * @return
-   */
-  ICloudClientBuilder setRCloneConfigFolder(String rcloneConfigF);
+	/**
+	 * @param rcloneConfigF
+	 * @return
+	 */
+	ICloudClientBuilder setRCloneConfigFolder(String rcloneConfigF);
 
-  /**
-   * @return
-   */
-  String getRClonePath();
+	/**
+	 * @return
+	 */
+	String getRClonePath();
 
-  /**
-   * @return
-   */
-  String getRCloneConfigFolder();
+	/**
+	 * @return
+	 */
+	String getRCloneConfigFolder();
 }

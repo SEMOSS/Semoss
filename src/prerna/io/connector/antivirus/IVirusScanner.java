@@ -20,13 +20,12 @@ import java.util.Map;
 
 public interface IVirusScanner {
 
-  @Deprecated String CLAM_AV = "ClamAV";
+	@Deprecated
+	String CLAM_AV = "ClamAV";
 
-  enum VIRUS_SCANNER_TYPE {
-    APACHE_TIKA,
-    CLAM_AV,
-    VIRUS_TOTAL,
-  }
+	enum VIRUS_SCANNER_TYPE {
+		APACHE_TIKA, CLAM_AV, VIRUS_TOTAL,
+	}
 
-  Map<String, Collection<String>> getViruses(String name, InputStream is);
+	Map<String, Collection<String>> getViruses(String name, InputStream is);
 }

@@ -20,8 +20,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 @Deprecated
 public class UploadDatabaseReactor extends UploadEngineReactor {
 
-  @Override
-  public NounMetadata execute() {
-    return super.execute();
-  }
+	@Override
+	public NounMetadata execute() {
+		return super.execute();
+	}
 }

@@ -25,29 +25,24 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SetPanelSortReactor extends AbstractPanelSortReactor {
 
-  public SetPanelSortReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.PANEL.getKey(),
-          ReactorKeysEnum.COLUMNS.getKey(),
-          ReactorKeysEnum.SORT.getKey()
-        };
-  }
+	public SetPanelSortReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.COLUMNS.getKey(),
+				ReactorKeysEnum.SORT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    InsightPanel panel = getInsightPanel();
+	@Override
+	public NounMetadata execute() {
+		InsightPanel panel = getInsightPanel();
 
-    // get the sort information
-    List<IQuerySort> sorts = getColumnSortBys();
-    // set it in the panel
-    panel.setPanelOrderBys(sorts);
+		// get the sort information
+		List<IQuerySort> sorts = getColumnSortBys();
+		// set it in the panel
+		panel.setPanelOrderBys(sorts);
 
-    BooleanValMetadata pSortVal = BooleanValMetadata.getPanelVal();
-    pSortVal.setName(panel.getPanelId());
-    pSortVal.setFilterVal(true);
-    NounMetadata noun =
-        new NounMetadata(pSortVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_SORT);
-    return noun;
-  }
+		BooleanValMetadata pSortVal = BooleanValMetadata.getPanelVal();
+		pSortVal.setName(panel.getPanelId());
+		pSortVal.setFilterVal(true);
+		NounMetadata noun = new NounMetadata(pSortVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_SORT);
+		return noun;
+	}
 }

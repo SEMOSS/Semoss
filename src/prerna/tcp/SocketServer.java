@@ -31,204 +31,202 @@ import prerna.util.Utility;
 
 public class SocketServer implements Runnable {
 
-  // basically a process which works by looking for commands in TCP space
-  private static final String CLASS_NAME = SocketServer.class.getName();
-  private static boolean multi = false; // allow multiple threads at the same time
-  public static boolean testMode = false;
+	// basically a process which works by looking for commands in TCP space
+	private static final String CLASS_NAME = SocketServer.class.getName();
+	private static boolean multi = false; // allow multiple threads at the same time
+	public static boolean testMode = false;
 
-  private static Logger classLogger = null;
+	private static Logger classLogger = null;
 
-  private Properties prop = null; // this is basically reference to the RDF Map
-  private String socketDir = null;
+	private Properties prop = null; // this is basically reference to the RDF Map
+	private String socketDir = null;
 
-  private boolean done = false;
+	private boolean done = false;
 
-  private Socket clientSocket = null;
-  private ServerSocket serverSocket = null;
+	private Socket clientSocket = null;
+	private ServerSocket serverSocket = null;
 
-  private InputStream is = null;
+	private InputStream is = null;
 
-  private SocketServerHandler ssh = new SocketServerHandler();
-  private String baseFolder = null;
+	private SocketServerHandler ssh = new SocketServerHandler();
+	private String baseFolder = null;
 
-  public Object crash = new Object();
+	public Object crash = new Object();
 
-  public static void main(String[] args) throws Exception {
-    // arg1 - the directory where commands would be thrown
-    // arg2 - access to the rdf map to load
-    // arg3 - port to start
+	public static void main(String[] args) throws Exception {
+		// arg1 - the directory where commands would be thrown
+		// arg2 - access to the rdf map to load
+		// arg3 - port to start
 
-    // create the watch service
-    // start this thread
+		// create the watch service
+		// start this thread
 
-    // when event comes write it to the command
-    // comment this for main execution
-    // -Dlog4j.defaultInitOverride=TRUE
+		// when event comes write it to the command
+		// comment this for main execution
+		// -Dlog4j.defaultInitOverride=TRUE
 
-    if (args == null || args.length == 0) {
-      args = new String[5];
-      args[0] = "C:/workspace/Semoss/InsightCache/z1";
-      args[1] = "C:/workspace/Semoss/RDF_Map.prop";
-      ;
-      args[2] = "9999";
-      args[3] = "r";
-      args[4] = "mixed";
-      multi = true;
-      testMode = true;
-    }
+		if (args == null || args.length == 0) {
+			args = new String[5];
+			args[0] = "C:/workspace/Semoss/InsightCache/z1";
+			args[1] = "C:/workspace/Semoss/RDF_Map.prop";;
+			args[2] = "9999";
+			args[3] = "r";
+			args[4] = "mixed";
+			multi = true;
+			testMode = true;
+		}
 
-    if (args.length < 3) {
-      throw new IllegalArgumentException(
-          "Must pass in at least 3 inputs - the log4j file, the rdf file map, and the port to run the socket on");
-    }
+		if (args.length < 3) {
+			throw new IllegalArgumentException(
+					"Must pass in at least 3 inputs - the log4j file, the rdf file map, and the port to run the socket on");
+		}
 
-    // this socket dir should have the log4j file contianer inside it
-    String socketDir = args[0];
-    String rdfMapInput = args[1];
-    String portInput = args[2];
+		// this socket dir should have the log4j file contianer inside it
+		String socketDir = args[0];
+		String rdfMapInput = args[1];
+		String portInput = args[2];
 
-    String log4JPropFile =
-        Paths.get(Utility.normalizePath(socketDir), "log4j2.properties")
-            .toAbsolutePath()
-            .toString();
+		String log4JPropFile = Paths.get(Utility.normalizePath(socketDir), "log4j2.properties").toAbsolutePath()
+				.toString();
 
-    // set to say this is not core
-    DIHelper.getInstance().setLocalProperty("core", "false");
+		// set to say this is not core
+		DIHelper.getInstance().setLocalProperty("core", "false");
 
-    FileInputStream fis = null;
-    try {
-      fis = new FileInputStream(Utility.normalizePath(log4JPropFile));
-      new ConfigurationSource(fis);
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    } finally {
-      if (fis != null) {
-        try {
-          fis.close();
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
-    classLogger = LogManager.getLogger(CLASS_NAME);
+		FileInputStream fis = null;
+		try {
+			fis = new FileInputStream(Utility.normalizePath(log4JPropFile));
+			new ConfigurationSource(fis);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (fis != null) {
+				try {
+					fis.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		classLogger = LogManager.getLogger(CLASS_NAME);
 
-    int port = -1;
-    try {
-      port = Integer.parseInt(portInput);
-    } catch (NumberFormatException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new IllegalArgumentException("Input integer input for port='" + portInput + "'");
-    }
+		int port = -1;
+		try {
+			port = Integer.parseInt(portInput);
+		} catch (NumberFormatException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Input integer input for port='" + portInput + "'");
+		}
 
-    String rdfMapLocation = Utility.normalizePath(rdfMapInput);
-    Properties rdfMap = Utility.loadProperties(rdfMapLocation);
-    System.out.println("loaded rdf map");
-    classLogger.info("loaded rdf map");
+		String rdfMapLocation = Utility.normalizePath(rdfMapInput);
+		Properties rdfMap = Utility.loadProperties(rdfMapLocation);
+		System.out.println("loaded rdf map");
+		classLogger.info("loaded rdf map");
 
-    SocketServer worker = new SocketServer();
-    worker.baseFolder = rdfMap.getProperty(Constants.BASE_FOLDER).replace('\\', '/');
+		SocketServer worker = new SocketServer();
+		worker.baseFolder = rdfMap.getProperty(Constants.BASE_FOLDER).replace('\\', '/');
 
-    DIHelper.getInstance().loadCoreProp(rdfMapLocation);
-    DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		DIHelper.getInstance().loadCoreProp(rdfMapLocation);
+		DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 
-    worker.prop = rdfMap;
+		worker.prop = rdfMap;
 
-    worker.socketDir = socketDir;
-    String engine = "r";
-    if (args.length >= 4) {
-      engine = args[3];
-    }
-    if (args.length >= 5) {
-      SocketServer.multi = args[4].equalsIgnoreCase("multi");
-    }
+		worker.socketDir = socketDir;
+		String engine = "r";
+		if (args.length >= 4) {
+			engine = args[3];
+		}
+		if (args.length >= 5) {
+			SocketServer.multi = args[4].equalsIgnoreCase("multi");
+		}
 
-    worker.bootServer(port, engine);
-  }
+		worker.bootServer(port, engine);
+	}
 
-  public void bootServer(final int PORT, String engine) {
-    try {
-      serverSocket = new ServerSocket(PORT);
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      classLogger.error(Constants.STACKTRACE, e);
-      System.err.println("Could not listen on port: " + PORT);
-      System.exit(1);
-    }
-    System.out.println("server started");
-    classLogger.info("server started");
+	public void bootServer(final int PORT, String engine) {
+		try {
+			serverSocket = new ServerSocket(PORT);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
+			System.err.println("Could not listen on port: " + PORT);
+			System.exit(1);
+		}
+		System.out.println("server started");
+		classLogger.info("server started");
 
-    Thread listenerThread = new Thread(this);
-    listenerThread.start();
-  }
+		Thread listenerThread = new Thread(this);
+		listenerThread.start();
+	}
 
-  // start listening for connections
-  public void run() {
-    // do the listening here and then spawn the thread
-    while (!done) {
-      if (this.clientSocket == null || multi) {
-        try {
-          clientSocket = serverSocket.accept();
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-          classLogger.error(Constants.STACKTRACE, e);
-          System.err.println("Accept failed.");
-          System.exit(1);
-        }
-        try {
-          ssh = new SocketServerHandler();
-          DIHelper.getInstance().setLocalProperty("SSH", ssh);
-          ssh.setLogger(classLogger);
-          ssh.setOutputStream(clientSocket.getOutputStream());
-          is = clientSocket.getInputStream();
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-          classLogger.error(Constants.STACKTRACE, e);
-        }
+	// start listening for connections
+	public void run() {
+		// do the listening here and then spawn the thread
+		while (!done) {
+			if (this.clientSocket == null || multi) {
+				try {
+					clientSocket = serverSocket.accept();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
+					System.err.println("Accept failed.");
+					System.exit(1);
+				}
+				try {
+					ssh = new SocketServerHandler();
+					DIHelper.getInstance().setLocalProperty("SSH", ssh);
+					ssh.setLogger(classLogger);
+					ssh.setOutputStream(clientSocket.getOutputStream());
+					is = clientSocket.getInputStream();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 
-        // start processing
-        // start a new thread
-        // PyExecutorThread pt = startPyExecutor();
+				// start processing
+				// start a new thread
+				// PyExecutorThread pt = startPyExecutor();
 
-        // ssh.setPyExecutorThread(pt);
-        ssh.is = is;
-        ssh.socket = serverSocket;
-        ssh.server = this;
-        ssh.mainFolder = socketDir;
+				// ssh.setPyExecutorThread(pt);
+				ssh.is = is;
+				ssh.socket = serverSocket;
+				ssh.server = this;
+				ssh.mainFolder = socketDir;
 
-        Thread readerThread = new Thread(ssh);
-        readerThread.start();
-      } else {
-        // just sleep
-        // see if something crashed
-        synchronized (crash) {
-          try {
-            crash.wait();
-            clientSocket = null;
-            closeStream(clientSocket);
-            closeStream(serverSocket);
-            closeStream(is);
-            if (!testMode) ssh.cleanUp();
-          } catch (InterruptedException e) {
-            classLogger.error(Constants.STACKTRACE, e);
-            classLogger.error(Constants.STACKTRACE, e);
-          }
-        }
-      }
-    }
-  }
+				Thread readerThread = new Thread(ssh);
+				readerThread.start();
+			} else {
+				// just sleep
+				// see if something crashed
+				synchronized (crash) {
+					try {
+						crash.wait();
+						clientSocket = null;
+						closeStream(clientSocket);
+						closeStream(serverSocket);
+						closeStream(is);
+						if (!testMode)
+							ssh.cleanUp();
+					} catch (InterruptedException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
 
-  private void closeStream(Closeable closeThis) {
-    try {
-      closeThis.close();
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      classLogger.error(Constants.STACKTRACE, e);
-    }
-  }
+	private void closeStream(Closeable closeThis) {
+		try {
+			closeThis.close();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
 
-  public static boolean isMulti() {
-    return multi;
-  }
+	public static boolean isMulti() {
+		return multi;
+	}
 }

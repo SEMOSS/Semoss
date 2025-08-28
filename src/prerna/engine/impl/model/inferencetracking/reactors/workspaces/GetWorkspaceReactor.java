@@ -26,52 +26,51 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetWorkspaceReactor extends AbstractReactor {
 
-  public static final String WITH_RESOURCES = "withResources";
+	public static final String WITH_RESOURCES = "withResources";
 
-  public GetWorkspaceReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey(), WITH_RESOURCES};
-    this.keyRequired = new int[] {1, 0};
-  }
+	public GetWorkspaceReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.WORKSPACE_ID.getKey(), WITH_RESOURCES};
+		this.keyRequired = new int[]{1, 0};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
 
-    User user = this.insight.getUser();
+		User user = this.insight.getUser();
 
-    String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-    boolean withResources = !"false".equalsIgnoreCase(this.keyValue.get(WITH_RESOURCES));
+		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
+		boolean withResources = !"false".equalsIgnoreCase(this.keyValue.get(WITH_RESOURCES));
 
-    Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-    if (current == null) {
-      throw new IllegalArgumentException("Workspace not found");
-    }
-    String currentOwner = (String) current.get("owner");
+		Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+		if (current == null) {
+			throw new IllegalArgumentException("Workspace not found");
+		}
+		String currentOwner = (String) current.get("owner");
 
-    Object currentlySharingEnabled = current.get("sharing_enabled");
-    Boolean currentlyShared = (Boolean) currentlySharingEnabled;
+		Object currentlySharingEnabled = current.get("sharing_enabled");
+		Boolean currentlyShared = (Boolean) currentlySharingEnabled;
 
-    boolean hasPermission = false;
-    if (currentOwner != null) {
-      for (AuthProvider provider : user.getLogins()) {
-        if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
-          hasPermission = true;
-          break;
-        }
-      }
-    }
-    if (!hasPermission
-        && (Boolean.TRUE != currentlyShared
-            || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user))) {
-      throw new IllegalArgumentException("User unauthorized to perform this operation");
-    }
+		boolean hasPermission = false;
+		if (currentOwner != null) {
+			for (AuthProvider provider : user.getLogins()) {
+				if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
+					hasPermission = true;
+					break;
+				}
+			}
+		}
+		if (!hasPermission && (Boolean.TRUE != currentlyShared
+				|| !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user))) {
+			throw new IllegalArgumentException("User unauthorized to perform this operation");
+		}
 
-    if (withResources) {
-      List<Map<String, Object>> resources =
-          ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, null);
-      current.put("resources", resources);
-    }
+		if (withResources) {
+			List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
+					null);
+			current.put("resources", resources);
+		}
 
-    return new NounMetadata(current, PixelDataType.MAP);
-  }
+		return new NounMetadata(current, PixelDataType.MAP);
+	}
 }

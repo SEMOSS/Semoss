@@ -23,28 +23,28 @@ import prerna.sablecc2.node.PRoutine;
 
 public class DashboardRecipeTranslation extends DepthFirstAdapter {
 
-  private boolean isDashboard = false;
+	private boolean isDashboard = false;
 
-  @Override
-  public void caseARoutineConfiguration(ARoutineConfiguration node) {
-    List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
-    for (PRoutine e : copy) {
-      //        	String expression = e.toString();
-      //        	LOGGER.info("Processing " + expression);
-      e.apply(this);
-    }
-  }
+	@Override
+	public void caseARoutineConfiguration(ARoutineConfiguration node) {
+		List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
+		for (PRoutine e : copy) {
+			// String expression = e.toString();
+			// LOGGER.info("Processing " + expression);
+			e.apply(this);
+		}
+	}
 
-  @Override
-  public void inAOperation(AOperation node) {
-    defaultIn(node);
-    String reactorId = node.getId().toString().trim();
-    if (reactorId.equals("DashboardInsightConfig")) {
-      isDashboard = true;
-    }
-  }
+	@Override
+	public void inAOperation(AOperation node) {
+		defaultIn(node);
+		String reactorId = node.getId().toString().trim();
+		if (reactorId.equals("DashboardInsightConfig")) {
+			isDashboard = true;
+		}
+	}
 
-  public boolean isDashboard() {
-    return isDashboard;
-  }
+	public boolean isDashboard() {
+		return isDashboard;
+	}
 }

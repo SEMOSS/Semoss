@@ -29,55 +29,54 @@ import prerna.util.Utility;
 
 public class RemovePackageFromVenvReactor extends AbstractReactor {
 
-  public RemovePackageFromVenvReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
-    this.keyRequired = new int[] {1, 1};
-  }
+	public RemovePackageFromVenvReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
+		this.keyRequired = new int[]{1, 1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    this.organizeKeys();
+	@Override
+	public NounMetadata execute() {
+		this.organizeKeys();
 
-    User user = this.insight.getUser();
-    String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-    if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-      throw new IllegalArgumentException(
-          "Virtual Environment " + engineId + " does not exist or user does not have access to it");
-    }
+		User user = this.insight.getUser();
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException(
+					"Virtual Environment " + engineId + " does not exist or user does not have access to it");
+		}
 
-    Map<String, Object> paramMap = getMap();
-    if (paramMap == null) {
-      throw new SemossPixelException("Unable to get param values map.");
-    }
+		Map<String, Object> paramMap = getMap();
+		if (paramMap == null) {
+			throw new SemossPixelException("Unable to get param values map.");
+		}
 
-    IVenvEngine engine = Utility.getVenvEngine(engineId);
-    if (engine == null) {
-      throw new SemossPixelException("Unable to find engine");
-    }
+		IVenvEngine engine = Utility.getVenvEngine(engineId);
+		if (engine == null) {
+			throw new SemossPixelException("Unable to find engine");
+		}
 
-    try {
-      engine.removePackage(paramMap);
-    } catch (Exception e) {
-      throw new SemossPixelException(
-          "Unable to run process to remove package from virtual environment: " + e.getMessage());
-    }
+		try {
+			engine.removePackage(paramMap);
+		} catch (Exception e) {
+			throw new SemossPixelException(
+					"Unable to run process to remove package from virtual environment: " + e.getMessage());
+		}
 
-    return new NounMetadata(true, PixelDataType.BOOLEAN);
-  }
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
 
-  private Map<String, Object> getMap() {
-    GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-    if (mapGrs != null && !mapGrs.isEmpty()) {
-      List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-      if (mapInputs != null && !mapInputs.isEmpty()) {
-        return (Map<String, Object>) mapInputs.get(0).getValue();
-      }
-    }
-    List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-    if (mapInputs != null && !mapInputs.isEmpty()) {
-      return (Map<String, Object>) mapInputs.get(0).getValue();
-    }
-    return null;
-  }
+	private Map<String, Object> getMap() {
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
 }

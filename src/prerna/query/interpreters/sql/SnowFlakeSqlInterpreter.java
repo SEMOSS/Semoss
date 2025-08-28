@@ -19,13 +19,14 @@ import prerna.engine.api.IDatabaseEngine;
 
 public class SnowFlakeSqlInterpreter extends SqlInterpreter {
 
-  public SnowFlakeSqlInterpreter() {}
+	public SnowFlakeSqlInterpreter() {
+	}
 
-  public SnowFlakeSqlInterpreter(IDatabaseEngine engine) {
-    super(engine);
-  }
+	public SnowFlakeSqlInterpreter(IDatabaseEngine engine) {
+		super(engine);
+	}
 
-  public SnowFlakeSqlInterpreter(ITableDataFrame frame) {
-    super(frame);
-  }
+	public SnowFlakeSqlInterpreter(ITableDataFrame frame) {
+		super(frame);
+	}
 }

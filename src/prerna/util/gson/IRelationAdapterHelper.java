@@ -20,5 +20,5 @@ import prerna.query.querystruct.joins.IRelation;
 
 public interface IRelationAdapterHelper {
 
-  IRelation readContent(JsonReader in) throws IOException;
+	IRelation readContent(JsonReader in) throws IOException;
 }

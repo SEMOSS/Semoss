@@ -26,37 +26,36 @@ import prerna.util.ProjectSyncUtility;
 
 public class UnlockProjectsReactor extends AbstractReactor {
 
-  public UnlockProjectsReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-  }
+	public UnlockProjectsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    User user = this.insight.getUser();
-    SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-    if (adminUtils == null) {
-      throw new IllegalArgumentException("User must be an admin to perform this function");
-    }
+	@Override
+	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+		if (adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
 
-    organizeKeys();
-    String projectId = this.keyValue.get(this.keysToGet[0]);
+		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 
-    boolean retBool = false;
-    ConcurrentMap<String, ReentrantLock> locks =
-        ProjectSyncUtility.getAllLocks(this.insight.getUser());
-    if (projectId == null) {
-      // unlock any current locks in use
-      for (String key : locks.keySet()) {
-        locks.get(key).unlock();
-      }
-      locks.clear();
-      retBool = true;
-    } else {
-      ReentrantLock lock = locks.remove(projectId);
-      lock.unlock();
-      retBool = true;
-    }
+		boolean retBool = false;
+		ConcurrentMap<String, ReentrantLock> locks = ProjectSyncUtility.getAllLocks(this.insight.getUser());
+		if (projectId == null) {
+			// unlock any current locks in use
+			for (String key : locks.keySet()) {
+				locks.get(key).unlock();
+			}
+			locks.clear();
+			retBool = true;
+		} else {
+			ReentrantLock lock = locks.remove(projectId);
+			lock.unlock();
+			retBool = true;
+		}
 
-    return new NounMetadata(retBool, PixelDataType.BOOLEAN);
-  }
+		return new NounMetadata(retBool, PixelDataType.BOOLEAN);
+	}
 }

@@ -19,30 +19,30 @@ import java.util.Map;
 
 public abstract class FilterEvaluator {
 
-  /*
-   * This class is just a wrapper so we have a default
-   * method to execute and determine if it evaluates
-   * to true or false
-   */
-  public Map<String, Object> vars = new HashMap<>();
+	/*
+	 * This class is just a wrapper so we have a default method to execute and
+	 * determine if it evaluates to true or false
+	 */
+	public Map<String, Object> vars = new HashMap<>();
 
-  public FilterEvaluator() {}
+	public FilterEvaluator() {
+	}
 
-  /**
-   * This method is to be evaluated to execute the filter and determine if the result is true or
-   * false
-   *
-   * @return
-   */
-  public boolean evaluate() {
-    return false;
-  }
+	/**
+	 * This method is to be evaluated to execute the filter and determine if the
+	 * result is true or false
+	 *
+	 * @return
+	 */
+	public boolean evaluate() {
+		return false;
+	}
 
-  public void setVar(String key, Object value) {
-    this.vars.put(key, value);
-  }
+	public void setVar(String key, Object value) {
+		this.vars.put(key, value);
+	}
 
-  public Object getVar(String key) {
-    return this.vars.get(key);
-  }
+	public Object getVar(String key) {
+		return this.vars.get(key);
+	}
 }

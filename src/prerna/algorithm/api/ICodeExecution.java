@@ -18,9 +18,9 @@ import prerna.om.Variable;
 
 public interface ICodeExecution {
 
-  String getExecutedCode();
+	String getExecutedCode();
 
-  Variable.LANGUAGE getLanguage();
+	Variable.LANGUAGE getLanguage();
 
-  boolean isUserScript();
+	boolean isUserScript();
 }

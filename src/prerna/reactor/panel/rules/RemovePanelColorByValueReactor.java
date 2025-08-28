@@ -24,40 +24,38 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class RemovePanelColorByValueReactor extends AbstractPanelColorByValueReactor {
 
-  public RemovePanelColorByValueReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.NAME.getKey()};
-  }
+	public RemovePanelColorByValueReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.NAME.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    // get the insight panel
-    InsightPanel insightPanel = getInsightPanel();
-    if (insightPanel == null) {
-      throw new NullPointerException("Could not find insight panel");
-    }
-    String cbvRule = getCbvId(1);
-    if (cbvRule == null) {
-      throw new NullPointerException("Must provide the color by value name within the panel");
-    }
-    boolean removed = insightPanel.removeColorByValue(cbvRule);
-    if (!removed) {
-      throw new NullPointerException("Could not find the color by value rule within the panel");
-    }
-    // need to return
-    // panelId
-    // cbvRuleId (name)
-    // filter info of the qs
+	@Override
+	public NounMetadata execute() {
+		// get the insight panel
+		InsightPanel insightPanel = getInsightPanel();
+		if (insightPanel == null) {
+			throw new NullPointerException("Could not find insight panel");
+		}
+		String cbvRule = getCbvId(1);
+		if (cbvRule == null) {
+			throw new NullPointerException("Must provide the color by value name within the panel");
+		}
+		boolean removed = insightPanel.removeColorByValue(cbvRule);
+		if (!removed) {
+			throw new NullPointerException("Could not find the color by value rule within the panel");
+		}
+		// need to return
+		// panelId
+		// cbvRuleId (name)
+		// filter info of the qs
 
-    Map<String, Object> retMap = new HashMap<String, Object>();
-    retMap.put("panelId", insightPanel.getPanelId());
-    retMap.put("name", cbvRule);
-    return new NounMetadata(
-        retMap,
-        PixelDataType.CUSTOM_DATA_STRUCTURE,
-        PixelOperationType.REMOVE_PANEL_COLOR_BY_VALUE);
-  }
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		retMap.put("panelId", insightPanel.getPanelId());
+		retMap.put("name", cbvRule);
+		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.REMOVE_PANEL_COLOR_BY_VALUE);
+	}
 
-  public String getName() {
-    return "RemovePanelColorByValue";
-  }
+	public String getName() {
+		return "RemovePanelColorByValue";
+	}
 }

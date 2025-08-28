@@ -15,25 +15,20 @@
 package prerna.algorithm.api;
 
 public enum DataFrameTypeEnum {
-  GRID("GRID"),
-  GRAPH("GRAPH"),
-  R("R"),
-  PYTHON("PY"),
-  NATIVE("NATIVE"),
-  IGRAPH("IGRAPH");
+	GRID("GRID"), GRAPH("GRAPH"), R("R"), PYTHON("PY"), NATIVE("NATIVE"), IGRAPH("IGRAPH");
 
-  private String type;
+	private String type;
 
-  DataFrameTypeEnum(String type) {
-    this.type = type;
-  }
+	DataFrameTypeEnum(String type) {
+		this.type = type;
+	}
 
-  public String getTypeAsString() {
-    return this.type;
-  }
+	public String getTypeAsString() {
+		return this.type;
+	}
 
-  @Override
-  public String toString() {
-    return getTypeAsString();
-  }
+	@Override
+	public String toString() {
+		return getTypeAsString();
+	}
 }

@@ -27,112 +27,107 @@ import prerna.util.Utility;
 
 public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements ISelectWrapper {
 
-  private static final Logger LOGGER =
-      LogManager.getLogger(RemoteSesameSelectWrapper.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(RemoteSesameSelectWrapper.class.getName());
 
-  transient SesameSelectWrapper remoteWrapperProxy = null;
-  transient ISelectStatement retSt = null;
-  transient ObjectInputStream ris = null;
-  transient BindingSet bs = null;
+	transient SesameSelectWrapper remoteWrapperProxy = null;
+	transient ISelectStatement retSt = null;
+	transient ObjectInputStream ris = null;
+	transient BindingSet bs = null;
 
-  @Override
-  public void execute() throws Exception {
-    System.out.println("Trying to get the wrapper remotely now");
-    remoteWrapperProxy = (SesameSelectWrapper) engine.execQuery(query);
-    this.headers = remoteWrapperProxy.headers;
-    this.rawHeaders = remoteWrapperProxy.rawHeaders;
+	@Override
+	public void execute() throws Exception {
+		System.out.println("Trying to get the wrapper remotely now");
+		remoteWrapperProxy = (SesameSelectWrapper) engine.execQuery(query);
+		this.headers = remoteWrapperProxy.headers;
+		this.rawHeaders = remoteWrapperProxy.rawHeaders;
 
-    //		var = remoteWrapperProxy.getVariables();
-    //		System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
-  }
+		// var = remoteWrapperProxy.getVariables();
+		// System.out.println("Output variables is " +
+		// remoteWrapperProxy.getVariables());
+	}
 
-  @Override
-  public boolean hasNext() {
-    boolean retBool = false;
-    if (retSt != null) // this means they have not picked it up yet
-    return true;
-    // retSt = new SelectStatement();//
+	@Override
+	public boolean hasNext() {
+		boolean retBool = false;
+		if (retSt != null) // this means they have not picked it up yet
+			return true;
+		// retSt = new SelectStatement();//
 
-    // I need to pull from remote
-    // this is just so stupid to call its own
-    try {
-      if (ris == null) {
-        Hashtable params = new Hashtable<String, String>();
-        params.put("id", remoteWrapperProxy.getRemoteId());
-        ris =
-            new ObjectInputStream(
-                Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
-      }
-      Object myObject = ris.readObject();
-      if (!myObject.toString().equalsIgnoreCase("null")) {
-        bs = (BindingSet) myObject;
-        // getDisplayVariables();
-        // System.out.println("Proceeded to first");
-        retSt = getSelectFromBinding(bs);
-        retBool = true;
-      }
-    } catch (ClassNotFoundException e) {
-      // TODO Auto-generated catch block
-      LOGGER.error(Constants.STACKTRACE, e);
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      LOGGER.error(Constants.STACKTRACE, e);
-    }
-    return retBool;
-  }
+		// I need to pull from remote
+		// this is just so stupid to call its own
+		try {
+			if (ris == null) {
+				Hashtable params = new Hashtable<String, String>();
+				params.put("id", remoteWrapperProxy.getRemoteId());
+				ris = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
+			}
+			Object myObject = ris.readObject();
+			if (!myObject.toString().equalsIgnoreCase("null")) {
+				bs = (BindingSet) myObject;
+				// getDisplayVariables();
+				// System.out.println("Proceeded to first");
+				retSt = getSelectFromBinding(bs);
+				retBool = true;
+			}
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			LOGGER.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			LOGGER.error(Constants.STACKTRACE, e);
+		}
+		return retBool;
+	}
 
-  @Override
-  public ISelectStatement next() {
-    // TODO Auto-generated method stub
-    ISelectStatement thisSt = retSt;
-    retSt = null;
-    return thisSt;
-  }
+	@Override
+	public ISelectStatement next() {
+		// TODO Auto-generated method stub
+		ISelectStatement thisSt = retSt;
+		retSt = null;
+		return thisSt;
+	}
 
-  @Override
-  public String[] getVariables() {
-    // TODO Auto-generated method stub
-    rawHeaders = remoteWrapperProxy.getVariables();
-    System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
-    return rawHeaders;
-  }
+	@Override
+	public String[] getVariables() {
+		// TODO Auto-generated method stub
+		rawHeaders = remoteWrapperProxy.getVariables();
+		System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
+		return rawHeaders;
+	}
 
-  public String[] getDisplayVariables() {
-    if (headers == null) {
-      headers = remoteWrapperProxy.headers;
-      /*
-      try {
-      	ObjectInputStream displayStream;
-      	Hashtable params = new Hashtable<String,String>();
-      	params.put("id", remoteWrapperProxy.getRemoteID());
-      	displayStream = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/getDisplayVariables", params));
-      	displayVar = (String [])displayStream.readObject();
-      } catch (ClassNotFoundException e) {
-      	// TODO Auto-generated catch block
-      	classLogger.error(Constants.STACKTRACE, e);
-      } catch (IOException e) {
-      	// TODO Auto-generated catch block
-      	classLogger.error(Constants.STACKTRACE, e);
-      }*/
-    }
-    return headers;
-  }
+	public String[] getDisplayVariables() {
+		if (headers == null) {
+			headers = remoteWrapperProxy.headers;
+			/*
+			 * try { ObjectInputStream displayStream; Hashtable params = new
+			 * Hashtable<String,String>(); params.put("id",
+			 * remoteWrapperProxy.getRemoteID()); displayStream = new
+			 * ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() +
+			 * "/getDisplayVariables", params)); displayVar = (String
+			 * [])displayStream.readObject(); } catch (ClassNotFoundException e) { // TODO
+			 * Auto-generated catch block classLogger.error(Constants.STACKTRACE, e); }
+			 * catch (IOException e) { // TODO Auto-generated catch block
+			 * classLogger.error(Constants.STACKTRACE, e); }
+			 */
+		}
+		return headers;
+	}
 
-  protected ISelectStatement getSelectFromBinding(BindingSet bs) {
-    getDisplayVariables();
-    String[] variableArr = headers;
+	protected ISelectStatement getSelectFromBinding(BindingSet bs) {
+		getDisplayVariables();
+		String[] variableArr = headers;
 
-    ISelectStatement sjss = new SelectStatement();
-    for (int colIndex = 0; colIndex < variableArr.length; colIndex++) {
-      Object val = bs.getValue(headers[colIndex]);
-      Object parsedVal = getRealValue(val);
+		ISelectStatement sjss = new SelectStatement();
+		for (int colIndex = 0; colIndex < variableArr.length; colIndex++) {
+			Object val = bs.getValue(headers[colIndex]);
+			Object parsedVal = getRealValue(val);
 
-      sjss.setVar(variableArr[colIndex], parsedVal);
-      if (val != null) {
-        sjss.setRawVar(variableArr[colIndex], val);
-      }
-      LOGGER.debug("Binding Name " + variableArr[colIndex]);
-    }
-    return sjss;
-  }
+			sjss.setVar(variableArr[colIndex], parsedVal);
+			if (val != null) {
+				sjss.setRawVar(variableArr[colIndex], val);
+			}
+			LOGGER.debug("Binding Name " + variableArr[colIndex]);
+		}
+		return sjss;
+	}
 }

@@ -30,22 +30,16 @@ import prerna.testing.ApiSemossTestUtils;
 
 public class AdminGetAllEngineUsageReactorApiTests extends AbstractBaseSemossApiTests {
 
-  @Test
-  public void test() {
-    String pixel =
-        ApiSemossTestUtils.buildPixelCall(
-            AdminGetAllEngineUsageReactor.class,
-            ReactorKeysEnum.ENGINE.getKey(),
-            ApiSemossTestEngineUtils.createBasicEngine(),
-            ReactorKeysEnum.LIMIT.getKey(),
-            "10",
-            ReactorKeysEnum.OFFSET.getKey(),
-            "5");
+	@Test
+	public void test() {
+		String pixel = ApiSemossTestUtils.buildPixelCall(AdminGetAllEngineUsageReactor.class,
+				ReactorKeysEnum.ENGINE.getKey(), ApiSemossTestEngineUtils.createBasicEngine(),
+				ReactorKeysEnum.LIMIT.getKey(), "10", ReactorKeysEnum.OFFSET.getKey(), "5");
 
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 
-    assertNotNull(nm);
-    assertEquals(PixelDataType.FORMATTED_DATA_SET, nm.getNounType());
-    assertEquals(new ArrayList<Map<String, Object>>().toString(), nm.getValue().toString());
-  }
+		assertNotNull(nm);
+		assertEquals(PixelDataType.FORMATTED_DATA_SET, nm.getNounType());
+		assertEquals(new ArrayList<Map<String, Object>>().toString(), nm.getValue().toString());
+	}
 }

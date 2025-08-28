@@ -23,20 +23,20 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class CountReactor extends SelectReactor {
 
-  public CountReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.COLUMNS.getKey()};
-  }
+	public CountReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+	}
 
-  @Override
-  protected AbstractQueryStruct createQueryStruct() {
-    GenRowStruct qsInputs = this.getCurRow();
-    if (qsInputs != null && !qsInputs.isEmpty()) {
-      for (int selectIndex = 0; selectIndex < qsInputs.size(); selectIndex++) {
-        NounMetadata input = qsInputs.getNoun(selectIndex);
-        IQuerySelector innerSelector = getSelector(input);
-        qs.addSelector(genFunctionSelector(QueryFunctionHelper.COUNT, innerSelector));
-      }
-    }
-    return qs;
-  }
+	@Override
+	protected AbstractQueryStruct createQueryStruct() {
+		GenRowStruct qsInputs = this.getCurRow();
+		if (qsInputs != null && !qsInputs.isEmpty()) {
+			for (int selectIndex = 0; selectIndex < qsInputs.size(); selectIndex++) {
+				NounMetadata input = qsInputs.getNoun(selectIndex);
+				IQuerySelector innerSelector = getSelector(input);
+				qs.addSelector(genFunctionSelector(QueryFunctionHelper.COUNT, innerSelector));
+			}
+		}
+		return qs;
+	}
 }

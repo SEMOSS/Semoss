@@ -160,7 +160,7 @@
 								<licenseHeader>
 									<file>${project.basedir}/spotless/header.txt</file>
 								</licenseHeader>
-								<googleJavaFormat/>
+								<eclipse/>
 								<removeUnusedImports />
 								<excludes>
 									<exclude>src/prerna/sablecc2/analysis/*.java</exclude>
@@ -334,7 +334,7 @@
 								<licenseHeader>
 									<file>${project.basedir}/spotless/header.txt</file>
 								</licenseHeader>
-								<googleJavaFormat/>
+								<eclipse/>
 								<removeUnusedImports />
 								<excludes>
 									<exclude>src/prerna/sablecc2/analysis/*.java</exclude>

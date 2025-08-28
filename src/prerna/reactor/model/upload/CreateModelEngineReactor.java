@@ -47,197 +47,187 @@ import prerna.util.Utility;
 
 public class CreateModelEngineReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(CreateModelEngineReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CreateModelEngineReactor.class);
 
-  public CreateModelEngineReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.MODEL.getKey(),
-          ReactorKeysEnum.MODEL_DETAILS.getKey(),
-          ReactorKeysEnum.GLOBAL.getKey()
-        };
-  }
+	public CreateModelEngineReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.MODEL_DETAILS.getKey(),
+				ReactorKeysEnum.GLOBAL.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    User user = this.insight.getUser();
-    if (user == null) {
-      NounMetadata noun =
-          new NounMetadata(
-              "User must be signed into an account in order to create a model engine",
-              PixelDataType.CONST_STRING,
-              PixelOperationType.ERROR,
-              PixelOperationType.LOGGIN_REQUIRED_ERROR);
-      SemossPixelException err = new SemossPixelException(noun);
-      err.setContinueThreadOfExecution(false);
-      throw err;
-    }
+	@Override
+	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to create a model engine", PixelDataType.CONST_STRING,
+					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
 
-    if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-      if (this.insight.getUser().isAnonymous()) {
-        throwAnonymousUserError();
-      }
-    }
+		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
+			if (this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		}
 
-    // throw error is user doesn't have rights to publish new databases
-    if (AbstractSecurityUtils.adminSetPublisher()
-        && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
-      throwUserNotPublisherError();
-    }
+		// throw error is user doesn't have rights to publish new databases
+		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
+			throwUserNotPublisherError();
+		}
 
-    if (AbstractSecurityUtils.adminOnlyModelAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-      throwFunctionalityOnlyExposedForAdminsError();
-    }
+		if (AbstractSecurityUtils.adminOnlyModelAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+			throwFunctionalityOnlyExposedForAdminsError();
+		}
 
-    organizeKeys();
+		organizeKeys();
 
-    String modelName = getModelName();
-    // if model name is not valid, throw error
-    if (!Utility.validateName(modelName)) {
-      // error and redirect to try again
-      throw new IllegalArgumentException(
-          "Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
-    }
+		String modelName = getModelName();
+		// if model name is not valid, throw error
+		if (!Utility.validateName(modelName)) {
+			// error and redirect to try again
+			throw new IllegalArgumentException(
+					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
 
-    // String modelName = getModelName();
-    Map<String, Object> modelDetails = getModelDetails();
-    boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
+		// String modelName = getModelName();
+		Map<String, Object> modelDetails = getModelDetails();
+		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 
-    String modelTypeStr = (String) modelDetails.get(IModelEngine.MODEL_TYPE);
-    if (modelTypeStr == null || (modelTypeStr = modelTypeStr.trim()).isEmpty()) {
-      throw new IllegalArgumentException("Must define the model type");
-    }
-    ModelTypeEnum modelType = null;
-    try {
-      modelType = ModelTypeEnum.getEnumFromName(modelTypeStr);
-    } catch (Exception e) {
-      throw new IllegalArgumentException("Invalid model type " + modelTypeStr);
-    }
+		String modelTypeStr = (String) modelDetails.get(IModelEngine.MODEL_TYPE);
+		if (modelTypeStr == null || (modelTypeStr = modelTypeStr.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must define the model type");
+		}
+		ModelTypeEnum modelType = null;
+		try {
+			modelType = ModelTypeEnum.getEnumFromName(modelTypeStr);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Invalid model type " + modelTypeStr);
+		}
 
-    if (modelDetails.containsKey(Settings.VAR_NAME)) {
-      // need to validate this is alphanumeric underscore and does not start with a number
-      String varName = (String) modelDetails.get(Settings.VAR_NAME);
-      if (!PythonVariableValidator.isValidPythonVariableName(varName)) {
-        throw new IllegalArgumentException(
-            "The variable '"
-                + varName
-                + "' is not a valid variable name. It must be alphanumeric underscore, cannot start with a digit, and cannot be a reserved word.");
-      }
-    }
+		if (modelDetails.containsKey(Settings.VAR_NAME)) {
+			// need to validate this is alphanumeric underscore and does not start with a
+			// number
+			String varName = (String) modelDetails.get(Settings.VAR_NAME);
+			if (!PythonVariableValidator.isValidPythonVariableName(varName)) {
+				throw new IllegalArgumentException("The variable '" + varName
+						+ "' is not a valid variable name. It must be alphanumeric underscore, cannot start with a digit, and cannot be a reserved word.");
+			}
+		}
 
-    String modelId = UUID.randomUUID().toString();
-    File tempSmss = null;
-    File smssFile = null;
-    File specificEngineFolder = null;
-    IModelEngine model = null;
-    try {
-      // validate engine
-      UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.MODEL, user, modelName, modelId);
-      specificEngineFolder =
-          UploadUtilities.generateSpecificEngineFolder(
-              IEngine.CATALOG_TYPE.MODEL, modelId, modelName);
+		String modelId = UUID.randomUUID().toString();
+		File tempSmss = null;
+		File smssFile = null;
+		File specificEngineFolder = null;
+		IModelEngine model = null;
+		try {
+			// validate engine
+			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.MODEL, user, modelName, modelId);
+			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.MODEL, modelId,
+					modelName);
 
-      String modelClass = modelType.getModelClass();
-      model = (IModelEngine) Class.forName(modelClass).newInstance();
-      tempSmss =
-          UploadUtilities.createTemporaryModelSmss(modelId, modelName, modelClass, modelDetails);
+			String modelClass = modelType.getModelClass();
+			model = (IModelEngine) Class.forName(modelClass).newInstance();
+			tempSmss = UploadUtilities.createTemporaryModelSmss(modelId, modelName, modelClass, modelDetails);
 
-      // store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
-      DIHelper.getInstance()
-          .setEngineProperty(modelId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-      model.open(tempSmss.getAbsolutePath());
+			// store in DIHelper so that when we move temp smss to smss it doesn't try to
+			// reload again
+			DIHelper.getInstance().setEngineProperty(modelId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			model.open(tempSmss.getAbsolutePath());
 
-      smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-      FileUtils.copyFile(tempSmss, smssFile);
-      tempSmss.delete();
-      model.setSmssFilePath(smssFile.getAbsolutePath());
-      UploadUtilities.updateDIHelper(modelId, modelName, model, smssFile);
-      SecurityEngineUtils.addEngine(modelId, global, user);
+			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+			FileUtils.copyFile(tempSmss, smssFile);
+			tempSmss.delete();
+			model.setSmssFilePath(smssFile.getAbsolutePath());
+			UploadUtilities.updateDIHelper(modelId, modelName, model, smssFile);
+			SecurityEngineUtils.addEngine(modelId, global, user);
 
-      // even if no security, just add user as database owner
-      if (user != null) {
-        List<AuthProvider> logins = user.getLogins();
-        for (AuthProvider ap : logins) {
-          SecurityEngineUtils.addEngineOwner(modelId, user.getAccessToken(ap).getId());
-        }
-      }
+			// even if no security, just add user as database owner
+			if (user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for (AuthProvider ap : logins) {
+					SecurityEngineUtils.addEngineOwner(modelId, user.getAccessToken(ap).getId());
+				}
+			}
 
-      ClusterUtil.pushEngine(modelId);
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
-    }
+			ClusterUtil.pushEngine(modelId);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
+		}
 
-    Map<String, Object> retMap =
-        UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
-    return new NounMetadata(
-        retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-  }
+		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
+		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+	}
 
-  /** Delete all the corresponding files that are generated from the upload the failed */
-  private void cleanUpCreateNewError(
-      IModelEngine model, String modelId, File tempSmss, File smssFile, File specificEngineFolder) {
-    try {
-      // close the DB so we can delete it
-      if (model != null) {
-        model.close();
-      }
+	/**
+	 * Delete all the corresponding files that are generated from the upload the
+	 * failed
+	 */
+	private void cleanUpCreateNewError(IModelEngine model, String modelId, File tempSmss, File smssFile,
+			File specificEngineFolder) {
+		try {
+			// close the DB so we can delete it
+			if (model != null) {
+				model.close();
+			}
 
-      // delete the .temp file
-      if (tempSmss != null && tempSmss.exists()) {
-        FileUtils.forceDelete(tempSmss);
-      }
-      // delete the .smss file
-      if (smssFile != null && smssFile.exists()) {
-        FileUtils.forceDelete(smssFile);
-      }
-      if (specificEngineFolder != null && specificEngineFolder.exists()) {
-        FileUtils.forceDelete(specificEngineFolder);
-      }
+			// delete the .temp file
+			if (tempSmss != null && tempSmss.exists()) {
+				FileUtils.forceDelete(tempSmss);
+			}
+			// delete the .smss file
+			if (smssFile != null && smssFile.exists()) {
+				FileUtils.forceDelete(smssFile);
+			}
+			if (specificEngineFolder != null && specificEngineFolder.exists()) {
+				FileUtils.forceDelete(specificEngineFolder);
+			}
 
-      UploadUtilities.removeEngineFromDIHelper(modelId);
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
-  }
+			UploadUtilities.removeEngineFromDIHelper(modelId);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
 
-  /**
-   * @return
-   */
-  private String getModelName() {
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      List<String> strValues = grs.getAllStrValues();
-      if (strValues != null && !strValues.isEmpty()) {
-        return strValues.get(0).trim();
-      }
-    }
+	/**
+	 * @return
+	 */
+	private String getModelName() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			List<String> strValues = grs.getAllStrValues();
+			if (strValues != null && !strValues.isEmpty()) {
+				return strValues.get(0).trim();
+			}
+		}
 
-    List<String> strValues = this.curRow.getAllStrValues();
-    if (strValues != null && !strValues.isEmpty()) {
-      return strValues.get(0).trim();
-    }
+		List<String> strValues = this.curRow.getAllStrValues();
+		if (strValues != null && !strValues.isEmpty()) {
+			return strValues.get(0).trim();
+		}
 
-    throw new NullPointerException("Must define the name of the new model engine");
-  }
+		throw new NullPointerException("Must define the name of the new model engine");
+	}
 
-  /**
-   * @return
-   */
-  private Map<String, Object> getModelDetails() {
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL_DETAILS.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
-      if (mapNouns != null && !mapNouns.isEmpty()) {
-        return (Map<String, Object>) mapNouns.get(0).getValue();
-      }
-    }
+	/**
+	 * @return
+	 */
+	private Map<String, Object> getModelDetails() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL_DETAILS.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
+			if (mapNouns != null && !mapNouns.isEmpty()) {
+				return (Map<String, Object>) mapNouns.get(0).getValue();
+			}
+		}
 
-    List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
-    if (mapNouns != null && !mapNouns.isEmpty()) {
-      return (Map<String, Object>) mapNouns.get(0).getValue();
-    }
+		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapNouns != null && !mapNouns.isEmpty()) {
+			return (Map<String, Object>) mapNouns.get(0).getValue();
+		}
 
-    throw new NullPointerException("Must define the properties for the new model engine");
-  }
+		throw new NullPointerException("Must define the properties for the new model engine");
+	}
 }

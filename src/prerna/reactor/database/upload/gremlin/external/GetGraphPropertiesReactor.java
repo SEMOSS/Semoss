@@ -41,102 +41,94 @@ import prerna.util.UploadInputUtility;
 
 public class GetGraphPropertiesReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(GetGraphPropertiesReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetGraphPropertiesReactor.class);
 
-  public GetGraphPropertiesReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
-  }
+	public GetGraphPropertiesReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    /*
-     * Get Inputs
-     */
-    organizeKeys();
-    String fileName = UploadInputUtility.getFilePath(this.store, this.insight);
-    if (fileName == null) {
-      SemossPixelException exception =
-          new SemossPixelException(
-              new NounMetadata(
-                  "Requires fileName to get graph properties.",
-                  PixelDataType.CONST_STRING,
-                  PixelOperationType.ERROR));
-      exception.setContinueThreadOfExecution(false);
-      throw exception;
-    }
-    TinkerEngine.TINKER_DRIVER tinkerDriver = TinkerEngine.TINKER_DRIVER.NEO4J;
-    if (new File(fileName).isFile() && fileName.contains(".")) {
-      String fileExtension = fileName.substring(fileName.indexOf(".") + 1);
-      tinkerDriver = TinkerEngine.TINKER_DRIVER.valueOf(fileExtension.toUpperCase());
-    }
-    Graph g = null;
-    List<String> properties = new ArrayList<>();
-    /*
-     * Open Graph
-     */
-    if (tinkerDriver == TinkerEngine.TINKER_DRIVER.NEO4J) {
-      File f = new File(fileName);
-      if (f.exists() && f.isDirectory()) {
-        g = Neo4jGraph.open(fileName);
-      } else {
-        SemossPixelException exception =
-            new SemossPixelException(
-                new NounMetadata(
-                    "Invalid Neo4j path", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-        exception.setContinueThreadOfExecution(false);
-        throw exception;
-      }
-    } else {
-      g = TinkerGraph.open();
-      try {
-        File f = new File(fileName);
-        if (!f.exists()) {
-          SemossPixelException exception =
-              new SemossPixelException(
-                  new NounMetadata(
-                      "Invalid graph path", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-          exception.setContinueThreadOfExecution(false);
-          throw exception;
-        }
-        if (tinkerDriver == TinkerEngine.TINKER_DRIVER.TG) {
-          // user kyro to de-serialize the cached graph
-          Builder<GryoIo> builder = GryoIo.build();
-          builder.graph(g);
-          builder.onMapper(new MyGraphIoMappingBuilder());
-          GryoIo reader = builder.create();
-          reader.readGraph(fileName);
-        } else if (tinkerDriver == TinkerEngine.TINKER_DRIVER.JSON) {
-          // user kyro to de-serialize the cached graph
-          Builder<GraphSONIo> builder = GraphSONIo.build();
-          builder.graph(g);
-          builder.onMapper(new MyGraphIoMappingBuilder());
-          GraphSONIo reader = builder.create();
-          reader.readGraph(fileName);
-        } else if (tinkerDriver == TinkerEngine.TINKER_DRIVER.XML) {
-          Builder<GraphMLIo> builder = GraphMLIo.build();
-          builder.graph(g);
-          builder.onMapper(new MyGraphIoMappingBuilder());
-          GraphMLIo reader = builder.create();
-          reader.readGraph(fileName);
-        } else {
-          throw new IllegalArgumentException("Can only process .tg, .json, and .xml files");
-        }
-      } catch (IOException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
+	@Override
+	public NounMetadata execute() {
+		/*
+		 * Get Inputs
+		 */
+		organizeKeys();
+		String fileName = UploadInputUtility.getFilePath(this.store, this.insight);
+		if (fileName == null) {
+			SemossPixelException exception = new SemossPixelException(
+					new NounMetadata("Requires fileName to get graph properties.", PixelDataType.CONST_STRING,
+							PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		TinkerEngine.TINKER_DRIVER tinkerDriver = TinkerEngine.TINKER_DRIVER.NEO4J;
+		if (new File(fileName).isFile() && fileName.contains(".")) {
+			String fileExtension = fileName.substring(fileName.indexOf(".") + 1);
+			tinkerDriver = TinkerEngine.TINKER_DRIVER.valueOf(fileExtension.toUpperCase());
+		}
+		Graph g = null;
+		List<String> properties = new ArrayList<>();
+		/*
+		 * Open Graph
+		 */
+		if (tinkerDriver == TinkerEngine.TINKER_DRIVER.NEO4J) {
+			File f = new File(fileName);
+			if (f.exists() && f.isDirectory()) {
+				g = Neo4jGraph.open(fileName);
+			} else {
+				SemossPixelException exception = new SemossPixelException(
+						new NounMetadata("Invalid Neo4j path", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+		} else {
+			g = TinkerGraph.open();
+			try {
+				File f = new File(fileName);
+				if (!f.exists()) {
+					SemossPixelException exception = new SemossPixelException(new NounMetadata("Invalid graph path",
+							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+					exception.setContinueThreadOfExecution(false);
+					throw exception;
+				}
+				if (tinkerDriver == TinkerEngine.TINKER_DRIVER.TG) {
+					// user kyro to de-serialize the cached graph
+					Builder<GryoIo> builder = GryoIo.build();
+					builder.graph(g);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GryoIo reader = builder.create();
+					reader.readGraph(fileName);
+				} else if (tinkerDriver == TinkerEngine.TINKER_DRIVER.JSON) {
+					// user kyro to de-serialize the cached graph
+					Builder<GraphSONIo> builder = GraphSONIo.build();
+					builder.graph(g);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GraphSONIo reader = builder.create();
+					reader.readGraph(fileName);
+				} else if (tinkerDriver == TinkerEngine.TINKER_DRIVER.XML) {
+					Builder<GraphMLIo> builder = GraphMLIo.build();
+					builder.graph(g);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GraphMLIo reader = builder.create();
+					reader.readGraph(fileName);
+				} else {
+					throw new IllegalArgumentException("Can only process .tg, .json, and .xml files");
+				}
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 
-    // get graph properties
-    if (g != null) {
-      properties = GraphUtility.getAllNodeProperties(g.traversal());
-      try {
-        g.close();
-      } catch (Exception e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
+		// get graph properties
+		if (g != null) {
+			properties = GraphUtility.getAllNodeProperties(g.traversal());
+			try {
+				g.close();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 
-    return new NounMetadata(properties, PixelDataType.CUSTOM_DATA_STRUCTURE);
-  }
+		return new NounMetadata(properties, PixelDataType.CUSTOM_DATA_STRUCTURE);
+	}
 }

@@ -26,26 +26,26 @@ import prerna.testing.AbstractBaseSemossApiTests;
 
 public class DeletePromptReactorTests extends AbstractBaseSemossApiTests {
 
-  @Test
-  public void deletePromptTest() {
-    String title = "Test-Title";
-    String context = "Translate {{question}}";
-    String intent = "Test Prompt";
+	@Test
+	public void deletePromptTest() {
+		String title = "Test-Title";
+		String context = "Translate {{question}}";
+		String intent = "Test Prompt";
 
-    List<String> tags = Arrays.asList("World", "GAMING", "PLANTS");
-    PromptTestUtils.addPrompt(title, context, intent, tags);
+		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS");
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 
-    NounMetadata listPrompts = PromptTestUtils.listPrompts();
-    assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+		NounMetadata listPrompts = PromptTestUtils.listPrompts();
+		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
 
-    List<Map<String, Object>> promptList = (List<Map<String, Object>>) listPrompts.getValue();
-    String promptId = (String) promptList.get(0).get("ID");
-    System.out.println(promptList);
-    System.out.println(promptId);
+		List<Map<String, Object>> promptList = (List<Map<String, Object>>) listPrompts.getValue();
+		String promptId = (String) promptList.get(0).get("ID");
+		System.out.println(promptList);
+		System.out.println(promptId);
 
-    PromptTestUtils.deletePrompt(promptId);
+		PromptTestUtils.deletePrompt(promptId);
 
-    listPrompts = PromptTestUtils.listPrompts();
-    assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
-  }
+		listPrompts = PromptTestUtils.listPrompts();
+		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+	}
 }

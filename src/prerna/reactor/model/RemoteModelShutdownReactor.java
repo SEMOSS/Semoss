@@ -28,33 +28,32 @@ import prerna.util.Utility;
 
 public class RemoteModelShutdownReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(RemoteModelShutdownReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(RemoteModelShutdownReactor.class);
 
-  public RemoteModelShutdownReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey()};
-    this.keyRequired = new int[] {1};
-  }
+	public RemoteModelShutdownReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+		this.keyRequired = new int[]{1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String engineId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String engineId = this.keyValue.get(this.keysToGet[0]);
 
-    if (!SecurityEngineUtils.userIsOwner(this.insight.getUser(), engineId)) {
-      throw new IllegalArgumentException("Only the owner can shutdown the model");
-    }
+		if (!SecurityEngineUtils.userIsOwner(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("Only the owner can shutdown the model");
+		}
 
-    try {
-      IModelEngine targetModel = Utility.getModel(engineId);
-      AbstractRemoteModelEngine targetEngine = (AbstractRemoteModelEngine) targetModel;
+		try {
+			IModelEngine targetModel = Utility.getModel(engineId);
+			AbstractRemoteModelEngine targetEngine = (AbstractRemoteModelEngine) targetModel;
 
-      String shutdownResult = targetEngine.shutdownModelRequest();
+			String shutdownResult = targetEngine.shutdownModelRequest();
 
-      return new NounMetadata(
-          shutdownResult, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
-    } catch (Exception e) {
-      classLogger.error("Error shutting down model: " + engineId, e);
-      throw new RuntimeException("Failed to shutdown model: " + e.getMessage());
-    }
-  }
+			return new NounMetadata(shutdownResult, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		} catch (Exception e) {
+			classLogger.error("Error shutting down model: " + engineId, e);
+			throw new RuntimeException("Failed to shutdown model: " + e.getMessage());
+		}
+	}
 }

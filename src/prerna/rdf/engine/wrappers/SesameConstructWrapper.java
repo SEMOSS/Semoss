@@ -26,53 +26,54 @@ import prerna.util.Constants;
 
 public class SesameConstructWrapper extends AbstractWrapper implements IConstructWrapper {
 
-  private static final Logger LOGGER = LogManager.getLogger(SesameConstructWrapper.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(SesameConstructWrapper.class.getName());
 
-  public transient GraphQueryResult gqr = null;
+	public transient GraphQueryResult gqr = null;
 
-  @Override
-  public IConstructStatement next() {
-    IConstructStatement thisSt = new ConstructStatement();
-    try {
-      LOGGER.debug("Adding a sesame statement ");
-      Statement stmt = gqr.next();
-      thisSt.setSubject(stmt.getSubject() + "");
-      thisSt.setObject(stmt.getObject());
-      thisSt.setPredicate(stmt.getPredicate() + "");
-    } catch (QueryEvaluationException e) {
-      // TODO Auto-generated catch block
-      LOGGER.error(Constants.STACKTRACE, e);
-    }
-    return thisSt;
-  }
+	@Override
+	public IConstructStatement next() {
+		IConstructStatement thisSt = new ConstructStatement();
+		try {
+			LOGGER.debug("Adding a sesame statement ");
+			Statement stmt = gqr.next();
+			thisSt.setSubject(stmt.getSubject() + "");
+			thisSt.setObject(stmt.getObject());
+			thisSt.setPredicate(stmt.getPredicate() + "");
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			LOGGER.error(Constants.STACKTRACE, e);
+		}
+		return thisSt;
+	}
 
-  @Override
-  public void execute() throws Exception {
-    gqr = (GraphQueryResult) engine.execQuery(this.query);
-  }
+	@Override
+	public void execute() throws Exception {
+		gqr = (GraphQueryResult) engine.execQuery(this.query);
+	}
 
-  @Override
-  public boolean hasNext() {
-    boolean retBool = false;
+	@Override
+	public boolean hasNext() {
+		boolean retBool = false;
 
-    try {
-      retBool = gqr.hasNext();
-      if (!retBool) gqr.close();
-    } catch (QueryEvaluationException e) {
-      // TODO Auto-generated catch block
-      LOGGER.error(Constants.STACKTRACE, e);
-    }
+		try {
+			retBool = gqr.hasNext();
+			if (!retBool)
+				gqr.close();
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			LOGGER.error(Constants.STACKTRACE, e);
+		}
 
-    return retBool;
-  }
+		return retBool;
+	}
 
-  @Override
-  public void close() throws IOException {
-    try {
-      gqr.close();
-    } catch (QueryEvaluationException e) {
-      LOGGER.error(Constants.STACKTRACE, e);
-      throw new IOException(e);
-    }
-  }
+	@Override
+	public void close() throws IOException {
+		try {
+			gqr.close();
+		} catch (QueryEvaluationException e) {
+			LOGGER.error(Constants.STACKTRACE, e);
+			throw new IOException(e);
+		}
+	}
 }

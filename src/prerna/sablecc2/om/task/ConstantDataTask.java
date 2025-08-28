@@ -23,89 +23,88 @@ import prerna.sablecc2.om.task.options.TaskOptions;
 
 public class ConstantDataTask extends AbstractTask {
 
-  private transient Object outputData;
-  private Map<String, Object> formatMap;
+	private transient Object outputData;
+	private Map<String, Object> formatMap;
 
-  /** Collect data from an iterator Or return defined outputData */
-  @Override
-  public Map<String, Object> collect(boolean meta) {
-    Map<String, Object> collectedData = new HashMap<String, Object>(7);
-    collectedData.put("data", outputData);
-    if (meta) {
-      collectedData.put("format", getFormatMap());
-      TaskOptions thisTaskOptions = getTaskOptions();
-      if (thisTaskOptions != null) {
-        collectedData.put("taskOptions", thisTaskOptions.getOptions());
-      } else {
-        collectedData.put("taskOptions", new HashMap<String, Object>());
-      }
-      collectedData.put("headerInfo", getHeaderInfo());
-      collectedData.put("sortInfo", getSortInfo());
-      collectedData.put("filterInfo", getFilterInfo());
-    }
-    collectedData.put("taskId", this.id);
-    collectedData.put("numCollected", this.numCollect);
-    return collectedData;
-  }
+	/** Collect data from an iterator Or return defined outputData */
+	@Override
+	public Map<String, Object> collect(boolean meta) {
+		Map<String, Object> collectedData = new HashMap<String, Object>(7);
+		collectedData.put("data", outputData);
+		if (meta) {
+			collectedData.put("format", getFormatMap());
+			TaskOptions thisTaskOptions = getTaskOptions();
+			if (thisTaskOptions != null) {
+				collectedData.put("taskOptions", thisTaskOptions.getOptions());
+			} else {
+				collectedData.put("taskOptions", new HashMap<String, Object>());
+			}
+			collectedData.put("headerInfo", getHeaderInfo());
+			collectedData.put("sortInfo", getSortInfo());
+			collectedData.put("filterInfo", getFilterInfo());
+		}
+		collectedData.put("taskId", this.id);
+		collectedData.put("numCollected", this.numCollect);
+		return collectedData;
+	}
 
-  public void setOutputData(Object outputData) {
-    this.outputData = outputData;
-  }
+	public void setOutputData(Object outputData) {
+		this.outputData = outputData;
+	}
 
-  public Object getOutputData() {
-    return this.outputData;
-  }
+	public Object getOutputData() {
+		return this.outputData;
+	}
 
-  protected Map<String, Object> getFormatMap() {
-    if (this.formatMap == null) {
-      formatMap = new HashMap<String, Object>();
-      if (this.formatter == null) {
-        formatMap.put("type", "Custom Task Output");
-      } else {
-        formatMap.put("type", formatter.getFormatType());
-      }
-    }
-    return formatMap;
-  }
+	protected Map<String, Object> getFormatMap() {
+		if (this.formatMap == null) {
+			formatMap = new HashMap<String, Object>();
+			if (this.formatter == null) {
+				formatMap.put("type", "Custom Task Output");
+			} else {
+				formatMap.put("type", formatter.getFormatType());
+			}
+		}
+		return formatMap;
+	}
 
-  public void setFormatMap(Map<String, Object> formatMap) {
-    this.formatMap = formatMap;
-  }
+	public void setFormatMap(Map<String, Object> formatMap) {
+		this.formatMap = formatMap;
+	}
 
-  /*
-   * Bottom methods are not important
-   * This is just so I can have operations
-   * Return data as if it was a "Task"
-   */
+	/*
+	 * Bottom methods are not important This is just so I can have operations Return
+	 * data as if it was a "Task"
+	 */
 
-  @Override
-  public List<Object[]> flushOutIteratorAsGrid() {
-    return null;
-  }
+	@Override
+	public List<Object[]> flushOutIteratorAsGrid() {
+		return null;
+	}
 
-  @Override
-  public boolean hasNext() {
-    return false;
-  }
+	@Override
+	public boolean hasNext() {
+		return false;
+	}
 
-  @Override
-  public IHeadersDataRow next() {
-    return null;
-  }
+	@Override
+	public IHeadersDataRow next() {
+		return null;
+	}
 
-  @Override
-  public void close() {
-    this.outputData = null;
-  }
+	@Override
+	public void close() {
+		this.outputData = null;
+	}
 
-  @Override
-  public void reset() {
-    // do nothing
-  }
+	@Override
+	public void reset() {
+		// do nothing
+	}
 
-  @Override
-  public List<Map<String, String>> getSource() {
-    List<Map<String, String>> sources = new Vector<Map<String, String>>();
-    return sources;
-  }
+	@Override
+	public List<Map<String, String>> getSource() {
+		List<Map<String, String>> sources = new Vector<Map<String, String>>();
+		return sources;
+	}
 }

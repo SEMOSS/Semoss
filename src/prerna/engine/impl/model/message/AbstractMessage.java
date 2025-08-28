@@ -27,118 +27,120 @@ import prerna.engine.impl.model.Room;
 
 public abstract class AbstractMessage {
 
-  protected String modelId;
-  protected ModelTypeEnum modelType;
-  protected String messageId;
-  protected String transactionId;
-  protected String parentMessageId;
-  protected int tokens;
+	protected String modelId;
+	protected ModelTypeEnum modelType;
+	protected String messageId;
+	protected String transactionId;
+	protected String parentMessageId;
+	protected int tokens;
 
-  protected boolean visible = true;
-  protected transient Room room;
+	protected boolean visible = true;
+	protected transient Room room;
 
-  private SemossDate dateCreated;
+	private SemossDate dateCreated;
 
-  @SerializedName("ornaments")
-  protected Map<String, Object> ornaments = new HashMap<>();
+	@SerializedName("ornaments")
+	protected Map<String, Object> ornaments = new HashMap<>();
 
-  public AbstractMessage() {
-    this.messageId = UUID.randomUUID().toString();
-    this.dateCreated = new SemossDate(ZonedDateTime.now(ZoneOffset.UTC));
-  }
+	public AbstractMessage() {
+		this.messageId = UUID.randomUUID().toString();
+		this.dateCreated = new SemossDate(ZonedDateTime.now(ZoneOffset.UTC));
+	}
 
-  public abstract MessageType getMessageType();
+	public abstract MessageType getMessageType();
 
-  // this should really never be used unless we are translating old message formats
-  public void setMessageId(String messageId) {
-    this.messageId = messageId;
-  }
+	// this should really never be used unless we are translating old message
+	// formats
+	public void setMessageId(String messageId) {
+		this.messageId = messageId;
+	}
 
-  public String getMessageId() {
-    return messageId;
-  }
+	public String getMessageId() {
+		return messageId;
+	}
 
-  public String getTransactionId() {
-    return transactionId;
-  }
+	public String getTransactionId() {
+		return transactionId;
+	}
 
-  public void setTransactionId(String transction) {
-    this.transactionId = transction;
-  }
+	public void setTransactionId(String transction) {
+		this.transactionId = transction;
+	}
 
-  public void setModel(IModelEngine modelEngine) {
-    this.modelType = modelEngine.getModelType();
-    this.modelId = modelEngine.getEngineId();
-  }
+	public void setModel(IModelEngine modelEngine) {
+		this.modelType = modelEngine.getModelType();
+		this.modelId = modelEngine.getEngineId();
+	}
 
-  public String getModelId() {
-    return modelId;
-  }
+	public String getModelId() {
+		return modelId;
+	}
 
-  public void setModelId(String modelId) {
-    this.modelId = modelId;
-  }
+	public void setModelId(String modelId) {
+		this.modelId = modelId;
+	}
 
-  public void setModelType(ModelTypeEnum modelType) {
-    this.modelType = modelType;
-  }
+	public void setModelType(ModelTypeEnum modelType) {
+		this.modelType = modelType;
+	}
 
-  public ModelTypeEnum getModelType() {
-    return this.modelType;
-  }
+	public ModelTypeEnum getModelType() {
+		return this.modelType;
+	}
 
-  public String getParentMessageId() {
-    return parentMessageId;
-  }
+	public String getParentMessageId() {
+		return parentMessageId;
+	}
 
-  public void setParentMessageId(String parentMessageId) {
-    this.parentMessageId = parentMessageId;
-  }
+	public void setParentMessageId(String parentMessageId) {
+		this.parentMessageId = parentMessageId;
+	}
 
-  public void setRoom(Room room) {
-    this.room = room;
-  }
+	public void setRoom(Room room) {
+		this.room = room;
+	}
 
-  public Room getRoom() {
-    return this.room;
-  }
+	public Room getRoom() {
+		return this.room;
+	}
 
-  public boolean isVisible() {
-    return visible;
-  }
+	public boolean isVisible() {
+		return visible;
+	}
 
-  public void setVisibile(boolean visibile) {
-    this.visible = visibile;
-  }
+	public void setVisibile(boolean visibile) {
+		this.visible = visibile;
+	}
 
-  public SemossDate getDateCreated() {
-    return dateCreated;
-  }
+	public SemossDate getDateCreated() {
+		return dateCreated;
+	}
 
-  // ONLY TO BE USED FOR UPDATED LEGACY MESSAGES.
-  public void setDateCreated(SemossDate dateCreated) {
-    this.dateCreated = dateCreated;
-  }
+	// ONLY TO BE USED FOR UPDATED LEGACY MESSAGES.
+	public void setDateCreated(SemossDate dateCreated) {
+		this.dateCreated = dateCreated;
+	}
 
-  public int getTokensInMessage() {
-    return tokens;
-  }
+	public int getTokensInMessage() {
+		return tokens;
+	}
 
-  public void setTokensInMessage(int tokens) {
-    this.tokens = tokens;
-  }
+	public void setTokensInMessage(int tokens) {
+		this.tokens = tokens;
+	}
 
-  // ----------- Ornaments -----------
-  public Map<String, Object> getOrnaments() {
-    return new HashMap<>(ornaments);
-  }
+	// ----------- Ornaments -----------
+	public Map<String, Object> getOrnaments() {
+		return new HashMap<>(ornaments);
+	}
 
-  public void setOrnament(String key, Object value) {
-    if (ornaments == null) ornaments = new HashMap<>();
-    ornaments.put(key, value);
-  }
+	public void setOrnament(String key, Object value) {
+		if (ornaments == null)
+			ornaments = new HashMap<>();
+		ornaments.put(key, value);
+	}
 
-  public Object getOrnament(String key) {
-    return ornaments != null ? ornaments.get(key) : null;
-  }
+	public Object getOrnament(String key) {
+		return ornaments != null ? ornaments.get(key) : null;
+	}
 }

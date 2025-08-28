@@ -20,8 +20,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UUIDReactor extends AbstractReactor {
 
-  @Override
-  public NounMetadata execute() {
-    return new NounMetadata(UUID.randomUUID().toString(), PixelDataType.CONST_STRING);
-  }
+	@Override
+	public NounMetadata execute() {
+		return new NounMetadata(UUID.randomUUID().toString(), PixelDataType.CONST_STRING);
+	}
 }

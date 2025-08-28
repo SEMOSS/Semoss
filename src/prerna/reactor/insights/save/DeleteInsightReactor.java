@@ -52,122 +52,108 @@ import prerna.util.git.GitUtils;
 
 public class DeleteInsightReactor extends AbstractReactor {
 
-  private static final Logger logger = LogManager.getLogger(DeleteInsightReactor.class);
+	private static final Logger logger = LogManager.getLogger(DeleteInsightReactor.class);
 
-  public DeleteInsightReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
-  }
+	public DeleteInsightReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    User user = this.insight.getUser();
-    if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-      throwAnonymousUserError();
-    }
+	@Override
+	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
-    organizeKeys();
-    GenRowStruct projectGrs = this.store.getNoun(this.keysToGet[0]);
-    if (projectGrs.isEmpty()) {
-      throw new IllegalArgumentException("Must define the project to delete the insights from");
-    }
-    String projectId = projectGrs.get(0).toString();
-    projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
-    if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-      throw new IllegalArgumentException(
-          "Project " + projectId + " does not exist or user does not have access to the project");
-    }
-    // Get the user's email
-    AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-    String email = accessToken.getEmail();
-    String author = accessToken.getUsername();
+		organizeKeys();
+		GenRowStruct projectGrs = this.store.getNoun(this.keysToGet[0]);
+		if (projectGrs.isEmpty()) {
+			throw new IllegalArgumentException("Must define the project to delete the insights from");
+		}
+		String projectId = projectGrs.get(0).toString();
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalArgumentException(
+					"Project " + projectId + " does not exist or user does not have access to the project");
+		}
+		// Get the user's email
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
+		String author = accessToken.getUsername();
 
-    IProject project = Utility.getProject(projectId);
-    String projectName = project.getProjectName();
+		IProject project = Utility.getProject(projectId);
+		String projectName = project.getProjectName();
 
-    InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
-    //		ClusterUtil.reactorPullInsightsDB(projectId);
-    ClusterUtil.pullProjectFolder(
-        project, AssetUtility.getProjectVersionFolder(projectName, projectId));
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
+		// ClusterUtil.reactorPullInsightsDB(projectId);
+		ClusterUtil.pullProjectFolder(project, AssetUtility.getProjectVersionFolder(projectName, projectId));
 
-    GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
-    int size = grs.size();
-    for (int i = 0; i < size; i++) {
-      String insightId = grs.get(i).toString();
-      if (!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
-        throw new IllegalArgumentException("User does not have permission to edit this insight");
-      }
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		int size = grs.size();
+		for (int i = 0; i < size; i++) {
+			String insightId = grs.get(i).toString();
+			if (!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
+				throw new IllegalArgumentException("User does not have permission to edit this insight");
+			}
 
-      // delete from insights database
-      try {
-        admin.dropInsight(insightId);
-      } catch (RuntimeException e) {
-        logger.error(Constants.STACKTRACE, e);
-      }
+			// delete from insights database
+			try {
+				admin.dropInsight(insightId);
+			} catch (RuntimeException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
 
-      // delete insight folder
-      String projectVersion = AssetUtility.getProjectVersionFolder(projectName, projectId);
-      String insightFolderPath = projectVersion + DIR_SEPARATOR + insightId;
-      File insightFolder = new File(insightFolderPath);
-      Stream<Path> walk = null;
-      try {
-        // grab relative file paths
-        walk = Files.walk(Paths.get(insightFolder.toURI()));
-        List<String> files =
-            walk.map(
-                    x ->
-                        insightId
-                            + DIR_SEPARATOR
-                            + insightFolder
-                                .toURI()
-                                .relativize(new File(x.toString()).toURI())
-                                .getPath()
-                                .toString())
-                .collect(Collectors.toList());
-        files.remove(""); // removing empty path
-        GitDestroyer.removeSpecificFiles(projectVersion, true, files);
-        GitRepoUtils.commitAddedFiles(
-            projectVersion,
-            GitUtils.getDateMessage("Deleted insight '" + insightId + "' on"),
-            author,
-            email);
-        AuthProvider projectGitProvider = project.getGitProvider();
-        if (user != null
-            && projectGitProvider != null
-            && user.getAccessToken(projectGitProvider) != null) {
-          List<Map<String, String>> remotes = GitRepoUtils.listConfigRemotes(projectVersion);
-          if (remotes != null && !remotes.isEmpty()) {
-            AccessToken userToken = user.getAccessToken(projectGitProvider);
-            String token = userToken.getAccess_token();
-            for (Map<String, String> thisRemote : remotes) {
-              GitPushUtils.push(
-                  projectVersion, thisRemote.get("url"), null, token, projectGitProvider, 1);
-            }
-          }
-        }
-      } catch (Exception e) {
-        logger.error(Constants.STACKTRACE, e);
-      } finally {
-        if (walk != null) {
-          walk.close();
-        }
-        // delete folder
-        try {
-          FileUtils.deleteDirectory(insightFolder);
-        } catch (IOException e) {
-          logger.error(Constants.STACKTRACE, e);
-        }
-      }
+			// delete insight folder
+			String projectVersion = AssetUtility.getProjectVersionFolder(projectName, projectId);
+			String insightFolderPath = projectVersion + DIR_SEPARATOR + insightId;
+			File insightFolder = new File(insightFolderPath);
+			Stream<Path> walk = null;
+			try {
+				// grab relative file paths
+				walk = Files.walk(Paths.get(insightFolder.toURI()));
+				List<String> files = walk
+						.map(x -> insightId + DIR_SEPARATOR
+								+ insightFolder.toURI().relativize(new File(x.toString()).toURI()).getPath().toString())
+						.collect(Collectors.toList());
+				files.remove(""); // removing empty path
+				GitDestroyer.removeSpecificFiles(projectVersion, true, files);
+				GitRepoUtils.commitAddedFiles(projectVersion,
+						GitUtils.getDateMessage("Deleted insight '" + insightId + "' on"), author, email);
+				AuthProvider projectGitProvider = project.getGitProvider();
+				if (user != null && projectGitProvider != null && user.getAccessToken(projectGitProvider) != null) {
+					List<Map<String, String>> remotes = GitRepoUtils.listConfigRemotes(projectVersion);
+					if (remotes != null && !remotes.isEmpty()) {
+						AccessToken userToken = user.getAccessToken(projectGitProvider);
+						String token = userToken.getAccess_token();
+						for (Map<String, String> thisRemote : remotes) {
+							GitPushUtils.push(projectVersion, thisRemote.get("url"), null, token, projectGitProvider,
+									1);
+						}
+					}
+				}
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if (walk != null) {
+					walk.close();
+				}
+				// delete folder
+				try {
+					FileUtils.deleteDirectory(insightFolder);
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 
-      // now delete from security db
-      SecurityInsightUtils.deleteInsight(projectId, insightId);
+			// now delete from security db
+			SecurityInsightUtils.deleteInsight(projectId, insightId);
 
-      // now delete from user tracking db
-      UserTrackingUtils.deleteInsight(insightId, projectId);
-    }
+			// now delete from user tracking db
+			UserTrackingUtils.deleteInsight(insightId, projectId);
+		}
 
-    //		ClusterUtil.reactorPushInsightDB(projectId);
-    ClusterUtil.pushProjectFolder(
-        project, AssetUtility.getProjectVersionFolder(projectName, projectId));
-    return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_INSIGHT);
-  }
+		// ClusterUtil.reactorPushInsightDB(projectId);
+		ClusterUtil.pushProjectFolder(project, AssetUtility.getProjectVersionFolder(projectName, projectId));
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_INSIGHT);
+	}
 }

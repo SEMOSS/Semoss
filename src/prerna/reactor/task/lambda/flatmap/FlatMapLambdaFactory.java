@@ -22,34 +22,35 @@ import prerna.util.Constants;
 
 public class FlatMapLambdaFactory {
 
-  private static final Logger classLogger = LogManager.getLogger(FlatMapLambdaFactory.class);
+	private static final Logger classLogger = LogManager.getLogger(FlatMapLambdaFactory.class);
 
-  public static Map<String, Class> flatMapLambdas = new HashMap<String, Class>();
+	public static Map<String, Class> flatMapLambdas = new HashMap<String, Class>();
 
-  static {
-    init();
-  }
+	static {
+		init();
+	}
 
-  private FlatMapLambdaFactory() {}
+	private FlatMapLambdaFactory() {
+	}
 
-  private static void init() {
-    flatMapLambdas.put("TWITTERSEARCH", TwitterSearchLambda.class);
-    flatMapLambdas.put("GOOGLESENTIMENT", GoogleSentimentAnalyzerLambda.class);
-    flatMapLambdas.put("GOOGLEENTITY", GoogleEntityAnalyzerLambda.class);
-  }
+	private static void init() {
+		flatMapLambdas.put("TWITTERSEARCH", TwitterSearchLambda.class);
+		flatMapLambdas.put("GOOGLESENTIMENT", GoogleSentimentAnalyzerLambda.class);
+		flatMapLambdas.put("GOOGLEENTITY", GoogleEntityAnalyzerLambda.class);
+	}
 
-  public static IFlatMapLambda getLambda(String transType) {
-    IFlatMapLambda newClass = null;
+	public static IFlatMapLambda getLambda(String transType) {
+		IFlatMapLambda newClass = null;
 
-    transType = transType.toUpperCase();
-    if (flatMapLambdas.containsKey(transType)) {
-      try {
-        newClass = (IFlatMapLambda) flatMapLambdas.get(transType).newInstance();
-      } catch (InstantiationException | IllegalAccessException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
+		transType = transType.toUpperCase();
+		if (flatMapLambdas.containsKey(transType)) {
+			try {
+				newClass = (IFlatMapLambda) flatMapLambdas.get(transType).newInstance();
+			} catch (InstantiationException | IllegalAccessException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 
-    return newClass;
-  }
+		return newClass;
+	}
 }

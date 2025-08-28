@@ -31,34 +31,34 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class MyRemoteModelsStatus extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(MyRemoteModelsStatus.class);
+	private static final Logger classLogger = LogManager.getLogger(MyRemoteModelsStatus.class);
 
-  @Override
-  public NounMetadata execute() {
-    final IRemoteClientServer zkClient = ZKClientFactory.getZKClient(false);
+	@Override
+	public NounMetadata execute() {
+		final IRemoteClientServer zkClient = ZKClientFactory.getZKClient(false);
 
-    List<RemoteModelInfo> activeModels = zkClient.getActiveModels();
-    List<RemoteModelInfo> warmingModels = zkClient.getWarmingModels();
+		List<RemoteModelInfo> activeModels = zkClient.getActiveModels();
+		List<RemoteModelInfo> warmingModels = zkClient.getWarmingModels();
 
-    List<RemoteModelInfo> myActiveModels = new ArrayList<>();
-    List<RemoteModelInfo> myWarmingModels = new ArrayList<>();
+		List<RemoteModelInfo> myActiveModels = new ArrayList<>();
+		List<RemoteModelInfo> myWarmingModels = new ArrayList<>();
 
-    for (RemoteModelInfo model : activeModels) {
-      if (SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), model.getId())) {
-        myActiveModels.add(model);
-      }
-    }
+		for (RemoteModelInfo model : activeModels) {
+			if (SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), model.getId())) {
+				myActiveModels.add(model);
+			}
+		}
 
-    for (RemoteModelInfo model : warmingModels) {
-      if (SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), model.getId())) {
-        myWarmingModels.add(model);
-      }
-    }
+		for (RemoteModelInfo model : warmingModels) {
+			if (SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), model.getId())) {
+				myWarmingModels.add(model);
+			}
+		}
 
-    Map<String, List<RemoteModelInfo>> modelsMap = new HashMap<>();
-    modelsMap.put("activeModels", myActiveModels);
-    modelsMap.put("warmingModels", myWarmingModels);
+		Map<String, List<RemoteModelInfo>> modelsMap = new HashMap<>();
+		modelsMap.put("activeModels", myActiveModels);
+		modelsMap.put("warmingModels", myWarmingModels);
 
-    return new NounMetadata(modelsMap, PixelDataType.MAP, PixelOperationType.OPERATION);
-  }
+		return new NounMetadata(modelsMap, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
 }

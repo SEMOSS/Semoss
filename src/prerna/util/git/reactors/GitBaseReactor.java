@@ -25,25 +25,24 @@ import prerna.util.Utility;
 
 public abstract class GitBaseReactor extends AbstractReactor {
 
-  public String getToken() {
-    User user = insight.getUser();
-    String gitProvider = Utility.getDIHelperProperty(Constants.GIT_PROVIDER);
-    AccessToken gitAccess = null;
-    if (gitProvider != null
-        && !(gitProvider.isEmpty())
-        && gitProvider.toLowerCase().equals(AuthProvider.GITLAB.toString().toLowerCase())) {
-      gitAccess = user.getAccessToken(AuthProvider.GITLAB);
-    } else {
-      gitAccess = user.getAccessToken(AuthProvider.GITHUB);
-    }
+	public String getToken() {
+		User user = insight.getUser();
+		String gitProvider = Utility.getDIHelperProperty(Constants.GIT_PROVIDER);
+		AccessToken gitAccess = null;
+		if (gitProvider != null && !(gitProvider.isEmpty())
+				&& gitProvider.toLowerCase().equals(AuthProvider.GITLAB.toString().toLowerCase())) {
+			gitAccess = user.getAccessToken(AuthProvider.GITLAB);
+		} else {
+			gitAccess = user.getAccessToken(AuthProvider.GITHUB);
+		}
 
-    if (gitAccess == null) {
-      Map<String, Object> retMap = new HashMap<String, Object>();
-      retMap.put("type", "git");
-      retMap.put("message", "Please login to your Git account");
-      throwLoginError(retMap);
-    }
+		if (gitAccess == null) {
+			Map<String, Object> retMap = new HashMap<String, Object>();
+			retMap.put("type", "git");
+			retMap.put("message", "Please login to your Git account");
+			throwLoginError(retMap);
+		}
 
-    return gitAccess.getAccess_token();
-  }
+		return gitAccess.getAccess_token();
+	}
 }

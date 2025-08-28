@@ -76,168 +76,157 @@ import prerna.util.Constants;
 
 public class GsonUtility {
 
-  private static final Logger classLogger = LogManager.getLogger(GsonUtility.class);
+	private static final Logger classLogger = LogManager.getLogger(GsonUtility.class);
 
-  private static boolean testing = false;
+	private static boolean testing = false;
 
-  private GsonUtility() {}
+	private GsonUtility() {
+	}
 
-  public static Gson getDefaultGson(boolean pretty) {
-    GsonBuilder gsonBuilder =
-        new GsonBuilder()
-            .disableHtmlEscaping()
-            .excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
-            .registerTypeAdapter(Double.class, new NumberAdapter())
-            .registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
+	public static Gson getDefaultGson(boolean pretty) {
+		GsonBuilder gsonBuilder = new GsonBuilder().disableHtmlEscaping()
+				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
+				.registerTypeAdapter(Double.class, new NumberAdapter())
+				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 
-            // qs
-            .registerTypeAdapter(
-                TemporalEngineHardQueryStruct.class,
-                new TemporalEngineHardSelectQueryStructAdapter())
-            .registerTypeAdapter(HardSelectQueryStruct.class, new HardSelectQueryStructAdapter())
-            .registerTypeAdapter(SelectQueryStruct.class, new SelectQueryStructAdapter())
-            .registerTypeAdapter(CsvQueryStruct.class, new CsvQueryStructAdapter())
-            .registerTypeAdapter(ExcelQueryStruct.class, new ExcelQueryStructAdapter())
-            .registerTypeAdapter(ParquetQueryStruct.class, new ParquetQueryStructAdapter())
-            .registerTypeAdapter(UpdateQueryStruct.class, new UpdateQueryStructAdapter())
-            .registerTypeAdapter(ColorByValueRule.class, new ColorByValueRuleAdapter())
+				// qs
+				.registerTypeAdapter(TemporalEngineHardQueryStruct.class,
+						new TemporalEngineHardSelectQueryStructAdapter())
+				.registerTypeAdapter(HardSelectQueryStruct.class, new HardSelectQueryStructAdapter())
+				.registerTypeAdapter(SelectQueryStruct.class, new SelectQueryStructAdapter())
+				.registerTypeAdapter(CsvQueryStruct.class, new CsvQueryStructAdapter())
+				.registerTypeAdapter(ExcelQueryStruct.class, new ExcelQueryStructAdapter())
+				.registerTypeAdapter(ParquetQueryStruct.class, new ParquetQueryStructAdapter())
+				.registerTypeAdapter(UpdateQueryStruct.class, new UpdateQueryStructAdapter())
+				.registerTypeAdapter(ColorByValueRule.class, new ColorByValueRuleAdapter())
 
-            // selectors
-            .registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdapter())
-            .registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter())
-            .registerTypeAdapter(
-                QueryTypedColumnSelector.class, new QueryTypedColumnSelectorAdapter())
-            .registerTypeAdapter(QueryFunctionSelector.class, new QueryFunctionSelectorAdapter())
-            .registerTypeAdapter(
-                QueryArithmeticSelector.class, new QueryArithmeticSelectorAdapter())
-            .registerTypeAdapter(QueryOpaqueSelector.class, new QueryOpaqueSelectorAdapter())
-            .registerTypeAdapter(QueryIfSelector.class, new QueryIfSelectorAdapter())
-            .registerTypeAdapter(QueryConstantSelector.class, new QueryConstantSelectorAdapter())
-            // part of query constants
-            .registerTypeAdapter(SubQueryExpression.class, new SubQueryExpressionAdapter())
+				// selectors
+				.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdapter())
+				.registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter())
+				.registerTypeAdapter(QueryTypedColumnSelector.class, new QueryTypedColumnSelectorAdapter())
+				.registerTypeAdapter(QueryFunctionSelector.class, new QueryFunctionSelectorAdapter())
+				.registerTypeAdapter(QueryArithmeticSelector.class, new QueryArithmeticSelectorAdapter())
+				.registerTypeAdapter(QueryOpaqueSelector.class, new QueryOpaqueSelectorAdapter())
+				.registerTypeAdapter(QueryIfSelector.class, new QueryIfSelectorAdapter())
+				.registerTypeAdapter(QueryConstantSelector.class, new QueryConstantSelectorAdapter())
+				// part of query constants
+				.registerTypeAdapter(SubQueryExpression.class, new SubQueryExpressionAdapter())
 
-            // filters
-            .registerTypeAdapter(GenRowFilters.class, new GenRowFiltersAdapter())
-            .registerTypeAdapter(IQueryFilter.class, new IQueryFilterAdapter())
-            .registerTypeAdapter(SimpleQueryFilter.class, new SimpleQueryFilterAdapter())
-            .registerTypeAdapter(OrQueryFilter.class, new OrQueryFilterAdapter())
-            .registerTypeAdapter(AndQueryFilter.class, new AndQueryFilterAdapter())
-            .registerTypeAdapter(FunctionQueryFilter.class, new FunctionQueryFilterAdapter())
+				// filters
+				.registerTypeAdapter(GenRowFilters.class, new GenRowFiltersAdapter())
+				.registerTypeAdapter(IQueryFilter.class, new IQueryFilterAdapter())
+				.registerTypeAdapter(SimpleQueryFilter.class, new SimpleQueryFilterAdapter())
+				.registerTypeAdapter(OrQueryFilter.class, new OrQueryFilterAdapter())
+				.registerTypeAdapter(AndQueryFilter.class, new AndQueryFilterAdapter())
+				.registerTypeAdapter(FunctionQueryFilter.class, new FunctionQueryFilterAdapter())
 
-            // sorts
-            .registerTypeAdapter(IQuerySort.class, new IQuerySortAdapter())
-            .registerTypeAdapter(
-                QueryColumnOrderBySelector.class, new QueryColumnOrderBySelectorAdapter())
-            .registerTypeAdapter(QueryCustomOrderBy.class, new QueryCustomOrderByAdapter())
+				// sorts
+				.registerTypeAdapter(IQuerySort.class, new IQuerySortAdapter())
+				.registerTypeAdapter(QueryColumnOrderBySelector.class, new QueryColumnOrderBySelectorAdapter())
+				.registerTypeAdapter(QueryCustomOrderBy.class, new QueryCustomOrderByAdapter())
 
-            // object models
-            .registerTypeAdapter(NounMetadata.class, new NounMetadataAdapter())
-            .registerTypeAdapter(VarStore.class, new VarStoreAdapter())
+				// object models
+				.registerTypeAdapter(NounMetadata.class, new NounMetadataAdapter())
+				.registerTypeAdapter(VarStore.class, new VarStoreAdapter())
 
-            // iterators
-            .registerTypeAdapter(BasicIteratorTask.class, new BasicIteratorTaskAdapter())
-            .registerTypeAdapter(TaskOptions.class, new TaskOptionsAdapter())
-            // formatters
-            .registerTypeAdapter(IFormatter.class, new IFormatterAdapter())
-            .registerTypeAdapter(TableFormatter.class, new IFormatterAdapter())
-            .registerTypeAdapter(GraphFormatter.class, new IFormatterAdapter())
-            .registerTypeAdapter(JsonFormatter.class, new IFormatterAdapter())
-            .registerTypeAdapter(KeyValueFormatter.class, new IFormatterAdapter())
-            .registerTypeAdapter(ClustergramFormatter.class, new IFormatterAdapter())
-            .registerTypeAdapter(HierarchyFormatter.class, new IFormatterAdapter())
+				// iterators
+				.registerTypeAdapter(BasicIteratorTask.class, new BasicIteratorTaskAdapter())
+				.registerTypeAdapter(TaskOptions.class, new TaskOptionsAdapter())
+				// formatters
+				.registerTypeAdapter(IFormatter.class, new IFormatterAdapter())
+				.registerTypeAdapter(TableFormatter.class, new IFormatterAdapter())
+				.registerTypeAdapter(GraphFormatter.class, new IFormatterAdapter())
+				.registerTypeAdapter(JsonFormatter.class, new IFormatterAdapter())
+				.registerTypeAdapter(KeyValueFormatter.class, new IFormatterAdapter())
+				.registerTypeAdapter(ClustergramFormatter.class, new IFormatterAdapter())
+				.registerTypeAdapter(HierarchyFormatter.class, new IFormatterAdapter())
 
-            // OLD LEGACY STUFF
-            .registerTypeAdapter(SEMOSSVertex.class, new SEMOSSVertexAdapter())
-            .registerTypeAdapter(SEMOSSEdge.class, new SEMOSSEdgeAdapter())
+				// OLD LEGACY STUFF
+				.registerTypeAdapter(SEMOSSVertex.class, new SEMOSSVertexAdapter())
+				.registerTypeAdapter(SEMOSSEdge.class, new SEMOSSEdgeAdapter())
 
-            // cluster
-            .registerTypeAdapter(IHeadersDataRow.class, new IHeadersDataRowAdapter())
-            .registerTypeAdapter(HeadersDataRow.class, new HeadersDataRowAdapter())
+				// cluster
+				.registerTypeAdapter(IHeadersDataRow.class, new IHeadersDataRowAdapter())
+				.registerTypeAdapter(HeadersDataRow.class, new HeadersDataRowAdapter())
 
-            // pixel objects
-            .registerTypeAdapter(Pixel.class, new PixelAdapter())
-            .registerTypeAdapter(PixelList.class, new PixelListAdapter())
+				// pixel objects
+				.registerTypeAdapter(Pixel.class, new PixelAdapter())
+				.registerTypeAdapter(PixelList.class, new PixelListAdapter())
 
-            // dates
-            .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
-            .registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter());
+				// dates
+				.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+				.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter());
 
-    if (pretty) {
-      gsonBuilder.setPrettyPrinting();
-    }
+		if (pretty) {
+			gsonBuilder.setPrettyPrinting();
+		}
 
-    return gsonBuilder.create();
-  }
+		return gsonBuilder.create();
+	}
 
-  public static Gson getDefaultGson() {
-    return getDefaultGson(testing);
-  }
+	public static Gson getDefaultGson() {
+		return getDefaultGson(testing);
+	}
 
-  /**
-   * @param filePath
-   * @param typeToken
-   * @throws IOException
-   */
-  public static Object readJsonFileToObject(String filePath, java.lang.reflect.Type type)
-      throws IOException {
-    return readJsonFileToObject(new File(filePath), type);
-  }
+	/**
+	 * @param filePath
+	 * @param typeToken
+	 * @throws IOException
+	 */
+	public static Object readJsonFileToObject(String filePath, java.lang.reflect.Type type) throws IOException {
+		return readJsonFileToObject(new File(filePath), type);
+	}
 
-  /**
-   * @param file
-   * @param typeToken
-   * @throws IOException
-   */
-  public static Object readJsonFileToObject(File file, java.lang.reflect.Type type)
-      throws IOException {
-    JsonReader jReader = null;
-    BufferedReader fReader = null;
-    try {
-      Gson gson =
-          new GsonBuilder()
-              .registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
-              .create();
-      fReader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
-      jReader = new JsonReader(fReader);
-      return gson.fromJson(jReader, type);
-    } finally {
-      if (fReader != null) {
-        try {
-          fReader.close();
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-      if (jReader != null) {
-        try {
-          jReader.close();
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
-  }
+	/**
+	 * @param file
+	 * @param typeToken
+	 * @throws IOException
+	 */
+	public static Object readJsonFileToObject(File file, java.lang.reflect.Type type) throws IOException {
+		JsonReader jReader = null;
+		BufferedReader fReader = null;
+		try {
+			Gson gson = new GsonBuilder().registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
+			fReader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
+			jReader = new JsonReader(fReader);
+			return gson.fromJson(jReader, type);
+		} finally {
+			if (fReader != null) {
+				try {
+					fReader.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if (jReader != null) {
+				try {
+					jReader.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
 
-  /**
-   * @param file
-   * @param gson
-   * @param objToWrite
-   * @throws IOException
-   */
-  public static void writeObjectToJsonFile(File file, Gson gson, Object objToWrite)
-      throws IOException {
-    FileWriter writer = null;
-    try {
-      writer = new FileWriter(file);
-      gson.toJson(objToWrite, writer);
-    } finally {
-      if (writer != null) {
-        try {
-          writer.close();
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
-  }
+	/**
+	 * @param file
+	 * @param gson
+	 * @param objToWrite
+	 * @throws IOException
+	 */
+	public static void writeObjectToJsonFile(File file, Gson gson, Object objToWrite) throws IOException {
+		FileWriter writer = null;
+		try {
+			writer = new FileWriter(file);
+			gson.toJson(objToWrite, writer);
+		} finally {
+			if (writer != null) {
+				try {
+					writer.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
 }

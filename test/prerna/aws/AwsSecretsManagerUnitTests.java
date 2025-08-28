@@ -35,211 +35,179 @@ import prerna.util.Utility;
 
 public class AwsSecretsManagerUnitTests {
 
-  private AwsSecretsManager aws;
+	private AwsSecretsManager aws;
 
-  @BeforeEach
-  public void setup() {
-    aws = new AwsSecretsManager();
-  }
+	@BeforeEach
+	public void setup() {
+		aws = new AwsSecretsManager();
+	}
 
-  @ParameterizedTest
-  @NullAndEmptySource
-  @ValueSource(strings = {" ", "\t", "\n"})
-  public void testMakeRequestUrlIncorrect(String input) {
-    aws.setUrl(input);
-    NullPointerException e = assertThrows(NullPointerException.class, aws::makeRequest);
-    assertEquals("Must define the url", e.getMessage());
-  }
+	@ParameterizedTest
+	@NullAndEmptySource
+	@ValueSource(strings = {" ", "\t", "\n"})
+	public void testMakeRequestUrlIncorrect(String input) {
+		aws.setUrl(input);
+		NullPointerException e = assertThrows(NullPointerException.class, aws::makeRequest);
+		assertEquals("Must define the url", e.getMessage());
+	}
 
-  @ParameterizedTest
-  @NullAndEmptySource
-  @ValueSource(strings = {" ", "\t", "\n"})
-  public void testMakeRequestSecretIdWrong(String input) {
-    aws.setUrl("url");
-    aws.setSecretId(input);
-    NullPointerException e = assertThrows(NullPointerException.class, aws::makeRequest);
-    assertEquals("Must define the ARN of the secret", e.getMessage());
-  }
+	@ParameterizedTest
+	@NullAndEmptySource
+	@ValueSource(strings = {" ", "\t", "\n"})
+	public void testMakeRequestSecretIdWrong(String input) {
+		aws.setUrl("url");
+		aws.setSecretId(input);
+		NullPointerException e = assertThrows(NullPointerException.class, aws::makeRequest);
+		assertEquals("Must define the ARN of the secret", e.getMessage());
+	}
 
-  @ParameterizedTest
-  @NullAndEmptySource
-  @ValueSource(strings = {" ", "\t", "\n"})
-  public void testMakeRequestOnlySecretHeader(String input) {
-    aws.setUrl("url");
-    aws.setSecretId("secret");
-    aws.setVersionId(input);
-    aws.setVersionStage(input);
+	@ParameterizedTest
+	@NullAndEmptySource
+	@ValueSource(strings = {" ", "\t", "\n"})
+	public void testMakeRequestOnlySecretHeader(String input) {
+		aws.setUrl("url");
+		aws.setSecretId("secret");
+		aws.setVersionId(input);
+		aws.setVersionStage(input);
 
-    aws.setKeyPass("keypass");
-    aws.setKeyStore("keystore");
-    aws.setKeyStorePass("keystorepass");
-    try (MockedStatic<HttpHelperUtility> http = Mockito.mockStatic(HttpHelperUtility.class)) {
-      http.when(
-              () ->
-                  HttpHelperUtility.getRequest(
-                      eq("url"), any(Map.class), eq("keystore"), eq("keystorepass"), eq("keypass")))
-          .thenReturn("{response: \"data\"}");
+		aws.setKeyPass("keypass");
+		aws.setKeyStore("keystore");
+		aws.setKeyStorePass("keystorepass");
+		try (MockedStatic<HttpHelperUtility> http = Mockito.mockStatic(HttpHelperUtility.class)) {
+			http.when(() -> HttpHelperUtility.getRequest(eq("url"), any(Map.class), eq("keystore"), eq("keystorepass"),
+					eq("keypass"))).thenReturn("{response: \"data\"}");
 
-      aws.makeRequest();
+			aws.makeRequest();
 
-      ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
-      http.verify(
-          () ->
-              HttpHelperUtility.getRequest(
-                  eq("url"),
-                  mapCaptor.capture(),
-                  eq("keystore"),
-                  eq("keystorepass"),
-                  eq("keypass")),
-          times(1));
-      Map<String, String> map = mapCaptor.getValue();
-      assertEquals(1, map.size());
-      assertEquals("secret", map.get("SecretId"));
-    }
+			ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
+			http.verify(() -> HttpHelperUtility.getRequest(eq("url"), mapCaptor.capture(), eq("keystore"),
+					eq("keystorepass"), eq("keypass")), times(1));
+			Map<String, String> map = mapCaptor.getValue();
+			assertEquals(1, map.size());
+			assertEquals("secret", map.get("SecretId"));
+		}
 
-    assertEquals("{response: \"data\"}", aws.getResponseData());
-    assertEquals("data", aws.getResponseJson().get("response"));
-  }
+		assertEquals("{response: \"data\"}", aws.getResponseData());
+		assertEquals("data", aws.getResponseJson().get("response"));
+	}
 
-  @Test
-  public void testMakRequestSecretKeyNull() {
-    aws.setUrl("url");
-    aws.setSecretId("secret");
+	@Test
+	public void testMakRequestSecretKeyNull() {
+		aws.setUrl("url");
+		aws.setSecretId("secret");
 
-    aws.setAccessKey("hasAccessKey");
+		aws.setAccessKey("hasAccessKey");
 
-    aws.setKeyPass("keypass");
-    aws.setKeyStore("keystore");
-    aws.setKeyStorePass("keystorepass");
-    try (MockedStatic<HttpHelperUtility> http = Mockito.mockStatic(HttpHelperUtility.class)) {
-      http.when(
-              () ->
-                  HttpHelperUtility.getRequest(
-                      eq("url"), any(Map.class), eq("keystore"), eq("keystorepass"), eq("keypass")))
-          .thenReturn("{response: \"data\"}");
+		aws.setKeyPass("keypass");
+		aws.setKeyStore("keystore");
+		aws.setKeyStorePass("keystorepass");
+		try (MockedStatic<HttpHelperUtility> http = Mockito.mockStatic(HttpHelperUtility.class)) {
+			http.when(() -> HttpHelperUtility.getRequest(eq("url"), any(Map.class), eq("keystore"), eq("keystorepass"),
+					eq("keypass"))).thenReturn("{response: \"data\"}");
 
-      aws.makeRequest();
+			aws.makeRequest();
 
-      ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
-      http.verify(
-          () ->
-              HttpHelperUtility.getRequest(
-                  eq("url"),
-                  mapCaptor.capture(),
-                  eq("keystore"),
-                  eq("keystorepass"),
-                  eq("keypass")),
-          times(1));
-      Map<String, String> map = mapCaptor.getValue();
-      assertEquals(1, map.size());
-      assertEquals("secret", map.get("SecretId"));
-    }
+			ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
+			http.verify(() -> HttpHelperUtility.getRequest(eq("url"), mapCaptor.capture(), eq("keystore"),
+					eq("keystorepass"), eq("keypass")), times(1));
+			Map<String, String> map = mapCaptor.getValue();
+			assertEquals(1, map.size());
+			assertEquals("secret", map.get("SecretId"));
+		}
 
-    assertEquals("{response: \"data\"}", aws.getResponseData());
-    assertEquals("data", aws.getResponseJson().get("response"));
-  }
+		assertEquals("{response: \"data\"}", aws.getResponseData());
+		assertEquals("data", aws.getResponseJson().get("response"));
+	}
 
-  @Test
-  public void testMakeRequestAllHeaders() {
-    aws.setUrl("url");
-    aws.setSecretId("secret");
-    aws.setVersionId("versionId");
-    aws.setVersionStage("versionStage");
-    aws.setAccessKey("ak");
-    aws.setSecretKey("sk");
+	@Test
+	public void testMakeRequestAllHeaders() {
+		aws.setUrl("url");
+		aws.setSecretId("secret");
+		aws.setVersionId("versionId");
+		aws.setVersionStage("versionStage");
+		aws.setAccessKey("ak");
+		aws.setSecretKey("sk");
 
-    aws.setKeyPass("keypass");
-    aws.setKeyStore("keystore");
-    aws.setKeyStorePass("keystorepass");
-    try (MockedStatic<HttpHelperUtility> http = Mockito.mockStatic(HttpHelperUtility.class)) {
-      http.when(
-              () ->
-                  HttpHelperUtility.getRequest(
-                      eq("url"), any(Map.class), eq("keystore"), eq("keystorepass"), eq("keypass")))
-          .thenReturn("{response: \"data\"}");
+		aws.setKeyPass("keypass");
+		aws.setKeyStore("keystore");
+		aws.setKeyStorePass("keystorepass");
+		try (MockedStatic<HttpHelperUtility> http = Mockito.mockStatic(HttpHelperUtility.class)) {
+			http.when(() -> HttpHelperUtility.getRequest(eq("url"), any(Map.class), eq("keystore"), eq("keystorepass"),
+					eq("keypass"))).thenReturn("{response: \"data\"}");
 
-      aws.makeRequest();
+			aws.makeRequest();
 
-      ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
-      http.verify(
-          () ->
-              HttpHelperUtility.getRequest(
-                  eq("url"),
-                  mapCaptor.capture(),
-                  eq("keystore"),
-                  eq("keystorepass"),
-                  eq("keypass")),
-          times(1));
-      Map<String, String> map = mapCaptor.getValue();
-      assertEquals(4, map.size());
-      assertEquals("secret", map.get("SecretId"));
-      assertEquals("versionId", map.get("VersionId"));
-      assertEquals("versionStage", map.get("VersionStage"));
-      assertEquals("Basic YWs6c2s=", map.get("Authorization"));
-    }
+			ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
+			http.verify(() -> HttpHelperUtility.getRequest(eq("url"), mapCaptor.capture(), eq("keystore"),
+					eq("keystorepass"), eq("keypass")), times(1));
+			Map<String, String> map = mapCaptor.getValue();
+			assertEquals(4, map.size());
+			assertEquals("secret", map.get("SecretId"));
+			assertEquals("versionId", map.get("VersionId"));
+			assertEquals("versionStage", map.get("VersionStage"));
+			assertEquals("Basic YWs6c2s=", map.get("Authorization"));
+		}
 
-    assertEquals("{response: \"data\"}", aws.getResponseData());
-    assertEquals("data", aws.getResponseJson().get("response"));
-  }
+		assertEquals("{response: \"data\"}", aws.getResponseData());
+		assertEquals("data", aws.getResponseJson().get("response"));
+	}
 
-  @Test
-  void setUseApplicationCertsTrue() {
-    try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
-      util.when(() -> Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE)).thenReturn("ks");
-      util.when(() -> Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD))
-          .thenReturn("ksp");
-      util.when(() -> Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD))
-          .thenReturn("csp");
+	@Test
+	void setUseApplicationCertsTrue() {
+		try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+			util.when(() -> Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE)).thenReturn("ks");
+			util.when(() -> Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD)).thenReturn("ksp");
+			util.when(() -> Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD)).thenReturn("csp");
 
-      aws.setUseApplicationCerts(true);
+			aws.setUseApplicationCerts(true);
 
-      assertEquals("ks", aws.getKeyStore());
-      assertEquals("ksp", aws.getKeyStorePass());
-      assertEquals("csp", aws.getKeyPass());
-      assertTrue(aws.isUseApplicationCerts());
-    }
-  }
+			assertEquals("ks", aws.getKeyStore());
+			assertEquals("ksp", aws.getKeyStorePass());
+			assertEquals("csp", aws.getKeyPass());
+			assertTrue(aws.isUseApplicationCerts());
+		}
+	}
 
-  @Test
-  void testNotUseApplicationCertsFalse() {
-    aws.setUseApplicationCerts(false);
-    assertFalse(aws.isUseApplicationCerts());
-  }
+	@Test
+	void testNotUseApplicationCertsFalse() {
+		aws.setUseApplicationCerts(false);
+		assertFalse(aws.isUseApplicationCerts());
+	}
 
-  @Test
-  void testSettersAndGetters() {
-    aws.setUrl("test");
-    assertEquals("test", aws.getUrl());
+	@Test
+	void testSettersAndGetters() {
+		aws.setUrl("test");
+		assertEquals("test", aws.getUrl());
 
-    aws.setAccessKey("ak");
-    assertEquals("ak", aws.getAccessKey());
+		aws.setAccessKey("ak");
+		assertEquals("ak", aws.getAccessKey());
 
-    aws.setSecretKey("sk");
-    assertEquals("sk", aws.getSecretKey());
+		aws.setSecretKey("sk");
+		assertEquals("sk", aws.getSecretKey());
 
-    aws.setKeyStore("keystore");
-    assertEquals("keystore", aws.getKeyStore());
+		aws.setKeyStore("keystore");
+		assertEquals("keystore", aws.getKeyStore());
 
-    aws.setKeyStorePass("keystorepass");
-    assertEquals("keystorepass", aws.getKeyStorePass());
+		aws.setKeyStorePass("keystorepass");
+		assertEquals("keystorepass", aws.getKeyStorePass());
 
-    aws.setKeyPass("keypass");
-    assertEquals("keypass", aws.getKeyPass());
+		aws.setKeyPass("keypass");
+		assertEquals("keypass", aws.getKeyPass());
 
-    aws.setSecretId("secret");
-    assertEquals("secret", aws.getSecretId());
+		aws.setSecretId("secret");
+		assertEquals("secret", aws.getSecretId());
 
-    aws.setVersionId("versionId");
-    assertEquals("versionId", aws.getVersionId());
+		aws.setVersionId("versionId");
+		assertEquals("versionId", aws.getVersionId());
 
-    aws.setVersionStage("versionStage");
-    assertEquals("versionStage", aws.getVersionStage());
+		aws.setVersionStage("versionStage");
+		assertEquals("versionStage", aws.getVersionStage());
 
-    aws.setResponseData("response");
-    assertEquals("response", aws.getResponseData());
+		aws.setResponseData("response");
+		assertEquals("response", aws.getResponseData());
 
-    Map<String, Object> map = new HashMap<>();
-    aws.setResponseJson(map);
-    assertEquals(map, aws.getResponseJson());
-  }
+		Map<String, Object> map = new HashMap<>();
+		aws.setResponseJson(map);
+		assertEquals(map, aws.getResponseJson());
+	}
 }

@@ -43,122 +43,110 @@ import prerna.util.Utility;
 
 public class TextToSQLReactor extends AbstractReactor {
 
-  private static Logger logger = LogManager.getLogger(TextToSQLReactor.class);
-  private static final String ERROR = "error";
+	private static Logger logger = LogManager.getLogger(TextToSQLReactor.class);
+	private static final String ERROR = "error";
 
-  private static final Gson GSON =
-      new GsonBuilder()
-          .setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-          .disableHtmlEscaping()
-          .create();
+	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping().create();
 
-  public TextToSQLReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.DATABASE.getKey(),
-          ReactorKeysEnum.MODEL.getKey(),
-          ReactorKeysEnum.COMMAND.getKey(),
-          ERROR,
-          ReactorKeysEnum.SQL.getKey(),
-          ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
-        };
-    this.keyRequired = new int[] {1, 1, 1, 0, 0, 0};
-  }
+	public TextToSQLReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.MODEL.getKey(),
+				ReactorKeysEnum.COMMAND.getKey(), ERROR, ReactorKeysEnum.SQL.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
+		this.keyRequired = new int[]{1, 1, 1, 0, 0, 0};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    User user = this.insight.getUser();
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		User user = this.insight.getUser();
 
-    // check database permissions
-    String databaseId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
-    if (!SecurityEngineUtils.userCanViewEngine(user, databaseId)) {
-      throw new IllegalArgumentException(
-          "Database "
-              + databaseId
-              + " does not exist or user does not have access to this database");
-    }
+		// check database permissions
+		String databaseId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
+		if (!SecurityEngineUtils.userCanViewEngine(user, databaseId)) {
+			throw new IllegalArgumentException(
+					"Database " + databaseId + " does not exist or user does not have access to this database");
+		}
 
-    // check model permissions
-    String engine = this.keyValue.get(ReactorKeysEnum.MODEL.getKey());
-    if (!SecurityEngineUtils.userCanViewEngine(user, engine)) {
-      throw new IllegalArgumentException(
-          "Model " + engine + " does not exist or user does not have access to this model");
-    }
-    IDatabaseEngine dbEngine = Utility.getDatabase(databaseId);
-    if (!(dbEngine instanceof IRDBMSEngine)) {
-      throw new IllegalArgumentException("Database must be a RDBMS engine");
-    }
-    IRDBMSEngine database = (IRDBMSEngine) dbEngine;
-    IModelEngine modelEngine = Utility.getModel(engine);
+		// check model permissions
+		String engine = this.keyValue.get(ReactorKeysEnum.MODEL.getKey());
+		if (!SecurityEngineUtils.userCanViewEngine(user, engine)) {
+			throw new IllegalArgumentException(
+					"Model " + engine + " does not exist or user does not have access to this model");
+		}
+		IDatabaseEngine dbEngine = Utility.getDatabase(databaseId);
+		if (!(dbEngine instanceof IRDBMSEngine)) {
+			throw new IllegalArgumentException("Database must be a RDBMS engine");
+		}
+		IRDBMSEngine database = (IRDBMSEngine) dbEngine;
+		IModelEngine modelEngine = Utility.getModel(engine);
 
-    // get relation info about the database
-    List<String> conceptTableNames = database.getPixelConcepts();
-    Map<String, Object[]> metamodel = database.getMetamodel();
-    Object[] edges = metamodel.get("edges");
+		// get relation info about the database
+		List<String> conceptTableNames = database.getPixelConcepts();
+		Map<String, Object[]> metamodel = database.getMetamodel();
+		Object[] edges = metamodel.get("edges");
 
-    Map<String, Object> conceptInfo = new HashMap<>();
-    List<Map<String, String>> edgeInfo = new ArrayList<>();
-    for (Object edge : edges) {
-      Map<String, String> e = (Map<String, String>) edge;
-      if (e.containsKey("rel")) {
-        String[] splitRel = e.get("rel").split("\\.");
-        if (splitRel.length == 4) {
-          Map<String, String> relInfo = new HashMap<>();
-          relInfo.put("source_table", splitRel[0]);
-          relInfo.put("source_table_column", splitRel[1]);
-          relInfo.put("target_table", splitRel[2]);
-          relInfo.put("target_table_column", splitRel[3]);
-          edgeInfo.add(relInfo);
-        } else {
-          logger.warn("Could not determine relation for " + e.get("rel"));
-        }
-      }
-    }
+		Map<String, Object> conceptInfo = new HashMap<>();
+		List<Map<String, String>> edgeInfo = new ArrayList<>();
+		for (Object edge : edges) {
+			Map<String, String> e = (Map<String, String>) edge;
+			if (e.containsKey("rel")) {
+				String[] splitRel = e.get("rel").split("\\.");
+				if (splitRel.length == 4) {
+					Map<String, String> relInfo = new HashMap<>();
+					relInfo.put("source_table", splitRel[0]);
+					relInfo.put("source_table_column", splitRel[1]);
+					relInfo.put("target_table", splitRel[2]);
+					relInfo.put("target_table_column", splitRel[3]);
+					edgeInfo.add(relInfo);
+				} else {
+					logger.warn("Could not determine relation for " + e.get("rel"));
+				}
+			}
+		}
 
-    // get descriptions, logical names, and relation info for columns and put in map
-    for (String conceptTable : conceptTableNames) {
-      List<String> propertyColumnNames = database.getPixelSelectors(conceptTable);
-      String tablePhysicalUri = database.getPhysicalUriFromPixelSelector(conceptTable);
-      String description = database.getDescription(tablePhysicalUri);
-      Map<String, Object> propertyMap = new HashMap<>();
-      for (String propertyColumn : propertyColumnNames) {
-        String physicalUri = database.getPhysicalUriFromPixelSelector(propertyColumn);
-        String desc = database.getDescription(physicalUri);
-        String dataType = database.getDataTypes(physicalUri);
-        Set<String> logicalNames = database.getLogicalNames(physicalUri);
-        Map<String, Object> dataMap = new HashMap<>();
-        if (dataType != null && !(dataType = dataType.trim()).isEmpty()) {
-          dataMap.put("dataType", dataType);
-        }
-        if (desc != null && !(desc = desc.trim()).isEmpty()) {
-          dataMap.put("description", desc);
-        }
-        if (!logicalNames.isEmpty()) {
-          dataMap.put("logical_names", logicalNames);
-        }
-        for (Map<String, String> relInfo : edgeInfo) {
-          if (relInfo.get("target_table").equals(conceptTable)) {
-            String p = database.getConceptualName(physicalUri);
-            if (relInfo.get("target_table_column").equals(p)) {
-              dataMap.put("foreign_key", relInfo);
-            }
-          }
-        }
-        String parsedProperty = propertyColumn.split("__")[1];
-        propertyMap.put(parsedProperty, dataMap);
-      }
-      Map<String, Object> conceptJson = new HashMap<>();
-      if (description != null && !description.trim().equals("")) {
-        conceptJson.put("description", description);
-      }
-      conceptJson.put("columns", propertyMap);
-      conceptInfo.put(conceptTable, conceptJson);
-    }
+		// get descriptions, logical names, and relation info for columns and put in map
+		for (String conceptTable : conceptTableNames) {
+			List<String> propertyColumnNames = database.getPixelSelectors(conceptTable);
+			String tablePhysicalUri = database.getPhysicalUriFromPixelSelector(conceptTable);
+			String description = database.getDescription(tablePhysicalUri);
+			Map<String, Object> propertyMap = new HashMap<>();
+			for (String propertyColumn : propertyColumnNames) {
+				String physicalUri = database.getPhysicalUriFromPixelSelector(propertyColumn);
+				String desc = database.getDescription(physicalUri);
+				String dataType = database.getDataTypes(physicalUri);
+				Set<String> logicalNames = database.getLogicalNames(physicalUri);
+				Map<String, Object> dataMap = new HashMap<>();
+				if (dataType != null && !(dataType = dataType.trim()).isEmpty()) {
+					dataMap.put("dataType", dataType);
+				}
+				if (desc != null && !(desc = desc.trim()).isEmpty()) {
+					dataMap.put("description", desc);
+				}
+				if (!logicalNames.isEmpty()) {
+					dataMap.put("logical_names", logicalNames);
+				}
+				for (Map<String, String> relInfo : edgeInfo) {
+					if (relInfo.get("target_table").equals(conceptTable)) {
+						String p = database.getConceptualName(physicalUri);
+						if (relInfo.get("target_table_column").equals(p)) {
+							dataMap.put("foreign_key", relInfo);
+						}
+					}
+				}
+				String parsedProperty = propertyColumn.split("__")[1];
+				propertyMap.put(parsedProperty, dataMap);
+			}
+			Map<String, Object> conceptJson = new HashMap<>();
+			if (description != null && !description.trim().equals("")) {
+				conceptJson.put("description", description);
+			}
+			conceptJson.put("columns", propertyMap);
+			conceptInfo.put(conceptTable, conceptJson);
+		}
 
-    // generate context for llm
-    String sqlContext =
-        """
+		// generate context for llm
+		String sqlContext = """
 				You are an expert SQL assistant. You are provided with a database schema in JSON format, which includes tables, table-level descriptions, columns, and metadata such as descriptions, logical names, and foreign key relationships.
 				Your task is to generate an SQL query that answers the user's question, using only the information explicitly available in the schema.
 
@@ -187,13 +175,12 @@ public class TextToSQLReactor extends AbstractReactor {
 				Do not wrap your response in any formatting or code blocks.
 				""";
 
-    String context = String.format(sqlContext, database.getDbType(), GSON.toJson(conceptInfo));
-    String prompt = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
-    String error = Utility.decodeURIComponent(this.keyValue.get(ERROR));
-    String oldSQL = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.SQL.getKey()));
-    if (error != null && !error.trim().isEmpty() && oldSQL != null) {
-      String appendError =
-          """
+		String context = String.format(sqlContext, database.getDbType(), GSON.toJson(conceptInfo));
+		String prompt = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
+		String error = Utility.decodeURIComponent(this.keyValue.get(ERROR));
+		String oldSQL = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.SQL.getKey()));
+		if (error != null && !error.trim().isEmpty() && oldSQL != null) {
+			String appendError = """
 					The previous SQL you generated was the following:
 					%s
 
@@ -202,112 +189,110 @@ public class TextToSQLReactor extends AbstractReactor {
 
 					Please regenerate the SQL while considering the error.
 					""";
-      String tailoredPrompt = String.format(appendError, oldSQL, error);
-      prompt += "\n" + tailoredPrompt;
-    }
-    Map<String, Object> paramMap = getParamMap();
-    if (paramMap == null) {
-      paramMap = new HashMap<String, Object>();
-    }
+			String tailoredPrompt = String.format(appendError, oldSQL, error);
+			prompt += "\n" + tailoredPrompt;
+		}
+		Map<String, Object> paramMap = getParamMap();
+		if (paramMap == null) {
+			paramMap = new HashMap<String, Object>();
+		}
 
-    // add response format to ensure json schema
-    paramMap.put("response_format", getJsonSchema());
+		// add response format to ensure json schema
+		paramMap.put("response_format", getJsonSchema());
 
-    // ask model and parse response
-    Map<String, Object> queryResponse =
-        modelEngine.ask(prompt, context, this.insight, paramMap).toMap();
-    String responseString = (String) queryResponse.get("response");
-    Map<String, Object> responseMap = parseResponse(responseString.trim());
-    if (responseMap == null
-        || !responseMap.containsKey("question")
-        || !responseMap.containsKey("sql")
-        || !responseMap.containsKey("explanation")) {
-      throw new SemossPixelException("LLM could not generate proper response");
-    }
+		// ask model and parse response
+		Map<String, Object> queryResponse = modelEngine.ask(prompt, context, this.insight, paramMap).toMap();
+		String responseString = (String) queryResponse.get("response");
+		Map<String, Object> responseMap = parseResponse(responseString.trim());
+		if (responseMap == null || !responseMap.containsKey("question") || !responseMap.containsKey("sql")
+				|| !responseMap.containsKey("explanation")) {
+			throw new SemossPixelException("LLM could not generate proper response");
+		}
 
-    return new NounMetadata(responseMap, PixelDataType.MAP);
-  }
+		return new NounMetadata(responseMap, PixelDataType.MAP);
+	}
 
-  private Map<String, Object> getParamMap() {
-    GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-    if (mapGrs != null && !mapGrs.isEmpty()) {
-      List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-      if (mapInputs != null && !mapInputs.isEmpty()) {
-        return (Map<String, Object>) mapInputs.get(0).getValue();
-      }
-    }
-    List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-    if (mapInputs != null && !mapInputs.isEmpty()) {
-      return (Map<String, Object>) mapInputs.get(0).getValue();
-    }
-    return null;
-  }
+	private Map<String, Object> getParamMap() {
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
 
-  private Map<String, Object> parseResponse(String jsonString) {
-    Type type = new TypeToken<Map<String, Object>>() {}.getType();
-    Map<String, Object> map = null;
+	private Map<String, Object> parseResponse(String jsonString) {
+		Type type = new TypeToken<Map<String, Object>>() {
+		}.getType();
+		Map<String, Object> map = null;
 
-    try {
-      map = GSON.fromJson(jsonString, type);
-    } catch (JsonSyntaxException e) {
-      logger.error("Failed to parse JSON response");
-      throw new SemossPixelException("Failed to parse JSON response: " + jsonString, e);
-    }
-    return map;
-  }
+		try {
+			map = GSON.fromJson(jsonString, type);
+		} catch (JsonSyntaxException e) {
+			logger.error("Failed to parse JSON response");
+			throw new SemossPixelException("Failed to parse JSON response: " + jsonString, e);
+		}
+		return map;
+	}
 
-  private Map<String, Object> getJsonSchema() {
-    Map<String, Object> questionProp = new HashMap<>();
-    questionProp.put("type", "string");
+	private Map<String, Object> getJsonSchema() {
+		Map<String, Object> questionProp = new HashMap<>();
+		questionProp.put("type", "string");
 
-    Map<String, Object> sqlProp = new HashMap<>();
-    sqlProp.put("type", "string");
+		Map<String, Object> sqlProp = new HashMap<>();
+		sqlProp.put("type", "string");
 
-    Map<String, Object> explanationProp = new HashMap<>();
-    explanationProp.put("type", "string");
+		Map<String, Object> explanationProp = new HashMap<>();
+		explanationProp.put("type", "string");
 
-    Map<String, Object> properties = new HashMap<>();
-    properties.put("question", questionProp);
-    properties.put("sql", sqlProp);
-    properties.put("explanation", explanationProp);
+		Map<String, Object> properties = new HashMap<>();
+		properties.put("question", questionProp);
+		properties.put("sql", sqlProp);
+		properties.put("explanation", explanationProp);
 
-    List<String> required = Arrays.asList("question", "sql", "explanation");
+		List<String> required = Arrays.asList("question", "sql", "explanation");
 
-    Map<String, Object> schema = new HashMap<>();
-    schema.put("type", "object");
-    schema.put("properties", properties);
-    schema.put("required", required);
-    schema.put("additionalProperties", false);
+		Map<String, Object> schema = new HashMap<>();
+		schema.put("type", "object");
+		schema.put("properties", properties);
+		schema.put("required", required);
+		schema.put("additionalProperties", false);
 
-    Map<String, Object> jsonSchema = new HashMap<>();
-    jsonSchema.put("name", "sql_generator");
-    jsonSchema.put("schema", schema);
-    jsonSchema.put("strict", true);
+		Map<String, Object> jsonSchema = new HashMap<>();
+		jsonSchema.put("name", "sql_generator");
+		jsonSchema.put("schema", schema);
+		jsonSchema.put("strict", true);
 
-    Map<String, Object> paramJson = new HashMap<>();
-    paramJson.put("type", "json_schema");
-    paramJson.put("json_schema", jsonSchema);
-    return paramJson;
-  }
+		Map<String, Object> paramJson = new HashMap<>();
+		paramJson.put("type", "json_schema");
+		paramJson.put("json_schema", jsonSchema);
+		return paramJson;
+	}
 
-  @Override
-  public String getReactorDescription() {
-    return "Convert natural language to SQL. Also allows users to pass in old SQL and SQL errors to generate new SQL";
-  }
+	@Override
+	public String getReactorDescription() {
+		return "Convert natural language to SQL. Also allows users to pass in old SQL and SQL errors to generate new SQL";
+	}
 
-  @Override
-  protected String getDescriptionForKey(String key) {
-    if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-      return "The database id for the RDBMS we want to generate a SQL query against";
-    } else if (key.equals(ReactorKeysEnum.MODEL.getKey())) {
-      return "The model id used to generate the SQL query";
-    } else if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
-      return "The user text to be turned into the SQL query based on the database schema";
-    } else if (key.equals(ERROR)) {
-      return "This is an optional parameter to pass the previous SQL query that was generated that resulted in an error";
-    } else if (key.equals(ERROR)) {
-      return "This is an optional parameter to pass in the error associated with a previous SQL query prediction";
-    }
-    return super.getDescriptionForKey(key);
-  }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id for the RDBMS we want to generate a SQL query against";
+		} else if (key.equals(ReactorKeysEnum.MODEL.getKey())) {
+			return "The model id used to generate the SQL query";
+		} else if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+			return "The user text to be turned into the SQL query based on the database schema";
+		} else if (key.equals(ERROR)) {
+			return "This is an optional parameter to pass the previous SQL query that was generated that resulted in an error";
+		} else if (key.equals(ERROR)) {
+			return "This is an optional parameter to pass in the error associated with a previous SQL query prediction";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

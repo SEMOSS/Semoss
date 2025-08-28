@@ -16,35 +16,31 @@ package prerna.algorithm.learning.util;
 
 public interface IClusterDistanceMode {
 
-  enum DistanceMeasure {
-    MEAN,
-    MODE,
-    MEDIAN,
-    MAX,
-    MIN
-  }
+	enum DistanceMeasure {
+		MEAN, MODE, MEDIAN, MAX, MIN
+	}
 
-  double getCentroidValue();
+	double getCentroidValue();
 
-  void addToCentroidValue(Double newValue);
+	void addToCentroidValue(Double newValue);
 
-  void removeFromCentroidValue(Double newValue);
+	void removeFromCentroidValue(Double newValue);
 
-  double getNullRatio();
+	double getNullRatio();
 
-  double getNumNull();
+	double getNumNull();
 
-  double getNumInstances();
+	double getNumInstances();
 
-  double getPreviousCentroidValue();
+	double getPreviousCentroidValue();
 
-  Double getChangeToCentroidValue();
+	Double getChangeToCentroidValue();
 
-  void reset();
+	void reset();
 
-  boolean isPreviousNull();
+	boolean isPreviousNull();
 
-  void addPartialToCentroidValue(Double newValue, double factor);
+	void addPartialToCentroidValue(Double newValue, double factor);
 
-  void removePartialFromCentroidValue(Double value, double factor);
+	void removePartialFromCentroidValue(Double value, double factor);
 }

@@ -30,61 +30,66 @@ import prerna.util.Utility;
 
 public class CtrlVAssetReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(CtrlVAssetReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CtrlVAssetReactor.class);
 
-  public CtrlVAssetReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
-  }
+	public CtrlVAssetReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    User user = this.insight.getUser();
-    String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
-    String space = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		User user = this.insight.getUser();
+		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
+		String space = this.keyValue.get(this.keysToGet[0]);
 
-    String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
-    String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
+		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 
-    if (filePath == null) filePath = "";
-    if (relativePath == null) relativePath = "";
-    else relativePath = relativePath + DIR_SEPARATOR;
-    // file / folder to be moved
-    String destSource = assetFolder + DIR_SEPARATOR + relativePath + filePath;
+		if (filePath == null)
+			filePath = "";
+		if (relativePath == null)
+			relativePath = "";
+		else
+			relativePath = relativePath + DIR_SEPARATOR;
+		// file / folder to be moved
+		String destSource = assetFolder + DIR_SEPARATOR + relativePath + filePath;
 
-    // need to make sure the destination is valid
-    File file = new File(destSource);
-    if (!(file.exists() && file.isDirectory()))
-      throw new IllegalArgumentException("Destination  should be a directory : " + filePath);
+		// need to make sure the destination is valid
+		File file = new File(destSource);
+		if (!(file.exists() && file.isDirectory()))
+			throw new IllegalArgumentException("Destination  should be a directory : " + filePath);
 
-    CopyObject copyObj = user.getCtrlC();
-    String copySource = copyObj.source;
-    boolean isDelete = copyObj.delete;
+		CopyObject copyObj = user.getCtrlC();
+		String copySource = copyObj.source;
+		boolean isDelete = copyObj.delete;
 
-    if (copySource == null)
-      throw new IllegalArgumentException("Nothing to copy, please copy something first ");
+		if (copySource == null)
+			throw new IllegalArgumentException("Nothing to copy, please copy something first ");
 
-    File sfile = new File(copySource);
-    boolean isSourceDir = sfile.exists() && sfile.isDirectory();
+		File sfile = new File(copySource);
+		boolean isSourceDir = sfile.exists() && sfile.isDirectory();
 
-    String dirName = sfile.getName();
+		String dirName = sfile.getName();
 
-    if (isSourceDir) destSource = destSource + DIR_SEPARATOR + dirName;
-    file = new File(destSource);
-    try {
-      if (isSourceDir) {
-        FileUtils.copyDirectory(sfile, file);
-        if (isDelete) FileUtils.deleteDirectory(sfile);
-      } else {
-        FileUtils.copyFileToDirectory(sfile, file);
-        if (isDelete) sfile.delete();
-      }
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      classLogger.error(Constants.STACKTRACE, e);
-    }
+		if (isSourceDir)
+			destSource = destSource + DIR_SEPARATOR + dirName;
+		file = new File(destSource);
+		try {
+			if (isSourceDir) {
+				FileUtils.copyDirectory(sfile, file);
+				if (isDelete)
+					FileUtils.deleteDirectory(sfile);
+			} else {
+				FileUtils.copyFileToDirectory(sfile, file);
+				if (isDelete)
+					sfile.delete();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 
-    return NounMetadata.getSuccessNounMessage("Pasted " + copyObj.showSource);
-  }
+		return NounMetadata.getSuccessNounMessage("Pasted " + copyObj.showSource);
+	}
 }

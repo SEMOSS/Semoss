@@ -26,51 +26,50 @@ import prerna.util.Utility;
 
 public class PyLoadReactor extends AbstractReactor {
 
-  public PyLoadReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
-  }
+	public PyLoadReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    this.organizeKeys();
-    String relativePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
-    String path = getBaseFolder() + "/Py/" + relativePath;
-    String space = this.keyValue.get(this.keysToGet[1]);
-    String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
+	@Override
+	public NounMetadata execute() {
+		this.organizeKeys();
+		String relativePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
+		String path = getBaseFolder() + "/Py/" + relativePath;
+		String space = this.keyValue.get(this.keysToGet[1]);
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
 
-    // if the file is not there try in the insight
-    // if(!file.exists())
-    path = assetFolder + "/" + relativePath;
-    path = path.replace("\\", "/");
+		// if the file is not there try in the insight
+		// if(!file.exists())
+		path = assetFolder + "/" + relativePath;
+		path = path.replace("\\", "/");
 
-    File file = new File(path);
-    String name = file.getName();
-    name = name.replaceAll(".py", "");
+		File file = new File(path);
+		String name = file.getName();
+		name = name.replaceAll(".py", "");
 
-    String assetOutput = assetFolder + "/" + name + ".output";
+		String assetOutput = assetFolder + "/" + name + ".output";
 
-    PyTranslator pyt = this.insight.getPyTranslator();
+		PyTranslator pyt = this.insight.getPyTranslator();
 
-    // pyt.runScript(name +  " = smssutil.runwrapper('smss', '" + path + "')");
-    pyt.runScript(name + " = smssutil.loadScript('smss', '" + path + "')");
+		// pyt.runScript(name + " = smssutil.runwrapper('smss', '" + path + "')");
+		pyt.runScript(name + " = smssutil.loadScript('smss', '" + path + "')");
 
-    return new NounMetadata(true, PixelDataType.BOOLEAN);
-  }
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
 
-  /**
-   * Get the base folder
-   *
-   * @return
-   */
-  protected String getBaseFolder() {
-    String baseFolder = null;
-    try {
-      baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-    } catch (Exception ignored) {
-      // logger.info("No BaseFolder detected... most likely running as
-      // test...");
-    }
-    return baseFolder;
-  }
+	/**
+	 * Get the base folder
+	 *
+	 * @return
+	 */
+	protected String getBaseFolder() {
+		String baseFolder = null;
+		try {
+			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		} catch (Exception ignored) {
+			// logger.info("No BaseFolder detected... most likely running as
+			// test...");
+		}
+		return baseFolder;
+	}
 }

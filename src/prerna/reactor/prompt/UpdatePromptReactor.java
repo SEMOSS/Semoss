@@ -29,53 +29,49 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UpdatePromptReactor extends AbstractReactor {
 
-  public UpdatePromptReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.MAP.getKey()};
-  }
+	public UpdatePromptReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.MAP.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    User user = this.insight.getUser();
-    String userId = this.insight.getUserId();
-    if (user == null) {
-      NounMetadata noun =
-          new NounMetadata(
-              "User must be signed into an account in order to create a prompt",
-              PixelDataType.CONST_STRING,
-              PixelOperationType.ERROR,
-              PixelOperationType.LOGGIN_REQUIRED_ERROR);
-      SemossPixelException err = new SemossPixelException(noun);
-      err.setContinueThreadOfExecution(false);
-      throw err;
-    }
+	@Override
+	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		String userId = this.insight.getUserId();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a prompt",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
 
-    if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-      if (this.insight.getUser().isAnonymous()) {
-        throwAnonymousUserError();
-      }
-    }
+		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
+			if (this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		}
 
-    organizeKeys();
-    Map<String, Object> promptDetails = getPromptDetails();
-    PromptUtils.editPrompt(promptDetails, userId);
-    NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
-    return nm;
-  }
+		organizeKeys();
+		Map<String, Object> promptDetails = getPromptDetails();
+		PromptUtils.editPrompt(promptDetails, userId);
+		NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
+		return nm;
+	}
 
-  private Map<String, Object> getPromptDetails() {
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MAP.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
-      if (mapNouns != null && !mapNouns.isEmpty()) {
-        return (Map<String, Object>) mapNouns.get(0).getValue();
-      }
-    }
+	private Map<String, Object> getPromptDetails() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MAP.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
+			if (mapNouns != null && !mapNouns.isEmpty()) {
+				return (Map<String, Object>) mapNouns.get(0).getValue();
+			}
+		}
 
-    List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
-    if (mapNouns != null && !mapNouns.isEmpty()) {
-      return (Map<String, Object>) mapNouns.get(0).getValue();
-    }
+		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapNouns != null && !mapNouns.isEmpty()) {
+			return (Map<String, Object>) mapNouns.get(0).getValue();
+		}
 
-    throw new NullPointerException("Must define the prompt to store it correctly");
-  }
+		throw new NullPointerException("Must define the prompt to store it correctly");
+	}
 }

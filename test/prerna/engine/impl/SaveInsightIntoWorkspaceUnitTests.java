@@ -34,86 +34,86 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SaveInsightIntoWorkspaceUnitTests {
 
-  private SaveInsightIntoWorkspace workspace;
+	private SaveInsightIntoWorkspace workspace;
 
-  @Mock private IProject project;
+	@Mock
+	private IProject project;
 
-  @Mock private RDBMSNativeEngine insightEngine;
+	@Mock
+	private RDBMSNativeEngine insightEngine;
 
-  @Mock private AbstractSqlQueryUtil queryUtil;
+	@Mock
+	private AbstractSqlQueryUtil queryUtil;
 
-  @Mock InsightAdministrator insightAdministrator;
+	@Mock
+	InsightAdministrator insightAdministrator;
 
-  @BeforeEach
-  public void setup() {
-    MockitoAnnotations.openMocks(this);
-    String userWorkspaceId = "uwid";
+	@BeforeEach
+	public void setup() {
+		MockitoAnnotations.openMocks(this);
+		String userWorkspaceId = "uwid";
 
-    when(project.getInsightDatabase()).thenReturn(insightEngine);
-    try (MockedStatic<Utility> utilityMockedStatic = Mockito.mockStatic(Utility.class);
-        MockedConstruction<InsightAdministrator> ia =
-            Mockito.mockConstruction(
-                InsightAdministrator.class,
-                (mock, context) -> {
-                  assertEquals(insightEngine, context.arguments().get(0));
-                })) {
-      utilityMockedStatic.when(() -> Utility.getProject(userWorkspaceId)).thenReturn(project);
+		when(project.getInsightDatabase()).thenReturn(insightEngine);
+		try (MockedStatic<Utility> utilityMockedStatic = Mockito.mockStatic(Utility.class);
+				MockedConstruction<InsightAdministrator> ia = Mockito.mockConstruction(InsightAdministrator.class,
+						(mock, context) -> {
+							assertEquals(insightEngine, context.arguments().get(0));
+						})) {
+			utilityMockedStatic.when(() -> Utility.getProject(userWorkspaceId)).thenReturn(project);
 
-      workspace = new SaveInsightIntoWorkspace(userWorkspaceId, "rdbmsId", "testName", false);
+			workspace = new SaveInsightIntoWorkspace(userWorkspaceId, "rdbmsId", "testName", false);
 
-      assertEquals(1, ia.constructed().size());
-      insightAdministrator = ia.constructed().get(0);
-    }
-  }
+			assertEquals(1, ia.constructed().size());
+			insightAdministrator = ia.constructed().get(0);
+		}
+	}
 
-  @AfterEach
-  public void teardown() {
-    workspace.killThread();
-  }
+	@AfterEach
+	public void teardown() {
+		workspace.killThread();
+	}
 
-  @Test
-  void testAddToQueue() {
-    List<String> steps = new ArrayList<>();
-    steps.add("step1");
-    steps.add("step2");
+	@Test
+	void testAddToQueue() {
+		List<String> steps = new ArrayList<>();
+		steps.add("step1");
+		steps.add("step2");
 
-    workspace.addToQueue(steps);
-    // cannot really test anything here.
-  }
+		workspace.addToQueue(steps);
+		// cannot really test anything here.
+	}
 
-  @Test
-  void testDropWorkspaceCache() throws SQLException {
-    try (MockedStatic<SecurityInsightUtils> siu = Mockito.mockStatic(SecurityInsightUtils.class)) {
-      when(project.getProjectId()).thenReturn("pid");
+	@Test
+	void testDropWorkspaceCache() throws SQLException {
+		try (MockedStatic<SecurityInsightUtils> siu = Mockito.mockStatic(SecurityInsightUtils.class)) {
+			when(project.getProjectId()).thenReturn("pid");
 
-      // test method call
-      workspace.dropWorkspaceCache();
+			// test method call
+			workspace.dropWorkspaceCache();
 
-      // verifications
-      ArgumentCaptor<String> am = ArgumentCaptor.forClass(String.class);
-      verify(insightAdministrator, times(1)).dropInsight(am.capture());
-      String captured = am.getValue();
-      assertEquals(5, captured.split("-").length);
-      assertEquals(36, captured.length());
-      siu.verify(() -> SecurityInsightUtils.deleteInsight("pid", captured), times(1));
-    }
-  }
+			// verifications
+			ArgumentCaptor<String> am = ArgumentCaptor.forClass(String.class);
+			verify(insightAdministrator, times(1)).dropInsight(am.capture());
+			String captured = am.getValue();
+			assertEquals(5, captured.split("-").length);
+			assertEquals(36, captured.length());
+			siu.verify(() -> SecurityInsightUtils.deleteInsight("pid", captured), times(1));
+		}
+	}
 
-  @Test
-  void setInsightName() {
-    workspace.setInsightName("test");
-    // no good to way to verify this happends
-  }
+	@Test
+	void setInsightName() {
+		workspace.setInsightName("test");
+		// no good to way to verify this happends
+	}
 
-  @Test
-  void isCacheUserWorkspace() {
-    try (MockedStatic<Utility> utilityMockedStatic = Mockito.mockStatic(Utility.class)) {
-      utilityMockedStatic
-          .when(() -> Utility.getDIHelperProperty(Constants.USER_WORKSPACE))
-          .thenReturn("true");
+	@Test
+	void isCacheUserWorkspace() {
+		try (MockedStatic<Utility> utilityMockedStatic = Mockito.mockStatic(Utility.class)) {
+			utilityMockedStatic.when(() -> Utility.getDIHelperProperty(Constants.USER_WORKSPACE)).thenReturn("true");
 
-      boolean val = SaveInsightIntoWorkspace.isCacheUserWorkspace();
-      assertTrue(val);
-    }
-  }
+			boolean val = SaveInsightIntoWorkspace.isCacheUserWorkspace();
+			assertTrue(val);
+		}
+	}
 }

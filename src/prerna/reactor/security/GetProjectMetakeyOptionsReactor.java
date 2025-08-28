@@ -24,16 +24,16 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetProjectMetakeyOptionsReactor extends AbstractReactor {
 
-  public GetProjectMetakeyOptionsReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.META_KEYS.getKey()};
-  }
+	public GetProjectMetakeyOptionsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.META_KEYS.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String metakey = this.keyValue.get(this.keysToGet[0]);
-    List<Map<String, Object>> ret = SecurityProjectUtils.getMetakeyOptions(metakey);
-    NounMetadata noun = new NounMetadata(ret, PixelDataType.PIXEL_OBJECT);
-    return noun;
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String metakey = this.keyValue.get(this.keysToGet[0]);
+		List<Map<String, Object>> ret = SecurityProjectUtils.getMetakeyOptions(metakey);
+		NounMetadata noun = new NounMetadata(ret, PixelDataType.PIXEL_OBJECT);
+		return noun;
+	}
 }

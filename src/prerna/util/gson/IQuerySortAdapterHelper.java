@@ -20,5 +20,5 @@ import prerna.query.querystruct.selectors.IQuerySort;
 
 public interface IQuerySortAdapterHelper {
 
-  IQuerySort readContent(JsonReader in) throws IOException;
+	IQuerySort readContent(JsonReader in) throws IOException;
 }

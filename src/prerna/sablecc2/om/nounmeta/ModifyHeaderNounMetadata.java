@@ -22,36 +22,35 @@ import prerna.sablecc2.om.PixelOperationType;
 
 public class ModifyHeaderNounMetadata extends NounMetadata {
 
-  public ModifyHeaderNounMetadata(String frameName, String origHeader, String newHeader) {
-    this.value = new HashMap<String, Object>();
-    ((Map) this.value).put("frameName", frameName);
-    ((Map) this.value).put("remove", new String[] {origHeader});
-    ((Map) this.value).put("add", new String[] {newHeader});
+	public ModifyHeaderNounMetadata(String frameName, String origHeader, String newHeader) {
+		this.value = new HashMap<String, Object>();
+		((Map) this.value).put("frameName", frameName);
+		((Map) this.value).put("remove", new String[]{origHeader});
+		((Map) this.value).put("add", new String[]{newHeader});
 
-    setConfig();
-  }
+		setConfig();
+	}
 
-  public ModifyHeaderNounMetadata(
-      String frameName, List<String> origHeaders, List<String> newHeaders) {
-    this.value = new HashMap<String, Object>();
-    ((Map) this.value).put("frameName", frameName);
-    ((Map) this.value).put("remove", origHeaders);
-    ((Map) this.value).put("add", newHeaders);
+	public ModifyHeaderNounMetadata(String frameName, List<String> origHeaders, List<String> newHeaders) {
+		this.value = new HashMap<String, Object>();
+		((Map) this.value).put("frameName", frameName);
+		((Map) this.value).put("remove", origHeaders);
+		((Map) this.value).put("add", newHeaders);
 
-    setConfig();
-  }
+		setConfig();
+	}
 
-  public ModifyHeaderNounMetadata(String frameName, String[] origHeaders, String[] newHeaders) {
-    this.value = new HashMap<String, Object>();
-    ((Map) this.value).put("frameName", frameName);
-    ((Map) this.value).put("remove", origHeaders);
-    ((Map) this.value).put("add", newHeaders);
+	public ModifyHeaderNounMetadata(String frameName, String[] origHeaders, String[] newHeaders) {
+		this.value = new HashMap<String, Object>();
+		((Map) this.value).put("frameName", frameName);
+		((Map) this.value).put("remove", origHeaders);
+		((Map) this.value).put("add", newHeaders);
 
-    setConfig();
-  }
+		setConfig();
+	}
 
-  private void setConfig() {
-    this.noun = PixelDataType.CONST_STRING;
-    this.opType.add(PixelOperationType.MODIFY_HEADERS);
-  }
+	private void setConfig() {
+		this.noun = PixelDataType.CONST_STRING;
+		this.opType.add(PixelOperationType.MODIFY_HEADERS);
+	}
 }

@@ -30,25 +30,25 @@ import prerna.util.Utility;
 
 public class GetDQRulesReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(GetDQRulesReactor.class);
-  private static final String DIR_SEP = System.getProperty("file.separator");
+	private static final Logger classLogger = LogManager.getLogger(GetDQRulesReactor.class);
+	private static final String DIR_SEP = System.getProperty("file.separator");
 
-  public NounMetadata execute() {
-    String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-    String fileLoc = base + DIR_SEP + "R" + DIR_SEP + "DQ" + DIR_SEP + "rule-defs.json";
+	public NounMetadata execute() {
+		String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String fileLoc = base + DIR_SEP + "R" + DIR_SEP + "DQ" + DIR_SEP + "rule-defs.json";
 
-    String fileString = null;
-    try {
-      // depreated function will normalize string to not hit a new scan
-      fileString = Utility.normalizePath(fileString);
-      fileString = FileUtils.readFileToString(new File(fileLoc));
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
+		String fileString = null;
+		try {
+			// depreated function will normalize string to not hit a new scan
+			fileString = Utility.normalizePath(fileString);
+			fileString = FileUtils.readFileToString(new File(fileLoc));
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 
-    Gson gson = new Gson();
-    Map<String, Object> rulesMap = gson.fromJson(fileString, Map.class);
-    NounMetadata noun = new NounMetadata(rulesMap, PixelDataType.MAP);
-    return noun;
-  }
+		Gson gson = new Gson();
+		Map<String, Object> rulesMap = gson.fromJson(fileString, Map.class);
+		NounMetadata noun = new NounMetadata(rulesMap, PixelDataType.MAP);
+		return noun;
+	}
 }

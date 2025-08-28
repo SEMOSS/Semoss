@@ -23,28 +23,28 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class SelectTableReactor extends AbstractQueryStructReactor {
 
-  public SelectTableReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.TABLE.getKey()};
-  }
+	public SelectTableReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.TABLE.getKey()};
+	}
 
-  @Override
-  protected AbstractQueryStruct createQueryStruct() {
-    organizeKeys();
-    // must have used Database reactor before hand
-    // so we know this must be the id
-    String databaseId = qs.getEngineId();
-    if (databaseId == null) {
-      throw new IllegalArgumentException(
-          "Must define the database using Database(<input id here>) prior to SelectTable");
-    }
-    String table = this.keyValue.get(ReactorKeysEnum.TABLE.getKey());
+	@Override
+	protected AbstractQueryStruct createQueryStruct() {
+		organizeKeys();
+		// must have used Database reactor before hand
+		// so we know this must be the id
+		String databaseId = qs.getEngineId();
+		if (databaseId == null) {
+			throw new IllegalArgumentException(
+					"Must define the database using Database(<input id here>) prior to SelectTable");
+		}
+		String table = this.keyValue.get(ReactorKeysEnum.TABLE.getKey());
 
-    List<String> selectors = MasterDatabaseUtility.getConceptPixelSelectors(table, databaseId);
-    for (int i = 0; i < selectors.size(); i++) {
-      QueryColumnSelector qsSelector = new QueryColumnSelector(selectors.get(i));
-      qs.addSelector(qsSelector);
-    }
+		List<String> selectors = MasterDatabaseUtility.getConceptPixelSelectors(table, databaseId);
+		for (int i = 0; i < selectors.size(); i++) {
+			QueryColumnSelector qsSelector = new QueryColumnSelector(selectors.get(i));
+			qs.addSelector(qsSelector);
+		}
 
-    return qs;
-  }
+		return qs;
+	}
 }

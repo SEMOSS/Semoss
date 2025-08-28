@@ -22,8 +22,8 @@ import prerna.om.Insight;
 /** Contract for all concrete union routine classes. */
 public interface UnionRoutine {
 
-  ITableDataFrame performUnion(
-      ITableDataFrame a, ITableDataFrame b, String unionType, Insight insight, Logger logger);
+	ITableDataFrame performUnion(ITableDataFrame a, ITableDataFrame b, String unionType, Insight insight,
+			Logger logger);
 
-  void setColMapping(Map<String, String> cols);
+	void setColMapping(Map<String, String> cols);
 }

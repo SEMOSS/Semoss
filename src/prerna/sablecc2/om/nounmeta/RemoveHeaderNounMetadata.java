@@ -22,20 +22,20 @@ import prerna.sablecc2.om.PixelOperationType;
 
 public class RemoveHeaderNounMetadata extends NounMetadata {
 
-  public RemoveHeaderNounMetadata(String... headers) {
-    this.value = new HashMap<String, String[]>();
-    ((Map) this.value).put("remove", headers);
-    setConfig();
-  }
+	public RemoveHeaderNounMetadata(String... headers) {
+		this.value = new HashMap<String, String[]>();
+		((Map) this.value).put("remove", headers);
+		setConfig();
+	}
 
-  public RemoveHeaderNounMetadata(List<String> headers) {
-    this.value = new HashMap<String, List<String>>();
-    ((Map) this.value).put("remove", headers);
-    setConfig();
-  }
+	public RemoveHeaderNounMetadata(List<String> headers) {
+		this.value = new HashMap<String, List<String>>();
+		((Map) this.value).put("remove", headers);
+		setConfig();
+	}
 
-  private void setConfig() {
-    this.noun = PixelDataType.CONST_STRING;
-    this.opType.add(PixelOperationType.REMOVE_HEADERS);
-  }
+	private void setConfig() {
+		this.noun = PixelDataType.CONST_STRING;
+		this.opType.add(PixelOperationType.REMOVE_HEADERS);
+	}
 }

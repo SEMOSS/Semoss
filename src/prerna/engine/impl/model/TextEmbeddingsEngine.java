@@ -34,103 +34,88 @@ import prerna.util.Constants;
 
 public class TextEmbeddingsEngine extends AbstractRESTModelEngine {
 
-  private static final Logger classLogger = LogManager.getLogger(TextEmbeddingsEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(TextEmbeddingsEngine.class);
 
-  private static final String ENDPOINT = "ENDPOINT";
-  private static final String BATCH_SIZE = "BATCH_SIZE";
+	private static final String ENDPOINT = "ENDPOINT";
+	private static final String BATCH_SIZE = "BATCH_SIZE";
 
-  private int batchSize;
-  private String endpoint;
+	private int batchSize;
+	private String endpoint;
 
-  @Override
-  public void open(Properties smssProp) throws Exception {
-    super.open(smssProp);
+	@Override
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
 
-    this.endpoint = this.smssProp.getProperty(ENDPOINT);
-    if (this.endpoint == null || (this.endpoint = this.endpoint.trim()).isEmpty()) {
-      throw new IllegalArgumentException("This model requires a valid value for " + ENDPOINT);
-    }
-    //		Utility.checkIfValidDomain(this.endpoint);
+		this.endpoint = this.smssProp.getProperty(ENDPOINT);
+		if (this.endpoint == null || (this.endpoint = this.endpoint.trim()).isEmpty()) {
+			throw new IllegalArgumentException("This model requires a valid value for " + ENDPOINT);
+		}
+		// Utility.checkIfValidDomain(this.endpoint);
 
-    this.batchSize = 32;
-    String batchSizeStr = null;
-    try {
-      batchSizeStr = this.smssProp.getProperty(BATCH_SIZE);
-      if (batchSizeStr != null && !(batchSizeStr = batchSizeStr.trim()).isEmpty()) {
-        this.batchSize = Integer.valueOf(batchSizeStr);
-      }
-    } catch (NumberFormatException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new IllegalArgumentException(
-          "The SMSS has an invalid value for "
-              + BATCH_SIZE
-              + ". Must be an integer but found "
-              + batchSizeStr);
-    }
-  }
+		this.batchSize = 32;
+		String batchSizeStr = null;
+		try {
+			batchSizeStr = this.smssProp.getProperty(BATCH_SIZE);
+			if (batchSizeStr != null && !(batchSizeStr = batchSizeStr.trim()).isEmpty()) {
+				this.batchSize = Integer.valueOf(batchSizeStr);
+			}
+		} catch (NumberFormatException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("The SMSS has an invalid value for " + BATCH_SIZE
+					+ ". Must be an integer but found " + batchSizeStr);
+		}
+	}
 
-  @Override
-  public EmbeddingsModelEngineResponse embeddingsCall(
-      List<String> stringsToEncode, Insight insight, Map<String, Object> parameters) {
-    List<List<Double>> embeddings = new ArrayList<>();
+	@Override
+	public EmbeddingsModelEngineResponse embeddingsCall(List<String> stringsToEncode, Insight insight,
+			Map<String, Object> parameters) {
+		List<List<Double>> embeddings = new ArrayList<>();
 
-    List<List<String>> sentenceSublists = new ArrayList<>();
+		List<List<String>> sentenceSublists = new ArrayList<>();
 
-    for (int i = 0; i < stringsToEncode.size(); i += batchSize) {
-      int endIndex = Math.min(i + batchSize, stringsToEncode.size());
-      List<String> sublist = stringsToEncode.subList(i, endIndex);
-      sentenceSublists.add(sublist);
-    }
+		for (int i = 0; i < stringsToEncode.size(); i += batchSize) {
+			int endIndex = Math.min(i + batchSize, stringsToEncode.size());
+			List<String> sublist = stringsToEncode.subList(i, endIndex);
+			sentenceSublists.add(sublist);
+		}
 
-    for (List<String> sublist : sentenceSublists) {
-      Map<String, Object> bodyMap = new HashMap<>();
-      bodyMap.put("inputs", sublist);
-      bodyMap.put("truncate", true);
-      String output =
-          HttpHelperUtility.postRequestStringBody(
-              this.endpoint,
-              null,
-              new Gson().toJson(bodyMap),
-              ContentType.APPLICATION_JSON,
-              null,
-              null,
-              null);
+		for (List<String> sublist : sentenceSublists) {
+			Map<String, Object> bodyMap = new HashMap<>();
+			bodyMap.put("inputs", sublist);
+			bodyMap.put("truncate", true);
+			String output = HttpHelperUtility.postRequestStringBody(this.endpoint, null, new Gson().toJson(bodyMap),
+					ContentType.APPLICATION_JSON, null, null, null);
 
-      List<List<Double>> outputParsed =
-          new Gson().fromJson(output, new TypeToken<List<List<Double>>>() {}.getType());
-      embeddings.addAll(outputParsed);
-    }
+			List<List<Double>> outputParsed = new Gson().fromJson(output, new TypeToken<List<List<Double>>>() {
+			}.getType());
+			embeddings.addAll(outputParsed);
+		}
 
-    EmbeddingsModelEngineResponse embeddingsResponse =
-        new EmbeddingsModelEngineResponse(embeddings, 0, 0);
+		EmbeddingsModelEngineResponse embeddingsResponse = new EmbeddingsModelEngineResponse(embeddings, 0, 0);
 
-    return embeddingsResponse;
-  }
+		return embeddingsResponse;
+	}
 
-  @Override
-  public EmbeddingsModelEngineResponse imageEmbeddingsCall(
-      List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters) {
-    // TODO Auto-generated method stub
-    return null;
-  }
+	@Override
+	public EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight,
+			Map<String, Object> parameters) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
-  @Override
-  protected AskModelEngineResponse askCall(
-      String question,
-      Object fullPrompt,
-      String context,
-      Insight insight,
-      Map<String, Object> parameters) {
-    return new AskStringModelEngineResponse("This model does not support text generation.", 0, 0);
-  }
+	@Override
+	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
+			Map<String, Object> parameters) {
+		return new AskStringModelEngineResponse("This model does not support text generation.", 0, 0);
+	}
 
-  @Override
-  public ModelTypeEnum getModelType() {
-    return ModelTypeEnum.TEXT_EMBEDDINGS;
-  }
+	@Override
+	public ModelTypeEnum getModelType() {
+		return ModelTypeEnum.TEXT_EMBEDDINGS;
+	}
 
-  @Override
-  protected void resetAfterTimeout() {
-    // nothing to reset currently
-  }
+	@Override
+	protected void resetAfterTimeout() {
+		// nothing to reset currently
+	}
 }

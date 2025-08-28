@@ -38,154 +38,140 @@ import prerna.util.Utility;
 
 public class LLM2Reactor extends AbstractReactor {
 
-  public LLM2Reactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.ENGINE.getKey(),
-          ReactorKeysEnum.COMMAND.getKey(),
-          ReactorKeysEnum.CONTEXT.getKey(),
-          ReactorKeysEnum.USE_HISTORY.getKey(),
-          ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-          ReactorKeysEnum.ROOM_ID.getKey(),
-          ReactorKeysEnum.IMAGE.getKey(),
-          ReactorKeysEnum.URL.getKey(),
-        };
-    this.keyRequired = new int[] {1, 1, 0, 0, 0, 0, 0, 0};
-  }
+	public LLM2Reactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
+				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.USE_HISTORY.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
+				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),};
+		this.keyRequired = new int[]{1, 1, 0, 0, 0, 0, 0, 0};
+	}
 
-  @Override
-  public NounMetadata execute() {
+	@Override
+	public NounMetadata execute() {
 
-    ////// SET UP //////////
-    organizeKeys();
-    String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-    String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
-    User user = this.insight.getUser();
-    AccessToken userToken = user.getPrimaryLoginToken();
+		////// SET UP //////////
+		organizeKeys();
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+		User user = this.insight.getUser();
+		AccessToken userToken = user.getPrimaryLoginToken();
 
-    if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-      throw new IllegalArgumentException(
-          "Model " + engineId + " does not exist or user does not have access to this model");
-    }
+		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+			throw new IllegalArgumentException(
+					"Model " + engineId + " does not exist or user does not have access to this model");
+		}
 
-    String question =
-        Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
-    String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
-    if (context != null) {
-      context = Utility.decodeURIComponent(context);
-    }
+		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
+		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
+		if (context != null) {
+			context = Utility.decodeURIComponent(context);
+		}
 
-    Map<String, Object> paramMap = getParamMap();
-    IModelEngine modelEngine = Utility.getModel(engineId);
-    if (paramMap == null) {
-      paramMap = new HashMap<String, Object>();
-    }
-    Boolean useHistoryParam =
-        Boolean.parseBoolean(
-            this.keyValue.getOrDefault(ReactorKeysEnum.USE_HISTORY.getKey(), "true") + "");
-    paramMap.put("use_history", useHistoryParam);
+		Map<String, Object> paramMap = getParamMap();
+		IModelEngine modelEngine = Utility.getModel(engineId);
+		if (paramMap == null) {
+			paramMap = new HashMap<String, Object>();
+		}
+		Boolean useHistoryParam = Boolean
+				.parseBoolean(this.keyValue.getOrDefault(ReactorKeysEnum.USE_HISTORY.getKey(), "true") + "");
+		paramMap.put("use_history", useHistoryParam);
 
-    List<String> inputImages = getImages();
-    List<String> inputImageURLs = getImageURLs();
+		List<String> inputImages = getImages();
+		List<String> inputImageURLs = getImageURLs();
 
-    Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 
-    ///// MESSAGE CREATION //////////
+		///// MESSAGE CREATION //////////
 
-    List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
-    InputMessage msg;
-    msg =
-        InputMessage.builder(room)
-            .withInputUIPrompt(question)
-            .withInputPrompt(question)
-            .withModelType(modelEngine.getModelType())
-            .withParamMap(paramMap)
-            .withImages(copiedImages, room)
-            .withImageUrls(inputImageURLs)
-            .build();
+		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
+		InputMessage msg;
+		msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).withImages(copiedImages, room)
+				.withImageUrls(inputImageURLs).build();
 
-    ResponseMessage response = room.ask(msg, context, modelEngine);
-    return new NounMetadata(
-        response.getModelEngineResponse().toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
-  }
+		ResponseMessage response = room.ask(msg, context, modelEngine);
+		return new NounMetadata(response.getModelEngineResponse().toMap(), PixelDataType.MAP,
+				PixelOperationType.OPERATION);
+	}
 
-  // ----------- image/file helpers, paramMap etc. -------------
-  public List<String> getImages() {
-    List<String> inputStrings = new ArrayList<>();
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.IMAGE.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      int size = grs.size();
-      for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-      return inputStrings;
-    }
-    int size = this.curRow.size();
-    for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
-    return inputStrings;
-  }
+	// ----------- image/file helpers, paramMap etc. -------------
+	public List<String> getImages() {
+		List<String> inputStrings = new ArrayList<>();
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.IMAGE.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++)
+				inputStrings.add(grs.get(i).toString());
+			return inputStrings;
+		}
+		int size = this.curRow.size();
+		for (int i = 0; i < size; i++)
+			inputStrings.add(this.curRow.get(i).toString());
+		return inputStrings;
+	}
 
-  public List<String> getImageURLs() {
-    List<String> inputStrings = new ArrayList<>();
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.URL.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      int size = grs.size();
-      for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-      return inputStrings;
-    }
-    int size = this.curRow.size();
-    for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
-    return inputStrings;
-  }
+	public List<String> getImageURLs() {
+		List<String> inputStrings = new ArrayList<>();
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.URL.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++)
+				inputStrings.add(grs.get(i).toString());
+			return inputStrings;
+		}
+		int size = this.curRow.size();
+		for (int i = 0; i < size; i++)
+			inputStrings.add(this.curRow.get(i).toString());
+		return inputStrings;
+	}
 
-  /**
-   * @return
-   */
-  @SuppressWarnings("unchecked")
-  private Map<String, Object> getParamMap() {
-    GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-    if (mapGrs != null && !mapGrs.isEmpty()) {
-      List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-      if (mapInputs != null && !mapInputs.isEmpty()) {
-        return (Map<String, Object>) mapInputs.get(0).getValue();
-      }
-    }
-    List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-    if (mapInputs != null && !mapInputs.isEmpty()) {
-      return (Map<String, Object>) mapInputs.get(0).getValue();
-    }
-    return null;
-  }
+	/**
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> getParamMap() {
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
 
-  @Override
-  public String getReactorDescription() {
-    return "This method is used to run an LLM text-generation call";
-  }
+	@Override
+	public String getReactorDescription() {
+		return "This method is used to run an LLM text-generation call";
+	}
 
-  @Override
-  protected String getDescriptionForKey(String key) {
-    if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-      return "This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room";
-    } else if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
-      return "This is the prompt to execute against the LLM";
-    } else if (key.equals(ReactorKeysEnum.CONTEXT.getKey())) {
-      return "The system prompt to use for the LLM call";
-    } else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-      return "This is an array of image file names that have already been uploaded to the insight folder.";
-    } else if (key.equals(ReactorKeysEnum.URL.getKey())) {
-      return "This is an array of image file urls whose contents will be fetched when building the message content.";
-    } else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-      return "Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc. "
-          + "In addition, you can pass in 'full_prompt' to represent a full prompt and history via ChatML format which will ignore inputs for "
-          + Arrays.asList(
-              ReactorKeysEnum.COMMAND.getKey(),
-              ReactorKeysEnum.CONTEXT.getKey(),
-              ReactorKeysEnum.USE_HISTORY.getKey());
-    } else if (key.equals(ReactorKeysEnum.USE_HISTORY.getKey())) {
-      return "Boolean true/false to determine if we should incorporate the user's chat history based on the previous chats in this insight id. "
-          + "Default is true. This is the same as passing 'use_history' in the "
-          + ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
-          + " key-value map";
-    }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
+			return "This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room";
+		} else if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+			return "This is the prompt to execute against the LLM";
+		} else if (key.equals(ReactorKeysEnum.CONTEXT.getKey())) {
+			return "The system prompt to use for the LLM call";
+		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
+			return "This is an array of image file names that have already been uploaded to the insight folder.";
+		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
+			return "This is an array of image file urls whose contents will be fetched when building the message content.";
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			return "Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc. "
+					+ "In addition, you can pass in 'full_prompt' to represent a full prompt and history via ChatML format which will ignore inputs for "
+					+ Arrays.asList(ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(),
+							ReactorKeysEnum.USE_HISTORY.getKey());
+		} else if (key.equals(ReactorKeysEnum.USE_HISTORY.getKey())) {
+			return "Boolean true/false to determine if we should incorporate the user's chat history based on the previous chats in this insight id. "
+					+ "Default is true. This is the same as passing 'use_history' in the "
+					+ ReactorKeysEnum.PARAM_VALUES_MAP.getKey() + " key-value map";
+		}
 
-    return super.getDescriptionForKey(key);
-  }
+		return super.getDescriptionForKey(key);
+	}
 }

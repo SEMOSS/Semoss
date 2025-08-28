@@ -25,16 +25,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetProjectListReactor extends AbstractReactor {
 
-  public GetProjectListReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-  }
+	public GetProjectListReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    List<Map<String, Object>> retList =
-        SecurityProjectUtils.getUserProjectList(this.insight.getUser(), null);
-    return new NounMetadata(
-        retList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_LIST);
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		List<Map<String, Object>> retList = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), null);
+		return new NounMetadata(retList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_LIST);
+	}
 }

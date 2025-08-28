@@ -22,16 +22,16 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UniqueAverageReactor extends SelectReactor {
 
-  @Override
-  protected AbstractQueryStruct createQueryStruct() {
-    GenRowStruct qsInputs = this.getCurRow();
-    if (qsInputs != null && !qsInputs.isEmpty()) {
-      for (int selectIndex = 0; selectIndex < qsInputs.size(); selectIndex++) {
-        NounMetadata input = qsInputs.getNoun(selectIndex);
-        IQuerySelector innerSelector = getSelector(input);
-        qs.addSelector(genFunctionSelector(QueryFunctionHelper.UNIQUE_MEAN, innerSelector, true));
-      }
-    }
-    return qs;
-  }
+	@Override
+	protected AbstractQueryStruct createQueryStruct() {
+		GenRowStruct qsInputs = this.getCurRow();
+		if (qsInputs != null && !qsInputs.isEmpty()) {
+			for (int selectIndex = 0; selectIndex < qsInputs.size(); selectIndex++) {
+				NounMetadata input = qsInputs.getNoun(selectIndex);
+				IQuerySelector innerSelector = getSelector(input);
+				qs.addSelector(genFunctionSelector(QueryFunctionHelper.UNIQUE_MEAN, innerSelector, true));
+			}
+		}
+		return qs;
+	}
 }

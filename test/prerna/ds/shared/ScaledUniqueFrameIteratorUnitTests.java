@@ -35,47 +35,47 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 
 public class ScaledUniqueFrameIteratorUnitTests {
-  IRawSelectWrapper it;
-  ITableDataFrame frame;
-  IHeadersDataRow dataRow;
-  ScaledUniqueFrameIterator reactor;
+	IRawSelectWrapper it;
+	ITableDataFrame frame;
+	IHeadersDataRow dataRow;
+	ScaledUniqueFrameIterator reactor;
 
-  @BeforeEach
-  void setup() {
-    it = mock(IRawSelectWrapper.class);
-    frame = mock(ITableDataFrame.class);
-    dataRow = mock(IHeadersDataRow.class);
-  }
+	@BeforeEach
+	void setup() {
+		it = mock(IRawSelectWrapper.class);
+		frame = mock(ITableDataFrame.class);
+		dataRow = mock(IHeadersDataRow.class);
+	}
 
-  @Test
-  void test() throws Exception {
-    String col = "col";
-    Double[] maxArr = new Double[] {10.0, null};
-    Double[] minArr = new Double[] {1.0, null};
-    Object[] obj = new Object[] {1, ""};
-    List<SemossDataType> types = new ArrayList<>();
-    List<String> selectors = new ArrayList<>();
-    selectors.add("tableName__col");
-    selectors.add("tableName");
+	@Test
+	void test() throws Exception {
+		String col = "col";
+		Double[] maxArr = new Double[]{10.0, null};
+		Double[] minArr = new Double[]{1.0, null};
+		Object[] obj = new Object[]{1, ""};
+		List<SemossDataType> types = new ArrayList<>();
+		List<String> selectors = new ArrayList<>();
+		selectors.add("tableName__col");
+		selectors.add("tableName");
 
-    when(frame.getColumn(col)).thenReturn(obj);
-    when(frame.query(any(SelectQueryStruct.class))).thenReturn(it).thenThrow(Exception.class);
-    when(it.hasNext()).thenReturn(true).thenReturn(false);
-    when(it.next()).thenReturn(dataRow);
-    when(dataRow.getValues()).thenReturn(null);
-    doThrow(IOException.class).doNothing().when(it).close();
+		when(frame.getColumn(col)).thenReturn(obj);
+		when(frame.query(any(SelectQueryStruct.class))).thenReturn(it).thenThrow(Exception.class);
+		when(it.hasNext()).thenReturn(true).thenReturn(false);
+		when(it.next()).thenReturn(dataRow);
+		when(dataRow.getValues()).thenReturn(null);
+		doThrow(IOException.class).doNothing().when(it).close();
 
-    reactor = new ScaledUniqueFrameIterator(frame, col, maxArr, minArr, types, selectors);
-    assertNotNull(reactor);
+		reactor = new ScaledUniqueFrameIterator(frame, col, maxArr, minArr, types, selectors);
+		assertNotNull(reactor);
 
-    List<Object[]> expected = new ArrayList<>();
-    expected.add(null);
-    assertEquals(expected, reactor.next());
+		List<Object[]> expected = new ArrayList<>();
+		expected.add(null);
+		assertEquals(expected, reactor.next());
 
-    expected = new ArrayList<>();
-    assertEquals(expected, reactor.next());
+		expected = new ArrayList<>();
+		assertEquals(expected, reactor.next());
 
-    NoSuchElementException e = assertThrows(NoSuchElementException.class, () -> reactor.next());
-    assertEquals("No more elements", e.getMessage());
-  }
+		NoSuchElementException e = assertThrows(NoSuchElementException.class, () -> reactor.next());
+		assertEquals("No more elements", e.getMessage());
+	}
 }

@@ -30,138 +30,135 @@ import prerna.util.Constants;
 
 public class ParquetFileIterator extends AbstractFileIterator {
 
-  private static final Logger classLogger = LogManager.getLogger(ParquetFileIterator.class);
+	private static final Logger classLogger = LogManager.getLogger(ParquetFileIterator.class);
 
-  private ParquetFileHelper helper;
-  private ParquetQueryStruct qs;
+	private ParquetFileHelper helper;
+	private ParquetQueryStruct qs;
 
-  /**
-   * Simple iterator used when all the information can be parsed from the QS
-   *
-   * @param qs
-   */
-  public ParquetFileIterator(ParquetQueryStruct qs) {
-    this.qs = qs;
-    this.fileLocation = qs.getFilePath();
-    // set default values
-    this.helper = new ParquetFileHelper();
-    this.helper.parse(this.fileLocation);
+	/**
+	 * Simple iterator used when all the information can be parsed from the QS
+	 *
+	 * @param qs
+	 */
+	public ParquetFileIterator(ParquetQueryStruct qs) {
+		this.qs = qs;
+		this.fileLocation = qs.getFilePath();
+		// set default values
+		this.helper = new ParquetFileHelper();
+		this.helper.parse(this.fileLocation);
 
-    this.dataTypeMap = qs.getColumnTypes();
-    this.newHeaders = qs.getNewHeaderNames();
+		this.dataTypeMap = qs.getColumnTypes();
+		this.newHeaders = qs.getNewHeaderNames();
 
-    // set the user defined headers
-    if (this.newHeaders != null && !this.newHeaders.isEmpty()) {
-      this.helper.modifyCleanedHeaders(this.newHeaders);
-    }
+		// set the user defined headers
+		if (this.newHeaders != null && !this.newHeaders.isEmpty()) {
+			this.helper.modifyCleanedHeaders(this.newHeaders);
+		}
 
-    setSelectors(qs.getSelectors());
+		setSelectors(qs.getSelectors());
 
-    // now that I have set the headers from the setSelectors
-    this.headers = this.helper.getHeaders();
-    this.additionalTypesMap = qs.getAdditionalTypes();
+		// now that I have set the headers from the setSelectors
+		this.headers = this.helper.getHeaders();
+		this.additionalTypesMap = qs.getAdditionalTypes();
 
-    if (this.dataTypeMap != null && !this.dataTypeMap.isEmpty()) {
-      this.types = new SemossDataType[this.headers.length];
-      this.additionalTypes = new String[this.headers.length];
-      for (int index = 0; index < this.headers.length; index++) {
-        this.types[index] =
-            SemossDataType.convertStringToDataType(dataTypeMap.get(this.headers[index]));
-        if (this.additionalTypesMap != null) {
-          this.additionalTypes[index] = additionalTypesMap.get(this.headers[index]);
-        }
-      }
-      this.helper.parseColumns(this.headers);
-    } else {
-      setUnknownTypes();
-      qs.setColumnTypes(this.dataTypeMap);
-    }
+		if (this.dataTypeMap != null && !this.dataTypeMap.isEmpty()) {
+			this.types = new SemossDataType[this.headers.length];
+			this.additionalTypes = new String[this.headers.length];
+			for (int index = 0; index < this.headers.length; index++) {
+				this.types[index] = SemossDataType.convertStringToDataType(dataTypeMap.get(this.headers[index]));
+				if (this.additionalTypesMap != null) {
+					this.additionalTypes[index] = additionalTypesMap.get(this.headers[index]);
+				}
+			}
+			this.helper.parseColumns(this.headers);
+		} else {
+			setUnknownTypes();
+			qs.setColumnTypes(this.dataTypeMap);
+		}
 
-    this.getNextRow(); // this will get the first row of the file
-    // set limit and offset
-    this.limit = qs.getLimit();
-    this.offset = qs.getOffset();
-  }
+		this.getNextRow(); // this will get the first row of the file
+		// set limit and offset
+		this.limit = qs.getLimit();
+		this.offset = qs.getOffset();
+	}
 
-  private void setSelectors(List<IQuerySelector> selectors) {
-    if (selectors.isEmpty()) {
-      // if no selectors, return everything
-      String[] allHeaders = this.helper.getHeaders();
-      for (int i = 0; i < allHeaders.length; i++) {
-        QueryColumnSelector newSelector = new QueryColumnSelector("DND__" + allHeaders[i]);
-        this.qs.addSelector(newSelector);
-      }
-      return;
-    }
+	private void setSelectors(List<IQuerySelector> selectors) {
+		if (selectors.isEmpty()) {
+			// if no selectors, return everything
+			String[] allHeaders = this.helper.getHeaders();
+			for (int i = 0; i < allHeaders.length; i++) {
+				QueryColumnSelector newSelector = new QueryColumnSelector("DND__" + allHeaders[i]);
+				this.qs.addSelector(newSelector);
+			}
+			return;
+		}
 
-    int numSelectors = selectors.size();
-    String[] parquetSelectors = new String[numSelectors];
-    for (int i = 0; i < numSelectors; i++) {
-      QueryColumnSelector newSelector = (QueryColumnSelector) selectors.get(i);
-      if (newSelector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
-        throw new IllegalArgumentException("Cannot perform math on a csv import");
-      }
-      parquetSelectors[i] = newSelector.getAlias();
-      ;
-    }
+		int numSelectors = selectors.size();
+		String[] parquetSelectors = new String[numSelectors];
+		for (int i = 0; i < numSelectors; i++) {
+			QueryColumnSelector newSelector = (QueryColumnSelector) selectors.get(i);
+			if (newSelector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
+				throw new IllegalArgumentException("Cannot perform math on a csv import");
+			}
+			parquetSelectors[i] = newSelector.getAlias();;
+		}
 
-    String[] allHeaders = this.helper.getHeaders();
-    if (allHeaders.length != parquetSelectors.length) {
-      // order the selectors
-      // all headers will be ordered
-      String[] orderedSelectors = new String[parquetSelectors.length];
-      int counter = 0;
-      for (String header : allHeaders) {
-        if (ArrayUtilityMethods.arrayContainsValue(parquetSelectors, header)) {
-          orderedSelectors[counter] = header;
-          counter++;
-        }
-      }
+		String[] allHeaders = this.helper.getHeaders();
+		if (allHeaders.length != parquetSelectors.length) {
+			// order the selectors
+			// all headers will be ordered
+			String[] orderedSelectors = new String[parquetSelectors.length];
+			int counter = 0;
+			for (String header : allHeaders) {
+				if (ArrayUtilityMethods.arrayContainsValue(parquetSelectors, header)) {
+					orderedSelectors[counter] = header;
+					counter++;
+				}
+			}
 
-      this.helper.parseColumns(orderedSelectors);
-      // after redoing the selectors, we need to skip the headers
-    }
-  }
+			this.helper.parseColumns(orderedSelectors);
+			// after redoing the selectors, we need to skip the headers
+		}
+	}
 
-  /**
-   * Determine the data types by parsing through the file
-   *
-   * @param fileIterator
-   */
-  private void setUnknownTypes() {
-    try {
-      Map<String, SemossDataType> parsedDataTypes =
-          ParquetFileHelper.getHeadersAndDataTypes(this.fileLocation);
-      this.dataTypeMap = new HashMap<>();
+	/**
+	 * Determine the data types by parsing through the file
+	 *
+	 * @param fileIterator
+	 */
+	private void setUnknownTypes() {
+		try {
+			Map<String, SemossDataType> parsedDataTypes = ParquetFileHelper.getHeadersAndDataTypes(this.fileLocation);
+			this.dataTypeMap = new HashMap<>();
 
-      // need to redo types to be only those in the selectors
-      this.types = new SemossDataType[this.headers.length];
-      this.additionalTypes = new String[this.headers.length];
-      for (int i = 0; i < this.headers.length; i++) {
-        this.types[i] = parsedDataTypes.get(this.headers[i]);
-        this.dataTypeMap.put(headers[i], SemossDataType.convertDataTypeToString(this.types[i]));
-      }
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
-  }
+			// need to redo types to be only those in the selectors
+			this.types = new SemossDataType[this.headers.length];
+			this.additionalTypes = new String[this.headers.length];
+			for (int i = 0; i < this.headers.length; i++) {
+				this.types[i] = parsedDataTypes.get(this.headers[i]);
+				this.dataTypeMap.put(headers[i], SemossDataType.convertDataTypeToString(this.types[i]));
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
 
-  @Override
-  public void reset() {
-    this.helper.reset();
-  }
+	@Override
+	public void reset() {
+		this.helper.reset();
+	}
 
-  @Override
-  public void close() throws IOException {
-    this.helper.clear();
-  }
+	@Override
+	public void close() throws IOException {
+		this.helper.clear();
+	}
 
-  @Override
-  public void getNextRow() {
-    this.nextRow = this.helper.getNextRow();
-  }
+	@Override
+	public void getNextRow() {
+		this.nextRow = this.helper.getNextRow();
+	}
 
-  public ParquetQueryStruct getQs() {
-    return this.qs;
-  }
+	public ParquetQueryStruct getQs() {
+		return this.qs;
+	}
 }

@@ -32,57 +32,53 @@ import prerna.util.git.GitUtils;
 
 public class UpdateAssetReactor extends AbstractReactor {
 
-  public UpdateAssetReactor() {
-    // need repository
-    // Oauth
-    // File name
-    // Content
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.REPOSITORY.getKey(),
-          ReactorKeysEnum.FILE_NAME.getKey(),
-          ReactorKeysEnum.CONTENT.getKey()
-        };
-  }
+	public UpdateAssetReactor() {
+		// need repository
+		// Oauth
+		// File name
+		// Content
+		this.keysToGet = new String[]{ReactorKeysEnum.REPOSITORY.getKey(), ReactorKeysEnum.FILE_NAME.getKey(),
+				ReactorKeysEnum.CONTENT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
+	@Override
+	public NounMetadata execute() {
 
-    // need to get the user
+		// need to get the user
 
-    organizeKeys();
+		organizeKeys();
 
-    User user = insight.getUser();
-    String oauth = null;
-    AccessToken gitAccess = user.getAccessToken(AuthProvider.GITHUB);
+		User user = insight.getUser();
+		String oauth = null;
+		AccessToken gitAccess = user.getAccessToken(AuthProvider.GITHUB);
 
-    if (gitAccess == null) {
-      Map<String, Object> retMap = new HashMap<String, Object>();
-      retMap.put("type", "git");
-      retMap.put("message", "Please login to your Git account");
-      throwLoginError(retMap);
-    }
+		if (gitAccess == null) {
+			Map<String, Object> retMap = new HashMap<String, Object>();
+			retMap.put("type", "git");
+			retMap.put("message", "Please login to your Git account");
+			throwLoginError(retMap);
+		}
 
-    // check for minmum
-    checkMin(3);
+		// check for minmum
+		checkMin(3);
 
-    Logger logger = getLogger(this.getClass().getName());
-    logger.info("Logging In...");
-    String repoName = this.keyValue.get(this.keysToGet[0]);
-    String fileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
-    String content = this.keyValue.get(this.keysToGet[2]);
+		Logger logger = getLogger(this.getClass().getName());
+		logger.info("Logging In...");
+		String repoName = this.keyValue.get(this.keysToGet[0]);
+		String fileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
+		String content = this.keyValue.get(this.keysToGet[2]);
 
-    GitHub ret = GitUtils.login(gitAccess.getAccess_token());
+		GitHub ret = GitUtils.login(gitAccess.getAccess_token());
 
-    // create the repo.. just in case we dont have it
-    // even though we get repo name.. we are not using it for create asset
+		// create the repo.. just in case we dont have it
+		// even though we get repo name.. we are not using it for create asset
 
-    // GitAssetMaker.createAssetRepo(gitAccess.getAccess_token());
-    GitAssetMaker.updateAsset(gitAccess.getAccess_token(), repoName, content, fileName);
+		// GitAssetMaker.createAssetRepo(gitAccess.getAccess_token());
+		GitAssetMaker.updateAsset(gitAccess.getAccess_token(), repoName, content, fileName);
 
-    if (ret == null) {
-      throw new IllegalArgumentException("Could not properly login using credentials");
-    }
-    return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE);
-  }
+		if (ret == null) {
+			throw new IllegalArgumentException("Could not properly login using credentials");
+		}
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE);
+	}
 }

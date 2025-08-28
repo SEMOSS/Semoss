@@ -21,32 +21,30 @@ import prerna.engine.api.IVectorDatabaseEngine;
 
 public abstract class AbstractDocumentSubsetInterceptor extends AbstractInterceptor {
 
-  protected final Set<String> documents;
+	protected final Set<String> documents;
 
-  public AbstractDocumentSubsetInterceptor(
-      IVectorDatabaseEngine proxyEngine,
-      IVectorDatabaseEngine targetEngine,
-      Object[] constructorArgs) {
-    super(proxyEngine, targetEngine, constructorArgs);
-    // null documents means no filter needed.
-    // empty documents filter means no files allowed.
-    if (constructorArgs != null) {
-      if (constructorArgs.length > 0) {
-        String[] stringArgs = new String[constructorArgs.length];
-        for (int i = 0; i < constructorArgs.length; i++) {
-          stringArgs[i] = constructorArgs[i] == null ? null : constructorArgs[i].toString();
-        }
-        Set<String> documentsGiven = Sets.newHashSet(stringArgs);
-        if (documentsGiven.contains("*")) {
-          documents = null;
-        } else {
-          documents = documentsGiven;
-        }
-      } else {
-        documents = new HashSet<>();
-      }
-    } else {
-      documents = null;
-    }
-  }
+	public AbstractDocumentSubsetInterceptor(IVectorDatabaseEngine proxyEngine, IVectorDatabaseEngine targetEngine,
+			Object[] constructorArgs) {
+		super(proxyEngine, targetEngine, constructorArgs);
+		// null documents means no filter needed.
+		// empty documents filter means no files allowed.
+		if (constructorArgs != null) {
+			if (constructorArgs.length > 0) {
+				String[] stringArgs = new String[constructorArgs.length];
+				for (int i = 0; i < constructorArgs.length; i++) {
+					stringArgs[i] = constructorArgs[i] == null ? null : constructorArgs[i].toString();
+				}
+				Set<String> documentsGiven = Sets.newHashSet(stringArgs);
+				if (documentsGiven.contains("*")) {
+					documents = null;
+				} else {
+					documents = documentsGiven;
+				}
+			} else {
+				documents = new HashSet<>();
+			}
+		} else {
+			documents = null;
+		}
+	}
 }

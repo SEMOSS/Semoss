@@ -28,61 +28,61 @@ import prerna.util.Constants;
 
 public class ModelFailListener implements IModelZKListener {
 
-  private static final Logger classLogger = LogManager.getLogger(ModelFailListener.class);
+	private static final Logger classLogger = LogManager.getLogger(ModelFailListener.class);
 
-  String path = null;
-  ModelZKServer server = null;
+	String path = null;
+	ModelZKServer server = null;
 
-  public ModelFailListener(String path, ModelZKServer server) {
-    this.server = server;
-    this.path = path;
-  }
+	public ModelFailListener(String path, ModelZKServer server) {
+		this.server = server;
+		this.path = path;
+	}
 
-  @Override
-  public void setModelZK(ModelZKServer server) {
-    // TODO Auto-generated method stub
-    this.server = server;
-  }
+	@Override
+	public void setModelZK(ModelZKServer server) {
+		// TODO Auto-generated method stub
+		this.server = server;
+	}
 
-  @Override
-  public List<EventType> getEvents() {
-    // TODO Auto-generated method stub
-    List<EventType> retList = new ArrayList<EventType>();
-    retList.add(EventType.NodeChildrenChanged);
-    return retList;
-  }
+	@Override
+	public List<EventType> getEvents() {
+		// TODO Auto-generated method stub
+		List<EventType> retList = new ArrayList<EventType>();
+		retList.add(EventType.NodeChildrenChanged);
+		return retList;
+	}
 
-  @Override
-  public String getPath() {
-    // TODO Auto-generated method stub
-    return this.path;
-  }
+	@Override
+	public String getPath() {
+		// TODO Auto-generated method stub
+		return this.path;
+	}
 
-  @Override
-  public List<String> getPredicates() {
-    // TODO Auto-generated method stub
-    List<String> predicates = new ArrayList<String>();
-    predicates.add("equals");
-    return predicates;
-  }
+	@Override
+	public List<String> getPredicates() {
+		// TODO Auto-generated method stub
+		List<String> predicates = new ArrayList<String>();
+		predicates.add("equals");
+		return predicates;
+	}
 
-  @Override
-  public void process(String path, ZooKeeper zk) {
-    // TODO Auto-generated method stub
-    try {
-      List<String> failedChildren = zk.getChildren(path, true);
-      List<String> serverChildren = zk.getChildren("/server", true);
+	@Override
+	public void process(String path, ZooKeeper zk) {
+		// TODO Auto-generated method stub
+		try {
+			List<String> failedChildren = zk.getChildren(path, true);
+			List<String> serverChildren = zk.getChildren("/server", true);
 
-      String statusNode = path.replace("fail", "status");
+			String statusNode = path.replace("fail", "status");
 
-      if (failedChildren.size() == serverChildren.size())
-        server.updateNodeData(statusNode, "FAIL", true);
-    } catch (KeeperException e) {
-      // TODO Auto-generated catch block
-      classLogger.error(Constants.STACKTRACE, e);
-    } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      classLogger.error(Constants.STACKTRACE, e);
-    }
-  }
+			if (failedChildren.size() == serverChildren.size())
+				server.updateNodeData(statusNode, "FAIL", true);
+		} catch (KeeperException e) {
+			// TODO Auto-generated catch block
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
 }

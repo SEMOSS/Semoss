@@ -30,29 +30,27 @@ import prerna.testing.utility.TestEngineUtilities;
 
 public class AdminGetEngineMarkdownReactorApiTests extends AbstractBaseSemossApiTests {
 
-  @Test
-  public void executeWithMarkdown() {
-    String engine = ApiSemossTestEngineUtils.createBasicEngine();
+	@Test
+	public void executeWithMarkdown() {
+		String engine = ApiSemossTestEngineUtils.createBasicEngine();
 
-    Map<String, Object> map = new HashMap<>();
-    map.put("markdown", "### test markdown");
-    TestEngineUtilities.setEngineMetadata(engine, map);
+		Map<String, Object> map = new HashMap<>();
+		map.put("markdown", "### test markdown");
+		TestEngineUtilities.setEngineMetadata(engine, map);
 
-    String pixel =
-        ApiSemossTestUtils.buildPixelCall(
-            AdminGetEngineMarkdownReactor.class, ReactorKeysEnum.ENGINE.getKey(), engine);
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-    String retValue = (String) nm.getValue();
-    assertEquals("### test markdown", retValue);
-  }
+		String pixel = ApiSemossTestUtils.buildPixelCall(AdminGetEngineMarkdownReactor.class,
+				ReactorKeysEnum.ENGINE.getKey(), engine);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		String retValue = (String) nm.getValue();
+		assertEquals("### test markdown", retValue);
+	}
 
-  @Test
-  public void executeWithoutMarkdown() {
-    String engine = ApiSemossTestEngineUtils.createBasicEngine();
-    String pixel =
-        ApiSemossTestUtils.buildPixelCall(
-            AdminGetEngineMarkdownReactor.class, ReactorKeysEnum.ENGINE.getKey(), engine);
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-    assertNull(nm.getValue());
-  }
+	@Test
+	public void executeWithoutMarkdown() {
+		String engine = ApiSemossTestEngineUtils.createBasicEngine();
+		String pixel = ApiSemossTestUtils.buildPixelCall(AdminGetEngineMarkdownReactor.class,
+				ReactorKeysEnum.ENGINE.getKey(), engine);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		assertNull(nm.getValue());
+	}
 }

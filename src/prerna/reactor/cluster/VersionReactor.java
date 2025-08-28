@@ -33,59 +33,57 @@ import prerna.util.Constants;
 
 public class VersionReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(VersionReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(VersionReactor.class);
 
-  private static Map<String, String> versionMap;
-  public static String POM_VERSION_KEY = "version";
-  public static String POM_BUILD_DATE_KEY = "build.date";
+	private static Map<String, String> versionMap;
+	public static String POM_VERSION_KEY = "version";
+	public static String POM_BUILD_DATE_KEY = "build.date";
 
-  public static String VERSION_KEY = POM_VERSION_KEY;
-  public static String DATETIME_KEY = "datetime";
+	public static String VERSION_KEY = POM_VERSION_KEY;
+	public static String DATETIME_KEY = "datetime";
 
-  public VersionReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.RELOAD.getKey()};
-  }
+	public VersionReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.RELOAD.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String reloadStr = this.keyValue.get(this.keysToGet[0]);
-    boolean reload = reloadStr != null && Boolean.parseBoolean(reloadStr);
-    return new NounMetadata(getVersionMap(reload), PixelDataType.MAP, PixelOperationType.VERSION);
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String reloadStr = this.keyValue.get(this.keysToGet[0]);
+		boolean reload = reloadStr != null && Boolean.parseBoolean(reloadStr);
+		return new NounMetadata(getVersionMap(reload), PixelDataType.MAP, PixelOperationType.VERSION);
+	}
 
-  public static Map<String, String> getVersionMap(boolean reload) {
-    if (reload || VersionReactor.versionMap == null) {
-      Map<String, String> tempMap = new HashMap<>();
+	public static Map<String, String> getVersionMap(boolean reload) {
+		if (reload || VersionReactor.versionMap == null) {
+			Map<String, String> tempMap = new HashMap<>();
 
-      InputStream versionStream = null;
-      try {
-        Properties props = new Properties();
-        Enumeration<URL> resources =
-            VersionReactor.class
-                .getClassLoader()
-                .getResources("META-INF/maven/org.semoss/semoss/pom.properties");
-        while (resources.hasMoreElements()) {
-          URL url = resources.nextElement();
-          versionStream = url.openStream();
-          props.load(versionStream);
-          tempMap.put(VERSION_KEY, props.getProperty(POM_VERSION_KEY));
-          tempMap.put(DATETIME_KEY, props.getProperty(POM_BUILD_DATE_KEY));
-          VersionReactor.versionMap = new HashedMap<>(tempMap);
-        }
-      } catch (IOException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      } finally {
-        try {
-          if (versionStream != null) {
-            versionStream.close();
-          }
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
+			InputStream versionStream = null;
+			try {
+				Properties props = new Properties();
+				Enumeration<URL> resources = VersionReactor.class.getClassLoader()
+						.getResources("META-INF/maven/org.semoss/semoss/pom.properties");
+				while (resources.hasMoreElements()) {
+					URL url = resources.nextElement();
+					versionStream = url.openStream();
+					props.load(versionStream);
+					tempMap.put(VERSION_KEY, props.getProperty(POM_VERSION_KEY));
+					tempMap.put(DATETIME_KEY, props.getProperty(POM_BUILD_DATE_KEY));
+					VersionReactor.versionMap = new HashedMap<>(tempMap);
+				}
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				try {
+					if (versionStream != null) {
+						versionStream.close();
+					}
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 
-    return VersionReactor.versionMap;
-  }
+		return VersionReactor.versionMap;
+	}
 }

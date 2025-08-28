@@ -28,53 +28,49 @@ import prerna.util.Constants;
 
 public class TinkerUtilities {
 
-  private static final Logger classLogger = LogManager.getLogger(TinkerUtilities.class);
+	private static final Logger classLogger = LogManager.getLogger(TinkerUtilities.class);
 
-  private TinkerUtilities() {}
+	private TinkerUtilities() {
+	}
 
-  /**
-   * @param engine
-   */
-  public static void removeAllVertices(TinkerEngine engine) {
-    GraphTraversal<Vertex, Long> iterate = engine.g.traversal().V().drop().iterate().count();
-    while (iterate.hasNext()) {
-      Long count = iterate.next();
-      classLogger.info(
-          "Dropping "
-              + count
-              + " verticies from engine "
-              + engine.getEngineName()
-              + "__"
-              + engine.getEngineId());
-    }
-  }
+	/**
+	 * @param engine
+	 */
+	public static void removeAllVertices(TinkerEngine engine) {
+		GraphTraversal<Vertex, Long> iterate = engine.g.traversal().V().drop().iterate().count();
+		while (iterate.hasNext()) {
+			Long count = iterate.next();
+			classLogger.info("Dropping " + count + " verticies from engine " + engine.getEngineName() + "__"
+					+ engine.getEngineId());
+		}
+	}
 
-  /**
-   * Serialize the TinkerGraph in GraphML format
-   *
-   * @param dataframe
-   * @param directory
-   * @return
-   */
-  public static String serializeGraph(TinkerFrame dataframe, String directory) {
-    final Graph graph = ((TinkerFrame) dataframe).g;
-    String fileName = "output" + java.lang.System.currentTimeMillis() + ".xml";
-    String filePath = directory + "/" + fileName;
-    OutputStream os = null;
-    try {
-      os = new FileOutputStream(filePath);
-      graph.io(IoCore.graphml()).writer().normalize(true).create().writeGraph(os, graph);
-    } catch (Exception ex) {
-      classLogger.error(Constants.STACKTRACE, ex);
-    } finally {
-      try {
-        if (os != null) {
-          os.close();
-        }
-      } catch (IOException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
-    return filePath;
-  }
+	/**
+	 * Serialize the TinkerGraph in GraphML format
+	 *
+	 * @param dataframe
+	 * @param directory
+	 * @return
+	 */
+	public static String serializeGraph(TinkerFrame dataframe, String directory) {
+		final Graph graph = ((TinkerFrame) dataframe).g;
+		String fileName = "output" + java.lang.System.currentTimeMillis() + ".xml";
+		String filePath = directory + "/" + fileName;
+		OutputStream os = null;
+		try {
+			os = new FileOutputStream(filePath);
+			graph.io(IoCore.graphml()).writer().normalize(true).create().writeGraph(os, graph);
+		} catch (Exception ex) {
+			classLogger.error(Constants.STACKTRACE, ex);
+		} finally {
+			try {
+				if (os != null) {
+					os.close();
+				}
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		return filePath;
+	}
 }

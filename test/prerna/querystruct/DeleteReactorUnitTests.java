@@ -32,51 +32,54 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class DeleteReactorUnitTests {
-  private DeleteReactor reactor;
+	private DeleteReactor reactor;
 
-  @Mock private NounStore mockStore;
+	@Mock
+	private NounStore mockStore;
 
-  @Mock private GenRowStruct mockTabGrs;
+	@Mock
+	private GenRowStruct mockTabGrs;
 
-  @Mock private SelectQueryStruct selectQueryStruct;
+	@Mock
+	private SelectQueryStruct selectQueryStruct;
 
-  @BeforeEach
-  void setup() {
-    MockitoAnnotations.openMocks(this);
-    reactor = new DeleteReactor();
-    reactor.setNounStore(mockStore);
-    when(mockStore.getNoun(ReactorKeysEnum.COLUMNS.getKey())).thenReturn(mockTabGrs);
-  }
+	@BeforeEach
+	void setup() {
+		MockitoAnnotations.openMocks(this);
+		reactor = new DeleteReactor();
+		reactor.setNounStore(mockStore);
+		when(mockStore.getNoun(ReactorKeysEnum.COLUMNS.getKey())).thenReturn(mockTabGrs);
+	}
 
-  @Test
-  public void testCreateQueryStruct() {
-    // Setup
-    mockTabGrs = mock(GenRowStruct.class);
-    when(mockStore.getNoun("from")).thenReturn(mockTabGrs);
-    when(mockTabGrs.get(0)).thenReturn("columnName");
+	@Test
+	public void testCreateQueryStruct() {
+		// Setup
+		mockTabGrs = mock(GenRowStruct.class);
+		when(mockStore.getNoun("from")).thenReturn(mockTabGrs);
+		when(mockTabGrs.get(0)).thenReturn("columnName");
 
-    // Execute
-    AbstractQueryStruct result = reactor.createQueryStruct();
+		// Execute
+		AbstractQueryStruct result = reactor.createQueryStruct();
 
-    // Verify
-    assertNotNull(result);
-    assertTrue(result instanceof SelectQueryStruct);
-    SelectQueryStruct qs = (SelectQueryStruct) result;
-    List<IQuerySelector> selectors = qs.getSelectors();
-    assertNotNull(selectors);
-    assertTrue(selectors.get(0) instanceof QueryColumnSelector);
-  }
+		// Verify
+		assertNotNull(result);
+		assertTrue(result instanceof SelectQueryStruct);
+		SelectQueryStruct qs = (SelectQueryStruct) result;
+		List<IQuerySelector> selectors = qs.getSelectors();
+		assertNotNull(selectors);
+		assertTrue(selectors.get(0) instanceof QueryColumnSelector);
+	}
 
-  @Test
-  public void testSetQs() {
-    // Execute
-    reactor.setQs(selectQueryStruct);
-  }
+	@Test
+	public void testSetQs() {
+		// Execute
+		reactor.setQs(selectQueryStruct);
+	}
 
-  @Test
-  public void testGetName() {
-    // Execute
-    String name = reactor.getName();
-    assertEquals("Delete", name);
-  }
+	@Test
+	public void testGetName() {
+		// Execute
+		String name = reactor.getName();
+		assertEquals("Delete", name);
+	}
 }

@@ -31,46 +31,46 @@ import prerna.testing.ApiSemossTestUtils;
 
 public class LoadNLPSearchReactorApiTests extends AbstractBaseSemossApiTests {
 
-  @Test
-  public void execute() {
-    ApiSemossTestEngineUtils.createBasicEngine();
-    String pixel = ApiSemossTestUtils.buildPixelCall(LoadNLPSearchReactor.class);
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-    assertTrue(Boolean.valueOf(nm.getValue().toString()));
-    assertEquals(PixelDataType.BOOLEAN, nm.getNounType());
+	@Test
+	public void execute() {
+		ApiSemossTestEngineUtils.createBasicEngine();
+		String pixel = ApiSemossTestUtils.buildPixelCall(LoadNLPSearchReactor.class);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		assertTrue(Boolean.valueOf(nm.getValue().toString()));
+		assertEquals(PixelDataType.BOOLEAN, nm.getNounType());
 
-    Path p = ApiSemossTestUserUtils.getAssetsPath();
-    assertTrue(Files.exists(p));
-    assertTrue(Files.isDirectory(p));
+		Path p = ApiSemossTestUserUtils.getAssetsPath();
+		assertTrue(Files.exists(p));
+		assertTrue(Files.isDirectory(p));
 
-    assertTrue(Files.exists(Paths.get(p.toString(), "nldr_membership.rds")));
-    assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_membership.rds")));
+		assertTrue(Files.exists(Paths.get(p.toString(), "nldr_membership.rds")));
+		assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_membership.rds")));
 
-    assertTrue(Files.exists(Paths.get(p.toString(), "nldr_db.rds")));
-    assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_db.rds")));
+		assertTrue(Files.exists(Paths.get(p.toString(), "nldr_db.rds")));
+		assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_db.rds")));
 
-    assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_joins.rds")));
-    assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_joins.rds")));
-  }
+		assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_joins.rds")));
+		assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_joins.rds")));
+	}
 
-  @Test
-  public void executeNoEngines() {
-    String pixel = ApiSemossTestUtils.buildPixelCall(LoadNLPSearchReactor.class);
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-    assertTrue(Boolean.valueOf(nm.getValue().toString()));
-    assertEquals(PixelDataType.BOOLEAN, nm.getNounType());
+	@Test
+	public void executeNoEngines() {
+		String pixel = ApiSemossTestUtils.buildPixelCall(LoadNLPSearchReactor.class);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		assertTrue(Boolean.valueOf(nm.getValue().toString()));
+		assertEquals(PixelDataType.BOOLEAN, nm.getNounType());
 
-    Path p = ApiSemossTestUserUtils.getAssetsPath();
-    assertTrue(Files.exists(p));
-    assertTrue(Files.isDirectory(p));
+		Path p = ApiSemossTestUserUtils.getAssetsPath();
+		assertTrue(Files.exists(p));
+		assertTrue(Files.isDirectory(p));
 
-    assertTrue(Files.exists(Paths.get(p.toString(), "nldr_membership.rds")));
-    assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_membership.rds")));
+		assertTrue(Files.exists(Paths.get(p.toString(), "nldr_membership.rds")));
+		assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_membership.rds")));
 
-    assertTrue(Files.exists(Paths.get(p.toString(), "nldr_db.rds")));
-    assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_db.rds")));
+		assertTrue(Files.exists(Paths.get(p.toString(), "nldr_db.rds")));
+		assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_db.rds")));
 
-    assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_joins.rds")));
-    assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_joins.rds")));
-  }
+		assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_joins.rds")));
+		assertTrue(Files.isRegularFile(Paths.get(p.toString(), "nldr_joins.rds")));
+	}
 }

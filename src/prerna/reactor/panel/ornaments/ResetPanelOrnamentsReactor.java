@@ -23,15 +23,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class ResetPanelOrnamentsReactor extends AbstractInsightPanelReactor {
 
-  public ResetPanelOrnamentsReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PANEL.getKey()};
-  }
+	public ResetPanelOrnamentsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    // get the insight panel
-    InsightPanel insightPanel = getInsightPanel();
-    insightPanel.resetOrnaments();
-    return new NounMetadata(insightPanel, PixelDataType.PANEL, PixelOperationType.PANEL_ORNAMENT);
-  }
+	@Override
+	public NounMetadata execute() {
+		// get the insight panel
+		InsightPanel insightPanel = getInsightPanel();
+		insightPanel.resetOrnaments();
+		return new NounMetadata(insightPanel, PixelDataType.PANEL, PixelOperationType.PANEL_ORNAMENT);
+	}
 }

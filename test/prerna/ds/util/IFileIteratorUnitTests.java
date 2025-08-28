@@ -26,21 +26,22 @@ import org.mockito.MockitoAnnotations;
 
 public class IFileIteratorUnitTests {
 
-  @Mock private IFileIterator fileIterator;
+	@Mock
+	private IFileIterator fileIterator;
 
-  @BeforeEach
-  void setUp() {
-    MockitoAnnotations.openMocks(this);
-  }
+	@BeforeEach
+	void setUp() {
+		MockitoAnnotations.openMocks(this);
+	}
 
-  @Test
-  void testGetNumRecordsOverSizeTrue() {
-    long limitSize = 1000L;
-    when(fileIterator.getNumRecordsOverSize(limitSize)).thenReturn(true);
+	@Test
+	void testGetNumRecordsOverSizeTrue() {
+		long limitSize = 1000L;
+		when(fileIterator.getNumRecordsOverSize(limitSize)).thenReturn(true);
 
-    boolean result = fileIterator.getNumRecordsOverSize(limitSize);
+		boolean result = fileIterator.getNumRecordsOverSize(limitSize);
 
-    assertTrue(result, "Expected getNumRecordsOverSize to return true");
-    verify(fileIterator, times(1)).getNumRecordsOverSize(limitSize);
-  }
+		assertTrue(result, "Expected getNumRecordsOverSize to return true");
+		verify(fileIterator, times(1)).getNumRecordsOverSize(limitSize);
+	}
 }

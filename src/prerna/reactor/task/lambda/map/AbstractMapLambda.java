@@ -21,22 +21,22 @@ import prerna.auth.User;
 
 public abstract class AbstractMapLambda implements IMapLambda {
 
-  protected Map params = new HashMap();
-  protected List<Map<String, Object>> headerInfo;
-  protected User user;
+	protected Map params = new HashMap();
+	protected List<Map<String, Object>> headerInfo;
+	protected User user;
 
-  @Override
-  public List<Map<String, Object>> getModifiedHeaderInfo() {
-    return this.headerInfo;
-  }
+	@Override
+	public List<Map<String, Object>> getModifiedHeaderInfo() {
+		return this.headerInfo;
+	}
 
-  @Override
-  public void setUser(User user) {
-    this.user = user;
-  }
+	@Override
+	public void setUser(User user) {
+		this.user = user;
+	}
 
-  @Override
-  public void setParams(Map params) {
-    this.params = params;
-  }
+	@Override
+	public void setParams(Map params) {
+		this.params = params;
+	}
 }

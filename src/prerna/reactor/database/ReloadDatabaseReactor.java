@@ -29,39 +29,39 @@ import prerna.util.Utility;
 
 public class ReloadDatabaseReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(ReloadDatabaseReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ReloadDatabaseReactor.class);
 
-  public ReloadDatabaseReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
-  }
+	public ReloadDatabaseReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String databaseId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 
-    // make sure user has at least edit access
-    if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
-      if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-        throw new IllegalArgumentException("User does not have permission to reload the database");
-      }
-    }
+		// make sure user has at least edit access
+		if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
+			if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+				throw new IllegalArgumentException("User does not have permission to reload the database");
+			}
+		}
 
-    IDatabaseEngine database = Utility.getDatabase(databaseId);
-    String smssFilePath = database.getSmssFilePath();
-    try {
-      database.close();
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
-    database.setSmssProp(null);
-    try {
-      database.open(smssFilePath);
-    } catch (Exception e1) {
-      throw new IllegalArgumentException(
-          "An error occurred reloading the database. Please reach out to an administrator for assistance");
-    }
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
+		String smssFilePath = database.getSmssFilePath();
+		try {
+			database.close();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		database.setSmssProp(null);
+		try {
+			database.open(smssFilePath);
+		} catch (Exception e1) {
+			throw new IllegalArgumentException(
+					"An error occurred reloading the database. Please reach out to an administrator for assistance");
+		}
 
-    return new NounMetadata(true, PixelDataType.BOOLEAN);
-  }
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
 }

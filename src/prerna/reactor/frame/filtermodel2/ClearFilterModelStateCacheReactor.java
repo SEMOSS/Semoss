@@ -25,24 +25,23 @@ import prerna.util.Constants;
 
 public class ClearFilterModelStateCacheReactor extends AbstractFilterReactor {
 
-  private static final Logger logger =
-      LogManager.getLogger(ClearFilterModelStateCacheReactor.class);
+	private static final Logger logger = LogManager.getLogger(ClearFilterModelStateCacheReactor.class);
 
-  public ClearFilterModelStateCacheReactor() {
-    this.keysToGet = new String[] {};
-  }
+	public ClearFilterModelStateCacheReactor() {
+		this.keysToGet = new String[]{};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    Map<String, ITableDataFrame> filterCaches = insight.getCachedFilterModelFrame();
-    for (String key : filterCaches.keySet()) {
-      try {
-        filterCaches.remove(key).close();
-      } catch (Exception e) {
-        logger.error(Constants.STACKTRACE, e);
-      }
-    }
+	@Override
+	public NounMetadata execute() {
+		Map<String, ITableDataFrame> filterCaches = insight.getCachedFilterModelFrame();
+		for (String key : filterCaches.keySet()) {
+			try {
+				filterCaches.remove(key).close();
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
 
-    return new NounMetadata(true, PixelDataType.BOOLEAN);
-  }
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
 }

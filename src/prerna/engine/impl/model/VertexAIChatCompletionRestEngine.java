@@ -32,94 +32,90 @@ import prerna.util.insight.TextHelper;
 
 public class VertexAIChatCompletionRestEngine extends OpenAiChatCompletionRestEngine {
 
-  private GoogleCredentials credentials = null;
-  private static final Logger logger = LogManager.getLogger(VertexAIChatCompletionRestEngine.class);
+	private GoogleCredentials credentials = null;
+	private static final Logger logger = LogManager.getLogger(VertexAIChatCompletionRestEngine.class);
 
-  @Override
-  protected AskModelEngineResponse askCall(
-      String question,
-      Object fullPrompt,
-      String context,
-      Insight insight,
-      Map<String, Object> parameters) {
-    // Refresh the access token
-    String accessToken = getVertexAccessToken();
-    if (accessToken != null) {
-      this.headersMap.put("Authorization", "Bearer " + accessToken);
-    }
-    // add safety_settings to parameters if present
-    String safetySettings = this.smssProp.getProperty("SAFETY_SETTINGS");
-    if (safetySettings != null && !safetySettings.isEmpty()) {
-      parameters.put("safety_settings", getVertexAiSafetySettings(safetySettings));
-    }
+	@Override
+	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
+			Map<String, Object> parameters) {
+		// Refresh the access token
+		String accessToken = getVertexAccessToken();
+		if (accessToken != null) {
+			this.headersMap.put("Authorization", "Bearer " + accessToken);
+		}
+		// add safety_settings to parameters if present
+		String safetySettings = this.smssProp.getProperty("SAFETY_SETTINGS");
+		if (safetySettings != null && !safetySettings.isEmpty()) {
+			parameters.put("safety_settings", getVertexAiSafetySettings(safetySettings));
+		}
 
-    // Call the superclass's askCall method
-    return super.askCall(question, fullPrompt, context, insight, parameters);
-  }
+		// Call the superclass's askCall method
+		return super.askCall(question, fullPrompt, context, insight, parameters);
+	}
 
-  private String getVertexAccessToken() {
-    try {
-      // Initialize credentials if they are not already initialized
-      if (credentials == null) {
-        String serviceAccountKeyFile = this.smssProp.getProperty("SERVICE_ACCOUNT_KEY_FILE");
-        if (serviceAccountKeyFile == null || serviceAccountKeyFile.trim().isEmpty()) {
-          throw new IllegalArgumentException("Service account key file path is not provided.");
-        }
+	private String getVertexAccessToken() {
+		try {
+			// Initialize credentials if they are not already initialized
+			if (credentials == null) {
+				String serviceAccountKeyFile = this.smssProp.getProperty("SERVICE_ACCOUNT_KEY_FILE");
+				if (serviceAccountKeyFile == null || serviceAccountKeyFile.trim().isEmpty()) {
+					throw new IllegalArgumentException("Service account key file path is not provided.");
+				}
 
-        credentials =
-            ServiceAccountCredentials.fromStream(
-                    Files.newInputStream(Paths.get(serviceAccountKeyFile)))
-                .createScoped(
-                    Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
-      }
+				credentials = ServiceAccountCredentials
+						.fromStream(Files.newInputStream(Paths.get(serviceAccountKeyFile)))
+						.createScoped(Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+			}
 
-      // Refresh credentials if expired
-      credentials.refreshIfExpired();
-      return credentials.getAccessToken().getTokenValue();
+			// Refresh credentials if expired
+			credentials.refreshIfExpired();
+			return credentials.getAccessToken().getTokenValue();
 
-    } catch (IOException e) {
-      e.printStackTrace();
-      return null;
-    }
-  }
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 
-  private List<SafetySetting> getVertexAiSafetySettings(String safetyParam) {
-    List<SafetySetting> safetySettings = new ArrayList<>();
-    try {
+	private List<SafetySetting> getVertexAiSafetySettings(String safetyParam) {
+		List<SafetySetting> safetySettings = new ArrayList<>();
+		try {
 
-      Map<String, String> map = TextHelper.convertJsonStringToHashMap(safetyParam);
-      for (Map.Entry<String, String> entry : map.entrySet()) {
-        SafetySetting safetySetting = new SafetySetting();
-        safetySetting.setCategory(entry.getKey());
-        safetySetting.setThresold(entry.getValue());
-        safetySettings.add(safetySetting);
-      }
+			Map<String, String> map = TextHelper.convertJsonStringToHashMap(safetyParam);
+			for (Map.Entry<String, String> entry : map.entrySet()) {
+				SafetySetting safetySetting = new SafetySetting();
+				safetySetting.setCategory(entry.getKey());
+				safetySetting.setThresold(entry.getValue());
+				safetySettings.add(safetySetting);
+			}
 
-      return safetySettings;
-    } catch (Exception e) {
-      logger.warn("Unable to set safety_settings", e);
-      return null;
-    }
-  }
+			return safetySettings;
+		} catch (Exception e) {
+			logger.warn("Unable to set safety_settings", e);
+			return null;
+		}
+	}
 
-  protected class SafetySetting {
-    @Expose String category;
-    @Expose String thresold;
+	protected class SafetySetting {
+		@Expose
+		String category;
+		@Expose
+		String thresold;
 
-    public void setCategory(String category) {
-      this.category = category;
-    }
+		public void setCategory(String category) {
+			this.category = category;
+		}
 
-    public void setThresold(String thresold) {
-      this.thresold = thresold;
-    }
+		public void setThresold(String thresold) {
+			this.thresold = thresold;
+		}
 
-    public String getCategory() {
-      return this.category;
-    }
+		public String getCategory() {
+			return this.category;
+		}
 
-    public String setThresold() {
-      return this.thresold;
-    }
-  }
+		public String setThresold() {
+			return this.thresold;
+		}
+	}
 }

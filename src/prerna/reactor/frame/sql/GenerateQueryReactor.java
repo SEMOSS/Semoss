@@ -24,32 +24,32 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GenerateQueryReactor extends AbstractReactor {
 
-  public GenerateQueryReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.SQL.getKey()};
-    this.keyRequired = new int[] {1};
-  }
+	public GenerateQueryReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.SQL.getKey()};
+		this.keyRequired = new int[]{1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    // TODO Auto-generated method stub
+	@Override
+	public NounMetadata execute() {
+		// TODO Auto-generated method stub
 
-    organizeKeys();
+		organizeKeys();
 
-    try {
-      String sql = keyValue.get(keysToGet[0]);
-      String param = keyValue.get(keysToGet[1]);
+		try {
+			String sql = keyValue.get(keysToGet[0]);
+			String param = keyValue.get(keysToGet[1]);
 
-      GenExpressionWrapper wrapper = this.insight.getSQLWrapper(sql);
-      wrapper.fillParameters();
-      wrapper.generateQuery(true);
+			GenExpressionWrapper wrapper = this.insight.getSQLWrapper(sql);
+			wrapper.fillParameters();
+			wrapper.generateQuery(true);
 
-      Map<String, Object> returnMap = new HashMap<String, Object>();
-      returnMap.put("query", sql);
+			Map<String, Object> returnMap = new HashMap<String, Object>();
+			returnMap.put("query", sql);
 
-      return new NounMetadata(returnMap, PixelDataType.MAP);
-    } catch (Exception e) {
-      // TODO Auto-generated catch block
-      return NounMetadata.getErrorNounMessage(e.getLocalizedMessage());
-    }
-  }
+			return new NounMetadata(returnMap, PixelDataType.MAP);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			return NounMetadata.getErrorNounMessage(e.getLocalizedMessage());
+		}
+	}
 }

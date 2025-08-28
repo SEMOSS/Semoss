@@ -32,137 +32,134 @@ import prerna.util.Utility;
 
 public abstract class AbstractVenvEngine implements IVenvEngine {
 
-  private static final Logger classLogger = LogManager.getLogger(AbstractVenvEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractVenvEngine.class);
 
-  protected String engineId = null;
-  protected String engineName = null;
+	protected String engineId = null;
+	protected String engineName = null;
 
-  protected Properties smssProp = null;
-  protected String smssFilePath = null;
+	protected Properties smssProp = null;
+	protected String smssFilePath = null;
 
-  @Override
-  public void open(String smssFilePath) throws Exception {
-    setSmssFilePath(smssFilePath);
-    this.open(Utility.loadProperties(smssFilePath));
-  }
+	@Override
+	public void open(String smssFilePath) throws Exception {
+		setSmssFilePath(smssFilePath);
+		this.open(Utility.loadProperties(smssFilePath));
+	}
 
-  public void open(Properties smssProp) throws Exception {
-    this.smssProp = smssProp;
-    this.engineId = smssProp.getProperty(Constants.ENGINE);
-    this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
-  }
+	public void open(Properties smssProp) throws Exception {
+		this.smssProp = smssProp;
+		this.engineId = smssProp.getProperty(Constants.ENGINE);
+		this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
+	}
 
-  @Override
-  public void setEngineId(String engineId) {
-    this.engineId = engineId;
-  }
+	@Override
+	public void setEngineId(String engineId) {
+		this.engineId = engineId;
+	}
 
-  @Override
-  public String getEngineId() {
-    return this.engineId;
-  }
+	@Override
+	public String getEngineId() {
+		return this.engineId;
+	}
 
-  @Override
-  public void setEngineName(String engineName) {
-    this.engineName = engineName;
-  }
+	@Override
+	public void setEngineName(String engineName) {
+		this.engineName = engineName;
+	}
 
-  @Override
-  public String getEngineName() {
-    return this.engineName;
-  }
+	@Override
+	public String getEngineName() {
+		return this.engineName;
+	}
 
-  @Override
-  public void setSmssFilePath(String smssFilePath) {
-    this.smssFilePath = smssFilePath;
-  }
+	@Override
+	public void setSmssFilePath(String smssFilePath) {
+		this.smssFilePath = smssFilePath;
+	}
 
-  @Override
-  public String getSmssFilePath() {
-    return this.smssFilePath;
-  }
+	@Override
+	public String getSmssFilePath() {
+		return this.smssFilePath;
+	}
 
-  @Override
-  public void setSmssProp(Properties smssProp) {
-    this.smssProp = smssProp;
-  }
+	@Override
+	public void setSmssProp(Properties smssProp) {
+		this.smssProp = smssProp;
+	}
 
-  @Override
-  public Properties getSmssProp() {
-    return this.smssProp;
-  }
+	@Override
+	public Properties getSmssProp() {
+		return this.smssProp;
+	}
 
-  @Override
-  public Properties getOrigSmssProp() {
-    return this.smssProp;
-  }
+	@Override
+	public Properties getOrigSmssProp() {
+		return this.smssProp;
+	}
 
-  @Override
-  public IEngine.CATALOG_TYPE getCatalogType() {
-    return IEngine.CATALOG_TYPE.VENV;
-  }
+	@Override
+	public IEngine.CATALOG_TYPE getCatalogType() {
+		return IEngine.CATALOG_TYPE.VENV;
+	}
 
-  @Override
-  public String getCatalogSubType(Properties smssProp) {
-    return this.getVenvType().toString();
-  }
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return this.getVenvType().toString();
+	}
 
-  @Override
-  public void delete() {
-    classLogger.debug(
-        "Delete model engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-    try {
-      this.close();
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
+	@Override
+	public void delete() {
+		classLogger.debug("Delete model engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		try {
+			this.close();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 
-    File engineFolder =
-        new File(
-            EngineUtility.getSpecificEngineBaseFolder(
-                getCatalogType(), this.engineId, this.engineName));
-    if (engineFolder.exists()) {
-      classLogger.info("Delete model engine folder " + engineFolder);
-      try {
-        FileUtils.deleteDirectory(engineFolder);
-      } catch (IOException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    } else {
-      classLogger.info("Model engine folder " + engineFolder + " does not exist");
-    }
+		File engineFolder = new File(
+				EngineUtility.getSpecificEngineBaseFolder(getCatalogType(), this.engineId, this.engineName));
+		if (engineFolder.exists()) {
+			classLogger.info("Delete model engine folder " + engineFolder);
+			try {
+				FileUtils.deleteDirectory(engineFolder);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		} else {
+			classLogger.info("Model engine folder " + engineFolder + " does not exist");
+		}
 
-    classLogger.info("Deleting model engine smss " + this.smssFilePath);
-    File smssFile = new File(this.smssFilePath);
-    try {
-      FileUtils.forceDelete(smssFile);
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
+		classLogger.info("Deleting model engine smss " + this.smssFilePath);
+		File smssFile = new File(this.smssFilePath);
+		try {
+			FileUtils.forceDelete(smssFile);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 
-    // remove from DIHelper
-    UploadUtilities.removeEngineFromDIHelper(this.engineId);
-  }
+		// remove from DIHelper
+		UploadUtilities.removeEngineFromDIHelper(this.engineId);
+	}
 
-  @Override
-  public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-    throw new NotImplementedException("This method has not been implemented yet...");
-  }
+	@Override
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
 
-  @Override
-  public Map<String, Object> buildBedrockToolSpec() {
-    throw new NotImplementedException("This method has not been implemented yet...");
-  }
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
 
-  @Override
-  public boolean holdsFileLocks() {
-    // TODO Auto-generated method stub
-    return false;
-  }
+	@Override
+	public boolean holdsFileLocks() {
+		// TODO Auto-generated method stub
+		return false;
+	}
 
-  @Override
-  public void close() throws IOException {
-    // TODO Auto-generated method stub
+	@Override
+	public void close() throws IOException {
+		// TODO Auto-generated method stub
 
-  }
+	}
 }

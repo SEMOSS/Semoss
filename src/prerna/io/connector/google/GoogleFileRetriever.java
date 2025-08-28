@@ -29,46 +29,46 @@ import prerna.util.Constants;
 
 public class GoogleFileRetriever implements IConnectorIOp {
 
-  private static final Logger classLogger = LogManager.getLogger(GoogleFileRetriever.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleFileRetriever.class);
 
-  @Override
-  public Object execute(User user, Map<String, Object> params) {
-    String fileName = (String) params.remove("target");
-    BufferedWriter target = null;
-    try {
-      String url_str = "https://docs.google.com/spreadsheets/export";
-      // System.out.println("....");
+	@Override
+	public Object execute(User user, Map<String, Object> params) {
+		String fileName = (String) params.remove("target");
+		BufferedWriter target = null;
+		try {
+			String url_str = "https://docs.google.com/spreadsheets/export";
+			// System.out.println("....");
 
-      BufferedReader br = HttpHelperUtility.getHttpStream(url_str, null, params, false);
+			BufferedReader br = HttpHelperUtility.getHttpStream(url_str, null, params, false);
 
-      // create a file
-      File outputFile = new File(fileName);
+			// create a file
+			File outputFile = new File(fileName);
 
-      target = new BufferedWriter(new FileWriter(outputFile));
-      String data = null;
+			target = new BufferedWriter(new FileWriter(outputFile));
+			String data = null;
 
-      while ((data = br.readLine()) != null) {
-        target.write(data);
-        target.write("\n");
-        target.flush();
-      }
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      classLogger.error(Constants.STACKTRACE, e);
-    } finally {
-      if (target != null) {
-        try {
-          target.flush();
-          target.close();
-        } catch (IOException e) {
-          // ignore
-        }
-      }
-    }
+			while ((data = br.readLine()) != null) {
+				target.write(data);
+				target.write("\n");
+				target.flush();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (target != null) {
+				try {
+					target.flush();
+					target.close();
+				} catch (IOException e) {
+					// ignore
+				}
+			}
+		}
 
-    // TODO Auto-generated method stub
-    return fileName;
-  }
+		// TODO Auto-generated method stub
+		return fileName;
+	}
 
-  // https://docs.google.com/spreadsheets/export?id=1it40jNFcRo1ur2dHIYUk18XmXdd37j4gmJm_Sg7KLjI&exportFormat=csv
+	// https://docs.google.com/spreadsheets/export?id=1it40jNFcRo1ur2dHIYUk18XmXdd37j4gmJm_Sg7KLjI&exportFormat=csv
 }

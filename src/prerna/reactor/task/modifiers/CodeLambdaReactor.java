@@ -23,34 +23,37 @@ import prerna.util.Constants;
 
 public class CodeLambdaReactor extends AbstractLambdaTaskReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(CodeLambdaReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CodeLambdaReactor.class);
 
-  /** Abstract lambda class is responsible for getting data from the noun store / prop store */
-  public CodeLambdaReactor() {
-    this.keysToGet = new String[] {"CODE", IMPORTS_KEY};
-  }
+	/**
+	 * Abstract lambda class is responsible for getting data from the noun store /
+	 * prop store
+	 */
+	public CodeLambdaReactor() {
+		this.keysToGet = new String[]{"CODE", IMPORTS_KEY};
+	}
 
-  @Override
-  protected void buildTask() {
-    String code = getCode();
-    List<String> imports = getImports();
+	@Override
+	protected void buildTask() {
+		String code = getCode();
+		List<String> imports = getImports();
 
-    // create the transformation
-    // TODO: do this by reflection?
-    GenericMapLambda lambda = new GenericMapLambda();
-    try {
-      lambda.init(code, imports);
-      lambda.setUser(this.insight.getUser());
-    } catch (InstantiationException | IllegalAccessException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new IllegalArgumentException("Error with creating generic lambda!");
-    }
+		// create the transformation
+		// TODO: do this by reflection?
+		GenericMapLambda lambda = new GenericMapLambda();
+		try {
+			lambda.init(code, imports);
+			lambda.setUser(this.insight.getUser());
+		} catch (InstantiationException | IllegalAccessException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error with creating generic lambda!");
+		}
 
-    // create a new task and add to stores
-    MapLambdaTask newTask = new MapLambdaTask();
-    newTask.setInnerTask(this.task);
-    newTask.setLambda(lambda);
-    this.task = newTask;
-    this.insight.getTaskStore().addTask(this.task);
-  }
+		// create a new task and add to stores
+		MapLambdaTask newTask = new MapLambdaTask();
+		newTask.setInnerTask(this.task);
+		newTask.setLambda(lambda);
+		this.task = newTask;
+		this.insight.getTaskStore().addTask(this.task);
+	}
 }

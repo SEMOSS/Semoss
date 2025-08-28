@@ -31,140 +31,127 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 
-  /**
-   * This reactor takes an r frame and synchronizes it to an h2 frame in semoss inputs are: 1) r
-   * data table name
-   */
-  public GenerateH2FrameFromRVariableReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.VARIABLE.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
-  }
+	/**
+	 * This reactor takes an r frame and synchronizes it to an h2 frame in semoss
+	 * inputs are: 1) r data table name
+	 */
+	public GenerateH2FrameFromRVariableReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.VARIABLE.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    init();
-    organizeKeys();
-    // get rFrameName
-    String varName = getVarName();
-    H2Frame newTable;
-    try {
-      newTable = new H2Frame(varName);
-    } catch (Exception e) {
-      throw new IllegalArgumentException("Error occurred instaniating new grid frame");
-    }
+	@Override
+	public NounMetadata execute() {
+		init();
+		organizeKeys();
+		// get rFrameName
+		String varName = getVarName();
+		H2Frame newTable;
+		try {
+			newTable = new H2Frame(varName);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Error occurred instaniating new grid frame");
+		}
 
-    // sync R dataframe to H2Frame
-    syncFromR(this.rJavaTranslator, varName, newTable);
-    if (overrideFrame()) {
-      this.insight.setDataMaker(newTable);
-    }
-    NounMetadata noun =
-        new NounMetadata(
-            newTable,
-            PixelDataType.FRAME,
-            PixelOperationType.FRAME_DATA_CHANGE,
-            PixelOperationType.FRAME_HEADERS_CHANGE);
-    // add the alias as a noun by default
-    if (varName != null && !varName.isEmpty()) {
-      this.insight.getVarStore().put(varName, noun);
-    }
+		// sync R dataframe to H2Frame
+		syncFromR(this.rJavaTranslator, varName, newTable);
+		if (overrideFrame()) {
+			this.insight.setDataMaker(newTable);
+		}
+		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
+		// add the alias as a noun by default
+		if (varName != null && !varName.isEmpty()) {
+			this.insight.getVarStore().put(varName, noun);
+		}
 
-    // NEW TRACKING
-    UserTrackerFactory.getInstance()
-        .trackAnalyticsWidget(
-            this.insight,
-            null,
-            "GenerateH2FrameFromRVariable",
-            AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, null, "GenerateH2FrameFromRVariable",
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
-    return noun;
-  }
+		return noun;
+	}
 
-  /**
-   * @param rFrameName
-   * @param frame
-   */
-  public void syncFromR(AbstractRJavaTranslator rJavaTranslator, String rFrameName, H2Frame frame) {
-    // generate the QS
-    // set the column names and types
-    rJavaTranslator.executeEmptyR(RSyntaxHelper.asDataTable(rFrameName, rFrameName));
-    // recreate a new frame and set the frame name
-    String[] colNames = rJavaTranslator.getColumns(rFrameName);
-    rJavaTranslator.runR(RSyntaxHelper.cleanFrameHeaders(rFrameName, colNames));
-    colNames = rJavaTranslator.getColumns(rFrameName);
-    String[] colTypes = rJavaTranslator.getColumnTypes(rFrameName);
-    // change r dataTypes such as dates, logicals, etc to be displayed as strings
-    StringBuilder dataTypeConversion = new StringBuilder();
-    for (int i = 0; i < colTypes.length; i++) {
-      SemossDataType smssType = SemossDataType.convertStringToDataType(colTypes[i]);
-      if (smssType == SemossDataType.INT || smssType == SemossDataType.DOUBLE) {
-        dataTypeConversion.append(
-            RSyntaxHelper.alterColumnTypeToNumeric(rFrameName, colNames[i]) + ";");
-      }
-      if (smssType == SemossDataType.STRING || smssType == SemossDataType.DATE) {
-        dataTypeConversion.append(
-            RSyntaxHelper.alterColumnTypeToCharacter(rFrameName, colNames[i]) + ";");
-      }
-    }
-    if (dataTypeConversion.toString().length() > 0) {
-      rJavaTranslator.runR(dataTypeConversion.toString());
-    }
+	/**
+	 * @param rFrameName
+	 * @param frame
+	 */
+	public void syncFromR(AbstractRJavaTranslator rJavaTranslator, String rFrameName, H2Frame frame) {
+		// generate the QS
+		// set the column names and types
+		rJavaTranslator.executeEmptyR(RSyntaxHelper.asDataTable(rFrameName, rFrameName));
+		// recreate a new frame and set the frame name
+		String[] colNames = rJavaTranslator.getColumns(rFrameName);
+		rJavaTranslator.runR(RSyntaxHelper.cleanFrameHeaders(rFrameName, colNames));
+		colNames = rJavaTranslator.getColumns(rFrameName);
+		String[] colTypes = rJavaTranslator.getColumnTypes(rFrameName);
+		// change r dataTypes such as dates, logicals, etc to be displayed as strings
+		StringBuilder dataTypeConversion = new StringBuilder();
+		for (int i = 0; i < colTypes.length; i++) {
+			SemossDataType smssType = SemossDataType.convertStringToDataType(colTypes[i]);
+			if (smssType == SemossDataType.INT || smssType == SemossDataType.DOUBLE) {
+				dataTypeConversion.append(RSyntaxHelper.alterColumnTypeToNumeric(rFrameName, colNames[i]) + ";");
+			}
+			if (smssType == SemossDataType.STRING || smssType == SemossDataType.DATE) {
+				dataTypeConversion.append(RSyntaxHelper.alterColumnTypeToCharacter(rFrameName, colNames[i]) + ";");
+			}
+		}
+		if (dataTypeConversion.toString().length() > 0) {
+			rJavaTranslator.runR(dataTypeConversion.toString());
+		}
 
-    if (colNames == null || colTypes == null) {
-      throw new IllegalArgumentException(
-          "Please make sure the variable "
-              + rFrameName
-              + " exists and can be a valid data.table object");
-    }
+		if (colNames == null || colTypes == null) {
+			throw new IllegalArgumentException(
+					"Please make sure the variable " + rFrameName + " exists and can be a valid data.table object");
+		}
 
-    CsvQueryStruct qs = new CsvQueryStruct();
-    qs.setSelectorsAndTypes(colNames, colTypes);
+		CsvQueryStruct qs = new CsvQueryStruct();
+		qs.setSelectorsAndTypes(colNames, colTypes);
 
-    // we will make a temp file
-    String tempFileLocation = Utility.getInsightCacheDir() + "\\" + Utility.getCsvInsightCacheDir();
-    tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
-    tempFileLocation = tempFileLocation.replace("\\", "/");
-    rJavaTranslator.executeEmptyR("fwrite(" + rFrameName + ", file='" + tempFileLocation + "')");
+		// we will make a temp file
+		String tempFileLocation = Utility.getInsightCacheDir() + "\\" + Utility.getCsvInsightCacheDir();
+		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
+		tempFileLocation = tempFileLocation.replace("\\", "/");
+		rJavaTranslator.executeEmptyR("fwrite(" + rFrameName + ", file='" + tempFileLocation + "')");
 
-    // iterate through file and insert values
-    qs.setFilePath(tempFileLocation);
-    RdbmsImporter importer = new RdbmsImporter(frame, qs);
-    // importer will create the necessary meta information
-    importer.insertData();
-  }
+		// iterate through file and insert values
+		qs.setFilePath(tempFileLocation);
+		RdbmsImporter importer = new RdbmsImporter(frame, qs);
+		// importer will create the necessary meta information
+		importer.insertData();
+	}
 
-  /**
-   * Get the input being the r variable name
-   *
-   * @return
-   */
-  private String getVarName() {
-    // key based
-    GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.VARIABLE.getKey());
-    if (overrideGrs != null && !overrideGrs.isEmpty()) {
-      return (String) overrideGrs.get(0);
-    }
-    // first input
-    return this.curRow.get(0).toString();
-  }
+	/**
+	 * Get the input being the r variable name
+	 *
+	 * @return
+	 */
+	private String getVarName() {
+		// key based
+		GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.VARIABLE.getKey());
+		if (overrideGrs != null && !overrideGrs.isEmpty()) {
+			return (String) overrideGrs.get(0);
+		}
+		// first input
+		return this.curRow.get(0).toString();
+	}
 
-  private boolean overrideFrame() {
-    GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.OVERRIDE.getKey());
-    if (overrideGrs != null && !overrideGrs.isEmpty()) {
-      return (boolean) overrideGrs.get(0);
-    }
-    // default is to override
-    return true;
-  }
+	private boolean overrideFrame() {
+		GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.OVERRIDE.getKey());
+		if (overrideGrs != null && !overrideGrs.isEmpty()) {
+			return (boolean) overrideGrs.get(0);
+		}
+		// default is to override
+		return true;
+	}
 
-  ///////////////////////// KEYS /////////////////////////////////////
+	///////////////////////// KEYS /////////////////////////////////////
 
-  @Override
-  protected String getDescriptionForKey(String key) {
-    if (key.equals(ReactorKeysEnum.VARIABLE.getKey())) {
-      return "Name of the r variable";
-    } else {
-      return super.getDescriptionForKey(key);
-    }
-  }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.VARIABLE.getKey())) {
+			return "Name of the r variable";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }

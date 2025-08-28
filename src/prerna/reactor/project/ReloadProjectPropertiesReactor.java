@@ -26,30 +26,28 @@ import prerna.util.Utility;
 
 public class ReloadProjectPropertiesReactor extends AbstractReactor {
 
-  public ReloadProjectPropertiesReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-  }
+	public ReloadProjectPropertiesReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String projectId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 
-    if (StringUtils.isBlank(projectId)) {
-      throw new IllegalArgumentException("Must input an project id");
-    }
+		if (StringUtils.isBlank(projectId)) {
+			throw new IllegalArgumentException("Must input an project id");
+		}
 
-    if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-      throw new IllegalArgumentException(
-          "Project does not exist or user does not have access to edit");
-    }
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
+		}
 
-    IProject project = Utility.getProject(projectId);
-    ProjectProperties props = project.getProjectProperties();
-    props.reloadProps();
-    NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-    noun.addAdditionalReturn(
-        NounMetadata.getSuccessNounMessage("Successfully set new properties for project"));
-    return noun;
-  }
+		IProject project = Utility.getProject(projectId);
+		ProjectProperties props = project.getProjectProperties();
+		props.reloadProps();
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set new properties for project"));
+		return noun;
+	}
 }

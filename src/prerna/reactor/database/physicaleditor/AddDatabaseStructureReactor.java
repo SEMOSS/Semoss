@@ -39,101 +39,96 @@ import prerna.util.sql.DatabaseUpdateMetadata;
 
 public class AddDatabaseStructureReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(AddDatabaseStructureReactor.class);
-  private static final String CLASS_NAME = AddDatabaseStructureReactor.class.getName();
+	private static final Logger classLogger = LogManager.getLogger(AddDatabaseStructureReactor.class);
+	private static final String CLASS_NAME = AddDatabaseStructureReactor.class.getName();
 
-  public AddDatabaseStructureReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.METAMODEL_ADDITIONS.getKey()
-        };
-  }
+	public AddDatabaseStructureReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.METAMODEL_ADDITIONS.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    Logger logger = getLogger(CLASS_NAME);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		Logger logger = getLogger(CLASS_NAME);
 
-    String databaseId = this.keyValue.get(this.keysToGet[0]);
-    databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-    if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-      throw new IllegalArgumentException(
-          "Database" + databaseId + " does not exist or user does not have access to database");
-    }
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException(
+					"Database" + databaseId + " does not exist or user does not have access to database");
+		}
 
-    // table > column > type
-    Map<String, Map<String, String>> updates = getAdditions();
+		// table > column > type
+		Map<String, Map<String, String>> updates = getAdditions();
 
-    IDatabaseEngine engine = Utility.getDatabase(databaseId);
-    if (!(engine instanceof IRDBMSEngine)) {
-      throw new IllegalArgumentException("This operation only works on relational databases");
-    }
-    ClusterUtil.pullOwl(databaseId);
+		IDatabaseEngine engine = Utility.getDatabase(databaseId);
+		if (!(engine instanceof IRDBMSEngine)) {
+			throw new IllegalArgumentException("This operation only works on relational databases");
+		}
+		ClusterUtil.pullOwl(databaseId);
 
-    DatabaseUpdateMetadata dbUpdateMeta = null;
-    WriteOWLEngine owlEngine = null;
-    String errorMessages = null;
-    try {
-      dbUpdateMeta =
-          AbstractSqlQueryUtil.performDatabaseAdditions((IRDBMSEngine) engine, updates, logger);
-      owlEngine = dbUpdateMeta.getOwlEngine();
-      errorMessages = dbUpdateMeta.getCombinedErrors();
+		DatabaseUpdateMetadata dbUpdateMeta = null;
+		WriteOWLEngine owlEngine = null;
+		String errorMessages = null;
+		try {
+			dbUpdateMeta = AbstractSqlQueryUtil.performDatabaseAdditions((IRDBMSEngine) engine, updates, logger);
+			owlEngine = dbUpdateMeta.getOwlEngine();
+			errorMessages = dbUpdateMeta.getCombinedErrors();
 
-      // now push the OWL and sync
-      try {
-        owlEngine.export();
-        SyncDatabaseWithLocalMasterReactor syncWithLocal = new SyncDatabaseWithLocalMasterReactor();
-        syncWithLocal.setInsight(this.insight);
-        syncWithLocal.setNounStore(this.store);
-        syncWithLocal.In();
-        syncWithLocal.execute();
-      } catch (IOException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-        NounMetadata noun = new NounMetadata(dbUpdateMeta, PixelDataType.BOOLEAN);
-        noun.addAdditionalReturn(
-            getError("Error occurred saving the metadata file with the executed changes"));
-        if (!errorMessages.isEmpty()) {
-          noun.addAdditionalReturn(getError(errorMessages));
-        }
-        return noun;
-      }
-    } catch (InterruptedException e1) {
-      classLogger.error(Constants.STACKTRACE, e1);
-    } finally {
-      if (owlEngine != null) {
-        try {
-          owlEngine.close();
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
+			// now push the OWL and sync
+			try {
+				owlEngine.export();
+				SyncDatabaseWithLocalMasterReactor syncWithLocal = new SyncDatabaseWithLocalMasterReactor();
+				syncWithLocal.setInsight(this.insight);
+				syncWithLocal.setNounStore(this.store);
+				syncWithLocal.In();
+				syncWithLocal.execute();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata(dbUpdateMeta, PixelDataType.BOOLEAN);
+				noun.addAdditionalReturn(getError("Error occurred saving the metadata file with the executed changes"));
+				if (!errorMessages.isEmpty()) {
+					noun.addAdditionalReturn(getError(errorMessages));
+				}
+				return noun;
+			}
+		} catch (InterruptedException e1) {
+			classLogger.error(Constants.STACKTRACE, e1);
+		} finally {
+			if (owlEngine != null) {
+				try {
+					owlEngine.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 
-    EngineSyncUtility.clearEngineCache(databaseId);
-    ClusterUtil.pushOwl(databaseId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 
-    NounMetadata noun = new NounMetadata(dbUpdateMeta, PixelDataType.CUSTOM_DATA_STRUCTURE);
-    if (errorMessages.length() > 0) {
-      noun.addAdditionalReturn(getError(errorMessages.toString()));
-    }
+		NounMetadata noun = new NounMetadata(dbUpdateMeta, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		if (errorMessages.length() > 0) {
+			noun.addAdditionalReturn(getError(errorMessages.toString()));
+		}
 
-    return noun;
-  }
+		return noun;
+	}
 
-  private Map<String, Map<String, String>> getAdditions() {
-    GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.METAMODEL_ADDITIONS.getKey());
-    if (mapGrs != null && !mapGrs.isEmpty()) {
-      List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-      if (mapInputs != null && !mapInputs.isEmpty()) {
-        return (Map<String, Map<String, String>>) mapInputs.get(0).getValue();
-      }
-    }
-    List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-    if (mapInputs != null && !mapInputs.isEmpty()) {
-      return (Map<String, Map<String, String>>) mapInputs.get(0).getValue();
-    }
+	private Map<String, Map<String, String>> getAdditions() {
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.METAMODEL_ADDITIONS.getKey());
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Map<String, String>>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Map<String, String>>) mapInputs.get(0).getValue();
+		}
 
-    throw new IllegalArgumentException(
-        "Must define the map containing {tablename1:{columnname1:datatype, columnname2:datatype}} for the additions");
-  }
+		throw new IllegalArgumentException(
+				"Must define the map containing {tablename1:{columnname1:datatype, columnname2:datatype}} for the additions");
+	}
 }

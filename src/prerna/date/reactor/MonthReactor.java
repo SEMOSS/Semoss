@@ -21,15 +21,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class MonthReactor extends AbstractReactor {
 
-  public MonthReactor() {
-    this.keysToGet = new String[] {"months"};
-  }
+	public MonthReactor() {
+		this.keysToGet = new String[]{"months"};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String numMonths = this.keyValue.get(this.keysToGet[0]);
-    SemossMonth month = new SemossMonth(numMonths);
-    return new NounMetadata(month, PixelDataType.CONST_MONTH);
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String numMonths = this.keyValue.get(this.keysToGet[0]);
+		SemossMonth month = new SemossMonth(numMonths);
+		return new NounMetadata(month, PixelDataType.CONST_MONTH);
+	}
 }

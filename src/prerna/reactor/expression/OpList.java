@@ -22,23 +22,23 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class OpList extends OpBasic {
 
-  public OpList() {
-    this.operation = "list";
-    this.keysToGet = new String[] {ReactorKeysEnum.ARRAY.getKey()};
-  }
+	public OpList() {
+		this.operation = "list";
+		this.keysToGet = new String[]{ReactorKeysEnum.ARRAY.getKey()};
+	}
 
-  @Override
-  protected NounMetadata evaluate(Object[] values) {
-    List<Object> list = new Vector<>(values.length);
-    for (Object v : values) {
-      list.add(v);
-    }
-    NounMetadata noun = new NounMetadata(list, PixelDataType.VECTOR);
-    return noun;
-  }
+	@Override
+	protected NounMetadata evaluate(Object[] values) {
+		List<Object> list = new Vector<>(values.length);
+		for (Object v : values) {
+			list.add(v);
+		}
+		NounMetadata noun = new NounMetadata(list, PixelDataType.VECTOR);
+		return noun;
+	}
 
-  @Override
-  public String getReturnType() {
-    return "List";
-  }
+	@Override
+	public String getReturnType() {
+		return "List";
+	}
 }

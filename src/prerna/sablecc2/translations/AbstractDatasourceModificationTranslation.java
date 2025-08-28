@@ -32,55 +32,55 @@ import prerna.util.Constants;
 
 public class AbstractDatasourceModificationTranslation extends LazyTranslation {
 
-  private static final Logger classLogger =
-      LogManager.getLogger(AbstractDatasourceModificationTranslation.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractDatasourceModificationTranslation.class);
 
-  // create a variable to keep track of the current mapping of the original expression to the
-  // encoded expression
-  public HashMap<String, String> encodedToOriginal = new HashMap<String, String>();
-  public List<String> encodingList = new Vector<String>();
+	// create a variable to keep track of the current mapping of the original
+	// expression to the
+	// encoded expression
+	public HashMap<String, String> encodedToOriginal = new HashMap<String, String>();
+	public List<String> encodingList = new Vector<String>();
 
-  protected static Set<String> importTypes = new HashSet<String>();
+	protected static Set<String> importTypes = new HashSet<String>();
 
-  static {
-    importTypes.add("Database");
-    importTypes.add("FileRead");
-    importTypes.add("GoogleSheetSource");
-  }
+	static {
+		importTypes.add("Database");
+		importTypes.add("FileRead");
+		importTypes.add("GoogleSheetSource");
+	}
 
-  public AbstractDatasourceModificationTranslation(Insight insight) {
-    super(insight);
-    this.isTimeTracking = false;
-  }
+	public AbstractDatasourceModificationTranslation(Insight insight) {
+		super(insight);
+		this.isTimeTracking = false;
+	}
 
-  /** Same method as in lazy with addition of addRoutine method */
-  @Override
-  protected void deInitReactor() {
-    if (curReactor != null) {
-      // merge up and update the plan
-      try {
-        curReactor.mergeUp();
-        curReactor.updatePlan();
-      } catch (Exception e) {
-        classLogger.error(Constants.STACKTRACE, e);
-        throw new IllegalArgumentException(e.getMessage());
-      }
+	/** Same method as in lazy with addition of addRoutine method */
+	@Override
+	protected void deInitReactor() {
+		if (curReactor != null) {
+			// merge up and update the plan
+			try {
+				curReactor.mergeUp();
+				curReactor.updatePlan();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException(e.getMessage());
+			}
 
-      // get the parent
-      Object parent = curReactor.Out();
-      // set the parent as the curReactor if it is present
-      prevReactor = curReactor;
-      if (parent instanceof IReactor) {
-        curReactor = (IReactor) parent;
-      } else {
-        curReactor = null;
-      }
+			// get the parent
+			Object parent = curReactor.Out();
+			// set the parent as the curReactor if it is present
+			prevReactor = curReactor;
+			if (parent instanceof IReactor) {
+				curReactor = (IReactor) parent;
+			} else {
+				curReactor = null;
+			}
 
-      // account for moving qs
-      if (curReactor == null && prevReactor instanceof AbstractQueryStructReactor) {
-        AbstractQueryStruct qs = ((AbstractQueryStructReactor) prevReactor).getQs();
-        this.planner.addVariable(this.resultKey, new NounMetadata(qs, PixelDataType.QUERY_STRUCT));
-      }
-    }
-  }
+			// account for moving qs
+			if (curReactor == null && prevReactor instanceof AbstractQueryStructReactor) {
+				AbstractQueryStruct qs = ((AbstractQueryStructReactor) prevReactor).getQs();
+				this.planner.addVariable(this.resultKey, new NounMetadata(qs, PixelDataType.QUERY_STRUCT));
+			}
+		}
+	}
 }

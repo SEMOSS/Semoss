@@ -26,69 +26,44 @@ import org.eclipse.rdf4j.query.algebra.helpers.AbstractQueryModelVisitor;
 
 public class CustomRdf4JSparqlAggregationParser extends AbstractQueryModelVisitor<Exception> {
 
-  public Set<String> values = new HashSet<String>();
+	public Set<String> values = new HashSet<String>();
 
-  public Set<String> getValue() {
-    return values;
-  }
+	public Set<String> getValue() {
+		return values;
+	}
 
-  @Override
-  public void meet(Avg node) {
-    values.add(
-        node.getArg()
-            .getParentNode()
-            .getParentNode()
-            .getSignature()
-            .replace("ExtensionElem (", "")
-            .replace(")", ""));
-  }
+	@Override
+	public void meet(Avg node) {
+		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "")
+				.replace(")", ""));
+	}
 
-  @Override
-  public void meet(Max node) {
-    values.add(
-        node.getArg()
-            .getParentNode()
-            .getParentNode()
-            .getSignature()
-            .replace("ExtensionElem (", "")
-            .replace(")", ""));
-  }
+	@Override
+	public void meet(Max node) {
+		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "")
+				.replace(")", ""));
+	}
 
-  @Override
-  public void meet(Min node) {
-    values.add(
-        node.getArg()
-            .getParentNode()
-            .getParentNode()
-            .getSignature()
-            .replace("ExtensionElem (", "")
-            .replace(")", ""));
-  }
+	@Override
+	public void meet(Min node) {
+		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "")
+				.replace(")", ""));
+	}
 
-  @Override
-  public void meet(Sum node) {
-    values.add(
-        node.getArg()
-            .getParentNode()
-            .getParentNode()
-            .getSignature()
-            .replace("ExtensionElem (", "")
-            .replace(")", ""));
-  }
+	@Override
+	public void meet(Sum node) {
+		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "")
+				.replace(")", ""));
+	}
 
-  @Override
-  public void meet(Count node) {
-    values.add(
-        node.getArg()
-            .getParentNode()
-            .getParentNode()
-            .getSignature()
-            .replace("ExtensionElem (", "")
-            .replace(")", ""));
-  }
+	@Override
+	public void meet(Count node) {
+		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "")
+				.replace(")", ""));
+	}
 
-  @Override
-  public void meet(MathExpr node) throws Exception {
-    values.add(node.getParentNode().getSignature().replace("ExtensionElem (", "").replace(")", ""));
-  }
+	@Override
+	public void meet(MathExpr node) throws Exception {
+		values.add(node.getParentNode().getSignature().replace("ExtensionElem (", "").replace(")", ""));
+	}
 }

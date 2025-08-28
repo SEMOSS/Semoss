@@ -38,105 +38,101 @@ import prerna.util.Utility;
 
 public class SharePointFileRetrieverReactor extends AbstractQueryStructReactor {
 
-  private static final String CLASS_NAME = SharePointFileRetrieverReactor.class.getName();
+	private static final String CLASS_NAME = SharePointFileRetrieverReactor.class.getName();
 
-  public SharePointFileRetrieverReactor() {
-    this.keysToGet = new String[] {"driveId", "fileId"};
-  }
+	public SharePointFileRetrieverReactor() {
+		this.keysToGet = new String[]{"driveId", "fileId"};
+	}
 
-  @Override
-  protected SelectQueryStruct createQueryStruct() {
-    // get keys
-    Logger logger = getLogger(CLASS_NAME);
-    organizeKeys();
-    String driveID = this.keyValue.get(this.keysToGet[0]);
-    if (driveID == null || driveID.length() <= 0) {
-      throw new IllegalArgumentException("Need to SharePoint Drive id");
-    }
+	@Override
+	protected SelectQueryStruct createQueryStruct() {
+		// get keys
+		Logger logger = getLogger(CLASS_NAME);
+		organizeKeys();
+		String driveID = this.keyValue.get(this.keysToGet[0]);
+		if (driveID == null || driveID.length() <= 0) {
+			throw new IllegalArgumentException("Need to SharePoint Drive id");
+		}
 
-    String fileID = this.keyValue.get(this.keysToGet[0]);
-    if (fileID == null || fileID.length() <= 0) {
-      throw new IllegalArgumentException("Need to SharePoint file id");
-    }
+		String fileID = this.keyValue.get(this.keysToGet[0]);
+		if (fileID == null || fileID.length() <= 0) {
+			throw new IllegalArgumentException("Need to SharePoint file id");
+		}
 
-    // get access token
-    String accessToken = null;
-    User user = this.insight.getUser();
+		// get access token
+		String accessToken = null;
+		User user = this.insight.getUser();
 
-    try {
-      if (user == null) {
-        Map<String, Object> retMap = new HashMap<String, Object>();
-        retMap.put("type", "microsoft");
-        retMap.put("message", "Please login to your Microsoft account");
-        throwLoginError(retMap);
-      } else if (user != null) {
-        AccessToken msToken = user.getAccessToken(AuthProvider.MICROSOFT);
-        accessToken = msToken.getAccess_token();
-      }
-    } catch (Exception e) {
-      Map<String, Object> retMap = new HashMap<String, Object>();
-      retMap.put("type", "microsoft");
-      retMap.put("message", "Please login to your Microsoft account");
-      throwLoginError(retMap);
-    }
+		try {
+			if (user == null) {
+				Map<String, Object> retMap = new HashMap<String, Object>();
+				retMap.put("type", "microsoft");
+				retMap.put("message", "Please login to your Microsoft account");
+				throwLoginError(retMap);
+			} else if (user != null) {
+				AccessToken msToken = user.getAccessToken(AuthProvider.MICROSOFT);
+				accessToken = msToken.getAccess_token();
+			}
+		} catch (Exception e) {
+			Map<String, Object> retMap = new HashMap<String, Object>();
+			retMap.put("type", "microsoft");
+			retMap.put("message", "Please login to your Microsoft account");
+			throwLoginError(retMap);
+		}
 
-    Hashtable params = new Hashtable();
-    CsvQueryStruct qs = new CsvQueryStruct();
-    BufferedWriter target = null;
-    try {
-      String url_str =
-          "https://graph.microsoft.com/v1.0/drives/" + driveID + "/items/" + fileID + "/content";
-      BufferedReader br = HttpHelperUtility.getHttpStream(url_str, accessToken, params, true);
+		Hashtable params = new Hashtable();
+		CsvQueryStruct qs = new CsvQueryStruct();
+		BufferedWriter target = null;
+		try {
+			String url_str = "https://graph.microsoft.com/v1.0/drives/" + driveID + "/items/" + fileID + "/content";
+			BufferedReader br = HttpHelperUtility.getHttpStream(url_str, accessToken, params, true);
 
-      // create a file
-      String filePath =
-          DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR)
-              + "\\"
-              + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-      filePath += "\\" + Utility.getRandomString(10) + ".csv";
-      filePath = filePath.replace("\\", "/");
-      File outputFile = new File(filePath);
+			// create a file
+			String filePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
+					+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+			filePath += "\\" + Utility.getRandomString(10) + ".csv";
+			filePath = filePath.replace("\\", "/");
+			File outputFile = new File(filePath);
 
-      target = new BufferedWriter(new FileWriter(outputFile));
-      String data = null;
+			target = new BufferedWriter(new FileWriter(outputFile));
+			String data = null;
 
-      while ((data = br.readLine()) != null) {
-        target.write(data);
-        target.write("\n");
-        target.flush();
-      }
+			while ((data = br.readLine()) != null) {
+				target.write(data);
+				target.write("\n");
+				target.flush();
+			}
 
-      // get datatypes
-      CSVFileHelper helper = new CSVFileHelper();
-      helper.setDelimiter(',');
-      helper.parse(filePath);
-      Map[] predictionMaps =
-          FileHelperUtil.generateDataTypeMapsFromPrediction(
-              helper.getHeaders(), helper.predictTypes());
-      Map<String, String> dataTypes = predictionMaps[0];
-      Map<String, String> additionalDataTypes = predictionMaps[1];
-      for (String key : dataTypes.keySet()) {
-        qs.addSelector("DND", key);
-      }
-      helper.clear();
-      qs.merge(this.qs);
-      qs.setFilePath(filePath);
-      qs.setDelimiter(',');
-      qs.setColumnTypes(dataTypes);
-      qs.setAdditionalTypes(additionalDataTypes);
-      return qs;
-    } catch (IOException e) {
-      logger.error(Constants.STACKTRACE, e);
-    } finally {
-      if (target != null) {
-        try {
-          target.flush();
-          target.close();
-        } catch (IOException e) {
-          logger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
-    return qs;
-  }
+			// get datatypes
+			CSVFileHelper helper = new CSVFileHelper();
+			helper.setDelimiter(',');
+			helper.parse(filePath);
+			Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(),
+					helper.predictTypes());
+			Map<String, String> dataTypes = predictionMaps[0];
+			Map<String, String> additionalDataTypes = predictionMaps[1];
+			for (String key : dataTypes.keySet()) {
+				qs.addSelector("DND", key);
+			}
+			helper.clear();
+			qs.merge(this.qs);
+			qs.setFilePath(filePath);
+			qs.setDelimiter(',');
+			qs.setColumnTypes(dataTypes);
+			qs.setAdditionalTypes(additionalDataTypes);
+			return qs;
+		} catch (IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (target != null) {
+				try {
+					target.flush();
+					target.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return qs;
+	}
 }

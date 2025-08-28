@@ -27,42 +27,42 @@ import prerna.util.Constants;
 
 public class TrimColumnReactor extends AbstractFrameReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(TrimColumnReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(TrimColumnReactor.class);
 
-  @Override
-  public NounMetadata execute() {
-    AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
-    OwlTemporalEngineMeta metaData = frame.getMetaData();
+	@Override
+	public NounMetadata execute() {
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
+		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
-    GenRowStruct inputsGRS = this.getCurRow();
-    String update = "";
-    if (inputsGRS != null && !inputsGRS.isEmpty()) {
-      for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
-        NounMetadata input = inputsGRS.getNoun(selectIndex);
-        String columnName = input.getValue() + "";
+		GenRowStruct inputsGRS = this.getCurRow();
+		String update = "";
+		if (inputsGRS != null && !inputsGRS.isEmpty()) {
+			for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
+				NounMetadata input = inputsGRS.getNoun(selectIndex);
+				String columnName = input.getValue() + "";
 
-        String table = frame.getName();
-        String column = columnName;
-        if (columnName.contains("__")) {
-          String[] split = columnName.split("__");
-          table = split[0];
-          column = split[1];
-        }
+				String table = frame.getName();
+				String column = columnName;
+				if (columnName.contains("__")) {
+					String[] split = columnName.split("__");
+					table = split[0];
+					column = split[1];
+				}
 
-        String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
-        if (dataType.equals("STRING")) {
-          // execute update table set column = UPPER(column);
-          update += "UPDATE " + table + " SET " + column + " = TRIM(" + column + ");";
-        }
-      }
-    }
-    if (update.length() > 0) {
-      try {
-        frame.getBuilder().runQuery(update);
-      } catch (Exception e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
-    return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-  }
+				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
+				if (dataType.equals("STRING")) {
+					// execute update table set column = UPPER(column);
+					update += "UPDATE " + table + " SET " + column + " = TRIM(" + column + ");";
+				}
+			}
+		}
+		if (update.length() > 0) {
+			try {
+				frame.getBuilder().runQuery(update);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+	}
 }

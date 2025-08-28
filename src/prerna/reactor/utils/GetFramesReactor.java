@@ -26,23 +26,23 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetFramesReactor extends AbstractReactor {
 
-  @Override
-  public NounMetadata execute() {
-    List<String> frameNames = new Vector<String>();
-    Set<ITableDataFrame> uniqueFrames = new HashSet<ITableDataFrame>();
+	@Override
+	public NounMetadata execute() {
+		List<String> frameNames = new Vector<String>();
+		Set<ITableDataFrame> uniqueFrames = new HashSet<ITableDataFrame>();
 
-    VarStore varStore = this.insight.getVarStore();
-    for (String k : varStore.getKeys()) {
-      NounMetadata noun = varStore.get(k);
-      if (noun.getNounType() == PixelDataType.FRAME) {
-        uniqueFrames.add((ITableDataFrame) noun.getValue());
-      }
-    }
+		VarStore varStore = this.insight.getVarStore();
+		for (String k : varStore.getKeys()) {
+			NounMetadata noun = varStore.get(k);
+			if (noun.getNounType() == PixelDataType.FRAME) {
+				uniqueFrames.add((ITableDataFrame) noun.getValue());
+			}
+		}
 
-    for (ITableDataFrame f : uniqueFrames) {
-      frameNames.add(f.getOriginalName());
-    }
+		for (ITableDataFrame f : uniqueFrames) {
+			frameNames.add(f.getOriginalName());
+		}
 
-    return new NounMetadata(frameNames, PixelDataType.CONST_STRING);
-  }
+		return new NounMetadata(frameNames, PixelDataType.CONST_STRING);
+	}
 }

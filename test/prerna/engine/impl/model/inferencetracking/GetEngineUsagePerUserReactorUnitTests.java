@@ -37,96 +37,75 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetEngineUsagePerUserReactorUnitTests {
-  User user;
-  Insight insight;
-  Map<String, String> map;
-  GetEngineUsagePerUserReactor reactor;
+	User user;
+	Insight insight;
+	Map<String, String> map;
+	GetEngineUsagePerUserReactor reactor;
 
-  @BeforeEach
-  void setup() {
-    map = new HashMap<>();
-    map.put(ReactorKeysEnum.ENGINE.getKey(), "engine");
-    map.put(ReactorKeysEnum.LIMIT.getKey(), "limit");
-    map.put(ReactorKeysEnum.OFFSET.getKey(), "offset");
-    map.put(ReactorKeysEnum.START_DATE.getKey(), "start date");
-    map.put(ReactorKeysEnum.END_DATE.getKey(), "end date");
+	@BeforeEach
+	void setup() {
+		map = new HashMap<>();
+		map.put(ReactorKeysEnum.ENGINE.getKey(), "engine");
+		map.put(ReactorKeysEnum.LIMIT.getKey(), "limit");
+		map.put(ReactorKeysEnum.OFFSET.getKey(), "offset");
+		map.put(ReactorKeysEnum.START_DATE.getKey(), "start date");
+		map.put(ReactorKeysEnum.END_DATE.getKey(), "end date");
 
-    user = mock(User.class);
-    insight = mock(Insight.class);
+		user = mock(User.class);
+		insight = mock(Insight.class);
 
-    reactor = new GetEngineUsagePerUserReactor();
+		reactor = new GetEngineUsagePerUserReactor();
 
-    reactor.setInsight(insight);
-    when(insight.getUser()).thenReturn(user);
-  }
+		reactor.setInsight(insight);
+		when(insight.getUser()).thenReturn(user);
+	}
 
-  @Test
-  void noEngineId() {
-    map.remove(ReactorKeysEnum.ENGINE.getKey());
-    reactor.keyValue = map;
+	@Test
+	void noEngineId() {
+		map.remove(ReactorKeysEnum.ENGINE.getKey());
+		reactor.keyValue = map;
 
-    try (MockedStatic<SecurityAdminUtils> adminUtils =
-            Mockito.mockStatic(SecurityAdminUtils.class);
-        MockedStatic<SecurityQueryUtils> queryUtils =
-            Mockito.mockStatic(SecurityQueryUtils.class)) {
-      adminUtils
-          .when(() -> SecurityAdminUtils.getInstance(user))
-          .thenReturn(mock(SecurityAdminUtils.class));
-      queryUtils
-          .when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine"))
-          .thenReturn("engine");
+		try (MockedStatic<SecurityAdminUtils> adminUtils = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<SecurityQueryUtils> queryUtils = Mockito.mockStatic(SecurityQueryUtils.class)) {
+			adminUtils.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(mock(SecurityAdminUtils.class));
+			queryUtils.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine")).thenReturn("engine");
 
-      IllegalArgumentException e =
-          assertThrows(IllegalArgumentException.class, () -> reactor.execute());
-      assertEquals("Must input an engine id", e.getMessage());
-    }
-  }
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> reactor.execute());
+			assertEquals("Must input an engine id", e.getMessage());
+		}
+	}
 
-  @Test
-  void userNotOwner() {
-    reactor.keyValue = map;
+	@Test
+	void userNotOwner() {
+		reactor.keyValue = map;
 
-    try (MockedStatic<SecurityQueryUtils> queryUtils =
-            Mockito.mockStatic(SecurityQueryUtils.class);
-        MockedStatic<SecurityEngineUtils> engineUtils =
-            Mockito.mockStatic(SecurityEngineUtils.class)) {
-      queryUtils
-          .when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine"))
-          .thenReturn("engine");
-      engineUtils.when(() -> SecurityEngineUtils.userIsOwner(user, "engine")).thenReturn(false);
+		try (MockedStatic<SecurityQueryUtils> queryUtils = Mockito.mockStatic(SecurityQueryUtils.class);
+				MockedStatic<SecurityEngineUtils> engineUtils = Mockito.mockStatic(SecurityEngineUtils.class)) {
+			queryUtils.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine")).thenReturn("engine");
+			engineUtils.when(() -> SecurityEngineUtils.userIsOwner(user, "engine")).thenReturn(false);
 
-      IllegalArgumentException e =
-          assertThrows(IllegalArgumentException.class, () -> reactor.execute());
-      assertEquals("Engine does not exist or user is not an owner of Engine", e.getMessage());
-    }
-  }
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> reactor.execute());
+			assertEquals("Engine does not exist or user is not an owner of Engine", e.getMessage());
+		}
+	}
 
-  @Test
-  void normalFunctionality() {
-    List<Map<String, Object>> list = new ArrayList<>();
+	@Test
+	void normalFunctionality() {
+		List<Map<String, Object>> list = new ArrayList<>();
 
-    reactor.keyValue = map;
+		reactor.keyValue = map;
 
-    try (MockedStatic<SecurityQueryUtils> queryUtils =
-            Mockito.mockStatic(SecurityQueryUtils.class);
-        MockedStatic<SecurityEngineUtils> engineUtils =
-            Mockito.mockStatic(SecurityEngineUtils.class);
-        MockedStatic<ModelInferenceLogsUtils> modelUtils =
-            Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
-      queryUtils
-          .when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine"))
-          .thenReturn("engine");
-      engineUtils.when(() -> SecurityEngineUtils.userIsOwner(user, "engine")).thenReturn(true);
-      modelUtils
-          .when(
-              () ->
-                  ModelInferenceLogsUtils.getUserUsagePerEngine(
-                      "engine", "limit", "offset", "start date", "end date"))
-          .thenReturn(list);
+		try (MockedStatic<SecurityQueryUtils> queryUtils = Mockito.mockStatic(SecurityQueryUtils.class);
+				MockedStatic<SecurityEngineUtils> engineUtils = Mockito.mockStatic(SecurityEngineUtils.class);
+				MockedStatic<ModelInferenceLogsUtils> modelUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
+			queryUtils.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine")).thenReturn("engine");
+			engineUtils.when(() -> SecurityEngineUtils.userIsOwner(user, "engine")).thenReturn(true);
+			modelUtils.when(() -> ModelInferenceLogsUtils.getUserUsagePerEngine("engine", "limit", "offset",
+					"start date", "end date")).thenReturn(list);
 
-      NounMetadata n = reactor.execute();
-      assertEquals(list, n.getValue());
-      assertEquals(PixelDataType.FORMATTED_DATA_SET, n.getNounType());
-    }
-  }
+			NounMetadata n = reactor.execute();
+			assertEquals(list, n.getValue());
+			assertEquals(PixelDataType.FORMATTED_DATA_SET, n.getNounType());
+		}
+	}
 }

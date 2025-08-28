@@ -30,53 +30,49 @@ import prerna.util.Constants;
 
 public class SesameJenaBooleanWrapperUnitTests {
 
-  private SesameJenaBooleanWrapper wrapper;
-  private IDatabaseEngine engine;
+	private SesameJenaBooleanWrapper wrapper;
+	private IDatabaseEngine engine;
 
-  @BeforeEach
-  void setUp(@TempDir Path tempDir) throws Exception {
-    wrapper = new SesameJenaBooleanWrapper();
+	@BeforeEach
+	void setUp(@TempDir Path tempDir) throws Exception {
+		wrapper = new SesameJenaBooleanWrapper();
 
-    engine = new RDFFileSesameEngine();
-    Path rdf = tempDir.resolve("rdf.owl");
-    Files.createDirectories(rdf.getParent());
-    URI uri = rdf.toUri();
-    URL url = RdfUploadReactorUtility.class.getResource("movie-book-title.owl");
-    String rdfPath = rdf.toAbsolutePath().toString();
-    assert url != null;
-    Path p = Paths.get(url.toURI());
-    Files.copy(p, rdf);
+		engine = new RDFFileSesameEngine();
+		Path rdf = tempDir.resolve("rdf.owl");
+		Files.createDirectories(rdf.getParent());
+		URI uri = rdf.toUri();
+		URL url = RdfUploadReactorUtility.class.getResource("movie-book-title.owl");
+		String rdfPath = rdf.toAbsolutePath().toString();
+		assert url != null;
+		Path p = Paths.get(url.toURI());
+		Files.copy(p, rdf);
 
-    Path smss = tempDir.resolve("engine-01.smss");
-    Files.createFile(smss);
+		Path smss = tempDir.resolve("engine-01.smss");
+		Files.createFile(smss);
 
-    Properties props = new Properties();
-    props.setProperty(Constants.ENGINE, "engine-01");
-    props.setProperty(Constants.ENGINE_ALIAS, "ea");
-    props.setProperty(Constants.RDF_FILE_NAME, rdfPath);
-    props.setProperty(Constants.RDF_FILE_PATH, rdfPath);
-    props.setProperty(Constants.RDF_FILE_BASE_URI, uri.toString());
-    props.setProperty(Constants.RDF_FILE_TYPE, "RDF/XML");
+		Properties props = new Properties();
+		props.setProperty(Constants.ENGINE, "engine-01");
+		props.setProperty(Constants.ENGINE_ALIAS, "ea");
+		props.setProperty(Constants.RDF_FILE_NAME, rdfPath);
+		props.setProperty(Constants.RDF_FILE_PATH, rdfPath);
+		props.setProperty(Constants.RDF_FILE_BASE_URI, uri.toString());
+		props.setProperty(Constants.RDF_FILE_TYPE, "RDF/XML");
 
-    String typeQuery =
-        "SELECT ?entity WHERE {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <@entity@>;}";
-    props.setProperty(Constants.TYPE_QUERY, typeQuery);
+		String typeQuery = "SELECT ?entity WHERE {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <@entity@>;}";
+		props.setProperty(Constants.TYPE_QUERY, typeQuery);
 
-    engine.setBasic(true);
-    engine.open(props);
+		engine.setBasic(true);
+		engine.open(props);
 
-    wrapper.setEngine(engine);
-  }
+		wrapper.setEngine(engine);
+	}
 
-  @Test
-  void testSesameJenaBooleanWrapper() throws Exception {
-    String query =
-        "ASK WHERE { \n"
-            + "<http://semoss.org/ontologies/Relation/Contains/BOOK/TITLE> ?p ?o .\n"
-            + "}";
+	@Test
+	void testSesameJenaBooleanWrapper() throws Exception {
+		String query = "ASK WHERE { \n" + "<http://semoss.org/ontologies/Relation/Contains/BOOK/TITLE> ?p ?o .\n" + "}";
 
-    wrapper.setQuery(query);
+		wrapper.setQuery(query);
 
-    assertTrue(wrapper.execute());
-  }
+		assertTrue(wrapper.execute());
+	}
 }

@@ -18,48 +18,48 @@ package prerna.query.querystruct;
 
 public class OpExpression extends SelectQueryStruct {
 
-  boolean composite = false;
+	boolean composite = false;
 
-  Object rightItem = null;
-  Object leftItem = null;
+	Object rightItem = null;
+	Object leftItem = null;
 
-  String rightExpr = null;
-  String leftExpr = null;
-  String on = null;
+	String rightExpr = null;
+	String leftExpr = null;
+	String on = null;
 
-  String expression = null;
-  SelectQueryStruct item = null;
-  String comparator = null;
+	String expression = null;
+	SelectQueryStruct item = null;
+	String comparator = null;
 
-  public void setRightExpresion(Object rightItem) {
-    this.rightItem = rightItem;
-  }
+	public void setRightExpresion(Object rightItem) {
+		this.rightItem = rightItem;
+	}
 
-  public void setLeftExpresion(Object leftItem) {
-    this.leftItem = leftItem;
-  }
+	public void setLeftExpresion(Object leftItem) {
+		this.leftItem = leftItem;
+	}
 
-  public void setExpression(String expression) {
-    this.expression = expression;
-  }
+	public void setExpression(String expression) {
+		this.expression = expression;
+	}
 
-  public void setFromItem(SelectQueryStruct item) {
-    this.item = item;
-  }
+	public void setFromItem(SelectQueryStruct item) {
+		this.item = item;
+	}
 
-  public void setComposite(boolean composite) {
-    this.composite = composite;
-  }
+	public void setComposite(boolean composite) {
+		this.composite = composite;
+	}
 
-  public void setLeftExpr(String expr) {
-    this.leftExpr = expr;
-  }
+	public void setLeftExpr(String expr) {
+		this.leftExpr = expr;
+	}
 
-  public void setRightExpr(String expr) {
-    this.rightExpr = expr;
-  }
+	public void setRightExpr(String expr) {
+		this.rightExpr = expr;
+	}
 
-  public void setOn(String on) {
-    this.expression = on;
-  }
+	public void setOn(String on) {
+		this.expression = on;
+	}
 }

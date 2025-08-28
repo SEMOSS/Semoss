@@ -25,71 +25,71 @@ import prerna.testing.AbstractBaseSemossApiTests;
 
 public class AddPromptReactorTests extends AbstractBaseSemossApiTests {
 
-  @Test
-  public void addOnePromptTest() {
-    String title = "Test-Title";
-    String context = "Translate {{question}}";
-    String intent = "Test Prompt";
+	@Test
+	public void addOnePromptTest() {
+		String title = "Test-Title";
+		String context = "Translate {{question}}";
+		String intent = "Test Prompt";
 
-    List<String> tags = Arrays.asList("World", "GAMING", "PLANTS");
-    PromptTestUtils.addPrompt(title, context, intent, tags);
+		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS");
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 
-    NounMetadata listPrompts = PromptTestUtils.listPrompts();
-    assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
-  }
+		NounMetadata listPrompts = PromptTestUtils.listPrompts();
+		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+	}
 
-  @Test
-  public void addTwoPrompts() {
+	@Test
+	public void addTwoPrompts() {
 
-    String title = "Test-Title";
-    String context = "Translate {{question}}";
-    String intent = "Test Prompt";
-    List<String> tags = Arrays.asList("World", "GAMING", "PLANTS");
+		String title = "Test-Title";
+		String context = "Translate {{question}}";
+		String intent = "Test Prompt";
+		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS");
 
-    PromptTestUtils.addPrompt(title, context, intent, tags);
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 
-    // Changing vars for prompt 2
-    title = "Test-Title-2";
-    context = "Translate the {{question}} int {{language}}";
-    tags = Arrays.asList("World", "Travel");
-    intent = "Test Prompt Intent 2";
-    PromptTestUtils.addPrompt(title, context, intent, tags);
+		// Changing vars for prompt 2
+		title = "Test-Title-2";
+		context = "Translate the {{question}} int {{language}}";
+		tags = Arrays.asList("World", "Travel");
+		intent = "Test Prompt Intent 2";
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 
-    NounMetadata listPrompts = PromptTestUtils.listPrompts();
-    assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
-  }
+		NounMetadata listPrompts = PromptTestUtils.listPrompts();
+		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+	}
 
-  @Test
-  public void addTwoPromptsGetOneTag() {
+	@Test
+	public void addTwoPromptsGetOneTag() {
 
-    String title = "Test-Title";
-    String context = "Translate {{question}}";
-    String intent = "Test Prompt";
-    List<String> tags = Arrays.asList("World", "GAMING", "PLANTS");
+		String title = "Test-Title";
+		String context = "Translate {{question}}";
+		String intent = "Test Prompt";
+		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS");
 
-    PromptTestUtils.addPrompt(title, context, intent, tags);
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 
-    // Changing vars for prompt 2
-    title = "Test-Title-2";
-    context = "Translate the {{question}} int {{language}}";
-    tags = Arrays.asList("World", "Travel");
-    intent = "second intent";
-    PromptTestUtils.addPrompt(title, context, intent, tags);
+		// Changing vars for prompt 2
+		title = "Test-Title-2";
+		context = "Translate the {{question}} int {{language}}";
+		tags = Arrays.asList("World", "Travel");
+		intent = "second intent";
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 
-    List<String> metaTagsFilters = Arrays.asList("World");
-    NounMetadata listPrompts = PromptTestUtils.listPrompts(metaTagsFilters);
-    assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
-  }
+		List<String> metaTagsFilters = Arrays.asList("World");
+		NounMetadata listPrompts = PromptTestUtils.listPrompts(metaTagsFilters);
+		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+	}
 
-  @Test
-  public void addPromptValidationTest() {
-    String title = "Test-Title";
-    String context = "Translate {{question}}";
-    String intent = "Test Prompt";
-    List<String> tags = Arrays.asList("World", "GAMING", "PLANTS");
-    PromptTestUtils.addPrompt(title, context, intent, tags);
+	@Test
+	public void addPromptValidationTest() {
+		String title = "Test-Title";
+		String context = "Translate {{question}}";
+		String intent = "Test Prompt";
+		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS");
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 
-    NounMetadata listPrompts = PromptTestUtils.listPrompts();
-    assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
-  }
+		NounMetadata listPrompts = PromptTestUtils.listPrompts();
+		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+	}
 }

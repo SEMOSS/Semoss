@@ -16,10 +16,10 @@ package prerna.reactor;
 
 public class ParallelThread implements Runnable {
 
-  IParallelWorker worker = null;
+	IParallelWorker worker = null;
 
-  @Override
-  public void run() {
-    worker.run();
-  }
+	@Override
+	public void run() {
+		worker.run();
+	}
 }

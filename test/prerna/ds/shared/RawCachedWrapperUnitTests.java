@@ -28,45 +28,45 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 
 public class RawCachedWrapperUnitTests {
-  RawCachedWrapper reactor = new RawCachedWrapper();
-  CachedIterator cachedIt;
-  IHeadersDataRow dataRow;
+	RawCachedWrapper reactor = new RawCachedWrapper();
+	CachedIterator cachedIt;
+	IHeadersDataRow dataRow;
 
-  @Test
-  void test() throws Exception {
-    String[] headers = new String[] {"header"};
-    SemossDataType[] types = new SemossDataType[1];
+	@Test
+	void test() throws Exception {
+		String[] headers = new String[]{"header"};
+		SemossDataType[] types = new SemossDataType[1];
 
-    cachedIt = mock(CachedIterator.class);
-    dataRow = mock(IHeadersDataRow.class);
+		cachedIt = mock(CachedIterator.class);
+		dataRow = mock(IHeadersDataRow.class);
 
-    when(cachedIt.getFirst()).thenReturn(true);
-    when(cachedIt.hasNext()).thenReturn(true);
-    when(cachedIt.next()).thenReturn(dataRow);
-    when(cachedIt.getHeaders()).thenReturn(headers);
-    when(cachedIt.getColTypes()).thenReturn(types);
-    when(cachedIt.getInitSize()).thenReturn(1);
+		when(cachedIt.getFirst()).thenReturn(true);
+		when(cachedIt.hasNext()).thenReturn(true);
+		when(cachedIt.next()).thenReturn(dataRow);
+		when(cachedIt.getHeaders()).thenReturn(headers);
+		when(cachedIt.getColTypes()).thenReturn(types);
+		when(cachedIt.getInitSize()).thenReturn(1);
 
-    assertNotNull(reactor.getIterator());
+		assertNotNull(reactor.getIterator());
 
-    reactor.setQuery("");
-    reactor.setEngine(null);
-    reactor.setIterator(cachedIt);
-    reactor.execute();
-    reactor.close();
-    reactor.reset();
+		reactor.setQuery("");
+		reactor.setEngine(null);
+		reactor.setIterator(cachedIt);
+		reactor.execute();
+		reactor.close();
+		reactor.reset();
 
-    assertTrue(reactor.first());
-    assertEquals(cachedIt, reactor.getIterator());
-    assertFalse(reactor.flushable());
-    assertNull(reactor.flush());
-    assertNull(reactor.getQuery());
-    assertTrue(reactor.hasNext());
-    assertEquals(dataRow, reactor.next());
-    assertArrayEquals(headers, reactor.getHeaders());
-    assertArrayEquals(types, reactor.getTypes());
-    assertEquals(1, reactor.getNumRows());
-    assertEquals(1, reactor.getNumRecords());
-    assertNull(reactor.getEngine());
-  }
+		assertTrue(reactor.first());
+		assertEquals(cachedIt, reactor.getIterator());
+		assertFalse(reactor.flushable());
+		assertNull(reactor.flush());
+		assertNull(reactor.getQuery());
+		assertTrue(reactor.hasNext());
+		assertEquals(dataRow, reactor.next());
+		assertArrayEquals(headers, reactor.getHeaders());
+		assertArrayEquals(types, reactor.getTypes());
+		assertEquals(1, reactor.getNumRows());
+		assertEquals(1, reactor.getNumRecords());
+		assertNull(reactor.getEngine());
+	}
 }

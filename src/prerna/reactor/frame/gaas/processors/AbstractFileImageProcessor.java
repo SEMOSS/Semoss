@@ -35,109 +35,107 @@ import org.apache.tika.metadata.TikaCoreProperties;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 
-public abstract class AbstractFileImageProcessor extends AbstractFileProcessor
-    implements IFileImageProcessor {
+public abstract class AbstractFileImageProcessor extends AbstractFileProcessor implements IFileImageProcessor {
 
-  private static final Logger classLogger = LogManager.getLogger(AbstractFileImageProcessor.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractFileImageProcessor.class);
 
-  // Define the min image dimensions
-  protected static final int MIN_IMAGE_WIDTH = 300;
-  protected static final int MIN_IMAGE_HEIGHT = 300;
+	// Define the min image dimensions
+	protected static final int MIN_IMAGE_WIDTH = 300;
+	protected static final int MIN_IMAGE_HEIGHT = 300;
 
-  protected Map<String, String> imageMap;
+	protected Map<String, String> imageMap;
 
-  public AbstractFileImageProcessor(String filePath, VectorDatabaseCSVWriter writer) {
-    super(filePath, writer);
-    this.imageMap = new HashMap<>();
-  }
+	public AbstractFileImageProcessor(String filePath, VectorDatabaseCSVWriter writer) {
+		super(filePath, writer);
+		this.imageMap = new HashMap<>();
+	}
 
-  @Override
-  public Map<String, String> getImageMap() {
-    return imageMap;
-  }
+	@Override
+	public Map<String, String> getImageMap() {
+		return imageMap;
+	}
 
-  /**
-   * @return
-   */
-  protected String generateUniqueImageId() {
-    return "[[IMG:" + UUID.randomUUID().toString() + "]]";
-  }
+	/**
+	 * @return
+	 */
+	protected String generateUniqueImageId() {
+		return "[[IMG:" + UUID.randomUUID().toString() + "]]";
+	}
 
-  /**
-   * @param image
-   * @return
-   */
-  protected String convertToBase64(BufferedImage image) {
-    try {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      ImageIO.write(image, "png", baos);
-      byte[] imageBytes = baos.toByteArray();
-      return Base64.getEncoder().encodeToString(imageBytes);
-    } catch (IOException e) {
-      classLogger.error("Error converting image to Base64", e);
-      return "";
-    }
-  }
+	/**
+	 * @param image
+	 * @return
+	 */
+	protected String convertToBase64(BufferedImage image) {
+		try {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ImageIO.write(image, "png", baos);
+			byte[] imageBytes = baos.toByteArray();
+			return Base64.getEncoder().encodeToString(imageBytes);
+		} catch (IOException e) {
+			classLogger.error("Error converting image to Base64", e);
+			return "";
+		}
+	}
 
-  /**
-   * @param file
-   * @param writer
-   * @return
-   */
-  public static IFileImageProcessor getFileProcessor(File file, VectorDatabaseCSVWriter writer) {
-    // pick up the files and convert them to CSV
-    classLogger.info("Processing file : " + file.getName());
+	/**
+	 * @param file
+	 * @param writer
+	 * @return
+	 */
+	public static IFileImageProcessor getFileProcessor(File file, VectorDatabaseCSVWriter writer) {
+		// pick up the files and convert them to CSV
+		classLogger.info("Processing file : " + file.getName());
 
-    // process this file
-    String filetype = FilenameUtils.getExtension(file.getAbsolutePath());
-    String mimeType = null;
+		// process this file
+		String filetype = FilenameUtils.getExtension(file.getAbsolutePath());
+		String mimeType = null;
 
-    // using tika for mime type check since it is more consistent across env + rhel
-    // OS and macOS
-    TikaConfig config = TikaConfig.getDefaultConfig();
-    Detector detector = config.getDetector();
-    Metadata metadata = new Metadata();
-    metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, file.getName());
-    try (TikaInputStream stream = TikaInputStream.get(new FileInputStream(file))) {
-      mimeType = detector.detect(stream, metadata).toString();
-    } catch (IOException e) {
-      classLogger.error(Constants.ERROR_MESSAGE, e);
-    }
+		// using tika for mime type check since it is more consistent across env + rhel
+		// OS and macOS
+		TikaConfig config = TikaConfig.getDefaultConfig();
+		Detector detector = config.getDetector();
+		Metadata metadata = new Metadata();
+		metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, file.getName());
+		try (TikaInputStream stream = TikaInputStream.get(new FileInputStream(file))) {
+			mimeType = detector.detect(stream, metadata).toString();
+		} catch (IOException e) {
+			classLogger.error(Constants.ERROR_MESSAGE, e);
+		}
 
-    if (mimeType == null) {
-      throw new NullPointerException("Unable to determine the mimType for file " + file.getName());
-    }
+		if (mimeType == null) {
+			throw new NullPointerException("Unable to determine the mimType for file " + file.getName());
+		}
 
-    IFileImageProcessor processor = null;
+		IFileImageProcessor processor = null;
 
-    classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
-    if (mimeType.equalsIgnoreCase(
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-        || ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
-                || mimeType.equalsIgnoreCase("application/msword")
-                || mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
-            && (filetype.equals("doc") || filetype.equals("docx")))) {
-      // document
-      processor = new ImageDocProcessor(file.getAbsolutePath(), writer);
-    } else if (mimeType.equalsIgnoreCase(
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation")
-        || ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
-                || (mimeType.equalsIgnoreCase("application/vnd.ms-powerpoint")))
-            && (filetype.equals("ppt") || filetype.equals("pptx")))) {
-      // powerpoint
-      processor = new ImagePPTProcessor(file.getAbsolutePath(), writer);
-    } else if (mimeType.equalsIgnoreCase("application/pdf")) {
-      processor = new ImagePDFProcessor(file.getAbsolutePath(), writer);
-    } else {
-      classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-      classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-      classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-      classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-      classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-      classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-      classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-    }
+		classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
+		if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+				|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+						|| mimeType.equalsIgnoreCase("application/msword")
+						|| mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
+						&& (filetype.equals("doc") || filetype.equals("docx")))) {
+			// document
+			processor = new ImageDocProcessor(file.getAbsolutePath(), writer);
+		} else if (mimeType
+				.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
+				|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+						|| (mimeType.equalsIgnoreCase("application/vnd.ms-powerpoint")))
+						&& (filetype.equals("ppt") || filetype.equals("pptx")))) {
+			// powerpoint
+			processor = new ImagePPTProcessor(file.getAbsolutePath(), writer);
+		} else if (mimeType.equalsIgnoreCase("application/pdf")) {
+			processor = new ImagePDFProcessor(file.getAbsolutePath(), writer);
+		} else {
+			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+		}
 
-    return processor;
-  }
+		return processor;
+	}
 }

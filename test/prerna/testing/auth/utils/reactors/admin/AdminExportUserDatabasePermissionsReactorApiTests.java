@@ -18,42 +18,35 @@ import prerna.testing.AbstractBaseSemossApiTests;
 
 public class AdminExportUserDatabasePermissionsReactorApiTests extends AbstractBaseSemossApiTests {
 
-  /*private FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
-  /* private FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
-
-  	private AdminExportUserDatabasePermissionsReactor reactor;
-  	private Insight insight;
-  	private User user;
-  	private NounStore ns;
-  	private Path testFilePath;
-  	private String engine;
-
-
-  	@BeforeEach
-  	void setup() throws IOException {
-  		reactor = new AdminExportUserDatabasePermissionsReactor();
-  		reactor.setFileSystem(fs);
-  		insight = mock(Insight.class);
-  		user = mock(User.class);
-  		reactor.setInsight(insight);
-  		when(insight.getUser()).thenReturn(user);
-
-  		ns = mock(NounStore.class);
-  		reactor.setNounStore(ns);
-
-  		Path p = fs.getPath("work", "insight1");
-  		Files.createDirectories(p);
-
-  	}
-
-      @Test
-      public void testAdminUtilsNullThrowsException() {
-
-      	//testFilePath = Files.createTempFile("test-file", ".txt");
-      	String engine = ApiSemossTestEngineUtils.createBasicEngine();
-          when(SecurityAdminUtils.getInstance(user)).thenReturn(null); // Simulate adminUtils being null
-          String pixel = ApiSemossTestUtils.buildPixelCall(AdminExportUserDatabasePermissionsReactor.class, ReactorKeysEnum.ENGINE.getKey(), engine);
-  		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-      } */
+	/*
+	 * private FileSystem fs = Jimfs.newFileSystem(Configuration.unix()); /* private
+	 * FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
+	 * 
+	 * private AdminExportUserDatabasePermissionsReactor reactor; private Insight
+	 * insight; private User user; private NounStore ns; private Path testFilePath;
+	 * private String engine;
+	 * 
+	 * 
+	 * @BeforeEach void setup() throws IOException { reactor = new
+	 * AdminExportUserDatabasePermissionsReactor(); reactor.setFileSystem(fs);
+	 * insight = mock(Insight.class); user = mock(User.class);
+	 * reactor.setInsight(insight); when(insight.getUser()).thenReturn(user);
+	 * 
+	 * ns = mock(NounStore.class); reactor.setNounStore(ns);
+	 * 
+	 * Path p = fs.getPath("work", "insight1"); Files.createDirectories(p);
+	 * 
+	 * }
+	 * 
+	 * @Test public void testAdminUtilsNullThrowsException() {
+	 * 
+	 * //testFilePath = Files.createTempFile("test-file", ".txt"); String engine =
+	 * ApiSemossTestEngineUtils.createBasicEngine();
+	 * when(SecurityAdminUtils.getInstance(user)).thenReturn(null); // Simulate
+	 * adminUtils being null String pixel =
+	 * ApiSemossTestUtils.buildPixelCall(AdminExportUserDatabasePermissionsReactor.
+	 * class, ReactorKeysEnum.ENGINE.getKey(), engine); NounMetadata nm =
+	 * ApiSemossTestUtils.processPixel(pixel); }
+	 */
 
 }

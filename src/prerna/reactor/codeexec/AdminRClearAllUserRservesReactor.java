@@ -24,28 +24,28 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AdminRClearAllUserRservesReactor extends AbstractReactor {
 
-  @Override
-  public NounMetadata execute() {
-    if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
-      throw new IllegalArgumentException("User must be an admin to perform this action.");
-    }
+	@Override
+	public NounMetadata execute() {
+		if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
+			throw new IllegalArgumentException("User must be an admin to perform this action.");
+		}
 
-    boolean success = true;
-    if (RserveUtil.IS_USER_RSERVE) {
-      if (RserveUtil.R_USER_CONNECTION_TYPE.equals(IRUserConnection.POOLED)) {
-        try {
-          RserveConnectionPool.getInstance().shutdown();
-        } catch (Exception e) {
-          success = false;
-        }
-      }
-      try {
-        RserveUtil.endR();
-      } catch (Exception e) {
-        success = false;
-      }
-    }
+		boolean success = true;
+		if (RserveUtil.IS_USER_RSERVE) {
+			if (RserveUtil.R_USER_CONNECTION_TYPE.equals(IRUserConnection.POOLED)) {
+				try {
+					RserveConnectionPool.getInstance().shutdown();
+				} catch (Exception e) {
+					success = false;
+				}
+			}
+			try {
+				RserveUtil.endR();
+			} catch (Exception e) {
+				success = false;
+			}
+		}
 
-    return new NounMetadata(success, PixelDataType.BOOLEAN);
-  }
+		return new NounMetadata(success, PixelDataType.BOOLEAN);
+	}
 }

@@ -37,262 +37,264 @@ import prerna.util.SemossClassloader;
 
 public interface IProject extends IEngine, Closeable {
 
-  String DEPENDENCIES_FILE_SUFFIX = "_dependencies.json";
-  String BLOCK_FILE_NAME = "blocks.json";
-  String NOTEBOOK_FOLDER = ".notebooks";
+	String DEPENDENCIES_FILE_SUFFIX = "_dependencies.json";
+	String BLOCK_FILE_NAME = "blocks.json";
+	String NOTEBOOK_FOLDER = ".notebooks";
 
-  enum PROJECT_TYPE {
-    BLOCKS,
-    CODE,
-    INSIGHTS
-  };
+	enum PROJECT_TYPE {
+		BLOCKS, CODE, INSIGHTS
+	};
 
-  /**
-   * Sets the unique id for the project
-   *
-   * @param projectId - id to set the project
-   */
-  void setProjectId(String projectId);
+	/**
+	 * Sets the unique id for the project
+	 *
+	 * @param projectId
+	 *            - id to set the project
+	 */
+	void setProjectId(String projectId);
 
-  /**
-   * Get the project id
-   *
-   * @return
-   */
-  String getProjectId();
+	/**
+	 * Get the project id
+	 *
+	 * @return
+	 */
+	String getProjectId();
 
-  /**
-   * @return
-   */
-  IProject.PROJECT_TYPE getProjectType();
+	/**
+	 * @return
+	 */
+	IProject.PROJECT_TYPE getProjectType();
 
-  /**
-   * Sets the name for the project
-   *
-   * @param projectName - name of the project
-   */
-  void setProjectName(String projectName);
+	/**
+	 * Sets the name for the project
+	 *
+	 * @param projectName
+	 *            - name of the project
+	 */
+	void setProjectName(String projectName);
 
-  /**
-   * Get the project name
-   *
-   * @return
-   */
-  String getProjectName();
+	/**
+	 * Get the project name
+	 *
+	 * @return
+	 */
+	String getProjectName();
 
-  /**
-   * @return
-   */
-  boolean isHasPortal();
+	/**
+	 * @return
+	 */
+	boolean isHasPortal();
 
-  /**
-   * @param hasPortal
-   */
-  void setHasPortal(boolean hasPortal);
+	/**
+	 * @param hasPortal
+	 */
+	void setHasPortal(boolean hasPortal);
 
-  // gets the perspectives for this engine
-  // REFAC: Not sure we need this anymore
-  Vector<String> getPerspectives();
+	// gets the perspectives for this engine
+	// REFAC: Not sure we need this anymore
+	Vector<String> getPerspectives();
 
-  // gets the questions for a given perspective
-  // REFAC: Not sure we need this anymore
-  Vector<String> getInsights(String perspective);
+	// gets the questions for a given perspective
+	// REFAC: Not sure we need this anymore
+	Vector<String> getInsights(String perspective);
 
-  // get all the insights irrespective of perspective
-  // REFAC: Not sure we need this anymore
-  Vector<String> getInsights();
+	// get all the insights irrespective of perspective
+	// REFAC: Not sure we need this anymore
+	Vector<String> getInsights();
 
-  // get the insight for a given question description
-  // REFAC: Not sure we need this anymore - we can do this where id is null
-  Vector<Insight> getInsight(String... id);
+	// get the insight for a given question description
+	// REFAC: Not sure we need this anymore - we can do this where id is null
+	Vector<Insight> getInsight(String... id);
 
-  /**
-   * Get the insight database
-   *
-   * @return
-   */
-  RDBMSNativeEngine getInsightDatabase();
+	/**
+	 * Get the insight database
+	 *
+	 * @return
+	 */
+	RDBMSNativeEngine getInsightDatabase();
 
-  /**
-   * Set the insight database
-   *
-   * @param insightDatabase
-   */
-  void setInsightDatabase(RDBMSNativeEngine insightDatabase);
+	/**
+	 * Set the insight database
+	 *
+	 * @param insightDatabase
+	 */
+	void setInsightDatabase(RDBMSNativeEngine insightDatabase);
 
-  /**
-   * Get a string representation of the insights database
-   *
-   * @return
-   */
-  String getInsightDefinition();
+	/**
+	 * Get a string representation of the insights database
+	 *
+	 * @return
+	 */
+	String getInsightDefinition();
 
-  /** Compile the project specific reactors */
-  void compileReactors(SemossClassloader loader);
+	/** Compile the project specific reactors */
+	void compileReactors(SemossClassloader loader);
 
-  /**
-   * Get project specific reactor
-   *
-   * @param reactorName
-   * @param loader
-   * @return
-   */
-  IReactor getReactor(String reactorName, SemossClassloader loader);
+	/**
+	 * Get project specific reactor
+	 *
+	 * @param reactorName
+	 * @param loader
+	 * @return
+	 */
+	IReactor getReactor(String reactorName, SemossClassloader loader);
 
-  /**
-   * Get an ordered set of the reactor names
-   *
-   * @return
-   */
-  TreeSet<String> getAvailableReactors();
+	/**
+	 * Get an ordered set of the reactor names
+	 *
+	 * @return
+	 */
+	TreeSet<String> getAvailableReactors();
 
-  // publish the engine assets to a specific location
-  // once published the assets in this app are available as a public_home from the browser
-  // this is useful to access javascript etc.
-  // to enable this - you need to put the property public_home_enable on the smss file
+	// publish the engine assets to a specific location
+	// once published the assets in this app are available as a public_home from the
+	// browser
+	// this is useful to access javascript etc.
+	// to enable this - you need to put the property public_home_enable on the smss
+	// file
 
-  /**
-   * See if we need to republish. If requested pull from cloud
-   *
-   * @param pullFromCloud
-   * @return
-   */
-  boolean requirePublish(boolean pullFromCloud);
+	/**
+	 * See if we need to republish. If requested pull from cloud
+	 *
+	 * @param pullFromCloud
+	 * @return
+	 */
+	boolean requirePublish(boolean pullFromCloud);
 
-  /**
-   * @param location
-   * @param pullFromCloud
-   * @return
-   */
-  boolean publish(String location, boolean pullFromCloud);
+	/**
+	 * @param location
+	 * @param pullFromCloud
+	 * @return
+	 */
+	boolean publish(String location, boolean pullFromCloud);
 
-  /**
-   * @param republish
-   */
-  void setRepublish(boolean republish);
+	/**
+	 * @param republish
+	 */
+	void setRepublish(boolean republish);
 
-  /**
-   * @return
-   */
-  boolean isPublished();
+	/**
+	 * @return
+	 */
+	boolean isPublished();
 
-  /**
-   * @return
-   */
-  SemossDate getLastPublishDate();
+	/**
+	 * @return
+	 */
+	SemossDate getLastPublishDate();
 
-  /**
-   * @return
-   */
-  List<File> writeNotebooks();
+	/**
+	 * @return
+	 */
+	List<File> writeNotebooks();
 
-  /**
-   * @return
-   */
-  INotebookHelper getNotebookHelper();
+	/**
+	 * @return
+	 */
+	INotebookHelper getNotebookHelper();
 
-  /**
-   * @param insight
-   * @param inputReplacements
-   * @return
-   */
-  NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements);
+	/**
+	 * @param insight
+	 * @param inputReplacements
+	 * @return
+	 */
+	NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements);
 
-  /**
-   * Gets only engine deps listed in the project
-   *
-   * @return Map of the variable name to the engine id
-   */
-  Map<String, String> getEngineDependencies();
+	/**
+	 * Gets only engine deps listed in the project
+	 *
+	 * @return Map of the variable name to the engine id
+	 */
+	Map<String, String> getEngineDependencies();
 
-  /**
-   * Return if an asset
-   *
-   * @return
-   */
-  boolean isAsset();
+	/**
+	 * Return if an asset
+	 *
+	 * @return
+	 */
+	boolean isAsset();
 
-  /**
-   * Get the project properties
-   *
-   * @return
-   */
-  ProjectProperties getProjectProperties();
+	/**
+	 * Get the project properties
+	 *
+	 * @return
+	 */
+	ProjectProperties getProjectProperties();
 
-  /**
-   * Get the project git provider
-   *
-   * @return
-   */
-  String getProjectGitProvider();
+	/**
+	 * Get the project git provider
+	 *
+	 * @return
+	 */
+	String getProjectGitProvider();
 
-  /**
-   * Get the project git repository URL
-   *
-   * @return
-   */
-  String getProjectGitRepo();
+	/**
+	 * Get the project git repository URL
+	 *
+	 * @return
+	 */
+	String getProjectGitRepo();
 
-  /**
-   * Get the project git provider
-   *
-   * @return
-   */
-  AuthProvider getGitProvider();
+	/**
+	 * Get the project git provider
+	 *
+	 * @return
+	 */
+	AuthProvider getGitProvider();
 
-  /**
-   * Get the project's portal name
-   *
-   * @return
-   */
-  String getPortalName();
+	/**
+	 * Get the project's portal name
+	 *
+	 * @return
+	 */
+	String getPortalName();
 
-  /** Clears the class cache */
-  void clearClassCache();
+	/** Clears the class cache */
+	void clearClassCache();
 
-  /**
-   * @return
-   */
-  ClientProcessWrapper getClientProcessWrapper();
+	/**
+	 * @return
+	 */
+	ClientProcessWrapper getClientProcessWrapper();
 
-  /**
-   * @return
-   */
-  SocketClient getProjectTcpClient();
+	/**
+	 * @return
+	 */
+	SocketClient getProjectTcpClient();
 
-  /**
-   * @param create
-   * @return
-   */
-  SocketClient getProjectTcpClient(boolean create);
+	/**
+	 * @param create
+	 * @return
+	 */
+	SocketClient getProjectTcpClient(boolean create);
 
-  /**
-   * @param create
-   * @param port
-   * @return
-   */
-  SocketClient getProjectTcpClient(boolean create, int port);
+	/**
+	 * @param create
+	 * @param port
+	 * @return
+	 */
+	SocketClient getProjectTcpClient(boolean create, int port);
 
-  /**
-   * @return
-   */
-  TCPRTranslator getProjectRTranslator();
+	/**
+	 * @return
+	 */
+	TCPRTranslator getProjectRTranslator();
 
-  /**
-   * @return
-   */
-  PyTranslator getProjectPyTranslator();
+	/**
+	 * @return
+	 */
+	PyTranslator getProjectPyTranslator();
 
-  /**
-   * @return
-   */
-  String getCompileOutput();
+	/**
+	 * @return
+	 */
+	String getCompileOutput();
 
-  /**
-   * Switch to using buildOpenAIFunctionEngineToolMap
-   *
-   * @return json representation of project
-   */
-  @Deprecated
-  Map<String, Object> buildProjectToolMap();
+	/**
+	 * Switch to using buildOpenAIFunctionEngineToolMap
+	 *
+	 * @return json representation of project
+	 */
+	@Deprecated
+	Map<String, Object> buildProjectToolMap();
 }

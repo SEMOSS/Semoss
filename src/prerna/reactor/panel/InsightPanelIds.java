@@ -23,13 +23,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class InsightPanelIds extends AbstractReactor {
 
-  @Override
-  public NounMetadata execute() {
-    Set<String> panelIds = this.insight.getInsightPanels().keySet();
-    return new NounMetadata(new Vector<>(panelIds), PixelDataType.VECTOR, PixelOperationType.PANEL);
-  }
+	@Override
+	public NounMetadata execute() {
+		Set<String> panelIds = this.insight.getInsightPanels().keySet();
+		return new NounMetadata(new Vector<>(panelIds), PixelDataType.VECTOR, PixelOperationType.PANEL);
+	}
 
-  public String getName() {
-    return "InsightPanelIds";
-  }
+	public String getName() {
+		return "InsightPanelIds";
+	}
 }

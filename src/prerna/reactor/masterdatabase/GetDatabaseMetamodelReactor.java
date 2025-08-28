@@ -33,117 +33,110 @@ import prerna.util.EngineSyncUtility;
 
 public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
-  /*
-   * PAYLOAD MUST MATCH THAT OF
-   * {@link  prerna.sablecc2.reactor.frame.GetFrameMetamodelReactor}
-   */
+	/*
+	 * PAYLOAD MUST MATCH THAT OF {@link
+	 * prerna.sablecc2.reactor.frame.GetFrameMetamodelReactor}
+	 */
 
-  private static final String CLASS_NAME = GetDatabaseMetamodelReactor.class.getName();
+	private static final String CLASS_NAME = GetDatabaseMetamodelReactor.class.getName();
 
-  /*
-   * Get the database metamodel + meta options
-   * OPTIONS include datatypes, logicalnames, descriptions
-   */
-  public GetDatabaseMetamodelReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.OPTIONS.getKey()};
-  }
+	/*
+	 * Get the database metamodel + meta options OPTIONS include datatypes,
+	 * logicalnames, descriptions
+	 */
+	public GetDatabaseMetamodelReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.OPTIONS.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    String databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(getDatabase());
-    List<String> options = getOptions();
+	@Override
+	public NounMetadata execute() {
+		String databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(getDatabase());
+		List<String> options = getOptions();
 
-    // account for security
-    // TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
-    if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)
-        && !SecurityEngineUtils.engineIsDiscoverable(databaseId)) {
-      throw new IllegalArgumentException(
-          "Database does not exist or user does not have access to database");
-    }
+		// account for security
+		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)
+				&& !SecurityEngineUtils.engineIsDiscoverable(databaseId)) {
+			throw new IllegalArgumentException("Database does not exist or user does not have access to database");
+		}
 
-    Logger logger = getLogger(CLASS_NAME);
-    boolean includeDataTypes = options.contains("datatypes");
+		Logger logger = getLogger(CLASS_NAME);
+		boolean includeDataTypes = options.contains("datatypes");
 
-    logger.info("Pulling database metadata for database " + databaseId);
-    Map<String, Object> metamodelObject = new HashMap<>();
-    {
-      Map<String, Object> cacheMetamodel = EngineSyncUtility.getMetamodel(databaseId);
-      if (cacheMetamodel != null) {
-        metamodelObject.putAll(cacheMetamodel);
-      } else {
-        includeDataTypes = true;
-        Map<String, Object> metamodel =
-            MasterDatabaseUtility.getMetamodelRDBMS(databaseId, includeDataTypes);
-        metamodelObject.putAll(metamodel);
-        EngineSyncUtility.setMetamodel(databaseId, metamodel);
-      }
-    }
+		logger.info("Pulling database metadata for database " + databaseId);
+		Map<String, Object> metamodelObject = new HashMap<>();
+		{
+			Map<String, Object> cacheMetamodel = EngineSyncUtility.getMetamodel(databaseId);
+			if (cacheMetamodel != null) {
+				metamodelObject.putAll(cacheMetamodel);
+			} else {
+				includeDataTypes = true;
+				Map<String, Object> metamodel = MasterDatabaseUtility.getMetamodelRDBMS(databaseId, includeDataTypes);
+				metamodelObject.putAll(metamodel);
+				EngineSyncUtility.setMetamodel(databaseId, metamodel);
+			}
+		}
 
-    // add logical names
-    if (options.contains("logicalnames")) {
-      logger.info("Pulling database logical names for database " + databaseId);
-      Map<String, List<String>> logicalNames =
-          EngineSyncUtility.getMetamodelLogicalNamesCache(databaseId);
-      if (logicalNames == null) {
-        logicalNames = MasterDatabaseUtility.getDatabaseLogicalNames(databaseId);
-        EngineSyncUtility.setMetamodelLogicalNames(databaseId, logicalNames);
-      }
-      metamodelObject.put("logicalNames", logicalNames);
-      logger.info("Done pulling database logical names for database " + databaseId);
-    }
-    // add descriptions
-    if (options.contains("descriptions")) {
-      logger.info("Pulling database descriptions for database " + databaseId);
-      Map<String, String> descriptions =
-          EngineSyncUtility.getMetamodelDescriptionsCache(databaseId);
-      if (descriptions == null) {
-        descriptions = MasterDatabaseUtility.getDatabaseDescriptions(databaseId);
-        EngineSyncUtility.setMetamodelDescriptions(databaseId, descriptions);
-      }
-      metamodelObject.put("descriptions", descriptions);
-      logger.info("Done pulling database descriptions for database " + databaseId);
-    }
+		// add logical names
+		if (options.contains("logicalnames")) {
+			logger.info("Pulling database logical names for database " + databaseId);
+			Map<String, List<String>> logicalNames = EngineSyncUtility.getMetamodelLogicalNamesCache(databaseId);
+			if (logicalNames == null) {
+				logicalNames = MasterDatabaseUtility.getDatabaseLogicalNames(databaseId);
+				EngineSyncUtility.setMetamodelLogicalNames(databaseId, logicalNames);
+			}
+			metamodelObject.put("logicalNames", logicalNames);
+			logger.info("Done pulling database logical names for database " + databaseId);
+		}
+		// add descriptions
+		if (options.contains("descriptions")) {
+			logger.info("Pulling database descriptions for database " + databaseId);
+			Map<String, String> descriptions = EngineSyncUtility.getMetamodelDescriptionsCache(databaseId);
+			if (descriptions == null) {
+				descriptions = MasterDatabaseUtility.getDatabaseDescriptions(databaseId);
+				EngineSyncUtility.setMetamodelDescriptions(databaseId, descriptions);
+			}
+			metamodelObject.put("descriptions", descriptions);
+			logger.info("Done pulling database descriptions for database " + databaseId);
+		}
 
-    // this is for the OWL positions for the new layout
-    if (options.contains("positions")) {
-      Map<String, Object> positions = GenerateMetamodelUtility.getMetamodelPositions(databaseId);
-      metamodelObject.put("positions", positions);
-      logger.info("Done pulling database positions for database " + databaseId);
-    }
+		// this is for the OWL positions for the new layout
+		if (options.contains("positions")) {
+			Map<String, Object> positions = GenerateMetamodelUtility.getMetamodelPositions(databaseId);
+			metamodelObject.put("positions", positions);
+			logger.info("Done pulling database positions for database " + databaseId);
+		}
 
-    return new NounMetadata(
-        metamodelObject,
-        PixelDataType.CUSTOM_DATA_STRUCTURE,
-        PixelOperationType.DATABASE_METAMODEL);
-  }
+		return new NounMetadata(metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.DATABASE_METAMODEL);
+	}
 
-  private String getDatabase() {
-    GenRowStruct eGrs = this.store.getNoun(this.keysToGet[0]);
-    if (eGrs != null && !eGrs.isEmpty()) {
-      if (eGrs.size() > 1) {
-        throw new IllegalArgumentException("Can only define one database within this call");
-      }
-      return eGrs.get(0).toString();
-    }
+	private String getDatabase() {
+		GenRowStruct eGrs = this.store.getNoun(this.keysToGet[0]);
+		if (eGrs != null && !eGrs.isEmpty()) {
+			if (eGrs.size() > 1) {
+				throw new IllegalArgumentException("Can only define one database within this call");
+			}
+			return eGrs.get(0).toString();
+		}
 
-    if (this.curRow.isEmpty()) {
-      throw new IllegalArgumentException("Need to define the database to get the concepts from");
-    }
+		if (this.curRow.isEmpty()) {
+			throw new IllegalArgumentException("Need to define the database to get the concepts from");
+		}
 
-    return this.curRow.get(0).toString();
-  }
+		return this.curRow.get(0).toString();
+	}
 
-  private List<String> getOptions() {
-    GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
-    if (grs != null && !grs.isEmpty()) {
-      return grs.getAllStrValues().stream().map(p -> p.toLowerCase()).collect(Collectors.toList());
-    }
+	private List<String> getOptions() {
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		if (grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues().stream().map(p -> p.toLowerCase()).collect(Collectors.toList());
+		}
 
-    List<String> options = new Vector<String>();
-    for (int i = 1; i < this.curRow.size(); i++) {
-      options.add(this.curRow.get(i).toString().toLowerCase());
-    }
-    return options;
-  }
+		List<String> options = new Vector<String>();
+		for (int i = 1; i < this.curRow.size(); i++) {
+			options.add(this.curRow.get(i).toString().toLowerCase());
+		}
+		return options;
+	}
 }

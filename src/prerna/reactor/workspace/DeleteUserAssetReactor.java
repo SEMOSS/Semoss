@@ -33,62 +33,61 @@ import prerna.util.Utility;
 
 public class DeleteUserAssetReactor extends AbstractReactor {
 
-  private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-  private static final Logger classLogger = LogManager.getLogger(DeleteUserAssetReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(DeleteUserAssetReactor.class);
 
-  public DeleteUserAssetReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.RELATIVE_PATH.getKey()};
-  }
+	public DeleteUserAssetReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.RELATIVE_PATH.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String relativeFilePath = this.keyValue.get(this.keysToGet[0]);
-    if (relativeFilePath == null || relativeFilePath.isEmpty()) {
-      throw new IllegalArgumentException("Must input file path and file name to delete");
-    }
-    relativeFilePath = Utility.normalizePath(relativeFilePath);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String relativeFilePath = this.keyValue.get(this.keysToGet[0]);
+		if (relativeFilePath == null || relativeFilePath.isEmpty()) {
+			throw new IllegalArgumentException("Must input file path and file name to delete");
+		}
+		relativeFilePath = Utility.normalizePath(relativeFilePath);
 
-    String assetProjectId = null;
-    User user = this.insight.getUser();
-    if (user != null) {
-      AuthProvider token = user.getPrimaryLogin();
-      if (token != null) {
-        assetProjectId = user.getAssetProjectId(token);
-        Utility.getProject(assetProjectId);
-      }
-    }
+		String assetProjectId = null;
+		User user = this.insight.getUser();
+		if (user != null) {
+			AuthProvider token = user.getPrimaryLogin();
+			if (token != null) {
+				assetProjectId = user.getAssetProjectId(token);
+				Utility.getProject(assetProjectId);
+			}
+		}
 
-    if (assetProjectId == null) {
-      throw new IllegalArgumentException("Unable to find user asset app");
-    }
+		if (assetProjectId == null) {
+			throw new IllegalArgumentException("Unable to find user asset app");
+		}
 
-    String userFolder =
-        AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, true);
-    File relativeFile = new File(userFolder + DIR_SEPARATOR + relativeFilePath);
-    if (!relativeFile.exists()) {
-      throw new IllegalArgumentException("File/Folder does not exist that this location");
-    }
+		String userFolder = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, true);
+		File relativeFile = new File(userFolder + DIR_SEPARATOR + relativeFilePath);
+		if (!relativeFile.exists()) {
+			throw new IllegalArgumentException("File/Folder does not exist that this location");
+		}
 
-    // File can be a folder so need to take that into account
-    Boolean deleted = false;
-    if (relativeFile.isDirectory()) {
-      try {
-        FileUtils.deleteDirectory(relativeFile);
-        deleted = true;
-      } catch (IOException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      } catch (IllegalArgumentException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    } else {
-      deleted = relativeFile.delete();
-    }
+		// File can be a folder so need to take that into account
+		Boolean deleted = false;
+		if (relativeFile.isDirectory()) {
+			try {
+				FileUtils.deleteDirectory(relativeFile);
+				deleted = true;
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} catch (IllegalArgumentException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		} else {
+			deleted = relativeFile.delete();
+		}
 
-    // When i get appId
-    ClusterUtil.pushProject(assetProjectId);
+		// When i get appId
+		ClusterUtil.pushProject(assetProjectId);
 
-    return new NounMetadata(deleted, PixelDataType.BOOLEAN, PixelOperationType.USER_DIR);
-  }
+		return new NounMetadata(deleted, PixelDataType.BOOLEAN, PixelOperationType.USER_DIR);
+	}
 }

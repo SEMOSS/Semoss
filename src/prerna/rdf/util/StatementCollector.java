@@ -25,61 +25,61 @@ import org.openrdf.query.algebra.helpers.QueryModelVisitorBase;
 
 public class StatementCollector extends QueryModelVisitorBase<Exception> {
 
-  private static final Logger logger = LogManager.getLogger(StatementCollector.class.getName());
+	private static final Logger logger = LogManager.getLogger(StatementCollector.class.getName());
 
-  private List<StatementPattern> statementPatterns = new Vector<StatementPattern>();
-  private Set<String> subjectVariables =
-      new HashSet<String>(); // keep track of variables that are subjects
-  private StringBuffer subjectURIstring = new StringBuffer("");
-  private Set<String> predicateVariables =
-      new HashSet<String>(); // keep track of variables that are predicates
-  private StringBuffer predicateURIstring = new StringBuffer("");
-  private Set<String> objectVariables =
-      new HashSet<String>(); // keep track of variables that are objects
-  private StringBuffer objectURIstring = new StringBuffer("");
+	private List<StatementPattern> statementPatterns = new Vector<StatementPattern>();
+	private Set<String> subjectVariables = new HashSet<String>(); // keep track of variables that are subjects
+	private StringBuffer subjectURIstring = new StringBuffer("");
+	private Set<String> predicateVariables = new HashSet<String>(); // keep track of variables that are predicates
+	private StringBuffer predicateURIstring = new StringBuffer("");
+	private Set<String> objectVariables = new HashSet<String>(); // keep track of variables that are objects
+	private StringBuffer objectURIstring = new StringBuffer("");
 
-  @Override
-  public void meet(StatementPattern node) {
-    statementPatterns.add(node);
+	@Override
+	public void meet(StatementPattern node) {
+		statementPatterns.add(node);
 
-    if (node.getSubjectVar().isAnonymous())
-      subjectURIstring.append("(<").append(node.getSubjectVar().getValue()).append(">)");
-    else subjectVariables.add(node.getSubjectVar().getName());
+		if (node.getSubjectVar().isAnonymous())
+			subjectURIstring.append("(<").append(node.getSubjectVar().getValue()).append(">)");
+		else
+			subjectVariables.add(node.getSubjectVar().getName());
 
-    if (node.getPredicateVar().isAnonymous())
-      predicateURIstring.append("(<").append(node.getPredicateVar().getValue()).append(">)");
-    else predicateVariables.add(node.getPredicateVar().getName());
+		if (node.getPredicateVar().isAnonymous())
+			predicateURIstring.append("(<").append(node.getPredicateVar().getValue()).append(">)");
+		else
+			predicateVariables.add(node.getPredicateVar().getName());
 
-    if (node.getObjectVar().isAnonymous())
-      objectURIstring.append("(<").append(node.getObjectVar().getValue()).append(">)");
-    else objectVariables.add(node.getObjectVar().getName());
-  }
+		if (node.getObjectVar().isAnonymous())
+			objectURIstring.append("(<").append(node.getObjectVar().getValue()).append(">)");
+		else
+			objectVariables.add(node.getObjectVar().getName());
+	}
 
-  public List<StatementPattern> getPatterns() {
-    return this.statementPatterns;
-  }
+	public List<StatementPattern> getPatterns() {
+		return this.statementPatterns;
+	}
 
-  public StringBuffer getSubjectURIstring() {
-    return subjectURIstring;
-  }
+	public StringBuffer getSubjectURIstring() {
+		return subjectURIstring;
+	}
 
-  public StringBuffer getPredicateURIstring() {
-    return predicateURIstring;
-  }
+	public StringBuffer getPredicateURIstring() {
+		return predicateURIstring;
+	}
 
-  public Set<String> getSubjectVariables() {
-    return subjectVariables;
-  }
+	public Set<String> getSubjectVariables() {
+		return subjectVariables;
+	}
 
-  public Set<String> getPredicateVariables() {
-    return predicateVariables;
-  }
+	public Set<String> getPredicateVariables() {
+		return predicateVariables;
+	}
 
-  public Set<String> getObjectVariables() {
-    return objectVariables;
-  }
+	public Set<String> getObjectVariables() {
+		return objectVariables;
+	}
 
-  public StringBuffer getObjectURIstring() {
-    return objectURIstring;
-  }
+	public StringBuffer getObjectURIstring() {
+		return objectURIstring;
+	}
 }

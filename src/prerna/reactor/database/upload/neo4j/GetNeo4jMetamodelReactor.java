@@ -1,15 +1,17 @@
 /***************************************************************************************************
  * Copyright 2015 Defense Health Agency (DHA)
  *
- * If your use of this software does not include any GPLv2 components: Licensed under the Apache
- * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
- * License. You may obtain a copy of the License at
+ * If your use of this software does not include any GPLv2 components: Licensed
+ * under the Apache License, Version 2.0 (the "License"); you may not use this
+ * file except in compliance with the License. You may obtain a copy of the
+ * License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
  * the License.
  ***************************************************************************************************/
 package prerna.reactor.database.upload.neo4j;
@@ -45,120 +47,127 @@ package prerna.reactor.database.upload.neo4j;
 //
 // public class GetNeo4jMetamodelReactor extends AbstractReactor {
 //
-//	public GetNeo4jMetamodelReactor() {
-//		this.keysToGet = new String[] { ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(),
-//				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
-//				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
-//				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.USE_LABEL.getKey() };
-//	}
+// public GetNeo4jMetamodelReactor() {
+// this.keysToGet = new String[] {
+// ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(),
+// ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
+// ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
+// ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.USE_LABEL.getKey() };
+// }
 //
-//	@Override
-//	public NounMetadata execute() {
-//		organizeKeys();
-//		Map<String, Object> retMap = new HashMap<String, Object>();
-//		String filePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+// @Override
+// public NounMetadata execute() {
+// organizeKeys();
+// Map<String, Object> retMap = new HashMap<String, Object>();
+// String filePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 //
-//		boolean useLabel = useLabel();
-//		String graphTypeId = this.keyValue.get(ReactorKeysEnum.GRAPH_TYPE_ID.getKey());
-//		if (!useLabel) {
-//			if (graphTypeId == null) {
-//				SemossPixelException exception = new SemossPixelException(
-//						new NounMetadata("Requires graphTypeId to get graph metamodel.", PixelDataType.CONST_STRING,
+// boolean useLabel = useLabel();
+// String graphTypeId =
+// this.keyValue.get(ReactorKeysEnum.GRAPH_TYPE_ID.getKey());
+// if (!useLabel) {
+// if (graphTypeId == null) {
+// SemossPixelException exception = new SemossPixelException(
+// new NounMetadata("Requires graphTypeId to get graph metamodel.",
+// PixelDataType.CONST_STRING,
 // PixelOperationType.ERROR));
-//				exception.setContinueThreadOfExecution(false);
-//				throw exception;
-//			}
-//		}
-//		if (filePath != null) {
-//			filePath = UploadInputUtility.getFilePath(this.store, this.insight);
-//			try {
-//				GraphDatabaseService dbService = new GraphDatabaseFactory().newEmbeddedDatabase(new
+// exception.setContinueThreadOfExecution(false);
+// throw exception;
+// }
+// }
+// if (filePath != null) {
+// filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+// try {
+// GraphDatabaseService dbService = new
+// GraphDatabaseFactory().newEmbeddedDatabase(new
 // File(filePath));
-//				if (useLabel) {
-//					retMap = GraphUtility.getMetamodel(dbService);
-//				} else {
-//					retMap = GraphUtility.getMetamodel(dbService, graphTypeId);
-//				}
-//				dbService.shutdown();
-//			} catch (Exception e) {
-//				classLogger.error(Constants.STACKTRACE, e);
-//			}
-//		} else {
-//			// this is if we want to get the metamodel for a remote graph
-//			String connectionStringKey = this.keyValue.get(this.keysToGet[0]);
-//			if (connectionStringKey == null) {
-//				String msg = "Requires a Connection URL (e.g. bolt://localhost:9999) to get graph metamodel";
-//				SemossPixelException exception = new SemossPixelException(
-//						new NounMetadata(msg, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-//				exception.setContinueThreadOfExecution(false);
-//				throw exception;
-//			}
-//			// Prepend jdbc keyword for neo4j
-//			connectionStringKey = "jdbc:neo4j:" + connectionStringKey;
-//			String username = this.keyValue.get(this.keysToGet[1]);
-//			if (username == null) {
-//				SemossPixelException exception = new SemossPixelException(
-//						new NounMetadata("Requires username to get graph metamodel.", PixelDataType.CONST_STRING,
-//								PixelOperationType.ERROR));
-//				exception.setContinueThreadOfExecution(false);
-//				throw exception;
-//			}
+// if (useLabel) {
+// retMap = GraphUtility.getMetamodel(dbService);
+// } else {
+// retMap = GraphUtility.getMetamodel(dbService, graphTypeId);
+// }
+// dbService.shutdown();
+// } catch (Exception e) {
+// classLogger.error(Constants.STACKTRACE, e);
+// }
+// } else {
+// // this is if we want to get the metamodel for a remote graph
+// String connectionStringKey = this.keyValue.get(this.keysToGet[0]);
+// if (connectionStringKey == null) {
+// String msg = "Requires a Connection URL (e.g. bolt://localhost:9999) to get
+// graph metamodel";
+// SemossPixelException exception = new SemossPixelException(
+// new NounMetadata(msg, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+// exception.setContinueThreadOfExecution(false);
+// throw exception;
+// }
+// // Prepend jdbc keyword for neo4j
+// connectionStringKey = "jdbc:neo4j:" + connectionStringKey;
+// String username = this.keyValue.get(this.keysToGet[1]);
+// if (username == null) {
+// SemossPixelException exception = new SemossPixelException(
+// new NounMetadata("Requires username to get graph metamodel.",
+// PixelDataType.CONST_STRING,
+// PixelOperationType.ERROR));
+// exception.setContinueThreadOfExecution(false);
+// throw exception;
+// }
 //
-//			String password = this.keyValue.get(this.keysToGet[2]);
-//			if (password == null) {
-//				SemossPixelException exception = new SemossPixelException(
-//						new NounMetadata("Requires password to get graph metamodel.", PixelDataType.CONST_STRING,
-//								PixelOperationType.ERROR));
-//				exception.setContinueThreadOfExecution(false);
-//				throw exception;
-//			}
+// String password = this.keyValue.get(this.keysToGet[2]);
+// if (password == null) {
+// SemossPixelException exception = new SemossPixelException(
+// new NounMetadata("Requires password to get graph metamodel.",
+// PixelDataType.CONST_STRING,
+// PixelOperationType.ERROR));
+// exception.setContinueThreadOfExecution(false);
+// throw exception;
+// }
 //
-//			Connection conn = null;
-//			try {
-//				// Must specify name of Neo4j Bolt Class for JDBC to find the
-//				// right
-//				// driver to connect to DB
-//				// TODO jdbc::neo4j needs to be a constant
-//				Class.forName("org.neo4j.jdbc.bolt.BoltDriver");
-//				// Create Connection
-//				conn = DriverManager.getConnection(connectionStringKey, username, password);
-//				// Get Metamodel
-//				if (useLabel) {
-//					retMap = GraphUtility.getMetamodel(conn);
-//				} else {
-//					retMap = GraphUtility.getMetamodel(conn, graphTypeId);
-//				}
+// Connection conn = null;
+// try {
+// // Must specify name of Neo4j Bolt Class for JDBC to find the
+// // right
+// // driver to connect to DB
+// // TODO jdbc::neo4j needs to be a constant
+// Class.forName("org.neo4j.jdbc.bolt.BoltDriver");
+// // Create Connection
+// conn = DriverManager.getConnection(connectionStringKey, username, password);
+// // Get Metamodel
+// if (useLabel) {
+// retMap = GraphUtility.getMetamodel(conn);
+// } else {
+// retMap = GraphUtility.getMetamodel(conn, graphTypeId);
+// }
 //
-//			} catch (ClassNotFoundException e) {
-//				// If org.neo4j.jdbc.bolt.BoltDriver not found
-//				classLogger.error(Constants.STACKTRACE, e);
-//			} catch (SQLException e) {
-//				// From a database access error or if we called on a closed
-//				// connection
-//				classLogger.error(Constants.STACKTRACE, e);
-//			} finally {
-//				ConnectionUtils.closeConnection(conn);
-//			}
-//		}
+// } catch (ClassNotFoundException e) {
+// // If org.neo4j.jdbc.bolt.BoltDriver not found
+// classLogger.error(Constants.STACKTRACE, e);
+// } catch (SQLException e) {
+// // From a database access error or if we called on a closed
+// // connection
+// classLogger.error(Constants.STACKTRACE, e);
+// } finally {
+// ConnectionUtils.closeConnection(conn);
+// }
+// }
 //
-//		// position tables in metamodel to be spaced and not overlap
-//		Map<String, Map<String, Double>> nodePositionMap =
+// // position tables in metamodel to be spaced and not overlap
+// Map<String, Map<String, Double>> nodePositionMap =
 // GenerateMetamodelLayout.generateMetamodelLayoutForGraphDBs(retMap);
-//		retMap.put(Constants.POSITION_PROP, nodePositionMap);
+// retMap.put(Constants.POSITION_PROP, nodePositionMap);
 //
-//		return new NounMetadata(retMap, PixelDataType.MAP);
-//	}
+// return new NounMetadata(retMap, PixelDataType.MAP);
+// }
 //
-//	/**
-//	 * Query the external db with a label to get the node
-//	 *
-//	 * @return
-//	 */
-//	private boolean useLabel() {
-//		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.USE_LABEL.getKey());
-//		if (grs != null && !grs.isEmpty()) {
-//			return (boolean) grs.get(0);
-//		}
-//		return false;
-//	}
+// /**
+// * Query the external db with a label to get the node
+// *
+// * @return
+// */
+// private boolean useLabel() {
+// GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.USE_LABEL.getKey());
+// if (grs != null && !grs.isEmpty()) {
+// return (boolean) grs.get(0);
+// }
+// return false;
+// }
 // }

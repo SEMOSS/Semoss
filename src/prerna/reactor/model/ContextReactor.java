@@ -21,18 +21,18 @@ import prerna.util.Utility;
 
 public class ContextReactor extends AbstractQueryStructReactor {
 
-  @Override
-  protected AbstractQueryStruct createQueryStruct() {
+	@Override
+	protected AbstractQueryStruct createQueryStruct() {
 
-    String context = null;
-    if (!this.curRow.isEmpty()) {
-      context = (String) this.curRow.get(0);
-      if (context != null) {
-        context = Utility.decodeURIComponent(context);
-      }
-    }
+		String context = null;
+		if (!this.curRow.isEmpty()) {
+			context = (String) this.curRow.get(0);
+			if (context != null) {
+				context = Utility.decodeURIComponent(context);
+			}
+		}
 
-    ((ModelInferenceQueryStruct) this.qs).setContext(context);
-    return qs;
-  }
+		((ModelInferenceQueryStruct) this.qs).setContext(context);
+		return qs;
+	}
 }

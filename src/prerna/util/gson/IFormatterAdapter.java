@@ -26,58 +26,58 @@ import prerna.reactor.export.IFormatter;
 
 public class IFormatterAdapter extends AbstractSemossTypeAdapter<IFormatter> {
 
-  private static Gson GSON = GsonUtility.getDefaultGson();
+	private static Gson GSON = GsonUtility.getDefaultGson();
 
-  @Override
-  public IFormatter read(JsonReader in) throws IOException {
-    if (in.peek() == JsonToken.NULL) {
-      return null;
-    }
+	@Override
+	public IFormatter read(JsonReader in) throws IOException {
+		if (in.peek() == JsonToken.NULL) {
+			return null;
+		}
 
-    String type = null;
-    Map<String, Object> options = null;
+		String type = null;
+		Map<String, Object> options = null;
 
-    in.beginObject();
-    while (in.hasNext()) {
-      String name = in.nextName();
-      if (in.peek() == JsonToken.NULL) {
-        in.nextNull();
-        continue;
-      }
+		in.beginObject();
+		while (in.hasNext()) {
+			String name = in.nextName();
+			if (in.peek() == JsonToken.NULL) {
+				in.nextNull();
+				continue;
+			}
 
-      if (name.equals("type")) {
-        type = in.nextString();
-      }
-      if (name.equals("options")) {
-        TypeAdapter adapter = GSON.getAdapter(Map.class);
-        options = (Map<String, Object>) adapter.read(in);
-      }
-    }
-    in.endObject();
+			if (name.equals("type")) {
+				type = in.nextString();
+			}
+			if (name.equals("options")) {
+				TypeAdapter adapter = GSON.getAdapter(Map.class);
+				options = (Map<String, Object>) adapter.read(in);
+			}
+		}
+		in.endObject();
 
-    IFormatter formatter = FormatFactory.getFormatter(type);
-    formatter.setOptionsMap(options);
-    return formatter;
-  }
+		IFormatter formatter = FormatFactory.getFormatter(type);
+		formatter.setOptionsMap(options);
+		return formatter;
+	}
 
-  @Override
-  public void write(JsonWriter out, IFormatter value) throws IOException {
-    if (value == null) {
-      out.nullValue();
-      return;
-    }
+	@Override
+	public void write(JsonWriter out, IFormatter value) throws IOException {
+		if (value == null) {
+			out.nullValue();
+			return;
+		}
 
-    out.beginObject();
-    out.name("type").value(value.getFormatType());
-    out.name("options");
-    Map<String, Object> options = value.getOptionsMap();
-    if (options == null) {
-      out.nullValue();
-    } else {
-      TypeAdapter adapter = GSON.getAdapter(options.getClass());
-      adapter.write(out, options);
-    }
+		out.beginObject();
+		out.name("type").value(value.getFormatType());
+		out.name("options");
+		Map<String, Object> options = value.getOptionsMap();
+		if (options == null) {
+			out.nullValue();
+		} else {
+			TypeAdapter adapter = GSON.getAdapter(options.getClass());
+			adapter.write(out, options);
+		}
 
-    out.endObject();
-  }
+		out.endObject();
+	}
 }

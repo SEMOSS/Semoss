@@ -22,18 +22,17 @@ import prerna.engine.impl.venv.PythonVenvEngine;
 
 public class VenvTypeEnumUnitTests {
 
-  @Test
-  void testPython() {
-    VenvTypeEnum testEnum = VenvTypeEnum.PYTHON;
-    assertEquals("PYTHON", testEnum.getVenvName());
-    assertEquals(PythonVenvEngine.class.getName(), testEnum.getVenvClass());
-  }
+	@Test
+	void testPython() {
+		VenvTypeEnum testEnum = VenvTypeEnum.PYTHON;
+		assertEquals("PYTHON", testEnum.getVenvName());
+		assertEquals(PythonVenvEngine.class.getName(), testEnum.getVenvClass());
+	}
 
-  @Test
-  void testBadVectorDatabaseName() {
-    String badName = "NOT_A_REAL_VENV_TYPE";
-    Exception thrown =
-        assertThrows(IllegalArgumentException.class, () -> VenvTypeEnum.getEnumFromName(badName));
-    assertEquals("Invalid input for name " + badName, thrown.getMessage());
-  }
+	@Test
+	void testBadVectorDatabaseName() {
+		String badName = "NOT_A_REAL_VENV_TYPE";
+		Exception thrown = assertThrows(IllegalArgumentException.class, () -> VenvTypeEnum.getEnumFromName(badName));
+		assertEquals("Invalid input for name " + badName, thrown.getMessage());
+	}
 }

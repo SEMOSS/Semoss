@@ -19,7 +19,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 @Deprecated
 public class PullDatabaseFromCloudReactor extends PullEngineFromCloudReactor {
 
-  public PullDatabaseFromCloudReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
-  }
+	public PullDatabaseFromCloudReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+	}
 }

@@ -19,40 +19,40 @@ import java.util.Map;
 
 public interface IGraphExporter {
 
-  /**
-   * Boolean if there are more edges to return
-   *
-   * @return
-   */
-  boolean hasNextEdge();
+	/**
+	 * Boolean if there are more edges to return
+	 *
+	 * @return
+	 */
+	boolean hasNextEdge();
 
-  Map<String, Object> getNextEdge();
+	Map<String, Object> getNextEdge();
 
-  /**
-   * Boolean if there are more vertices to return
-   *
-   * @return
-   */
-  boolean hasNextVert();
+	/**
+	 * Boolean if there are more vertices to return
+	 *
+	 * @return
+	 */
+	boolean hasNextVert();
 
-  Map<String, Object> getNextVert();
+	Map<String, Object> getNextVert();
 
-  /**
-   * Return the count of each vert type
-   *
-   * @return
-   */
-  Map<String, Integer> getVertCounts();
+	/**
+	 * Return the count of each vert type
+	 *
+	 * @return
+	 */
+	Map<String, Integer> getVertCounts();
 
-  /**
-   * Get a string representation of the node color
-   *
-   * @param c
-   * @return
-   */
-  static String getRgb(Color c) {
-    return c.getRed() + "," + c.getGreen() + "," + c.getBlue();
-  }
+	/**
+	 * Get a string representation of the node color
+	 *
+	 * @param c
+	 * @return
+	 */
+	static String getRgb(Color c) {
+		return c.getRed() + "," + c.getGreen() + "," + c.getBlue();
+	}
 
-  Object getData();
+	Object getData();
 }

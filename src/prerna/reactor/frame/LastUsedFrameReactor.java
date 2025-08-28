@@ -24,31 +24,26 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class LastUsedFrameReactor extends AbstractReactor {
 
-  @Override
-  public NounMetadata execute() {
-    ITableDataFrame defaultFrame = null;
-    // get the last frame
-    SelectQueryStruct qs = this.insight.getLastQS(this.insight.getLastPanelId());
-    if (qs != null) {
-      defaultFrame = qs.getFrame();
-    }
-    if (defaultFrame == null) {
-      // default to the current frame
-      defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
-      if (defaultFrame == null) {
-        SemossPixelException exception =
-            new SemossPixelException(
-                new NounMetadata(
-                    "No frame currently exists",
-                    PixelDataType.CONST_STRING,
-                    PixelOperationType.ERROR));
-        exception.setContinueThreadOfExecution(true);
-        throw exception;
-      }
-    }
+	@Override
+	public NounMetadata execute() {
+		ITableDataFrame defaultFrame = null;
+		// get the last frame
+		SelectQueryStruct qs = this.insight.getLastQS(this.insight.getLastPanelId());
+		if (qs != null) {
+			defaultFrame = qs.getFrame();
+		}
+		if (defaultFrame == null) {
+			// default to the current frame
+			defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+			if (defaultFrame == null) {
+				SemossPixelException exception = new SemossPixelException(new NounMetadata("No frame currently exists",
+						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(true);
+				throw exception;
+			}
+		}
 
-    NounMetadata noun =
-        new NounMetadata(defaultFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
-    return noun;
-  }
+		NounMetadata noun = new NounMetadata(defaultFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
+		return noun;
+	}
 }

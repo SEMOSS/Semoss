@@ -34,73 +34,67 @@ import prerna.util.Utility;
 
 public class NERReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(NERReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(NERReactor.class);
 
-  public NERReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.ENGINE.getKey(),
-          ReactorKeysEnum.PROMPT.getKey(),
-          ReactorKeysEnum.ENTITIES.getKey(),
-          ReactorKeysEnum.MASK_ENTITIES.getKey(),
-          ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
-        };
-    this.keyRequired = new int[] {1, 1, 1, 0, 0};
-  }
+	public NERReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.PROMPT.getKey(),
+				ReactorKeysEnum.ENTITIES.getKey(), ReactorKeysEnum.MASK_ENTITIES.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
+		this.keyRequired = new int[]{1, 1, 1, 0, 0};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String engineId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String engineId = this.keyValue.get(this.keysToGet[0]);
 
-    if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-      throw new IllegalArgumentException(
-          "Model " + engineId + " does not exist or user does not have access to this model");
-    }
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException(
+					"Model " + engineId + " does not exist or user does not have access to this model");
+		}
 
-    String prompt = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
-    List<String> entities = this.getListInput("entities");
-    List<String> maskEntities = this.getListInput("maskEntities");
+		String prompt = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
+		List<String> entities = this.getListInput("entities");
+		List<String> maskEntities = this.getListInput("maskEntities");
 
-    Map<String, Object> paramMap = getMap();
-    if (paramMap == null) {
-      paramMap = new HashMap<String, Object>();
-    }
+		Map<String, Object> paramMap = getMap();
+		if (paramMap == null) {
+			paramMap = new HashMap<String, Object>();
+		}
 
-    // CASTING TO CORRECT ENGINE.. NER is not abstracted
-    IModelEngine targetModel = Utility.getModel(engineId);
-    NEREngine targetEngine = (NEREngine) targetModel;
+		// CASTING TO CORRECT ENGINE.. NER is not abstracted
+		IModelEngine targetModel = Utility.getModel(engineId);
+		NEREngine targetEngine = (NEREngine) targetModel;
 
-    NerModelEngineResponse output =
-        targetEngine.predict(prompt, entities, maskEntities, this.insight, paramMap);
+		NerModelEngineResponse output = targetEngine.predict(prompt, entities, maskEntities, this.insight, paramMap);
 
-    return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
-  }
+		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
 
-  private Map<String, Object> getMap() {
-    GenRowStruct mapGrs = this.store.getNoun(keysToGet[4]);
-    if (mapGrs != null && !mapGrs.isEmpty()) {
-      List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-      if (mapInputs != null && !mapInputs.isEmpty()) {
-        return (Map<String, Object>) mapInputs.get(0).getValue();
-      }
-    }
-    List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-    if (mapInputs != null && !mapInputs.isEmpty()) {
-      return (Map<String, Object>) mapInputs.get(0).getValue();
-    }
-    return null;
-  }
+	private Map<String, Object> getMap() {
+		GenRowStruct mapGrs = this.store.getNoun(keysToGet[4]);
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
 
-  private List<String> getListInput(String noun) {
-    List<String> colInputs = new Vector<String>();
-    GenRowStruct colGRS = this.store.getNoun(noun);
-    if (colGRS != null) {
-      for (int i = 0; i < colGRS.size(); i++) {
-        String stringValue = colGRS.get(i).toString();
-        colInputs.add(stringValue);
-      }
-    }
-    return colInputs;
-  }
+	private List<String> getListInput(String noun) {
+		List<String> colInputs = new Vector<String>();
+		GenRowStruct colGRS = this.store.getNoun(noun);
+		if (colGRS != null) {
+			for (int i = 0; i < colGRS.size(); i++) {
+				String stringValue = colGRS.get(i).toString();
+				colInputs.add(stringValue);
+			}
+		}
+		return colInputs;
+	}
 }

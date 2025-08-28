@@ -30,30 +30,31 @@ import prerna.testing.ApiSemossTestUserUtils;
 @TestMethodOrder(OrderAnnotation.class)
 public class CentralCloudStorageTests extends AbstractBaseSemossApiTests {
 
-  @BeforeAll
-  public static void initialSetup() throws Exception {
-    AbstractBaseSemossApiTests.initialSetup();
-    // unnecessary if running by itself, but necessary if running {@link prerna.testing.AllTests}
-    ApiSemossTestEngineUtils.deleteAllDataAndAddUser();
-  }
+	@BeforeAll
+	public static void initialSetup() throws Exception {
+		AbstractBaseSemossApiTests.initialSetup();
+		// unnecessary if running by itself, but necessary if running {@link
+		// prerna.testing.AllTests}
+		ApiSemossTestEngineUtils.deleteAllDataAndAddUser();
+	}
 
-  @Override
-  @BeforeEach
-  public void beforeEachTest() throws Exception {
-    this.clearAllDatabasesBetweenTests = false;
-    super.beforeEachTest();
-  }
+	@Override
+	@BeforeEach
+	public void beforeEachTest() throws Exception {
+		this.clearAllDatabasesBetweenTests = false;
+		super.beforeEachTest();
+	}
 
-  @Test
-  @Order(1)
-  public void storeEngine() {
-    User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
+	@Test
+	@Order(1)
+	public void storeEngine() {
+		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
 
-    try {
+		try {
 
-    } catch (Exception e) {
-      e.printStackTrace();
-      fail();
-    }
-  }
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
+	}
 }

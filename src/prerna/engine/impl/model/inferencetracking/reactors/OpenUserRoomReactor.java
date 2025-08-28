@@ -31,71 +31,63 @@ import prerna.util.insight.InsightUtility;
 
 public class OpenUserRoomReactor extends AbstractInsightReactor {
 
-  public OpenUserRoomReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.RECIPE.getKey(),
-          ReactorKeysEnum.PARAM_KEY.getKey(),
-          ReactorKeysEnum.ID.getKey()
-        };
-    this.keyRequired = new int[] {0, 0, 0};
-  }
+	public OpenUserRoomReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(),
+				ReactorKeysEnum.ID.getKey()};
+		this.keyRequired = new int[]{0, 0, 0};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    // create a new empty insight
-    this.organizeKeys();
-    Insight newInsight = new Insight();
+	@Override
+	public NounMetadata execute() {
+		// create a new empty insight
+		this.organizeKeys();
+		Insight newInsight = new Insight();
 
-    String insightId = this.keyValue.get(this.keysToGet[2]);
-    if (insightId != null
-        && !insightId.isEmpty()
-        && !InsightStore.getInstance().containsKey(insightId)) {
-      List<Map<String, Object>> output =
-          ModelInferenceLogsUtils.doVerifyConversation(this.insight.getUserId(), insightId);
-      if (output.size() > 0) {
-        newInsight.setInsightId(insightId);
-        String projectId = (String) output.get(0).get("PROJECT_ID");
-        if (projectId != null && !projectId.isEmpty()) {
-          newInsight.setProjectId(projectId);
-        }
-      } else {
-        if (this.insight.getProjectId() != null && !this.insight.getProjectId().isEmpty()) {
-          newInsight.setProjectId(this.insight.getProjectId());
-        }
-      }
-    }
+		String insightId = this.keyValue.get(this.keysToGet[2]);
+		if (insightId != null && !insightId.isEmpty() && !InsightStore.getInstance().containsKey(insightId)) {
+			List<Map<String, Object>> output = ModelInferenceLogsUtils.doVerifyConversation(this.insight.getUserId(),
+					insightId);
+			if (output.size() > 0) {
+				newInsight.setInsightId(insightId);
+				String projectId = (String) output.get(0).get("PROJECT_ID");
+				if (projectId != null && !projectId.isEmpty()) {
+					newInsight.setProjectId(projectId);
+				}
+			} else {
+				if (this.insight.getProjectId() != null && !this.insight.getProjectId().isEmpty()) {
+					newInsight.setProjectId(this.insight.getProjectId());
+				}
+			}
+		}
 
-    if (this.insight.getContextProjectId() != null
-        && !this.insight.getContextProjectId().isEmpty()) {
-      newInsight.setContextProjectId(this.insight.getContextProjectId());
-    }
+		if (this.insight.getContextProjectId() != null && !this.insight.getContextProjectId().isEmpty()) {
+			newInsight.setContextProjectId(this.insight.getContextProjectId());
+		}
 
-    newInsight.setCacheInWorkspace(true);
-    InsightUtility.transferDefaultVars(this.insight, newInsight);
-    InsightStore.getInstance().put(newInsight);
-    InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
-    // set the user in the insight
-    newInsight.setUser(this.insight.getUser());
+		newInsight.setCacheInWorkspace(true);
+		InsightUtility.transferDefaultVars(this.insight, newInsight);
+		InsightStore.getInstance().put(newInsight);
+		InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
+		// set the user in the insight
+		newInsight.setUser(this.insight.getUser());
 
-    List<String> newRecipe = new Vector<String>();
-    try {
-      List<String> recipe = getRecipe();
-      if (recipe != null) {
-        for (String r : recipe) {
-          newRecipe.add(Utility.decodeURIComponent(r));
-        }
-      }
-    } catch (IllegalArgumentException e) {
-      // ignore
-      // by default we throw error when recipe is not passed in
-    }
+		List<String> newRecipe = new Vector<String>();
+		try {
+			List<String> recipe = getRecipe();
+			if (recipe != null) {
+				for (String r : recipe) {
+					newRecipe.add(Utility.decodeURIComponent(r));
+				}
+			}
+		} catch (IllegalArgumentException e) {
+			// ignore
+			// by default we throw error when recipe is not passed in
+		}
 
-    // return the recipe steps
-    Map<String, Object> runnerWraper = new HashMap<String, Object>();
-    runnerWraper.put("runner", newInsight.runPixel(newRecipe));
-    runnerWraper.put("params", getExecutionParams());
-    return new NounMetadata(
-        runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.NEW_EMPTY_INSIGHT);
-  }
+		// return the recipe steps
+		Map<String, Object> runnerWraper = new HashMap<String, Object>();
+		runnerWraper.put("runner", newInsight.runPixel(newRecipe));
+		runnerWraper.put("params", getExecutionParams());
+		return new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.NEW_EMPTY_INSIGHT);
+	}
 }

@@ -16,38 +16,38 @@ package prerna.om;
 
 public class SentimentAnalysis {
 
-  private String sentence;
-  private double magnitude;
-  private double score;
+	private String sentence;
+	private double magnitude;
+	private double score;
 
-  public SentimentAnalysis() {}
+	public SentimentAnalysis() {
+	}
 
-  /*
-   * This is just a struct
-   * Define setters and getters for the class variables
-   */
+	/*
+	 * This is just a struct Define setters and getters for the class variables
+	 */
 
-  public String getSentence() {
-    return sentence;
-  }
+	public String getSentence() {
+		return sentence;
+	}
 
-  public void setSentence(String sentence) {
-    this.sentence = sentence;
-  }
+	public void setSentence(String sentence) {
+		this.sentence = sentence;
+	}
 
-  public double getMagnitude() {
-    return magnitude;
-  }
+	public double getMagnitude() {
+		return magnitude;
+	}
 
-  public void setMagnitude(double magnitude) {
-    this.magnitude = magnitude;
-  }
+	public void setMagnitude(double magnitude) {
+		this.magnitude = magnitude;
+	}
 
-  public double getScore() {
-    return score;
-  }
+	public double getScore() {
+		return score;
+	}
 
-  public void setScore(double score) {
-    this.score = score;
-  }
+	public void setScore(double score) {
+		this.score = score;
+	}
 }

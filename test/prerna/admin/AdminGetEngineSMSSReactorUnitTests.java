@@ -43,191 +43,188 @@ import prerna.util.Utility;
 
 public class AdminGetEngineSMSSReactorUnitTests {
 
-  private AdminGetEngineSMSSReactor reactor;
-  private Insight insight;
-  private User user;
-  private SecurityAdminUtils securityAdminUtils;
-  private IEngine engine;
-  private NounStore ns;
-  private GenRowStruct engineGrs;
+	private AdminGetEngineSMSSReactor reactor;
+	private Insight insight;
+	private User user;
+	private SecurityAdminUtils securityAdminUtils;
+	private IEngine engine;
+	private NounStore ns;
+	private GenRowStruct engineGrs;
 
-  private FileSystem fs;
+	private FileSystem fs;
 
-  @BeforeEach
-  void setup() {
-    reactor = new AdminGetEngineSMSSReactor();
-    insight = mock(Insight.class);
-    user = mock(User.class);
-    reactor.setInsight(insight);
-    when(insight.getUser()).thenReturn(user);
+	@BeforeEach
+	void setup() {
+		reactor = new AdminGetEngineSMSSReactor();
+		insight = mock(Insight.class);
+		user = mock(User.class);
+		reactor.setInsight(insight);
+		when(insight.getUser()).thenReturn(user);
 
-    ns = mock(NounStore.class);
+		ns = mock(NounStore.class);
 
-    engineGrs = mock(GenRowStruct.class);
-    reactor.setNounStore(ns);
-    fs = Jimfs.newFileSystem(Configuration.unix());
-  }
+		engineGrs = mock(GenRowStruct.class);
+		reactor.setNounStore(ns);
+		fs = Jimfs.newFileSystem(Configuration.unix());
+	}
 
-  @Test
-  void test_AdminUtilsNull() {
-    try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-      sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(null);
+	@Test
+	void test_AdminUtilsNull() {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(null);
 
-      IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-      assertEquals("User must be an admin to perform this function", e.getMessage());
-    }
-  }
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("User must be an admin to perform this function", e.getMessage());
+		}
+	}
 
-  @Test
-  void test_EngineIdNull() {
-    try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
-      SecurityAdminUtils s = mock(SecurityAdminUtils.class);
-      sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+	@Test
+	void test_EngineIdNull() {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-      IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-      assertEquals("Need to define the engine", e.getMessage());
-    }
-  }
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("Need to define the engine", e.getMessage());
+		}
+	}
 
-  @Test
-  void test_SmssFileNotExist() {
+	@Test
+	void test_SmssFileNotExist() {
 
-    when(ns.size()).thenReturn(2);
-    when(ns.getNoun(ReactorKeysEnum.ENGINE.getKey())).thenReturn(engineGrs);
+		when(ns.size()).thenReturn(2);
+		when(ns.getNoun(ReactorKeysEnum.ENGINE.getKey())).thenReturn(engineGrs);
 
-    when(engineGrs.isEmpty()).thenReturn(false);
-    when(engineGrs.get(0)).thenReturn("id");
+		when(engineGrs.isEmpty()).thenReturn(false);
+		when(engineGrs.get(0)).thenReturn("id");
 
-    try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
-        MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class)) {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class)) {
 
-      SecurityAdminUtils s = mock(SecurityAdminUtils.class);
-      sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-      IEngine engine = mock(IEngine.class);
-      utility.when(() -> Utility.getEngine("id")).thenReturn(engine);
+			IEngine engine = mock(IEngine.class);
+			utility.when(() -> Utility.getEngine("id")).thenReturn(engine);
 
-      when(engine.getSmssFilePath()).thenReturn("Semoss.txt");
+			when(engine.getSmssFilePath()).thenReturn("Semoss.txt");
 
-      IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-      assertEquals(
-          "Could not find smss file for engine id. Please reach out to an administrator for assistance",
-          e.getMessage());
-    }
-  }
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("Could not find smss file for engine id. Please reach out to an administrator for assistance",
+					e.getMessage());
+		}
+	}
 
-  @Test
-  void test_SmssFileReturnDirectory() throws IOException {
+	@Test
+	void test_SmssFileReturnDirectory() throws IOException {
 
-    when(ns.size()).thenReturn(2);
-    when(ns.getNoun(ReactorKeysEnum.ENGINE.getKey())).thenReturn(engineGrs);
+		when(ns.size()).thenReturn(2);
+		when(ns.getNoun(ReactorKeysEnum.ENGINE.getKey())).thenReturn(engineGrs);
 
-    when(engineGrs.isEmpty()).thenReturn(false);
-    when(engineGrs.get(0)).thenReturn("id");
+		when(engineGrs.isEmpty()).thenReturn(false);
+		when(engineGrs.get(0)).thenReturn("id");
 
-    try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
-        MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class);
-        MockedStatic<FileSystems> fss = Mockito.mockStatic(FileSystems.class)) {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class);
+				MockedStatic<FileSystems> fss = Mockito.mockStatic(FileSystems.class)) {
 
-      SecurityAdminUtils s = mock(SecurityAdminUtils.class);
-      sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-      IEngine engine = mock(IEngine.class);
-      utility.when(() -> Utility.getEngine("id")).thenReturn(engine);
+			IEngine engine = mock(IEngine.class);
+			utility.when(() -> Utility.getEngine("id")).thenReturn(engine);
 
-      when(engine.getSmssFilePath()).thenReturn("dir");
+			when(engine.getSmssFilePath()).thenReturn("dir");
 
-      fss.when(FileSystems::getDefault).thenReturn(fs);
-      Files.createDirectory(fs.getPath("dir"));
+			fss.when(FileSystems::getDefault).thenReturn(fs);
+			Files.createDirectory(fs.getPath("dir"));
 
-      IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-      assertEquals(
-          "Could not find smss file for engine id. Please reach out to an administrator for assistance",
-          e.getMessage());
-    }
-  }
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("Could not find smss file for engine id. Please reach out to an administrator for assistance",
+					e.getMessage());
+		}
+	}
 
-  @Test
-  void test_SmssFileException() throws IOException {
+	@Test
+	void test_SmssFileException() throws IOException {
 
-    when(ns.size()).thenReturn(2);
-    when(ns.getNoun(ReactorKeysEnum.ENGINE.getKey())).thenReturn(engineGrs);
+		when(ns.size()).thenReturn(2);
+		when(ns.getNoun(ReactorKeysEnum.ENGINE.getKey())).thenReturn(engineGrs);
 
-    when(engineGrs.isEmpty()).thenReturn(false);
-    when(engineGrs.get(0)).thenReturn("id");
+		when(engineGrs.isEmpty()).thenReturn(false);
+		when(engineGrs.get(0)).thenReturn("id");
 
-    try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
-        MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class);
-        MockedStatic<Files> files = Mockito.mockStatic(Files.class);
-        MockedStatic<Paths> paths = Mockito.mockStatic(Paths.class)) {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class);
+				MockedStatic<Files> files = Mockito.mockStatic(Files.class);
+				MockedStatic<Paths> paths = Mockito.mockStatic(Paths.class)) {
 
-      SecurityAdminUtils s = mock(SecurityAdminUtils.class);
-      sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-      IEngine engine = mock(IEngine.class);
-      utility.when(() -> Utility.getEngine("id")).thenReturn(engine);
-      when(engine.getSmssFilePath()).thenReturn("Semoss.txt");
+			IEngine engine = mock(IEngine.class);
+			utility.when(() -> Utility.getEngine("id")).thenReturn(engine);
+			when(engine.getSmssFilePath()).thenReturn("Semoss.txt");
 
-      Path p = mock(Path.class);
-      paths.when(() -> Paths.get("Semoss.txt")).thenReturn(p);
+			Path p = mock(Path.class);
+			paths.when(() -> Paths.get("Semoss.txt")).thenReturn(p);
 
-      files.when(() -> Files.exists(p)).thenReturn(true);
-      files.when(() -> Files.isRegularFile(p)).thenReturn(true);
+			files.when(() -> Files.exists(p)).thenReturn(true);
+			files.when(() -> Files.isRegularFile(p)).thenReturn(true);
 
-      URI mockUri = mock(URI.class);
-      when(p.toUri()).thenReturn(mockUri);
+			URI mockUri = mock(URI.class);
+			when(p.toUri()).thenReturn(mockUri);
 
-      paths.when(() -> Paths.get(mockUri)).thenReturn(p);
+			paths.when(() -> Paths.get(mockUri)).thenReturn(p);
 
-      files.when(() -> Files.readAllBytes(p)).thenThrow(new IOException("error"));
+			files.when(() -> Files.readAllBytes(p)).thenThrow(new IOException("error"));
 
-      IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-      assertEquals(
-          "An error occurred reading the current engine smss details. Detailed message = error",
-          e.getMessage());
-    }
-  }
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("An error occurred reading the current engine smss details. Detailed message = error",
+					e.getMessage());
+		}
+	}
 
-  @Test
-  void test_SmssFileNoException() throws IOException {
+	@Test
+	void test_SmssFileNoException() throws IOException {
 
-    when(ns.size()).thenReturn(2);
-    when(ns.getNoun(ReactorKeysEnum.ENGINE.getKey())).thenReturn(engineGrs);
+		when(ns.size()).thenReturn(2);
+		when(ns.getNoun(ReactorKeysEnum.ENGINE.getKey())).thenReturn(engineGrs);
 
-    when(engineGrs.isEmpty()).thenReturn(false);
-    when(engineGrs.get(0)).thenReturn("id");
+		when(engineGrs.isEmpty()).thenReturn(false);
+		when(engineGrs.get(0)).thenReturn("id");
 
-    try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
-        MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class);
-        MockedStatic<Files> files = Mockito.mockStatic(Files.class);
-        MockedStatic<Paths> paths = Mockito.mockStatic(Paths.class);
-        MockedStatic<SmssUtilities> smssUtil = Mockito.mockStatic(SmssUtilities.class)) {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class);
+				MockedStatic<Files> files = Mockito.mockStatic(Files.class);
+				MockedStatic<Paths> paths = Mockito.mockStatic(Paths.class);
+				MockedStatic<SmssUtilities> smssUtil = Mockito.mockStatic(SmssUtilities.class)) {
 
-      SecurityAdminUtils s = mock(SecurityAdminUtils.class);
-      sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-      IEngine engine = mock(IEngine.class);
-      utility.when(() -> Utility.getEngine("id")).thenReturn(engine);
-      when(engine.getSmssFilePath()).thenReturn("Semoss.txt");
+			IEngine engine = mock(IEngine.class);
+			utility.when(() -> Utility.getEngine("id")).thenReturn(engine);
+			when(engine.getSmssFilePath()).thenReturn("Semoss.txt");
 
-      //			Files file = mock(Files.class);
-      Path p = mock(Path.class);
-      paths.when(() -> Paths.get("Semoss.txt")).thenReturn(p);
+			// Files file = mock(Files.class);
+			Path p = mock(Path.class);
+			paths.when(() -> Paths.get("Semoss.txt")).thenReturn(p);
 
-      files.when(() -> Files.exists(p)).thenReturn(true);
-      files.when(() -> Files.isRegularFile(p)).thenReturn(true);
+			files.when(() -> Files.exists(p)).thenReturn(true);
+			files.when(() -> Files.isRegularFile(p)).thenReturn(true);
 
-      URI mockUri = mock(URI.class);
-      when(p.toUri()).thenReturn(mockUri);
+			URI mockUri = mock(URI.class);
+			when(p.toUri()).thenReturn(mockUri);
 
-      paths.when(() -> Paths.get(mockUri)).thenReturn(p);
-      String test = "test";
-      files.when(() -> Files.readAllBytes(p)).thenReturn(test.getBytes());
+			paths.when(() -> Paths.get(mockUri)).thenReturn(p);
+			String test = "test";
+			files.when(() -> Files.readAllBytes(p)).thenReturn(test.getBytes());
 
-      smssUtil.when(() -> SmssUtilities.concealSmssSensitiveInfo(test)).thenReturn("test2");
-      NounMetadata nm = reactor.execute();
-      assertEquals("test2", nm.getValue().toString());
-      assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
-    }
-  }
+			smssUtil.when(() -> SmssUtilities.concealSmssSensitiveInfo(test)).thenReturn("test2");
+			NounMetadata nm = reactor.execute();
+			assertEquals("test2", nm.getValue().toString());
+			assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
+		}
+	}
 }

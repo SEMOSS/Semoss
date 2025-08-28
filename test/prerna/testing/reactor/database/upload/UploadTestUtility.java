@@ -31,61 +31,43 @@ import prerna.testing.ApiSemossTestUtils;
 /** Test Utility to upload an engine */
 public class UploadTestUtility {
 
-  /**
-   * Upload file to insight folder
-   *
-   * @param filePath
-   * @throws IOException
-   */
-  public static void uploadFile(String filePath) {
-    // copy file to insight folder
-    // TODO use a reactor to do this and test output
-    File movieFile = new File(filePath);
-    File insightFolder = new File(ApiSemossTestInsightUtils.getInsight().getInsightFolder());
-    try {
-      FileUtils.copyFileToDirectory(movieFile, insightFolder);
-    } catch (IOException e) {
-      e.printStackTrace();
-      fail();
-    }
-  }
+	/**
+	 * Upload file to insight folder
+	 *
+	 * @param filePath
+	 * @throws IOException
+	 */
+	public static void uploadFile(String filePath) {
+		// copy file to insight folder
+		// TODO use a reactor to do this and test output
+		File movieFile = new File(filePath);
+		File insightFolder = new File(ApiSemossTestInsightUtils.getInsight().getInsightFolder());
+		try {
+			FileUtils.copyFileToDirectory(movieFile, insightFolder);
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail();
+		}
+	}
 
-  public static Map<String, Object> predictDataTypes(String filePath, String delimiter) {
-    String pixel =
-        ApiSemossTestUtils.buildPixelCall(
-            PredictDataTypesReactor.class,
-            ReactorKeysEnum.FILE_PATH.getKey(),
-            filePath,
-            ReactorKeysEnum.DELIMITER.getKey(),
-            delimiter);
-    NounMetadata noun = ApiSemossTestUtils.processPixel(pixel);
-    Map<String, Object> retMap = (Map<String, Object>) noun.getValue();
-    assertFalse(retMap.isEmpty());
-    return retMap;
-  }
+	public static Map<String, Object> predictDataTypes(String filePath, String delimiter) {
+		String pixel = ApiSemossTestUtils.buildPixelCall(PredictDataTypesReactor.class,
+				ReactorKeysEnum.FILE_PATH.getKey(), filePath, ReactorKeysEnum.DELIMITER.getKey(), delimiter);
+		NounMetadata noun = ApiSemossTestUtils.processPixel(pixel);
+		Map<String, Object> retMap = (Map<String, Object>) noun.getValue();
+		assertFalse(retMap.isEmpty());
+		return retMap;
+	}
 
-  public static Map<String, Object> rdbmsUploadTable(
-      String databaseName,
-      String filePath,
-      String delimiter,
-      Map<String, Object> dataTypeMap,
-      boolean exists) {
-    String pixel =
-        ApiSemossTestUtils.buildPixelCall(
-            RdbmsUploadTableDataReactor.class,
-            ReactorKeysEnum.DATABASE.getKey(),
-            databaseName,
-            ReactorKeysEnum.FILE_PATH.getKey(),
-            filePath,
-            ReactorKeysEnum.DELIMITER.getKey(),
-            delimiter,
-            ReactorKeysEnum.DATA_TYPE_MAP.getKey(),
-            dataTypeMap,
-            ReactorKeysEnum.EXISTING.getKey(),
-            exists);
-    NounMetadata noun = ApiSemossTestUtils.processPixel(pixel);
-    Map<String, Object> retMap = (Map<String, Object>) noun.getValue();
-    assertFalse(retMap.isEmpty());
-    return retMap;
-  }
+	public static Map<String, Object> rdbmsUploadTable(String databaseName, String filePath, String delimiter,
+			Map<String, Object> dataTypeMap, boolean exists) {
+		String pixel = ApiSemossTestUtils.buildPixelCall(RdbmsUploadTableDataReactor.class,
+				ReactorKeysEnum.DATABASE.getKey(), databaseName, ReactorKeysEnum.FILE_PATH.getKey(), filePath,
+				ReactorKeysEnum.DELIMITER.getKey(), delimiter, ReactorKeysEnum.DATA_TYPE_MAP.getKey(), dataTypeMap,
+				ReactorKeysEnum.EXISTING.getKey(), exists);
+		NounMetadata noun = ApiSemossTestUtils.processPixel(pixel);
+		Map<String, Object> retMap = (Map<String, Object>) noun.getValue();
+		assertFalse(retMap.isEmpty());
+		return retMap;
+	}
 }

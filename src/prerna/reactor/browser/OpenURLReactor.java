@@ -27,71 +27,69 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class OpenURLReactor extends AbstractReactor {
 
-  private static final String REACTOR_DESCRIPTION =
-      "Open the URL of the Browser App rendered on the server.";
-  private static final String URL_KEY_DESCRIPTION =
-      "A URL address to open on the Browser App rendered on the server.";
+	private static final String REACTOR_DESCRIPTION = "Open the URL of the Browser App rendered on the server.";
+	private static final String URL_KEY_DESCRIPTION = "A URL address to open on the Browser App rendered on the server.";
 
-  public OpenURLReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.URL.getKey()};
-    this.keyRequired = new int[] {1};
-  }
+	public OpenURLReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey()};
+		this.keyRequired = new int[]{1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    User user = this.insight.getUser();
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		User user = this.insight.getUser();
 
-    BrowserUtils.ensureUserLoggedIn(user);
+		BrowserUtils.ensureUserLoggedIn(user);
 
-    if (BrowserUtils.anonymousEnabledAndUserAnonymous(user)) {
-      throwAnonymousUserError();
-    }
+		if (BrowserUtils.anonymousEnabledAndUserAnonymous(user)) {
+			throwAnonymousUserError();
+		}
 
-    String url = this.keyValue.get(this.keysToGet[0]);
+		String url = this.keyValue.get(this.keysToGet[0]);
 
-    String domain = null;
-    try {
-      URI uri = new URI(url);
-      if (!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme())) {
-        throw new IllegalArgumentException("URL is not http or https.");
-      }
-      domain = uri.getHost();
-    } catch (URISyntaxException e) {
-      throw new IllegalArgumentException("URL is improperly formatted.", e);
-    }
+		String domain = null;
+		try {
+			URI uri = new URI(url);
+			if (!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme())) {
+				throw new IllegalArgumentException("URL is not http or https.");
+			}
+			domain = uri.getHost();
+		} catch (URISyntaxException e) {
+			throw new IllegalArgumentException("URL is improperly formatted.", e);
+		}
 
-    Map<String, Object> actions = new HashMap<>();
-    actions.put("actor", "system");
-    actions.put("action", "navigate");
-    actions.put("website", url);
+		Map<String, Object> actions = new HashMap<>();
+		actions.put("actor", "system");
+		actions.put("action", "navigate");
+		actions.put("website", url);
 
-    String json = BrowserUtils.mapToJsonString(actions);
+		String json = BrowserUtils.mapToJsonString(actions);
 
-    JSONObject jo = new JSONObject(json);
+		JSONObject jo = new JSONObject(json);
 
-    PlaywrightBrowserUtil pbu = this.insight.getPlaywrightUtil();
-    if (pbu == null) {
-      pbu = new PlaywrightBrowserUtil();
-      this.insight.setPlaywrightUtil(pbu);
-    }
+		PlaywrightBrowserUtil pbu = this.insight.getPlaywrightUtil();
+		if (pbu == null) {
+			pbu = new PlaywrightBrowserUtil();
+			this.insight.setPlaywrightUtil(pbu);
+		}
 
-    pbu.open(jo);
+		pbu.open(jo);
 
-    return new NounMetadata(true, PixelDataType.BOOLEAN);
-  }
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
 
-  @Override
-  public String getReactorDescription() {
-    return REACTOR_DESCRIPTION;
-  }
+	@Override
+	public String getReactorDescription() {
+		return REACTOR_DESCRIPTION;
+	}
 
-  @Override
-  protected String getDescriptionForKey(String key) {
-    if (key.equals(ReactorKeysEnum.URL.getKey())) {
-      return URL_KEY_DESCRIPTION;
-    } else {
-      return super.getDescriptionForKey(key);
-    }
-  }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.URL.getKey())) {
+			return URL_KEY_DESCRIPTION;
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }

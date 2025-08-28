@@ -27,35 +27,35 @@ import prerna.util.Utility;
 
 public class GetProjectAuthorizationHeaderReactor extends AbstractReactor {
 
-  public GetProjectAuthorizationHeaderReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-  }
+	public GetProjectAuthorizationHeaderReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String projectId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 
-    if (StringUtils.isBlank(projectId)) {
-      throw new IllegalArgumentException("Must input an project id");
-    }
+		if (StringUtils.isBlank(projectId)) {
+			throw new IllegalArgumentException("Must input an project id");
+		}
 
-    if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-      throw new IllegalArgumentException(
-          "Project does not exist or user does not have edit access to get the authorization headers");
-    }
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have edit access to get the authorization headers");
+		}
 
-    // make sure we have the value or throw a null pointer
-    IProject project = Utility.getProject(projectId);
-    ProjectProperties props = project.getProjectProperties();
+		// make sure we have the value or throw a null pointer
+		IProject project = Utility.getProject(projectId);
+		ProjectProperties props = project.getProjectProperties();
 
-    // TODO assuming right now it is Basic with access/secret key
+		// TODO assuming right now it is Basic with access/secret key
 
-    ProjectHeaderAuthEvaluator eval = new ProjectHeaderAuthEvaluator();
-    eval.setProjectId(projectId);
-    eval.setAccessKey(props.getProperty("accessKey"));
-    eval.setSecretKey(props.getProperty("secretKey"));
-    NounMetadata noun = new NounMetadata(eval, PixelDataType.PROJECT_AUTHORIZATION_HEADER);
-    return noun;
-  }
+		ProjectHeaderAuthEvaluator eval = new ProjectHeaderAuthEvaluator();
+		eval.setProjectId(projectId);
+		eval.setAccessKey(props.getProperty("accessKey"));
+		eval.setSecretKey(props.getProperty("secretKey"));
+		NounMetadata noun = new NounMetadata(eval, PixelDataType.PROJECT_AUTHORIZATION_HEADER);
+		return noun;
+	}
 }

@@ -20,20 +20,20 @@ import prerna.util.Constants;
 
 public class DeleteProjectRunner implements Runnable {
 
-  protected static final Logger logger = LogManager.getLogger(DeleteProjectRunner.class);
+	protected static final Logger logger = LogManager.getLogger(DeleteProjectRunner.class);
 
-  private final String projectId;
+	private final String projectId;
 
-  public DeleteProjectRunner(String projectId) {
-    this.projectId = projectId;
-  }
+	public DeleteProjectRunner(String projectId) {
+		this.projectId = projectId;
+	}
 
-  @Override
-  public void run() {
-    try {
-      ClusterUtil.deleteProject(projectId);
-    } catch (Exception e) {
-      logger.error(Constants.STACKTRACE, e);
-    }
-  }
+	@Override
+	public void run() {
+		try {
+			ClusterUtil.deleteProject(projectId);
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+	}
 }

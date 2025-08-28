@@ -18,5 +18,5 @@ import prerna.engine.api.IRawSelectWrapper;
 
 public interface IFileIterator extends IRawSelectWrapper {
 
-  boolean getNumRecordsOverSize(long limitSize);
+	boolean getNumRecordsOverSize(long limitSize);
 }

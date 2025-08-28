@@ -18,22 +18,22 @@ import java.util.Map;
 
 public class NotebookExecution {
 
-  private PixelRunner runner;
-  private Map<String, Object> variableOutput;
+	private PixelRunner runner;
+	private Map<String, Object> variableOutput;
 
-  public PixelRunner getRunner() {
-    return runner;
-  }
+	public PixelRunner getRunner() {
+		return runner;
+	}
 
-  public void setRunner(PixelRunner runner) {
-    this.runner = runner;
-  }
+	public void setRunner(PixelRunner runner) {
+		this.runner = runner;
+	}
 
-  public Map<String, Object> getVariableOutput() {
-    return variableOutput;
-  }
+	public Map<String, Object> getVariableOutput() {
+		return variableOutput;
+	}
 
-  public void setVariableOutput(Map<String, Object> variableOutput) {
-    this.variableOutput = variableOutput;
-  }
+	public void setVariableOutput(Map<String, Object> variableOutput) {
+		this.variableOutput = variableOutput;
+	}
 }

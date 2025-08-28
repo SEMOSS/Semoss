@@ -20,19 +20,19 @@ import java.util.List;
 
 public interface INotebookBuilder {
 
-  /**
-   * @param writeDir
-   * @return
-   */
-  List<File> createNotebooks(File writeDir);
+	/**
+	 * @param writeDir
+	 * @return
+	 */
+	List<File> createNotebooks(File writeDir);
 
-  /**
-   * @param blocksFileJson
-   */
-  void setBlocksFileJson(JsonElement blocksFileJson);
+	/**
+	 * @param blocksFileJson
+	 */
+	void setBlocksFileJson(JsonElement blocksFileJson);
 
-  /**
-   * @return
-   */
-  JsonElement getBlocksFileJson();
+	/**
+	 * @return
+	 */
+	JsonElement getBlocksFileJson();
 }

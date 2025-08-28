@@ -27,32 +27,29 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetInsightUserAccessRequestReactor extends AbstractReactor {
 
-  public GetInsightUserAccessRequestReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
-  }
+	public GetInsightUserAccessRequestReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String projectId = this.keyValue.get(this.keysToGet[0]);
-    String insightId = this.keyValue.get(this.keysToGet[1]);
-    if (projectId == null) {
-      throw new IllegalArgumentException("Please define the project id.");
-    }
-    if (insightId == null) {
-      throw new IllegalArgumentException("Please define the insight id.");
-    }
-    // check user permission for the database
-    User user = this.insight.getUser();
-    if (!SecurityAdminUtils.userIsAdmin(user)
-        && !SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
-      throw new IllegalArgumentException(
-          "User does not have permission to view access requests for this insight");
-    }
-    List<Map<String, Object>> requests =
-        SecurityInsightUtils.getUserAccessRequestsByInsight(projectId, insightId);
-    ;
-    return new NounMetadata(
-        requests, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		String insightId = this.keyValue.get(this.keysToGet[1]);
+		if (projectId == null) {
+			throw new IllegalArgumentException("Please define the project id.");
+		}
+		if (insightId == null) {
+			throw new IllegalArgumentException("Please define the insight id.");
+		}
+		// check user permission for the database
+		User user = this.insight.getUser();
+		if (!SecurityAdminUtils.userIsAdmin(user)
+				&& !SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
+			throw new IllegalArgumentException(
+					"User does not have permission to view access requests for this insight");
+		}
+		List<Map<String, Object>> requests = SecurityInsightUtils.getUserAccessRequestsByInsight(projectId, insightId);;
+		return new NounMetadata(requests, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
+	}
 }

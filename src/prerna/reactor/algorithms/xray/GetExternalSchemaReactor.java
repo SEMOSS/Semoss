@@ -1,15 +1,17 @@
 /***************************************************************************************************
  * Copyright 2015 Defense Health Agency (DHA)
  *
- * If your use of this software does not include any GPLv2 components: Licensed under the Apache
- * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
- * License. You may obtain a copy of the License at
+ * If your use of this software does not include any GPLv2 components: Licensed
+ * under the Apache License, Version 2.0 (the "License"); you may not use this
+ * file except in compliance with the License. You may obtain a copy of the
+ * License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
  * the License.
  ***************************************************************************************************/
 package prerna.reactor.algorithms.xray;
@@ -37,124 +39,133 @@ package prerna.reactor.algorithms.xray;
 //
 // public class GetExternalSchemaReactor extends AbstractReactor {
 //
-//	public GetExternalSchemaReactor() {
-//		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(),
+// public GetExternalSchemaReactor() {
+// this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(),
 // ReactorKeysEnum.HOST.getKey(),
-//				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(),
-//				ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.SCHEMA.getKey() };
-//	}
+// ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(),
+// ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.SCHEMA.getKey() };
+// }
 //
-//	@Override
-//	public NounMetadata execute() {
-//		organizeKeys();
-//		String dbDriver = this.keyValue.get(this.keysToGet[0]);
-//		if(dbDriver == null) {
-//			throw new IllegalArgumentException("Need to define the " +
+// @Override
+// public NounMetadata execute() {
+// organizeKeys();
+// String dbDriver = this.keyValue.get(this.keysToGet[0]);
+// if(dbDriver == null) {
+// throw new IllegalArgumentException("Need to define the " +
 // ReactorKeysEnum.DB_DRIVER_KEY.getKey());
-//		}
-//		String host = this.keyValue.get(this.keysToGet[1]);
-//		if(host == null) {
-//			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.HOST.getKey());
-//		}
-//		String port = this.keyValue.get(this.keysToGet[2]);
-//		if(port == null) {
-//			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.PORT.getKey());
-//		}
-//		String username = this.keyValue.get(this.keysToGet[3]);
-//		if(username == null) {
-//			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.USERNAME.getKey());
-//		}
-//		String password = this.keyValue.get(this.keysToGet[4]);
-//		if(password == null) {
-//			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.PASSWORD.getKey());
-//		}
-//		String schema = this.keyValue.get(this.keysToGet[5]);
-//		if(schema == null) {
-//			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.SCHEMA.getKey());
-//		}
+// }
+// String host = this.keyValue.get(this.keysToGet[1]);
+// if(host == null) {
+// throw new IllegalArgumentException("Need to define the " +
+// ReactorKeysEnum.HOST.getKey());
+// }
+// String port = this.keyValue.get(this.keysToGet[2]);
+// if(port == null) {
+// throw new IllegalArgumentException("Need to define the " +
+// ReactorKeysEnum.PORT.getKey());
+// }
+// String username = this.keyValue.get(this.keysToGet[3]);
+// if(username == null) {
+// throw new IllegalArgumentException("Need to define the " +
+// ReactorKeysEnum.USERNAME.getKey());
+// }
+// String password = this.keyValue.get(this.keysToGet[4]);
+// if(password == null) {
+// throw new IllegalArgumentException("Need to define the " +
+// ReactorKeysEnum.PASSWORD.getKey());
+// }
+// String schema = this.keyValue.get(this.keysToGet[5]);
+// if(schema == null) {
+// throw new IllegalArgumentException("Need to define the " +
+// ReactorKeysEnum.SCHEMA.getKey());
+// }
 //
-//		Connection con = null;
-//		String schemaJSON = "";
-//		NounMetadata noun = null;
-//		try {
-//			con = RdbmsConnectionHelper.buildConnection(dbDriver, host, port, username, password, schema,
+// Connection con = null;
+// String schemaJSON = "";
+// NounMetadata noun = null;
+// try {
+// con = RdbmsConnectionHelper.buildConnection(dbDriver, host, port, username,
+// password, schema,
 // null);
-//			String url = "";
-//			HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>();
+// String url = "";
+// HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String,
+// ArrayList<HashMap>>();
 // // tablename:
-//			// [colDetails]
-//			HashMap<String, ArrayList<HashMap>> relations = new HashMap<String, ArrayList<HashMap>>(); //
+// // [colDetails]
+// HashMap<String, ArrayList<HashMap>> relations = new HashMap<String,
+// ArrayList<HashMap>>(); //
 // sub_table:
-//			// [(obj_table, fromCol, toCol)]
+// // [(obj_table, fromCol, toCol)]
 //
-//			DatabaseMetaData meta = con.getMetaData();
-//			ResultSet tables = meta.getTables(null, null, null, new String[] { "TABLE" });
-//			while (tables.next()) {
-//				ArrayList<String> primaryKeys = new ArrayList<String>();
-//				HashMap<String, Object> colDetails = new HashMap<String, Object>(); // name:
+// DatabaseMetaData meta = con.getMetaData();
+// ResultSet tables = meta.getTables(null, null, null, new String[] { "TABLE"
+// });
+// while (tables.next()) {
+// ArrayList<String> primaryKeys = new ArrayList<String>();
+// HashMap<String, Object> colDetails = new HashMap<String, Object>(); // name:
 //
-//				ArrayList<HashMap> allCols = new ArrayList<HashMap>();
-//				HashMap<String, String> fkDetails = new HashMap<String, String>();
-//				ArrayList<HashMap> allRels = new ArrayList<HashMap>();
+// ArrayList<HashMap> allCols = new ArrayList<HashMap>();
+// HashMap<String, String> fkDetails = new HashMap<String, String>();
+// ArrayList<HashMap> allRels = new ArrayList<HashMap>();
 //
-//				String table = tables.getString("table_name");
-//				ResultSet keys = meta.getPrimaryKeys(null, null, table);
-//				while (keys.next()) {
-//					primaryKeys.add(keys.getString("column_name"));
-//				}
-//				keys = meta.getColumns(null, null, table, null);
-//				while (keys.next()) {
-//					colDetails = new HashMap<String, Object>();
-//					colDetails.put("name", keys.getString("column_name"));
-//					colDetails.put("type", keys.getString("type_name"));
-//					if (primaryKeys.contains(keys.getString("column_name"))) {
-//						colDetails.put("isPK", true);
-//					} else {
-//						colDetails.put("isPK", false);
-//					}
-//					allCols.add(colDetails);
-//				}
-//				tableDetails.put(table, allCols);
-//				keys = meta.getExportedKeys(null, null, table);
-//				while (keys.next()) {
-//					fkDetails = new HashMap<String, String>();
-//					fkDetails.put("fromCol", keys.getString("PKCOLUMN_NAME"));
-//					fkDetails.put("toTable", keys.getString("FKTABLE_NAME"));
-//					fkDetails.put("toCol", keys.getString("FKCOLUMN_NAME"));
-//					allRels.add(fkDetails);
-//				}
-//				relations.put(table, allRels);
-//			}
-//			HashMap<String, Object> ret = new HashMap<String, Object>();
-//			ret.put("databaseName", con.getCatalog());
-//			ret.put("tables", tableDetails);
-//			ret.put("relationships", relations);
-//			ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-//			schemaJSON = ow.writeValueAsString(ret);
-//			noun = new NounMetadata(schemaJSON, PixelDataType.CUSTOM_DATA_STRUCTURE,
+// String table = tables.getString("table_name");
+// ResultSet keys = meta.getPrimaryKeys(null, null, table);
+// while (keys.next()) {
+// primaryKeys.add(keys.getString("column_name"));
+// }
+// keys = meta.getColumns(null, null, table, null);
+// while (keys.next()) {
+// colDetails = new HashMap<String, Object>();
+// colDetails.put("name", keys.getString("column_name"));
+// colDetails.put("type", keys.getString("type_name"));
+// if (primaryKeys.contains(keys.getString("column_name"))) {
+// colDetails.put("isPK", true);
+// } else {
+// colDetails.put("isPK", false);
+// }
+// allCols.add(colDetails);
+// }
+// tableDetails.put(table, allCols);
+// keys = meta.getExportedKeys(null, null, table);
+// while (keys.next()) {
+// fkDetails = new HashMap<String, String>();
+// fkDetails.put("fromCol", keys.getString("PKCOLUMN_NAME"));
+// fkDetails.put("toTable", keys.getString("FKTABLE_NAME"));
+// fkDetails.put("toCol", keys.getString("FKCOLUMN_NAME"));
+// allRels.add(fkDetails);
+// }
+// relations.put(table, allRels);
+// }
+// HashMap<String, Object> ret = new HashMap<String, Object>();
+// ret.put("databaseName", con.getCatalog());
+// ret.put("tables", tableDetails);
+// ret.put("relationships", relations);
+// ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+// schemaJSON = ow.writeValueAsString(ret);
+// noun = new NounMetadata(schemaJSON, PixelDataType.CUSTOM_DATA_STRUCTURE,
 // PixelOperationType.CODE_EXECUTION);
 //
-//			con.close();
+// con.close();
 //
-//		} catch (SQLException e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//		} catch (JsonGenerationException e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//		} catch (JsonMappingException e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//		} catch (IOException e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//		} finally {
-//			if (con != null) {
-//				try {
-//					con.close();
-//				} catch (SQLException e) {
-//					classLogger.error(Constants.STACKTRACE, e);
-//				}
-//			}
-//		}
+// } catch (SQLException e) {
+// classLogger.error(Constants.STACKTRACE, e);
+// } catch (JsonGenerationException e) {
+// classLogger.error(Constants.STACKTRACE, e);
+// } catch (JsonMappingException e) {
+// classLogger.error(Constants.STACKTRACE, e);
+// } catch (IOException e) {
+// classLogger.error(Constants.STACKTRACE, e);
+// } finally {
+// if (con != null) {
+// try {
+// con.close();
+// } catch (SQLException e) {
+// classLogger.error(Constants.STACKTRACE, e);
+// }
+// }
+// }
 //
-//		return noun;
-//	}
+// return noun;
+// }
 //
 // }

@@ -19,14 +19,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SendSuccessMessageReactor extends AbstractReactor {
 
-  public SendSuccessMessageReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.MESSAGE.getKey()};
-  }
+	public SendSuccessMessageReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.MESSAGE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String message = this.keyValue.get(this.keysToGet[0]);
-    return getSuccess(message);
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String message = this.keyValue.get(this.keysToGet[0]);
+		return getSuccess(message);
+	}
 }

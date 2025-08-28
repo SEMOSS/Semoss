@@ -27,33 +27,33 @@ import prerna.util.Utility;
 
 public class ListPackagesInVirtualEnvReactor extends AbstractReactor {
 
-  public ListPackagesInVirtualEnvReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey()};
-    this.keyRequired = new int[] {1};
-  }
+	public ListPackagesInVirtualEnvReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+		this.keyRequired = new int[]{1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    this.organizeKeys();
+	@Override
+	public NounMetadata execute() {
+		this.organizeKeys();
 
-    String engineId = this.keyValue.get(this.keysToGet[0]);
-    if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-      throw new IllegalArgumentException(
-          "Virtual Environment " + engineId + " does not exist or user does not have access to it");
-    }
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException(
+					"Virtual Environment " + engineId + " does not exist or user does not have access to it");
+		}
 
-    IVenvEngine engine = Utility.getVenvEngine(engineId);
-    if (engine == null) {
-      throw new SemossPixelException("Unable to find engine");
-    }
+		IVenvEngine engine = Utility.getVenvEngine(engineId);
+		if (engine == null) {
+			throw new SemossPixelException("Unable to find engine");
+		}
 
-    List<Map<String, String>> output;
-    try {
-      output = engine.listPackages();
-    } catch (Exception e) {
-      throw new SemossPixelException("Unable to run process to get package list");
-    }
+		List<Map<String, String>> output;
+		try {
+			output = engine.listPackages();
+		} catch (Exception e) {
+			throw new SemossPixelException("Unable to run process to get package list");
+		}
 
-    return new NounMetadata(output, PixelDataType.VECTOR);
-  }
+		return new NounMetadata(output, PixelDataType.VECTOR);
+	}
 }

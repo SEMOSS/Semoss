@@ -26,24 +26,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class RemoteModelStateEnumUnitTests {
-  private RemoteModelStateEnum[] enumArr;
+	private RemoteModelStateEnum[] enumArr;
 
-  @BeforeEach
-  void setUp() {
-    enumArr = RemoteModelStateEnum.values();
-  }
+	@BeforeEach
+	void setUp() {
+		enumArr = RemoteModelStateEnum.values();
+	}
 
-  @Test
-  void testAllEnumsExist() {
-    List<RemoteModelStateEnum> enumLst =
-        Stream.of(
-                RemoteModelStateEnum.COLD,
-                RemoteModelStateEnum.WARMING,
-                RemoteModelStateEnum.ACTIVE,
-                RemoteModelStateEnum.FAILED,
-                RemoteModelStateEnum.UNKNOWN)
-            .collect(Collectors.toCollection(Vector::new));
+	@Test
+	void testAllEnumsExist() {
+		List<RemoteModelStateEnum> enumLst = Stream
+				.of(RemoteModelStateEnum.COLD, RemoteModelStateEnum.WARMING, RemoteModelStateEnum.ACTIVE,
+						RemoteModelStateEnum.FAILED, RemoteModelStateEnum.UNKNOWN)
+				.collect(Collectors.toCollection(Vector::new));
 
-    assertTrue(CollectionUtils.containsAll(enumLst, Arrays.asList(enumArr)));
-  }
+		assertTrue(CollectionUtils.containsAll(enumLst, Arrays.asList(enumArr)));
+	}
 }

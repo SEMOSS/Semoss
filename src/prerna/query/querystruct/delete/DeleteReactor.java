@@ -26,37 +26,37 @@ import prerna.sablecc2.om.NounStore;
 
 public class DeleteReactor extends AbstractQueryStructReactor {
 
-  @Override
-  public AbstractQueryStruct createQueryStruct() {
-    SelectQueryStruct qs = new SelectQueryStruct();
-    // merge any existing values
-    if (this.qs != null) {
-      qs.merge(this.qs);
-      qs.setQsType(this.qs.getQsType());
-    }
+	@Override
+	public AbstractQueryStruct createQueryStruct() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// merge any existing values
+		if (this.qs != null) {
+			qs.merge(this.qs);
+			qs.setQsType(this.qs.getQsType());
+		}
 
-    // table
-    GenRowStruct tab_grs = this.store.getNoun("from");
-    List<IQuerySelector> selectors = new Vector<IQuerySelector>();
+		// table
+		GenRowStruct tab_grs = this.store.getNoun("from");
+		List<IQuerySelector> selectors = new Vector<IQuerySelector>();
 
-    QueryColumnSelector sel = new QueryColumnSelector(tab_grs.get(0).toString());
-    selectors.add(sel);
+		QueryColumnSelector sel = new QueryColumnSelector(tab_grs.get(0).toString());
+		selectors.add(sel);
 
-    qs.setSelectors(selectors);
+		qs.setSelectors(selectors);
 
-    this.qs = qs;
-    return qs;
-  }
+		this.qs = qs;
+		return qs;
+	}
 
-  public void setNounStore(NounStore ns) {
-    this.store = ns;
-  }
+	public void setNounStore(NounStore ns) {
+		this.store = ns;
+	}
 
-  public void setQs(SelectQueryStruct qs) {
-    this.qs = qs;
-  }
+	public void setQs(SelectQueryStruct qs) {
+		this.qs = qs;
+	}
 
-  public String getName() {
-    return "Delete";
-  }
+	public String getName() {
+		return "Delete";
+	}
 }

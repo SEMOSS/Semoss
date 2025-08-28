@@ -16,29 +16,30 @@ package prerna.om;
 
 public class FileReference {
 
-  private String filePath = null;
-  private String space = null;
+	private String filePath = null;
+	private String space = null;
 
-  public FileReference() {}
+	public FileReference() {
+	}
 
-  public FileReference(String filePath, String space) {
-    this.filePath = filePath;
-    this.space = space;
-  }
+	public FileReference(String filePath, String space) {
+		this.filePath = filePath;
+		this.space = space;
+	}
 
-  public String getFilePath() {
-    return filePath;
-  }
+	public String getFilePath() {
+		return filePath;
+	}
 
-  public void setFilePath(String filePath) {
-    this.filePath = filePath;
-  }
+	public void setFilePath(String filePath) {
+		this.filePath = filePath;
+	}
 
-  public String getSpace() {
-    return space;
-  }
+	public String getSpace() {
+		return space;
+	}
 
-  public void setSpace(String space) {
-    this.space = space;
-  }
+	public void setSpace(String space) {
+		this.space = space;
+	}
 }

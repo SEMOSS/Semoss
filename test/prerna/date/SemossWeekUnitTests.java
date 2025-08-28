@@ -19,19 +19,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 
 public class SemossWeekUnitTests {
-  SemossWeek reactor;
+	SemossWeek reactor;
 
-  @Test
-  void stringWeeks() {
-    reactor = new SemossWeek("01");
+	@Test
+	void stringWeeks() {
+		reactor = new SemossWeek("01");
 
-    assertEquals(01, reactor.getNumWeeks());
-  }
+		assertEquals(01, reactor.getNumWeeks());
+	}
 
-  @Test
-  void intWeeks() {
-    reactor = new SemossWeek(52);
+	@Test
+	void intWeeks() {
+		reactor = new SemossWeek(52);
 
-    assertEquals(52, reactor.getNumWeeks());
-  }
+		assertEquals(52, reactor.getNumWeeks());
+	}
 }

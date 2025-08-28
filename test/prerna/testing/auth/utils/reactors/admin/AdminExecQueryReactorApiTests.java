@@ -34,59 +34,60 @@ import prerna.testing.ApiSemossTestUtils;
 import prerna.testing.PixelChain;
 
 public class AdminExecQueryReactorApiTests extends AbstractBaseSemossApiTests {
-  // @Test
-  public void executeSelectQueryStructInput() {
-    String engine = ApiSemossTestEngineUtils.createBasicEngine();
-    SelectQueryStruct qs = new SelectQueryStruct();
-    qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
+	// @Test
+	public void executeSelectQueryStructInput() {
+		String engine = ApiSemossTestEngineUtils.createBasicEngine();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
 
-    List<PixelOperationType> opTypes = new ArrayList<>();
-    opTypes.add(PixelOperationType.ALTER_DATABASE);
+		List<PixelOperationType> opTypes = new ArrayList<>();
+		opTypes.add(PixelOperationType.ALTER_DATABASE);
 
-    PixelChain db = new PixelChain(AdminDatabaseReactor.class, "jeff");
-    PixelChain query = new PixelChain("INSERT INTO HOME (Baths, Beds) VALUES (10, 20)");
-    //		PixelChain query = new PixelChain(QueryReactor.class, "SELECT * FROM SMSS_USER");
-    PixelChain collect = new PixelChain(CollectReactor.class, 0);
-    PixelChain adminExecQuery = new PixelChain(AdminExecQueryReactor.class, engine);
+		PixelChain db = new PixelChain(AdminDatabaseReactor.class, "jeff");
+		PixelChain query = new PixelChain("INSERT INTO HOME (Baths, Beds) VALUES (10, 20)");
+		// PixelChain query = new PixelChain(QueryReactor.class, "SELECT * FROM
+		// SMSS_USER");
+		PixelChain collect = new PixelChain(CollectReactor.class, 0);
+		PixelChain adminExecQuery = new PixelChain(AdminExecQueryReactor.class, engine);
 
-    String pixel = ApiSemossTestUtils.buildPixelChain(db, query, collect, adminExecQuery);
+		String pixel = ApiSemossTestUtils.buildPixelChain(db, query, collect, adminExecQuery);
 
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 
-    //        String query = "AdminDatabase(\"" + database + "\")";
-    //        query += "| Query(\"<encode>" + encode + "</encode>\")";
-    //        if (collect > 0) {
-    //            query += "| Collect(" + collect + ");";
-    //        } else {
-    //            query += "| AdminExecQuery();";
-    //        }
+		// String query = "AdminDatabase(\"" + database + "\")";
+		// query += "| Query(\"<encode>" + encode + "</encode>\")";
+		// if (collect > 0) {
+		// query += "| Collect(" + collect + ");";
+		// } else {
+		// query += "| AdminExecQuery();";
+		// }
 
-    assertNotNull(nm.getValue());
+		assertNotNull(nm.getValue());
 
-    assertNotNull(nm);
-    assertEquals(PixelDataType.BOOLEAN, nm.getNounType());
-    assertEquals(true, nm.getValue());
-    assertEquals(PixelOperationType.ALTER_DATABASE, nm.getOpType());
-  }
+		assertNotNull(nm);
+		assertEquals(PixelDataType.BOOLEAN, nm.getNounType());
+		assertEquals(true, nm.getValue());
+		assertEquals(PixelOperationType.ALTER_DATABASE, nm.getOpType());
+	}
 
-  // @Test
-  public void executeHardSelectQueryStructInput() {
-    String engine = ApiSemossTestEngineUtils.createBasicEngine();
-    HardSelectQueryStruct qs = new HardSelectQueryStruct();
+	// @Test
+	public void executeHardSelectQueryStructInput() {
+		String engine = ApiSemossTestEngineUtils.createBasicEngine();
+		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 
-    String query = "SELECT * FROM INSIGHT";
-    qs.setQuery(query);
-    //        qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
-    //        qs.setEngine(Utility.getDatabase(Constants.LOCAL_MASTER_DB));
+		String query = "SELECT * FROM INSIGHT";
+		qs.setQuery(query);
+		// qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		// qs.setEngine(Utility.getDatabase(Constants.LOCAL_MASTER_DB));
 
-    String pixel = ApiSemossTestUtils.buildPixelCall(AdminExecQueryReactor.class, qs, engine);
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-    List<PixelOperationType> opTypes = new ArrayList<>();
-    opTypes.add(PixelOperationType.ALTER_DATABASE);
+		String pixel = ApiSemossTestUtils.buildPixelCall(AdminExecQueryReactor.class, qs, engine);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		List<PixelOperationType> opTypes = new ArrayList<>();
+		opTypes.add(PixelOperationType.ALTER_DATABASE);
 
-    assertNotNull(nm);
-    assertEquals(PixelDataType.BOOLEAN, nm.getNounType());
-    assertEquals(true, nm.getValue());
-    assertEquals(PixelOperationType.ALTER_DATABASE, nm.getOpType());
-  }
+		assertNotNull(nm);
+		assertEquals(PixelDataType.BOOLEAN, nm.getNounType());
+		assertEquals(true, nm.getValue());
+		assertEquals(PixelOperationType.ALTER_DATABASE, nm.getOpType());
+	}
 }

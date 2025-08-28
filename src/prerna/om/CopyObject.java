@@ -16,17 +16,17 @@ package prerna.om;
 
 public class CopyObject {
 
-  // source
-  public String source = null;
+	// source
+	public String source = null;
 
-  // show source
-  public String showSource = null;
+	// show source
+	public String showSource = null;
 
-  // delete after copy
-  public boolean delete = false;
+	// delete after copy
+	public boolean delete = false;
 
-  public void clear() {
-    this.source = null;
-    this.showSource = null;
-  }
+	public void clear() {
+		this.source = null;
+		this.showSource = null;
+	}
 }

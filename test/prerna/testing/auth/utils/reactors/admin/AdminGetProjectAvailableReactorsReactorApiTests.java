@@ -27,22 +27,20 @@ import prerna.testing.utility.TestProjectUtils;
 
 public class AdminGetProjectAvailableReactorsReactorApiTests extends AbstractBaseSemossApiTests {
 
-  @Test
-  public void execute() {
+	@Test
+	public void execute() {
 
-    String project = TestProjectUtils.createBasicProject("testProject");
-    String reactor =
-        "AdminGetProjectAvailableReactors"; // make sure to include reactor name without "reactor"
-    // at the end!!
-    String pixel =
-        ApiSemossTestUtils.buildPixelCall(reactor, ReactorKeysEnum.PROJECT.getKey(), project);
+		String project = TestProjectUtils.createBasicProject("testProject");
+		String reactor = "AdminGetProjectAvailableReactors"; // make sure to include reactor name without "reactor"
+		// at the end!!
+		String pixel = ApiSemossTestUtils.buildPixelCall(reactor, ReactorKeysEnum.PROJECT.getKey(), project);
 
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 
-    String projectReactors = nm.getValue().toString();
-    assertNotNull(nm);
-    assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
-    assertEquals(projectReactors, nm.getValue().toString());
-    assertEquals(projectReactors, "[]");
-  }
+		String projectReactors = nm.getValue().toString();
+		assertNotNull(nm);
+		assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
+		assertEquals(projectReactors, nm.getValue().toString());
+		assertEquals(projectReactors, "[]");
+	}
 }

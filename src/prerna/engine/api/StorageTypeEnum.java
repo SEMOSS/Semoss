@@ -27,56 +27,55 @@ import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.engine.impl.storage.SFTPStorageEngine;
 
 public enum StorageTypeEnum {
-  AMAZON_S3("AMAZON_S3", S3StorageEngine.class.getName()),
-  AMAZON_S3_NATIVE("AMAZON_S3_NATIVE", AWSNativeBlobStorageEngine.class.getName()),
-  CEPH("CEPH", CephStorageEngine.class.getName()),
-  GOOGLE_CLOUD_STORAGE("GOOGLE_CLOUD_STORAGE", GoogleCloudStorageEngine.class.getName()),
-  GOOGLE_CLOUD_NATIVE_STORAGE(
-      "GOOGLE_CLOUD_NATIVE_STORAGE", GoogleCloudNativeBlobStorageEngine.class.getName()),
-  JCIFS("JCIFS", JCIFSStorageEngine.class.getName()),
-  LOCAL_FILE_SYSTEM("LOCAL_FILE_SYSTEM", LocalFileSystemStorageEngine.class.getName()),
-  //	GOOGLE_DRIVE("GOOGLE_DRIVE",""),
-  MICROSOFT_AZURE_BLOB_STORAGE(
-      "MICROSOFT_AZURE_BLOB_STORAGE", AzureBlobStorageEngine.class.getName()),
-  MICROSOFT_AZURE_NATIVE_BLOB_STORAGE(
-      "MICROSOFT_AZURE_NATIVE_BLOB_STORAGE", AzureNativeBlobStorageEngine.class.getName()),
-  MINIO("MINIO", MinioStorageEngine.class.getName()),
-  SFTP("SFTP", SFTPStorageEngine.class.getName()),
-  SMB_CIFS("SMB_CIFS", JCIFSStorageEngine.class.getName());
+	AMAZON_S3("AMAZON_S3", S3StorageEngine.class.getName()), AMAZON_S3_NATIVE("AMAZON_S3_NATIVE",
+			AWSNativeBlobStorageEngine.class.getName()), CEPH("CEPH",
+					CephStorageEngine.class.getName()), GOOGLE_CLOUD_STORAGE("GOOGLE_CLOUD_STORAGE",
+							GoogleCloudStorageEngine.class.getName()), GOOGLE_CLOUD_NATIVE_STORAGE(
+									"GOOGLE_CLOUD_NATIVE_STORAGE",
+									GoogleCloudNativeBlobStorageEngine.class.getName()), JCIFS("JCIFS",
+											JCIFSStorageEngine.class.getName()), LOCAL_FILE_SYSTEM("LOCAL_FILE_SYSTEM",
+													LocalFileSystemStorageEngine.class.getName()),
+	// GOOGLE_DRIVE("GOOGLE_DRIVE",""),
+	MICROSOFT_AZURE_BLOB_STORAGE("MICROSOFT_AZURE_BLOB_STORAGE",
+			AzureBlobStorageEngine.class.getName()), MICROSOFT_AZURE_NATIVE_BLOB_STORAGE(
+					"MICROSOFT_AZURE_NATIVE_BLOB_STORAGE", AzureNativeBlobStorageEngine.class.getName()), MINIO("MINIO",
+							MinioStorageEngine.class.getName()), SFTP("SFTP",
+									SFTPStorageEngine.class.getName()), SMB_CIFS("SMB_CIFS",
+											JCIFSStorageEngine.class.getName());
 
-  private String storageName;
-  private String storageClass;
+	private String storageName;
+	private String storageClass;
 
-  StorageTypeEnum(String storageName, String storageClass) {
-    this.storageName = storageName;
-    this.storageClass = storageClass;
-  }
+	StorageTypeEnum(String storageName, String storageClass) {
+		this.storageName = storageName;
+		this.storageClass = storageClass;
+	}
 
-  /**
-   * @return
-   */
-  public String getStorageClass() {
-    return this.storageClass;
-  }
+	/**
+	 * @return
+	 */
+	public String getStorageClass() {
+		return this.storageClass;
+	}
 
-  /**
-   * @return
-   */
-  public String getStorageName() {
-    return this.storageName;
-  }
+	/**
+	 * @return
+	 */
+	public String getStorageName() {
+		return this.storageName;
+	}
 
-  /**
-   * @param name
-   * @return
-   */
-  public static StorageTypeEnum getEnumFromName(String name) {
-    StorageTypeEnum[] allValues = values();
-    for (StorageTypeEnum v : allValues) {
-      if (v.getStorageName().equalsIgnoreCase(name)) {
-        return v;
-      }
-    }
-    throw new IllegalArgumentException("Invalid input for name " + name);
-  }
+	/**
+	 * @param name
+	 * @return
+	 */
+	public static StorageTypeEnum getEnumFromName(String name) {
+		StorageTypeEnum[] allValues = values();
+		for (StorageTypeEnum v : allValues) {
+			if (v.getStorageName().equalsIgnoreCase(name)) {
+				return v;
+			}
+		}
+		throw new IllegalArgumentException("Invalid input for name " + name);
+	}
 }

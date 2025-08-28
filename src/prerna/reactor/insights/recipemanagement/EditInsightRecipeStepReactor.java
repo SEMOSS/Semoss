@@ -28,42 +28,39 @@ import prerna.util.Utility;
 
 public class EditInsightRecipeStepReactor extends AbstractReactor {
 
-  private static final String CLASS_NAME = EditInsightRecipeStepReactor.class.getName();
+	private static final String CLASS_NAME = EditInsightRecipeStepReactor.class.getName();
 
-  public EditInsightRecipeStepReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.PIXEL_ID.getKey(), ReactorKeysEnum.PIXEL.getKey()};
-  }
+	public EditInsightRecipeStepReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PIXEL_ID.getKey(), ReactorKeysEnum.PIXEL.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String pixelId = this.keyValue.get(this.keysToGet[0]);
-    String encodedRecipe = this.keyValue.get(this.keysToGet[1]);
-    if (pixelId == null || pixelId.isEmpty()) {
-      throw new NullPointerException("Pixel id cannot be null");
-    }
-    if (encodedRecipe == null || encodedRecipe.isEmpty()) {
-      throw new NullPointerException("Pixel string for the substitution cannot be null");
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String pixelId = this.keyValue.get(this.keysToGet[0]);
+		String encodedRecipe = this.keyValue.get(this.keysToGet[1]);
+		if (pixelId == null || pixelId.isEmpty()) {
+			throw new NullPointerException("Pixel id cannot be null");
+		}
+		if (encodedRecipe == null || encodedRecipe.isEmpty()) {
+			throw new NullPointerException("Pixel string for the substitution cannot be null");
+		}
 
-    Logger logger = getLogger(CLASS_NAME);
-    String recipe = Utility.decodeURIComponent(encodedRecipe);
-    Pixel p = this.insight.getPixelList().getPixel(pixelId);
-    p.modifyPixelString(recipe);
+		Logger logger = getLogger(CLASS_NAME);
+		String recipe = Utility.decodeURIComponent(encodedRecipe);
+		Pixel p = this.insight.getPixelList().getPixel(pixelId);
+		p.modifyPixelString(recipe);
 
-    // now i need to rerun the insight recipe
-    // clear the insight
-    // and re-run it
-    logger.info(
-        "Re-executing the insight recipe... please wait as this operation may take some time");
-    PixelRunner runner = this.insight.reRunPixelInsight(false);
-    // return the recipe steps
-    Map<String, Object> runnerWraper = new HashMap<String, Object>();
-    runnerWraper.put("runner", runner);
-    NounMetadata noun =
-        new NounMetadata(
-            runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.RERUN_INSIGHT_RECIPE);
-    return noun;
-  }
+		// now i need to rerun the insight recipe
+		// clear the insight
+		// and re-run it
+		logger.info("Re-executing the insight recipe... please wait as this operation may take some time");
+		PixelRunner runner = this.insight.reRunPixelInsight(false);
+		// return the recipe steps
+		Map<String, Object> runnerWraper = new HashMap<String, Object>();
+		runnerWraper.put("runner", runner);
+		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER,
+				PixelOperationType.RERUN_INSIGHT_RECIPE);
+		return noun;
+	}
 }

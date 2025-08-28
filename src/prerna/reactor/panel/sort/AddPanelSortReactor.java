@@ -25,33 +25,28 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AddPanelSortReactor extends AbstractPanelSortReactor {
 
-  public AddPanelSortReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.PANEL.getKey(),
-          ReactorKeysEnum.COLUMNS.getKey(),
-          ReactorKeysEnum.SORT.getKey()
-        };
-  }
+	public AddPanelSortReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.COLUMNS.getKey(),
+				ReactorKeysEnum.SORT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    InsightPanel panel = getInsightPanel();
+	@Override
+	public NounMetadata execute() {
+		InsightPanel panel = getInsightPanel();
 
-    // get the sort information
-    List<IQuerySort> sorts = getColumnSortBys();
-    NounMetadata noun = null;
-    if (sorts.isEmpty()) {
-      noun = NounMetadata.getWarningNounMessage("No Sort Information Found To Add");
-    } else {
-      panel.getPanelOrderBys().addAll(sorts);
-      BooleanValMetadata pSortVal = BooleanValMetadata.getPanelVal();
-      pSortVal.setName(panel.getPanelId());
-      pSortVal.setFilterVal(true);
-      noun =
-          new NounMetadata(pSortVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_SORT);
-    }
+		// get the sort information
+		List<IQuerySort> sorts = getColumnSortBys();
+		NounMetadata noun = null;
+		if (sorts.isEmpty()) {
+			noun = NounMetadata.getWarningNounMessage("No Sort Information Found To Add");
+		} else {
+			panel.getPanelOrderBys().addAll(sorts);
+			BooleanValMetadata pSortVal = BooleanValMetadata.getPanelVal();
+			pSortVal.setName(panel.getPanelId());
+			pSortVal.setFilterVal(true);
+			noun = new NounMetadata(pSortVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_SORT);
+		}
 
-    return noun;
-  }
+		return noun;
+	}
 }

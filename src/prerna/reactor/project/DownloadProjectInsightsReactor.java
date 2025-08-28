@@ -29,53 +29,50 @@ import prerna.util.Constants;
 
 public class DownloadProjectInsightsReactor extends AbstractReactor {
 
-  private static final Logger classLogger =
-      LogManager.getLogger(DownloadProjectInsightsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(DownloadProjectInsightsReactor.class);
 
-  /*
-   * This class is used to construct a new project
-   * This project only contains insights
-   */
+	/*
+	 * This class is used to construct a new project This project only contains
+	 * insights
+	 */
 
-  public DownloadProjectInsightsReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-  }
+	public DownloadProjectInsightsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    this.organizeKeys();
+	@Override
+	public NounMetadata execute() {
+		this.organizeKeys();
 
-    String projectId = this.keyValue.get(this.keysToGet[0]);
-    if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-      throw new IllegalArgumentException(
-          "Project " + projectId + " does not exist or user does not have access to edit assets.");
-    }
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException(
+					"Project " + projectId + " does not exist or user does not have access to edit assets.");
+		}
 
-    File insightsFile = null;
-    try {
-      insightsFile =
-          SecurityProjectUtils.createInsightsDatabase(projectId, this.insight.getInsightFolder());
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new IllegalArgumentException(
-          "Error occurred attemping to generate the insights database for this project");
-    }
+		File insightsFile = null;
+		try {
+			insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, this.insight.getInsightFolder());
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(
+					"Error occurred attemping to generate the insights database for this project");
+		}
 
-    String downloadKey = UUID.randomUUID().toString();
-    InsightFile insightFile = new InsightFile();
-    insightFile.setFileKey(downloadKey);
-    insightFile.setDeleteOnInsightClose(false);
-    insightFile.setFilePath(insightsFile.getAbsolutePath());
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		insightFile.setDeleteOnInsightClose(false);
+		insightFile.setFilePath(insightsFile.getAbsolutePath());
 
-    // store the insight file
-    // in the insight so the FE can download it
-    // only from the given insight
-    this.insight.addExportFile(downloadKey, insightFile);
+		// store the insight file
+		// in the insight so the FE can download it
+		// only from the given insight
+		this.insight.addExportFile(downloadKey, insightFile);
 
-    NounMetadata retNoun =
-        new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-    retNoun.addAdditionalReturn(
-        NounMetadata.getSuccessNounMessage("Successfully generated the csv file"));
-    return retNoun;
-  }
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
+				PixelOperationType.FILE_DOWNLOAD);
+		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the csv file"));
+		return retNoun;
+	}
 }

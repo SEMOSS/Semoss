@@ -23,24 +23,20 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class CreateNewRdbmsExternalDatabaseReactor extends CreateNewRdbmsDatabaseReactor {
 
-  public CreateNewRdbmsExternalDatabaseReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.CONNECTION_DETAILS.getKey(),
-          UploadInputUtility.DATABASE,
-          UploadInputUtility.METAMODEL_ADDITIONS
-        };
-  }
+	public CreateNewRdbmsExternalDatabaseReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.CONNECTION_DETAILS.getKey(), UploadInputUtility.DATABASE,
+				UploadInputUtility.METAMODEL_ADDITIONS};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    this.internal = false;
-    return doExecute();
-  }
+	@Override
+	public NounMetadata execute() {
+		this.internal = false;
+		return doExecute();
+	}
 
-  @Override
-  protected Map<String, Object> editConnectionDetails(
-      Map<String, Object> connectionDetails, RdbmsTypeEnum driverEnum) {
-    return connectionDetails;
-  }
+	@Override
+	protected Map<String, Object> editConnectionDetails(Map<String, Object> connectionDetails,
+			RdbmsTypeEnum driverEnum) {
+		return connectionDetails;
+	}
 }

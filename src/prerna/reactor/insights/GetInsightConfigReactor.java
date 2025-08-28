@@ -20,13 +20,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetInsightConfigReactor extends AbstractReactor {
 
-  @Override
-  public NounMetadata execute() {
-    NounMetadata insightConfig =
-        this.insight.getVarStore().get(SetInsightConfigReactor.INSIGHT_CONFIG);
-    if (insightConfig == null) {
-      return new NounMetadata(null, PixelDataType.NULL_VALUE);
-    }
-    return insightConfig;
-  }
+	@Override
+	public NounMetadata execute() {
+		NounMetadata insightConfig = this.insight.getVarStore().get(SetInsightConfigReactor.INSIGHT_CONFIG);
+		if (insightConfig == null) {
+			return new NounMetadata(null, PixelDataType.NULL_VALUE);
+		}
+		return insightConfig;
+	}
 }

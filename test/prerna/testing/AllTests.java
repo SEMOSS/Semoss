@@ -20,5 +20,5 @@ import org.junit.platform.suite.api.Suite;
 @Suite
 @SelectPackages("prerna.testing")
 public class AllTests {
-  // This class can be empty
+	// This class can be empty
 }

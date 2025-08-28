@@ -28,59 +28,53 @@ import prerna.util.Constants;
 
 public class DeleteFromStorageReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(DeleteFromStorageReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(DeleteFromStorageReactor.class);
 
-  private static final String LEAVE_FOLDER_STRUCTURE = "leaveFolderStructure";
+	private static final String LEAVE_FOLDER_STRUCTURE = "leaveFolderStructure";
 
-  public DeleteFromStorageReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.STORAGE.getKey(),
-          ReactorKeysEnum.STORAGE_PATH.getKey(),
-          LEAVE_FOLDER_STRUCTURE
-        };
-  }
+	public DeleteFromStorageReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(),
+				LEAVE_FOLDER_STRUCTURE};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    IStorageEngine storage = getStorage();
-    // check that the user can edit the engine
-    if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), storage.getEngineId())) {
-      throw new IllegalArgumentException(
-          "User does not have permission to delete from the remote storage");
-    }
-    String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
-    boolean leaveFolderStructure =
-        Boolean.parseBoolean(this.keyValue.get(LEAVE_FOLDER_STRUCTURE) + "");
-    try {
-      storage.deleteFromStorage(storagePath, leaveFolderStructure);
-      return new NounMetadata(true, PixelDataType.BOOLEAN);
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new IllegalArgumentException("Error occurred delete file from storage");
-    }
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		IStorageEngine storage = getStorage();
+		// check that the user can edit the engine
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), storage.getEngineId())) {
+			throw new IllegalArgumentException("User does not have permission to delete from the remote storage");
+		}
+		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+		boolean leaveFolderStructure = Boolean.parseBoolean(this.keyValue.get(LEAVE_FOLDER_STRUCTURE) + "");
+		try {
+			storage.deleteFromStorage(storagePath, leaveFolderStructure);
+			return new NounMetadata(true, PixelDataType.BOOLEAN);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred delete file from storage");
+		}
+	}
 
-  private IStorageEngine getStorage() {
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      return (IStorageEngine) grs.get(0);
-    }
+	private IStorageEngine getStorage() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			return (IStorageEngine) grs.get(0);
+		}
 
-    List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
-    if (storageInputs != null && !storageInputs.isEmpty()) {
-      return (IStorageEngine) storageInputs.get(0).getValue();
-    }
+		List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
+		if (storageInputs != null && !storageInputs.isEmpty()) {
+			return (IStorageEngine) storageInputs.get(0).getValue();
+		}
 
-    throw new NullPointerException("No storage engine defined");
-  }
+		throw new NullPointerException("No storage engine defined");
+	}
 
-  @Override
-  protected String getDescriptionForKey(String key) {
-    if (key.equals(LEAVE_FOLDER_STRUCTURE)) {
-      return "Boolean value if the folder structure should still be maintained even when deleting the path. Default is false.";
-    }
-    return super.getDescriptionForKey(key);
-  }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(LEAVE_FOLDER_STRUCTURE)) {
+			return "Boolean value if the folder structure should still be maintained even when deleting the path. Default is false.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

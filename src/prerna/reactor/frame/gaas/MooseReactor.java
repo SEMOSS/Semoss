@@ -28,62 +28,60 @@ import prerna.util.Constants;
 
 public class MooseReactor extends AbstractGaasBaseReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(MooseReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(MooseReactor.class);
 
-  // we could move this to RDF Map also later
-  Map<String, Class> commandReactorMap = new HashMap<String, Class>();
+	// we could move this to RDF Map also later
+	Map<String, Class> commandReactorMap = new HashMap<String, Class>();
 
-  public MooseReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.PROJECT.getKey()};
-    this.keyRequired = new int[] {1, 0};
+	public MooseReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.PROJECT.getKey()};
+		this.keyRequired = new int[]{1, 0};
 
-    commandReactorMap.put("text2sql", NLPQuery3Reactor.class);
-    //		commandReactorMap.put("docqa", QueryQAModelReactor.class);
-    commandReactorMap.put("chat", MooseChatReactor.class);
-    //		commandReactorMap.put("lfqa", QueryQAModelReactor.class);
-    commandReactorMap.put("fillform", FillFormReactor.class);
-    commandReactorMap.put("text2viz", NLPQuery3Reactor.class); // need to replace this
-  }
+		commandReactorMap.put("text2sql", NLPQuery3Reactor.class);
+		// commandReactorMap.put("docqa", QueryQAModelReactor.class);
+		commandReactorMap.put("chat", MooseChatReactor.class);
+		// commandReactorMap.put("lfqa", QueryQAModelReactor.class);
+		commandReactorMap.put("fillform", FillFormReactor.class);
+		commandReactorMap.put("text2viz", NLPQuery3Reactor.class); // need to replace this
+	}
 
-  @Override
-  public NounMetadata execute() {
-    // TODO Auto-generated method stub
-    // some key things
+	@Override
+	public NounMetadata execute() {
+		// TODO Auto-generated method stub
+		// some key things
 
-    // command
-    // project_id
-    // other data - optional
-    String command = this.store.getNoun(keysToGet[0]).get(0).toString();
-    String realCommand = command.substring(0, command.indexOf(":")).toLowerCase();
-    String newCommand = command.substring(command.indexOf(":") + 1);
+		// command
+		// project_id
+		// other data - optional
+		String command = this.store.getNoun(keysToGet[0]).get(0).toString();
+		String realCommand = command.substring(0, command.indexOf(":")).toLowerCase();
+		String newCommand = command.substring(command.indexOf(":") + 1);
 
-    if (commandReactorMap.containsKey(realCommand)) {
-      try {
-        AbstractReactor reactor =
-            (AbstractReactor) commandReactorMap.get(realCommand).newInstance();
-        String projectId = getProjectId();
-        if (projectId == null && realCommand.equalsIgnoreCase("docqa")) {
-          // swap the reactor
-          // this is a quick fix
-          reactor = new MooseChatReactor();
-        }
-        GenRowStruct commandStruct = new GenRowStruct();
-        commandStruct.addLiteral(newCommand);
-        this.store.removeNoun(keysToGet[0]);
-        this.store.addNoun(keysToGet[0], commandStruct);
+		if (commandReactorMap.containsKey(realCommand)) {
+			try {
+				AbstractReactor reactor = (AbstractReactor) commandReactorMap.get(realCommand).newInstance();
+				String projectId = getProjectId();
+				if (projectId == null && realCommand.equalsIgnoreCase("docqa")) {
+					// swap the reactor
+					// this is a quick fix
+					reactor = new MooseChatReactor();
+				}
+				GenRowStruct commandStruct = new GenRowStruct();
+				commandStruct.addLiteral(newCommand);
+				this.store.removeNoun(keysToGet[0]);
+				this.store.addNoun(keysToGet[0], commandStruct);
 
-        reactor.setNounStore(this.store);
-        reactor.setInsight(insight);
-        return reactor.execute();
-      } catch (InstantiationException e) {
-        // TODO Auto-generated catch block
-        classLogger.error(Constants.STACKTRACE, e);
-      } catch (IllegalAccessException e) {
-        // TODO Auto-generated catch block
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
-    return null;
-  }
+				reactor.setNounStore(this.store);
+				reactor.setInsight(insight);
+				return reactor.execute();
+			} catch (InstantiationException e) {
+				// TODO Auto-generated catch block
+				classLogger.error(Constants.STACKTRACE, e);
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		return null;
+	}
 }

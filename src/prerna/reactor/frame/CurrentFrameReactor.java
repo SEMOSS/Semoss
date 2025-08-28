@@ -23,21 +23,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class CurrentFrameReactor extends AbstractReactor {
 
-  @Override
-  public NounMetadata execute() {
-    ITableDataFrame dm = (ITableDataFrame) this.insight.getDataMaker();
-    if (dm == null) {
-      SemossPixelException exception =
-          new SemossPixelException(
-              new NounMetadata(
-                  "No frame currently exists",
-                  PixelDataType.CONST_STRING,
-                  PixelOperationType.ERROR));
-      exception.setContinueThreadOfExecution(true);
-      throw exception;
-    }
+	@Override
+	public NounMetadata execute() {
+		ITableDataFrame dm = (ITableDataFrame) this.insight.getDataMaker();
+		if (dm == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("No frame currently exists",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(true);
+			throw exception;
+		}
 
-    NounMetadata noun = new NounMetadata(dm, PixelDataType.FRAME, PixelOperationType.FRAME);
-    return noun;
-  }
+		NounMetadata noun = new NounMetadata(dm, PixelDataType.FRAME, PixelOperationType.FRAME);
+		return noun;
+	}
 }

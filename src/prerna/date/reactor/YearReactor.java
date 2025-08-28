@@ -21,15 +21,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class YearReactor extends AbstractReactor {
 
-  public YearReactor() {
-    this.keysToGet = new String[] {"years"};
-  }
+	public YearReactor() {
+		this.keysToGet = new String[]{"years"};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String numYears = this.keyValue.get(this.keysToGet[0]);
-    SemossYear year = new SemossYear(numYears);
-    return new NounMetadata(year, PixelDataType.CONST_YEAR);
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String numYears = this.keyValue.get(this.keysToGet[0]);
+		SemossYear year = new SemossYear(numYears);
+		return new NounMetadata(year, PixelDataType.CONST_YEAR);
+	}
 }

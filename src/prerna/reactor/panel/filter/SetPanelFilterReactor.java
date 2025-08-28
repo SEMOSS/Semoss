@@ -31,62 +31,56 @@ import prerna.util.insight.InsightUtility;
 
 public class SetPanelFilterReactor extends AbstractFilterReactor {
 
-  public SetPanelFilterReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.FILTERS.getKey(), TASK_REFRESH_KEY
-        };
-  }
+	public SetPanelFilterReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.FILTERS.getKey(),
+				TASK_REFRESH_KEY};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    InsightPanel panel = getInsightPanel();
-    GenRowFilters panelGrf = panel.getPanelFilters();
+	@Override
+	public NounMetadata execute() {
+		InsightPanel panel = getInsightPanel();
+		GenRowFilters panelGrf = panel.getPanelFilters();
 
-    // get the filters
-    GenRowFilters newFilters = getFilters();
-    if (newFilters.isEmpty()) {
-      throw new IllegalArgumentException("No filter found to set to panel");
-    }
-    // check if we are filtering or actually removing a filter
-    if (newFilters.size() == 1) {
-      IQueryFilter singleFilter = newFilters.getFilters().get(0);
-      if (singleFilter instanceof SimpleQueryFilter) {
-        boolean unfilter = ((SimpleQueryFilter) singleFilter).isEmptyFilterValues();
-        if (unfilter) {
-          QueryColumnSelector cSelector = singleFilter.getAllQueryColumns().get(0);
-          boolean isValidFilter = panelGrf.removeColumnFilter(cSelector.getAlias());
+		// get the filters
+		GenRowFilters newFilters = getFilters();
+		if (newFilters.isEmpty()) {
+			throw new IllegalArgumentException("No filter found to set to panel");
+		}
+		// check if we are filtering or actually removing a filter
+		if (newFilters.size() == 1) {
+			IQueryFilter singleFilter = newFilters.getFilters().get(0);
+			if (singleFilter instanceof SimpleQueryFilter) {
+				boolean unfilter = ((SimpleQueryFilter) singleFilter).isEmptyFilterValues();
+				if (unfilter) {
+					QueryColumnSelector cSelector = singleFilter.getAllQueryColumns().get(0);
+					boolean isValidFilter = panelGrf.removeColumnFilter(cSelector.getAlias());
 
-          BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
-          pFilterVal.setName(panel.getPanelId());
-          pFilterVal.setFilterVal(isValidFilter);
-          NounMetadata noun =
-              new NounMetadata(
-                  pFilterVal,
-                  PixelDataType.BOOLEAN_METADATA,
-                  PixelOperationType.PANEL_FILTER_CHANGE);
-          return noun;
-        }
-      }
-    }
+					BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
+					pFilterVal.setName(panel.getPanelId());
+					pFilterVal.setFilterVal(isValidFilter);
+					NounMetadata noun = new NounMetadata(pFilterVal, PixelDataType.BOOLEAN_METADATA,
+							PixelOperationType.PANEL_FILTER_CHANGE);
+					return noun;
+				}
+			}
+		}
 
-    // we got to this point, apply the filter
-    // remove the existing filters for the columns affected
-    Set<String> allColsUsed = newFilters.getAllFilteredColumns();
-    panelGrf.removeColumnFilters(allColsUsed);
-    // add the new filters
-    panelGrf.merge(newFilters);
+		// we got to this point, apply the filter
+		// remove the existing filters for the columns affected
+		Set<String> allColsUsed = newFilters.getAllFilteredColumns();
+		panelGrf.removeColumnFilters(allColsUsed);
+		// add the new filters
+		panelGrf.merge(newFilters);
 
-    BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
-    pFilterVal.setName(panel.getPanelId());
-    pFilterVal.setFilterVal(true);
-    NounMetadata noun =
-        new NounMetadata(
-            pFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_FILTER_CHANGE);
-    if (isRefreshTasks()) {
-      Logger logger = getLogger(SetPanelFilterReactor.class.getName());
-      InsightUtility.addInsightPanelRefreshFromPanelFilter(insight, panel, noun, logger);
-    }
-    return noun;
-  }
+		BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
+		pFilterVal.setName(panel.getPanelId());
+		pFilterVal.setFilterVal(true);
+		NounMetadata noun = new NounMetadata(pFilterVal, PixelDataType.BOOLEAN_METADATA,
+				PixelOperationType.PANEL_FILTER_CHANGE);
+		if (isRefreshTasks()) {
+			Logger logger = getLogger(SetPanelFilterReactor.class.getName());
+			InsightUtility.addInsightPanelRefreshFromPanelFilter(insight, panel, noun, logger);
+		}
+		return noun;
+	}
 }

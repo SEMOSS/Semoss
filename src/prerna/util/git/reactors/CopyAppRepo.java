@@ -35,79 +35,74 @@ import prerna.util.git.GitConsumer;
 
 public class CopyAppRepo extends AbstractReactor {
 
-  /**
-   * Clone an existing remote database and bring it into the local semoss that is running for
-   * collaboration
-   */
-  public CopyAppRepo() {
-    super.keysToGet =
-        new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey()};
-  }
+	/**
+	 * Clone an existing remote database and bring it into the local semoss that is
+	 * running for collaboration
+	 */
+	public CopyAppRepo() {
+		super.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
 
-    User user = this.insight.getUser();
+		User user = this.insight.getUser();
 
-    String localDatabaseName = this.keyValue.get(this.keysToGet[0]);
-    if (localDatabaseName == null || localDatabaseName.isEmpty()) {
-      throw new IllegalArgumentException("Need to define the local database name");
-    }
-    String repository = this.keyValue.get(this.keysToGet[1]);
-    if (repository == null || repository.isEmpty()) {
-      throw new IllegalArgumentException("Need to define a respository");
-    }
+		String localDatabaseName = this.keyValue.get(this.keysToGet[0]);
+		if (localDatabaseName == null || localDatabaseName.isEmpty()) {
+			throw new IllegalArgumentException("Need to define the local database name");
+		}
+		String repository = this.keyValue.get(this.keysToGet[1]);
+		if (repository == null || repository.isEmpty()) {
+			throw new IllegalArgumentException("Need to define a respository");
+		}
 
-    // check to see if the user is entering github.com and if so replace
-    if (repository.contains("github.com")) {
-      repository = repository.replace("http://github.com/", "");
-      repository = repository.replace("https://github.com/", "");
-    }
-    Logger logger = getLogger(this.getClass().getName());
-    logger.info("Downloading database located at " + repository);
-    logger.info("Database will be named locally as " + localDatabaseName);
+		// check to see if the user is entering github.com and if so replace
+		if (repository.contains("github.com")) {
+			repository = repository.replace("http://github.com/", "");
+			repository = repository.replace("https://github.com/", "");
+		}
+		Logger logger = getLogger(this.getClass().getName());
+		logger.info("Downloading database located at " + repository);
+		logger.info("Database will be named locally as " + localDatabaseName);
 
-    // throw error if user is anonymous
-    if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-      throwAnonymousUserError();
-    }
+		// throw error if user is anonymous
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
-    // throw error is user doesn't have rights to publish new databases
-    if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
-      throwUserNotPublisherError();
-    }
+		// throw error is user doesn't have rights to publish new databases
+		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
+			throwUserNotPublisherError();
+		}
 
-    /*
-     * TODO
-     * This code is very legacy and hard coded for only databases
-     * Should look into removing this or updating for any engine
-     */
+		/*
+		 * TODO This code is very legacy and hard coded for only databases Should look
+		 * into removing this or updating for any engine
+		 */
 
-    if (AbstractSecurityUtils.adminOnlyEngineAdd(IEngine.CATALOG_TYPE.DATABASE)
-        && !SecurityAdminUtils.userIsAdmin(user)) {
-      throwFunctionalityOnlyExposedForAdminsError();
-    }
+		if (AbstractSecurityUtils.adminOnlyEngineAdd(IEngine.CATALOG_TYPE.DATABASE)
+				&& !SecurityAdminUtils.userIsAdmin(user)) {
+			throwFunctionalityOnlyExposedForAdminsError();
+		}
 
-    try {
-      String databaseId = GitConsumer.makeDatabaseFromRemote(localDatabaseName, repository, logger);
-      ClusterUtil.pushEngine(databaseId);
-      if (user != null) {
-        List<AuthProvider> logins = user.getLogins();
-        for (AuthProvider ap : logins) {
-          SecurityEngineUtils.addEngineOwner(databaseId, user.getAccessToken(ap).getId());
-        }
-      }
-      logger.info("Congratulations! Downloading your new database has been completed");
-      return new NounMetadata(
-          UploadUtilities.getEngineReturnData(user, databaseId),
-          PixelDataType.MAP,
-          PixelOperationType.MARKET_PLACE_ADDITION);
-    } catch (Exception e) {
-      SemossPixelException err =
-          new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
-      err.setContinueThreadOfExecution(false);
-      throw err;
-    }
-  }
+		try {
+			String databaseId = GitConsumer.makeDatabaseFromRemote(localDatabaseName, repository, logger);
+			ClusterUtil.pushEngine(databaseId);
+			if (user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for (AuthProvider ap : logins) {
+					SecurityEngineUtils.addEngineOwner(databaseId, user.getAccessToken(ap).getId());
+				}
+			}
+			logger.info("Congratulations! Downloading your new database has been completed");
+			return new NounMetadata(UploadUtilities.getEngineReturnData(user, databaseId), PixelDataType.MAP,
+					PixelOperationType.MARKET_PLACE_ADDITION);
+		} catch (Exception e) {
+			SemossPixelException err = new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
+	}
 }

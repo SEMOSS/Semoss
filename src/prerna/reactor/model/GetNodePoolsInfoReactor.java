@@ -26,25 +26,23 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetNodePoolsInfoReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(GetNodePoolsInfoReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetNodePoolsInfoReactor.class);
 
-  @Override
-  public NounMetadata execute() {
-    if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
-      throw new IllegalArgumentException("User does not have permission to query this endpoint.");
-    }
+	@Override
+	public NounMetadata execute() {
+		if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
+			throw new IllegalArgumentException("User does not have permission to query this endpoint.");
+		}
 
-    final KubernetesModelScaler kmsServer;
-    kmsServer = KubernetesModelScaler.getInstance();
+		final KubernetesModelScaler kmsServer;
+		kmsServer = KubernetesModelScaler.getInstance();
 
-    try {
-      Map<String, Object> nodePoolsInfo = kmsServer.getNodePoolsInfo();
-      return new NounMetadata(nodePoolsInfo, PixelDataType.MAP, PixelOperationType.OPERATION);
-    } catch (Exception e) {
-      classLogger.error(
-          "Error connecting to the Kubernetes Model Scaler endpoint for Nodepool information..");
-      throw new RuntimeException(
-          "Failed to connect to Kubernetes Model Scaler endpoint: " + e.getMessage());
-    }
-  }
+		try {
+			Map<String, Object> nodePoolsInfo = kmsServer.getNodePoolsInfo();
+			return new NounMetadata(nodePoolsInfo, PixelDataType.MAP, PixelOperationType.OPERATION);
+		} catch (Exception e) {
+			classLogger.error("Error connecting to the Kubernetes Model Scaler endpoint for Nodepool information..");
+			throw new RuntimeException("Failed to connect to Kubernetes Model Scaler endpoint: " + e.getMessage());
+		}
+	}
 }

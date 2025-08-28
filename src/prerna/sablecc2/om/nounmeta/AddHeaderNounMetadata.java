@@ -22,20 +22,20 @@ import prerna.sablecc2.om.PixelOperationType;
 
 public class AddHeaderNounMetadata extends NounMetadata {
 
-  public AddHeaderNounMetadata(String... headers) {
-    this.value = new HashMap<String, String[]>();
-    ((Map) this.value).put("add", headers);
-    setConfig();
-  }
+	public AddHeaderNounMetadata(String... headers) {
+		this.value = new HashMap<String, String[]>();
+		((Map) this.value).put("add", headers);
+		setConfig();
+	}
 
-  public AddHeaderNounMetadata(List<String> headers) {
-    this.value = new HashMap<String, List<String>>();
-    ((Map) this.value).put("add", headers);
-    setConfig();
-  }
+	public AddHeaderNounMetadata(List<String> headers) {
+		this.value = new HashMap<String, List<String>>();
+		((Map) this.value).put("add", headers);
+		setConfig();
+	}
 
-  private void setConfig() {
-    this.noun = PixelDataType.CONST_STRING;
-    this.opType.add(PixelOperationType.ADD_HEADERS);
-  }
+	private void setConfig() {
+		this.noun = PixelDataType.CONST_STRING;
+		this.opType.add(PixelOperationType.ADD_HEADERS);
+	}
 }

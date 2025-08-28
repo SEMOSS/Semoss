@@ -22,15 +22,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class ResetAllFilters extends AbstractFilterReactor {
 
-  @Override
-  public NounMetadata execute() {
-    ITableDataFrame frame = getFrame();
-    GenRowFilters filters = null;
-    if (frame != null) {
-      frame.setFrameFilters(new GenRowFilters());
-    } else {
-      throw new IllegalArgumentException("No frame currently exists within the insight");
-    }
-    return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-  }
+	@Override
+	public NounMetadata execute() {
+		ITableDataFrame frame = getFrame();
+		GenRowFilters filters = null;
+		if (frame != null) {
+			frame.setFrameFilters(new GenRowFilters());
+		} else {
+			throw new IllegalArgumentException("No frame currently exists within the insight");
+		}
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+	}
 }

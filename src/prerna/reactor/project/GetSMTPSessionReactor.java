@@ -28,37 +28,36 @@ import prerna.util.Utility;
 
 public class GetSMTPSessionReactor extends AbstractReactor {
 
-  public GetSMTPSessionReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-  }
+	public GetSMTPSessionReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String projectId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 
-    if (StringUtils.isBlank(projectId)) {
-      throw new IllegalArgumentException("Must input an project id");
-    }
+		if (StringUtils.isBlank(projectId)) {
+			throw new IllegalArgumentException("Must input an project id");
+		}
 
-    if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-      throw new IllegalArgumentException(
-          "Project does not exist or user does not have access to edit");
-    }
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
+		}
 
-    // make sure we have the value or throw a null pointer
-    IProject project = Utility.getProject(projectId);
-    ProjectProperties props = project.getProjectProperties();
+		// make sure we have the value or throw a null pointer
+		IProject project = Utility.getProject(projectId);
+		ProjectProperties props = project.getProjectProperties();
 
-    Session emailSession = props.getSmtpEmailSession();
-    if (emailSession == null) {
-      throw new IllegalArgumentException("Email Session is not defined for this project");
-    }
+		Session emailSession = props.getSmtpEmailSession();
+		if (emailSession == null) {
+			throw new IllegalArgumentException("Email Session is not defined for this project");
+		}
 
-    ProjectPropertyEvaluator eval = new ProjectPropertyEvaluator();
-    eval.setProjectId(projectId);
-    eval.setMethodName("getSmtpEmailSession");
-    NounMetadata noun = new NounMetadata(eval, PixelDataType.PROJECT_EMAIL_SESSION);
-    return noun;
-  }
+		ProjectPropertyEvaluator eval = new ProjectPropertyEvaluator();
+		eval.setProjectId(projectId);
+		eval.setMethodName("getSmtpEmailSession");
+		NounMetadata noun = new NounMetadata(eval, PixelDataType.PROJECT_EMAIL_SESSION);
+		return noun;
+	}
 }

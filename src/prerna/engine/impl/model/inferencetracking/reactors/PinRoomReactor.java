@@ -22,22 +22,20 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PinRoomReactor extends AbstractReactor {
 
-  public PinRoomReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.PINNED.getKey()};
-    this.keyRequired = new int[] {1, 1};
-  }
+	public PinRoomReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.PINNED.getKey()};
+		this.keyRequired = new int[]{1, 1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
-    boolean pinned = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.PINNED.getKey()));
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+		boolean pinned = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.PINNED.getKey()));
 
-    boolean result =
-        ModelInferenceLogsUtils.doSetRoomToPinned(
-            insight.getUser().getPrimaryLoginToken().getId(), roomId, pinned);
+		boolean result = ModelInferenceLogsUtils.doSetRoomToPinned(insight.getUser().getPrimaryLoginToken().getId(),
+				roomId, pinned);
 
-    return new NounMetadata(result, PixelDataType.BOOLEAN);
-  }
+		return new NounMetadata(result, PixelDataType.BOOLEAN);
+	}
 }

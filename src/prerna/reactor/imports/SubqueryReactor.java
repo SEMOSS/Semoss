@@ -34,81 +34,76 @@ import prerna.util.Constants;
 
 public class SubqueryReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(SubqueryReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(SubqueryReactor.class);
 
-  public SubqueryReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.QUERY_STRUCT.getKey()};
-  }
+	public SubqueryReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.QUERY_STRUCT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    ITableDataFrame curFrame = this.insight.getCurFrame();
-    SelectQueryStruct qs = getQueryStruct();
-    if (qs != null) {
-      AbstractQueryStruct.QUERY_STRUCT_TYPE type = qs.getQsType();
-      if ((type == QUERY_STRUCT_TYPE.FRAME || type == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY)
-          && qs.getFrame() == null) {
-        qs.setFrame(curFrame);
-      }
-    }
-    ITableDataFrame mergeFrame = null;
+	@Override
+	public NounMetadata execute() {
+		ITableDataFrame curFrame = this.insight.getCurFrame();
+		SelectQueryStruct qs = getQueryStruct();
+		if (qs != null) {
+			AbstractQueryStruct.QUERY_STRUCT_TYPE type = qs.getQsType();
+			if ((type == QUERY_STRUCT_TYPE.FRAME || type == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY)
+					&& qs.getFrame() == null) {
+				qs.setFrame(curFrame);
+			}
+		}
+		ITableDataFrame mergeFrame = null;
 
-    // are they both native
-    if (curFrame instanceof NativeFrame && curFrame != null && qs != null) {
-      try {
-        qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, qs.getFrame().getMetaData());
-        mergeFrame = SQLQueryUtils.subQuery(((NativeFrame) curFrame).getQueryStruct(), qs);
-      } catch (Exception e1) {
-        // TODO Auto-generated catch block
-        classLogger.error(Constants.STACKTRACE, e1);
-      }
-    }
+		// are they both native
+		if (curFrame instanceof NativeFrame && curFrame != null && qs != null) {
+			try {
+				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, qs.getFrame().getMetaData());
+				mergeFrame = SQLQueryUtils.subQuery(((NativeFrame) curFrame).getQueryStruct(), qs);
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				classLogger.error(Constants.STACKTRACE, e1);
+			}
+		}
 
-    // clear cached info after merge
-    curFrame.clearCachedMetrics();
-    curFrame.clearQueryCache();
+		// clear cached info after merge
+		curFrame.clearCachedMetrics();
+		curFrame.clearQueryCache();
 
-    NounMetadata noun =
-        new NounMetadata(
-            mergeFrame,
-            PixelDataType.FRAME,
-            PixelOperationType.FRAME_DATA_CHANGE,
-            PixelOperationType.FRAME_HEADERS_CHANGE);
-    // in case we generated a new frame
-    // update existing references
-    if (mergeFrame != curFrame) {
-      if (curFrame.getName() != null) {
-        this.insight.getVarStore().put(curFrame.getName(), noun);
-      }
-      if (curFrame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY).getValue()) {
-        this.insight.setDataMaker(mergeFrame);
-      }
-    }
+		NounMetadata noun = new NounMetadata(mergeFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
+		// in case we generated a new frame
+		// update existing references
+		if (mergeFrame != curFrame) {
+			if (curFrame.getName() != null) {
+				this.insight.getVarStore().put(curFrame.getName(), noun);
+			}
+			if (curFrame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY).getValue()) {
+				this.insight.setDataMaker(mergeFrame);
+			}
+		}
 
-    return noun;
-  }
+		return noun;
+	}
 
-  ///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////
 
-  protected SelectQueryStruct getQueryStruct() {
-    SelectQueryStruct queryStruct = null;
+	protected SelectQueryStruct getQueryStruct() {
+		SelectQueryStruct queryStruct = null;
 
-    GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
-    if (grs != null) {
-      NounMetadata object = (NounMetadata) grs.getNoun(0);
-      return (SelectQueryStruct) object.getValue();
-    }
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		if (grs != null) {
+			NounMetadata object = (NounMetadata) grs.getNoun(0);
+			return (SelectQueryStruct) object.getValue();
+		}
 
-    grs = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
-    if (grs != null) {
-      NounMetadata object = (NounMetadata) grs.getNoun(0);
-      return (SelectQueryStruct) object.getValue();
-    }
+		grs = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
+		if (grs != null) {
+			NounMetadata object = (NounMetadata) grs.getNoun(0);
+			return (SelectQueryStruct) object.getValue();
+		}
 
-    return queryStruct;
-  }
+		return queryStruct;
+	}
 }

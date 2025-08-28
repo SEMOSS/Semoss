@@ -21,11 +21,11 @@ package prerna.security;
  */
 
 class BitFilter {
-  public boolean receive_bit(boolean bit) {
-    return (false);
-  }
+	public boolean receive_bit(boolean bit) {
+		return (false);
+	}
 
-  public boolean flush() {
-    return (false);
-  }
+	public boolean flush() {
+		return (false);
+	}
 }

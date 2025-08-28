@@ -22,14 +22,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class CancelRReactor extends AbstractReactor {
 
-  private static final String CLASS_NAME = CancelRReactor.class.getName();
+	private static final String CLASS_NAME = CancelRReactor.class.getName();
 
-  @Override
-  public NounMetadata execute() {
-    Logger logger = getLogger(CLASS_NAME);
-    AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
-    rJavaTranslator.startR();
-    boolean cancelled = rJavaTranslator.cancelExecution();
-    return new NounMetadata(cancelled, PixelDataType.BOOLEAN);
-  }
+	@Override
+	public NounMetadata execute() {
+		Logger logger = getLogger(CLASS_NAME);
+		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
+		rJavaTranslator.startR();
+		boolean cancelled = rJavaTranslator.cancelExecution();
+		return new NounMetadata(cancelled, PixelDataType.BOOLEAN);
+	}
 }

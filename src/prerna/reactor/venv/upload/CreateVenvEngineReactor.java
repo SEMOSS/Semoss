@@ -46,199 +46,189 @@ import prerna.util.Utility;
 
 public class CreateVenvEngineReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(CreateVenvEngineReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CreateVenvEngineReactor.class);
 
-  public CreateVenvEngineReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.VENV.getKey(),
-          ReactorKeysEnum.VENV_DETAILS.getKey(),
-          ReactorKeysEnum.GLOBAL.getKey()
-        };
-    this.keyRequired = new int[] {1, 1, 0};
-  }
+	public CreateVenvEngineReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.VENV.getKey(), ReactorKeysEnum.VENV_DETAILS.getKey(),
+				ReactorKeysEnum.GLOBAL.getKey()};
+		this.keyRequired = new int[]{1, 1, 0};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    User user = this.insight.getUser();
-    if (user == null) {
-      NounMetadata noun =
-          new NounMetadata(
-              "User must be signed into an account in order to create a venv engine",
-              PixelDataType.CONST_STRING,
-              PixelOperationType.ERROR,
-              PixelOperationType.LOGGIN_REQUIRED_ERROR);
-      SemossPixelException err = new SemossPixelException(noun);
-      err.setContinueThreadOfExecution(false);
-      throw err;
-    }
+	@Override
+	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a venv engine",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
 
-    if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-      if (this.insight.getUser().isAnonymous()) {
-        throwAnonymousUserError();
-      }
-    }
+		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
+			if (this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		}
 
-    // throw error is user doesn't have rights to publish new databases
-    if (AbstractSecurityUtils.adminSetPublisher()
-        && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
-      throwUserNotPublisherError();
-    }
+		// throw error is user doesn't have rights to publish new databases
+		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
+			throwUserNotPublisherError();
+		}
 
-    organizeKeys();
+		organizeKeys();
 
-    String venvName = getVenvName();
-    // if venv name is not valid throw error
-    if (!Utility.validateName(venvName)) {
-      // error and redirect to try again
-      throw new IllegalArgumentException(
-          "Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
-    }
+		String venvName = getVenvName();
+		// if venv name is not valid throw error
+		if (!Utility.validateName(venvName)) {
+			// error and redirect to try again
+			throw new IllegalArgumentException(
+					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
 
-    // String venvName = getVenvName();
-    Map<String, Object> venvDetails = getVenvDetails();
-    boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
+		// String venvName = getVenvName();
+		Map<String, Object> venvDetails = getVenvDetails();
+		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 
-    String venvTypeStr = (String) venvDetails.get(IVenvEngine.VENV_TYPE);
-    if (venvTypeStr == null || (venvTypeStr = venvTypeStr.trim()).isEmpty()) {
-      throw new IllegalArgumentException("Must define the virtual environment type");
-    }
+		String venvTypeStr = (String) venvDetails.get(IVenvEngine.VENV_TYPE);
+		if (venvTypeStr == null || (venvTypeStr = venvTypeStr.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must define the virtual environment type");
+		}
 
-    VenvTypeEnum venvType = null;
-    try {
-      venvType = VenvTypeEnum.getEnumFromName(venvTypeStr);
-    } catch (Exception e) {
-      throw new IllegalArgumentException("Invalid virtual environment type " + venvTypeStr);
-    }
+		VenvTypeEnum venvType = null;
+		try {
+			venvType = VenvTypeEnum.getEnumFromName(venvTypeStr);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Invalid virtual environment type " + venvTypeStr);
+		}
 
-    String venvId = UUID.randomUUID().toString();
-    File tempSmss = null;
-    File smssFile = null;
-    File specificEngineFolder = null;
-    IVenvEngine venv = null;
-    try {
-      // validate engine
-      UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.VENV, user, venvName, venvId);
-      specificEngineFolder =
-          UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.VENV, venvId, venvName);
+		String venvId = UUID.randomUUID().toString();
+		File tempSmss = null;
+		File smssFile = null;
+		File specificEngineFolder = null;
+		IVenvEngine venv = null;
+		try {
+			// validate engine
+			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.VENV, user, venvName, venvId);
+			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.VENV, venvId,
+					venvName);
 
-      String venvClass = venvType.getVenvClass();
-      venv = (IVenvEngine) Class.forName(venvClass).newInstance();
-      tempSmss = UploadUtilities.createTemporaryVenvSmss(venvId, venvName, venvClass, venvDetails);
+			String venvClass = venvType.getVenvClass();
+			venv = (IVenvEngine) Class.forName(venvClass).newInstance();
+			tempSmss = UploadUtilities.createTemporaryVenvSmss(venvId, venvName, venvClass, venvDetails);
 
-      // store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
-      DIHelper.getInstance()
-          .setEngineProperty(venvId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-      venv.open(tempSmss.getAbsolutePath());
+			// store in DIHelper so that when we move temp smss to smss it doesn't try to
+			// reload again
+			DIHelper.getInstance().setEngineProperty(venvId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			venv.open(tempSmss.getAbsolutePath());
 
-      smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-      FileUtils.copyFile(tempSmss, smssFile);
-      tempSmss.delete();
-      venv.setSmssFilePath(smssFile.getAbsolutePath());
-      UploadUtilities.updateDIHelper(venvId, venvName, venv, smssFile);
-      SecurityEngineUtils.addEngine(venvId, global, user);
+			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+			FileUtils.copyFile(tempSmss, smssFile);
+			tempSmss.delete();
+			venv.setSmssFilePath(smssFile.getAbsolutePath());
+			UploadUtilities.updateDIHelper(venvId, venvName, venv, smssFile);
+			SecurityEngineUtils.addEngine(venvId, global, user);
 
-      // even if no security, just add user as database owner
-      if (user != null) {
-        List<AuthProvider> logins = user.getLogins();
-        for (AuthProvider ap : logins) {
-          SecurityEngineUtils.addEngineOwner(venvId, user.getAccessToken(ap).getId());
-        }
-      }
+			// even if no security, just add user as database owner
+			if (user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for (AuthProvider ap : logins) {
+					SecurityEngineUtils.addEngineOwner(venvId, user.getAccessToken(ap).getId());
+				}
+			}
 
-      ClusterUtil.pushEngine(venvId);
+			ClusterUtil.pushEngine(venvId);
 
-      venv.pullRequirementsFile();
-      venv.createVirtualEnv();
+			venv.pullRequirementsFile();
+			venv.createVirtualEnv();
 
-      if (ClusterUtil.IS_CLUSTER) {
-        File[] engineSubFiles = specificEngineFolder.listFiles();
+			if (ClusterUtil.IS_CLUSTER) {
+				File[] engineSubFiles = specificEngineFolder.listFiles();
 
-        String[] subFilesAbsolutePaths =
-            Arrays.stream(engineSubFiles).map(File::getAbsolutePath).toArray(String[]::new);
+				String[] subFilesAbsolutePaths = Arrays.stream(engineSubFiles).map(File::getAbsolutePath)
+						.toArray(String[]::new);
 
-        Thread copyFilesToCloudThread =
-            new Thread(
-                new CopyFilesToEngineRunner(venvId, venv.getCatalogType(), subFilesAbsolutePaths));
-        copyFilesToCloudThread.start();
-      }
+				Thread copyFilesToCloudThread = new Thread(
+						new CopyFilesToEngineRunner(venvId, venv.getCatalogType(), subFilesAbsolutePaths));
+				copyFilesToCloudThread.start();
+			}
 
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      cleanUpCreateNewError(venv, venvId, tempSmss, smssFile, specificEngineFolder);
-    }
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			cleanUpCreateNewError(venv, venvId, tempSmss, smssFile, specificEngineFolder);
+		}
 
-    Map<String, Object> retMap =
-        UploadUtilities.getEngineReturnData(this.insight.getUser(), venvId);
-    return new NounMetadata(
-        retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-  }
+		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), venvId);
+		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+	}
 
-  /** Delete all the corresponding files that are generated from the upload the failed */
-  private void cleanUpCreateNewError(
-      IVenvEngine venv, String venvId, File tempSmss, File smssFile, File specificEngineFolder) {
-    try {
-      // close the DB so we can delete it
-      if (venv != null) {
-        venv.close();
-      }
+	/**
+	 * Delete all the corresponding files that are generated from the upload the
+	 * failed
+	 */
+	private void cleanUpCreateNewError(IVenvEngine venv, String venvId, File tempSmss, File smssFile,
+			File specificEngineFolder) {
+		try {
+			// close the DB so we can delete it
+			if (venv != null) {
+				venv.close();
+			}
 
-      // delete the .temp file
-      if (tempSmss != null && tempSmss.exists()) {
-        FileUtils.forceDelete(tempSmss);
-      }
-      // delete the .smss file
-      if (smssFile != null && smssFile.exists()) {
-        FileUtils.forceDelete(smssFile);
-      }
-      if (specificEngineFolder != null && specificEngineFolder.exists()) {
-        FileUtils.forceDelete(specificEngineFolder);
-      }
+			// delete the .temp file
+			if (tempSmss != null && tempSmss.exists()) {
+				FileUtils.forceDelete(tempSmss);
+			}
+			// delete the .smss file
+			if (smssFile != null && smssFile.exists()) {
+				FileUtils.forceDelete(smssFile);
+			}
+			if (specificEngineFolder != null && specificEngineFolder.exists()) {
+				FileUtils.forceDelete(specificEngineFolder);
+			}
 
-      UploadUtilities.removeEngineFromDIHelper(venvId);
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
-  }
+			UploadUtilities.removeEngineFromDIHelper(venvId);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
 
-  /**
-   * @return
-   */
-  private String getVenvName() {
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VENV.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      List<String> strValues = grs.getAllStrValues();
-      if (strValues != null && !strValues.isEmpty()) {
-        return strValues.get(0).trim();
-      }
-    }
+	/**
+	 * @return
+	 */
+	private String getVenvName() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VENV.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			List<String> strValues = grs.getAllStrValues();
+			if (strValues != null && !strValues.isEmpty()) {
+				return strValues.get(0).trim();
+			}
+		}
 
-    List<String> strValues = this.curRow.getAllStrValues();
-    if (strValues != null && !strValues.isEmpty()) {
-      return strValues.get(0).trim();
-    }
+		List<String> strValues = this.curRow.getAllStrValues();
+		if (strValues != null && !strValues.isEmpty()) {
+			return strValues.get(0).trim();
+		}
 
-    throw new NullPointerException("Must define the name of the new virtual environment engine");
-  }
+		throw new NullPointerException("Must define the name of the new virtual environment engine");
+	}
 
-  /**
-   * @return
-   */
-  private Map<String, Object> getVenvDetails() {
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VENV_DETAILS.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
-      if (mapNouns != null && !mapNouns.isEmpty()) {
-        return (Map<String, Object>) mapNouns.get(0).getValue();
-      }
-    }
+	/**
+	 * @return
+	 */
+	private Map<String, Object> getVenvDetails() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VENV_DETAILS.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
+			if (mapNouns != null && !mapNouns.isEmpty()) {
+				return (Map<String, Object>) mapNouns.get(0).getValue();
+			}
+		}
 
-    List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
-    if (mapNouns != null && !mapNouns.isEmpty()) {
-      return (Map<String, Object>) mapNouns.get(0).getValue();
-    }
+		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapNouns != null && !mapNouns.isEmpty()) {
+			return (Map<String, Object>) mapNouns.get(0).getValue();
+		}
 
-    throw new NullPointerException(
-        "Must define the properties for the new virtual environment engine");
-  }
+		throw new NullPointerException("Must define the properties for the new virtual environment engine");
+	}
 }

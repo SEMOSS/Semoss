@@ -29,37 +29,38 @@ import prerna.util.git.GitRepoUtils;
 
 public class GitInitReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(GitInitReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GitInitReactor.class);
 
-  // pulls the latest for this project / asset
-  // the asset is basically the folder where it sits
-  // this can be used enroute in a pipeline
+	// pulls the latest for this project / asset
+	// the asset is basically the folder where it sits
+	// this can be used enroute in a pipeline
 
-  public GitInitReactor() {}
+	public GitInitReactor() {
+	}
 
-  @Override
-  public NounMetadata execute() {
+	@Override
+	public NounMetadata execute() {
 
-    String assetFolder = this.insight.getInsightFolder();
-    assetFolder = assetFolder.replaceAll("\\\\", "/");
+		String assetFolder = this.insight.getInsightFolder();
+		assetFolder = assetFolder.replaceAll("\\\\", "/");
 
-    try {
-      Git.init().setDirectory(new File(assetFolder)).call();
-      Git.open(new File(assetFolder)).close();
+		try {
+			Git.init().setDirectory(new File(assetFolder)).call();
+			Git.open(new File(assetFolder)).close();
 
-      GitRepoUtils.addAllFiles(assetFolder, true);
-      GitRepoUtils.commitAddedFiles(assetFolder);
-    } catch (IllegalStateException e) {
-      // TODO Auto-generated catch block
-      classLogger.error(Constants.STACKTRACE, e);
-    } catch (GitAPIException e) {
-      // TODO Auto-generated catch block
-      classLogger.error(Constants.STACKTRACE, e);
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      classLogger.error(Constants.STACKTRACE, e);
-    }
+			GitRepoUtils.addAllFiles(assetFolder, true);
+			GitRepoUtils.commitAddedFiles(assetFolder);
+		} catch (IllegalStateException e) {
+			// TODO Auto-generated catch block
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (GitAPIException e) {
+			// TODO Auto-generated catch block
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 
-    return new NounMetadata("Success !", PixelDataType.VECTOR, PixelOperationType.OPERATION);
-  }
+		return new NounMetadata("Success !", PixelDataType.VECTOR, PixelOperationType.OPERATION);
+	}
 }

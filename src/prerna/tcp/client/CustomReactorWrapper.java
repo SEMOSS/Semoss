@@ -24,38 +24,38 @@ import prerna.tcp.PayloadStruct;
 
 public class CustomReactorWrapper extends AbstractReactor {
 
-  // this takes the custom reactor
-  // sets up to go across socket
-  // returns the result
-  public IReactor realReactor = null;
-  public String reactorCallName = null;
-  SocketClient sc = null;
-  private static final Logger logger = LogManager.getLogger(WrapperManager.class);
+	// this takes the custom reactor
+	// sets up to go across socket
+	// returns the result
+	public IReactor realReactor = null;
+	public String reactorCallName = null;
+	SocketClient sc = null;
+	private static final Logger logger = LogManager.getLogger(WrapperManager.class);
 
-  @Override
-  public NounMetadata execute() {
-    sc = (SocketClient) this.insight.getUser().getPythonSocketClient(true);
+	@Override
+	public NounMetadata execute() {
+		sc = (SocketClient) this.insight.getUser().getPythonSocketClient(true);
 
-    InsightSerializer is = new InsightSerializer(this.insight);
-    is.serializeInsight(false);
+		InsightSerializer is = new InsightSerializer(this.insight);
+		is.serializeInsight(false);
 
-    PayloadStruct ps = new PayloadStruct();
-    ps.operation = ps.operation.REACTOR;
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = ps.operation.REACTOR;
 
-    // set everything from the noun store
-    // hopefully this serializes well
-    ps.payload = new Object[] {this.store};
-    ps.payloadClasses = new Class[] {this.store.getClass()};
-    ps.objId = reactorCallName;
-    ps.insightId = this.insight.getInsightId();
+		// set everything from the noun store
+		// hopefully this serializes well
+		ps.payload = new Object[]{this.store};
+		ps.payloadClasses = new Class[]{this.store.getClass()};
+		ps.objId = reactorCallName;
+		ps.insightId = this.insight.getInsightId();
 
-    PayloadStruct retStruct = (PayloadStruct) sc.executeCommand(ps);
-    logger.info("Got the response for reactor " + ps.payload[0]);
+		PayloadStruct retStruct = (PayloadStruct) sc.executeCommand(ps);
+		logger.info("Got the response for reactor " + ps.payload[0]);
 
-    // did we have an error?
-    if (retStruct.ex != null) {
-      return NounMetadata.getErrorNounMessage(retStruct.ex);
-    }
-    return (NounMetadata) retStruct.payload[0];
-  }
+		// did we have an error?
+		if (retStruct.ex != null) {
+			return NounMetadata.getErrorNounMessage(retStruct.ex);
+		}
+		return (NounMetadata) retStruct.payload[0];
+	}
 }

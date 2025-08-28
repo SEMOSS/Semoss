@@ -29,46 +29,52 @@ import prerna.util.Utility;
 
 public class JenaConstructWrapper extends AbstractWrapper implements IConstructWrapper {
 
-  private static final Logger LOGGER = LogManager.getLogger(JenaConstructWrapper.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(JenaConstructWrapper.class.getName());
 
-  transient Model model = null;
-  transient StmtIterator si = null;
+	transient Model model = null;
+	transient StmtIterator si = null;
 
-  @Override
-  public IConstructStatement next() {
-    IConstructStatement thisSt = new ConstructStatement();
+	@Override
+	public IConstructStatement next() {
+		IConstructStatement thisSt = new ConstructStatement();
 
-    org.apache.jena.rdf.model.Statement stmt = si.next();
-    LOGGER.debug("Adding a JENA statement ");
-    Resource sub = stmt.getSubject();
-    Property pred = stmt.getPredicate();
-    RDFNode node = stmt.getObject();
-    if (node.isAnon()) thisSt.setPredicate(Utility.getNextID());
-    else thisSt.setPredicate(stmt.getPredicate() + "");
+		org.apache.jena.rdf.model.Statement stmt = si.next();
+		LOGGER.debug("Adding a JENA statement ");
+		Resource sub = stmt.getSubject();
+		Property pred = stmt.getPredicate();
+		RDFNode node = stmt.getObject();
+		if (node.isAnon())
+			thisSt.setPredicate(Utility.getNextID());
+		else
+			thisSt.setPredicate(stmt.getPredicate() + "");
 
-    if (sub.isAnon()) thisSt.setSubject(Utility.getNextID());
-    else thisSt.setSubject(stmt.getSubject() + "");
+		if (sub.isAnon())
+			thisSt.setSubject(Utility.getNextID());
+		else
+			thisSt.setSubject(stmt.getSubject() + "");
 
-    if (node.isAnon()) thisSt.setObject(Utility.getNextID());
-    else thisSt.setObject(stmt.getObject());
+		if (node.isAnon())
+			thisSt.setObject(Utility.getNextID());
+		else
+			thisSt.setObject(stmt.getObject());
 
-    return thisSt;
-  }
+		return thisSt;
+	}
 
-  @Override
-  public void execute() throws Exception {
-    model = (Model) engine.execQuery(query);
-    si = model.listStatements();
-  }
+	@Override
+	public void execute() throws Exception {
+		model = (Model) engine.execQuery(query);
+		si = model.listStatements();
+	}
 
-  @Override
-  public boolean hasNext() {
-    // TODO Auto-generated method stub
-    return si.hasNext();
-  }
+	@Override
+	public boolean hasNext() {
+		// TODO Auto-generated method stub
+		return si.hasNext();
+	}
 
-  @Override
-  public void close() throws IOException {
-    si.close();
-  }
+	@Override
+	public void close() throws IOException {
+		si.close();
+	}
 }

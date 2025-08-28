@@ -22,43 +22,41 @@ import prerna.util.Constants;
 
 public class CopyFilesToEngineRunner implements Runnable {
 
-  private static final Logger classLogger = LogManager.getLogger(CopyFilesToEngineRunner.class);
+	private static final Logger classLogger = LogManager.getLogger(CopyFilesToEngineRunner.class);
 
-  private final String ENGINE_ID;
-  private final IEngine.CATALOG_TYPE ENGINE_TYPE;
-  private final String[] FILE_PATHS;
+	private final String ENGINE_ID;
+	private final IEngine.CATALOG_TYPE ENGINE_TYPE;
+	private final String[] FILE_PATHS;
 
-  public CopyFilesToEngineRunner(
-      String engineId, IEngine.CATALOG_TYPE engineType, String[] filePaths) {
-    this.ENGINE_ID = engineId;
-    this.ENGINE_TYPE = engineType;
-    this.FILE_PATHS = filePaths;
-  }
+	public CopyFilesToEngineRunner(String engineId, IEngine.CATALOG_TYPE engineType, String[] filePaths) {
+		this.ENGINE_ID = engineId;
+		this.ENGINE_TYPE = engineType;
+		this.FILE_PATHS = filePaths;
+	}
 
-  @Override
-  public void run() {
-    for (int i = 0; i < this.FILE_PATHS.length; i++) {
-      try {
-        ClusterUtil.copyLocalFileToEngineCloudFolder(ENGINE_ID, ENGINE_TYPE, FILE_PATHS[i]);
-      } catch (Exception e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
+	@Override
+	public void run() {
+		for (int i = 0; i < this.FILE_PATHS.length; i++) {
+			try {
+				ClusterUtil.copyLocalFileToEngineCloudFolder(ENGINE_ID, ENGINE_TYPE, FILE_PATHS[i]);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 
-    // once all the files have been pushed for that vec db, issue a pull command on ZK
+		// once all the files have been pushed for that vec db, issue a pull command on
+		// ZK
 
-    if (ClusterUtil.IS_CLUSTER_ZK) {
-      try {
-        ClusterUtil.getClusterSynchronizer()
-            .publishEngineChange(ENGINE_ID, "pullEngine", ENGINE_ID);
-      } catch (Exception e) {
-        classLogger.error(Constants.STACKTRACE, e);
-        SemossPixelException err =
-            new SemossPixelException(
-                "Failed to publish engine '" + ENGINE_ID + "' to sync with ZK cluster");
-        err.setContinueThreadOfExecution(true);
-        throw err;
-      }
-    }
-  }
+		if (ClusterUtil.IS_CLUSTER_ZK) {
+			try {
+				ClusterUtil.getClusterSynchronizer().publishEngineChange(ENGINE_ID, "pullEngine", ENGINE_ID);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException(
+						"Failed to publish engine '" + ENGINE_ID + "' to sync with ZK cluster");
+				err.setContinueThreadOfExecution(true);
+				throw err;
+			}
+		}
+	}
 }

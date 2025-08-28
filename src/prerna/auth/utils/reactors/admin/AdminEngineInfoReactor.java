@@ -30,46 +30,43 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AdminEngineInfoReactor extends AbstractReactor {
 
-  public AdminEngineInfoReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.META_KEYS.getKey()};
-  }
+	public AdminEngineInfoReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.META_KEYS.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    User user = this.insight.getUser();
-    SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-    if (adminUtils == null) {
-      throw new IllegalArgumentException("User must be an admin to perform this function");
-    }
-    organizeKeys();
-    String engineId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+		if (adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
+		organizeKeys();
+		String engineId = this.keyValue.get(this.keysToGet[0]);
 
-    if (engineId == null || engineId.isEmpty()) {
-      throw new IllegalArgumentException("Must input an engine id");
-    }
-    engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+		if (engineId == null || engineId.isEmpty()) {
+			throw new IllegalArgumentException("Must input an engine id");
+		}
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 
-    List<Map<String, Object>> baseInfo =
-        adminUtils.getAllEngineSettings(Arrays.asList(engineId), null, null, null, null, null);
-    if (baseInfo == null || baseInfo.isEmpty()) {
-      throw new IllegalArgumentException("Could not find any engine data");
-    }
+		List<Map<String, Object>> baseInfo = adminUtils.getAllEngineSettings(Arrays.asList(engineId), null, null, null,
+				null, null);
+		if (baseInfo == null || baseInfo.isEmpty()) {
+			throw new IllegalArgumentException("Could not find any engine data");
+		}
 
-    // we filtered to a single database
-    Map<String, Object> databaseInfo = baseInfo.get(0);
-    databaseInfo.putAll(
-        SecurityEngineUtils.getAggregateEngineMetadata(engineId, getMetaKeys(), true));
-    return new NounMetadata(
-        databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENGINE_INFO);
-  }
+		// we filtered to a single database
+		Map<String, Object> databaseInfo = baseInfo.get(0);
+		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(engineId, getMetaKeys(), true));
+		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENGINE_INFO);
+	}
 
-  private List<String> getMetaKeys() {
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      return grs.getAllStrValues();
-    }
+	private List<String> getMetaKeys() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues();
+		}
 
-    return null;
-  }
+		return null;
+	}
 }

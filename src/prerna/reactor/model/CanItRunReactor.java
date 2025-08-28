@@ -26,27 +26,27 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class CanItRunReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(CanItRunReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CanItRunReactor.class);
 
-  public CanItRunReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.HF_MODEL_ID.getKey()};
-    this.keyRequired = new int[] {1};
-  }
+	public CanItRunReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.HF_MODEL_ID.getKey()};
+		this.keyRequired = new int[]{1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String hfModelId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String hfModelId = this.keyValue.get(this.keysToGet[0]);
 
-    final KubernetesModelScaler kmsServer;
-    kmsServer = KubernetesModelScaler.getInstance();
+		final KubernetesModelScaler kmsServer;
+		kmsServer = KubernetesModelScaler.getInstance();
 
-    try {
-      Map<String, Object> canRun = kmsServer.canItRun(hfModelId);
-      return new NounMetadata(canRun, PixelDataType.MAP, PixelOperationType.OPERATION);
-    } catch (Exception e) {
-      classLogger.error("Error checking if model can run: " + hfModelId, e);
-      throw new RuntimeException("Failed to check if model can run: " + e.getMessage());
-    }
-  }
+		try {
+			Map<String, Object> canRun = kmsServer.canItRun(hfModelId);
+			return new NounMetadata(canRun, PixelDataType.MAP, PixelOperationType.OPERATION);
+		} catch (Exception e) {
+			classLogger.error("Error checking if model can run: " + hfModelId, e);
+			throw new RuntimeException("Failed to check if model can run: " + e.getMessage());
+		}
+	}
 }

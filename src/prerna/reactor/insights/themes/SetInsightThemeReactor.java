@@ -36,44 +36,44 @@ import prerna.util.Utility;
 
 public class SetInsightThemeReactor extends AbstractInsightReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(SetInsightThemeReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(SetInsightThemeReactor.class);
 
-  @Override
-  public NounMetadata execute() {
-    String versionFilePath = AssetUtility.getRootFolderPath(this.insight, null, true);
-    String insightThemeFilePath = versionFilePath + DIR_SEPARATOR + IMAGE_THEME_FILE;
-    File insightThemeFile = new File(insightThemeFilePath);
-    if (insightThemeFile.exists() && insightThemeFile.isFile()) {
-      // delete the current one
-      insightThemeFile.delete();
-    } else {
-      // if the file exists and we delete it, we know the folder is there
-      // we dont know for unsaved insights if it exists
-      File parentF = insightThemeFile.getParentFile();
-      if (!parentF.exists() || !parentF.isDirectory()) {
-        parentF.mkdirs();
-      }
-    }
+	@Override
+	public NounMetadata execute() {
+		String versionFilePath = AssetUtility.getRootFolderPath(this.insight, null, true);
+		String insightThemeFilePath = versionFilePath + DIR_SEPARATOR + IMAGE_THEME_FILE;
+		File insightThemeFile = new File(insightThemeFilePath);
+		if (insightThemeFile.exists() && insightThemeFile.isFile()) {
+			// delete the current one
+			insightThemeFile.delete();
+		} else {
+			// if the file exists and we delete it, we know the folder is there
+			// we dont know for unsaved insights if it exists
+			File parentF = insightThemeFile.getParentFile();
+			if (!parentF.exists() || !parentF.isDirectory()) {
+				parentF.mkdirs();
+			}
+		}
 
-    List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-    if (mapInputs.isEmpty()) {
-      throw new SemossPixelException("No insight theme json was passed to save");
-    }
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs.isEmpty()) {
+			throw new SemossPixelException("No insight theme json was passed to save");
+		}
 
-    Map<String, Object> value = (Map<String, Object>) mapInputs.get(0).getValue();
-    try (Writer writer = new FileWriter(insightThemeFile)) {
-      Gson gson = new Gson();
-      gson.toJson(value, writer);
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new SemossPixelException("An error occurred trying to save the insight theme");
-    }
+		Map<String, Object> value = (Map<String, Object>) mapInputs.get(0).getValue();
+		try (Writer writer = new FileWriter(insightThemeFile)) {
+			Gson gson = new Gson();
+			gson.toJson(value, writer);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("An error occurred trying to save the insight theme");
+		}
 
-    if (this.insight.isSavedInsight()) {
-      IProject project = Utility.getProject(insight.getProjectId());
-      ClusterUtil.pushProjectFolder(project, versionFilePath);
-    }
+		if (this.insight.isSavedInsight()) {
+			IProject project = Utility.getProject(insight.getProjectId());
+			ClusterUtil.pushProjectFolder(project, versionFilePath);
+		}
 
-    return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.INSIGHT_THEME);
-  }
+		return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.INSIGHT_THEME);
+	}
 }

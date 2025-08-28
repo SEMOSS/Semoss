@@ -28,88 +28,88 @@ import prerna.engine.api.IConstructWrapper;
 
 public class JenaSelectCheater extends AbstractWrapper implements IConstructWrapper {
 
-  private static final Logger logger = LogManager.getLogger(JenaSelectCheater.class);
+	private static final Logger logger = LogManager.getLogger(JenaSelectCheater.class);
 
-  transient int count = 0;
-  transient String[] var = null;
-  transient int triples;
-  transient int tqrCount = 0;
-  String[] queryVar;
-  transient ResultSet rs = null;
+	transient int count = 0;
+	transient String[] var = null;
+	transient int triples;
+	transient int tqrCount = 0;
+	String[] queryVar;
+	transient ResultSet rs = null;
 
-  @Override
-  public IConstructStatement next() {
-    if (!hasNext()) {
-      throw new NoSuchElementException();
-    }
+	@Override
+	public IConstructStatement next() {
+		if (!hasNext()) {
+			throw new NoSuchElementException();
+		}
 
-    IConstructStatement thisSt = new ConstructStatement();
-    logger.debug("Adding a JENA statement ");
-    QuerySolution row = rs.nextSolution();
-    thisSt.setSubject(row.get(var[0]) + "");
-    thisSt.setPredicate(row.get(var[1]) + "");
-    thisSt.setObject(row.get(var[2]));
+		IConstructStatement thisSt = new ConstructStatement();
+		logger.debug("Adding a JENA statement ");
+		QuerySolution row = rs.nextSolution();
+		thisSt.setSubject(row.get(var[0]) + "");
+		thisSt.setPredicate(row.get(var[1]) + "");
+		thisSt.setObject(row.get(var[2]));
 
-    return thisSt;
-  }
+		return thisSt;
+	}
 
-  @Override
-  public void execute() {
-    try {
-      rs = (ResultSet) engine.execQuery(query);
-      getVariables();
-      processSelectVar();
-      count = 0;
-    } catch (Exception e) {
-      logger.error("StackTrace: ", e);
-    }
-  }
+	@Override
+	public void execute() {
+		try {
+			rs = (ResultSet) engine.execQuery(query);
+			getVariables();
+			processSelectVar();
+			count = 0;
+		} catch (Exception e) {
+			logger.error("StackTrace: ", e);
+		}
+	}
 
-  @Override
-  public boolean hasNext() {
-    return rs.hasNext();
-  }
+	@Override
+	public boolean hasNext() {
+		return rs.hasNext();
+	}
 
-  private String[] getVariables() {
-    var = new String[rs.getResultVars().size()];
-    List<String> names = rs.getResultVars();
-    for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names.get(colIndex), colIndex++)
-      ;
-    return var;
-  }
+	private String[] getVariables() {
+		var = new String[rs.getResultVars().size()];
+		List<String> names = rs.getResultVars();
+		for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names.get(colIndex), colIndex++);
+		return var;
+	}
 
-  public void processSelectVar() {
-    if (query.contains("DISTINCT")) {
-      Pattern pattern = Pattern.compile("SELECT DISTINCT(.*?)WHERE");
-      Matcher matcher = pattern.matcher(query);
-      String varString = null;
-      while (matcher.find()) {
-        varString = matcher.group(1);
-      }
+	public void processSelectVar() {
+		if (query.contains("DISTINCT")) {
+			Pattern pattern = Pattern.compile("SELECT DISTINCT(.*?)WHERE");
+			Matcher matcher = pattern.matcher(query);
+			String varString = null;
+			while (matcher.find()) {
+				varString = matcher.group(1);
+			}
 
-      if (varString != null) {
-        varString = varString.trim();
-        queryVar = varString.split(" ");
-        int num = queryVar.length + 1;
-        triples = num / 3;
-      }
-    } else {
-      Pattern pattern = Pattern.compile("SELECT (.*?)WHERE");
-      Matcher matcher = pattern.matcher(query);
-      String varString = null;
-      while (matcher.find()) {
-        varString = matcher.group(1);
-      }
+			if (varString != null) {
+				varString = varString.trim();
+				queryVar = varString.split(" ");
+				int num = queryVar.length + 1;
+				triples = num / 3;
+			}
+		} else {
+			Pattern pattern = Pattern.compile("SELECT (.*?)WHERE");
+			Matcher matcher = pattern.matcher(query);
+			String varString = null;
+			while (matcher.find()) {
+				varString = matcher.group(1);
+			}
 
-      if (varString != null) {
-        varString = varString.trim();
-        queryVar = varString.split(" ");
-        int num = queryVar.length + 1;
-        triples = num / 3;
-      }
-    }
-  }
+			if (varString != null) {
+				varString = varString.trim();
+				queryVar = varString.split(" ");
+				int num = queryVar.length + 1;
+				triples = num / 3;
+			}
+		}
+	}
 
-  @Override
-  public void close() throws IOException {}
+	@Override
+	public void close() throws IOException {
+	}
 }

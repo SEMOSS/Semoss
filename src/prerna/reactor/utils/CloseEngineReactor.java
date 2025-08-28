@@ -37,78 +37,76 @@ import prerna.util.Utility;
 
 public class CloseEngineReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(CloseEngineReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CloseEngineReactor.class);
 
-  public CloseEngineReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey()};
-    this.keyRequired = new int[] {1};
-  }
+	public CloseEngineReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+		this.keyRequired = new int[]{1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    List<String> engineIds = getEngineIds();
+	@Override
+	public NounMetadata execute() {
+		List<String> engineIds = getEngineIds();
 
-    User user = this.insight.getUser();
-    boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-    if (!isAdmin) {
-      for (String engineId : engineIds) {
-        if (WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
-          throw new IllegalArgumentException(
-              "Users are not allowed to delete your workspace or asset database.");
-        }
-        // we may have the alias
-        engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-        boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
-        if (!isOwner) {
-          throw new IllegalArgumentException(
-              "Engine "
-                  + engineId
-                  + " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
-        }
-      }
-    }
+		User user = this.insight.getUser();
+		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+		if (!isAdmin) {
+			for (String engineId : engineIds) {
+				if (WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
+					throw new IllegalArgumentException(
+							"Users are not allowed to delete your workspace or asset database.");
+				}
+				// we may have the alias
+				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+				boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
+				if (!isOwner) {
+					throw new IllegalArgumentException("Engine " + engineId
+							+ " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
+				}
+			}
+		}
 
-    // once all are good, we can close
-    for (String engineId : engineIds) {
-      classLogger.info("Attempting to close engine: " + engineId);
-      // we may have the alias
-      engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-      IEngine engine = Utility.getEngine(engineId);
-      try {
-        classLogger.info("Shutting down engine: " + engineId);
-        engine.close();
-        UploadUtilities.removeEngineExcludingSMSSFromDIHelper(engineId);
-        classLogger.info("Shut down engine: " + engineId);
-      } catch (IOException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
-    return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ENGINE_INFO);
-  }
+		// once all are good, we can close
+		for (String engineId : engineIds) {
+			classLogger.info("Attempting to close engine: " + engineId);
+			// we may have the alias
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+			IEngine engine = Utility.getEngine(engineId);
+			try {
+				classLogger.info("Shutting down engine: " + engineId);
+				engine.close();
+				UploadUtilities.removeEngineExcludingSMSSFromDIHelper(engineId);
+				classLogger.info("Shut down engine: " + engineId);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ENGINE_INFO);
+	}
 
-  /**
-   * Get inputs
-   *
-   * @return list of engines to close
-   */
-  public List<String> getEngineIds() {
-    List<String> engineIds = new ArrayList<>();
+	/**
+	 * Get inputs
+	 *
+	 * @return list of engines to close
+	 */
+	public List<String> getEngineIds() {
+		List<String> engineIds = new ArrayList<>();
 
-    // see if added as key
-    GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
-    if (grs != null && !grs.isEmpty()) {
-      int size = grs.size();
-      for (int i = 0; i < size; i++) {
-        engineIds.add(grs.get(i).toString());
-      }
-      return engineIds;
-    }
+		// see if added as key
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++) {
+				engineIds.add(grs.get(i).toString());
+			}
+			return engineIds;
+		}
 
-    // no key is added, grab all inputs
-    int size = this.curRow.size();
-    for (int i = 0; i < size; i++) {
-      engineIds.add(this.curRow.get(i).toString());
-    }
-    return engineIds;
-  }
+		// no key is added, grab all inputs
+		int size = this.curRow.size();
+		for (int i = 0; i < size; i++) {
+			engineIds.add(this.curRow.get(i).toString());
+		}
+		return engineIds;
+	}
 }

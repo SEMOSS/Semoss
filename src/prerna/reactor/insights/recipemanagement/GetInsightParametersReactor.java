@@ -25,25 +25,25 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetInsightParametersReactor extends AbstractInsightParameterReactor {
 
-  private static final Logger logger = LogManager.getLogger(GetInsightParametersReactor.class);
+	private static final Logger logger = LogManager.getLogger(GetInsightParametersReactor.class);
 
-  @Override
-  public NounMetadata execute() {
-    VarStore varStore = this.insight.getVarStore();
-    // loop through all the parameters
-    // and return the parameter list
-    List<String> parameterKeys = varStore.getInsightParameterKeys();
-    List<ParamStruct> paramList = new Vector<>();
-    for (String paramName : parameterKeys) {
-      NounMetadata paramNoun = varStore.get(paramName);
-      if (paramNoun != null) {
-        paramList.add((ParamStruct) paramNoun.getValue());
-      } else {
-        logger.info("Unable to find parameter name = " + paramName);
-      }
-    }
+	@Override
+	public NounMetadata execute() {
+		VarStore varStore = this.insight.getVarStore();
+		// loop through all the parameters
+		// and return the parameter list
+		List<String> parameterKeys = varStore.getInsightParameterKeys();
+		List<ParamStruct> paramList = new Vector<>();
+		for (String paramName : parameterKeys) {
+			NounMetadata paramNoun = varStore.get(paramName);
+			if (paramNoun != null) {
+				paramList.add((ParamStruct) paramNoun.getValue());
+			} else {
+				logger.info("Unable to find parameter name = " + paramName);
+			}
+		}
 
-    NounMetadata pStructNoun = new NounMetadata(paramList, PixelDataType.PARAM_STRUCT);
-    return pStructNoun;
-  }
+		NounMetadata pStructNoun = new NounMetadata(paramList, PixelDataType.PARAM_STRUCT);
+		return pStructNoun;
+	}
 }

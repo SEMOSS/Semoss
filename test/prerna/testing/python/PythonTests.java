@@ -26,15 +26,15 @@ import prerna.testing.ApiSemossTestUtils;
 
 public class PythonTests extends AbstractBaseSemossApiTests {
 
-  @Test
-  public void basicPython() {
-    String pixel = "Py(\"<encode>2+2</encode>\");";
+	@Test
+	public void basicPython() {
+		String pixel = "Py(\"<encode>2+2</encode>\");";
 
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-    assertNotNull(nm);
-    assertEquals(PixelDataType.CODE, nm.getNounType());
-    List<NounMetadata> values = (List<NounMetadata>) nm.getValue();
-    NounMetadata response = values.get(0);
-    assertEquals("4", response.getValue().toString());
-  }
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		assertNotNull(nm);
+		assertEquals(PixelDataType.CODE, nm.getNounType());
+		List<NounMetadata> values = (List<NounMetadata>) nm.getValue();
+		NounMetadata response = values.get(0);
+		assertEquals("4", response.getValue().toString());
+	}
 }

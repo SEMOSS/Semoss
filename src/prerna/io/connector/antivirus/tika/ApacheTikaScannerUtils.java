@@ -30,42 +30,43 @@ import prerna.util.Constants;
 
 public class ApacheTikaScannerUtils implements IVirusScanner {
 
-  private static final Logger classLogger = LogManager.getLogger(ApacheTikaScannerUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(ApacheTikaScannerUtils.class);
 
-  public ApacheTikaScannerUtils() {}
+	public ApacheTikaScannerUtils() {
+	}
 
-  @Override
-  public Map<String, Collection<String>> getViruses(String name, InputStream is) {
-    Map<String, Collection<String>> retMap = new HashMap<>();
+	@Override
+	public Map<String, Collection<String>> getViruses(String name, InputStream is) {
+		Map<String, Collection<String>> retMap = new HashMap<>();
 
-    Tika tika = new Tika();
-    Metadata metadata = new Metadata();
-    try {
-      String detectedType = tika.detect(is, metadata);
-      classLogger.info("Predicted " + name + " has type " + detectedType);
-      if (isSubtypeOfMsDownload(detectedType)) {
-        Collection<String> allIssues = new TreeSet<>();
-        retMap.put(name, allIssues);
-        allIssues.add(detectedType);
-      }
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    } finally {
-      if (is != null) {
-        try {
-          is.close();
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
+		Tika tika = new Tika();
+		Metadata metadata = new Metadata();
+		try {
+			String detectedType = tika.detect(is, metadata);
+			classLogger.info("Predicted " + name + " has type " + detectedType);
+			if (isSubtypeOfMsDownload(detectedType)) {
+				Collection<String> allIssues = new TreeSet<>();
+				retMap.put(name, allIssues);
+				allIssues.add(detectedType);
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (is != null) {
+				try {
+					is.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 
-    return retMap;
-  }
+		return retMap;
+	}
 
-  private static boolean isSubtypeOfMsDownload(String mimeType) {
-    MediaType mediaType = MediaType.parse(mimeType);
-    MediaType baseType = mediaType.getBaseType();
-    return baseType.equals(MediaType.parse("application/x-msdownload"));
-  }
+	private static boolean isSubtypeOfMsDownload(String mimeType) {
+		MediaType mediaType = MediaType.parse(mimeType);
+		MediaType baseType = mediaType.getBaseType();
+		return baseType.equals(MediaType.parse("application/x-msdownload"));
+	}
 }

@@ -28,44 +28,42 @@ import prerna.util.Utility;
 
 public class TrendingDatabasesReactor extends AbstractReactor {
 
-  public TrendingDatabasesReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.NUM_DISPLAY.getKey()};
-  }
+	public TrendingDatabasesReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.NUM_DISPLAY.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    if (Utility.isUserTrackingDisabled()) {
-      return new NounMetadata(
-          false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		if (Utility.isUserTrackingDisabled()) {
+			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
+		}
 
-    List<String> eTypes = new ArrayList<>();
-    eTypes.add(IEngine.CATALOG_TYPE.DATABASE.toString());
+		List<String> eTypes = new ArrayList<>();
+		eTypes.add(IEngine.CATALOG_TYPE.DATABASE.toString());
 
-    String numDisplay = this.keyValue.get(this.keysToGet[0]);
-    if (numDisplay == null) {
-      numDisplay = "5";
-    }
-    Integer nd = Integer.valueOf(numDisplay);
+		String numDisplay = this.keyValue.get(this.keysToGet[0]);
+		if (numDisplay == null) {
+			numDisplay = "5";
+		}
+		Integer nd = Integer.valueOf(numDisplay);
 
-    List<String> accessibleDbs =
-        SecurityEngineUtils.getUserEngineIdList(this.insight.getUser(), eTypes, true, true, true);
+		List<String> accessibleDbs = SecurityEngineUtils.getUserEngineIdList(this.insight.getUser(), eTypes, true, true,
+				true);
 
-    List<String> dbs = EngineUsageUtils.getTrendingDatabases(nd, accessibleDbs);
+		List<String> dbs = EngineUsageUtils.getTrendingDatabases(nd, accessibleDbs);
 
-    // just fill out the rest of the trending databases for consistency.
-    // Netflix has terrible recommendations too :)
-    if (dbs.size() < nd) {
-      accessibleDbs.removeAll(dbs);
-      int size = accessibleDbs.size();
-      int toAdd = Math.min(size, nd - dbs.size());
-      for (int i = 0; i < toAdd; i++) {
-        dbs.add(accessibleDbs.get(i));
-      }
-    }
+		// just fill out the rest of the trending databases for consistency.
+		// Netflix has terrible recommendations too :)
+		if (dbs.size() < nd) {
+			accessibleDbs.removeAll(dbs);
+			int size = accessibleDbs.size();
+			int toAdd = Math.min(size, nd - dbs.size());
+			for (int i = 0; i < toAdd; i++) {
+				dbs.add(accessibleDbs.get(i));
+			}
+		}
 
-    return new NounMetadata(
-        dbs, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_LIST);
-  }
+		return new NounMetadata(dbs, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_LIST);
+	}
 }

@@ -37,107 +37,107 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UpdateReactorUnitTests {
 
-  private UpdateReactor reactor;
+	private UpdateReactor reactor;
 
-  @Mock private NounStore mockStore;
+	@Mock
+	private NounStore mockStore;
 
-  @Mock private GenRowStruct mockColGrs;
+	@Mock
+	private GenRowStruct mockColGrs;
 
-  @Mock private GenRowStruct mockValGrs;
+	@Mock
+	private GenRowStruct mockValGrs;
 
-  @BeforeEach
-  void setup() {
-    MockitoAnnotations.openMocks(this);
-    reactor = new UpdateReactor();
-    reactor.setNounStore(mockStore);
-    when(mockStore.getNoun(ReactorKeysEnum.COLUMNS.getKey())).thenReturn(mockColGrs);
-    when(mockStore.getNoun(ReactorKeysEnum.VALUES.getKey())).thenReturn(mockValGrs);
-  }
+	@BeforeEach
+	void setup() {
+		MockitoAnnotations.openMocks(this);
+		reactor = new UpdateReactor();
+		reactor.setNounStore(mockStore);
+		when(mockStore.getNoun(ReactorKeysEnum.COLUMNS.getKey())).thenReturn(mockColGrs);
+		when(mockStore.getNoun(ReactorKeysEnum.VALUES.getKey())).thenReturn(mockValGrs);
+	}
 
-  @Test
-  void testExecuteWithValidColumnsAndValues() {
-    when(mockColGrs.size()).thenReturn(2);
-    when(mockColGrs.get(0)).thenReturn("column1");
-    when(mockColGrs.get(1)).thenReturn("column2");
-    when(mockValGrs.get(0)).thenReturn("value1");
-    when(mockValGrs.get(1)).thenReturn("value2");
+	@Test
+	void testExecuteWithValidColumnsAndValues() {
+		when(mockColGrs.size()).thenReturn(2);
+		when(mockColGrs.get(0)).thenReturn("column1");
+		when(mockColGrs.get(1)).thenReturn("column2");
+		when(mockValGrs.get(0)).thenReturn("value1");
+		when(mockValGrs.get(1)).thenReturn("value2");
 
-    NounMetadata result = null;
-    result = reactor.execute();
+		NounMetadata result = null;
+		result = reactor.execute();
 
-    UpdateQueryStruct qs = (UpdateQueryStruct) result.getValue();
-    List<IQuerySelector> expectedSelectors =
-        Arrays.asList(new QueryColumnSelector("column1"), new QueryColumnSelector("column2"));
-    List<Object> expectedValues = Arrays.asList("value1", "value2");
+		UpdateQueryStruct qs = (UpdateQueryStruct) result.getValue();
+		List<IQuerySelector> expectedSelectors = Arrays.asList(new QueryColumnSelector("column1"),
+				new QueryColumnSelector("column2"));
+		List<Object> expectedValues = Arrays.asList("value1", "value2");
 
-    assertEquals(expectedSelectors, qs.getSelectors());
-    assertEquals(expectedValues, qs.getValues());
-  }
+		assertEquals(expectedSelectors, qs.getSelectors());
+		assertEquals(expectedValues, qs.getValues());
+	}
 
-  @Test
-  void testExecuteWithListValues() {
-    when(mockColGrs.size()).thenReturn(1);
-    when(mockColGrs.get(0)).thenReturn("column1");
-    when(mockValGrs.get(0)).thenReturn(Arrays.asList("value1"));
+	@Test
+	void testExecuteWithListValues() {
+		when(mockColGrs.size()).thenReturn(1);
+		when(mockColGrs.get(0)).thenReturn("column1");
+		when(mockValGrs.get(0)).thenReturn(Arrays.asList("value1"));
 
-    NounMetadata result = reactor.execute();
+		NounMetadata result = reactor.execute();
 
-    UpdateQueryStruct qs = (UpdateQueryStruct) result.getValue();
-    List<IQuerySelector> expectedSelectors = Arrays.asList(new QueryColumnSelector("column1"));
-    List<Object> expectedValues = Arrays.asList("value1");
+		UpdateQueryStruct qs = (UpdateQueryStruct) result.getValue();
+		List<IQuerySelector> expectedSelectors = Arrays.asList(new QueryColumnSelector("column1"));
+		List<Object> expectedValues = Arrays.asList("value1");
 
-    assertEquals(expectedSelectors, qs.getSelectors());
-    assertEquals(expectedValues, qs.getValues());
-  }
+		assertEquals(expectedSelectors, qs.getSelectors());
+		assertEquals(expectedValues, qs.getValues());
+	}
 
-  @Test
-  void testExecuteWithNounMetadataValues() {
-    when(mockColGrs.size()).thenReturn(1);
-    when(mockColGrs.get(0)).thenReturn("column1");
-    NounMetadata nounMetadata = new NounMetadata("value1", PixelDataType.CONST_STRING);
-    when(mockValGrs.get(0)).thenReturn(nounMetadata);
+	@Test
+	void testExecuteWithNounMetadataValues() {
+		when(mockColGrs.size()).thenReturn(1);
+		when(mockColGrs.get(0)).thenReturn("column1");
+		NounMetadata nounMetadata = new NounMetadata("value1", PixelDataType.CONST_STRING);
+		when(mockValGrs.get(0)).thenReturn(nounMetadata);
 
-    NounMetadata result = reactor.execute();
+		NounMetadata result = reactor.execute();
 
-    UpdateQueryStruct qs = (UpdateQueryStruct) result.getValue();
-    List<IQuerySelector> expectedSelectors = Arrays.asList(new QueryColumnSelector("column1"));
-    List<Object> expectedValues = Arrays.asList("value1");
+		UpdateQueryStruct qs = (UpdateQueryStruct) result.getValue();
+		List<IQuerySelector> expectedSelectors = Arrays.asList(new QueryColumnSelector("column1"));
+		List<Object> expectedValues = Arrays.asList("value1");
 
-    assertEquals(expectedSelectors, qs.getSelectors());
-    assertEquals(expectedValues, qs.getValues());
-  }
+		assertEquals(expectedSelectors, qs.getSelectors());
+		assertEquals(expectedValues, qs.getValues());
+	}
 
-  @Test
-  void testExecuteWithMultipleValuesInList() {
-    when(mockColGrs.size()).thenReturn(1);
-    when(mockColGrs.get(0)).thenReturn("column1");
-    when(mockValGrs.get(0)).thenReturn(Arrays.asList("value1", "value2"));
+	@Test
+	void testExecuteWithMultipleValuesInList() {
+		when(mockColGrs.size()).thenReturn(1);
+		when(mockColGrs.get(0)).thenReturn("column1");
+		when(mockValGrs.get(0)).thenReturn(Arrays.asList("value1", "value2"));
 
-    SemossPixelException exception =
-        assertThrows(
-            SemossPixelException.class,
-            () -> {
-              reactor.execute();
-            });
+		SemossPixelException exception = assertThrows(SemossPixelException.class, () -> {
+			reactor.execute();
+		});
 
-    String expectedNounMetadata = "Can only specify one value to update to";
-    assertEquals(expectedNounMetadata, exception.getMessage());
-  }
+		String expectedNounMetadata = "Can only specify one value to update to";
+		assertEquals(expectedNounMetadata, exception.getMessage());
+	}
 
-  @Test
-  void testExecuteWithNounMetadataInList() {
-    when(mockColGrs.size()).thenReturn(1);
-    when(mockColGrs.get(0)).thenReturn("column1");
-    NounMetadata nounMetadata = new NounMetadata("value1", PixelDataType.CONST_STRING);
-    when(mockValGrs.get(0)).thenReturn(Arrays.asList(nounMetadata));
+	@Test
+	void testExecuteWithNounMetadataInList() {
+		when(mockColGrs.size()).thenReturn(1);
+		when(mockColGrs.get(0)).thenReturn("column1");
+		NounMetadata nounMetadata = new NounMetadata("value1", PixelDataType.CONST_STRING);
+		when(mockValGrs.get(0)).thenReturn(Arrays.asList(nounMetadata));
 
-    NounMetadata result = reactor.execute();
+		NounMetadata result = reactor.execute();
 
-    UpdateQueryStruct qs = (UpdateQueryStruct) result.getValue();
-    List<IQuerySelector> expectedSelectors = Arrays.asList(new QueryColumnSelector("column1"));
-    List<Object> expectedValues = Arrays.asList("value1");
+		UpdateQueryStruct qs = (UpdateQueryStruct) result.getValue();
+		List<IQuerySelector> expectedSelectors = Arrays.asList(new QueryColumnSelector("column1"));
+		List<Object> expectedValues = Arrays.asList("value1");
 
-    assertEquals(expectedSelectors, qs.getSelectors());
-    assertEquals(expectedValues, qs.getValues());
-  }
+		assertEquals(expectedSelectors, qs.getSelectors());
+		assertEquals(expectedValues, qs.getValues());
+	}
 }

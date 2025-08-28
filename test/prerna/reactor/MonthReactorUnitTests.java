@@ -27,33 +27,33 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class MonthReactorUnitTests {
 
-  private MonthReactor reactor;
-  private Map<String, String> keyValues;
+	private MonthReactor reactor;
+	private Map<String, String> keyValues;
 
-  @BeforeEach
-  void setup() {
-    reactor = new MonthReactor();
-    keyValues = new HashMap<>();
-    reactor.keyValue = keyValues;
-  }
+	@BeforeEach
+	void setup() {
+		reactor = new MonthReactor();
+		keyValues = new HashMap<>();
+		reactor.keyValue = keyValues;
+	}
 
-  @Test
-  void testMonthReactorWithValidMonths() {
-    keyValues.put("months", "12");
+	@Test
+	void testMonthReactorWithValidMonths() {
+		keyValues.put("months", "12");
 
-    NounMetadata nm = reactor.execute();
+		NounMetadata nm = reactor.execute();
 
-    assertEquals(PixelDataType.CONST_MONTH, nm.getNounType());
-    SemossMonth month = (SemossMonth) nm.getValue();
-    assertEquals(12, month.getNumMonths());
-  }
+		assertEquals(PixelDataType.CONST_MONTH, nm.getNounType());
+		SemossMonth month = (SemossMonth) nm.getValue();
+		assertEquals(12, month.getNumMonths());
+	}
 
-  @Test
-  void testMonthReactorWithNoMonths() {
-    NounMetadata nm = reactor.execute();
+	@Test
+	void testMonthReactorWithNoMonths() {
+		NounMetadata nm = reactor.execute();
 
-    assertEquals(PixelDataType.CONST_MONTH, nm.getNounType());
-    SemossMonth month = (SemossMonth) nm.getValue();
-    assertEquals(1, (Integer) month.getNumMonths());
-  }
+		assertEquals(PixelDataType.CONST_MONTH, nm.getNounType());
+		SemossMonth month = (SemossMonth) nm.getValue();
+		assertEquals(1, (Integer) month.getNumMonths());
+	}
 }

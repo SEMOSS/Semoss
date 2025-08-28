@@ -30,49 +30,47 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UpdateEngineFilesReactor extends AbstractEngineFileReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(UpdateEngineFilesReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(UpdateEngineFilesReactor.class);
 
-  public UpdateEngineFilesReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.PAYLOAD.getKey()};
-  }
+	public UpdateEngineFilesReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.PAYLOAD.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    User user = this.insight.getUser();
-    validateUserAndEngineAccess(user);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		User user = this.insight.getUser();
+		validateUserAndEngineAccess(user);
 
-    String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-    if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-      throw new IllegalArgumentException(
-          "Engine " + engineId + " does not exist or user does not have access to edit assets.");
-    }
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException(
+					"Engine " + engineId + " does not exist or user does not have access to edit assets.");
+		}
 
-    String enginePath = getLocalEngineBaseDirectory(engineId);
+		String enginePath = getLocalEngineBaseDirectory(engineId);
 
-    Map<String, Object> responseData;
+		Map<String, Object> responseData;
 
-    try {
-      responseData = updateEngineFiles(enginePath);
-    } catch (IOException e) {
-      classLogger.error("Error processing files", e);
-      throw new RuntimeException("File processing failed: " + e.getMessage(), e);
-    }
+		try {
+			responseData = updateEngineFiles(enginePath);
+		} catch (IOException e) {
+			classLogger.error("Error processing files", e);
+			throw new RuntimeException("File processing failed: " + e.getMessage(), e);
+		}
 
-    return new NounMetadata(
-        responseData, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.OPERATION);
-  }
+		return new NounMetadata(responseData, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.OPERATION);
+	}
 
-  @SuppressWarnings("unchecked")
-  private Map<String, Object> updateEngineFiles(String enginePath) throws IOException {
-    Map<String, Object> payload = getPayload();
-    File engineBaseDir = new File(enginePath);
-    Set<String> currentPaths = new HashSet<>();
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> updateEngineFiles(String enginePath) throws IOException {
+		Map<String, Object> payload = getPayload();
+		File engineBaseDir = new File(enginePath);
+		Set<String> currentPaths = new HashSet<>();
 
-    writeFilesRecursively(engineBaseDir.toPath(), payload, currentPaths);
-    deleteRemovedFiles(engineBaseDir, currentPaths);
+		writeFilesRecursively(engineBaseDir.toPath(), payload, currentPaths);
+		deleteRemovedFiles(engineBaseDir, currentPaths);
 
-    return traverseDirectory(enginePath); // Return updated structure
-  }
+		return traverseDirectory(enginePath); // Return updated structure
+	}
 }

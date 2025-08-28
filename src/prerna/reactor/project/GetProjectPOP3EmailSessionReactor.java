@@ -28,37 +28,36 @@ import prerna.util.Utility;
 
 public class GetProjectPOP3EmailSessionReactor extends AbstractReactor {
 
-  public GetProjectPOP3EmailSessionReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-  }
+	public GetProjectPOP3EmailSessionReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String projectId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 
-    if (StringUtils.isBlank(projectId)) {
-      throw new IllegalArgumentException("Must input an project id");
-    }
+		if (StringUtils.isBlank(projectId)) {
+			throw new IllegalArgumentException("Must input an project id");
+		}
 
-    if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-      throw new IllegalArgumentException(
-          "Project does not exist or user does not have access to edit");
-    }
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
+		}
 
-    // make sure we have the value or throw a null pointer
-    IProject project = Utility.getProject(projectId);
-    ProjectProperties props = project.getProjectProperties();
+		// make sure we have the value or throw a null pointer
+		IProject project = Utility.getProject(projectId);
+		ProjectProperties props = project.getProjectProperties();
 
-    Store pop3Store = props.getPop3EmailStore();
-    if (pop3Store == null) {
-      throw new IllegalArgumentException("POP3 Email Store is not defined for this project");
-    }
+		Store pop3Store = props.getPop3EmailStore();
+		if (pop3Store == null) {
+			throw new IllegalArgumentException("POP3 Email Store is not defined for this project");
+		}
 
-    ProjectPropertyEvaluator eval = new ProjectPropertyEvaluator();
-    eval.setProjectId(projectId);
-    eval.setMethodName("getPop3EmailStore");
-    NounMetadata noun = new NounMetadata(eval, PixelDataType.PROJECT_EMAIL_SESSION);
-    return noun;
-  }
+		ProjectPropertyEvaluator eval = new ProjectPropertyEvaluator();
+		eval.setProjectId(projectId);
+		eval.setMethodName("getPop3EmailStore");
+		NounMetadata noun = new NounMetadata(eval, PixelDataType.PROJECT_EMAIL_SESSION);
+		return noun;
+	}
 }

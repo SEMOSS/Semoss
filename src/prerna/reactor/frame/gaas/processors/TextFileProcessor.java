@@ -25,26 +25,26 @@ import prerna.util.Constants;
 
 public class TextFileProcessor extends AbstractFileProcessor {
 
-  private static final Logger classLogger = LogManager.getLogger(PPTProcessor.class);
+	private static final Logger classLogger = LogManager.getLogger(PPTProcessor.class);
 
-  public TextFileProcessor(String filePath, VectorDatabaseCSVWriter writer) {
-    super(filePath, writer);
-  }
+	public TextFileProcessor(String filePath, VectorDatabaseCSVWriter writer) {
+		super(filePath, writer);
+	}
 
-  @Override
-  public void process() throws IOException {
-    String source = getSource(this.filePath);
+	@Override
+	public void process() throws IOException {
+		String source = getSource(this.filePath);
 
-    String fileContent = null;
-    try (BufferedReader reader = new BufferedReader(new FileReader(this.filePath))) {
-      fileContent = reader.lines().collect(Collectors.joining("\n"));
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw e;
-    }
+		String fileContent = null;
+		try (BufferedReader reader = new BufferedReader(new FileReader(this.filePath))) {
+			fileContent = reader.lines().collect(Collectors.joining("\n"));
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		}
 
-    // for a text document there is only ever one page / divider
-    String pageIndex = "1";
-    this.writer.writeRow(source, pageIndex, fileContent);
-  }
+		// for a text document there is only ever one page / divider
+		String pageIndex = "1";
+		this.writer.writeRow(source, pageIndex, fileContent);
+	}
 }

@@ -18,47 +18,47 @@ import java.io.Closeable;
 
 public interface IEngineWrapper extends Closeable {
 
-  /** This method needs to be called to actually run the query */
-  void execute() throws Exception;
+	/** This method needs to be called to actually run the query */
+	void execute() throws Exception;
 
-  /**
-   * Set the query
-   *
-   * @param query
-   */
-  void setQuery(String query);
+	/**
+	 * Set the query
+	 *
+	 * @param query
+	 */
+	void setQuery(String query);
 
-  /**
-   * Get the set query
-   *
-   * @return
-   */
-  String getQuery();
+	/**
+	 * Get the set query
+	 *
+	 * @return
+	 */
+	String getQuery();
 
-  /**
-   * Set the engine
-   *
-   * @param engine
-   */
-  void setEngine(IDatabaseEngine engine);
+	/**
+	 * Set the engine
+	 *
+	 * @param engine
+	 */
+	void setEngine(IDatabaseEngine engine);
 
-  /**
-   * Get the engine
-   *
-   * @return
-   */
-  public IDatabaseEngine getEngine();
+	/**
+	 * Get the engine
+	 *
+	 * @return
+	 */
+	public IDatabaseEngine getEngine();
 
-  //	/**
-  //	 *
-  //	 * @param val
-  //	 */
-  //	void setTimeZone(TimeZone val);
-  //
-  //	/**
-  //	 *
-  //	 * @return
-  //	 */
-  //	TimeZone getTimeZone();
+	// /**
+	// *
+	// * @param val
+	// */
+	// void setTimeZone(TimeZone val);
+	//
+	// /**
+	// *
+	// * @return
+	// */
+	// TimeZone getTimeZone();
 
 }

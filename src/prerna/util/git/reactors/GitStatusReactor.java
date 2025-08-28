@@ -27,30 +27,28 @@ import prerna.util.git.GitUtils;
 
 public class GitStatusReactor extends AbstractReactor {
 
-  public GitStatusReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
-  }
+	public GitStatusReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
 
-    String databaseId = this.keyValue.get(this.keysToGet[0]);
-    if (databaseId == null || databaseId.isEmpty()) {
-      throw new IllegalArgumentException("Need to provide the database id");
-    }
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		if (databaseId == null || databaseId.isEmpty()) {
+			throw new IllegalArgumentException("Need to provide the database id");
+		}
 
-    // you can only push
-    // if you are the owner
-    databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-    if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-      throw new IllegalArgumentException(
-          "Database does not exist or user does not have access to edit database");
-    }
-    String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		// you can only push
+		// if you are the owner
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
+		}
+		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 
-    List<Map<String, String>> fileInfo = GitUtils.getStatus(databaseId, databaseName);
-    return new NounMetadata(
-        fileInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.MARKET_PLACE);
-  }
+		List<Map<String, String>> fileInfo = GitUtils.getStatus(databaseId, databaseName);
+		return new NounMetadata(fileInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.MARKET_PLACE);
+	}
 }

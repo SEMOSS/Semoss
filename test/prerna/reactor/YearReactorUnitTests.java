@@ -26,21 +26,21 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class YearReactorUnitTests {
 
-  private YearReactor reactor;
-  private Map<String, String> keyValues;
+	private YearReactor reactor;
+	private Map<String, String> keyValues;
 
-  @BeforeEach
-  void setup() {
-    reactor = new YearReactor();
-    keyValues = reactor.keyValue;
-  }
+	@BeforeEach
+	void setup() {
+		reactor = new YearReactor();
+		keyValues = reactor.keyValue;
+	}
 
-  @Test
-  void testYear() {
-    keyValues.put("years", "2020");
-    NounMetadata nm = reactor.execute();
-    assertEquals(PixelDataType.CONST_YEAR, nm.getNounType());
-    SemossYear sy = (SemossYear) nm.getValue();
-    assertEquals(2020, sy.getNumYears());
-  }
+	@Test
+	void testYear() {
+		keyValues.put("years", "2020");
+		NounMetadata nm = reactor.execute();
+		assertEquals(PixelDataType.CONST_YEAR, nm.getNounType());
+		SemossYear sy = (SemossYear) nm.getValue();
+		assertEquals(2020, sy.getNumYears());
+	}
 }

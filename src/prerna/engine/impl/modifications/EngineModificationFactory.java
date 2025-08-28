@@ -20,19 +20,20 @@ import prerna.engine.api.IEngineModifier;
 
 public class EngineModificationFactory {
 
-  private EngineModificationFactory() {}
+	private EngineModificationFactory() {
+	}
 
-  public static IEngineModifier getEngineModifier(IDatabaseEngine engine) {
-    DATABASE_TYPE dbType = engine.getDatabaseType();
+	public static IEngineModifier getEngineModifier(IDatabaseEngine engine) {
+		DATABASE_TYPE dbType = engine.getDatabaseType();
 
-    IEngineModifier modifier = null;
-    if (dbType == DATABASE_TYPE.RDBMS) {
-      modifier = new RdbmsModifier();
-    }
+		IEngineModifier modifier = null;
+		if (dbType == DATABASE_TYPE.RDBMS) {
+			modifier = new RdbmsModifier();
+		}
 
-    if (modifier != null) {
-      modifier.setEngine(engine);
-    }
-    return modifier;
-  }
+		if (modifier != null) {
+			modifier.setEngine(engine);
+		}
+		return modifier;
+	}
 }

@@ -29,53 +29,42 @@ import prerna.util.Utility;
 
 public class PublishProjectReactor extends AbstractReactor {
 
-  public PublishProjectReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.RELEASE.getKey()};
-  }
+	public PublishProjectReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.RELEASE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String projectId = this.keyValue.get(this.keysToGet[0]);
-    Boolean release = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]) + "");
-    if (StringUtils.isBlank(projectId)) {
-      throw new IllegalArgumentException("Must input an project id");
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		Boolean release = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]) + "");
+		if (StringUtils.isBlank(projectId)) {
+			throw new IllegalArgumentException("Must input an project id");
+		}
 
-    User user = this.insight.getUser();
-    if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
-      throw new IllegalArgumentException(
-          "Project does not exist or user is not an owner of the project");
-    }
+		User user = this.insight.getUser();
+		if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user is not an owner of the project");
+		}
 
-    IProject project = Utility.getProject(projectId);
-    project.setRepublish(true);
-    if (release) {
-      SecurityProjectUtils.setPortalPublish(user, projectId);
-      ClusterUtil.pushProjectFolder(
-          project,
-          AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId),
-          Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
-    }
+		IProject project = Utility.getProject(projectId);
+		project.setRepublish(true);
+		if (release) {
+			SecurityProjectUtils.setPortalPublish(user, projectId);
+			ClusterUtil.pushProjectFolder(project,
+					AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId),
+					Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
+		}
 
-    String url =
-        Utility.getApplicationUrl()
-            + "/"
-            + Utility.getPublicHomeFolder()
-            + "/"
-            + projectId
-            + "/"
-            + Constants.PORTALS_FOLDER
-            + "/";
-    NounMetadata noun = new NounMetadata(url, PixelDataType.CONST_STRING);
-    if (release) {
-      noun.addAdditionalReturn(
-          NounMetadata.getSuccessNounMessage("Successfully published and released the project"));
-    } else {
-      noun.addAdditionalReturn(
-          NounMetadata.getSuccessNounMessage("Successfully published the project"));
-    }
-    return noun;
-  }
+		String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/"
+				+ Constants.PORTALS_FOLDER + "/";
+		NounMetadata noun = new NounMetadata(url, PixelDataType.CONST_STRING);
+		if (release) {
+			noun.addAdditionalReturn(
+					NounMetadata.getSuccessNounMessage("Successfully published and released the project"));
+		} else {
+			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully published the project"));
+		}
+		return noun;
+	}
 }

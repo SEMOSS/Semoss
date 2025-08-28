@@ -37,140 +37,117 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class FindPathsConnectingGroupsReactor extends AbstractFrameReactor {
 
-  private static final String COLUMN1 = "column1";
-  private static final String COLUMN2 = "column2";
-  private static final String VALUES1 = "values1";
-  private static final String VALUES2 = "values2";
-  private static final String MAX_TRAVERSALS = "max";
+	private static final String COLUMN1 = "column1";
+	private static final String COLUMN2 = "column2";
+	private static final String VALUES1 = "values1";
+	private static final String VALUES2 = "values2";
+	private static final String MAX_TRAVERSALS = "max";
 
-  public FindPathsConnectingGroupsReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.FRAME.getKey(), COLUMN1, COLUMN2, VALUES1, VALUES2, MAX_TRAVERSALS
-        };
-  }
+	public FindPathsConnectingGroupsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), COLUMN1, COLUMN2, VALUES1, VALUES2,
+				MAX_TRAVERSALS};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    TinkerFrame tinker = (TinkerFrame) getFrame();
+	@Override
+	public NounMetadata execute() {
+		TinkerFrame tinker = (TinkerFrame) getFrame();
 
-    String nodeType1 = getColumn(COLUMN1);
-    String nodeType2 = getColumn(COLUMN2);
-    List<String> values1 = getValues(VALUES1);
-    List<String> values2 = getValues(VALUES2);
-    int max = getMaxTraversals();
+		String nodeType1 = getColumn(COLUMN1);
+		String nodeType2 = getColumn(COLUMN2);
+		List<String> values1 = getValues(VALUES1);
+		List<String> values2 = getValues(VALUES2);
+		int max = getMaxTraversals();
 
-    findConnectionsBetweenGroups(tinker, nodeType1, values1, nodeType2, values2, max);
-    return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.FRAME_FILTER);
-  }
+		findConnectionsBetweenGroups(tinker, nodeType1, values1, nodeType2, values2, max);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.FRAME_FILTER);
+	}
 
-  public static void findConnectionsBetweenGroups(
-      TinkerFrame tf,
-      String type1,
-      List<String> instances1,
-      String type2,
-      List<String> instances2,
-      int numTraversals) {
-    // get the correct physical name
-    String nodeType1 = tf.getMetaData().getPhysicalName(type1);
-    String nodeType2 = tf.getMetaData().getPhysicalName(type2);
+	public static void findConnectionsBetweenGroups(TinkerFrame tf, String type1, List<String> instances1, String type2,
+			List<String> instances2, int numTraversals) {
+		// get the correct physical name
+		String nodeType1 = tf.getMetaData().getPhysicalName(type1);
+		String nodeType2 = tf.getMetaData().getPhysicalName(type2);
 
-    // keep set of all vertices to keep
-    Set<Vertex> instancesToKeep = new HashSet<Vertex>();
+		// keep set of all vertices to keep
+		Set<Vertex> instancesToKeep = new HashSet<Vertex>();
 
-    GraphTraversal<Vertex, Object> t1 =
-        tf.g
-            .traversal()
-            .V()
-            .has(TinkerFrame.TINKER_TYPE, nodeType1)
-            .has(TinkerFrame.TINKER_NAME, P.within(instances1))
-            .emit()
-            .repeat(__.both().simplePath())
-            .until(
-                __.has(TinkerFrame.TINKER_TYPE, nodeType2)
-                    .has(TinkerFrame.TINKER_NAME, P.within(instances2))
-                    .or()
-                    .loops()
-                    .is(P.eq(numTraversals)))
-            .has(TinkerFrame.TINKER_NAME, P.within(instances2))
-            .path()
-            .unfold()
-            .dedup();
+		GraphTraversal<Vertex, Object> t1 = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, nodeType1)
+				.has(TinkerFrame.TINKER_NAME, P.within(instances1)).emit().repeat(__.both().simplePath())
+				.until(__.has(TinkerFrame.TINKER_TYPE, nodeType2).has(TinkerFrame.TINKER_NAME, P.within(instances2))
+						.or().loops().is(P.eq(numTraversals)))
+				.has(TinkerFrame.TINKER_NAME, P.within(instances2)).path().unfold().dedup();
 
-    while (t1.hasNext()) {
-      Vertex v = (Vertex) t1.next();
-      instancesToKeep.add(v);
-    }
+		while (t1.hasNext()) {
+			Vertex v = (Vertex) t1.next();
+			instancesToKeep.add(v);
+		}
 
-    int size = instancesToKeep.size();
-    if (size == 0) {
-      throw new IllegalStateException("Could not find any paths");
-    }
+		int size = instancesToKeep.size();
+		if (size == 0) {
+			throw new IllegalStateException("Could not find any paths");
+		}
 
-    // remove the current frame filters
-    tf.getFrameFilters().removeAllFilters();
+		// remove the current frame filters
+		tf.getFrameFilters().removeAllFilters();
 
-    Map<String, List<Object>> colToValues = new HashMap<String, List<Object>>();
-    for (Vertex v : instancesToKeep) {
-      String type = v.value(TinkerFrame.TINKER_TYPE);
-      String value = v.value(TinkerFrame.TINKER_NAME);
+		Map<String, List<Object>> colToValues = new HashMap<String, List<Object>>();
+		for (Vertex v : instancesToKeep) {
+			String type = v.value(TinkerFrame.TINKER_TYPE);
+			String value = v.value(TinkerFrame.TINKER_NAME);
 
-      List<Object> values = null;
-      if (colToValues.containsKey(type)) {
-        values = colToValues.get(type);
-      } else {
-        values = new ArrayList<>();
-        colToValues.put(type, values);
-      }
+			List<Object> values = null;
+			if (colToValues.containsKey(type)) {
+				values = colToValues.get(type);
+			} else {
+				values = new ArrayList<>();
+				colToValues.put(type, values);
+			}
 
-      values.add(value);
-    }
+			values.add(value);
+		}
 
-    // need to add the filters to the graph
-    for (String type : colToValues.keySet()) {
-      NounMetadata lComparison =
-          new NounMetadata(new QueryColumnSelector(type), PixelDataType.COLUMN);
-      NounMetadata rComparison =
-          new NounMetadata(colToValues.get(type), PixelDataType.CONST_STRING);
-      IQueryFilter newFilter = new SimpleQueryFilter(lComparison, "==", rComparison);
-      tf.getFrameFilters().addFilters(newFilter);
-    }
-  }
+		// need to add the filters to the graph
+		for (String type : colToValues.keySet()) {
+			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(type), PixelDataType.COLUMN);
+			NounMetadata rComparison = new NounMetadata(colToValues.get(type), PixelDataType.CONST_STRING);
+			IQueryFilter newFilter = new SimpleQueryFilter(lComparison, "==", rComparison);
+			tf.getFrameFilters().addFilters(newFilter);
+		}
+	}
 
-  ////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////
 
-  private String getColumn(String key) {
-    GenRowStruct grs = this.store.getNoun(key);
-    if (grs != null) {
-      return (String) grs.get(0);
-    }
+	private String getColumn(String key) {
+		GenRowStruct grs = this.store.getNoun(key);
+		if (grs != null) {
+			return (String) grs.get(0);
+		}
 
-    throw new IllegalArgumentException("Must define the input " + key);
-  }
+		throw new IllegalArgumentException("Must define the input " + key);
+	}
 
-  private List<String> getValues(String key) {
-    GenRowStruct grs = this.store.getNoun(key);
-    if (grs != null && !grs.isEmpty()) {
-      return grs.getAllStrValues();
-    }
+	private List<String> getValues(String key) {
+		GenRowStruct grs = this.store.getNoun(key);
+		if (grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues();
+		}
 
-    throw new IllegalArgumentException("Must define the input " + key);
-  }
+		throw new IllegalArgumentException("Must define the input " + key);
+	}
 
-  private int getMaxTraversals() {
-    GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
-    if (grs != null && !grs.isEmpty()) {
-      return ((Number) grs.get(0)).intValue();
-    }
+	private int getMaxTraversals() {
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
+		if (grs != null && !grs.isEmpty()) {
+			return ((Number) grs.get(0)).intValue();
+		}
 
-    List<Object> vals = this.curRow.getAllNumericColumns();
-    if (!vals.isEmpty()) {
-      return ((Number) vals).intValue();
-    }
+		List<Object> vals = this.curRow.getAllNumericColumns();
+		if (!vals.isEmpty()) {
+			return ((Number) vals).intValue();
+		}
 
-    throw new IllegalArgumentException(
-        "Must define a value for the max number of traversals to attempt");
-  }
+		throw new IllegalArgumentException("Must define a value for the max number of traversals to attempt");
+	}
 }

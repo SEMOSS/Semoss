@@ -30,21 +30,20 @@ import prerna.testing.utility.TestProjectUtils;
 
 public class AdminGetProjectPortalDetailsReactorApiTests extends AbstractBaseSemossApiTests {
 
-  @Test
-  public void executeWithValidInput() {
-    String project = TestProjectUtils.createBasicProject("testProject");
+	@Test
+	public void executeWithValidInput() {
+		String project = TestProjectUtils.createBasicProject("testProject");
 
-    String pixel =
-        ApiSemossTestUtils.buildPixelCall(
-            AdminGetProjectPortalDetailsReactor.class, ReactorKeysEnum.PROJECT.getKey(), project);
+		String pixel = ApiSemossTestUtils.buildPixelCall(AdminGetProjectPortalDetailsReactor.class,
+				ReactorKeysEnum.PROJECT.getKey(), project);
 
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 
-    Map<String, Object> portalDetails = (Map<String, Object>) nm.getValue();
-    assertNotNull(nm);
-    assertEquals(PixelDataType.MAP, nm.getNounType());
-    assertFalse(Boolean.valueOf(portalDetails.get("project_has_portal").toString()));
-    assertFalse(Boolean.valueOf(portalDetails.get("project_is_published").toString()));
-    assertFalse(Boolean.valueOf(portalDetails.get("isPublished").toString()));
-  }
+		Map<String, Object> portalDetails = (Map<String, Object>) nm.getValue();
+		assertNotNull(nm);
+		assertEquals(PixelDataType.MAP, nm.getNounType());
+		assertFalse(Boolean.valueOf(portalDetails.get("project_has_portal").toString()));
+		assertFalse(Boolean.valueOf(portalDetails.get("project_is_published").toString()));
+		assertFalse(Boolean.valueOf(portalDetails.get("isPublished").toString()));
+	}
 }

@@ -24,60 +24,60 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 
 public abstract class AbstractGaasBaseReactor extends AbstractReactor {
 
-  /**
-   * @return
-   */
-  public String getProjectId() {
-    String projectId = null;
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PROJECT.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      projectId = grs.get(0).toString();
-    } else {
-      projectId = this.insight.getProjectId();
-      if (projectId == null) {
-        projectId = this.insight.getContextProjectId();
-      }
-    }
-    return projectId;
-  }
+	/**
+	 * @return
+	 */
+	public String getProjectId() {
+		String projectId = null;
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PROJECT.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			projectId = grs.get(0).toString();
+		} else {
+			projectId = this.insight.getProjectId();
+			if (projectId == null) {
+				projectId = this.insight.getContextProjectId();
+			}
+		}
+		return projectId;
+	}
 
-  /**
-   * @return
-   */
-  public Map processParamMap() {
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-    if (grs != null) {
-      List maps = grs.getValuesOfType(PixelDataType.MAP);
-      if (maps != null && maps.size() > 0) {
-        return (Map) maps.get(0);
-      }
-    }
-    return null;
-  }
+	/**
+	 * @return
+	 */
+	public Map processParamMap() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if (grs != null) {
+			List maps = grs.getValuesOfType(PixelDataType.MAP);
+			if (maps != null && maps.size() > 0) {
+				return (Map) maps.get(0);
+			}
+		}
+		return null;
+	}
 
-  /**
-   * @param inputMap
-   * @return
-   */
-  public String processMapToString(Map<String, Object> inputMap) {
-    StringBuilder buf = new StringBuilder("");
-    Iterator<String> keys = inputMap.keySet().iterator();
-    while (keys.hasNext()) {
-      String thisKey = keys.next();
-      Object value = inputMap.get(thisKey);
+	/**
+	 * @param inputMap
+	 * @return
+	 */
+	public String processMapToString(Map<String, Object> inputMap) {
+		StringBuilder buf = new StringBuilder("");
+		Iterator<String> keys = inputMap.keySet().iterator();
+		while (keys.hasNext()) {
+			String thisKey = keys.next();
+			Object value = inputMap.get(thisKey);
 
-      if (buf.length() != 0) {
-        buf.append(", ");
-      }
-      // add the key
-      buf.append(thisKey).append("=");
-      // add the value
-      if (value instanceof String) {
-        buf.append("\"").append(value).append("\"");
-      } else {
-        buf.append(value);
-      }
-    }
-    return buf.toString();
-  }
+			if (buf.length() != 0) {
+				buf.append(", ");
+			}
+			// add the key
+			buf.append(thisKey).append("=");
+			// add the value
+			if (value instanceof String) {
+				buf.append("\"").append(value).append("\"");
+			} else {
+				buf.append(value);
+			}
+		}
+		return buf.toString();
+	}
 }

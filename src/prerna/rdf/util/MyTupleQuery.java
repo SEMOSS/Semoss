@@ -20,7 +20,7 @@ import org.openrdf.repository.sail.SailTupleQuery;
 
 public class MyTupleQuery extends SailTupleQuery {
 
-  public MyTupleQuery(ParsedTupleQuery query, SailRepositoryConnection sc) {
-    super(query, sc);
-  }
+	public MyTupleQuery(ParsedTupleQuery query, SailRepositoryConnection sc) {
+		super(query, sc);
+	}
 }

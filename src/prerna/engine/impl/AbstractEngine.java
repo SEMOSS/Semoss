@@ -37,226 +37,220 @@ import prerna.util.git.GitRepoUtils;
 
 public abstract class AbstractEngine implements IEngine {
 
-  private static final Logger classLogger = LogManager.getLogger(AbstractEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractEngine.class);
 
-  protected static final String FILE_SEPARATOR = "/";
+	protected static final String FILE_SEPARATOR = "/";
 
-  protected String smssFilePath = null;
-  protected CaseInsensitiveProperties origSmssProp = null;
-  protected CaseInsensitiveProperties smssProp = null;
+	protected String smssFilePath = null;
+	protected CaseInsensitiveProperties origSmssProp = null;
+	protected CaseInsensitiveProperties smssProp = null;
 
-  protected String engineId = null;
-  protected String engineName = null;
+	protected String engineId = null;
+	protected String engineName = null;
 
-  protected String engineBaseFolder = null;
-  protected String engineAppRootFolder = null;
-  protected String engineVersionFolder = null;
-  protected String engineAssetsFolder = null;
+	protected String engineBaseFolder = null;
+	protected String engineAppRootFolder = null;
+	protected String engineVersionFolder = null;
+	protected String engineAssetsFolder = null;
 
-  /** This is if we have an engine with no assets Or for database, connection but no OWL */
-  protected boolean isBasic = false;
+	/**
+	 * This is if we have an engine with no assets Or for database, connection but
+	 * no OWL
+	 */
+	protected boolean isBasic = false;
 
-  /**
-   * Init the general smss values
-   *
-   * @param builder
-   * @throws Exception
-   */
-  public void open(String smssFilePath) throws Exception {
-    setSmssFilePath(smssFilePath);
-    this.open(Utility.loadProperties(smssFilePath));
-  }
+	/**
+	 * Init the general smss values
+	 *
+	 * @param builder
+	 * @throws Exception
+	 */
+	public void open(String smssFilePath) throws Exception {
+		setSmssFilePath(smssFilePath);
+		this.open(Utility.loadProperties(smssFilePath));
+	}
 
-  /**
-   * Init the general smss values
-   *
-   * @param builder
-   * @throws Exception
-   */
-  public void open(Properties smssProp) throws Exception {
-    setSmssProp(smssProp);
-    // this is because of some silly stuff on databases
-    if (this.smssProp.isEmpty()) {
-      return;
-    }
-    this.engineId = smssProp.getProperty(Constants.ENGINE);
-    if (this.engineId == null) {
-      System.out.println("null");
-    }
-    this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
+	/**
+	 * Init the general smss values
+	 *
+	 * @param builder
+	 * @throws Exception
+	 */
+	public void open(Properties smssProp) throws Exception {
+		setSmssProp(smssProp);
+		// this is because of some silly stuff on databases
+		if (this.smssProp.isEmpty()) {
+			return;
+		}
+		this.engineId = smssProp.getProperty(Constants.ENGINE);
+		if (this.engineId == null) {
+			System.out.println("null");
+		}
+		this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 
-    String engineIdAndName = SmssUtilities.getUniqueName(engineName, engineId);
+		String engineIdAndName = SmssUtilities.getUniqueName(engineName, engineId);
 
-    ISecrets secretStore = SecretsFactory.getSecretConnector();
-    if (secretStore != null) {
-      Map<String, Object> engineSecrets =
-          secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-      if (engineSecrets == null || engineSecrets.isEmpty()) {
-        classLogger.info("No secrets found for " + engineIdAndName);
-      } else {
-        classLogger.info("Successfully pulled secrets for " + engineIdAndName);
-        this.smssProp.putAll(engineSecrets);
-      }
-    }
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+		if (secretStore != null) {
+			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId,
+					this.engineName);
+			if (engineSecrets == null || engineSecrets.isEmpty()) {
+				classLogger.info("No secrets found for " + engineIdAndName);
+			} else {
+				classLogger.info("Successfully pulled secrets for " + engineIdAndName);
+				this.smssProp.putAll(engineSecrets);
+			}
+		}
 
-    IEngine.CATALOG_TYPE eType = getCatalogType();
-    this.engineBaseFolder = EngineUtility.getSpecificEngineBaseFolder(eType, engineIdAndName);
-    this.engineAppRootFolder = EngineUtility.getSpecificEngineAppRootFolder(eType, engineIdAndName);
-    this.engineVersionFolder = EngineUtility.getSpecificEngineVersionFolder(eType, engineIdAndName);
-    this.engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(eType, engineIdAndName);
+		IEngine.CATALOG_TYPE eType = getCatalogType();
+		this.engineBaseFolder = EngineUtility.getSpecificEngineBaseFolder(eType, engineIdAndName);
+		this.engineAppRootFolder = EngineUtility.getSpecificEngineAppRootFolder(eType, engineIdAndName);
+		this.engineVersionFolder = EngineUtility.getSpecificEngineVersionFolder(eType, engineIdAndName);
+		this.engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(eType, engineIdAndName);
 
-    // make sure we always have an assets folder and all the directories leading up to it
-    {
-      if (!this.isBasic) {
-        File f = new File(this.engineAssetsFolder);
-        if (!f.exists() || !f.isDirectory()) {
-          f.mkdirs();
-          // this means you have a legacy structure
-          // i will move everything you have into the assets folder
-          // with exception of .mv.db files
-          Path assetsPath = Path.of(this.engineAssetsFolder);
-          Files.list(Path.of(this.engineBaseFolder))
-              .forEach(
-                  item -> {
-                    // skip if the item is already within app_root or app_root/versions
-                    // this would really only be for the engine image
-                    String fileName = item.getFileName().toString();
-                    if (item.toString()
-                            .replace("\\", "/")
-                            .contains("/" + Constants.APP_ROOT_FOLDER + "/")
-                        || fileName.equals(Constants.APP_ROOT_FOLDER)) {
-                      return; // skip
-                    }
+		// make sure we always have an assets folder and all the directories leading up
+		// to it
+		{
+			if (!this.isBasic) {
+				File f = new File(this.engineAssetsFolder);
+				if (!f.exists() || !f.isDirectory()) {
+					f.mkdirs();
+					// this means you have a legacy structure
+					// i will move everything you have into the assets folder
+					// with exception of .mv.db files
+					Path assetsPath = Path.of(this.engineAssetsFolder);
+					Files.list(Path.of(this.engineBaseFolder)).forEach(item -> {
+						// skip if the item is already within app_root or app_root/versions
+						// this would really only be for the engine image
+						String fileName = item.getFileName().toString();
+						if (item.toString().replace("\\", "/").contains("/" + Constants.APP_ROOT_FOLDER + "/")
+								|| fileName.equals(Constants.APP_ROOT_FOLDER)) {
+							return; // skip
+						}
 
-                    if (!fileName.endsWith(".mv.db")
-                        && !fileName.endsWith(".jnl")
-                        && !fileName.endsWith(".sqlite")) {
-                      try {
-                        Path targetPath = assetsPath.resolve(item.getFileName());
-                        classLogger.info(
-                            "Performing asset restructure for " + item + " > " + targetPath);
-                        Files.move(item, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                      } catch (IOException e) {
-                        classLogger.error(Constants.STACKTRACE, e);
-                      }
-                    } else {
-                      classLogger.info("Ignoring asset restructure for " + item);
-                    }
-                  });
-        }
-        if (!AssetUtility.isGit(this.engineVersionFolder)) {
-          GitRepoUtils.init(this.engineVersionFolder);
-        }
-      }
-    }
-  }
+						if (!fileName.endsWith(".mv.db") && !fileName.endsWith(".jnl")
+								&& !fileName.endsWith(".sqlite")) {
+							try {
+								Path targetPath = assetsPath.resolve(item.getFileName());
+								classLogger.info("Performing asset restructure for " + item + " > " + targetPath);
+								Files.move(item, targetPath, StandardCopyOption.REPLACE_EXISTING);
+							} catch (IOException e) {
+								classLogger.error(Constants.STACKTRACE, e);
+							}
+						} else {
+							classLogger.info("Ignoring asset restructure for " + item);
+						}
+					});
+				}
+				if (!AssetUtility.isGit(this.engineVersionFolder)) {
+					GitRepoUtils.init(this.engineVersionFolder);
+				}
+			}
+		}
+	}
 
-  @Override
-  public void delete() {
-    IEngine.CATALOG_TYPE eType = getCatalogType();
-    classLogger.debug(
-        "Delete "
-            + eType
-            + " engine "
-            + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-    try {
-      this.close();
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
+	@Override
+	public void delete() {
+		IEngine.CATALOG_TYPE eType = getCatalogType();
+		classLogger.debug("Delete " + eType + " engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		try {
+			this.close();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 
-    File engineFolder = new File(this.engineBaseFolder);
-    if (engineFolder.exists()) {
-      classLogger.info("Delete " + eType + " engine folder " + engineFolder);
-      try {
-        FileUtils.deleteDirectory(engineFolder);
-      } catch (IOException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    } else {
-      classLogger.info(eType + " engine folder " + engineFolder + " does not exist");
-    }
+		File engineFolder = new File(this.engineBaseFolder);
+		if (engineFolder.exists()) {
+			classLogger.info("Delete " + eType + " engine folder " + engineFolder);
+			try {
+				FileUtils.deleteDirectory(engineFolder);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		} else {
+			classLogger.info(eType + " engine folder " + engineFolder + " does not exist");
+		}
 
-    classLogger.info("Deleting " + eType + " engine smss " + this.smssFilePath);
-    File smssFile = new File(this.smssFilePath);
-    try {
-      FileUtils.forceDelete(smssFile);
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
+		classLogger.info("Deleting " + eType + " engine smss " + this.smssFilePath);
+		File smssFile = new File(this.smssFilePath);
+		try {
+			FileUtils.forceDelete(smssFile);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 
-    // remove from DIHelper
-    UploadUtilities.removeEngineFromDIHelper(this.engineId);
-  }
+		// remove from DIHelper
+		UploadUtilities.removeEngineFromDIHelper(this.engineId);
+	}
 
-  @Override
-  public void setEngineId(String engineId) {
-    this.engineId = engineId;
-  }
+	@Override
+	public void setEngineId(String engineId) {
+		this.engineId = engineId;
+	}
 
-  @Override
-  public String getEngineId() {
-    return this.engineId;
-  }
+	@Override
+	public String getEngineId() {
+		return this.engineId;
+	}
 
-  @Override
-  public void setEngineName(String engineName) {
-    this.engineName = engineName;
-  }
+	@Override
+	public void setEngineName(String engineName) {
+		this.engineName = engineName;
+	}
 
-  @Override
-  public String getEngineName() {
-    return this.engineName;
-  }
+	@Override
+	public String getEngineName() {
+		return this.engineName;
+	}
 
-  @Override
-  public void setSmssFilePath(String smssFilePath) {
-    this.smssFilePath = smssFilePath;
-  }
+	@Override
+	public void setSmssFilePath(String smssFilePath) {
+		this.smssFilePath = smssFilePath;
+	}
 
-  @Override
-  public String getSmssFilePath() {
-    return this.smssFilePath;
-  }
+	@Override
+	public String getSmssFilePath() {
+		return this.smssFilePath;
+	}
 
-  @Override
-  public void setSmssProp(Properties smssProp) {
-    if (smssProp instanceof CaseInsensitiveProperties) {
-      this.origSmssProp = (CaseInsensitiveProperties) smssProp;
-      this.smssProp = new CaseInsensitiveProperties(smssProp);
-    } else {
-      this.origSmssProp = new CaseInsensitiveProperties(smssProp);
-      this.smssProp = new CaseInsensitiveProperties(smssProp);
-    }
-  }
+	@Override
+	public void setSmssProp(Properties smssProp) {
+		if (smssProp instanceof CaseInsensitiveProperties) {
+			this.origSmssProp = (CaseInsensitiveProperties) smssProp;
+			this.smssProp = new CaseInsensitiveProperties(smssProp);
+		} else {
+			this.origSmssProp = new CaseInsensitiveProperties(smssProp);
+			this.smssProp = new CaseInsensitiveProperties(smssProp);
+		}
+	}
 
-  @Override
-  public CaseInsensitiveProperties getSmssProp() {
-    return this.smssProp;
-  }
+	@Override
+	public CaseInsensitiveProperties getSmssProp() {
+		return this.smssProp;
+	}
 
-  @Override
-  public CaseInsensitiveProperties getOrigSmssProp() {
-    return this.origSmssProp;
-  }
+	@Override
+	public CaseInsensitiveProperties getOrigSmssProp() {
+		return this.origSmssProp;
+	}
 
-  @Override
-  public boolean isBasic() {
-    return this.isBasic;
-  }
+	@Override
+	public boolean isBasic() {
+		return this.isBasic;
+	}
 
-  @Override
-  public void setBasic(boolean isBasic) {
-    this.isBasic = isBasic;
-  }
+	@Override
+	public void setBasic(boolean isBasic) {
+		this.isBasic = isBasic;
+	}
 
-  @Override
-  public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-    throw new NotImplementedException("This method has not been implemented yet...");
-  }
+	@Override
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
 
-  @Override
-  public Map<String, Object> buildBedrockToolSpec() {
-    throw new NotImplementedException("This method has not been implemented yet...");
-  }
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
 }

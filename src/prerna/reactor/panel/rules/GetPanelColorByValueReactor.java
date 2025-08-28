@@ -27,30 +27,30 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetPanelColorByValueReactor extends AbstractPanelColorByValueReactor {
 
-  public GetPanelColorByValueReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PANEL.getKey()};
-  }
+	public GetPanelColorByValueReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    // get the insight panel
-    InsightPanel insightPanel = getInsightPanel();
-    if (insightPanel == null) {
-      throw new NullPointerException("Could not find insight panel");
-    }
-    List<ColorByValueRule> cbvRules = insightPanel.getColorByValue();
-    List<Map<String, Object>> retList = new Vector<Map<String, Object>>();
-    for (ColorByValueRule rule : cbvRules) {
-      Map<String, Object> retMap = new HashMap<String, Object>();
-      retMap.put("panelId", insightPanel.getPanelId());
-      retMap.put("name", rule.getId());
-      retMap.put("filterInfo", rule.getQueryStruct().getExplicitFilters().getFormatedFilters());
-      retMap.put("havingInfo", rule.getQueryStruct().getHavingFilters().getFormatedFilters());
-      retMap.put("options", rule.getOptions());
-      retList.add(retMap);
-    }
+	@Override
+	public NounMetadata execute() {
+		// get the insight panel
+		InsightPanel insightPanel = getInsightPanel();
+		if (insightPanel == null) {
+			throw new NullPointerException("Could not find insight panel");
+		}
+		List<ColorByValueRule> cbvRules = insightPanel.getColorByValue();
+		List<Map<String, Object>> retList = new Vector<Map<String, Object>>();
+		for (ColorByValueRule rule : cbvRules) {
+			Map<String, Object> retMap = new HashMap<String, Object>();
+			retMap.put("panelId", insightPanel.getPanelId());
+			retMap.put("name", rule.getId());
+			retMap.put("filterInfo", rule.getQueryStruct().getExplicitFilters().getFormatedFilters());
+			retMap.put("havingInfo", rule.getQueryStruct().getHavingFilters().getFormatedFilters());
+			retMap.put("options", rule.getOptions());
+			retList.add(retMap);
+		}
 
-    return new NounMetadata(
-        retList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_COLOR_BY_VALUE_LIST);
-  }
+		return new NounMetadata(retList, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.PANEL_COLOR_BY_VALUE_LIST);
+	}
 }

@@ -25,11 +25,11 @@ import prerna.testing.ApiSemossTestUtils;
 
 public class DayReactorApiTests extends AbstractBaseSemossApiTests {
 
-  @Test
-  public void getDay() {
-    String pixel = ApiSemossTestUtils.buildPixelCall(DayReactor.class, "days", "365");
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-    SemossDay day = (SemossDay) nm.getValue();
-    assertEquals(365, day.getNumDays());
-  }
+	@Test
+	public void getDay() {
+		String pixel = ApiSemossTestUtils.buildPixelCall(DayReactor.class, "days", "365");
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		SemossDay day = (SemossDay) nm.getValue();
+		assertEquals(365, day.getNumDays());
+	}
 }

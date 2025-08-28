@@ -20,5 +20,5 @@ import prerna.query.querystruct.AbstractQueryStruct;
 
 public interface AbstractQueryStructAdapterHelper {
 
-  AbstractQueryStruct readContent(JsonReader in) throws IOException;
+	AbstractQueryStruct readContent(JsonReader in) throws IOException;
 }

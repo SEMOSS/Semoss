@@ -38,138 +38,138 @@ import prerna.util.Constants;
 
 public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 
-  private static final Logger classLogger =
-      LogManager.getLogger(FrameFilterModelNumericRangeReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(FrameFilterModelNumericRangeReactor.class);
 
-  /** Get the absolute min/max for the column and the relative min/max based on the filters */
-  public FrameFilterModelNumericRangeReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.PANEL.getKey()};
-  }
+	/**
+	 * Get the absolute min/max for the column and the relative min/max based on the
+	 * filters
+	 */
+	public FrameFilterModelNumericRangeReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.PANEL.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    ITableDataFrame dataframe = getFrame();
+	@Override
+	public NounMetadata execute() {
+		ITableDataFrame dataframe = getFrame();
 
-    GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
-    if (colGrs == null || colGrs.isEmpty()) {
-      throw new IllegalArgumentException("Need to set the column for the filter model");
-    }
-    String tableCol = colGrs.get(0).toString();
+		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
+		if (colGrs == null || colGrs.isEmpty()) {
+			throw new IllegalArgumentException("Need to set the column for the filter model");
+		}
+		String tableCol = colGrs.get(0).toString();
 
-    InsightPanel panel = null;
-    GenRowStruct panelGrs = this.store.getNoun(keysToGet[1]);
-    if (panelGrs != null && !panelGrs.isEmpty()) {
-      panel = (InsightPanel) panelGrs.get(0);
-    }
+		InsightPanel panel = null;
+		GenRowStruct panelGrs = this.store.getNoun(keysToGet[1]);
+		if (panelGrs != null && !panelGrs.isEmpty()) {
+			panel = (InsightPanel) panelGrs.get(0);
+		}
 
-    return getFilterModel(dataframe, tableCol, panel);
-  }
+		return getFilterModel(dataframe, tableCol, panel);
+	}
 
-  public NounMetadata getFilterModel(
-      ITableDataFrame dataframe, String tableCol, InsightPanel panel) {
-    // store results in this map
-    Map<String, Object> retMap = new HashMap<String, Object>();
-    // first just return the info that was passed in
-    retMap.put("column", tableCol);
+	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, InsightPanel panel) {
+		// store results in this map
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		// first just return the info that was passed in
+		retMap.put("column", tableCol);
 
-    // create the selector
-    QueryColumnSelector selector = new QueryColumnSelector(tableCol);
-    // get the base filters that are being applied that we are concerned about
-    GenRowFilters baseFilters = dataframe.getFrameFilters().copy();
-    if (panel != null) {
-      baseFilters.merge(panel.getPanelFilters().copy());
-    }
+		// create the selector
+		QueryColumnSelector selector = new QueryColumnSelector(tableCol);
+		// get the base filters that are being applied that we are concerned about
+		GenRowFilters baseFilters = dataframe.getFrameFilters().copy();
+		if (panel != null) {
+			baseFilters.merge(panel.getPanelFilters().copy());
+		}
 
-    // for numerical, also add the min/max
-    String alias = selector.getAlias();
-    String metaName = dataframe.getMetaData().getUniqueNameFromAlias(alias);
-    if (metaName == null) {
-      metaName = alias;
-    }
-    // check it is in fact numeric
-    SemossDataType columnType = dataframe.getMetaData().getHeaderTypeAsEnum(metaName);
-    if (SemossDataType.INT == columnType || SemossDataType.DOUBLE == columnType) {
-      QueryColumnSelector innerSelector = new QueryColumnSelector(tableCol);
+		// for numerical, also add the min/max
+		String alias = selector.getAlias();
+		String metaName = dataframe.getMetaData().getUniqueNameFromAlias(alias);
+		if (metaName == null) {
+			metaName = alias;
+		}
+		// check it is in fact numeric
+		SemossDataType columnType = dataframe.getMetaData().getHeaderTypeAsEnum(metaName);
+		if (SemossDataType.INT == columnType || SemossDataType.DOUBLE == columnType) {
+			QueryColumnSelector innerSelector = new QueryColumnSelector(tableCol);
 
-      QueryFunctionSelector mathSelector = new QueryFunctionSelector();
-      mathSelector.addInnerSelector(innerSelector);
-      mathSelector.setFunction(QueryFunctionHelper.MIN);
+			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
+			mathSelector.addInnerSelector(innerSelector);
+			mathSelector.setFunction(QueryFunctionHelper.MIN);
 
-      SelectQueryStruct mathQS = new SelectQueryStruct();
-      mathQS.addSelector(mathSelector);
+			SelectQueryStruct mathQS = new SelectQueryStruct();
+			mathQS.addSelector(mathSelector);
 
-      // get the absolute min when no filters are present
-      Map<String, Object> minMaxMap = new HashMap<String, Object>();
-      IRawSelectWrapper it = null;
-      try {
-        it = dataframe.query(mathQS);
-        minMaxMap.put("absMin", it.next().getValues()[0]);
-      } catch (Exception e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      } finally {
-        if (it != null) {
-          try {
-            it.close();
-          } catch (IOException e) {
-            classLogger.error(Constants.STACKTRACE, e);
-          }
-        }
-      }
-      // get the abs max when no filters are present
-      mathSelector.setFunction(QueryFunctionHelper.MAX);
-      try {
-        it = dataframe.query(mathQS);
-        minMaxMap.put("absMax", it.next().getValues()[0]);
-      } catch (Exception e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      } finally {
-        if (it != null) {
-          try {
-            it.close();
-          } catch (IOException e) {
-            classLogger.error(Constants.STACKTRACE, e);
-          }
-        }
-      }
+			// get the absolute min when no filters are present
+			Map<String, Object> minMaxMap = new HashMap<String, Object>();
+			IRawSelectWrapper it = null;
+			try {
+				it = dataframe.query(mathQS);
+				minMaxMap.put("absMin", it.next().getValues()[0]);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if (it != null) {
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+			// get the abs max when no filters are present
+			mathSelector.setFunction(QueryFunctionHelper.MAX);
+			try {
+				it = dataframe.query(mathQS);
+				minMaxMap.put("absMax", it.next().getValues()[0]);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if (it != null) {
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
 
-      // add in the filters now and repeat
-      mathQS.setExplicitFilters(baseFilters);
-      // run for actual max
-      try {
-        it = dataframe.query(mathQS);
-        minMaxMap.put("max", it.next().getValues()[0]);
-      } catch (Exception e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      } finally {
-        if (it != null) {
-          try {
-            it.close();
-          } catch (IOException e) {
-            classLogger.error(Constants.STACKTRACE, e);
-          }
-        }
-      }
-      // run for actual min
-      mathSelector.setFunction(QueryFunctionHelper.MIN);
-      try {
-        it = dataframe.query(mathQS);
-        minMaxMap.put("min", it.next().getValues()[0]);
-      } catch (Exception e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      } finally {
-        if (it != null) {
-          try {
-            it.close();
-          } catch (IOException e) {
-            classLogger.error(Constants.STACKTRACE, e);
-          }
-        }
-      }
+			// add in the filters now and repeat
+			mathQS.setExplicitFilters(baseFilters);
+			// run for actual max
+			try {
+				it = dataframe.query(mathQS);
+				minMaxMap.put("max", it.next().getValues()[0]);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if (it != null) {
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+			// run for actual min
+			mathSelector.setFunction(QueryFunctionHelper.MIN);
+			try {
+				it = dataframe.query(mathQS);
+				minMaxMap.put("min", it.next().getValues()[0]);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if (it != null) {
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
 
-      retMap.put("minMax", minMaxMap);
-    }
+			retMap.put("minMax", minMaxMap);
+		}
 
-    return new NounMetadata(
-        retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);
-  }
+		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);
+	}
 }

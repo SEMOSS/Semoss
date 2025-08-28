@@ -24,59 +24,63 @@ import prerna.util.Constants;
 /** This helps insert and delete boolean queries to the database. */
 public class SesameJenaBooleanWrapper {
 
-  GraphQueryResult gqr = null;
+	GraphQueryResult gqr = null;
 
-  org.apache.jena.rdf.model.Model model = null;
-  org.apache.jena.rdf.model.StmtIterator si = null;
-  org.apache.jena.rdf.model.Statement curSt = null;
+	org.apache.jena.rdf.model.Model model = null;
+	org.apache.jena.rdf.model.StmtIterator si = null;
+	org.apache.jena.rdf.model.Statement curSt = null;
 
-  IDatabaseEngine engine = null;
-  DATABASE_TYPE databaseType = IDatabaseEngine.DATABASE_TYPE.SESAME;
-  String query = null;
+	IDatabaseEngine engine = null;
+	DATABASE_TYPE databaseType = IDatabaseEngine.DATABASE_TYPE.SESAME;
+	String query = null;
 
-  static final Logger logger = LogManager.getLogger(SesameJenaBooleanWrapper.class.getName());
+	static final Logger logger = LogManager.getLogger(SesameJenaBooleanWrapper.class.getName());
 
-  /**
-   * Method setGqr. - Sets the Graph query result.
-   *
-   * @param gqr GraphQueryResult - The graph query result that this is being set to.
-   */
-  public void setGqr(GraphQueryResult gqr) {
-    this.gqr = gqr;
-  }
+	/**
+	 * Method setGqr. - Sets the Graph query result.
+	 *
+	 * @param gqr
+	 *            GraphQueryResult - The graph query result that this is being set
+	 *            to.
+	 */
+	public void setGqr(GraphQueryResult gqr) {
+		this.gqr = gqr;
+	}
 
-  /**
-   * Method setEngine. Sets the engine.
-   *
-   * @param engine IDatabase - The engine that this is being set to.
-   */
-  public void setEngine(IDatabaseEngine engine) {
-    this.engine = engine;
-    databaseType = engine.getDatabaseType();
-  }
+	/**
+	 * Method setEngine. Sets the engine.
+	 *
+	 * @param engine
+	 *            IDatabase - The engine that this is being set to.
+	 */
+	public void setEngine(IDatabaseEngine engine) {
+		this.engine = engine;
+		databaseType = engine.getDatabaseType();
+	}
 
-  /**
-   * Method setQuery. - Sets the SPARQL query statement.
-   *
-   * @param query String - The string version of the SPARQL query.
-   */
-  public void setQuery(String query) {
-    this.query = query;
-  }
+	/**
+	 * Method setQuery. - Sets the SPARQL query statement.
+	 *
+	 * @param query
+	 *            String - The string version of the SPARQL query.
+	 */
+	public void setQuery(String query) {
+		this.query = query;
+	}
 
-  /**
-   * Method execute. Executes the query.
-   *
-   * @return boolean true if the query is returned.
-   * @throws Exception
-   */
-  public boolean execute() throws Exception {
-    boolean ret = false;
-    try {
-      ret = (boolean) engine.execQuery(query);
-    } catch (RuntimeException e) {
-      logger.error(Constants.STACKTRACE, e);
-    }
-    return ret;
-  }
+	/**
+	 * Method execute. Executes the query.
+	 *
+	 * @return boolean true if the query is returned.
+	 * @throws Exception
+	 */
+	public boolean execute() throws Exception {
+		boolean ret = false;
+		try {
+			ret = (boolean) engine.execQuery(query);
+		} catch (RuntimeException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		return ret;
+	}
 }

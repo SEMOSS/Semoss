@@ -18,62 +18,62 @@ import java.util.Map;
 
 public interface ISEMOSSAction {
 
-  /** Special key to distinguish that something is an action */
-  String TYPE = "Type";
+	/** Special key to distinguish that something is an action */
+	String TYPE = "Type";
 
-  /**
-   * Setter for the id of the action
-   *
-   * @param id
-   */
-  void setId(String id);
+	/**
+	 * Setter for the id of the action
+	 *
+	 * @param id
+	 */
+	void setId(String id);
 
-  /**
-   * Getter for the id of the action
-   *
-   * @return
-   */
-  String getId();
+	/**
+	 * Getter for the id of the action
+	 *
+	 * @return
+	 */
+	String getId();
 
-  /**
-   * Getter for the properties describing the parameters for the action
-   *
-   * @return
-   */
-  Map<String, Object> getProperties();
+	/**
+	 * Getter for the properties describing the parameters for the action
+	 *
+	 * @return
+	 */
+	Map<String, Object> getProperties();
 
-  /**
-   * Setter for the properties describing the parameters for the action
-   *
-   * @param props
-   */
-  void setProperties(Map<String, Object> props);
+	/**
+	 * Setter for the properties describing the parameters for the action
+	 *
+	 * @param props
+	 */
+	void setProperties(Map<String, Object> props);
 
-  /**
-   * Setter for the data makers for the action
-   *
-   * @param dms
-   */
-  void setDataMakers(IDataMaker... dms);
+	/**
+	 * Setter for the data makers for the action
+	 *
+	 * @param dms
+	 */
+	void setDataMakers(IDataMaker... dms);
 
-  /**
-   * Key method for processing the action
-   *
-   * @return
-   */
-  Object runMethod();
+	/**
+	 * Key method for processing the action
+	 *
+	 * @return
+	 */
+	Object runMethod();
 
-  /**
-   * Setter for the data maker component of the action
-   *
-   * @param dmc
-   */
-  void setDataMakerComponent(DataMakerComponent dmc);
+	/**
+	 * Setter for the data maker component of the action
+	 *
+	 * @param dmc
+	 */
+	void setDataMakerComponent(DataMakerComponent dmc);
 
-  /**
-   * Returns a copy of this objet that is sufficient for saving
-   *
-   * @return
-   */
-  ISEMOSSAction copy();
+	/**
+	 * Returns a copy of this objet that is sufficient for saving
+	 *
+	 * @return
+	 */
+	ISEMOSSAction copy();
 }

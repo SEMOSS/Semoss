@@ -35,100 +35,99 @@ import prerna.util.Constants;
 
 public class ImagePDFProcessor extends AbstractFileImageProcessor {
 
-  private static final Logger classLogger = LogManager.getLogger(PDFProcessor.class);
+	private static final Logger classLogger = LogManager.getLogger(PDFProcessor.class);
 
-  public ImagePDFProcessor(String filePath, VectorDatabaseCSVWriter writer) {
-    super(filePath, writer);
-  }
+	public ImagePDFProcessor(String filePath, VectorDatabaseCSVWriter writer) {
+		super(filePath, writer);
+	}
 
-  @Override
-  public void process() {
-    try (PDDocument document =
-        Loader.loadPDF(new RandomAccessReadBufferedFile(new File(this.filePath)))) {
-      PDFTextStripper stripper = new PDFTextStripper();
-      String source = getSource(this.filePath);
+	@Override
+	public void process() {
+		try (PDDocument document = Loader.loadPDF(new RandomAccessReadBufferedFile(new File(this.filePath)))) {
+			PDFTextStripper stripper = new PDFTextStripper();
+			String source = getSource(this.filePath);
 
-      for (int pageIndex = 1; pageIndex <= document.getNumberOfPages(); pageIndex++) {
-        // stripper is 1 based
-        stripper.setStartPage(pageIndex);
-        stripper.setEndPage(pageIndex);
-        String text = stripper.getText(document);
+			for (int pageIndex = 1; pageIndex <= document.getNumberOfPages(); pageIndex++) {
+				// stripper is 1 based
+				stripper.setStartPage(pageIndex);
+				stripper.setEndPage(pageIndex);
+				String text = stripper.getText(document);
 
-        // Extract images
-        // getPage is 0 based
-        PDPage page = document.getPage(pageIndex - 1);
-        List<String> imageIds = extractImages(page);
-        classLogger.debug("Found {} images in {} on page {}", imageIds.size(), source, pageIndex);
-        // Combine text and image placeholders
-        String combinedContent = combineTextAndImages(text, imageIds);
+				// Extract images
+				// getPage is 0 based
+				PDPage page = document.getPage(pageIndex - 1);
+				List<String> imageIds = extractImages(page);
+				classLogger.debug("Found {} images in {} on page {}", imageIds.size(), source, pageIndex);
+				// Combine text and image placeholders
+				String combinedContent = combineTextAndImages(text, imageIds);
 
-        writer.writeRow(source, String.valueOf(pageIndex + 1), combinedContent);
-      }
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
-  }
+				writer.writeRow(source, String.valueOf(pageIndex + 1), combinedContent);
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
 
-  /**
-   * @param page
-   * @return
-   * @throws IOException
-   */
-  private List<String> extractImages(PDPage page) throws IOException {
-    List<String> imageIds = new ArrayList<>();
-    PDResources resources = page.getResources();
+	/**
+	 * @param page
+	 * @return
+	 * @throws IOException
+	 */
+	private List<String> extractImages(PDPage page) throws IOException {
+		List<String> imageIds = new ArrayList<>();
+		PDResources resources = page.getResources();
 
-    for (COSName name : resources.getXObjectNames()) {
-      try {
-        PDXObject xobject = resources.getXObject(name);
-        if (xobject instanceof PDImageXObject) {
-          PDImageXObject image = (PDImageXObject) xobject;
-          if (isImageSizeAcceptable(image)) {
-            String imageId = generateUniqueImageId();
-            String base64Image = convertToBase64(image.getImage());
-            this.imageMap.put(imageId, base64Image);
-            imageIds.add(imageId);
-          }
-        }
-      } catch (IOException e) {
-        classLogger.error("Error processing image: " + name, e);
+		for (COSName name : resources.getXObjectNames()) {
+			try {
+				PDXObject xobject = resources.getXObject(name);
+				if (xobject instanceof PDImageXObject) {
+					PDImageXObject image = (PDImageXObject) xobject;
+					if (isImageSizeAcceptable(image)) {
+						String imageId = generateUniqueImageId();
+						String base64Image = convertToBase64(image.getImage());
+						this.imageMap.put(imageId, base64Image);
+						imageIds.add(imageId);
+					}
+				}
+			} catch (IOException e) {
+				classLogger.error("Error processing image: " + name, e);
 
-      } catch (Exception e) {
-        classLogger.error("Unexpected error processing image: " + name, e);
-      }
-    }
-    return imageIds;
-  }
+			} catch (Exception e) {
+				classLogger.error("Unexpected error processing image: " + name, e);
+			}
+		}
+		return imageIds;
+	}
 
-  /**
-   * @param text
-   * @param imageIds
-   * @return
-   */
-  private String combineTextAndImages(String text, List<String> imageIds) {
-    StringBuilder combined = new StringBuilder();
-    String[] paragraphs = text.split("\n\n");
-    int imageIndex = 0;
+	/**
+	 * @param text
+	 * @param imageIds
+	 * @return
+	 */
+	private String combineTextAndImages(String text, List<String> imageIds) {
+		StringBuilder combined = new StringBuilder();
+		String[] paragraphs = text.split("\n\n");
+		int imageIndex = 0;
 
-    for (String paragraph : paragraphs) {
-      combined.append(paragraph).append("\n\n");
-      if (imageIndex < imageIds.size()) {
-        combined.append(imageIds.get(imageIndex)).append("\n\n");
-        imageIndex++;
-      }
-    }
-    while (imageIndex < imageIds.size()) {
-      combined.append(imageIds.get(imageIndex)).append("\n\n");
-      imageIndex++;
-    }
-    return combined.toString().trim();
-  }
+		for (String paragraph : paragraphs) {
+			combined.append(paragraph).append("\n\n");
+			if (imageIndex < imageIds.size()) {
+				combined.append(imageIds.get(imageIndex)).append("\n\n");
+				imageIndex++;
+			}
+		}
+		while (imageIndex < imageIds.size()) {
+			combined.append(imageIds.get(imageIndex)).append("\n\n");
+			imageIndex++;
+		}
+		return combined.toString().trim();
+	}
 
-  /**
-   * @param image
-   * @return
-   */
-  private boolean isImageSizeAcceptable(PDImageXObject image) {
-    return image.getWidth() >= MIN_IMAGE_WIDTH && image.getHeight() >= MIN_IMAGE_HEIGHT;
-  }
+	/**
+	 * @param image
+	 * @return
+	 */
+	private boolean isImageSizeAcceptable(PDImageXObject image) {
+		return image.getWidth() >= MIN_IMAGE_WIDTH && image.getHeight() >= MIN_IMAGE_HEIGHT;
+	}
 }

@@ -14,4 +14,5 @@
  ***************************************************************************************************/
 package prerna.reactor.qs.filter;
 
-public class IfQueryFilterComponentOr extends QueryFilterComponentOr {}
+public class IfQueryFilterComponentOr extends QueryFilterComponentOr {
+}

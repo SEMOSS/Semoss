@@ -32,75 +32,74 @@ import prerna.util.BeanFiller;
 
 public class DropBoxListFilesReactor extends AbstractReactor {
 
-  public DropBoxListFilesReactor() {
-    this.keysToGet = new String[] {};
-  }
+	public DropBoxListFilesReactor() {
+		this.keysToGet = new String[]{};
+	}
 
-  @Override
-  public NounMetadata execute() {
+	@Override
+	public NounMetadata execute() {
 
-    List<HashMap<String, Object>> masterList = new ArrayList<HashMap<String, Object>>();
+		List<HashMap<String, Object>> masterList = new ArrayList<HashMap<String, Object>>();
 
-    // lists the various files for this user
+		// lists the various files for this user
 
-    String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
-    String[] beanProps = {"name", "path"}; // add is done when you have a list
-    String jsonPattern = "matches[].{name:metadata.name, path:metadata.path_lower}";
+		String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
+		String[] beanProps = {"name", "path"}; // add is done when you have a list
+		String jsonPattern = "matches[].{name:metadata.name, path:metadata.path_lower}";
 
-    // api string
-    String url_str = "https://api.dropboxapi.com/2/files/search";
+		// api string
+		String url_str = "https://api.dropboxapi.com/2/files/search";
 
-    // get access token
-    String accessToken = null;
-    User user = this.insight.getUser();
-    try {
-      if (user == null) {
-        Map<String, Object> retMap = new HashMap<String, Object>();
-        retMap.put("type", "dropbox");
-        retMap.put("message", "Please login to your DropBox account");
-        throwLoginError(retMap);
-      } else if (user != null) {
-        AccessToken dropToken = user.getAccessToken(AuthProvider.DROPBOX);
-        accessToken = dropToken.getAccess_token();
-      }
-    } catch (Exception e) {
-      Map<String, Object> retMap = new HashMap<String, Object>();
-      retMap.put("type", "dropbox");
-      retMap.put("message", "Please login to your DropBox account");
-      throwLoginError(retMap);
-    }
+		// get access token
+		String accessToken = null;
+		User user = this.insight.getUser();
+		try {
+			if (user == null) {
+				Map<String, Object> retMap = new HashMap<String, Object>();
+				retMap.put("type", "dropbox");
+				retMap.put("message", "Please login to your DropBox account");
+				throwLoginError(retMap);
+			} else if (user != null) {
+				AccessToken dropToken = user.getAccessToken(AuthProvider.DROPBOX);
+				accessToken = dropToken.getAccess_token();
+			}
+		} catch (Exception e) {
+			Map<String, Object> retMap = new HashMap<String, Object>();
+			retMap.put("type", "dropbox");
+			retMap.put("message", "Please login to your DropBox account");
+			throwLoginError(retMap);
+		}
 
-    // you fill what you want to send on the API call
-    Hashtable params = new Hashtable();
-    params.put("path", "");
-    params.put("query", ".csv");
-    params.put("start", 0);
-    params.put("max_results", 1000);
-    params.put("mode", "filename");
+		// you fill what you want to send on the API call
+		Hashtable params = new Hashtable();
+		params.put("path", "");
+		params.put("query", ".csv");
+		params.put("start", 0);
+		params.put("max_results", 1000);
+		params.put("mode", "filename");
 
-    String output = HttpHelperUtility.makePostCall(url_str, accessToken, params, true);
+		String output = HttpHelperUtility.makePostCall(url_str, accessToken, params, true);
 
-    // fill the bean with the return
-    Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
-    System.out.println(C.getClass().getName());
-    if (C instanceof RemoteItem) {
-      RemoteItem fileList = (RemoteItem) C;
-      HashMap<String, Object> tempMap = new HashMap<String, Object>();
-      tempMap.put("name", fileList.getName());
-      tempMap.put("path", fileList.getPath());
-      masterList.add(tempMap);
-    } else {
-      List<RemoteItem> fileList =
-          (List) BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
-      for (RemoteItem entry : fileList) {
-        HashMap<String, Object> tempMap = new HashMap<String, Object>();
-        tempMap.put("name", entry.getName());
-        tempMap.put("path", entry.getPath());
-        masterList.add(tempMap);
-      }
-    }
+		// fill the bean with the return
+		Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+		System.out.println(C.getClass().getName());
+		if (C instanceof RemoteItem) {
+			RemoteItem fileList = (RemoteItem) C;
+			HashMap<String, Object> tempMap = new HashMap<String, Object>();
+			tempMap.put("name", fileList.getName());
+			tempMap.put("path", fileList.getPath());
+			masterList.add(tempMap);
+		} else {
+			List<RemoteItem> fileList = (List) BeanFiller.fillFromJson(output, jsonPattern, beanProps,
+					new RemoteItem());
+			for (RemoteItem entry : fileList) {
+				HashMap<String, Object> tempMap = new HashMap<String, Object>();
+				tempMap.put("name", entry.getName());
+				tempMap.put("path", entry.getPath());
+				masterList.add(tempMap);
+			}
+		}
 
-    return new NounMetadata(
-        masterList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CLOUD_FILE_LIST);
-  }
+		return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CLOUD_FILE_LIST);
+	}
 }

@@ -45,393 +45,354 @@ import prerna.util.Utility;
 
 public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
-  private static final Logger classLogger = LogManager.getLogger(ChromaVectorDatabaseEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(ChromaVectorDatabaseEngine.class);
 
-  public static final String CHROMA_CLASSNAME = "CHROMA_COLLECTION_NAME";
-  public static final String COLLECTION_ID = "COLLECTION_ID";
+	public static final String CHROMA_CLASSNAME = "CHROMA_COLLECTION_NAME";
+	public static final String COLLECTION_ID = "COLLECTION_ID";
 
-  private final String API_TOKEN_KEY = "X-Chroma-Token";
+	private final String API_TOKEN_KEY = "X-Chroma-Token";
 
-  private final String API_ADD = "/add";
-  private final String API_DELETE = "/delete";
-  private final String API_QUERY = "/query";
+	private final String API_ADD = "/add";
+	private final String API_DELETE = "/delete";
+	private final String API_QUERY = "/query";
 
-  private String url = null;
-  private String apiKey = null;
-  private String className = null;
-  private String collectionID = null;
+	private String url = null;
+	private String apiKey = null;
+	private String className = null;
+	private String collectionID = null;
 
-  @Override
-  public void open(Properties smssProp) throws Exception {
-    super.open(smssProp);
+	@Override
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
 
-    this.url = smssProp.getProperty(Constants.HOSTNAME);
-    if (!this.url.endsWith("/")) {
-      this.url += "/";
-    }
-    this.apiKey = smssProp.getProperty(Constants.API_KEY);
-    this.className = smssProp.getProperty(CHROMA_CLASSNAME);
+		this.url = smssProp.getProperty(Constants.HOSTNAME);
+		if (!this.url.endsWith("/")) {
+			this.url += "/";
+		}
+		this.apiKey = smssProp.getProperty(Constants.API_KEY);
+		this.className = smssProp.getProperty(CHROMA_CLASSNAME);
 
-    // create or fetch collection Id from the Chroma DB
-    this.collectionID = createCollection(this.className);
-  }
+		// create or fetch collection Id from the Chroma DB
+		this.collectionID = createCollection(this.className);
+	}
 
-  /**
-   * @param collectionName
-   */
-  private String createCollection(String collectionName) {
-    // check to see if the collection is available
-    // if available, get the ID
-    // if not create a collection and get the ID
-    collectionName = collectionName.replaceAll(" ", "_");
-    Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    Map<String, String> headersMap = new HashMap<>();
-    if (this.apiKey != null && !this.apiKey.isEmpty()) {
-      headersMap.put(API_TOKEN_KEY, this.apiKey);
-      headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-    } else {
-      headersMap = null;
-    }
+	/**
+	 * @param collectionName
+	 */
+	private String createCollection(String collectionName) {
+		// check to see if the collection is available
+		// if available, get the ID
+		// if not create a collection and get the ID
+		collectionName = collectionName.replaceAll(" ", "_");
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		Map<String, String> headersMap = new HashMap<>();
+		if (this.apiKey != null && !this.apiKey.isEmpty()) {
+			headersMap.put(API_TOKEN_KEY, this.apiKey);
+			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+		} else {
+			headersMap = null;
+		}
 
-    String nearestNeigborResponse = null;
-    try {
-      nearestNeigborResponse = HttpHelperUtility.getRequest(this.url, headersMap, null, null, null);
-    } catch (Exception e) {
-      classLogger.error("Unable to create connection");
-      throw new SemossPixelException("Unable to create connection");
-    }
+		String nearestNeigborResponse = null;
+		try {
+			nearestNeigborResponse = HttpHelperUtility.getRequest(this.url, headersMap, null, null, null);
+		} catch (Exception e) {
+			classLogger.error("Unable to create connection");
+			throw new SemossPixelException("Unable to create connection");
+		}
 
-    List<Map<String, Object>> responseListMap =
-        gson.fromJson(
-            nearestNeigborResponse, new TypeToken<List<Map<String, Object>>>() {}.getType());
-    for (Map<String, Object> responseMap : responseListMap) {
-      if (responseMap.get("name") != null
-          && responseMap.get("name").toString().equals(collectionName)) {
-        return (String) responseMap.get("id");
-      }
-    }
+		List<Map<String, Object>> responseListMap = gson.fromJson(nearestNeigborResponse,
+				new TypeToken<List<Map<String, Object>>>() {
+				}.getType());
+		for (Map<String, Object> responseMap : responseListMap) {
+			if (responseMap.get("name") != null && responseMap.get("name").toString().equals(collectionName)) {
+				return (String) responseMap.get("id");
+			}
+		}
 
-    // if the collection Name doesn't exist, create it and return the ID
-    nearestNeigborResponse = null;
-    Map<String, String> collectionNameToCreate = new HashMap<>();
-    collectionNameToCreate.put("name", collectionName);
-    String body = gson.toJson(collectionNameToCreate);
-    nearestNeigborResponse =
-        HttpHelperUtility.postRequestStringBody(
-            this.url, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
-    Map<String, Object> responseMap =
-        gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
+		// if the collection Name doesn't exist, create it and return the ID
+		nearestNeigborResponse = null;
+		Map<String, String> collectionNameToCreate = new HashMap<>();
+		collectionNameToCreate.put("name", collectionName);
+		String body = gson.toJson(collectionNameToCreate);
+		nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url, headersMap, body,
+				ContentType.APPLICATION_JSON, null, null, null);
+		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {
+		}.getType());
 
-    return (String) responseMap.get("id");
-  }
+		return (String) responseMap.get("id");
+	}
 
-  @Override
-  protected String getDefaultDistanceMethod() {
-    return "cosine";
-  }
+	@Override
+	protected String getDefaultDistanceMethod() {
+		return "cosine";
+	}
 
-  @Override
-  public List<FileEmbeddingStatus> addEmbeddings(
-      VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters)
-      throws Exception {
-    if (!modelPropsLoaded) {
-      verifyModelProps();
-    }
+	@Override
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight,
+			Map<String, Object> parameters) throws Exception {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
 
-    if (insight == null) {
-      throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
-    }
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
 
-    // if we were able to extract files, begin embeddings process
-    IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-    // send all the strings to embed in one shot
-    try {
-      vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new IllegalArgumentException(
-          "Error occurred creating the embeddings for the generated chunks. Detailed error message = "
-              + e.getMessage());
-    }
+		// if we were able to extract files, begin embeddings process
+		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
+		// send all the strings to embed in one shot
+		try {
+			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(
+					"Error occurred creating the embeddings for the generated chunks. Detailed error message = "
+							+ e.getMessage());
+		}
 
-    Map<String, Object> vectors = new HashMap<>();
-    List<String> ids = new ArrayList<>();
-    List<Float[]> embeddings = new ArrayList<>();
-    List<Map<String, Object>> metadatas = new ArrayList<>();
-    Map<String, Integer> fileRecordCountMap = new HashMap<>();
-    for (int rowIndex = 0; rowIndex < vectorCsvTable.rows.size(); rowIndex++) {
-      VectorDatabaseCSVRow row = vectorCsvTable.getRows().get(rowIndex);
-      fileRecordCountMap.put(
-          row.getSource(), fileRecordCountMap.getOrDefault(row.getSource(), 0) + 1);
-      Map<String, Object> properties = new HashMap<>();
-      properties.put("Source", row.getSource());
-      properties.put("Modality", row.getModality());
-      properties.put("Divider", row.getDivider());
-      properties.put("Part", row.getPart());
-      properties.put("Tokens", row.getTokens());
-      properties.put("Content", row.getContent());
+		Map<String, Object> vectors = new HashMap<>();
+		List<String> ids = new ArrayList<>();
+		List<Float[]> embeddings = new ArrayList<>();
+		List<Map<String, Object>> metadatas = new ArrayList<>();
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
+		for (int rowIndex = 0; rowIndex < vectorCsvTable.rows.size(); rowIndex++) {
+			VectorDatabaseCSVRow row = vectorCsvTable.getRows().get(rowIndex);
+			fileRecordCountMap.put(row.getSource(), fileRecordCountMap.getOrDefault(row.getSource(), 0) + 1);
+			Map<String, Object> properties = new HashMap<>();
+			properties.put("Source", row.getSource());
+			properties.put("Modality", row.getModality());
+			properties.put("Divider", row.getDivider());
+			properties.put("Part", row.getPart());
+			properties.put("Tokens", row.getTokens());
+			properties.put("Content", row.getContent());
 
-      // Float[] vectorEmbeddings = getEmbeddings(row.getContent(), insight);
-      List<? extends Number> embedding = row.getEmbeddings();
-      Float[] vectorEmbeddings = new Float[embedding.size()];
-      for (int vecIndex = 0; vecIndex < vectorEmbeddings.length; vecIndex++) {
-        vectorEmbeddings[vecIndex] = embedding.get(vecIndex).floatValue();
-      }
+			// Float[] vectorEmbeddings = getEmbeddings(row.getContent(), insight);
+			List<? extends Number> embedding = row.getEmbeddings();
+			Float[] vectorEmbeddings = new Float[embedding.size()];
+			for (int vecIndex = 0; vecIndex < vectorEmbeddings.length; vecIndex++) {
+				vectorEmbeddings[vecIndex] = embedding.get(vecIndex).floatValue();
+			}
 
-      String currentRowID = row.getSource() + "-" + rowIndex;
-      ids.add(currentRowID);
-      embeddings.add(vectorEmbeddings);
-      metadatas.add(properties);
-    }
+			String currentRowID = row.getSource() + "-" + rowIndex;
+			ids.add(currentRowID);
+			embeddings.add(vectorEmbeddings);
+			metadatas.add(properties);
+		}
 
-    vectors.put("ids", ids);
-    vectors.put("embeddings", embeddings);
-    vectors.put("metadatas", metadatas);
+		vectors.put("ids", ids);
+		vectors.put("embeddings", embeddings);
+		vectors.put("metadatas", metadatas);
 
-    String body = new Gson().toJson(vectors);
+		String body = new Gson().toJson(vectors);
 
-    Map<String, String> headersMap = new HashMap<>();
-    if (this.apiKey != null && !this.apiKey.isEmpty()) {
-      headersMap.put(API_TOKEN_KEY, this.apiKey);
-      headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-    } else {
-      headersMap = null;
-    }
+		Map<String, String> headersMap = new HashMap<>();
+		if (this.apiKey != null && !this.apiKey.isEmpty()) {
+			headersMap.put(API_TOKEN_KEY, this.apiKey);
+			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+		} else {
+			headersMap = null;
+		}
 
-    String response =
-        HttpHelperUtility.postRequestStringBody(
-            this.url + this.collectionID + API_ADD,
-            headersMap,
-            body,
-            ContentType.APPLICATION_JSON,
-            null,
-            null,
-            null);
-    List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
-    // TODO: let us add validation by looking at the response
-    for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
-      String file = entry.getKey();
-      int totalRecords = entry.getValue();
+		String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_ADD, headersMap,
+				body, ContentType.APPLICATION_JSON, null, null, null);
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+		// TODO: let us add validation by looking at the response
+		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+			String file = entry.getKey();
+			int totalRecords = entry.getValue();
 
-      long inserted = 0;
-      long failed = 0;
-      String status;
+			long inserted = 0;
+			long failed = 0;
+			String status;
 
-      if (response != null && !response.trim().isEmpty()) {
-        inserted = totalRecords;
-        failed = 0;
-      } else {
-        inserted = 0;
-        failed = totalRecords;
-      }
+			if (response != null && !response.trim().isEmpty()) {
+				inserted = totalRecords;
+				failed = 0;
+			} else {
+				inserted = 0;
+				failed = totalRecords;
+			}
 
-      if (inserted == totalRecords) {
-        status = "SUCCESS";
-      } else {
-        status = "FAILED";
-      }
-      fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
-    }
+			if (inserted == totalRecords) {
+				status = "SUCCESS";
+			} else {
+				status = "FAILED";
+			}
+			fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+		}
 
-    return fileStatusList;
-  }
+		return fileStatusList;
+	}
 
-  @Override
-  public void removeDocument(List<String> fileNames, Map<String, Object> parameters)
-      throws IOException {
-    String indexClass = this.defaultIndexClass;
-    if (parameters.containsKey("indexClass")) {
-      indexClass = (String) parameters.get("indexClass");
-    }
+	@Override
+	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws IOException {
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey("indexClass")) {
+			indexClass = (String) parameters.get("indexClass");
+		}
 
-    List<String> sourceNames = new ArrayList<>();
-    for (String document : fileNames) {
-      String documentName = FilenameUtils.getName(document);
-      File f = new File(document);
-      if (f.exists() && f.getName().endsWith(".csv")) {
-        sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
-      } else {
-        sourceNames.add(documentName);
-      }
-    }
+		List<String> sourceNames = new ArrayList<>();
+		for (String document : fileNames) {
+			String documentName = FilenameUtils.getName(document);
+			File f = new File(document);
+			if (f.exists() && f.getName().endsWith(".csv")) {
+				sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
+			} else {
+				sourceNames.add(documentName);
+			}
+		}
 
-    List<String> filesToRemoveFromCloud = new ArrayList<String>();
+		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 
-    // need to get the source names and then delete it based on the names
-    for (int fileIndex = 0; fileIndex < sourceNames.size(); fileIndex++) {
-      String fileName = fileNames.get(fileIndex);
+		// need to get the source names and then delete it based on the names
+		for (int fileIndex = 0; fileIndex < sourceNames.size(); fileIndex++) {
+			String fileName = fileNames.get(fileIndex);
 
-      // Delete document in ChromaDB using their ID, but to get the ID we need to find
-      // the ID of a document first. Check the delete API call params
-      // http://localhost:5000/api/v1/collections/{}/delete
+			// Delete document in ChromaDB using their ID, but to get the ID we need to find
+			// the ID of a document first. Check the delete API call params
+			// http://localhost:5000/api/v1/collections/{}/delete
 
-      Map<String, Object> fileNamesForDelete = new HashMap<>();
-      Map<String, String> sourceProperty = new HashMap<>();
+			Map<String, Object> fileNamesForDelete = new HashMap<>();
+			Map<String, String> sourceProperty = new HashMap<>();
 
-      // replace spaces with _ since thats how
-      // readCSV creates Source Property.
-      sourceProperty.put("Source", fileName.replaceAll(" ", "_"));
+			// replace spaces with _ since thats how
+			// readCSV creates Source Property.
+			sourceProperty.put("Source", fileName.replaceAll(" ", "_"));
 
-      fileNamesForDelete.put("where", sourceProperty);
+			fileNamesForDelete.put("where", sourceProperty);
 
-      String body = new Gson().toJson(fileNamesForDelete);
+			String body = new Gson().toJson(fileNamesForDelete);
 
-      Map<String, String> headersMap = new HashMap<>();
-      if (this.apiKey != null && !this.apiKey.isEmpty()) {
-        headersMap.put(API_TOKEN_KEY, this.apiKey);
-        headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-      } else {
-        headersMap = null;
-      }
+			Map<String, String> headersMap = new HashMap<>();
+			if (this.apiKey != null && !this.apiKey.isEmpty()) {
+				headersMap.put(API_TOKEN_KEY, this.apiKey);
+				headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+			} else {
+				headersMap = null;
+			}
 
-      String response =
-          HttpHelperUtility.postRequestStringBody(
-              this.url + this.collectionID + API_DELETE,
-              headersMap,
-              body,
-              ContentType.APPLICATION_JSON,
-              null,
-              null,
-              null);
+			String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_DELETE,
+					headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 
-      // TODO: let us add validation by looking at the response
+			// TODO: let us add validation by looking at the response
 
-      String documentName = Paths.get(fileName).getFileName().toString();
-      // remove the physical documents
-      File documentFile =
-          new File(
-              this.schemaFolder.getAbsolutePath()
-                  + FILE_SEPARATOR
-                  + indexClass
-                  + FILE_SEPARATOR
-                  + "documents",
-              documentName);
-      try {
-        if (documentFile.exists()) {
-          FileUtils.forceDelete(documentFile);
-          filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
-        }
-      } catch (IOException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
+			String documentName = Paths.get(fileName).getFileName().toString();
+			// remove the physical documents
+			File documentFile = new File(
+					this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents",
+					documentName);
+			try {
+				if (documentFile.exists()) {
+					FileUtils.forceDelete(documentFile);
+					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
+				}
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 
-    if (ClusterUtil.IS_CLUSTER) {
-      Thread deleteFilesFromCloudThread =
-          new Thread(
-              new DeleteFilesFromEngineRunner(
-                  engineId,
-                  this.getCatalogType(),
-                  filesToRemoveFromCloud.stream().toArray(String[]::new)));
-      deleteFilesFromCloudThread.start();
-    }
-  }
+		if (ClusterUtil.IS_CLUSTER) {
+			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId,
+					this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
+			deleteFilesFromCloudThread.start();
+		}
+	}
 
-  @Override
-  public List<Map<String, Object>> nearestNeighborCall(
-      Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
-    if (insight == null) {
-      throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
-    }
-    if (!modelPropsLoaded) {
-      verifyModelProps();
-    }
-    if (limit == null) {
-      limit = 3;
-    }
+	@Override
+	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		if (limit == null) {
+			limit = 3;
+		}
 
-    Gson gson = new Gson();
+		Gson gson = new Gson();
 
-    List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
-    Map<String, Object> query = new HashMap<>();
-    List<List<Double>> queryEmbeddings = new ArrayList<>();
-    // this is done to put a list of embeddings inside another list otherwise the
-    // API throws error.
-    queryEmbeddings.add(vector);
+		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
+		Map<String, Object> query = new HashMap<>();
+		List<List<Double>> queryEmbeddings = new ArrayList<>();
+		// this is done to put a list of embeddings inside another list otherwise the
+		// API throws error.
+		queryEmbeddings.add(vector);
 
-    // List<Map<String, Object>> metadatas = new ArrayList<>(); add metadata filter
-    query.put("query_texts", searchStatement);
-    query.put("n_results", limit);
-    query.put("query_embeddings", queryEmbeddings);
-    String body = gson.toJson(query);
+		// List<Map<String, Object>> metadatas = new ArrayList<>(); add metadata filter
+		query.put("query_texts", searchStatement);
+		query.put("n_results", limit);
+		query.put("query_embeddings", queryEmbeddings);
+		String body = gson.toJson(query);
 
-    Map<String, String> headersMap = new HashMap<>();
-    if (this.apiKey != null && !this.apiKey.isEmpty()) {
-      headersMap.put(API_TOKEN_KEY, this.apiKey);
-      headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-    } else {
-      headersMap = null;
-    }
+		Map<String, String> headersMap = new HashMap<>();
+		if (this.apiKey != null && !this.apiKey.isEmpty()) {
+			headersMap.put(API_TOKEN_KEY, this.apiKey);
+			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+		} else {
+			headersMap = null;
+		}
 
-    String nearestNeigborResponse =
-        HttpHelperUtility.postRequestStringBody(
-            this.url + this.collectionID + API_QUERY,
-            headersMap,
-            body,
-            ContentType.APPLICATION_JSON,
-            null,
-            null,
-            null);
+		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(
+				this.url + this.collectionID + API_QUERY, headersMap, body, ContentType.APPLICATION_JSON, null, null,
+				null);
 
-    Map<String, Object> responseMap =
-        gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
+		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {
+		}.getType());
 
-    // Retrieve the metadatas list response
-    List<Map<String, Object>> resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
-    return (List<Map<String, Object>>) resultMap.get(0);
-  }
+		// Retrieve the metadatas list response
+		List<Map<String, Object>> resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
+		return (List<Map<String, Object>>) resultMap.get(0);
+	}
 
-  @Override
-  public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
-    // TODO: needs to grab 'Source' from the database
-    // TODO: needs to grab 'Source' from the database
-    // TODO: needs to grab 'Source' from the database
-    // TODO: needs to grab 'Source' from the database
-    // TODO: needs to grab 'Source' from the database
-    // TODO: needs to grab 'Source' from the database
+	@Override
+	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
+		// TODO: needs to grab 'Source' from the database
+		// TODO: needs to grab 'Source' from the database
+		// TODO: needs to grab 'Source' from the database
+		// TODO: needs to grab 'Source' from the database
+		// TODO: needs to grab 'Source' from the database
+		// TODO: needs to grab 'Source' from the database
 
-    String indexClass = this.defaultIndexClass;
-    if (parameters.containsKey("indexClass")) {
-      indexClass = (String) parameters.get("indexClass");
-    }
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey("indexClass")) {
+			indexClass = (String) parameters.get("indexClass");
+		}
 
-    File documentsDir =
-        new File(
-            this.schemaFolder.getAbsolutePath()
-                + FILE_SEPARATOR
-                + indexClass
-                + FILE_SEPARATOR
-                + DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
+				+ DOCUMENTS_FOLDER_NAME);
 
-    List<Map<String, Object>> fileList = new ArrayList<>();
+		List<Map<String, Object>> fileList = new ArrayList<>();
 
-    File[] files = documentsDir.listFiles();
-    if (files != null) {
-      for (File file : files) {
-        String fileName = file.getName();
-        long fileSizeInBytes = file.length();
-        double fileSizeInMB = (double) fileSizeInBytes / (1024);
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String lastModified = dateFormat.format(new Date(file.lastModified()));
+		File[] files = documentsDir.listFiles();
+		if (files != null) {
+			for (File file : files) {
+				String fileName = file.getName();
+				long fileSizeInBytes = file.length();
+				double fileSizeInMB = (double) fileSizeInBytes / (1024);
+				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				String lastModified = dateFormat.format(new Date(file.lastModified()));
 
-        Map<String, Object> fileInfo = new HashMap<>();
-        fileInfo.put("fileName", fileName);
-        fileInfo.put("fileSize", fileSizeInMB);
-        fileInfo.put("lastModified", lastModified);
-        fileList.add(fileInfo);
-      }
-    }
+				Map<String, Object> fileInfo = new HashMap<>();
+				fileInfo.put("fileName", fileName);
+				fileInfo.put("fileSize", fileSizeInMB);
+				fileInfo.put("lastModified", lastModified);
+				fileList.add(fileInfo);
+			}
+		}
 
-    return fileList;
-  }
+		return fileList;
+	}
 
-  @Override
-  public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
-    throw new IllegalArgumentException("This method has not been implemented yet");
-  }
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		throw new IllegalArgumentException("This method has not been implemented yet");
+	}
 
-  @Override
-  public VectorDatabaseTypeEnum getVectorDatabaseType() {
-    return VectorDatabaseTypeEnum.CHROMA;
-  }
+	@Override
+	public VectorDatabaseTypeEnum getVectorDatabaseType() {
+		return VectorDatabaseTypeEnum.CHROMA;
+	}
 }

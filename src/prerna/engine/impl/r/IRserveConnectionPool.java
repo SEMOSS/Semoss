@@ -16,11 +16,11 @@ package prerna.engine.impl.r;
 
 public interface IRserveConnectionPool {
 
-  RserveConnectionMeta getConnection();
+	RserveConnectionMeta getConnection();
 
-  void releaseConnection(RserveConnectionMeta connection);
+	void releaseConnection(RserveConnectionMeta connection);
 
-  void recoverConnection(RserveConnectionMeta connection) throws Exception;
+	void recoverConnection(RserveConnectionMeta connection) throws Exception;
 
-  void shutdown() throws Exception;
+	void shutdown() throws Exception;
 }

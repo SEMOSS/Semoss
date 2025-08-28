@@ -16,51 +16,52 @@ package prerna.om;
 
 public class InsightFile {
 
-  private String fileKey = null;
-  private String filePath = null;
-  private boolean deleteOnInsightClose = true;
-  private boolean isFrameUpload = false;
-  private boolean isExport = false;
+	private String fileKey = null;
+	private String filePath = null;
+	private boolean deleteOnInsightClose = true;
+	private boolean isFrameUpload = false;
+	private boolean isExport = false;
 
-  public InsightFile() {}
+	public InsightFile() {
+	}
 
-  public String getFileKey() {
-    return fileKey;
-  }
+	public String getFileKey() {
+		return fileKey;
+	}
 
-  public void setFileKey(String fileKey) {
-    this.fileKey = fileKey;
-  }
+	public void setFileKey(String fileKey) {
+		this.fileKey = fileKey;
+	}
 
-  public String getFilePath() {
-    return filePath;
-  }
+	public String getFilePath() {
+		return filePath;
+	}
 
-  public void setFilePath(String filePath) {
-    this.filePath = filePath;
-  }
+	public void setFilePath(String filePath) {
+		this.filePath = filePath;
+	}
 
-  public boolean isDeleteOnInsightClose() {
-    return deleteOnInsightClose;
-  }
+	public boolean isDeleteOnInsightClose() {
+		return deleteOnInsightClose;
+	}
 
-  public void setDeleteOnInsightClose(boolean deleteOnInsightClose) {
-    this.deleteOnInsightClose = deleteOnInsightClose;
-  }
+	public void setDeleteOnInsightClose(boolean deleteOnInsightClose) {
+		this.deleteOnInsightClose = deleteOnInsightClose;
+	}
 
-  public boolean isFrameUpload() {
-    return isFrameUpload;
-  }
+	public boolean isFrameUpload() {
+		return isFrameUpload;
+	}
 
-  public void setFrameUpload(boolean isFrameUpload) {
-    this.isFrameUpload = isFrameUpload;
-  }
+	public void setFrameUpload(boolean isFrameUpload) {
+		this.isFrameUpload = isFrameUpload;
+	}
 
-  public boolean isExport() {
-    return isExport;
-  }
+	public boolean isExport() {
+		return isExport;
+	}
 
-  public void setExport(boolean isExport) {
-    this.isExport = isExport;
-  }
+	public void setExport(boolean isExport) {
+		this.isExport = isExport;
+	}
 }

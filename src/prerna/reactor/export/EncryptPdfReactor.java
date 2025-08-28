@@ -36,105 +36,94 @@ import prerna.util.UploadInputUtility;
 
 public class EncryptPdfReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(EncryptPdfReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(EncryptPdfReactor.class);
 
-  private static final String ALLOW_PRINT = "allowPrint";
-  private static final String ALLOW_COPY = "allowCopy";
-  private static final String ALLOW_MODIFY = "allowModify";
-  private static final String ALLOW_ASSEMBLE = "allowAssemble";
-  private static final String READ_ONLY = "readOnly";
+	private static final String ALLOW_PRINT = "allowPrint";
+	private static final String ALLOW_COPY = "allowCopy";
+	private static final String ALLOW_MODIFY = "allowModify";
+	private static final String ALLOW_ASSEMBLE = "allowAssemble";
+	private static final String READ_ONLY = "readOnly";
 
-  public EncryptPdfReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.FILE_PATH.getKey(),
-          ReactorKeysEnum.SPACE.getKey(),
-          ReactorKeysEnum.PASSWORD.getKey(),
-          ALLOW_PRINT,
-          ALLOW_COPY,
-          ALLOW_MODIFY,
-          ALLOW_ASSEMBLE,
-          READ_ONLY
-        };
-  }
+	public EncryptPdfReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
+				ReactorKeysEnum.PASSWORD.getKey(), ALLOW_PRINT, ALLOW_COPY, ALLOW_MODIFY, ALLOW_ASSEMBLE, READ_ONLY};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
-    if (password == null || (password = password.trim()).isEmpty()) {
-      throw new IllegalArgumentException("Must define a password for the file");
-    }
-    boolean noPrint = !Boolean.parseBoolean(this.keyValue.get(ALLOW_PRINT) + "");
-    boolean noCopy = !Boolean.parseBoolean(this.keyValue.get(ALLOW_COPY) + "");
-    boolean noModify = !Boolean.parseBoolean(this.keyValue.get(ALLOW_MODIFY) + "");
-    boolean noAssemble = !Boolean.parseBoolean(this.keyValue.get(ALLOW_ASSEMBLE) + "");
-    boolean readOnly = Boolean.parseBoolean(this.keyValue.get(READ_ONLY) + "");
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
+		if (password == null || (password = password.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must define a password for the file");
+		}
+		boolean noPrint = !Boolean.parseBoolean(this.keyValue.get(ALLOW_PRINT) + "");
+		boolean noCopy = !Boolean.parseBoolean(this.keyValue.get(ALLOW_COPY) + "");
+		boolean noModify = !Boolean.parseBoolean(this.keyValue.get(ALLOW_MODIFY) + "");
+		boolean noAssemble = !Boolean.parseBoolean(this.keyValue.get(ALLOW_ASSEMBLE) + "");
+		boolean readOnly = Boolean.parseBoolean(this.keyValue.get(READ_ONLY) + "");
 
-    String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
-    File f = new File(filePath);
+		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		File f = new File(filePath);
 
-    String encryptedFilePath = FilenameUtils.removeExtension(filePath) + "-encrypted.pdf";
+		String encryptedFilePath = FilenameUtils.removeExtension(filePath) + "-encrypted.pdf";
 
-    try (PDDocument doc = Loader.loadPDF(new RandomAccessReadBufferedFile(f))) {
-      // Define the length of the encryption key.
-      // Possible values are 40, 128 or 256.
-      int keyLength = 256;
+		try (PDDocument doc = Loader.loadPDF(new RandomAccessReadBufferedFile(f))) {
+			// Define the length of the encryption key.
+			// Possible values are 40, 128 or 256.
+			int keyLength = 256;
 
-      AccessPermission ap = new AccessPermission();
-      if (noPrint) {
-        // printing
-        ap.setCanPrint(false);
-        ap.setCanPrintFaithful(false);
-      }
-      if (noCopy) {
-        // copying
-        ap.setCanExtractContent(false);
-      }
-      if (noModify) {
-        // modify
-        ap.setCanModify(false);
-        // modify annotations
-        ap.setCanModifyAnnotations(false);
-      }
-      if (noAssemble) {
-        // can assemble
-        ap.setCanAssembleDocument(false);
-      }
-      if (readOnly) {
-        // set the pdf as read only
-        ap.setReadOnly();
-      }
+			AccessPermission ap = new AccessPermission();
+			if (noPrint) {
+				// printing
+				ap.setCanPrint(false);
+				ap.setCanPrintFaithful(false);
+			}
+			if (noCopy) {
+				// copying
+				ap.setCanExtractContent(false);
+			}
+			if (noModify) {
+				// modify
+				ap.setCanModify(false);
+				// modify annotations
+				ap.setCanModifyAnnotations(false);
+			}
+			if (noAssemble) {
+				// can assemble
+				ap.setCanAssembleDocument(false);
+			}
+			if (readOnly) {
+				// set the pdf as read only
+				ap.setReadOnly();
+			}
 
-      String randomOwner = UUID.randomUUID().toString();
-      StandardProtectionPolicy spp = new StandardProtectionPolicy(randomOwner, password, ap);
-      spp.setEncryptionKeyLength(keyLength);
+			String randomOwner = UUID.randomUUID().toString();
+			StandardProtectionPolicy spp = new StandardProtectionPolicy(randomOwner, password, ap);
+			spp.setEncryptionKeyLength(keyLength);
 
-      // Apply protection
-      doc.protect(spp);
+			// Apply protection
+			doc.protect(spp);
 
-      doc.save(encryptedFilePath);
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new IllegalArgumentException(
-          "Unable to encrypt the file. Error message = " + e.getMessage());
-    }
+			doc.save(encryptedFilePath);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Unable to encrypt the file. Error message = " + e.getMessage());
+		}
 
-    String downloadKey = UUID.randomUUID().toString();
-    InsightFile insightFile = new InsightFile();
-    insightFile.setFileKey(downloadKey);
-    insightFile.setDeleteOnInsightClose(true);
-    insightFile.setFilePath(encryptedFilePath);
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		insightFile.setDeleteOnInsightClose(true);
+		insightFile.setFilePath(encryptedFilePath);
 
-    // store the insight file
-    // in the insight so the FE can download it
-    // only from the given insight
-    this.insight.addExportFile(downloadKey, insightFile);
+		// store the insight file
+		// in the insight so the FE can download it
+		// only from the given insight
+		this.insight.addExportFile(downloadKey, insightFile);
 
-    NounMetadata retNoun =
-        new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-    retNoun.addAdditionalReturn(
-        NounMetadata.getSuccessNounMessage("Successfully generated the csv file"));
-    return retNoun;
-  }
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
+				PixelOperationType.FILE_DOWNLOAD);
+		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the csv file"));
+		return retNoun;
+	}
 }

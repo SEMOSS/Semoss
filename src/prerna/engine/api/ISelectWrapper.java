@@ -18,12 +18,12 @@ import java.util.Iterator;
 
 public interface ISelectWrapper extends IEngineWrapper, Iterator {
 
-  public ISelectStatement next();
+	public ISelectStatement next();
 
-  @Deprecated
-  public String[] getVariables(); // use getDisplayVariables instead
+	@Deprecated
+	public String[] getVariables(); // use getDisplayVariables instead
 
-  public String[] getDisplayVariables();
+	public String[] getDisplayVariables();
 
-  public String[] getPhysicalVariables();
+	public String[] getPhysicalVariables();
 }

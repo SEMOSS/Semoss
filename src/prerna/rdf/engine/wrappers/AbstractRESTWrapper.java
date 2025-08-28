@@ -44,367 +44,353 @@ import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.IHeadersDataRowAdapter;
 
-public abstract class AbstractRESTWrapper
-    implements IRemoteQueryable, IEngineWrapper, IRawSelectWrapper {
+public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWrapper, IRawSelectWrapper {
 
-  private static final Logger classLogger = LogManager.getLogger(AbstractWrapper.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(AbstractWrapper.class.getName());
 
-  protected transient IDatabaseEngine engine = null;
-  protected transient String query = null;
+	protected transient IDatabaseEngine engine = null;
+	protected transient String query = null;
 
-  /*
-   * Remote queryable class variables
-   */
-  protected String id = null;
-  protected String api = null;
-  protected boolean remote = false;
+	/*
+	 * Remote queryable class variables
+	 */
+	protected String id = null;
+	protected String api = null;
+	protected boolean remote = false;
 
-  /*
-   * Engine wrapper class variables
-   */
-  protected String[] headers = null;
-  protected String[] rawHeaders = null;
-  // TODO: move to pixel data type
-  protected SemossDataType[] types = null;
-  protected int numColumns;
+	/*
+	 * Engine wrapper class variables
+	 */
+	protected String[] headers = null;
+	protected String[] rawHeaders = null;
+	// TODO: move to pixel data type
+	protected SemossDataType[] types = null;
+	protected int numColumns;
 
-  protected long numRows;
+	protected long numRows;
 
-  /*
-   * Cluster variables
-   */
-  private static final Gson GSON = GsonUtility.getDefaultGson();
+	/*
+	 * Cluster variables
+	 */
+	private static final Gson GSON = GsonUtility.getDefaultGson();
 
-  private String host = null;
+	private String host = null;
 
-  // What keeps this object straight on the service side
-  private final String wrapperId = Utility.getRandomString(12);
+	// What keeps this object straight on the service side
+	private final String wrapperId = Utility.getRandomString(12);
 
-  /*
-   * End cluster variables
-   */
-  // TODO >>>timb: remove this remote API stuff / interface for it if it is not needed
-  @Override
-  public void setRemoteId(String id) {
-    this.id = id;
-  }
+	/*
+	 * End cluster variables
+	 */
+	// TODO >>>timb: remove this remote API stuff / interface for it if it is not
+	// needed
+	@Override
+	public void setRemoteId(String id) {
+		this.id = id;
+	}
 
-  @Override
-  public String getRemoteId() {
-    return this.id;
-  }
+	@Override
+	public String getRemoteId() {
+		return this.id;
+	}
 
-  @Override
-  public void setRemoteAPI(String api) {
-    this.api = api;
-  }
+	@Override
+	public void setRemoteAPI(String api) {
+		this.api = api;
+	}
 
-  @Override
-  public String getRemoteAPI() {
-    return this.api;
-  }
+	@Override
+	public String getRemoteAPI() {
+		return this.api;
+	}
 
-  @Override
-  public void setRemote(boolean remote) {
-    this.remote = remote;
-  }
+	@Override
+	public void setRemote(boolean remote) {
+		this.remote = remote;
+	}
 
-  @Override
-  public boolean isRemote() {
-    return this.remote;
-  }
+	@Override
+	public boolean isRemote() {
+		return this.remote;
+	}
 
-  //////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////// Code for cluster ////////////////////////////////////
 
-  // Need to to pass in engine rather than using the class variable,
-  // as setEngine is often called when the id is null.
-  private boolean wrapperIsInherentlyLocal(IDatabaseEngine engine) {
-    String appId = engine.getEngineId();
+	// Need to to pass in engine rather than using the class variable,
+	// as setEngine is often called when the id is null.
+	private boolean wrapperIsInherentlyLocal(IDatabaseEngine engine) {
+		String appId = engine.getEngineId();
 
-    // TODO >>>timb: right now, only RDBMS works for remote
-    if (engine.getDatabaseType() != IDatabaseEngine.DATABASE_TYPE.RDBMS
-        || appId.startsWith("security")
-        || appId.startsWith("LocalMasterDatabase")
-        || appId.startsWith("form_builder_engine")) {
-      return true;
-    } else {
-      return false;
-    }
-  }
+		// TODO >>>timb: right now, only RDBMS works for remote
+		if (engine.getDatabaseType() != IDatabaseEngine.DATABASE_TYPE.RDBMS || appId.startsWith("security")
+				|| appId.startsWith("LocalMasterDatabase") || appId.startsWith("form_builder_engine")) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 
-  private boolean isLocal() {
+	private boolean isLocal() {
 
-    // TODO >>>timb: is this a permanent fix?
-    if (engine == null) {
-      return true;
-    } else {
-      return isLocal(engine);
-    }
-  }
+		// TODO >>>timb: is this a permanent fix?
+		if (engine == null) {
+			return true;
+		} else {
+			return isLocal(engine);
+		}
+	}
 
-  private boolean isLocal(IDatabaseEngine engine) {
-    return wrapperIsInherentlyLocal(engine) || ClusterUtil.LOAD_ENGINES_LOCALLY;
-  }
+	private boolean isLocal(IDatabaseEngine engine) {
+		return wrapperIsInherentlyLocal(engine) || ClusterUtil.LOAD_ENGINES_LOCALLY;
+	}
 
-  private String getHostForDB(String appId) throws KeeperException, InterruptedException {
-    if (host == null) {
-      host = "http://" + ZKClient.getInstance().getHostForDB(appId) + "/Monolith/api/cluster/";
-    }
-    return host;
-  }
+	private String getHostForDB(String appId) throws KeeperException, InterruptedException {
+		if (host == null) {
+			host = "http://" + ZKClient.getInstance().getHostForDB(appId) + "/Monolith/api/cluster/";
+		}
+		return host;
+	}
 
-  private boolean resetHostForDB(String appId) throws KeeperException, InterruptedException {
-    String oldHost = host;
-    host = null;
-    host = getHostForDB(appId);
-    return !oldHost.equals(host);
-  }
+	private boolean resetHostForDB(String appId) throws KeeperException, InterruptedException {
+		String oldHost = host;
+		host = null;
+		host = getHostForDB(appId);
+		return !oldHost.equals(host);
+	}
 
-  /*
-   * Lazy load the host
-   * Try to make the post request
-   * If the post request fails, try reloading host, as it may have changed
-   */
-  private String post(String action, String appId, List<NameValuePair> params) throws Exception {
+	/*
+	 * Lazy load the host Try to make the post request If the post request fails,
+	 * try reloading host, as it may have changed
+	 */
+	private String post(String action, String appId, List<NameValuePair> params) throws Exception {
 
-    // Setup the host
-    String host = getHostForDB(appId);
-    HttpClient httpclient = HttpClients.createDefault();
-    HttpPost httppost = getHttpPost(host, action, params);
-    // Try to execute the call
-    HttpResponse response = null;
-    try {
-      response = httpclient.execute(httppost);
-    } catch (IOException e) {
-      // TODO >>>timb: maybe use the alive here
-      // If it fails, the host may have changed, so check once
-      if (resetHostForDB(appId)) {
-        String newHost = getHostForDB(appId);
-        HttpPost newHttppost = getHttpPost(newHost, action, params);
-        response = httpclient.execute(newHttppost);
-      } else {
+		// Setup the host
+		String host = getHostForDB(appId);
+		HttpClient httpclient = HttpClients.createDefault();
+		HttpPost httppost = getHttpPost(host, action, params);
+		// Try to execute the call
+		HttpResponse response = null;
+		try {
+			response = httpclient.execute(httppost);
+		} catch (IOException e) {
+			// TODO >>>timb: maybe use the alive here
+			// If it fails, the host may have changed, so check once
+			if (resetHostForDB(appId)) {
+				String newHost = getHostForDB(appId);
+				HttpPost newHttppost = getHttpPost(newHost, action, params);
+				response = httpclient.execute(newHttppost);
+			} else {
 
-        // The host hasn't changed, nothing we can do
-        // Just unable to connect
-        // So rethrow e
-        throw e;
-      }
-    } finally {
-      httppost.releaseConnection();
-    }
-    HttpEntity entity = response.getEntity();
-    if (entity != null) {
-      try (InputStream instream = entity.getContent()) {
-        String responseString = IOUtils.toString(instream);
-        return responseString;
-      }
-    }
-    return null;
-  }
+				// The host hasn't changed, nothing we can do
+				// Just unable to connect
+				// So rethrow e
+				throw e;
+			}
+		} finally {
+			httppost.releaseConnection();
+		}
+		HttpEntity entity = response.getEntity();
+		if (entity != null) {
+			try (InputStream instream = entity.getContent()) {
+				String responseString = IOUtils.toString(instream);
+				return responseString;
+			}
+		}
+		return null;
+	}
 
-  private HttpPost getHttpPost(String host, String action, List<NameValuePair> params)
-      throws UnsupportedEncodingException {
-    HttpPost httppost = new HttpPost(host + action);
-    httppost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
-    httppost.setHeader("Content-Type", "application/x-www-form-urlencoded");
-    return httppost;
-  }
+	private HttpPost getHttpPost(String host, String action, List<NameValuePair> params)
+			throws UnsupportedEncodingException {
+		HttpPost httppost = new HttpPost(host + action);
+		httppost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+		httppost.setHeader("Content-Type", "application/x-www-form-urlencoded");
+		return httppost;
+	}
 
-  private String sendAction(String action) throws Exception {
-    return sendAction(engine, action);
-  }
+	private String sendAction(String action) throws Exception {
+		return sendAction(engine, action);
+	}
 
-  private String sendAction(IDatabaseEngine engine, String action) throws Exception {
-    String appId = engine.getEngineId();
+	private String sendAction(IDatabaseEngine engine, String action) throws Exception {
+		String appId = engine.getEngineId();
 
-    List<NameValuePair> params = new ArrayList<NameValuePair>(1);
-    params.add(new BasicNameValuePair("wrapperId", wrapperId));
-    params.add(new BasicNameValuePair("appId", appId));
-    params.add(new BasicNameValuePair("query", query));
-    return post(action, appId, params);
-  }
+		List<NameValuePair> params = new ArrayList<NameValuePair>(1);
+		params.add(new BasicNameValuePair("wrapperId", wrapperId));
+		params.add(new BasicNameValuePair("appId", appId));
+		params.add(new BasicNameValuePair("query", query));
+		return post(action, appId, params);
+	}
 
-  @Override
-  public void execute() {
-    if (isLocal()) {
-      localExecute();
-    } else {
-      try {
-        String result = sendAction("execute");
-        classLogger.info(Utility.cleanLogString(result));
-      } catch (Exception e) {
-        classLogger.error(
-            "Unable to execute remote wrapper with wrapper id = "
-                + Utility.cleanLogString(wrapperId),
-            e);
-      }
-    }
-  }
+	@Override
+	public void execute() {
+		if (isLocal()) {
+			localExecute();
+		} else {
+			try {
+				String result = sendAction("execute");
+				classLogger.info(Utility.cleanLogString(result));
+			} catch (Exception e) {
+				classLogger.error(
+						"Unable to execute remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
+			}
+		}
+	}
 
-  protected abstract void localExecute();
+	protected abstract void localExecute();
 
-  @Override
-  public void setQuery(String query) {
-    this.query = query;
-    if (!isLocal()) {
-      try {
-        String result = sendAction("setQuery");
-        classLogger.info(Utility.cleanLogString(result));
-      } catch (Exception e) {
-        classLogger.error(
-            "Unable to set query for remote wrapper with wrapper id = "
-                + Utility.cleanLogString(wrapperId),
-            e);
-      }
-    }
-  }
+	@Override
+	public void setQuery(String query) {
+		this.query = query;
+		if (!isLocal()) {
+			try {
+				String result = sendAction("setQuery");
+				classLogger.info(Utility.cleanLogString(result));
+			} catch (Exception e) {
+				classLogger.error(
+						"Unable to set query for remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId),
+						e);
+			}
+		}
+	}
 
-  @Override
-  public String getQuery() {
-    return this.query;
-  }
+	@Override
+	public String getQuery() {
+		return this.query;
+	}
 
-  @Override
-  public void setEngine(IDatabaseEngine engine) {
-    this.engine = engine;
-    if (!isLocal(engine)) {
-      try {
-        String result = sendAction(engine, "setEngine");
-        classLogger.info(Utility.cleanLogString(result));
-      } catch (Exception e) {
-        classLogger.error(
-            "Unable to set engine for remote wrapper with wrapper id = "
-                + Utility.cleanLogString(wrapperId),
-            e);
-      }
-    }
-  }
+	@Override
+	public void setEngine(IDatabaseEngine engine) {
+		this.engine = engine;
+		if (!isLocal(engine)) {
+			try {
+				String result = sendAction(engine, "setEngine");
+				classLogger.info(Utility.cleanLogString(result));
+			} catch (Exception e) {
+				classLogger.error("Unable to set engine for remote wrapper with wrapper id = "
+						+ Utility.cleanLogString(wrapperId), e);
+			}
+		}
+	}
 
-  @Override
-  public IDatabaseEngine getEngine() {
-    return this.engine;
-  }
+	@Override
+	public IDatabaseEngine getEngine() {
+		return this.engine;
+	}
 
-  @Override
-  public void close() throws IOException {
-    if (isLocal()) {
-      localCleanUp();
-    } else {
-      try {
-        String result = sendAction("cleanUp");
-        classLogger.info(Utility.cleanLogString(result));
-      } catch (Exception e) {
-        classLogger.error(
-            "Unable to clean up remote wrapper with wrapper id = "
-                + Utility.cleanLogString(wrapperId),
-            e);
-      }
-    }
-  }
+	@Override
+	public void close() throws IOException {
+		if (isLocal()) {
+			localCleanUp();
+		} else {
+			try {
+				String result = sendAction("cleanUp");
+				classLogger.info(Utility.cleanLogString(result));
+			} catch (Exception e) {
+				classLogger.error(
+						"Unable to clean up remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
+			}
+		}
+	}
 
-  protected abstract void localCleanUp();
+	protected abstract void localCleanUp();
 
-  @Override
-  public boolean hasNext() {
-    if (isLocal()) {
-      return localHasNext();
-    } else {
-      try {
-        String result = sendAction("hasNext");
-        classLogger.info(Utility.cleanLogString(result));
-        return Boolean.parseBoolean(result);
-      } catch (Exception e) {
-        classLogger.error(
-            "Unable to determine has next for remote wrapper with wrapper id = "
-                + Utility.cleanLogString(wrapperId),
-            e);
-        return false;
-      }
-    }
-  }
+	@Override
+	public boolean hasNext() {
+		if (isLocal()) {
+			return localHasNext();
+		} else {
+			try {
+				String result = sendAction("hasNext");
+				classLogger.info(Utility.cleanLogString(result));
+				return Boolean.parseBoolean(result);
+			} catch (Exception e) {
+				classLogger.error("Unable to determine has next for remote wrapper with wrapper id = "
+						+ Utility.cleanLogString(wrapperId), e);
+				return false;
+			}
+		}
+	}
 
-  protected abstract boolean localHasNext();
+	protected abstract boolean localHasNext();
 
-  @Override
-  public IHeadersDataRow next() {
-    if (isLocal()) {
-      return localNext();
-    } else {
-      try {
-        String result = sendAction("next");
-        classLogger.info(Utility.cleanLogString(result));
-        IHeadersDataRowAdapter adapter = new IHeadersDataRowAdapter();
-        IHeadersDataRow row = adapter.fromJson(result);
-        return row;
-      } catch (Exception e) {
-        classLogger.error(
-            "Unable to retrieve next row for remote wrapper with wrapper id = "
-                + Utility.cleanLogString(wrapperId),
-            e);
-        return null;
-      }
-    }
-  }
+	@Override
+	public IHeadersDataRow next() {
+		if (isLocal()) {
+			return localNext();
+		} else {
+			try {
+				String result = sendAction("next");
+				classLogger.info(Utility.cleanLogString(result));
+				IHeadersDataRowAdapter adapter = new IHeadersDataRowAdapter();
+				IHeadersDataRow row = adapter.fromJson(result);
+				return row;
+			} catch (Exception e) {
+				classLogger.error("Unable to retrieve next row for remote wrapper with wrapper id = "
+						+ Utility.cleanLogString(wrapperId), e);
+				return null;
+			}
+		}
+	}
 
-  protected abstract IHeadersDataRow localNext();
+	protected abstract IHeadersDataRow localNext();
 
-  @Override
-  public String[] getHeaders() {
-    if (isLocal()) {
-      return localGetHeaders();
-    } else {
-      // TODO execute via rest
-      return null;
-    }
-  }
+	@Override
+	public String[] getHeaders() {
+		if (isLocal()) {
+			return localGetHeaders();
+		} else {
+			// TODO execute via rest
+			return null;
+		}
+	}
 
-  protected abstract String[] localGetHeaders();
+	protected abstract String[] localGetHeaders();
 
-  @Override
-  public SemossDataType[] getTypes() {
-    if (isLocal()) {
-      return localGetTypes();
-    } else {
-      // TODO execute via rest
-      return null;
-    }
-  }
+	@Override
+	public SemossDataType[] getTypes() {
+		if (isLocal()) {
+			return localGetTypes();
+		} else {
+			// TODO execute via rest
+			return null;
+		}
+	}
 
-  protected abstract SemossDataType[] localGetTypes();
+	protected abstract SemossDataType[] localGetTypes();
 
-  @Override
-  public long getNumRecords() {
-    if (isLocal()) {
-      return localGetNumRecords();
-    } else {
-      // TODO execute via rest
-      return 0;
-    }
-  }
+	@Override
+	public long getNumRecords() {
+		if (isLocal()) {
+			return localGetNumRecords();
+		} else {
+			// TODO execute via rest
+			return 0;
+		}
+	}
 
-  protected abstract long localGetNumRecords();
+	protected abstract long localGetNumRecords();
 
-  @Override
-  public long getNumRows() {
-    if (isLocal()) {
-      return localGetNumRows();
-    } else {
-      // TODO execute via rest
-      return 0;
-    }
-  }
+	@Override
+	public long getNumRows() {
+		if (isLocal()) {
+			return localGetNumRows();
+		} else {
+			// TODO execute via rest
+			return 0;
+		}
+	}
 
-  protected abstract long localGetNumRows();
+	protected abstract long localGetNumRows();
 
-  @Override
-  public void reset() {
-    if (isLocal()) {
-      localReset();
-    } else {
-      // TODO execute via rest
-    }
-  }
+	@Override
+	public void reset() {
+		if (isLocal()) {
+			localReset();
+		} else {
+			// TODO execute via rest
+		}
+	}
 
-  protected abstract void localReset();
+	protected abstract void localReset();
 }

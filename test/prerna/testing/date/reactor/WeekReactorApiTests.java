@@ -24,13 +24,13 @@ import prerna.testing.ApiSemossTestUtils;
 
 public class WeekReactorApiTests extends AbstractBaseSemossApiTests {
 
-  @Test
-  public void getWeek() {
-    String pixel = ApiSemossTestUtils.buildPixelCall("WEEK", "weeks", "52");
+	@Test
+	public void getWeek() {
+		String pixel = ApiSemossTestUtils.buildPixelCall("WEEK", "weeks", "52");
 
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-    SemossWeek week = (SemossWeek) nm.getValue();
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		SemossWeek week = (SemossWeek) nm.getValue();
 
-    assertEquals(52, week.getNumWeeks());
-  }
+		assertEquals(52, week.getNumWeeks());
+	}
 }

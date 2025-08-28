@@ -26,53 +26,45 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class MatchColumnValuesReactor extends AbstractPyFrameReactor {
 
-  public MatchColumnValuesReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.COLUMN.getKey()};
-  }
+	public MatchColumnValuesReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String column = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String column = this.keyValue.get(this.keysToGet[0]);
 
-    // get single column input
-    PandasFrame frame = (PandasFrame) getFrame();
-    String wrapperName = frame.getWrapperName();
+		// get single column input
+		PandasFrame frame = (PandasFrame) getFrame();
+		String wrapperName = frame.getWrapperName();
 
-    String matchesTable = Utility.getRandomString(8);
-    String script = matchesTable + " = " + wrapperName + ".self_match('" + column + "')";
-    insight.getPyTranslator().runEmptyPy(script);
-    this.addExecutedCode(script);
+		String matchesTable = Utility.getRandomString(8);
+		String script = matchesTable + " = " + wrapperName + ".self_match('" + column + "')";
+		insight.getPyTranslator().runEmptyPy(script);
+		this.addExecutedCode(script);
 
-    PyTranslator pyTranslator = this.insight.getPyTranslator();
-    PandasFrame returnTable = new PandasFrame(matchesTable, pyTranslator);
-    pyTranslator.runEmptyPy(
-        PandasSyntaxHelper.makeWrapper(returnTable.getWrapperName(), matchesTable));
-    returnTable = (PandasFrame) recreateMetadata(returnTable, false);
+		PyTranslator pyTranslator = this.insight.getPyTranslator();
+		PandasFrame returnTable = new PandasFrame(matchesTable, pyTranslator);
+		pyTranslator.runEmptyPy(PandasSyntaxHelper.makeWrapper(returnTable.getWrapperName(), matchesTable));
+		returnTable = (PandasFrame) recreateMetadata(returnTable, false);
 
-    NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
+		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 
-    // get count of exact matches
-    Number exactMatchCount =
-        (Number)
-            returnTable.runScript(
-                "len(" + matchesTable + "[" + matchesTable + "['distance'] == 100])");
-    if (exactMatchCount != null) {
-      retNoun.addAdditionalReturn(
-          new NounMetadata(exactMatchCount.longValue(), PixelDataType.CONST_INT));
-    } else {
-      throw new IllegalArgumentException("No matches found.");
-    }
+		// get count of exact matches
+		Number exactMatchCount = (Number) returnTable
+				.runScript("len(" + matchesTable + "[" + matchesTable + "['distance'] == 100])");
+		if (exactMatchCount != null) {
+			retNoun.addAdditionalReturn(new NounMetadata(exactMatchCount.longValue(), PixelDataType.CONST_INT));
+		} else {
+			throw new IllegalArgumentException("No matches found.");
+		}
 
-    // NEW TRACKING
-    UserTrackerFactory.getInstance()
-        .trackAnalyticsWidget(
-            this.insight,
-            frame,
-            "PredictSimilarColumnValues",
-            AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "PredictSimilarColumnValues",
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
-    this.insight.getVarStore().put(matchesTable, retNoun);
-    return retNoun;
-  }
+		this.insight.getVarStore().put(matchesTable, retNoun);
+		return retNoun;
+	}
 }

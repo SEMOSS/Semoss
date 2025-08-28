@@ -24,50 +24,51 @@ import org.apache.zookeeper.ZooKeeper;
 
 public class ModelInitListener implements IModelZKListener {
 
-  String path = null;
-  ModelZKServer server = null;
+	String path = null;
+	ModelZKServer server = null;
 
-  public ModelInitListener(String path, ModelZKServer server) {
-    this.server = server;
-    this.path = path;
-  }
+	public ModelInitListener(String path, ModelZKServer server) {
+		this.server = server;
+		this.path = path;
+	}
 
-  @Override
-  public void setModelZK(ModelZKServer server) {
-    // TODO Auto-generated method stub
-    this.server = server;
-  }
+	@Override
+	public void setModelZK(ModelZKServer server) {
+		// TODO Auto-generated method stub
+		this.server = server;
+	}
 
-  @Override
-  public List<EventType> getEvents() {
-    // TODO Auto-generated method stub
-    List<EventType> retList = new ArrayList<EventType>();
-    retList.add(EventType.NodeDataChanged);
-    return retList;
-  }
+	@Override
+	public List<EventType> getEvents() {
+		// TODO Auto-generated method stub
+		List<EventType> retList = new ArrayList<EventType>();
+		retList.add(EventType.NodeDataChanged);
+		return retList;
+	}
 
-  @Override
-  public String getPath() {
-    // TODO Auto-generated method stub
-    return this.path;
-  }
+	@Override
+	public String getPath() {
+		// TODO Auto-generated method stub
+		return this.path;
+	}
 
-  @Override
-  public List<String> getPredicates() {
-    // TODO Auto-generated method stub
-    List<String> predicates = new ArrayList<String>();
-    predicates.add("equals");
-    return predicates;
-  }
+	@Override
+	public List<String> getPredicates() {
+		// TODO Auto-generated method stub
+		List<String> predicates = new ArrayList<String>();
+		predicates.add("equals");
+		return predicates;
+	}
 
-  @Override
-  public void process(String path, ZooKeeper zk) {
-    // TODO Auto-generated method stub
-    String status = server.getNodeData(path);
-    String model = path.replace("/status", "");
+	@Override
+	public void process(String path, ZooKeeper zk) {
+		// TODO Auto-generated method stub
+		String status = server.getNodeData(path);
+		String model = path.replace("/status", "");
 
-    String smss = server.getNodeData(model);
+		String smss = server.getNodeData(model);
 
-    if (status.equalsIgnoreCase("INIT") && !server.catchup) server.spinModel(smss);
-  }
+		if (status.equalsIgnoreCase("INIT") && !server.catchup)
+			server.spinModel(smss);
+	}
 }

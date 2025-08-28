@@ -43,143 +43,127 @@ import prerna.util.UploadInputUtility;
 
 public class GetGraphMetaModelReactor extends AbstractReactor {
 
-  protected static final Logger classLogger = LogManager.getLogger(GetGraphMetaModelReactor.class);
+	protected static final Logger classLogger = LogManager.getLogger(GetGraphMetaModelReactor.class);
 
-  public GetGraphMetaModelReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.FILE_PATH.getKey(),
-          ReactorKeysEnum.SPACE.getKey(),
-          ReactorKeysEnum.GRAPH_TYPE_ID.getKey(),
-          ReactorKeysEnum.USE_LABEL.getKey()
-        };
-  }
+	public GetGraphMetaModelReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
+				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.USE_LABEL.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    /*
-     * Get Inputs
-     */
-    organizeKeys();
-    String fileName = UploadInputUtility.getFilePath(this.store, this.insight);
-    if (fileName == null) {
-      SemossPixelException exception =
-          new SemossPixelException(
-              new NounMetadata(
-                  "Requires fileName to get graph metamodel.",
-                  PixelDataType.CONST_STRING,
-                  PixelOperationType.ERROR));
-      exception.setContinueThreadOfExecution(false);
-      throw exception;
-    }
-    boolean useLabel = useLabel();
-    String graphTypeId = this.keyValue.get(this.keysToGet[1]);
-    if (!useLabel) {
-      if (graphTypeId == null) {
-        SemossPixelException exception =
-            new SemossPixelException(
-                new NounMetadata(
-                    "Requires graphTypeId to get graph metamodel.",
-                    PixelDataType.CONST_STRING,
-                    PixelOperationType.ERROR));
-        exception.setContinueThreadOfExecution(false);
-        throw exception;
-      }
-    }
+	@Override
+	public NounMetadata execute() {
+		/*
+		 * Get Inputs
+		 */
+		organizeKeys();
+		String fileName = UploadInputUtility.getFilePath(this.store, this.insight);
+		if (fileName == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata(
+					"Requires fileName to get graph metamodel.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		boolean useLabel = useLabel();
+		String graphTypeId = this.keyValue.get(this.keysToGet[1]);
+		if (!useLabel) {
+			if (graphTypeId == null) {
+				SemossPixelException exception = new SemossPixelException(
+						new NounMetadata("Requires graphTypeId to get graph metamodel.", PixelDataType.CONST_STRING,
+								PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+		}
 
-    Map<String, Object> retMap = new HashMap<String, Object>();
-    TinkerEngine.TINKER_DRIVER tinkerDriver = TinkerEngine.TINKER_DRIVER.NEO4J;
-    if (new File(fileName).isFile() && fileName.contains(".")) {
-      String fileExtension = fileName.substring(fileName.indexOf(".") + 1);
-      tinkerDriver = TinkerEngine.TINKER_DRIVER.valueOf(fileExtension.toUpperCase());
-    }
-    Graph g = null;
-    /*
-     * Open Graph
-     */
-    if (tinkerDriver == TinkerEngine.TINKER_DRIVER.NEO4J) {
-      File f = new File(fileName);
-      if (f.exists() && f.isDirectory()) {
-        g = Neo4jGraph.open(fileName);
-      } else {
-        SemossPixelException exception =
-            new SemossPixelException(
-                new NounMetadata(
-                    "Invalid Neo4j path", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-        exception.setContinueThreadOfExecution(false);
-        throw exception;
-      }
-    } else {
-      g = TinkerGraph.open();
-      try {
-        File f = new File(fileName);
-        if (!f.exists()) {
-          SemossPixelException exception =
-              new SemossPixelException(
-                  new NounMetadata(
-                      "Invalid graph path", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-          exception.setContinueThreadOfExecution(false);
-          throw exception;
-        }
-        if (tinkerDriver == TinkerEngine.TINKER_DRIVER.TG) {
-          // user kyro to de-serialize the cached graph
-          Builder<GryoIo> builder = GryoIo.build();
-          builder.graph(g);
-          builder.onMapper(new MyGraphIoMappingBuilder());
-          GryoIo reader = builder.create();
-          reader.readGraph(fileName);
-        } else if (tinkerDriver == TinkerEngine.TINKER_DRIVER.JSON) {
-          // user kyro to de-serialize the cached graph
-          Builder<GraphSONIo> builder = GraphSONIo.build();
-          builder.graph(g);
-          builder.onMapper(new MyGraphIoMappingBuilder());
-          GraphSONIo reader = builder.create();
-          reader.readGraph(fileName);
-        } else if (tinkerDriver == TinkerEngine.TINKER_DRIVER.XML) {
-          Builder<GraphMLIo> builder = GraphMLIo.build();
-          builder.graph(g);
-          builder.onMapper(new MyGraphIoMappingBuilder());
-          GraphMLIo reader = builder.create();
-          reader.readGraph(fileName);
-        } else {
-          throw new IllegalArgumentException("Can only process .tg, .json, and .xml files");
-        }
-      } catch (IOException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		TinkerEngine.TINKER_DRIVER tinkerDriver = TinkerEngine.TINKER_DRIVER.NEO4J;
+		if (new File(fileName).isFile() && fileName.contains(".")) {
+			String fileExtension = fileName.substring(fileName.indexOf(".") + 1);
+			tinkerDriver = TinkerEngine.TINKER_DRIVER.valueOf(fileExtension.toUpperCase());
+		}
+		Graph g = null;
+		/*
+		 * Open Graph
+		 */
+		if (tinkerDriver == TinkerEngine.TINKER_DRIVER.NEO4J) {
+			File f = new File(fileName);
+			if (f.exists() && f.isDirectory()) {
+				g = Neo4jGraph.open(fileName);
+			} else {
+				SemossPixelException exception = new SemossPixelException(
+						new NounMetadata("Invalid Neo4j path", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+		} else {
+			g = TinkerGraph.open();
+			try {
+				File f = new File(fileName);
+				if (!f.exists()) {
+					SemossPixelException exception = new SemossPixelException(new NounMetadata("Invalid graph path",
+							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+					exception.setContinueThreadOfExecution(false);
+					throw exception;
+				}
+				if (tinkerDriver == TinkerEngine.TINKER_DRIVER.TG) {
+					// user kyro to de-serialize the cached graph
+					Builder<GryoIo> builder = GryoIo.build();
+					builder.graph(g);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GryoIo reader = builder.create();
+					reader.readGraph(fileName);
+				} else if (tinkerDriver == TinkerEngine.TINKER_DRIVER.JSON) {
+					// user kyro to de-serialize the cached graph
+					Builder<GraphSONIo> builder = GraphSONIo.build();
+					builder.graph(g);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GraphSONIo reader = builder.create();
+					reader.readGraph(fileName);
+				} else if (tinkerDriver == TinkerEngine.TINKER_DRIVER.XML) {
+					Builder<GraphMLIo> builder = GraphMLIo.build();
+					builder.graph(g);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GraphMLIo reader = builder.create();
+					reader.readGraph(fileName);
+				} else {
+					throw new IllegalArgumentException("Can only process .tg, .json, and .xml files");
+				}
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 
-    if (g != null) {
-      if (useLabel) {
-        retMap = GraphUtility.getMetamodel(g.traversal());
-      } else {
-        retMap = GraphUtility.getMetamodel(g.traversal(), graphTypeId);
-      }
-      try {
-        g.close();
-      } catch (Exception e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
+		if (g != null) {
+			if (useLabel) {
+				retMap = GraphUtility.getMetamodel(g.traversal());
+			} else {
+				retMap = GraphUtility.getMetamodel(g.traversal(), graphTypeId);
+			}
+			try {
+				g.close();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 
-    // position tables in metamodel to be spaced and not overlap
-    Map<String, Map<String, Double>> nodePositionMap =
-        GenerateMetamodelLayout.generateMetamodelLayoutForGraphDBs(retMap);
-    retMap.put(Constants.POSITION_PROP, nodePositionMap);
+		// position tables in metamodel to be spaced and not overlap
+		Map<String, Map<String, Double>> nodePositionMap = GenerateMetamodelLayout
+				.generateMetamodelLayoutForGraphDBs(retMap);
+		retMap.put(Constants.POSITION_PROP, nodePositionMap);
 
-    return new NounMetadata(retMap, PixelDataType.MAP);
-  }
+		return new NounMetadata(retMap, PixelDataType.MAP);
+	}
 
-  /**
-   * Query the external db with a label to get the node
-   *
-   * @return
-   */
-  private boolean useLabel() {
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.USE_LABEL.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      return (boolean) grs.get(0);
-    }
-    return false;
-  }
+	/**
+	 * Query the external db with a label to get the node
+	 *
+	 * @return
+	 */
+	private boolean useLabel() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.USE_LABEL.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			return (boolean) grs.get(0);
+		}
+		return false;
+	}
 }

@@ -24,66 +24,34 @@ import prerna.auth.AccessToken;
 
 public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator {
 
-  private static final Logger classLogger = LogManager.getLogger(AbstractLdapAuthenticator.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractLdapAuthenticator.class);
 
-  @Override
-  public DirContext createLdapContext(String providerUrl, String principalDN, String password)
-      throws Exception {
-    return LDAPConnectionHelper.createLdapContext(providerUrl, principalDN, password);
-  }
+	@Override
+	public DirContext createLdapContext(String providerUrl, String principalDN, String password) throws Exception {
+		return LDAPConnectionHelper.createLdapContext(providerUrl, principalDN, password);
+	}
 
-  @Override
-  public AccessToken generateAccessToken(
-      Attributes attributes,
-      String userDN,
-      String attributeIdKey,
-      String attributeNameKey,
-      String attributeEmailKey,
-      String attributeUserNameKey,
-      String attributeLastPwdChangeKey,
-      int requirePwdChangeAfterDays)
-      throws Exception {
-    return LDAPConnectionHelper.generateAccessToken(
-        attributes,
-        userDN,
-        attributeIdKey,
-        attributeNameKey,
-        attributeEmailKey,
-        attributeUserNameKey,
-        attributeLastPwdChangeKey,
-        requirePwdChangeAfterDays,
-        false);
-  }
+	@Override
+	public AccessToken generateAccessToken(Attributes attributes, String userDN, String attributeIdKey,
+			String attributeNameKey, String attributeEmailKey, String attributeUserNameKey,
+			String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws Exception {
+		return LDAPConnectionHelper.generateAccessToken(attributes, userDN, attributeIdKey, attributeNameKey,
+				attributeEmailKey, attributeUserNameKey, attributeLastPwdChangeKey, requirePwdChangeAfterDays, false);
+	}
 
-  @Override
-  public AccessToken generateAccessToken(
-      Attributes attributes,
-      String userDN,
-      String attributeIdKey,
-      String attributeNameKey,
-      String attributeEmailKey,
-      String attributeUserNameKey,
-      String attributeLastPwdChangeKey,
-      int requirePwdChangeAfterDays,
-      boolean ignoreLastPwdChange)
-      throws Exception {
-    return LDAPConnectionHelper.generateAccessToken(
-        attributes,
-        userDN,
-        attributeIdKey,
-        attributeNameKey,
-        attributeEmailKey,
-        attributeUserNameKey,
-        attributeLastPwdChangeKey,
-        requirePwdChangeAfterDays,
-        ignoreLastPwdChange);
-  }
+	@Override
+	public AccessToken generateAccessToken(Attributes attributes, String userDN, String attributeIdKey,
+			String attributeNameKey, String attributeEmailKey, String attributeUserNameKey,
+			String attributeLastPwdChangeKey, int requirePwdChangeAfterDays, boolean ignoreLastPwdChange)
+			throws Exception {
+		return LDAPConnectionHelper.generateAccessToken(attributes, userDN, attributeIdKey, attributeNameKey,
+				attributeEmailKey, attributeUserNameKey, attributeLastPwdChangeKey, requirePwdChangeAfterDays,
+				ignoreLastPwdChange);
+	}
 
-  @Override
-  public ZonedDateTime getLastPwdChange(
-      Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays)
-      throws NamingException {
-    return LDAPConnectionHelper.getLastPwdChange(
-        attributes, attributeLastPwdChangeKey, requirePwdChangeAfterDays);
-  }
+	@Override
+	public ZonedDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey,
+			int requirePwdChangeAfterDays) throws NamingException {
+		return LDAPConnectionHelper.getLastPwdChange(attributes, attributeLastPwdChangeKey, requirePwdChangeAfterDays);
+	}
 }

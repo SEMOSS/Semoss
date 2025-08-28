@@ -14,4 +14,5 @@
  ***************************************************************************************************/
 package prerna.ui.helpers;
 
-public class OldInsightRunner {}
+public class OldInsightRunner {
+}

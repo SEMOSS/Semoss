@@ -24,46 +24,46 @@ import org.apache.zookeeper.ZooKeeper;
 
 public class ModelUnavailableListener implements IModelZKListener {
 
-  String path = null;
-  ModelZKServer server = null;
+	String path = null;
+	ModelZKServer server = null;
 
-  public ModelUnavailableListener(String path, ModelZKServer server) {
-    this.server = server;
-    this.path = path;
-  }
+	public ModelUnavailableListener(String path, ModelZKServer server) {
+		this.server = server;
+		this.path = path;
+	}
 
-  @Override
-  public void setModelZK(ModelZKServer server) {
-    // TODO Auto-generated method stub
-    this.server = server;
-  }
+	@Override
+	public void setModelZK(ModelZKServer server) {
+		// TODO Auto-generated method stub
+		this.server = server;
+	}
 
-  @Override
-  public List<EventType> getEvents() {
-    // TODO Auto-generated method stub
-    List<EventType> retList = new ArrayList<EventType>();
-    retList.add(EventType.NodeDeleted);
-    return retList;
-  }
+	@Override
+	public List<EventType> getEvents() {
+		// TODO Auto-generated method stub
+		List<EventType> retList = new ArrayList<EventType>();
+		retList.add(EventType.NodeDeleted);
+		return retList;
+	}
 
-  @Override
-  public String getPath() {
-    // TODO Auto-generated method stub
-    return this.path;
-  }
+	@Override
+	public String getPath() {
+		// TODO Auto-generated method stub
+		return this.path;
+	}
 
-  @Override
-  public List<String> getPredicates() {
-    // TODO Auto-generated method stub
-    List<String> predicates = new ArrayList<String>();
-    predicates.add("equals");
-    return predicates;
-  }
+	@Override
+	public List<String> getPredicates() {
+		// TODO Auto-generated method stub
+		List<String> predicates = new ArrayList<String>();
+		predicates.add("equals");
+		return predicates;
+	}
 
-  @Override
-  public void process(String path, ZooKeeper zk) {
-    // TODO Auto-generated method stub
-    String endpointNode = path.replace("endpoint", "status");
-    server.updateNodeData(endpointNode, "INIT", true);
-  }
+	@Override
+	public void process(String path, ZooKeeper zk) {
+		// TODO Auto-generated method stub
+		String endpointNode = path.replace("endpoint", "status");
+		server.updateNodeData(endpointNode, "INIT", true);
+	}
 }

@@ -30,45 +30,43 @@ import prerna.util.Constants;
 
 public class GoogleGmailGetUnreadEmailsReactor extends AbstractReactor {
 
-  private static final Logger classLogger =
-      LogManager.getLogger(GoogleGmailGetUnreadEmailsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleGmailGetUnreadEmailsReactor.class);
 
-  public GoogleGmailGetUnreadEmailsReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.LIMIT.getKey()};
-    this.keyRequired = new int[] {1};
-  }
+	public GoogleGmailGetUnreadEmailsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.LIMIT.getKey()};
+		this.keyRequired = new int[]{1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    this.organizeKeys();
-    String limitStr = this.keyValue.get(this.keysToGet[0]);
-    try {
-      User user = this.insight.getUser();
-      String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-      int limit = Integer.parseInt(limitStr);
-      List<Map<String, Object>> result = GoogleGmailHelper.getUnreadEmails(accessToken, limit);
-      return new NounMetadata(
-          result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-    } catch (SemossPixelException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw e;
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new SemossPixelException(
-          "An error occurred getting the unread emails. Error message: " + e.getMessage());
-    }
-  }
+	@Override
+	public NounMetadata execute() {
+		this.organizeKeys();
+		String limitStr = this.keyValue.get(this.keysToGet[0]);
+		try {
+			User user = this.insight.getUser();
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
+			int limit = Integer.parseInt(limitStr);
+			List<Map<String, Object>> result = GoogleGmailHelper.getUnreadEmails(accessToken, limit);
+			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		} catch (SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(
+					"An error occurred getting the unread emails. Error message: " + e.getMessage());
+		}
+	}
 
-  @Override
-  public String getReactorDescription() {
-    return "Get the list of unread email";
-  }
+	@Override
+	public String getReactorDescription() {
+		return "Get the list of unread email";
+	}
 
-  @Override
-  protected String getDescriptionForKey(String key) {
-    if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-      return "The limit for the maximum number of unread emails";
-    }
-    return super.getDescriptionForKey(key);
-  }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "The limit for the maximum number of unread emails";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

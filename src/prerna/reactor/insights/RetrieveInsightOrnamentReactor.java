@@ -21,9 +21,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class RetrieveInsightOrnamentReactor extends AbstractReactor {
 
-  @Override
-  public NounMetadata execute() {
-    return new NounMetadata(
-        this.insight.getInsightOrnament(), PixelDataType.MAP, PixelOperationType.INSIGHT_ORNAMENT);
-  }
+	@Override
+	public NounMetadata execute() {
+		return new NounMetadata(this.insight.getInsightOrnament(), PixelDataType.MAP,
+				PixelOperationType.INSIGHT_ORNAMENT);
+	}
 }

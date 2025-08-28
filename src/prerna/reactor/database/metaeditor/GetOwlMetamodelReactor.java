@@ -30,39 +30,38 @@ import prerna.util.Utility;
 
 public class GetOwlMetamodelReactor extends AbstractMetaEditorReactor {
 
-  public GetOwlMetamodelReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
-  }
+	public GetOwlMetamodelReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String databaseId = this.keyValue.get(this.keysToGet[0]);
-    // we may have the alias
-    databaseId = testDatabaseId(databaseId, false);
-    IDatabaseEngine database = Utility.getDatabase(databaseId);
-    Map<String, Object[]> metamodelObject = database.getMetamodel();
-    Object[] nodes = metamodelObject.get("nodes");
-    Object[] relationships = metamodelObject.get("edges");
-    Map<String, Collection<String>> concepts = new HashMap<String, Collection<String>>();
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		// we may have the alias
+		databaseId = testDatabaseId(databaseId, false);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
+		Map<String, Object[]> metamodelObject = database.getMetamodel();
+		Object[] nodes = metamodelObject.get("nodes");
+		Object[] relationships = metamodelObject.get("edges");
+		Map<String, Collection<String>> concepts = new HashMap<String, Collection<String>>();
 
-    for (Object node : nodes) {
-      MetamodelVertex v = (MetamodelVertex) node;
-      concepts.put(v.getConceptualName(), new ArrayList<String>(v.getPropSet()));
-    }
-    List<Map<String, String>> rels = new ArrayList<>();
+		for (Object node : nodes) {
+			MetamodelVertex v = (MetamodelVertex) node;
+			concepts.put(v.getConceptualName(), new ArrayList<String>(v.getPropSet()));
+		}
+		List<Map<String, String>> rels = new ArrayList<>();
 
-    for (Object relation : relationships) {
-      rels.add((Map<String, String>) relation);
-    }
+		for (Object relation : relationships) {
+			rels.add((Map<String, String>) relation);
+		}
 
-    HashMap<String, Object> returnMap = new HashMap<String, Object>();
-    returnMap.put(Constants.NODE_PROP, nodes);
-    returnMap.put(Constants.RELATION_PROP, relationships);
-    Map<String, Map<String, Double>> positions =
-        GenerateMetamodelLayout.generateOWLMetamodelLayout(concepts, rels);
-    returnMap.put(Constants.POSITION_PROP, positions);
+		HashMap<String, Object> returnMap = new HashMap<String, Object>();
+		returnMap.put(Constants.NODE_PROP, nodes);
+		returnMap.put(Constants.RELATION_PROP, relationships);
+		Map<String, Map<String, Double>> positions = GenerateMetamodelLayout.generateOWLMetamodelLayout(concepts, rels);
+		returnMap.put(Constants.POSITION_PROP, positions);
 
-    return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
-  }
+		return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
+	}
 }

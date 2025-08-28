@@ -40,174 +40,163 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 
 class ParquetFileIteratorUnitTests {
 
-  @Mock private ParquetFileHelper mockHelper;
+	@Mock
+	private ParquetFileHelper mockHelper;
 
-  @Mock private ParquetQueryStruct mockQueryStruct;
+	@Mock
+	private ParquetQueryStruct mockQueryStruct;
 
-  private ParquetFileIterator iterator;
+	private ParquetFileIterator iterator;
 
-  @BeforeEach
-  void setUp() {
-    MockitoAnnotations.openMocks(this);
+	@BeforeEach
+	void setUp() {
+		MockitoAnnotations.openMocks(this);
 
-    when(mockQueryStruct.getFilePath()).thenReturn("test.parquet");
+		when(mockQueryStruct.getFilePath()).thenReturn("test.parquet");
 
-    Map<String, String> columnTypes = new HashMap<>();
-    columnTypes.put("name", "STRING");
-    columnTypes.put("age", "INTEGER");
-    when(mockQueryStruct.getColumnTypes()).thenReturn(columnTypes);
+		Map<String, String> columnTypes = new HashMap<>();
+		columnTypes.put("name", "STRING");
+		columnTypes.put("age", "INTEGER");
+		when(mockQueryStruct.getColumnTypes()).thenReturn(columnTypes);
 
-    List<IQuerySelector> selectors = new ArrayList<>();
-    selectors.add(new QueryColumnSelector("name"));
-    selectors.add(new QueryColumnSelector("age"));
-    when(mockQueryStruct.getSelectors()).thenReturn(selectors);
+		List<IQuerySelector> selectors = new ArrayList<>();
+		selectors.add(new QueryColumnSelector("name"));
+		selectors.add(new QueryColumnSelector("age"));
+		when(mockQueryStruct.getSelectors()).thenReturn(selectors);
 
-    when(mockQueryStruct.getLimit()).thenReturn(10L);
-    when(mockQueryStruct.getOffset()).thenReturn(0L);
+		when(mockQueryStruct.getLimit()).thenReturn(10L);
+		when(mockQueryStruct.getOffset()).thenReturn(0L);
 
-    try (MockedConstruction<ParquetFileHelper> mocked =
-        Mockito.mockConstruction(
-            ParquetFileHelper.class,
-            (mock, context) -> {
-              when(mock.getHeaders()).thenReturn(new String[] {"name", "age"});
-            })) {
-      iterator = new ParquetFileIterator(mockQueryStruct);
-    }
-  }
+		try (MockedConstruction<ParquetFileHelper> mocked = Mockito.mockConstruction(ParquetFileHelper.class,
+				(mock, context) -> {
+					when(mock.getHeaders()).thenReturn(new String[]{"name", "age"});
+				})) {
+			iterator = new ParquetFileIterator(mockQueryStruct);
+		}
+	}
 
-  @Test
-  void testConstructor_initialization() {
-    assertEquals("test.parquet", iterator.getQs().getFilePath());
-    assertNotNull(iterator.getQs().getColumnTypes());
-    assertEquals(10, iterator.getQs().getLimit());
-    assertEquals(0, iterator.getQs().getOffset());
-  }
+	@Test
+	void testConstructor_initialization() {
+		assertEquals("test.parquet", iterator.getQs().getFilePath());
+		assertNotNull(iterator.getQs().getColumnTypes());
+		assertEquals(10, iterator.getQs().getLimit());
+		assertEquals(0, iterator.getQs().getOffset());
+	}
 
-  @Test
-  void testSetSelectors_withValidSelectors() {
-    List<IQuerySelector> selectors = new ArrayList<>();
-    selectors.add(new QueryColumnSelector("name"));
-    selectors.add(new QueryColumnSelector("age"));
+	@Test
+	void testSetSelectors_withValidSelectors() {
+		List<IQuerySelector> selectors = new ArrayList<>();
+		selectors.add(new QueryColumnSelector("name"));
+		selectors.add(new QueryColumnSelector("age"));
 
-    when(mockHelper.getHeaders()).thenReturn(new String[] {"name", "age"});
+		when(mockHelper.getHeaders()).thenReturn(new String[]{"name", "age"});
 
-    assertDoesNotThrow(() -> iterator.getQs().setSelectors(selectors));
+		assertDoesNotThrow(() -> iterator.getQs().setSelectors(selectors));
 
-    assertEquals(2, iterator.getQs().getSelectors().size());
-  }
+		assertEquals(2, iterator.getQs().getSelectors().size());
+	}
 
-  @Test
-  void testSetSelectors_withInvalidSelectorType() {
-    QueryColumnSelector invalidSelector = mock(QueryColumnSelector.class);
-    when(invalidSelector.getSelectorType()).thenReturn(IQuerySelector.SELECTOR_TYPE.ARITHMETIC);
+	@Test
+	void testSetSelectors_withInvalidSelectorType() {
+		QueryColumnSelector invalidSelector = mock(QueryColumnSelector.class);
+		when(invalidSelector.getSelectorType()).thenReturn(IQuerySelector.SELECTOR_TYPE.ARITHMETIC);
 
-    when(mockQueryStruct.getSelectors()).thenReturn(Arrays.asList(invalidSelector));
+		when(mockQueryStruct.getSelectors()).thenReturn(Arrays.asList(invalidSelector));
 
-    IllegalArgumentException thrown =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-              new ParquetFileIterator(mockQueryStruct);
-            });
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+			new ParquetFileIterator(mockQueryStruct);
+		});
 
-    assertEquals("Cannot perform math on a csv import", thrown.getMessage());
-  }
+		assertEquals("Cannot perform math on a csv import", thrown.getMessage());
+	}
 
-  @Test
-  void testReset() throws Exception {
-    assertDoesNotThrow(() -> iterator.reset());
-  }
+	@Test
+	void testReset() throws Exception {
+		assertDoesNotThrow(() -> iterator.reset());
+	}
 
-  @Test
-  void testClose() throws IOException {
-    assertDoesNotThrow(() -> iterator.close());
-  }
+	@Test
+	void testClose() throws IOException {
+		assertDoesNotThrow(() -> iterator.close());
+	}
 
-  @Test
-  void testGetNextRow() {
-    assertDoesNotThrow(() -> iterator.getNextRow());
-  }
+	@Test
+	void testGetNextRow() {
+		assertDoesNotThrow(() -> iterator.getNextRow());
+	}
 
-  @Test
-  void testModifyCleanedHeaders_withUserDefinedHeaders() {
-    Map<String, String> userDefinedHeaders = new HashMap<>();
-    userDefinedHeaders.put("new_name", "name");
-    userDefinedHeaders.put("new_age", "age");
+	@Test
+	void testModifyCleanedHeaders_withUserDefinedHeaders() {
+		Map<String, String> userDefinedHeaders = new HashMap<>();
+		userDefinedHeaders.put("new_name", "name");
+		userDefinedHeaders.put("new_age", "age");
 
-    when(mockQueryStruct.getNewHeaderNames()).thenReturn(userDefinedHeaders);
+		when(mockQueryStruct.getNewHeaderNames()).thenReturn(userDefinedHeaders);
 
-    try (MockedConstruction<ParquetFileHelper> mocked =
-        Mockito.mockConstruction(
-            ParquetFileHelper.class,
-            (mock, context) -> {
-              when(mock.getHeaders()).thenReturn(new String[] {"name", "age"});
-            })) {
-      iterator = new ParquetFileIterator(mockQueryStruct);
+		try (MockedConstruction<ParquetFileHelper> mocked = Mockito.mockConstruction(ParquetFileHelper.class,
+				(mock, context) -> {
+					when(mock.getHeaders()).thenReturn(new String[]{"name", "age"});
+				})) {
+			iterator = new ParquetFileIterator(mockQueryStruct);
 
-      ParquetFileHelper helperInstance = mocked.constructed().get(0);
-      Mockito.verify(helperInstance).modifyCleanedHeaders(userDefinedHeaders);
-    }
-  }
+			ParquetFileHelper helperInstance = mocked.constructed().get(0);
+			Mockito.verify(helperInstance).modifyCleanedHeaders(userDefinedHeaders);
+		}
+	}
 
-  @Test
-  void testSetSelectors_withEmptySelectors() {
-    List<IQuerySelector> emptySelectors = new ArrayList<>();
-    when(mockQueryStruct.getSelectors()).thenReturn(emptySelectors);
+	@Test
+	void testSetSelectors_withEmptySelectors() {
+		List<IQuerySelector> emptySelectors = new ArrayList<>();
+		when(mockQueryStruct.getSelectors()).thenReturn(emptySelectors);
 
-    try (MockedConstruction<ParquetFileHelper> mocked =
-        Mockito.mockConstruction(
-            ParquetFileHelper.class,
-            (mock, context) -> {
-              when(mock.getHeaders()).thenReturn(new String[] {"name", "age"});
-            })) {
-      iterator = new ParquetFileIterator(mockQueryStruct);
+		try (MockedConstruction<ParquetFileHelper> mocked = Mockito.mockConstruction(ParquetFileHelper.class,
+				(mock, context) -> {
+					when(mock.getHeaders()).thenReturn(new String[]{"name", "age"});
+				})) {
+			iterator = new ParquetFileIterator(mockQueryStruct);
 
-      List<IQuerySelector> selectors = iterator.getQs().getSelectors();
-      assertEquals(0, selectors.size());
-    }
-  }
+			List<IQuerySelector> selectors = iterator.getQs().getSelectors();
+			assertEquals(0, selectors.size());
+		}
+	}
 
-  @Test
-  void testSetSelectors_withMismatchedHeadersAndSelectors() {
-    List<IQuerySelector> selectors = new ArrayList<>();
-    selectors.add(new QueryColumnSelector("name"));
-    selectors.add(new QueryColumnSelector("age"));
-    when(mockQueryStruct.getSelectors()).thenReturn(selectors);
+	@Test
+	void testSetSelectors_withMismatchedHeadersAndSelectors() {
+		List<IQuerySelector> selectors = new ArrayList<>();
+		selectors.add(new QueryColumnSelector("name"));
+		selectors.add(new QueryColumnSelector("age"));
+		when(mockQueryStruct.getSelectors()).thenReturn(selectors);
 
-    try (MockedConstruction<ParquetFileHelper> mocked =
-        Mockito.mockConstruction(
-            ParquetFileHelper.class,
-            (mock, context) -> {
-              when(mock.getHeaders()).thenReturn(new String[] {"name", "age", "extra"});
-            })) {
-      iterator = new ParquetFileIterator(mockQueryStruct);
+		try (MockedConstruction<ParquetFileHelper> mocked = Mockito.mockConstruction(ParquetFileHelper.class,
+				(mock, context) -> {
+					when(mock.getHeaders()).thenReturn(new String[]{"name", "age", "extra"});
+				})) {
+			iterator = new ParquetFileIterator(mockQueryStruct);
 
-      ParquetFileHelper helperInstance = mocked.constructed().get(0);
-      Mockito.verify(helperInstance).parseColumns(new String[] {"name", "age"});
-    }
-  }
+			ParquetFileHelper helperInstance = mocked.constructed().get(0);
+			Mockito.verify(helperInstance).parseColumns(new String[]{"name", "age"});
+		}
+	}
 
-  @Test
-  void testSetSelectors_withKnownTypes() {
-    List<IQuerySelector> selectors = new ArrayList<>();
-    selectors.add(new QueryColumnSelector("name"));
-    selectors.add(new QueryColumnSelector("age"));
-    when(mockQueryStruct.getSelectors()).thenReturn(selectors);
+	@Test
+	void testSetSelectors_withKnownTypes() {
+		List<IQuerySelector> selectors = new ArrayList<>();
+		selectors.add(new QueryColumnSelector("name"));
+		selectors.add(new QueryColumnSelector("age"));
+		when(mockQueryStruct.getSelectors()).thenReturn(selectors);
 
-    Map<String, String> dataTypeMap = new HashMap<>();
-    Map<String, String> additionalTypesMap = new HashMap<>();
-    when(mockQueryStruct.getColumnTypes()).thenReturn(dataTypeMap);
-    when(mockQueryStruct.getAdditionalTypes()).thenReturn(additionalTypesMap);
+		Map<String, String> dataTypeMap = new HashMap<>();
+		Map<String, String> additionalTypesMap = new HashMap<>();
+		when(mockQueryStruct.getColumnTypes()).thenReturn(dataTypeMap);
+		when(mockQueryStruct.getAdditionalTypes()).thenReturn(additionalTypesMap);
 
-    try (MockedConstruction<ParquetFileHelper> mocked =
-        Mockito.mockConstruction(
-            ParquetFileHelper.class,
-            (mock, context) -> {
-              when(mock.getHeaders()).thenReturn(new String[] {"name", "age"});
-            })) {
-      iterator = new ParquetFileIterator(mockQueryStruct);
+		try (MockedConstruction<ParquetFileHelper> mocked = Mockito.mockConstruction(ParquetFileHelper.class,
+				(mock, context) -> {
+					when(mock.getHeaders()).thenReturn(new String[]{"name", "age"});
+				})) {
+			iterator = new ParquetFileIterator(mockQueryStruct);
 
-      Mockito.verify(mockQueryStruct).setColumnTypes(dataTypeMap);
-    }
-  }
+			Mockito.verify(mockQueryStruct).setColumnTypes(dataTypeMap);
+		}
+	}
 }

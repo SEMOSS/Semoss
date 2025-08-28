@@ -24,17 +24,15 @@ import prerna.util.Utility;
 
 public class IsExcelPasswordProtectedReactor extends AbstractReactor {
 
-  public IsExcelPasswordProtectedReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
-  }
+	public IsExcelPasswordProtectedReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String fileLocation =
-        Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
-    boolean isEncrypted = ExcelUtility.isExcelEncrypted(fileLocation);
-    return new NounMetadata(isEncrypted, PixelDataType.BOOLEAN);
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+		boolean isEncrypted = ExcelUtility.isExcelEncrypted(fileLocation);
+		return new NounMetadata(isEncrypted, PixelDataType.BOOLEAN);
+	}
 }

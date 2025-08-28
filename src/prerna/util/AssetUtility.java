@@ -32,391 +32,362 @@ import prerna.util.git.GitRepoUtils;
 
 public class AssetUtility {
 
-  // TODO: see which parts should be merged with EngineUtility
+	// TODO: see which parts should be merged with EngineUtility
 
-  private static final Logger classLogger = LogManager.getLogger(AssetUtility.class);
+	private static final Logger classLogger = LogManager.getLogger(AssetUtility.class);
 
-  private static final String DIR_SEPARATOR = "/";
+	private static final String DIR_SEPARATOR = "/";
 
-  public static String USER_SPACE_KEY = "USER";
-  public static String INSIGHT_SPACE_KEY = "INSIGHT";
+	public static String USER_SPACE_KEY = "USER";
+	public static String INSIGHT_SPACE_KEY = "INSIGHT";
 
-  /**
-   * Grab the workspace to work with asset files
-   *
-   * <p>PROJECT-ID: project/project_folder/app_root USER: user/user_folder/app_root INSIGHT:
-   * project/project_folder/app_root/version/insightID if saved, else its the temporary insight
-   * folder
-   *
-   * @param in
-   * @param space
-   * @return
-   */
-  public static String getRootFolderPath(Insight in, String space, boolean editRequired) {
-    String assetFolder = in.getInsightFolder();
-    // find out what space the user wants to use to get the base asset path
-    if (space != null && !space.isEmpty()) {
-      if (USER_SPACE_KEY.equalsIgnoreCase(space)) {
-        User user = in.getUser();
-        if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-          throw new IllegalArgumentException("Must be logged in to access user specific assets");
-        }
-        AuthProvider provider = user.getPrimaryLogin();
-        String projectId = user.getAssetProjectId(provider);
-        String projectName = "Asset";
-        assetFolder = getUserAssetAndWorkspaceAppRootFolder(projectName, projectId);
-      } else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
-        // default
-        // but need to perform check
-        if (editRequired
-            && in.isSavedInsight()
-            && !SecurityInsightUtils.userCanEditInsight(
-                in.getUser(), in.getProjectId(), in.getRdbmsId())) {
-          throw new IllegalArgumentException("User does not have permission for this insight");
-        }
-      } else {
-        // user has passed an id
-        String projectId = space;
-        // check if the user has permission for the app
-        if (editRequired) {
-          if (!SecurityProjectUtils.userCanEditProject(in.getUser(), projectId)) {
-            throw new IllegalArgumentException("User does not have permission for this project");
-          }
-        } else {
-          // only read access
-          if (!SecurityProjectUtils.userCanViewProject(in.getUser(), projectId)) {
-            throw new IllegalArgumentException("User does not have permission for this project");
-          }
-        }
-        IProject project = Utility.getProject(projectId);
-        String projectName = project.getProjectName();
-        // assetFolder = getAppAssetFolder(appName, appId);
-        assetFolder = getProjectAppRootFolder(projectName, projectId);
-      }
-    } else if (in.isSavedInsight() && editRequired) {
-      // we are about to send back the insight folder
-      // since that is the default
-      // FE very rarely sends the INSIGHT_SPACE_KEY
-      // and edit is required
-      // make sure user has access
-      if (!SecurityInsightUtils.userCanEditInsight(
-          in.getUser(), in.getProjectId(), in.getRdbmsId())) {
-        throw new IllegalArgumentException("User does not have permission for this insight");
-      }
-    }
-    assetFolder = Utility.normalizePath(assetFolder.replace('\\', '/'));
-    return assetFolder.replace("\\", "/");
-  }
+	/**
+	 * Grab the workspace to work with asset files
+	 *
+	 * <p>
+	 * PROJECT-ID: project/project_folder/app_root USER: user/user_folder/app_root
+	 * INSIGHT: project/project_folder/app_root/version/insightID if saved, else its
+	 * the temporary insight folder
+	 *
+	 * @param in
+	 * @param space
+	 * @return
+	 */
+	public static String getRootFolderPath(Insight in, String space, boolean editRequired) {
+		String assetFolder = in.getInsightFolder();
+		// find out what space the user wants to use to get the base asset path
+		if (space != null && !space.isEmpty()) {
+			if (USER_SPACE_KEY.equalsIgnoreCase(space)) {
+				User user = in.getUser();
+				if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+					throw new IllegalArgumentException("Must be logged in to access user specific assets");
+				}
+				AuthProvider provider = user.getPrimaryLogin();
+				String projectId = user.getAssetProjectId(provider);
+				String projectName = "Asset";
+				assetFolder = getUserAssetAndWorkspaceAppRootFolder(projectName, projectId);
+			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
+				// default
+				// but need to perform check
+				if (editRequired && in.isSavedInsight()
+						&& !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
+					throw new IllegalArgumentException("User does not have permission for this insight");
+				}
+			} else {
+				// user has passed an id
+				String projectId = space;
+				// check if the user has permission for the app
+				if (editRequired) {
+					if (!SecurityProjectUtils.userCanEditProject(in.getUser(), projectId)) {
+						throw new IllegalArgumentException("User does not have permission for this project");
+					}
+				} else {
+					// only read access
+					if (!SecurityProjectUtils.userCanViewProject(in.getUser(), projectId)) {
+						throw new IllegalArgumentException("User does not have permission for this project");
+					}
+				}
+				IProject project = Utility.getProject(projectId);
+				String projectName = project.getProjectName();
+				// assetFolder = getAppAssetFolder(appName, appId);
+				assetFolder = getProjectAppRootFolder(projectName, projectId);
+			}
+		} else if (in.isSavedInsight() && editRequired) {
+			// we are about to send back the insight folder
+			// since that is the default
+			// FE very rarely sends the INSIGHT_SPACE_KEY
+			// and edit is required
+			// make sure user has access
+			if (!SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
+				throw new IllegalArgumentException("User does not have permission for this insight");
+			}
+		}
+		assetFolder = Utility.normalizePath(assetFolder.replace('\\', '/'));
+		return assetFolder.replace("\\", "/");
+	}
 
-  /**
-   * @param projectId
-   * @return
-   */
-  public static String getProjectAssetsFolder(String projectId) {
-    IProject project = Utility.getProject(projectId);
-    String projectName = project.getProjectName();
-    return AssetUtility.getProjectAssetsFolder(projectName, projectId);
-  }
+	/**
+	 * @param projectId
+	 * @return
+	 */
+	public static String getProjectAssetsFolder(String projectId) {
+		IProject project = Utility.getProject(projectId);
+		String projectName = project.getProjectName();
+		return AssetUtility.getProjectAssetsFolder(projectName, projectId);
+	}
 
-  @Deprecated
-  /**
-   * Update to AssetUtility.getProjectAssetsFolder(String projectId) method
-   *
-   * @param projectId
-   * @return
-   */
-  public static String getProjectAssetFolder(String projectId) {
-    return getProjectAssetsFolder(projectId);
-  }
+	@Deprecated
+	/**
+	 * Update to AssetUtility.getProjectAssetsFolder(String projectId) method
+	 *
+	 * @param projectId
+	 * @return
+	 */
+	public static String getProjectAssetFolder(String projectId) {
+		return getProjectAssetsFolder(projectId);
+	}
 
-  /**
-   * @param projectName
-   * @param projectId
-   * @return
-   */
-  public static String getProjectAssetsFolder(String projectName, String projectId) {
-    String projectVersionBaseFolder = getProjectVersionFolder(projectName, projectId);
-    String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + Constants.ASSETS_FOLDER;
+	/**
+	 * @param projectName
+	 * @param projectId
+	 * @return
+	 */
+	public static String getProjectAssetsFolder(String projectName, String projectId) {
+		String projectVersionBaseFolder = getProjectVersionFolder(projectName, projectId);
+		String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + Constants.ASSETS_FOLDER;
 
-    // if this folder does not exist create it
-    File file = new File(Utility.normalizePath(projectFolder));
-    if (!file.exists()) {
-      file.mkdir();
-    }
-    return projectFolder.replace("\\", "/");
-  }
+		// if this folder does not exist create it
+		File file = new File(Utility.normalizePath(projectFolder));
+		if (!file.exists()) {
+			file.mkdir();
+		}
+		return projectFolder.replace("\\", "/");
+	}
 
-  /**
-   * @param projectId
-   * @return
-   */
-  public static String getProjectPortalsFolder(String projectId) {
-    IProject project = Utility.getProject(projectId);
-    String projectName = project.getProjectName();
-    return AssetUtility.getProjectPortalsFolder(projectName, projectId);
-  }
+	/**
+	 * @param projectId
+	 * @return
+	 */
+	public static String getProjectPortalsFolder(String projectId) {
+		IProject project = Utility.getProject(projectId);
+		String projectName = project.getProjectName();
+		return AssetUtility.getProjectPortalsFolder(projectName, projectId);
+	}
 
-  /**
-   * @param projectName
-   * @param projectId
-   * @return
-   */
-  public static String getProjectPortalsFolder(String projectName, String projectId) {
-    String assetFolder = getProjectAssetsFolder(projectName, projectId);
-    String portalsFolder = assetFolder + DIR_SEPARATOR + Constants.PORTALS_FOLDER;
+	/**
+	 * @param projectName
+	 * @param projectId
+	 * @return
+	 */
+	public static String getProjectPortalsFolder(String projectName, String projectId) {
+		String assetFolder = getProjectAssetsFolder(projectName, projectId);
+		String portalsFolder = assetFolder + DIR_SEPARATOR + Constants.PORTALS_FOLDER;
 
-    // if this folder does not exist create it
-    File file = new File(portalsFolder);
-    if (!file.exists()) {
-      file.mkdir();
-    }
-    return portalsFolder.replace("\\", "/");
-  }
+		// if this folder does not exist create it
+		File file = new File(portalsFolder);
+		if (!file.exists()) {
+			file.mkdir();
+		}
+		return portalsFolder.replace("\\", "/");
+	}
 
-  /**
-   * @param projectName
-   * @param projectId
-   * @return
-   */
-  public static String getProjectNotebookFolder(String projectName, String projectId) {
-    String assetFolder = getProjectAssetsFolder(projectName, projectId);
-    String notebookFolder = assetFolder + DIR_SEPARATOR + IProject.NOTEBOOK_FOLDER;
+	/**
+	 * @param projectName
+	 * @param projectId
+	 * @return
+	 */
+	public static String getProjectNotebookFolder(String projectName, String projectId) {
+		String assetFolder = getProjectAssetsFolder(projectName, projectId);
+		String notebookFolder = assetFolder + DIR_SEPARATOR + IProject.NOTEBOOK_FOLDER;
 
-    // if this folder does not exist create it
-    File file = new File(notebookFolder);
-    if (!file.exists()) {
-      file.mkdir();
-    }
-    return notebookFolder.replace("\\", "/");
-  }
+		// if this folder does not exist create it
+		File file = new File(notebookFolder);
+		if (!file.exists()) {
+			file.mkdir();
+		}
+		return notebookFolder.replace("\\", "/");
+	}
 
-  /**
-   * @param projectName
-   * @param projectId
-   * @return
-   */
-  public static String getProjectVersionFolder(String projectName, String projectId) {
-    String projectBaseFolder = getProjectAppRootFolder(projectName, projectId);
-    String gitFolder = projectBaseFolder + DIR_SEPARATOR + Constants.VERSION_FOLDER;
-    // if this folder does not exist create it
-    File file = new File(Utility.normalizePath(gitFolder));
-    if (!file.exists()) {
-      file.mkdir();
-    }
+	/**
+	 * @param projectName
+	 * @param projectId
+	 * @return
+	 */
+	public static String getProjectVersionFolder(String projectName, String projectId) {
+		String projectBaseFolder = getProjectAppRootFolder(projectName, projectId);
+		String gitFolder = projectBaseFolder + DIR_SEPARATOR + Constants.VERSION_FOLDER;
+		// if this folder does not exist create it
+		File file = new File(Utility.normalizePath(gitFolder));
+		if (!file.exists()) {
+			file.mkdir();
+		}
 
-    if (!isGit(gitFolder)) {
-      GitRepoUtils.init(gitFolder);
-    }
-    return gitFolder.replace("\\", "/");
-  }
+		if (!isGit(gitFolder)) {
+			GitRepoUtils.init(gitFolder);
+		}
+		return gitFolder.replace("\\", "/");
+	}
 
-  /**
-   * @param in
-   * @param space
-   * @return
-   */
-  public static String getAssetRelativePath(Insight in, String space) {
-    String relativePath = "";
-    if (space == null || space.equals(INSIGHT_SPACE_KEY)) {
-      relativePath = "/" + Constants.VERSION_FOLDER + "/" + in.getRdbmsId();
-    } else {
-      // user space or asset app
-      // asset app - no relative space ?
-      relativePath = "";
-      // relativePath = Constants.ASSETS_FOLDER;
-    }
-    return relativePath.replace("\\", "/");
-  }
+	/**
+	 * @param in
+	 * @param space
+	 * @return
+	 */
+	public static String getAssetRelativePath(Insight in, String space) {
+		String relativePath = "";
+		if (space == null || space.equals(INSIGHT_SPACE_KEY)) {
+			relativePath = "/" + Constants.VERSION_FOLDER + "/" + in.getRdbmsId();
+		} else {
+			// user space or asset app
+			// asset app - no relative space ?
+			relativePath = "";
+			// relativePath = Constants.ASSETS_FOLDER;
+		}
+		return relativePath.replace("\\", "/");
+	}
 
-  /**
-   * @param assetFolder
-   * @return
-   */
-  public static boolean isGit(String assetFolder) {
-    File file = new File(Utility.normalizePath(assetFolder) + DIR_SEPARATOR + ".git");
-    return file.exists();
-  }
+	/**
+	 * @param assetFolder
+	 * @return
+	 */
+	public static boolean isGit(String assetFolder) {
+		File file = new File(Utility.normalizePath(assetFolder) + DIR_SEPARATOR + ".git");
+		return file.exists();
+	}
 
-  /**
-   * @param projectId
-   * @return
-   */
-  public static String getProjectAppRootFolder(String projectId) {
-    IProject project = Utility.getProject(projectId);
-    String projectName = project.getProjectName();
-    return AssetUtility.getProjectAppRootFolder(projectName, projectId);
-  }
+	/**
+	 * @param projectId
+	 * @return
+	 */
+	public static String getProjectAppRootFolder(String projectId) {
+		IProject project = Utility.getProject(projectId);
+		String projectName = project.getProjectName();
+		return AssetUtility.getProjectAppRootFolder(projectName, projectId);
+	}
 
-  /**
-   * @param projectName
-   * @param projectId
-   * @return
-   */
-  public static String getProjectAppRootFolder(String projectName, String projectId) {
-    String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-    if (!(baseFolder.endsWith("/") || baseFolder.endsWith("\\"))) {
-      baseFolder += DIR_SEPARATOR;
-    }
+	/**
+	 * @param projectName
+	 * @param projectId
+	 * @return
+	 */
+	public static String getProjectAppRootFolder(String projectName, String projectId) {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		if (!(baseFolder.endsWith("/") || baseFolder.endsWith("\\"))) {
+			baseFolder += DIR_SEPARATOR;
+		}
 
-    String baseProjectFolder =
-        Utility.normalizePath(
-            baseFolder
-                + Constants.PROJECT_FOLDER
-                + DIR_SEPARATOR
-                + SmssUtilities.getUniqueName(projectName, projectId)
-                + DIR_SEPARATOR
-                + Constants.APP_ROOT_FOLDER);
+		String baseProjectFolder = Utility.normalizePath(baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR
+				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + Constants.APP_ROOT_FOLDER);
 
-    File baseProjectFolderFile = new File(baseProjectFolder);
-    if (!baseProjectFolderFile.exists()) {
-      baseProjectFolderFile.mkdir();
-      // if you are creating this.. there is a possibility we need to fix this project
-      rehomeProjectForAppRoot(projectName, projectId, baseProjectFolder);
-    }
-    // try to see if there is a version folder and if so move it into app_root
-    return baseProjectFolder.replace("\\", "/");
-  }
+		File baseProjectFolderFile = new File(baseProjectFolder);
+		if (!baseProjectFolderFile.exists()) {
+			baseProjectFolderFile.mkdir();
+			// if you are creating this.. there is a possibility we need to fix this project
+			rehomeProjectForAppRoot(projectName, projectId, baseProjectFolder);
+		}
+		// try to see if there is a version folder and if so move it into app_root
+		return baseProjectFolder.replace("\\", "/");
+	}
 
-  /**
-   * @param projectName
-   * @param projectId
-   * @param newRoot
-   */
-  private static void rehomeProjectForAppRoot(
-      String projectName, String projectId, String newRoot) {
-    String baseFolder = Utility.getBaseFolder();
-    if (!(baseFolder.endsWith("/") || baseFolder.endsWith("\\"))) {
-      baseFolder += DIR_SEPARATOR;
-    }
+	/**
+	 * @param projectName
+	 * @param projectId
+	 * @param newRoot
+	 */
+	private static void rehomeProjectForAppRoot(String projectName, String projectId, String newRoot) {
+		String baseFolder = Utility.getBaseFolder();
+		if (!(baseFolder.endsWith("/") || baseFolder.endsWith("\\"))) {
+			baseFolder += DIR_SEPARATOR;
+		}
 
-    String oldBaseAppFolder =
-        Utility.normalizePath(
-            baseFolder
-                + Constants.PROJECT_FOLDER
-                + DIR_SEPARATOR
-                + SmssUtilities.getUniqueName(projectName, projectId)
-                + DIR_SEPARATOR
-                + Constants.VERSION_FOLDER);
+		String oldBaseAppFolder = Utility.normalizePath(baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR
+				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + Constants.VERSION_FOLDER);
 
-    File oldBaseAppFolderFile = new File(oldBaseAppFolder);
+		File oldBaseAppFolderFile = new File(oldBaseAppFolder);
 
-    if (oldBaseAppFolderFile.exists()) {
-      try {
-        classLogger.info("Rehoming Project Catalog : " + projectName);
-        Files.move(
-            oldBaseAppFolderFile.toPath(),
-            new File(newRoot + DIR_SEPARATOR + Constants.VERSION_FOLDER).toPath(),
-            StandardCopyOption.REPLACE_EXISTING);
-      } catch (IOException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
-  }
+		if (oldBaseAppFolderFile.exists()) {
+			try {
+				classLogger.info("Rehoming Project Catalog : " + projectName);
+				Files.move(oldBaseAppFolderFile.toPath(),
+						new File(newRoot + DIR_SEPARATOR + Constants.VERSION_FOLDER).toPath(),
+						StandardCopyOption.REPLACE_EXISTING);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+	}
 
-  /*
-   * USER ASSET METHODS
-   */
+	/*
+	 * USER ASSET METHODS
+	 */
 
-  /**
-   * @param projectName
-   * @param projectId
-   * @return
-   */
-  public static String getUserAssetAndWorkspaceVersionFolder(String projectName, String projectId) {
-    // get the base folder
-    String baseFodler = getUserAssetAndWorkspaceAppRootFolder(projectName, projectId);
-    String gitFolder = baseFodler + "/version";
+	/**
+	 * @param projectName
+	 * @param projectId
+	 * @return
+	 */
+	public static String getUserAssetAndWorkspaceVersionFolder(String projectName, String projectId) {
+		// get the base folder
+		String baseFodler = getUserAssetAndWorkspaceAppRootFolder(projectName, projectId);
+		String gitFolder = baseFodler + "/version";
 
-    File file = new File(Utility.normalizePath(gitFolder));
-    if (!file.exists()) {
-      file.mkdir();
-    }
+		File file = new File(Utility.normalizePath(gitFolder));
+		if (!file.exists()) {
+			file.mkdir();
+		}
 
-    if (!isGit(gitFolder)) {
-      GitRepoUtils.init(gitFolder);
-    }
-    return gitFolder.replace("\\", "/");
-  }
+		if (!isGit(gitFolder)) {
+			GitRepoUtils.init(gitFolder);
+		}
+		return gitFolder.replace("\\", "/");
+	}
 
-  /**
-   * @param projectName
-   * @param projectId
-   * @return
-   */
-  public static String getUserAssetAndWorkspaceAssetFolder(String projectName, String projectId) {
-    String projectVersionBaseFolder = getUserAssetAndWorkspaceVersionFolder(projectName, projectId);
-    String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + Constants.ASSETS_FOLDER;
+	/**
+	 * @param projectName
+	 * @param projectId
+	 * @return
+	 */
+	public static String getUserAssetAndWorkspaceAssetFolder(String projectName, String projectId) {
+		String projectVersionBaseFolder = getUserAssetAndWorkspaceVersionFolder(projectName, projectId);
+		String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + Constants.ASSETS_FOLDER;
 
-    // if this folder does not exist create it
-    File file = new File(Utility.normalizePath(projectFolder));
-    if (!file.exists()) {
-      file.mkdir();
-    }
-    return projectFolder.replace("\\", "/");
-  }
+		// if this folder does not exist create it
+		File file = new File(Utility.normalizePath(projectFolder));
+		if (!file.exists()) {
+			file.mkdir();
+		}
+		return projectFolder.replace("\\", "/");
+	}
 
-  /**
-   * @param projectName
-   * @param projectId
-   * @return
-   */
-  public static String getUserAssetAndWorkspaceAppRootFolder(String projectName, String projectId) {
-    String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-    if (!(baseFolder.endsWith("/") || baseFolder.endsWith("\\"))) {
-      baseFolder += DIR_SEPARATOR;
-    }
+	/**
+	 * @param projectName
+	 * @param projectId
+	 * @return
+	 */
+	public static String getUserAssetAndWorkspaceAppRootFolder(String projectName, String projectId) {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		if (!(baseFolder.endsWith("/") || baseFolder.endsWith("\\"))) {
+			baseFolder += DIR_SEPARATOR;
+		}
 
-    String baseProjectFolder =
-        Utility.normalizePath(
-            baseFolder
-                + Constants.USER_FOLDER
-                + DIR_SEPARATOR
-                + SmssUtilities.getUniqueName(projectName, projectId)
-                + DIR_SEPARATOR
-                + Constants.APP_ROOT_FOLDER);
+		String baseProjectFolder = Utility.normalizePath(baseFolder + Constants.USER_FOLDER + DIR_SEPARATOR
+				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + Constants.APP_ROOT_FOLDER);
 
-    File baseAppFolderFile = new File(baseProjectFolder);
-    if (!baseAppFolderFile.exists()) {
-      baseAppFolderFile.mkdir();
-      // if you are creating this.. there is a possibility we need to fix this engine
-      rehomeUserForAppRoot(projectName, projectId, baseProjectFolder);
-    }
-    // try to see if there is a version folder and if so move it into app_root
-    return baseProjectFolder.replace("\\", "/");
-  }
+		File baseAppFolderFile = new File(baseProjectFolder);
+		if (!baseAppFolderFile.exists()) {
+			baseAppFolderFile.mkdir();
+			// if you are creating this.. there is a possibility we need to fix this engine
+			rehomeUserForAppRoot(projectName, projectId, baseProjectFolder);
+		}
+		// try to see if there is a version folder and if so move it into app_root
+		return baseProjectFolder.replace("\\", "/");
+	}
 
-  /**
-   * @param projectName
-   * @param projectId
-   * @param newRoot
-   */
-  private static void rehomeUserForAppRoot(String projectName, String projectId, String newRoot) {
-    String baseFolder = Utility.getBaseFolder();
-    if (!(baseFolder.endsWith("/") || baseFolder.endsWith("\\"))) {
-      baseFolder += DIR_SEPARATOR;
-    }
+	/**
+	 * @param projectName
+	 * @param projectId
+	 * @param newRoot
+	 */
+	private static void rehomeUserForAppRoot(String projectName, String projectId, String newRoot) {
+		String baseFolder = Utility.getBaseFolder();
+		if (!(baseFolder.endsWith("/") || baseFolder.endsWith("\\"))) {
+			baseFolder += DIR_SEPARATOR;
+		}
 
-    String oldBaseAppFolder =
-        Utility.normalizePath(
-            baseFolder
-                + Constants.USER_FOLDER
-                + DIR_SEPARATOR
-                + SmssUtilities.getUniqueName(projectName, projectId)
-                + DIR_SEPARATOR
-                + Constants.VERSION_FOLDER);
+		String oldBaseAppFolder = Utility.normalizePath(baseFolder + Constants.USER_FOLDER + DIR_SEPARATOR
+				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + Constants.VERSION_FOLDER);
 
-    File oldBaseAppFolderFile = new File(oldBaseAppFolder);
+		File oldBaseAppFolderFile = new File(oldBaseAppFolder);
 
-    if (oldBaseAppFolderFile.exists()) {
-      try {
-        classLogger.info("Rehoming User Catalog : " + projectName);
-        Files.move(
-            oldBaseAppFolderFile.toPath(),
-            new File(newRoot + DIR_SEPARATOR + Constants.VERSION_FOLDER).toPath(),
-            StandardCopyOption.REPLACE_EXISTING);
-      } catch (IOException e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      }
-    }
-  }
+		if (oldBaseAppFolderFile.exists()) {
+			try {
+				classLogger.info("Rehoming User Catalog : " + projectName);
+				Files.move(oldBaseAppFolderFile.toPath(),
+						new File(newRoot + DIR_SEPARATOR + Constants.VERSION_FOLDER).toPath(),
+						StandardCopyOption.REPLACE_EXISTING);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+	}
 }

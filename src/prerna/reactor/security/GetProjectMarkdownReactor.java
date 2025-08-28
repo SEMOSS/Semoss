@@ -23,21 +23,19 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetProjectMarkdownReactor extends AbstractReactor {
 
-  public GetProjectMarkdownReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-  }
+	public GetProjectMarkdownReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String projectId = this.keyValue.get(this.keysToGet[0]);
-    if (projectId == null) {
-      throw new IllegalArgumentException("Need to define the project to get the markdown from");
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if (projectId == null) {
+			throw new IllegalArgumentException("Need to define the project to get the markdown from");
+		}
 
-    String projectMarkdown =
-        SecurityProjectUtils.getProjectMarkdown(this.insight.getUser(), projectId);
-    return new NounMetadata(
-        projectMarkdown, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
-  }
+		String projectMarkdown = SecurityProjectUtils.getProjectMarkdown(this.insight.getUser(), projectId);
+		return new NounMetadata(projectMarkdown, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
+	}
 }

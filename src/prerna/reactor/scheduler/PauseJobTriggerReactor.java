@@ -33,58 +33,58 @@ import prerna.util.Utility;
 
 public class PauseJobTriggerReactor extends AbstractReactor {
 
-  private static final Logger logger = LogManager.getLogger(PauseJobTriggerReactor.class);
+	private static final Logger logger = LogManager.getLogger(PauseJobTriggerReactor.class);
 
-  public PauseJobTriggerReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey()};
-  }
+	public PauseJobTriggerReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    if (Utility.schedulerForceDisable()) {
-      throw new IllegalArgumentException("Scheduler is not enabled");
-    }
+	@Override
+	public NounMetadata execute() {
+		if (Utility.schedulerForceDisable()) {
+			throw new IllegalArgumentException("Scheduler is not enabled");
+		}
 
-    /**
-     * PauseJobTrigger(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
-     *
-     * <p>This reactor will pause the job in Quartz but keep the job stored in the database. The
-     * jobs that are paused can be resumed in the future.
-     */
-    organizeKeys();
-    // Get inputs
-    String jobId = this.keyValue.get(this.keysToGet[0]);
-    String jobGroup = this.keyValue.get(this.keysToGet[1]);
+		/**
+		 * PauseJobTrigger(jobName = ["sample_job_name"],
+		 * jobGroup=["sample_job_group"]);
+		 *
+		 * <p>
+		 * This reactor will pause the job in Quartz but keep the job stored in the
+		 * database. The jobs that are paused can be resumed in the future.
+		 */
+		organizeKeys();
+		// Get inputs
+		String jobId = this.keyValue.get(this.keysToGet[0]);
+		String jobGroup = this.keyValue.get(this.keysToGet[1]);
 
-    // the job group is the app the user is in
-    // user must be an admin or editor of the app
-    // to add a scheduled job
-    User user = this.insight.getUser();
-    if (!SecurityAdminUtils.userIsAdmin(user)
-        && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
-      throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
-    }
+		// the job group is the app the user is in
+		// user must be an admin or editor of the app
+		// to add a scheduled job
+		User user = this.insight.getUser();
+		if (!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
+		}
 
-    try {
-      String triggerName = jobId.concat("Trigger");
-      String triggerGroup = jobGroup.concat("TriggerGroup");
-      TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
-      JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
+		try {
+			String triggerName = jobId.concat("Trigger");
+			String triggerGroup = jobGroup.concat("TriggerGroup");
+			TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
+			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 
-      Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
-      // start up scheduler
-      SchedulerDatabaseUtility.startScheduler(scheduler);
+			// start up scheduler
+			SchedulerDatabaseUtility.startScheduler(scheduler);
 
-      if (scheduler.checkExists(jobKey)) {
-        scheduler.pauseTrigger(triggerKey);
-        return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
-      }
-    } catch (SchedulerException se) {
-      logger.error(Constants.STACKTRACE, se);
-    }
+			if (scheduler.checkExists(jobKey)) {
+				scheduler.pauseTrigger(triggerKey);
+				return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
+			}
+		} catch (SchedulerException se) {
+			logger.error(Constants.STACKTRACE, se);
+		}
 
-    return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
-  }
+		return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
+	}
 }

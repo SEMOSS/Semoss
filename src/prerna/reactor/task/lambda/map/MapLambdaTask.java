@@ -19,15 +19,15 @@ import prerna.sablecc2.om.task.AbstractTaskOperation;
 
 public class MapLambdaTask extends AbstractTaskOperation {
 
-  private IMapLambda lambda;
+	private IMapLambda lambda;
 
-  @Override
-  public IHeadersDataRow next() {
-    IHeadersDataRow row = this.innerTask.next();
-    return lambda.process(row);
-  }
+	@Override
+	public IHeadersDataRow next() {
+		IHeadersDataRow row = this.innerTask.next();
+		return lambda.process(row);
+	}
 
-  public void setLambda(IMapLambda lambda) {
-    this.lambda = lambda;
-  }
+	public void setLambda(IMapLambda lambda) {
+		this.lambda = lambda;
+	}
 }

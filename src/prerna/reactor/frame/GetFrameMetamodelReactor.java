@@ -23,20 +23,20 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetFrameMetamodelReactor extends AbstractFrameReactor {
 
-  /*
-   * PAYLOAD MUST MATCH THAT OF
-   * {@link prerna.sablecc2.reactor.masterdatabase.GetDatabaseMetamodelReactor}
-   */
+	/*
+	 * PAYLOAD MUST MATCH THAT OF {@link
+	 * prerna.sablecc2.reactor.masterdatabase.GetDatabaseMetamodelReactor}
+	 */
 
-  public GetFrameMetamodelReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.FRAME.getKey()};
-  }
+	public GetFrameMetamodelReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    ITableDataFrame frame = getFrame();
-    Map<String, Object> metamodelObject = frame.getMetaData().getMetamodel(true);
-    return new NounMetadata(
-        metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_METAMODEL);
-  }
+	@Override
+	public NounMetadata execute() {
+		ITableDataFrame frame = getFrame();
+		Map<String, Object> metamodelObject = frame.getMetaData().getMetamodel(true);
+		return new NounMetadata(metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.FRAME_METAMODEL);
+	}
 }

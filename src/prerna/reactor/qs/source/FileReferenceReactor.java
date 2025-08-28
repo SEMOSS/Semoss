@@ -23,19 +23,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class FileReferenceReactor extends AbstractReactor {
 
-  public FileReferenceReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
-  }
+	public FileReferenceReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String filePath = this.keyValue.get(this.keysToGet[0]);
-    String space = this.keyValue.get(this.keysToGet[1]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String filePath = this.keyValue.get(this.keysToGet[0]);
+		String space = this.keyValue.get(this.keysToGet[1]);
 
-    FileReference fileRef = new FileReference(filePath, space);
-    return new NounMetadata(
-        fileRef, PixelDataType.FILE_REFERENCE, PixelOperationType.FILE_REFERENCE);
-  }
+		FileReference fileRef = new FileReference(filePath, space);
+		return new NounMetadata(fileRef, PixelDataType.FILE_REFERENCE, PixelOperationType.FILE_REFERENCE);
+	}
 }

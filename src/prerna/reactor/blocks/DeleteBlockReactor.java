@@ -30,55 +30,51 @@ import prerna.theme.ThemeDbTable;
 
 public class DeleteBlockReactor extends AbstractReactor {
 
-  public DeleteBlockReactor() {
-    this.keysToGet = new String[] {"blockId", "hardDelete"};
-    this.keyRequired = new int[] {1, 0};
-  }
+	public DeleteBlockReactor() {
+		this.keysToGet = new String[]{"blockId", "hardDelete"};
+		this.keyRequired = new int[]{1, 0};
+	}
 
-  @Override
-  public NounMetadata execute() {
+	@Override
+	public NounMetadata execute() {
 
-    User user = this.insight.getUser();
-    if (user == null) {
-      NounMetadata noun =
-          new NounMetadata(
-              "User must be signed in to delete a block",
-              PixelDataType.CONST_STRING,
-              PixelOperationType.ERROR,
-              PixelOperationType.LOGGIN_REQUIRED_ERROR);
-      SemossPixelException err = new SemossPixelException(noun);
-      err.setContinueThreadOfExecution(false);
-      throw err;
-    }
+		User user = this.insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata("User must be signed in to delete a block", PixelDataType.CONST_STRING,
+					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
 
-    if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-      if (this.insight.getUser().isAnonymous()) {
-        throwAnonymousUserError();
-      }
-    }
+		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
+			if (this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		}
 
-    boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-    if (!isAdmin) {
-      throwFunctionalityOnlyExposedForAdminsError();
-    }
+		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+		if (!isAdmin) {
+			throwFunctionalityOnlyExposedForAdminsError();
+		}
 
-    this.organizeKeys();
-    boolean hardDelete = false;
-    GenRowStruct grs = this.store.getNoun("hardDelete");
-    if (grs != null && !grs.isEmpty()) {
-      List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.BOOLEAN);
-      if (mapNouns != null && !mapNouns.isEmpty()) {
-        hardDelete = (boolean) mapNouns.get(0).getValue();
-      }
-    }
-    String blockId = this.keyValue.get("blockId");
-    String tableName = ThemeDbTable.BLOCKS_TABLE.toString();
-    boolean result = false;
-    try {
-      result = BlocksThemeUtils.deleteBlock(blockId, tableName, hardDelete);
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return new NounMetadata(result, PixelDataType.BOOLEAN);
-  }
+		this.organizeKeys();
+		boolean hardDelete = false;
+		GenRowStruct grs = this.store.getNoun("hardDelete");
+		if (grs != null && !grs.isEmpty()) {
+			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.BOOLEAN);
+			if (mapNouns != null && !mapNouns.isEmpty()) {
+				hardDelete = (boolean) mapNouns.get(0).getValue();
+			}
+		}
+		String blockId = this.keyValue.get("blockId");
+		String tableName = ThemeDbTable.BLOCKS_TABLE.toString();
+		boolean result = false;
+		try {
+			result = BlocksThemeUtils.deleteBlock(blockId, tableName, hardDelete);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return new NounMetadata(result, PixelDataType.BOOLEAN);
+	}
 }

@@ -16,19 +16,20 @@ package prerna.tcp;
 
 public class WorkerThread implements Runnable {
 
-  SocketServerHandler ssh = null;
-  PayloadStruct inputStruct = null;
+	SocketServerHandler ssh = null;
+	PayloadStruct inputStruct = null;
 
-  public WorkerThread(SocketServerHandler ssh, PayloadStruct inputStruct) {
-    this.ssh = ssh;
-    this.inputStruct = inputStruct;
-  }
+	public WorkerThread(SocketServerHandler ssh, PayloadStruct inputStruct) {
+		this.ssh = ssh;
+		this.inputStruct = inputStruct;
+	}
 
-  @Override
-  public void run() {
-    System.err.println(">");
-    // TODO Auto-generated method stub
-    PayloadStruct output = ssh.getFinalOutput((PayloadStruct) inputStruct);
-    if (output != null) ssh.writeResponse(output);
-  }
+	@Override
+	public void run() {
+		System.err.println(">");
+		// TODO Auto-generated method stub
+		PayloadStruct output = ssh.getFinalOutput((PayloadStruct) inputStruct);
+		if (output != null)
+			ssh.writeResponse(output);
+	}
 }

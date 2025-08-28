@@ -35,79 +35,79 @@ import prerna.util.Utility;
 
 public class UserDirReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(UserDirReactor.class);
-  private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static final Logger classLogger = LogManager.getLogger(UserDirReactor.class);
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-  public UserDirReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.RELATIVE_PATH.getKey()};
-  }
+	public UserDirReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.RELATIVE_PATH.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String relativePath = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String relativePath = this.keyValue.get(this.keysToGet[0]);
 
-    Boolean isRoot = false;
-    if (relativePath == null || relativePath.isEmpty() || relativePath.equals("/")) {
-      relativePath = "";
-      isRoot = true;
-    } else {
-      relativePath = Utility.normalizePath(relativePath);
-    }
+		Boolean isRoot = false;
+		if (relativePath == null || relativePath.isEmpty() || relativePath.equals("/")) {
+			relativePath = "";
+			isRoot = true;
+		} else {
+			relativePath = Utility.normalizePath(relativePath);
+		}
 
-    String assetEngineID = null;
-    User user = this.insight.getUser();
-    if (user != null) {
-      AuthProvider token = user.getPrimaryLogin();
-      if (token != null) {
-        assetEngineID = user.getAssetProjectId(token);
-        Utility.getProject(assetEngineID);
-      }
-    }
+		String assetEngineID = null;
+		User user = this.insight.getUser();
+		if (user != null) {
+			AuthProvider token = user.getPrimaryLogin();
+			if (token != null) {
+				assetEngineID = user.getAssetProjectId(token);
+				Utility.getProject(assetEngineID);
+			}
+		}
 
-    if (assetEngineID == null) {
-      throw new IllegalArgumentException("Unable to find user asset app");
-    }
+		if (assetEngineID == null) {
+			throw new IllegalArgumentException("Unable to find user asset app");
+		}
 
-    // Base Asset Folder. Checking that is exists, otherwise error
-    String baseUserFolderPath =
-        AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, true);
-    // Where we are storing their information under version. Make the version folder if it doesn't
-    // exist.
-    String userFolderPath = baseUserFolderPath + DIR_SEPARATOR + "version";
-    File userFolder = new File(userFolderPath);
-    Boolean newFolder = userFolder.mkdir();
-    if (ClusterUtil.IS_CLUSTER) {
-      if (newFolder) {
-        File hidden = new File(userFolderPath + DIR_SEPARATOR + WorkspaceAssetUtils.HIDDEN_FILE);
-        try {
-          hidden.createNewFile();
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
+		// Base Asset Folder. Checking that is exists, otherwise error
+		String baseUserFolderPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, true);
+		// Where we are storing their information under version. Make the version folder
+		// if it doesn't
+		// exist.
+		String userFolderPath = baseUserFolderPath + DIR_SEPARATOR + "version";
+		File userFolder = new File(userFolderPath);
+		Boolean newFolder = userFolder.mkdir();
+		if (ClusterUtil.IS_CLUSTER) {
+			if (newFolder) {
+				File hidden = new File(userFolderPath + DIR_SEPARATOR + WorkspaceAssetUtils.HIDDEN_FILE);
+				try {
+					hidden.createNewFile();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 
-    // Navigate to the relative path from the version folder
-    userFolder = new File(userFolderPath + DIR_SEPARATOR + relativePath);
-    File[] userFiles = userFolder.listFiles();
-    int numFiles = userFiles.length;
+		// Navigate to the relative path from the version folder
+		userFolder = new File(userFolderPath + DIR_SEPARATOR + relativePath);
+		File[] userFiles = userFolder.listFiles();
+		int numFiles = userFiles.length;
 
-    String[] fileNames = new String[numFiles];
-    boolean[] isDir = new boolean[numFiles];
-    for (int i = 0; i < numFiles; i++) {
-      if (userFiles[i].getName().equalsIgnoreCase(WorkspaceAssetUtils.HIDDEN_FILE)) {
-        continue;
-      }
-      fileNames[i] = userFiles[i].getName();
-      isDir[i] = userFiles[i].isDirectory();
-    }
+		String[] fileNames = new String[numFiles];
+		boolean[] isDir = new boolean[numFiles];
+		for (int i = 0; i < numFiles; i++) {
+			if (userFiles[i].getName().equalsIgnoreCase(WorkspaceAssetUtils.HIDDEN_FILE)) {
+				continue;
+			}
+			fileNames[i] = userFiles[i].getName();
+			isDir[i] = userFiles[i].isDirectory();
+		}
 
-    Map<String, Object> retMap = new HashMap<String, Object>();
-    retMap.put("files", fileNames);
-    retMap.put("isDir", isDir);
-    retMap.put("isRoot", isRoot);
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		retMap.put("files", fileNames);
+		retMap.put("isDir", isDir);
+		retMap.put("isRoot", isRoot);
 
-    return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.USER_DIR);
-  }
+		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.USER_DIR);
+	}
 }

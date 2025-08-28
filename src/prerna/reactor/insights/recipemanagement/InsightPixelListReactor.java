@@ -20,8 +20,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class InsightPixelListReactor extends AbstractReactor {
 
-  @Override
-  public NounMetadata execute() {
-    return new NounMetadata(this.insight.getPixelList(), PixelDataType.VECTOR);
-  }
+	@Override
+	public NounMetadata execute() {
+		return new NounMetadata(this.insight.getPixelList(), PixelDataType.VECTOR);
+	}
 }

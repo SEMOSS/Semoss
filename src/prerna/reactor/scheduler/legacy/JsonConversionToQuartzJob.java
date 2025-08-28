@@ -1,15 +1,17 @@
 /***************************************************************************************************
  * Copyright 2015 Defense Health Agency (DHA)
  *
- * If your use of this software does not include any GPLv2 components: Licensed under the Apache
- * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
- * License. You may obtain a copy of the License at
+ * If your use of this software does not include any GPLv2 components: Licensed
+ * under the Apache License, Version 2.0 (the "License"); you may not use this
+ * file except in compliance with the License. You may obtain a copy of the
+ * License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
  * the License.
  ***************************************************************************************************/
 package prerna.reactor.scheduler.legacy;
@@ -60,21 +62,24 @@ package prerna.reactor.scheduler.legacy;
 // @Deprecated
 // public class JsonConversionToQuartzJob {
 //
-//	private static final Logger logger = LogManager.getLogger(JsonConversionToQuartzJob.class);
+// private static final Logger logger =
+// LogManager.getLogger(JsonConversionToQuartzJob.class);
 //
-//	private static final String MY_DIRECTORY_PATH = "C:\\workspace\\Semoss_Dev\\rpa\\json";
-//	private static final String QUARTZ_CONFIGURATION_FILE = "quartz.properties";
-//	private static final String DIR_SEPARATOR =
+// private static final String MY_DIRECTORY_PATH =
+// "C:\\workspace\\Semoss_Dev\\rpa\\json";
+// private static final String QUARTZ_CONFIGURATION_FILE = "quartz.properties";
+// private static final String DIR_SEPARATOR =
 // java.nio.file.FileSystems.getDefault().getSeparator();
-//	private static final String JDBC_DRIVER = "org.h2.Driver";
-//	private static final String CONNECTION_URL =
+// private static final String JDBC_DRIVER = "org.h2.Driver";
+// private static final String CONNECTION_URL =
 // "jdbc:h2:nio:C:/workspace/Semoss_Dev/db/scheduler/db";
-//	private static final String JOB_QUALIFIED_NAME = "prerna.rpa.quartz.jobs.insight.";
+// private static final String JOB_QUALIFIED_NAME =
+// "prerna.rpa.quartz.jobs.insight.";
 //
-//	private static String serverUrl = null;
+// private static String serverUrl = null;
 //
-//	private static StdSchedulerFactory factory;
-//	public static Scheduler scheduler = null;
+// private static StdSchedulerFactory factory;
+// public static Scheduler scheduler = null;
 //
 ////	public static void main(String[] args) throws NotDirectoryException {
 ////		serverUrl = startServer(CONNECTION_URL);
@@ -106,190 +111,200 @@ package prerna.reactor.scheduler.legacy;
 ////		}
 ////	}
 //
-//	public static String startServer(String connectionUrl) {
-//		Server server = null;
-//		String serverUrl = null;
+// public static String startServer(String connectionUrl) {
+// Server server = null;
+// String serverUrl = null;
 //
-//		if (connectionUrl.startsWith("jdbc:h2:nio:")) {
-//			connectionUrl = connectionUrl.substring("jdbc:h2:nio:".length());
-//		}
+// if (connectionUrl.startsWith("jdbc:h2:nio:")) {
+// connectionUrl = connectionUrl.substring("jdbc:h2:nio:".length());
+// }
 //
-//		try {
-//			String port = "5358";
-//			server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
-//			serverUrl = "jdbc:h2:" + server.getURL() + "/nio:" + connectionUrl;
-//			server.start();
+// try {
+// String port = "5358";
+// server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
+// serverUrl = "jdbc:h2:" + server.getURL() + "/nio:" + connectionUrl;
+// server.start();
 //
-//		} catch (SQLException e) {
-//			logger.error(Constants.STACKTRACE, e);
-//		}
+// } catch (SQLException e) {
+// logger.error(Constants.STACKTRACE, e);
+// }
 //
-//		logger.info("DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
+// logger.info("DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
 //
-//		return serverUrl;
-//	}
+// return serverUrl;
+// }
 //
-//	public static void runUpdateFromLegacyFormat() {
-//		scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+// public static void runUpdateFromLegacyFormat() {
+// scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 //
-//		File directory = new File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) +
+// File directory = new
+// File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) +
 // "/rpa/json");
-//		if(directory.exists()) {
-//			File[] directoryFileList = directory.listFiles();
-//			if (directoryFileList != null && directoryFileList.length > 0) {
-//				for (File child : directoryFileList) {
-//					if(FilenameUtils.getExtension(child.getAbsolutePath()).equals("json")) {
-//						Gson gson = new Gson();
-//						JsonParser jsonParser = new JsonParser();
+// if(directory.exists()) {
+// File[] directoryFileList = directory.listFiles();
+// if (directoryFileList != null && directoryFileList.length > 0) {
+// for (File child : directoryFileList) {
+// if(FilenameUtils.getExtension(child.getAbsolutePath()).equals("json")) {
+// Gson gson = new Gson();
+// JsonParser jsonParser = new JsonParser();
 //
-//						JsonElement jsonObject = null;
-//						InputStreamReader is = null;
-//						FileInputStream fs = null;
-//						try {
-//							fs = new FileInputStream(child);
-//							is = new InputStreamReader(fs, "UTF-8");
-//							jsonObject = jsonParser.parse(is);
-//						} catch (JsonIOException | JsonSyntaxException | UnsupportedEncodingException |
+// JsonElement jsonObject = null;
+// InputStreamReader is = null;
+// FileInputStream fs = null;
+// try {
+// fs = new FileInputStream(child);
+// is = new InputStreamReader(fs, "UTF-8");
+// jsonObject = jsonParser.parse(is);
+// } catch (JsonIOException | JsonSyntaxException | UnsupportedEncodingException
+// |
 // FileNotFoundException se) {
-//							logger.error(Constants.STACKTRACE, se);
-//						} finally {
-//							if(is != null) {
-//								try {
-//									is.close();
-//								} catch (IOException e) {
-//									classLogger.error(Constants.STACKTRACE, e);
-//								}
-//							}
-//							if(fs != null) {
-//								try {
-//									fs.close();
-//								} catch (IOException e) {
-//									classLogger.error(Constants.STACKTRACE, e);
-//								}
-//							}
-//						}
+// logger.error(Constants.STACKTRACE, se);
+// } finally {
+// if(is != null) {
+// try {
+// is.close();
+// } catch (IOException e) {
+// classLogger.error(Constants.STACKTRACE, e);
+// }
+// }
+// if(fs != null) {
+// try {
+// fs.close();
+// } catch (IOException e) {
+// classLogger.error(Constants.STACKTRACE, e);
+// }
+// }
+// }
 //
-//						OldJobs oldJobs = gson.fromJson(jsonObject, OldJobs.class);
-//						try {
-//							convertJob(oldJobs);
-//							// renmae the file to loaded
-//							File loadedF = new File(directory.getAbsolutePath() + "/" +
+// OldJobs oldJobs = gson.fromJson(jsonObject, OldJobs.class);
+// try {
+// convertJob(oldJobs);
+// // renmae the file to loaded
+// File loadedF = new File(directory.getAbsolutePath() + "/" +
 // FilenameUtils.getBaseName(child.getAbsolutePath()) + ".json_loaded");
-//							boolean worked = child.renameTo(loadedF);
-//						} catch(Exception e) {
-//							logger.error(Constants.STACKTRACE, e);
-//						}
-//					}
-//				}
-//			}
-//		}
-//	}
+// boolean worked = child.renameTo(loadedF);
+// } catch(Exception e) {
+// logger.error(Constants.STACKTRACE, e);
+// }
+// }
+// }
+// }
+// }
+// }
 //
-//	@SuppressWarnings("unchecked")
-//	private static void convertJob(OldJobs oldJobs) {
-//		// ignore hidden jobs
-//		if(Boolean.parseBoolean(oldJobs.getHidden())) {
-//			return;
-//		}
-//		String jobId = UUID.randomUUID().toString();
-// 		String jobName = oldJobs.getJobName();
-//		String jobGroup = oldJobs.getJobGroup();
-//		String cronExpression = oldJobs.getJobCronExpression();
-//		String jobClassName = oldJobs.getJobClass();
-//		Boolean active = Boolean.parseBoolean(oldJobs.getActive());
-//		String userAccess = oldJobs.getUserAccess();
-//		Boolean triggerOnLoad = Boolean.parseBoolean(oldJobs.getJobTriggerOnLoad());
-//		String parameters = oldJobs.getParameters();
-//		if(parameters == null) {
-//			parameters = "";
-//		}
-//		String pixel = oldJobs.getPixel();
+// @SuppressWarnings("unchecked")
+// private static void convertJob(OldJobs oldJobs) {
+// // ignore hidden jobs
+// if(Boolean.parseBoolean(oldJobs.getHidden())) {
+// return;
+// }
+// String jobId = UUID.randomUUID().toString();
+// String jobName = oldJobs.getJobName();
+// String jobGroup = oldJobs.getJobGroup();
+// String cronExpression = oldJobs.getJobCronExpression();
+// String jobClassName = oldJobs.getJobClass();
+// Boolean active = Boolean.parseBoolean(oldJobs.getActive());
+// String userAccess = oldJobs.getUserAccess();
+// Boolean triggerOnLoad = Boolean.parseBoolean(oldJobs.getJobTriggerOnLoad());
+// String parameters = oldJobs.getParameters();
+// if(parameters == null) {
+// parameters = "";
+// }
+// String pixel = oldJobs.getPixel();
 //
-//		JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
-//		Class<? extends Job> jobClass = null;
+// JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
+// Class<? extends Job> jobClass = null;
 //
-//		try {
-//			jobClass = (Class<? extends Job>) Class.forName(JOB_QUALIFIED_NAME + jobClassName);
-//		} catch (ClassNotFoundException cne) {
-//			logger.error(Constants.STACKTRACE, cne);
-//		}
+// try {
+// jobClass = (Class<? extends Job>) Class.forName(JOB_QUALIFIED_NAME +
+// jobClassName);
+// } catch (ClassNotFoundException cne) {
+// logger.error(Constants.STACKTRACE, cne);
+// }
 //
-//		// if job exists throw error, job already exists
-//		try {
-//			if (scheduler.checkExists(jobKey)) {
-//				logger.error("job" + Utility.cleanLogString(jobKey.toString()) + "already exists");
-//				throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + "
+// // if job exists throw error, job already exists
+// try {
+// if (scheduler.checkExists(jobKey)) {
+// logger.error("job" + Utility.cleanLogString(jobKey.toString()) + "already
+// exists");
+// throw new IllegalArgumentException("job " +
+// Utility.cleanLogString(jobKey.toString()) + "
 // already exists");
-//			}
+// }
 //
-//			// Schedule the job
-//			JobDetail job = newJob(jobClass).withIdentity(jobId, jobGroup).storeDurably().build();
-//			Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId+ "Trigger", jobGroup +
+// // Schedule the job
+// JobDetail job = newJob(jobClass).withIdentity(jobId,
+// jobGroup).storeDurably().build();
+// Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId+ "Trigger",
+// jobGroup +
 // "TriggerGroup")
-//					.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
+// .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
 //
-//			// insert into SMSS_JOB_RECIPES table
-//			// THERE WAS NO POSSIBILITY OF RUNNING OLD JOBS WITH RECIPE PARAMETERS
-//			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userAccess, jobId, jobName, jobGroup,
-// cronExpression, pixel, null, "Default", triggerOnLoad, parameters, new ArrayList<String>());
+// // insert into SMSS_JOB_RECIPES table
+// // THERE WAS NO POSSIBILITY OF RUNNING OLD JOBS WITH RECIPE PARAMETERS
+// SchedulerDatabaseUtility.insertIntoJobRecipesTable(userAccess, jobId,
+// jobName, jobGroup,
+// cronExpression, pixel, null, "Default", triggerOnLoad, parameters, new
+// ArrayList<String>());
 //
-//			if (active) {
-//				scheduler.scheduleJob(job, trigger);
-//			} else {
-//				// if inactive, add job as dormant with no trigger
-//				scheduler.addJob(job, false);
-//			}
-//		} catch (SchedulerException se) {
-//			logger.error(Constants.STACKTRACE, se);
-//		}
-//	}
+// if (active) {
+// scheduler.scheduleJob(job, trigger);
+// } else {
+// // if inactive, add job as dormant with no trigger
+// scheduler.addJob(job, false);
+// }
+// } catch (SchedulerException se) {
+// logger.error(Constants.STACKTRACE, se);
+// }
+// }
 //
-//	private static void setUpPropertiesFile() {
-//		Properties quartzProperties = new Properties();
+// private static void setUpPropertiesFile() {
+// Properties quartzProperties = new Properties();
 //
-//		try (InputStream input = new FileInputStream(
-//				"C:\\workspace\\Semoss_Dev" + DIR_SEPARATOR + QUARTZ_CONFIGURATION_FILE)) {
-//			quartzProperties.load(input);
-//			quartzProperties.setProperty("org.quartz.dataSource.myDS.URL", serverUrl);
+// try (InputStream input = new FileInputStream(
+// "C:\\workspace\\Semoss_Dev" + DIR_SEPARATOR + QUARTZ_CONFIGURATION_FILE)) {
+// quartzProperties.load(input);
+// quartzProperties.setProperty("org.quartz.dataSource.myDS.URL", serverUrl);
 //
-//			factory = new StdSchedulerFactory();
-//			factory.initialize(quartzProperties);
-//		} catch (IOException ex) {
-//			logger.error("Error with loading properties in config file" + ex.getMessage());
-//		} catch (SchedulerException se) {
-//			logger.error(Constants.STACKTRACE, se);
-//		}
-//	}
+// factory = new StdSchedulerFactory();
+// factory.initialize(quartzProperties);
+// } catch (IOException ex) {
+// logger.error("Error with loading properties in config file" +
+// ex.getMessage());
+// } catch (SchedulerException se) {
+// logger.error(Constants.STACKTRACE, se);
+// }
+// }
 //
-//	private static void startScheduler() {
-//		try {
-//			scheduler = factory.getScheduler();
-//			scheduler.start();
-//		} catch (SchedulerException se) {
-//			logger.error(Constants.STACKTRACE, se);
-//		}
-//	}
+// private static void startScheduler() {
+// try {
+// scheduler = factory.getScheduler();
+// scheduler.start();
+// } catch (SchedulerException se) {
+// logger.error(Constants.STACKTRACE, se);
+// }
+// }
 //
-//	public static Connection connectToSchedulerH2(String serverUrl) {
-//		Connection connection = null;
+// public static Connection connectToSchedulerH2(String serverUrl) {
+// Connection connection = null;
 //
-//		try {
-//			// Register JDBC Driver
-//			Class.forName(JDBC_DRIVER);
-//			connection = DriverManager.getConnection(serverUrl, "admin", "admin");
-//		} catch (ClassNotFoundException e) {
-//			logger.error(Constants.STACKTRACE, e);
-//		} catch (SQLException se) {
-//			logger.error(Constants.STACKTRACE, se);
-//		} catch (Exception ex) {
-//			logger.error(Constants.STACKTRACE, ex);
-//		}
+// try {
+// // Register JDBC Driver
+// Class.forName(JDBC_DRIVER);
+// connection = DriverManager.getConnection(serverUrl, "admin", "admin");
+// } catch (ClassNotFoundException e) {
+// logger.error(Constants.STACKTRACE, e);
+// } catch (SQLException se) {
+// logger.error(Constants.STACKTRACE, se);
+// } catch (Exception ex) {
+// logger.error(Constants.STACKTRACE, ex);
+// }
 //
-//		if (connection == null) {
-//			throw new NullPointerException("Connection wasn't able to be created.");
-//		}
+// if (connection == null) {
+// throw new NullPointerException("Connection wasn't able to be created.");
+// }
 //
-//		return connection;
-//	}
+// return connection;
+// }
 //
 // }

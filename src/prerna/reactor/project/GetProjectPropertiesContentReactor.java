@@ -28,34 +28,32 @@ import prerna.util.Utility;
 
 public class GetProjectPropertiesContentReactor extends AbstractReactor {
 
-  public GetProjectPropertiesContentReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-  }
+	public GetProjectPropertiesContentReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String projectId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 
-    if (StringUtils.isBlank(projectId)) {
-      throw new IllegalArgumentException("Must input an project id");
-    }
+		if (StringUtils.isBlank(projectId)) {
+			throw new IllegalArgumentException("Must input an project id");
+		}
 
-    if (!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
-      throw new IllegalArgumentException(
-          "Project does not exist or user is not an owner of the project");
-    }
+		if (!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user is not an owner of the project");
+		}
 
-    IProject project = Utility.getProject(projectId);
-    ProjectProperties props = project.getProjectProperties();
-    String content = null;
-    try {
-      content = FileUtils.readFileToString(props.getSocialProp());
-    } catch (IOException e) {
-      throw new IllegalArgumentException(
-          "Unable to read project properties. Detailed error = " + e.getMessage());
-    }
-    NounMetadata noun = new NounMetadata(content, PixelDataType.CONST_STRING);
-    return noun;
-  }
+		IProject project = Utility.getProject(projectId);
+		ProjectProperties props = project.getProjectProperties();
+		String content = null;
+		try {
+			content = FileUtils.readFileToString(props.getSocialProp());
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Unable to read project properties. Detailed error = " + e.getMessage());
+		}
+		NounMetadata noun = new NounMetadata(content, PixelDataType.CONST_STRING);
+		return noun;
+	}
 }

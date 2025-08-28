@@ -22,33 +22,30 @@ import prerna.util.Utility;
 
 public class ParallelPixelRunReactor extends AbstractReactor {
 
-  public ParallelPixelRunReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.PIXEL.getKey()};
-  }
+	public ParallelPixelRunReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PIXEL.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String pixelToRun = this.keyValue.get(this.keysToGet[0]);
-    pixelToRun = Utility.decodeURIComponent(pixelToRun);
-    if (pixelToRun == null) {
-      throw new IllegalArgumentException("Must define the pixel to run in parallel");
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String pixelToRun = this.keyValue.get(this.keysToGet[0]);
+		pixelToRun = Utility.decodeURIComponent(pixelToRun);
+		if (pixelToRun == null) {
+			throw new IllegalArgumentException("Must define the pixel to run in parallel");
+		}
 
-    PixelParallelWorker worker = new PixelParallelWorker();
-    worker.setInisight(this.insight);
-    worker.setPixel(pixelToRun);
+		PixelParallelWorker worker = new PixelParallelWorker();
+		worker.setInisight(this.insight);
+		worker.setPixel(pixelToRun);
 
-    ParallelThread pt = new ParallelThread();
-    pt.worker = worker;
-    java.lang.Thread t = new Thread(pt);
-    t.start();
+		ParallelThread pt = new ParallelThread();
+		pt.worker = worker;
+		java.lang.Thread t = new Thread(pt);
+		t.start();
 
-    NounMetadata noun =
-        new NounMetadata(
-            "Staring pixel job in parallel",
-            PixelDataType.CONST_STRING,
-            PixelOperationType.OPERATION);
-    return noun;
-  }
+		NounMetadata noun = new NounMetadata("Staring pixel job in parallel", PixelDataType.CONST_STRING,
+				PixelOperationType.OPERATION);
+		return noun;
+	}
 }

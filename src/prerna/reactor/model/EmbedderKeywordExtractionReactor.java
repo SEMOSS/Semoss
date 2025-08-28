@@ -33,99 +33,93 @@ import prerna.util.Utility;
 
 public class EmbedderKeywordExtractionReactor extends AbstractReactor {
 
-  private static final Logger classLogger =
-      LogManager.getLogger(EmbedderKeywordExtractionReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(EmbedderKeywordExtractionReactor.class);
 
-  private static final String PERCENTILE = "percentile";
+	private static final String PERCENTILE = "percentile";
 
-  public EmbedderKeywordExtractionReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.MODEL.getKey(),
-          ReactorKeysEnum.INPUT.getKey(),
-          PERCENTILE,
-          ReactorKeysEnum.LIMIT.getKey()
-        };
-    this.keyRequired = new int[] {1, 1, 0, 0};
-  }
+	public EmbedderKeywordExtractionReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.INPUT.getKey(), PERCENTILE,
+				ReactorKeysEnum.LIMIT.getKey()};
+		this.keyRequired = new int[]{1, 1, 0, 0};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String engineId = this.keyValue.get(this.keysToGet[0]);
-    User user = this.insight.getUser();
-    if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-      throw new IllegalArgumentException(
-          "Model " + engineId + " does not exist or user does not have access to this model");
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		User user = this.insight.getUser();
+		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+			throw new IllegalArgumentException(
+					"Model " + engineId + " does not exist or user does not have access to this model");
+		}
 
-    IModelEngine modelE = Utility.getModel(engineId);
-    if (!(modelE instanceof EmbeddedModelEngine)) {
-      throw new IllegalArgumentException("This method only works for Local EmbeddedModelEngines");
-    }
+		IModelEngine modelE = Utility.getModel(engineId);
+		if (!(modelE instanceof EmbeddedModelEngine)) {
+			throw new IllegalArgumentException("This method only works for Local EmbeddedModelEngines");
+		}
 
-    String percentile = this.keyValue.get(PERCENTILE);
-    String limit = this.keyValue.get(this.keysToGet[3]);
+		String percentile = this.keyValue.get(PERCENTILE);
+		String limit = this.keyValue.get(this.keysToGet[3]);
 
-    EmbeddedModelEngine eme = (EmbeddedModelEngine) modelE;
-    Map<String, Object> parameters = new HashMap<>();
-    if (percentile != null && !(percentile = percentile.trim()).isEmpty()) {
-      parameters.put("percentile", ((Number) Double.parseDouble(percentile)).intValue());
-    }
-    if (limit != null && !(limit = limit.trim()).isEmpty()) {
-      parameters.put("max_keywords", ((Number) Double.parseDouble(limit)).intValue());
-    }
+		EmbeddedModelEngine eme = (EmbeddedModelEngine) modelE;
+		Map<String, Object> parameters = new HashMap<>();
+		if (percentile != null && !(percentile = percentile.trim()).isEmpty()) {
+			parameters.put("percentile", ((Number) Double.parseDouble(percentile)).intValue());
+		}
+		if (limit != null && !(limit = limit.trim()).isEmpty()) {
+			parameters.put("max_keywords", ((Number) Double.parseDouble(limit)).intValue());
+		}
 
-    List<String> input = getInput();
-    if (input.isEmpty()) {
-      throw new IllegalArgumentException("Must pass in list of inputs");
-    }
-    List<String> decoded = new ArrayList<>(input.size());
-    for (int i = 0; i < input.size(); i++) {
-      decoded.add(Utility.decodeURIComponent(input.get(i)));
-    }
-    List<String> keywords = eme.keywordExtraction(decoded, insight, parameters);
-    return new NounMetadata(keywords, PixelDataType.VECTOR);
-  }
+		List<String> input = getInput();
+		if (input.isEmpty()) {
+			throw new IllegalArgumentException("Must pass in list of inputs");
+		}
+		List<String> decoded = new ArrayList<>(input.size());
+		for (int i = 0; i < input.size(); i++) {
+			decoded.add(Utility.decodeURIComponent(input.get(i)));
+		}
+		List<String> keywords = eme.keywordExtraction(decoded, insight, parameters);
+		return new NounMetadata(keywords, PixelDataType.VECTOR);
+	}
 
-  private List<String> getInput() {
-    List<String> columns = new ArrayList<>();
+	private List<String> getInput() {
+		List<String> columns = new ArrayList<>();
 
-    GenRowStruct colGrs = this.store.getNoun(this.keysToGet[1]);
-    if (colGrs != null && !colGrs.isEmpty()) {
-      for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
-        String column = colGrs.get(selectIndex) + "";
-        columns.add(column);
-      }
-    } else {
-      GenRowStruct inputsGRS = this.getCurRow();
-      // keep track of selectors to change to upper case
-      if (inputsGRS != null && !inputsGRS.isEmpty()) {
-        for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
-          String column = inputsGRS.get(selectIndex) + "";
-          columns.add(column);
-        }
-      }
-    }
+		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[1]);
+		if (colGrs != null && !colGrs.isEmpty()) {
+			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
+				String column = colGrs.get(selectIndex) + "";
+				columns.add(column);
+			}
+		} else {
+			GenRowStruct inputsGRS = this.getCurRow();
+			// keep track of selectors to change to upper case
+			if (inputsGRS != null && !inputsGRS.isEmpty()) {
+				for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
+					String column = inputsGRS.get(selectIndex) + "";
+					columns.add(column);
+				}
+			}
+		}
 
-    return columns;
-  }
+		return columns;
+	}
 
-  @Override
-  public String getReactorDescription() {
-    return "Utilizes a keyBERT model to extract the keywords from the text input";
-  }
+	@Override
+	public String getReactorDescription() {
+		return "Utilizes a keyBERT model to extract the keywords from the text input";
+	}
 
-  @Override
-  protected String getDescriptionForKey(String key) {
-    if (key.equals(ReactorKeysEnum.INPUT.getKey())) {
-      return "The input array of string values to extract keywords from. Each string input will result in a space delimited list of keywords. "
-          + "Each element in input should be encoded using <encode></encode> for special character escaping";
-    } else if (key.equals(PERCENTILE)) {
-      return "The percentile (integer) cutoff for the words within the text to be considered a keyword. Values must be between 0 and 100 inclusive.";
-    } else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-      return "The limit to be applied after the percentile for the maximum number of keywords to be returned for each string input";
-    }
-    return super.getDescriptionForKey(key);
-  }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.INPUT.getKey())) {
+			return "The input array of string values to extract keywords from. Each string input will result in a space delimited list of keywords. "
+					+ "Each element in input should be encoded using <encode></encode> for special character escaping";
+		} else if (key.equals(PERCENTILE)) {
+			return "The percentile (integer) cutoff for the words within the text to be considered a keyword. Values must be between 0 and 100 inclusive.";
+		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "The limit to be applied after the percentile for the maximum number of keywords to be returned for each string input";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

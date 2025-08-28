@@ -26,21 +26,20 @@ import prerna.util.git.GitRepoUtils;
 
 public class DropAppRepo extends AbstractReactor {
 
-  public DropAppRepo() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey()};
-  }
+	public DropAppRepo() {
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    Logger logger = getLogger(this.getClass().getName());
-    logger.info("Removing remote...");
-    String databaseId = this.keyValue.get(this.keysToGet[0]);
-    String databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
-    String repository = this.keyValue.get(this.keysToGet[1]);
-    String databaseFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
-    GitRepoUtils.removeRemote(databaseFolder, repository);
-    return new NounMetadata(true, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		Logger logger = getLogger(this.getClass().getName());
+		logger.info("Removing remote...");
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		String databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
+		String repository = this.keyValue.get(this.keysToGet[1]);
+		String databaseFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
+		GitRepoUtils.removeRemote(databaseFolder, repository);
+		return new NounMetadata(true, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
+	}
 }

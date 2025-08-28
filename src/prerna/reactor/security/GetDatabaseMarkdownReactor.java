@@ -24,21 +24,20 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 @Deprecated
 public class GetDatabaseMarkdownReactor extends AbstractReactor {
 
-  public GetDatabaseMarkdownReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
-  }
+	public GetDatabaseMarkdownReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String databaseId = this.keyValue.get(this.keysToGet[0]);
-    if (databaseId == null) {
-      throw new IllegalArgumentException("Need to define the database to get the markdown from");
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		if (databaseId == null) {
+			throw new IllegalArgumentException("Need to define the database to get the markdown from");
+		}
 
-    String databaseMarkdown =
-        SecurityEngineUtils.getEngineMarkdown(this.insight.getUser(), databaseId);
-    return new NounMetadata(
-        databaseMarkdown, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
-  }
+		String databaseMarkdown = SecurityEngineUtils.getEngineMarkdown(this.insight.getUser(), databaseId);
+		return new NounMetadata(databaseMarkdown, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.DATABASE_INFO);
+	}
 }

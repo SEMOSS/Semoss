@@ -25,47 +25,44 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetRoomMessagesReactor extends AbstractReactor {
-  @SuppressWarnings("unused")
-  private static final Logger logger = LogManager.getLogger(GetRoomMessagesReactor.class);
+	@SuppressWarnings("unused")
+	private static final Logger logger = LogManager.getLogger(GetRoomMessagesReactor.class);
 
-  public GetRoomMessagesReactor() {
-    this.keysToGet = new String[] {"roomId", "limit", "offset", "sort"};
-    this.keyRequired = new int[] {1};
-  }
+	public GetRoomMessagesReactor() {
+		this.keysToGet = new String[]{"roomId", "limit", "offset", "sort"};
+		this.keyRequired = new int[]{1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    User user = this.insight.getUser();
-    if (user == null) {
-      throw new IllegalArgumentException("You are not properly logged in");
-    }
-    Integer limit = -1, offset = -1;
-    String roomId = this.keyValue.get(this.keysToGet[0]);
-    String dateSort = "ASC";
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		User user = this.insight.getUser();
+		if (user == null) {
+			throw new IllegalArgumentException("You are not properly logged in");
+		}
+		Integer limit = -1, offset = -1;
+		String roomId = this.keyValue.get(this.keysToGet[0]);
+		String dateSort = "ASC";
 
-    if ((this.keyValue.get(this.keysToGet[1]) != null
-            && !this.keyValue.get(this.keysToGet[1]).isEmpty())
-        && (this.keyValue.get(this.keysToGet[2]) != null
-            && !this.keyValue.get(this.keysToGet[2]).isEmpty())) {
-      limit = Integer.parseInt(this.keyValue.get(this.keysToGet[1]));
-      offset = Integer.parseInt(this.keyValue.get(this.keysToGet[2]));
-    }
-    if (this.keyValue.get(this.keysToGet[3]) != null
-        && !this.keyValue.get(this.keysToGet[3]).isEmpty()
-        && this.keyValue.get(this.keysToGet[3]).equals("DESC")) dateSort = "DESC";
+		if ((this.keyValue.get(this.keysToGet[1]) != null && !this.keyValue.get(this.keysToGet[1]).isEmpty())
+				&& (this.keyValue.get(this.keysToGet[2]) != null && !this.keyValue.get(this.keysToGet[2]).isEmpty())) {
+			limit = Integer.parseInt(this.keyValue.get(this.keysToGet[1]));
+			offset = Integer.parseInt(this.keyValue.get(this.keysToGet[2]));
+		}
+		if (this.keyValue.get(this.keysToGet[3]) != null && !this.keyValue.get(this.keysToGet[3]).isEmpty()
+				&& this.keyValue.get(this.keysToGet[3]).equals("DESC"))
+			dateSort = "DESC";
 
-    List<Map<String, Object>> output =
-        ModelInferenceLogsUtils.doRetrieveConversation(
-            user.getPrimaryLoginToken().getId(), roomId, dateSort, limit, offset);
-    return new NounMetadata(output, PixelDataType.VECTOR);
-  }
+		List<Map<String, Object>> output = ModelInferenceLogsUtils
+				.doRetrieveConversation(user.getPrimaryLoginToken().getId(), roomId, dateSort, limit, offset);
+		return new NounMetadata(output, PixelDataType.VECTOR);
+	}
 
-  @Override
-  protected String getDescriptionForKey(String key) {
-    if (key.equals("roomId")) {
-      return "The room or conversation ID for a given chat app";
-    }
-    return super.getDescriptionForKey(key);
-  }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("roomId")) {
+			return "The room or conversation ID for a given chat app";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

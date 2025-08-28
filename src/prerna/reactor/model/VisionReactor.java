@@ -30,77 +30,72 @@ import prerna.util.Utility;
 
 public class VisionReactor extends AbstractReactor {
 
-  public VisionReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.ENGINE.getKey(),
-          ReactorKeysEnum.COMMAND.getKey(),
-          ReactorKeysEnum.IMAGE.getKey(),
-          ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
-        };
-    this.keyRequired = new int[] {1, 1, 1, 0};
-  }
+	public VisionReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
+				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
+		this.keyRequired = new int[]{1, 1, 1, 0};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String engineId = this.keyValue.get(this.keysToGet[0]);
-    User user = this.insight.getUser();
-    if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-      throw new IllegalArgumentException(
-          "Model " + engineId + " does not exist or user does not have access to this model");
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		User user = this.insight.getUser();
+		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+			throw new IllegalArgumentException(
+					"Model " + engineId + " does not exist or user does not have access to this model");
+		}
 
-    String prompt = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
-    String image = this.keyValue.get(this.keysToGet[2]);
+		String prompt = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
+		String image = this.keyValue.get(this.keysToGet[2]);
 
-    // We do NOT want to decode base64 encoded images
-    if (image.startsWith("http")) {
-      image = Utility.decodeURIComponent(image);
-    }
+		// We do NOT want to decode base64 encoded images
+		if (image.startsWith("http")) {
+			image = Utility.decodeURIComponent(image);
+		}
 
-    Map<String, Object> paramMap = getMap();
-    IModelEngine modelEngine = Utility.getModel(engineId);
-    if (paramMap == null) {
-      paramMap = new HashMap<String, Object>();
-    }
+		Map<String, Object> paramMap = getMap();
+		IModelEngine modelEngine = Utility.getModel(engineId);
+		if (paramMap == null) {
+			paramMap = new HashMap<String, Object>();
+		}
 
-    paramMap.put("image_url", image);
+		paramMap.put("image_url", image);
 
-    Map<String, Object> output = modelEngine.ask(prompt, null, this.insight, paramMap).toMap();
-    return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
-  }
+		Map<String, Object> output = modelEngine.ask(prompt, null, this.insight, paramMap).toMap();
+		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
 
-  /**
-   * @return
-   */
-  private Map<String, Object> getMap() {
-    GenRowStruct mapGrs = this.store.getNoun(keysToGet[3]);
-    if (mapGrs != null && !mapGrs.isEmpty()) {
-      List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-      if (mapInputs != null && !mapInputs.isEmpty()) {
-        return (Map<String, Object>) mapInputs.get(0).getValue();
-      }
-    }
-    List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-    if (mapInputs != null && !mapInputs.isEmpty()) {
-      return (Map<String, Object>) mapInputs.get(0).getValue();
-    }
-    return null;
-  }
+	/**
+	 * @return
+	 */
+	private Map<String, Object> getMap() {
+		GenRowStruct mapGrs = this.store.getNoun(keysToGet[3]);
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
 
-  @Override
-  public String getReactorDescription() {
-    return "This method is used to run a vision task with an Image-Text-to-Text model";
-  }
+	@Override
+	public String getReactorDescription() {
+		return "This method is used to run a vision task with an Image-Text-to-Text model";
+	}
 
-  @Override
-  protected String getDescriptionForKey(String key) {
-    if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
-      return "This is the vision prompt to execute against the model";
-    } else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-      return "The image URL or base64 string for the vision task.";
-    }
-    return super.getDescriptionForKey(key);
-  }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+			return "This is the vision prompt to execute against the model";
+		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
+			return "The image URL or base64 string for the vision task.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

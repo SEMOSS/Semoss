@@ -25,93 +25,94 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
 public class QueryFunctionSelectorAdapter extends AbstractSemossTypeAdapter<QueryFunctionSelector>
-    implements IQuerySelectorAdapterHelper {
+		implements
+			IQuerySelectorAdapterHelper {
 
-  @Override
-  public QueryFunctionSelector read(JsonReader in) throws IOException {
-    if (in.peek() == JsonToken.NULL) {
-      in.nextNull();
-      return null;
-    }
+	@Override
+	public QueryFunctionSelector read(JsonReader in) throws IOException {
+		if (in.peek() == JsonToken.NULL) {
+			in.nextNull();
+			return null;
+		}
 
-    // remove the beginning objects
-    in.beginObject();
-    in.nextName();
-    in.nextString();
-    in.nextName();
+		// remove the beginning objects
+		in.beginObject();
+		in.nextName();
+		in.nextString();
+		in.nextName();
 
-    // now we read the actual content
-    QueryFunctionSelector value = readContent(in);
-    in.endObject();
-    return value;
-  }
+		// now we read the actual content
+		QueryFunctionSelector value = readContent(in);
+		in.endObject();
+		return value;
+	}
 
-  @Override
-  public QueryFunctionSelector readContent(JsonReader in) throws IOException {
-    QueryFunctionSelector value = new QueryFunctionSelector();
-    in.beginObject();
-    while (in.hasNext()) {
-      String key = in.nextName();
-      if (key.equals("alias")) {
-        value.setAlias(in.nextString());
-      } else if (key.equals("distinct")) {
-        value.setDistinct(in.nextBoolean());
-      } else if (key.equals("colCast")) {
-        value.setColCast(in.nextString());
-      } else if (key.equals("function")) {
-        value.setFunction(in.nextString());
-      } else if (key.equals("dataType")) {
-        value.setDataType(in.nextString());
+	@Override
+	public QueryFunctionSelector readContent(JsonReader in) throws IOException {
+		QueryFunctionSelector value = new QueryFunctionSelector();
+		in.beginObject();
+		while (in.hasNext()) {
+			String key = in.nextName();
+			if (key.equals("alias")) {
+				value.setAlias(in.nextString());
+			} else if (key.equals("distinct")) {
+				value.setDistinct(in.nextBoolean());
+			} else if (key.equals("colCast")) {
+				value.setColCast(in.nextString());
+			} else if (key.equals("function")) {
+				value.setFunction(in.nextString());
+			} else if (key.equals("dataType")) {
+				value.setDataType(in.nextString());
 
-      } else if (key.equals("innerSelectors")) {
-        List<IQuerySelector> innerList = new Vector<IQuerySelector>();
+			} else if (key.equals("innerSelectors")) {
+				List<IQuerySelector> innerList = new Vector<IQuerySelector>();
 
-        in.beginArray();
-        while (in.hasNext()) {
-          IQuerySelectorAdapter innerAdapter = new IQuerySelectorAdapter();
-          innerAdapter.setInsight(this.insight);
-          IQuerySelector innerSelector = innerAdapter.read(in);
-          innerList.add(innerSelector);
-        }
-        in.endArray();
+				in.beginArray();
+				while (in.hasNext()) {
+					IQuerySelectorAdapter innerAdapter = new IQuerySelectorAdapter();
+					innerAdapter.setInsight(this.insight);
+					IQuerySelector innerSelector = innerAdapter.read(in);
+					innerList.add(innerSelector);
+				}
+				in.endArray();
 
-        value.setInnerSelector(innerList);
-      }
-    }
-    in.endObject();
-    return value;
-  }
+				value.setInnerSelector(innerList);
+			}
+		}
+		in.endObject();
+		return value;
+	}
 
-  @Override
-  public void write(JsonWriter out, QueryFunctionSelector value) throws IOException {
-    if (value == null) {
-      out.nullValue();
-      return;
-    }
+	@Override
+	public void write(JsonWriter out, QueryFunctionSelector value) throws IOException {
+		if (value == null) {
+			out.nullValue();
+			return;
+		}
 
-    // always start with the type of the query selector
-    out.beginObject();
-    out.name("type").value(IQuerySelector.SELECTOR_TYPE.FUNCTION.toString());
-    out.name("content");
+		// always start with the type of the query selector
+		out.beginObject();
+		out.name("type").value(IQuerySelector.SELECTOR_TYPE.FUNCTION.toString());
+		out.name("content");
 
-    // content object
-    out.beginObject();
-    out.name("alias").value(value.getAlias());
-    out.name("function").value(value.getFunction());
-    out.name("distinct").value(value.isDistinct());
-    out.name("colCast").value(value.getColCast());
-    out.name("dataType").value(value.getDataType());
+		// content object
+		out.beginObject();
+		out.name("alias").value(value.getAlias());
+		out.name("function").value(value.getFunction());
+		out.name("distinct").value(value.isDistinct());
+		out.name("colCast").value(value.getColCast());
+		out.name("dataType").value(value.getDataType());
 
-    out.name("innerSelectors");
-    out.beginArray();
-    List<IQuerySelector> innerList = value.getInnerSelector();
-    for (IQuerySelector inner : innerList) {
-      TypeAdapter leftOutput = IQuerySelector.getAdapterForSelector(inner.getSelectorType());
-      leftOutput.write(out, inner);
-    }
-    out.endArray();
-    out.endObject();
+		out.name("innerSelectors");
+		out.beginArray();
+		List<IQuerySelector> innerList = value.getInnerSelector();
+		for (IQuerySelector inner : innerList) {
+			TypeAdapter leftOutput = IQuerySelector.getAdapterForSelector(inner.getSelectorType());
+			leftOutput.write(out, inner);
+		}
+		out.endArray();
+		out.endObject();
 
-    out.endObject();
-  }
+		out.endObject();
+	}
 }

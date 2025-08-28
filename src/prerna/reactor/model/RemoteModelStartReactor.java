@@ -28,41 +28,41 @@ import prerna.util.Utility;
 
 public class RemoteModelStartReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(RemoteModelStartReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(RemoteModelStartReactor.class);
 
-  public RemoteModelStartReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey()};
-    this.keyRequired = new int[] {1};
-  }
+	public RemoteModelStartReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+		this.keyRequired = new int[]{1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String engineId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String engineId = this.keyValue.get(this.keysToGet[0]);
 
-    if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-      throw new IllegalArgumentException(
-          "Model " + engineId + " does not exist or user does not have access to this model");
-    }
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException(
+					"Model " + engineId + " does not exist or user does not have access to this model");
+		}
 
-    try {
-      IModelEngine targetModel = Utility.getModel(engineId);
-      AbstractRemoteModelEngine targetEngine = (AbstractRemoteModelEngine) targetModel;
+		try {
+			IModelEngine targetModel = Utility.getModel(engineId);
+			AbstractRemoteModelEngine targetEngine = (AbstractRemoteModelEngine) targetModel;
 
-      Boolean startUpResult = targetEngine.initiateAndWaitForDeployment(200000);
+			Boolean startUpResult = targetEngine.initiateAndWaitForDeployment(200000);
 
-      String result;
+			String result;
 
-      if (startUpResult) {
-        result = "Model started successfully";
-      } else {
-        result = "Model failed to start";
-      }
+			if (startUpResult) {
+				result = "Model started successfully";
+			} else {
+				result = "Model failed to start";
+			}
 
-      return new NounMetadata(result, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
-    } catch (Exception e) {
-      classLogger.error("Error starting model: " + engineId, e);
-      throw new RuntimeException("Failed to start model: " + e.getMessage());
-    }
-  }
+			return new NounMetadata(result, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		} catch (Exception e) {
+			classLogger.error("Error starting model: " + engineId, e);
+			throw new RuntimeException("Failed to start model: " + e.getMessage());
+		}
+	}
 }

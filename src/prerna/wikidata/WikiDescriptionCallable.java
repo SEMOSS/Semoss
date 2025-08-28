@@ -26,67 +26,67 @@ import org.wikidata.wdtk.wikibaseapi.WikibaseDataFetcher;
 
 public class WikiDescriptionCallable implements Callable<String> {
 
-  public static final Logger LOGGER = LogManager.getLogger(WikiDescriptionCallable.class.getName());
-  private Logger logger;
+	public static final Logger LOGGER = LogManager.getLogger(WikiDescriptionCallable.class.getName());
+	private Logger logger;
 
-  WbSearchEntitiesResult res;
-  WikibaseDataFetcher wbdf;
+	WbSearchEntitiesResult res;
+	WikibaseDataFetcher wbdf;
 
-  public WikiDescriptionCallable(WikibaseDataFetcher wbdf, WbSearchEntitiesResult res) {
-    this.wbdf = wbdf;
-    this.res = res;
-  }
+	public WikiDescriptionCallable(WikibaseDataFetcher wbdf, WbSearchEntitiesResult res) {
+		this.wbdf = wbdf;
+		this.res = res;
+	}
 
-  @Override
-  public String call() throws Exception {
-    return getDescription();
-  }
+	@Override
+	public String call() throws Exception {
+		return getDescription();
+	}
 
-  private String getDescription() throws Exception {
-    Logger logger = getLogger();
-    String description = null;
+	private String getDescription() throws Exception {
+		Logger logger = getLogger();
+		String description = null;
 
-    String entityId = res.getEntityId();
-    EntityDocument entity = wbdf.getEntityDocument(entityId);
-    if (entity instanceof ItemDocument) {
-      ItemDocument document = (ItemDocument) entity;
+		String entityId = res.getEntityId();
+		EntityDocument entity = wbdf.getEntityDocument(entityId);
+		if (entity instanceof ItemDocument) {
+			ItemDocument document = (ItemDocument) entity;
 
-      String label = null;
-      // for logging
-      {
-        Map<String, MonolingualTextValue> labels = document.getLabels();
-        if (labels.get("en") != null) {
-          label = labels.get("en").getText();
-          logger.info("Processing document = " + label);
-        }
-      }
+			String label = null;
+			// for logging
+			{
+				Map<String, MonolingualTextValue> labels = document.getLabels();
+				if (labels.get("en") != null) {
+					label = labels.get("en").getText();
+					logger.info("Processing document = " + label);
+				}
+			}
 
-      Map<String, MonolingualTextValue> descMap = document.getDescriptions();
-      if (descMap.get("en") != null) {
-        //				if(label != null) {
-        //					description = label + " = " + descMap.get("en").getText();
-        //				} else {
-        description = descMap.get("en").getText();
-        //				}
-      }
-    }
+			Map<String, MonolingualTextValue> descMap = document.getDescriptions();
+			if (descMap.get("en") != null) {
+				// if(label != null) {
+				// description = label + " = " + descMap.get("en").getText();
+				// } else {
+				description = descMap.get("en").getText();
+				// }
+			}
+		}
 
-    return description;
-  }
+		return description;
+	}
 
-  public void setLogger(Logger logger) {
-    this.logger = logger;
-  }
+	public void setLogger(Logger logger) {
+		this.logger = logger;
+	}
 
-  /**
-   * Get the correct logger
-   *
-   * @return
-   */
-  private Logger getLogger() {
-    if (this.logger == null) {
-      return LOGGER;
-    }
-    return this.logger;
-  }
+	/**
+	 * Get the correct logger
+	 *
+	 * @return
+	 */
+	private Logger getLogger() {
+		if (this.logger == null) {
+			return LOGGER;
+		}
+		return this.logger;
+	}
 }

@@ -33,111 +33,108 @@ import prerna.util.Utility;
 
 public class TextInputReactor extends AbstractQueryStructReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(TextInputReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(TextInputReactor.class);
 
-  // keys to get inputs from pixel command
-  private static final String FILE_INFO = "fileData";
-  private static final String DATA_TYPES = "dataTypeMap";
-  private static final String DELIMITER = "delim";
+	// keys to get inputs from pixel command
+	private static final String FILE_INFO = "fileData";
+	private static final String DATA_TYPES = "dataTypeMap";
+	private static final String DELIMITER = "delim";
 
-  /**
-   * TextInput args
-   *
-   * <p>FILE_INFO=["fileInfo"] DELIMITER = ["delimiter"]
-   *
-   * <p>to set dataTypes dataTypesMap = [{"column", "type"}]
-   */
-  @Override
-  protected SelectQueryStruct createQueryStruct() {
-    CsvQueryStruct qs = null;
+	/**
+	 * TextInput args
+	 *
+	 * <p>
+	 * FILE_INFO=["fileInfo"] DELIMITER = ["delimiter"]
+	 *
+	 * <p>
+	 * to set dataTypes dataTypesMap = [{"column", "type"}]
+	 */
+	@Override
+	protected SelectQueryStruct createQueryStruct() {
+		CsvQueryStruct qs = null;
 
-    // get inputs
-    Map<String, String> dataTypes = getDataTypes();
-    String fileInfo = getFileInfo();
+		// get inputs
+		Map<String, String> dataTypes = getDataTypes();
+		String fileInfo = getFileInfo();
 
-    // write the file on disk
-    Date date = new Date();
-    String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
-    String fileLocation =
-        DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-            + DIR_SEPARATOR
-            + "PastedData"
-            + modifiedDate
-            + ".csv";
-    File file = new File(fileLocation);
-    FileWriter fw = null;
-    try {
-      fw = new FileWriter(file);
-      fw.write(fileInfo);
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    } finally {
-      if (fw != null) {
-        try {
-          fw.flush();
-          fw.close();
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
+		// write the file on disk
+		Date date = new Date();
+		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
+		String fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "PastedData"
+				+ modifiedDate + ".csv";
+		File file = new File(fileLocation);
+		FileWriter fw = null;
+		try {
+			fw = new FileWriter(file);
+			fw.write(fileInfo);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (fw != null) {
+				try {
+					fw.flush();
+					fw.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 
-    // set csv qs
-    char delimiter = getDelimiter();
-    qs = new CsvQueryStruct();
-    qs.setFilePath(fileLocation);
-    qs.setDelimiter(delimiter);
-    qs.setColumnTypes(dataTypes);
-    qs.merge(this.qs);
-    return qs;
-  }
+		// set csv qs
+		char delimiter = getDelimiter();
+		qs = new CsvQueryStruct();
+		qs.setFilePath(fileLocation);
+		qs.setDelimiter(delimiter);
+		qs.setColumnTypes(dataTypes);
+		qs.merge(this.qs);
+		return qs;
+	}
 
-  /**************************************************************************************************
-   ************************************* INPUT METHODS***********************************************
-   **************************************************************************************************/
+	/**************************************************************************************************
+	 ************************************* INPUT METHODS***********************************************
+	 **************************************************************************************************/
 
-  private String getFileInfo() {
-    GenRowStruct fGrs = this.store.getNoun(FILE_INFO);
-    String fileInfo = null;
-    if (fGrs != null && !fGrs.isEmpty()) {
-      String encodedString = fGrs.get(0).toString();
-      fileInfo = Utility.decodeURIComponent(encodedString);
-    } else {
-      throw new IllegalArgumentException(
-          "Need to specify " + FILE_INFO + "=[\"<encode>fileData</encode>\"] in pixel command");
-    }
-    return fileInfo;
-  }
+	private String getFileInfo() {
+		GenRowStruct fGrs = this.store.getNoun(FILE_INFO);
+		String fileInfo = null;
+		if (fGrs != null && !fGrs.isEmpty()) {
+			String encodedString = fGrs.get(0).toString();
+			fileInfo = Utility.decodeURIComponent(encodedString);
+		} else {
+			throw new IllegalArgumentException(
+					"Need to specify " + FILE_INFO + "=[\"<encode>fileData</encode>\"] in pixel command");
+		}
+		return fileInfo;
+	}
 
-  private Map<String, String> getDataTypes() {
-    GenRowStruct dataTypeGRS = this.store.getNoun(DATA_TYPES);
-    Map<String, String> dataTypes = null;
-    if (dataTypeGRS != null) {
-      NounMetadata dataNoun = dataTypeGRS.getNoun(0);
-      dataTypes = (Map<String, String>) dataNoun.getValue();
-    }
-    return dataTypes;
-  }
+	private Map<String, String> getDataTypes() {
+		GenRowStruct dataTypeGRS = this.store.getNoun(DATA_TYPES);
+		Map<String, String> dataTypes = null;
+		if (dataTypeGRS != null) {
+			NounMetadata dataNoun = dataTypeGRS.getNoun(0);
+			dataTypes = (Map<String, String>) dataNoun.getValue();
+		}
+		return dataTypes;
+	}
 
-  private char getDelimiter() {
-    GenRowStruct delimGRS = this.store.getNoun(DELIMITER);
-    String delimiter = "";
-    char delim = ','; // default
-    NounMetadata instanceIndexNoun;
+	private char getDelimiter() {
+		GenRowStruct delimGRS = this.store.getNoun(DELIMITER);
+		String delimiter = "";
+		char delim = ','; // default
+		NounMetadata instanceIndexNoun;
 
-    if (delimGRS != null) {
-      instanceIndexNoun = delimGRS.getNoun(0);
-      delimiter = (String) instanceIndexNoun.getValue();
-    } else {
-      throw new IllegalArgumentException(
-          "Need to specify " + DELIMITER + "=[delimiter] in pixel command");
-    }
+		if (delimGRS != null) {
+			instanceIndexNoun = delimGRS.getNoun(0);
+			delimiter = (String) instanceIndexNoun.getValue();
+		} else {
+			throw new IllegalArgumentException("Need to specify " + DELIMITER + "=[delimiter] in pixel command");
+		}
 
-    // get char from input string
-    if (delimiter.length() > 0) {
-      delim = delimiter.charAt(0);
-    }
+		// get char from input string
+		if (delimiter.length() > 0) {
+			delim = delimiter.charAt(0);
+		}
 
-    return delim;
-  }
+		return delim;
+	}
 }

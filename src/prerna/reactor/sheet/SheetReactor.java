@@ -23,21 +23,20 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SheetReactor extends AbstractReactor {
 
-  public SheetReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.SHEET.getKey()};
-  }
+	public SheetReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.SHEET.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    // first input is the name of the panel
-    String sheetId = this.keyValue.get(this.keysToGet[0]);
-    InsightSheet insightSheet = this.insight.getInsightSheet(sheetId);
-    if (insightSheet == null) {
-      throw new NullPointerException("Sheet Id " + sheetId + " does not exist");
-    }
-    NounMetadata noun =
-        new NounMetadata(insightSheet, PixelDataType.SHEET, PixelOperationType.SHEET);
-    return noun;
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		// first input is the name of the panel
+		String sheetId = this.keyValue.get(this.keysToGet[0]);
+		InsightSheet insightSheet = this.insight.getInsightSheet(sheetId);
+		if (insightSheet == null) {
+			throw new NullPointerException("Sheet Id " + sheetId + " does not exist");
+		}
+		NounMetadata noun = new NounMetadata(insightSheet, PixelDataType.SHEET, PixelOperationType.SHEET);
+		return noun;
+	}
 }

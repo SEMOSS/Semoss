@@ -29,41 +29,38 @@ import prerna.util.Utility;
 
 public class ReloadDatabaseOwlReactor extends AbstractMetaEditorReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(ReloadDatabaseOwlReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ReloadDatabaseOwlReactor.class);
 
-  /*
-   * This class is when you make local changes to the OWL file and want to
-   * reload the owl for the database with that change
-   *
-   * This is because the RC on the database OWL will not be synchronized
-   */
+	/*
+	 * This class is when you make local changes to the OWL file and want to reload
+	 * the owl for the database with that change
+	 *
+	 * This is because the RC on the database OWL will not be synchronized
+	 */
 
-  public ReloadDatabaseOwlReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
-  }
+	public ReloadDatabaseOwlReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String databaseId = this.keyValue.get(this.keysToGet[0]);
-    // we may have the alias
-    databaseId = testDatabaseId(databaseId, true);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		// we may have the alias
+		databaseId = testDatabaseId(databaseId, true);
 
-    IDatabaseEngine database = Utility.getDatabase(databaseId);
-    try (WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
-      owlEngine.reloadOWLFile();
-      EngineSyncUtility.clearEngineCache(databaseId);
-      ClusterUtil.pushOwl(databaseId, owlEngine);
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
+		try (WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+			owlEngine.reloadOWLFile();
+			EngineSyncUtility.clearEngineCache(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 
-    NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-    noun.addAdditionalReturn(
-        new NounMetadata(
-            "Successfully reloaded database owl",
-            PixelDataType.CONST_STRING,
-            PixelOperationType.SUCCESS));
-    return noun;
-  }
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		noun.addAdditionalReturn(new NounMetadata("Successfully reloaded database owl", PixelDataType.CONST_STRING,
+				PixelOperationType.SUCCESS));
+		return noun;
+	}
 }

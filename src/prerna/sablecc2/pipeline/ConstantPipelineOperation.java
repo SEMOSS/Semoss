@@ -18,21 +18,23 @@ import java.util.Map;
 
 public class ConstantPipelineOperation extends PipelineOperation {
 
-  Map<String, Object> scalarMap = null;
+	Map<String, Object> scalarMap = null;
 
-  /**
-   * Constructor
-   *
-   * @param opName The name of the reactor for the operation
-   * @param opString Primarily need this for debugging
-   */
-  public ConstantPipelineOperation(String opName, String opString) {
-    super(opName, opString);
-    this.rowInputs = null;
-    this.nounInputs = null;
-  }
+	/**
+	 * Constructor
+	 *
+	 * @param opName
+	 *            The name of the reactor for the operation
+	 * @param opString
+	 *            Primarily need this for debugging
+	 */
+	public ConstantPipelineOperation(String opName, String opString) {
+		super(opName, opString);
+		this.rowInputs = null;
+		this.nounInputs = null;
+	}
 
-  public void setScalarMap(Map<String, Object> scalarMap) {
-    this.scalarMap = scalarMap;
-  }
+	public void setScalarMap(Map<String, Object> scalarMap) {
+		this.scalarMap = scalarMap;
+	}
 }

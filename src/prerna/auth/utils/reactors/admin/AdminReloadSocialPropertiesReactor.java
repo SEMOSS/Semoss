@@ -23,15 +23,15 @@ import prerna.util.SocialPropertiesUtil;
 
 public class AdminReloadSocialPropertiesReactor extends AbstractReactor {
 
-  @Override
-  public NounMetadata execute() {
-    User user = this.insight.getUser();
-    SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-    if (adminUtils == null) {
-      throw new IllegalArgumentException("User must be an admin to perform this function");
-    }
+	@Override
+	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+		if (adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
 
-    SocialPropertiesUtil.getInstance().reloadProps();
-    return new NounMetadata(true, PixelDataType.BOOLEAN);
-  }
+		SocialPropertiesUtil.getInstance().reloadProps();
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
 }

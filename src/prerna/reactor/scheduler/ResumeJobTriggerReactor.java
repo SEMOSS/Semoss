@@ -35,65 +35,65 @@ import prerna.util.Utility;
 
 public class ResumeJobTriggerReactor extends AbstractReactor {
 
-  private static final Logger logger = LogManager.getLogger(ResumeJobTriggerReactor.class);
+	private static final Logger logger = LogManager.getLogger(ResumeJobTriggerReactor.class);
 
-  public ResumeJobTriggerReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey()};
-  }
+	public ResumeJobTriggerReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    if (Utility.schedulerForceDisable()) {
-      throw new IllegalArgumentException("Scheduler is not enabled");
-    }
+	@Override
+	public NounMetadata execute() {
+		if (Utility.schedulerForceDisable()) {
+			throw new IllegalArgumentException("Scheduler is not enabled");
+		}
 
-    /**
-     * RescheduleJobFromDB(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
-     *
-     * <p>This reactor will reschedule existing unscheduled jobs in Quartz.
-     */
-    organizeKeys();
-    // Get inputs
-    String jobId = this.keyValue.get(this.keysToGet[0]);
-    String jobGroup = this.keyValue.get(this.keysToGet[1]);
+		/**
+		 * RescheduleJobFromDB(jobName = ["sample_job_name"],
+		 * jobGroup=["sample_job_group"]);
+		 *
+		 * <p>
+		 * This reactor will reschedule existing unscheduled jobs in Quartz.
+		 */
+		organizeKeys();
+		// Get inputs
+		String jobId = this.keyValue.get(this.keysToGet[0]);
+		String jobGroup = this.keyValue.get(this.keysToGet[1]);
 
-    // the job group is the app the user is in
-    // user must be an admin or editor of the app
-    // to add a scheduled job
-    User user = this.insight.getUser();
-    if (!SecurityAdminUtils.userIsAdmin(user)
-        && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
-      throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
-    }
+		// the job group is the app the user is in
+		// user must be an admin or editor of the app
+		// to add a scheduled job
+		User user = this.insight.getUser();
+		if (!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
+		}
 
-    // resume the job in quartz
-    // later grab cron expression and add functionality to resume specific trigger under job
-    try {
-      JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
-      String triggerName = jobId.concat("Trigger");
-      String triggerGroup = jobGroup.concat("TriggerGroup");
-      TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
+		// resume the job in quartz
+		// later grab cron expression and add functionality to resume specific trigger
+		// under job
+		try {
+			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
+			String triggerName = jobId.concat("Trigger");
+			String triggerGroup = jobGroup.concat("TriggerGroup");
+			TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
 
-      Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
-      // start up scheduler
-      SchedulerDatabaseUtility.startScheduler(scheduler);
+			// start up scheduler
+			SchedulerDatabaseUtility.startScheduler(scheduler);
 
-      // reschedule job
-      if (scheduler.checkExists(jobKey)) {
-        scheduler.resumeTrigger(triggerKey);
-      }
-    } catch (SchedulerException se) {
-      logger.error(Constants.STACKTRACE, se);
-    }
+			// reschedule job
+			if (scheduler.checkExists(jobKey)) {
+				scheduler.resumeTrigger(triggerKey);
+			}
+		} catch (SchedulerException se) {
+			logger.error(Constants.STACKTRACE, se);
+		}
 
-    // Save metadata into a map and return
-    Map<String, String> quartzJobMetadata = new HashMap<>();
-    quartzJobMetadata.put("jobId", jobId);
-    quartzJobMetadata.put("jobGroup", jobGroup);
+		// Save metadata into a map and return
+		Map<String, String> quartzJobMetadata = new HashMap<>();
+		quartzJobMetadata.put("jobId", jobId);
+		quartzJobMetadata.put("jobGroup", jobGroup);
 
-    return new NounMetadata(
-        quartzJobMetadata, PixelDataType.MAP, PixelOperationType.RESCHEDULE_JOB);
-  }
+		return new NounMetadata(quartzJobMetadata, PixelDataType.MAP, PixelOperationType.RESCHEDULE_JOB);
+	}
 }

@@ -25,103 +25,103 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class MapHeaderDataRowIterator implements IRawSelectWrapper {
 
-  private InMemStore<String, NounMetadata> store = null;
-  private Iterator<String> keysIterator = null;
+	private InMemStore<String, NounMetadata> store = null;
+	private Iterator<String> keysIterator = null;
 
-  public MapHeaderDataRowIterator(InMemStore store) {
-    this.store = store;
-    this.keysIterator = store.getKeys().iterator();
-  }
+	public MapHeaderDataRowIterator(InMemStore store) {
+		this.store = store;
+		this.keysIterator = store.getKeys().iterator();
+	}
 
-  @Override
-  public boolean hasNext() {
-    return keysIterator.hasNext();
-  }
+	@Override
+	public boolean hasNext() {
+		return keysIterator.hasNext();
+	}
 
-  @Override
-  public IHeadersDataRow next() {
-    String key = keysIterator.next();
-    NounMetadata value = store.get(key);
+	@Override
+	public IHeadersDataRow next() {
+		String key = keysIterator.next();
+		NounMetadata value = store.get(key);
 
-    String[] header = new String[] {key.toString()};
-    Object[] data = new Object[] {value.getValue()};
+		String[] header = new String[]{key.toString()};
+		Object[] data = new Object[]{value.getValue()};
 
-    return new HeadersDataRow(header, data);
-  }
+		return new HeadersDataRow(header, data);
+	}
 
-  @Override
-  public long getNumRows() {
-    return store.getKeys().size();
-  }
+	@Override
+	public long getNumRows() {
+		return store.getKeys().size();
+	}
 
-  @Override
-  public long getNumRecords() {
-    return store.getKeys().size();
-  }
+	@Override
+	public long getNumRecords() {
+		return store.getKeys().size();
+	}
 
-  @Override
-  public void execute() {
-    // TODO Auto-generated method stub
+	@Override
+	public void execute() {
+		// TODO Auto-generated method stub
 
-  }
+	}
 
-  @Override
-  public void setQuery(String query) {
-    // TODO Auto-generated method stub
+	@Override
+	public void setQuery(String query) {
+		// TODO Auto-generated method stub
 
-  }
+	}
 
-  @Override
-  public String getQuery() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+	@Override
+	public String getQuery() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
-  @Override
-  public void close() throws IOException {
-    // TODO Auto-generated method stub
+	@Override
+	public void close() throws IOException {
+		// TODO Auto-generated method stub
 
-  }
+	}
 
-  @Override
-  public void setEngine(IDatabaseEngine engine) {
-    // TODO Auto-generated method stub
+	@Override
+	public void setEngine(IDatabaseEngine engine) {
+		// TODO Auto-generated method stub
 
-  }
+	}
 
-  @Override
-  public IDatabaseEngine getEngine() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+	@Override
+	public IDatabaseEngine getEngine() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
-  @Override
-  public String[] getHeaders() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+	@Override
+	public String[] getHeaders() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
-  @Override
-  public SemossDataType[] getTypes() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+	@Override
+	public SemossDataType[] getTypes() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
-  @Override
-  public void reset() {
-    // TODO Auto-generated method stub
+	@Override
+	public void reset() {
+		// TODO Auto-generated method stub
 
-  }
+	}
 
-  @Override
-  public boolean flushable() {
-    // TODO Auto-generated method stub
-    return false;
-  }
+	@Override
+	public boolean flushable() {
+		// TODO Auto-generated method stub
+		return false;
+	}
 
-  @Override
-  public String flush() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+	@Override
+	public String flush() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

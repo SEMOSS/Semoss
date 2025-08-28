@@ -38,130 +38,118 @@ import prerna.util.Constants;
 
 public class DataStaxGraphEngine extends AbstractDatabaseEngine {
 
-  private static final Logger classLogger = LogManager.getLogger(DataStaxGraphEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(DataStaxGraphEngine.class);
 
-  private GraphTraversalSource graphTraversalSession;
-  private Map<String, String> typeMap = new HashMap<String, String>();
-  private Map<String, String> nameMap = new HashMap<String, String>();
+	private GraphTraversalSource graphTraversalSession;
+	private Map<String, String> typeMap = new HashMap<String, String>();
+	private Map<String, String> nameMap = new HashMap<String, String>();
 
-  @Override
-  public void open(Properties smssProp) throws Exception {
-    super.open(smssProp);
-    String host = this.smssProp.getProperty("HOST");
-    String port = this.smssProp.getProperty("PORT");
-    String username = this.smssProp.getProperty("USERNAME");
-    String password = this.smssProp.getProperty("PASSWORD");
-    String graphName = this.smssProp.getProperty("GRAPH_NAME");
-    // get the type map
-    String typeMapStr = this.smssProp.getProperty("TYPE_MAP");
-    // get the name map
-    String nameMapStr = this.smssProp.getProperty("NAME_MAP");
+	@Override
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+		String host = this.smssProp.getProperty("HOST");
+		String port = this.smssProp.getProperty("PORT");
+		String username = this.smssProp.getProperty("USERNAME");
+		String password = this.smssProp.getProperty("PASSWORD");
+		String graphName = this.smssProp.getProperty("GRAPH_NAME");
+		// get the type map
+		String typeMapStr = this.smssProp.getProperty("TYPE_MAP");
+		// get the name map
+		String nameMapStr = this.smssProp.getProperty("NAME_MAP");
 
-    DseCluster dseCluster = null;
-    if (username != null && password != null) {
-      dseCluster =
-          DseCluster.builder()
-              .addContactPoint(host)
-              .withCredentials(username, password)
-              .withPort(Integer.parseInt(port))
-              .withGraphOptions(new GraphOptions().setGraphName(graphName))
-              .build();
-    } else {
-      dseCluster =
-          DseCluster.builder()
-              .addContactPoint(host)
-              .withPort(Integer.parseInt(port))
-              .withGraphOptions(new GraphOptions().setGraphName(graphName))
-              .build();
-    }
-    if (dseCluster != null) {
-      DseSession dseSession = dseCluster.connect();
-      if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
-        try {
-          this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-      if (nameMapStr != null && !nameMapStr.trim().isEmpty()) {
-        try {
-          this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-      this.graphTraversalSession = DseGraph.traversal(dseSession);
-    } else {
-      NounMetadata noun =
-          new NounMetadata(
-              "Unable to establish connection",
-              PixelDataType.CONST_STRING,
-              PixelOperationType.ERROR);
-      SemossPixelException exception = new SemossPixelException(noun);
-      exception.setContinueThreadOfExecution(false);
-      throw exception;
-    }
-  }
+		DseCluster dseCluster = null;
+		if (username != null && password != null) {
+			dseCluster = DseCluster.builder().addContactPoint(host).withCredentials(username, password)
+					.withPort(Integer.parseInt(port)).withGraphOptions(new GraphOptions().setGraphName(graphName))
+					.build();
+		} else {
+			dseCluster = DseCluster.builder().addContactPoint(host).withPort(Integer.parseInt(port))
+					.withGraphOptions(new GraphOptions().setGraphName(graphName)).build();
+		}
+		if (dseCluster != null) {
+			DseSession dseSession = dseCluster.connect();
+			if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
+				try {
+					this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if (nameMapStr != null && !nameMapStr.trim().isEmpty()) {
+				try {
+					this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			this.graphTraversalSession = DseGraph.traversal(dseSession);
+		} else {
+			NounMetadata noun = new NounMetadata("Unable to establish connection", PixelDataType.CONST_STRING,
+					PixelOperationType.ERROR);
+			SemossPixelException exception = new SemossPixelException(noun);
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+	}
 
-  public GraphTraversalSource getGraphTraversalSource() {
-    return this.graphTraversalSession;
-  }
+	public GraphTraversalSource getGraphTraversalSource() {
+		return this.graphTraversalSession;
+	}
 
-  public Map<String, String> getTypeMap() {
-    return this.typeMap;
-  }
+	public Map<String, String> getTypeMap() {
+		return this.typeMap;
+	}
 
-  public Map<String, String> getNameMap() {
-    return this.nameMap;
-  }
+	public Map<String, String> getNameMap() {
+		return this.nameMap;
+	}
 
-  public IQueryInterpreter getQueryInterpreter() {
-    return new GremlinNoEdgeBindInterpreter(
-        this.graphTraversalSession, this.typeMap, this.nameMap, this);
-  }
+	public IQueryInterpreter getQueryInterpreter() {
+		return new GremlinNoEdgeBindInterpreter(this.graphTraversalSession, this.typeMap, this.nameMap, this);
+	}
 
-  @Override
-  public DATABASE_TYPE getDatabaseType() {
-    return DATABASE_TYPE.DATASTAX_GRAPH;
-  }
+	@Override
+	public DATABASE_TYPE getDatabaseType() {
+		return DATABASE_TYPE.DATASTAX_GRAPH;
+	}
 
-  ////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////
 
-  @Override
-  public Object execQuery(String query) {
-    // TODO Auto-generated method stub
-    return null;
-  }
+	@Override
+	public Object execQuery(String query) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
-  @Override
-  public void insertData(String query) {
-    // TODO Auto-generated method stub
+	@Override
+	public void insertData(String query) {
+		// TODO Auto-generated method stub
 
-  }
+	}
 
-  @Override
-  public Vector<Object> getEntityOfType(String type) {
-    // TODO Auto-generated method stub
-    return null;
-  }
+	@Override
+	public Vector<Object> getEntityOfType(String type) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
-  @Override
-  public void removeData(String query) {
-    // TODO Auto-generated method stub
+	@Override
+	public void removeData(String query) {
+		// TODO Auto-generated method stub
 
-  }
+	}
 
-  @Override
-  public void commit() {
-    // TODO Auto-generated method stub
+	@Override
+	public void commit() {
+		// TODO Auto-generated method stub
 
-  }
+	}
 
-  @Override
-  public boolean holdsFileLocks() {
-    return false;
-  }
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
 }

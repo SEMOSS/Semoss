@@ -18,61 +18,61 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 public class RserveConnectionMeta {
 
-  private final String host;
-  private final int port;
-  private RConnection rcon;
-  private volatile boolean isActive = false;
-  private volatile Process process = null;
+	private final String host;
+	private final int port;
+	private RConnection rcon;
+	private volatile boolean isActive = false;
+	private volatile Process process = null;
 
-  public RserveConnectionMeta(String host, int port) {
-    this.host = host;
-    this.port = port;
-  }
+	public RserveConnectionMeta(String host, int port) {
+		this.host = host;
+		this.port = port;
+	}
 
-  public String getHost() {
-    return host;
-  }
+	public String getHost() {
+		return host;
+	}
 
-  public int getPort() {
-    return port;
-  }
+	public int getPort() {
+		return port;
+	}
 
-  public RConnection getRcon() {
-    return rcon;
-  }
+	public RConnection getRcon() {
+		return rcon;
+	}
 
-  public void setRcon(RConnection rcon) {
-    this.rcon = rcon;
-  }
+	public void setRcon(RConnection rcon) {
+		this.rcon = rcon;
+	}
 
-  public boolean isActive() {
-    return isActive;
-  }
+	public boolean isActive() {
+		return isActive;
+	}
 
-  public void setActive(boolean isActive) {
-    this.isActive = isActive;
-  }
+	public void setActive(boolean isActive) {
+		this.isActive = isActive;
+	}
 
-  @Override
-  public boolean equals(Object obj) {
-    if (obj == null) {
-      return false;
-    }
-    if (!RserveConnectionMeta.class.isAssignableFrom(obj.getClass())) {
-      return false;
-    }
-    RserveConnectionMeta other = (RserveConnectionMeta) obj;
-    if (other.getHost().equals(this.host) && other.getPort() == this.port) {
-      return true;
-    }
-    return false;
-  }
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == null) {
+			return false;
+		}
+		if (!RserveConnectionMeta.class.isAssignableFrom(obj.getClass())) {
+			return false;
+		}
+		RserveConnectionMeta other = (RserveConnectionMeta) obj;
+		if (other.getHost().equals(this.host) && other.getPort() == this.port) {
+			return true;
+		}
+		return false;
+	}
 
-  public Process getProcess() {
-    return process;
-  }
+	public Process getProcess() {
+		return process;
+	}
 
-  public void setProcess(Process process) {
-    this.process = process;
-  }
+	public void setProcess(Process process) {
+		this.process = process;
+	}
 }

@@ -36,128 +36,119 @@ import prerna.util.Constants;
 
 public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 
-  private static final Logger classLogger = LogManager.getLogger(ScaledUniqueFrameIterator.class);
+	private static final Logger classLogger = LogManager.getLogger(ScaledUniqueFrameIterator.class);
 
-  private ITableDataFrame frame;
-  private String uniqueColumnName;
-  private SelectQueryStruct qs;
-  private Iterator<Object> valueIterator;
+	private ITableDataFrame frame;
+	private String uniqueColumnName;
+	private SelectQueryStruct qs;
+	private Iterator<Object> valueIterator;
 
-  public ScaledUniqueFrameIterator(
-      ITableDataFrame frame,
-      String columnName,
-      Double[] maxArr,
-      Double[] minArr,
-      List<SemossDataType> dataTypes,
-      List<String> selectors) {
+	public ScaledUniqueFrameIterator(ITableDataFrame frame, String columnName, Double[] maxArr, Double[] minArr,
+			List<SemossDataType> dataTypes, List<String> selectors) {
 
-    this.frame = frame;
-    this.uniqueColumnName = columnName;
-    Object[] column = frame.getColumn(columnName);
-    this.valueIterator = Arrays.asList(column).iterator();
+		this.frame = frame;
+		this.uniqueColumnName = columnName;
+		Object[] column = frame.getColumn(columnName);
+		this.valueIterator = Arrays.asList(column).iterator();
 
-    // create the QS being used for querying
-    this.qs = new SelectQueryStruct();
+		// create the QS being used for querying
+		this.qs = new SelectQueryStruct();
 
-    int numSelectors = selectors.size();
-    for (int i = 0; i < numSelectors; i++) {
-      String unqiueSelectorName = selectors.get(i);
+		int numSelectors = selectors.size();
+		for (int i = 0; i < numSelectors; i++) {
+			String unqiueSelectorName = selectors.get(i);
 
-      QueryColumnSelector sColumn = new QueryColumnSelector();
-      if (unqiueSelectorName.contains("__")) {
-        String[] sSplit = unqiueSelectorName.split("__");
-        sColumn.setTable(sSplit[0]);
-        sColumn.setColumn(sSplit[1]);
-      } else {
-        sColumn.setTable(unqiueSelectorName);
-        sColumn.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
-      }
+			QueryColumnSelector sColumn = new QueryColumnSelector();
+			if (unqiueSelectorName.contains("__")) {
+				String[] sSplit = unqiueSelectorName.split("__");
+				sColumn.setTable(sSplit[0]);
+				sColumn.setColumn(sSplit[1]);
+			} else {
+				sColumn.setTable(unqiueSelectorName);
+				sColumn.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+			}
 
-      if (maxArr[i] != null && minArr[i] != null) {
-        // we need to normalize this guy
-        double range = maxArr[i] - minArr[i];
+			if (maxArr[i] != null && minArr[i] != null) {
+				// we need to normalize this guy
+				double range = maxArr[i] - minArr[i];
 
-        QueryConstantSelector minConst = new QueryConstantSelector();
-        minConst.setConstant(minArr[i]);
+				QueryConstantSelector minConst = new QueryConstantSelector();
+				minConst.setConstant(minArr[i]);
 
-        QueryArithmeticSelector minusSelector = new QueryArithmeticSelector();
-        minusSelector.setLeftSelector(sColumn);
-        minusSelector.setRightSelector(minConst);
-        minusSelector.setMathExpr("-");
+				QueryArithmeticSelector minusSelector = new QueryArithmeticSelector();
+				minusSelector.setLeftSelector(sColumn);
+				minusSelector.setRightSelector(minConst);
+				minusSelector.setMathExpr("-");
 
-        QueryConstantSelector rangeConst = new QueryConstantSelector();
-        rangeConst.setConstant(range);
+				QueryConstantSelector rangeConst = new QueryConstantSelector();
+				rangeConst.setConstant(range);
 
-        QueryArithmeticSelector normalizeSelector = new QueryArithmeticSelector();
-        normalizeSelector.setLeftSelector(minusSelector);
-        normalizeSelector.setRightSelector(rangeConst);
-        normalizeSelector.setMathExpr("/");
+				QueryArithmeticSelector normalizeSelector = new QueryArithmeticSelector();
+				normalizeSelector.setLeftSelector(minusSelector);
+				normalizeSelector.setRightSelector(rangeConst);
+				normalizeSelector.setMathExpr("/");
 
-        qs.addSelector(normalizeSelector);
-      } else {
-        // we just add this as a column
-        qs.addSelector(sColumn);
-      }
-    }
+				qs.addSelector(normalizeSelector);
+			} else {
+				// we just add this as a column
+				qs.addSelector(sColumn);
+			}
+		}
 
-    // dont forget about filters
-    qs.mergeImplicitFilters(frame.getFrameFilters());
-  }
+		// dont forget about filters
+		qs.mergeImplicitFilters(frame.getFrameFilters());
+	}
 
-  @Override
-  public boolean hasNext() {
-    if (this.valueIterator.hasNext()) {
-      return true;
-    }
-    return false;
-  }
+	@Override
+	public boolean hasNext() {
+		if (this.valueIterator.hasNext()) {
+			return true;
+		}
+		return false;
+	}
 
-  @Override
-  public List<Object[]> next() {
-    if (hasNext()) {
-      Object nextVal = valueIterator.next();
-      SimpleQueryFilter instanceFilter = null;
-      if (nextVal instanceof Number) {
-        instanceFilter =
-            new SimpleQueryFilter(
-                new NounMetadata(new QueryColumnSelector(uniqueColumnName), PixelDataType.COLUMN),
-                "==",
-                new NounMetadata(nextVal, PixelDataType.CONST_DECIMAL));
-      } else {
-        instanceFilter =
-            new SimpleQueryFilter(
-                new NounMetadata(new QueryColumnSelector(uniqueColumnName), PixelDataType.COLUMN),
-                "==",
-                new NounMetadata(nextVal, PixelDataType.CONST_STRING));
-      }
+	@Override
+	public List<Object[]> next() {
+		if (hasNext()) {
+			Object nextVal = valueIterator.next();
+			SimpleQueryFilter instanceFilter = null;
+			if (nextVal instanceof Number) {
+				instanceFilter = new SimpleQueryFilter(
+						new NounMetadata(new QueryColumnSelector(uniqueColumnName), PixelDataType.COLUMN), "==",
+						new NounMetadata(nextVal, PixelDataType.CONST_DECIMAL));
+			} else {
+				instanceFilter = new SimpleQueryFilter(
+						new NounMetadata(new QueryColumnSelector(uniqueColumnName), PixelDataType.COLUMN), "==",
+						new NounMetadata(nextVal, PixelDataType.CONST_STRING));
+			}
 
-      // remove all previous filters
-      this.qs.getImplicitFilters().removeColumnFilter(uniqueColumnName);
-      // and add this one single value filter
-      this.qs.addImplicitFilter(instanceFilter);
+			// remove all previous filters
+			this.qs.getImplicitFilters().removeColumnFilter(uniqueColumnName);
+			// and add this one single value filter
+			this.qs.addImplicitFilter(instanceFilter);
 
-      List<Object[]> retData = new ArrayList<Object[]>();
-      IRawSelectWrapper it = null;
-      try {
-        it = frame.query(qs);
-        while (it.hasNext()) {
-          retData.add(it.next().getValues());
-        }
-      } catch (Exception e) {
-        classLogger.error(Constants.STACKTRACE, e);
-      } finally {
-        if (it != null) {
-          try {
-            it.close();
-          } catch (IOException e) {
-            classLogger.error(Constants.STACKTRACE, e);
-          }
-        }
-      }
+			List<Object[]> retData = new ArrayList<Object[]>();
+			IRawSelectWrapper it = null;
+			try {
+				it = frame.query(qs);
+				while (it.hasNext()) {
+					retData.add(it.next().getValues());
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if (it != null) {
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
 
-      return retData;
-    } else {
-      throw new NoSuchElementException("No more elements");
-    }
-  }
+			return retData;
+		} else {
+			throw new NoSuchElementException("No more elements");
+		}
+	}
 }

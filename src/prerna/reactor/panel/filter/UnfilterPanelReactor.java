@@ -28,50 +28,47 @@ import prerna.util.insight.InsightUtility;
 
 public class UnfilterPanelReactor extends AbstractFilterReactor {
 
-  public UnfilterPanelReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.COLUMNS.getKey(), TASK_REFRESH_KEY
-        };
-  }
+	public UnfilterPanelReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.COLUMNS.getKey(),
+				TASK_REFRESH_KEY};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    InsightPanel panel = getInsightPanel();
+	@Override
+	public NounMetadata execute() {
+		InsightPanel panel = getInsightPanel();
 
-    List<Object> colsToUnfilter = null;
-    if (this.curRow.size() > 0) {
-      colsToUnfilter = this.curRow.getValuesOfType(PixelDataType.CONST_STRING);
-    }
+		List<Object> colsToUnfilter = null;
+		if (this.curRow.size() > 0) {
+			colsToUnfilter = this.curRow.getValuesOfType(PixelDataType.CONST_STRING);
+		}
 
-    boolean hasFilters = false;
-    if (colsToUnfilter == null || colsToUnfilter.isEmpty()) {
-      GenRowFilters grf = panel.getPanelFilters();
-      if (!grf.isEmpty()) {
-        grf.removeAllFilters();
-        hasFilters = true;
-      }
-    } else {
-      GenRowFilters grf = panel.getPanelFilters();
-      for (Object col : colsToUnfilter) {
-        String colName = col + "";
-        if (grf.hasFilter(colName)) {
-          grf.removeColumnFilter(colName);
-          hasFilters = true;
-        }
-      }
-    }
+		boolean hasFilters = false;
+		if (colsToUnfilter == null || colsToUnfilter.isEmpty()) {
+			GenRowFilters grf = panel.getPanelFilters();
+			if (!grf.isEmpty()) {
+				grf.removeAllFilters();
+				hasFilters = true;
+			}
+		} else {
+			GenRowFilters grf = panel.getPanelFilters();
+			for (Object col : colsToUnfilter) {
+				String colName = col + "";
+				if (grf.hasFilter(colName)) {
+					grf.removeColumnFilter(colName);
+					hasFilters = true;
+				}
+			}
+		}
 
-    BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
-    pFilterVal.setName(panel.getPanelId());
-    pFilterVal.setFilterVal(hasFilters);
-    NounMetadata noun =
-        new NounMetadata(
-            pFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_FILTER_CHANGE);
-    if (hasFilters && isRefreshTasks()) {
-      Logger logger = getLogger(UnfilterPanelReactor.class.getName());
-      InsightUtility.addInsightPanelRefreshFromPanelFilter(insight, panel, noun, logger);
-    }
-    return noun;
-  }
+		BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
+		pFilterVal.setName(panel.getPanelId());
+		pFilterVal.setFilterVal(hasFilters);
+		NounMetadata noun = new NounMetadata(pFilterVal, PixelDataType.BOOLEAN_METADATA,
+				PixelOperationType.PANEL_FILTER_CHANGE);
+		if (hasFilters && isRefreshTasks()) {
+			Logger logger = getLogger(UnfilterPanelReactor.class.getName());
+			InsightUtility.addInsightPanelRefreshFromPanelFilter(insight, panel, noun, logger);
+		}
+		return noun;
+	}
 }

@@ -20,47 +20,37 @@ import prerna.util.Utility;
 
 public class RDBMSUtility {
 
-  private RDBMSUtility() {}
+	private RDBMSUtility() {
+	}
 
-  private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-  public static String getH2BaseConnectionURL() {
-    return "jdbc:h2:nio:"
-        + "@"
-        + Constants.BASE_FOLDER
-        + "@"
-        + DIR_SEPARATOR
-        + "db"
-        + DIR_SEPARATOR
-        + "@"
-        + Constants.ENGINE
-        + "@"
-        + DIR_SEPARATOR
-        + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
-  }
+	public static String getH2BaseConnectionURL() {
+		return "jdbc:h2:nio:" + "@" + Constants.BASE_FOLDER + "@" + DIR_SEPARATOR + "db" + DIR_SEPARATOR + "@"
+				+ Constants.ENGINE + "@" + DIR_SEPARATOR
+				+ "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+	}
 
-  public static String getH2BaseConnectionURL2() {
-    return "jdbc:h2:nio:"
-        + "@database@;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
-  }
+	public static String getH2BaseConnectionURL2() {
+		return "jdbc:h2:nio:"
+				+ "@database@;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+	}
 
-  public static String fillParameterizedFileConnectionUrl(
-      String baseURL, String engineId, String engineName) {
-    if (engineId == null && engineName == null) {
-      return baseURL;
-    }
+	public static String fillParameterizedFileConnectionUrl(String baseURL, String engineId, String engineName) {
+		if (engineId == null && engineName == null) {
+			return baseURL;
+		}
 
-    if (baseURL == null || baseURL.isEmpty()) {
-      baseURL = getH2BaseConnectionURL();
-    }
+		if (baseURL == null || baseURL.isEmpty()) {
+			baseURL = getH2BaseConnectionURL();
+		}
 
-    String baseFolder = Utility.getBaseFolder().replace('\\', '/');
-    if (baseFolder.endsWith("/")) {
-      baseFolder = baseFolder.substring(0, baseFolder.length() - 1);
-    }
+		String baseFolder = Utility.getBaseFolder().replace('\\', '/');
+		if (baseFolder.endsWith("/")) {
+			baseFolder = baseFolder.substring(0, baseFolder.length() - 1);
+		}
 
-    return baseURL
-        .replace("@" + Constants.BASE_FOLDER + "@", baseFolder)
-        .replace("@" + Constants.ENGINE + "@", SmssUtilities.getUniqueName(engineName, engineId));
-  }
+		return baseURL.replace("@" + Constants.BASE_FOLDER + "@", baseFolder).replace("@" + Constants.ENGINE + "@",
+				SmssUtilities.getUniqueName(engineName, engineId));
+	}
 }

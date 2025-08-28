@@ -32,136 +32,134 @@ import prerna.util.Utility;
 
 public class GenericGuardrailInputReactor extends AbstractReactor implements IInputReactor {
 
-  private static final Logger classLogger =
-      LogManager.getLogger(GenericGuardrailInputReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GenericGuardrailInputReactor.class);
 
-  public GenericGuardrailInputReactor() {
-    // No keysToGet needed as we use ReactorInputHelper
-    this.keysToGet = new String[] {};
-  }
+	public GenericGuardrailInputReactor() {
+		// No keysToGet needed as we use ReactorInputHelper
+		this.keysToGet = new String[]{};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    ReactorInputHelper helper = new ReactorInputHelper(this.getNounStore());
+	@Override
+	public NounMetadata execute() {
+		ReactorInputHelper helper = new ReactorInputHelper(this.getNounStore());
 
-    String guardrailEngineId = helper.getConfigParameter("guardrailEngineId", String.class);
-    if (guardrailEngineId == null || guardrailEngineId.isEmpty()) {
-      throw new SecurityException(
-          "GenericGuardrailInputReactor is not configured correctly. Missing 'guardrailEngineId'.");
-    }
-    IGuardrailReactorFunctionEngine guardrailEngine = Utility.getGuardrailEngine(guardrailEngineId);
-    if (guardrailEngine == null) {
-      throw new SecurityException(
-          "Guardrail engine with ID '" + guardrailEngineId + "' not found.");
-    }
+		String guardrailEngineId = helper.getConfigParameter("guardrailEngineId", String.class);
+		if (guardrailEngineId == null || guardrailEngineId.isEmpty()) {
+			throw new SecurityException(
+					"GenericGuardrailInputReactor is not configured correctly. Missing 'guardrailEngineId'.");
+		}
+		IGuardrailReactorFunctionEngine guardrailEngine = Utility.getGuardrailEngine(guardrailEngineId);
+		if (guardrailEngine == null) {
+			throw new SecurityException("Guardrail engine with ID '" + guardrailEngineId + "' not found.");
+		}
 
-    // Get the input mapping for the guardrail engine
-    Map<String, Object> inputMapping = helper.getConfigParameter("inputMapping", Map.class);
-    if (inputMapping == null) {
-      inputMapping = new HashMap<>();
-    }
+		// Get the input mapping for the guardrail engine
+		Map<String, Object> inputMapping = helper.getConfigParameter("inputMapping", Map.class);
+		if (inputMapping == null) {
+			inputMapping = new HashMap<>();
+		}
 
-    // TODO: how to incorporate masking ... or do we generate a new guardrail instead...
-    Boolean blockOnGuardrailFailure =
-        helper.getConfigParameter("blockOnGuardrailFailure", Boolean.class);
-    if (blockOnGuardrailFailure == null) {
-      blockOnGuardrailFailure = true; // Default value
-    }
+		// TODO: how to incorporate masking ... or do we generate a new guardrail
+		// instead...
+		Boolean blockOnGuardrailFailure = helper.getConfigParameter("blockOnGuardrailFailure", Boolean.class);
+		if (blockOnGuardrailFailure == null) {
+			blockOnGuardrailFailure = true; // Default value
+		}
 
-    boolean overallPass = true; // Assume pass until a failure
+		boolean overallPass = true; // Assume pass until a failure
 
-    // A temporary map to hold the values for the current guardrail engine call
-    Map<String, Object> guardrailEngineParams = new HashMap<>();
+		// A temporary map to hold the values for the current guardrail engine call
+		Map<String, Object> guardrailEngineParams = new HashMap<>();
 
-    // Process the inputMapping to get parameters from the intercepted method's arguments
-    for (Map.Entry<String, Object> entry : inputMapping.entrySet()) {
-      String guardrailParamName = entry.getKey();
-      Object mappedValue = entry.getValue();
+		// Process the inputMapping to get parameters from the intercepted method's
+		// arguments
+		for (Map.Entry<String, Object> entry : inputMapping.entrySet()) {
+			String guardrailParamName = entry.getKey();
+			Object mappedValue = entry.getValue();
 
-      if (mappedValue instanceof String) {
-        String argName = (String) mappedValue;
-        Object argValue = helper.getMethodArgument(argName);
-        guardrailEngineParams.put(guardrailParamName, argValue);
-      } else if (mappedValue instanceof List) {
-        List<?> argNames = (List<?>) mappedValue;
-        StringBuilder combinedPrompt = new StringBuilder();
-        boolean isStringCombination = true;
+			if (mappedValue instanceof String) {
+				String argName = (String) mappedValue;
+				Object argValue = helper.getMethodArgument(argName);
+				guardrailEngineParams.put(guardrailParamName, argValue);
+			} else if (mappedValue instanceof List) {
+				List<?> argNames = (List<?>) mappedValue;
+				StringBuilder combinedPrompt = new StringBuilder();
+				boolean isStringCombination = true;
 
-        for (Object name : argNames) {
-          if (name instanceof String) {
-            Object argValue = helper.getMethodArgument((String) name);
-            if (argValue instanceof String) {
-              combinedPrompt.append(argValue).append(" ");
-            }
-          } else {
-            isStringCombination = false;
-            break;
-          }
-        }
+				for (Object name : argNames) {
+					if (name instanceof String) {
+						Object argValue = helper.getMethodArgument((String) name);
+						if (argValue instanceof String) {
+							combinedPrompt.append(argValue).append(" ");
+						}
+					} else {
+						isStringCombination = false;
+						break;
+					}
+				}
 
-        if (isStringCombination && combinedPrompt.length() > 0) {
-          guardrailEngineParams.put(guardrailParamName, combinedPrompt.toString().trim());
-        } else {
-          List<Object> values = new ArrayList<>();
-          for (Object name : argNames) {
-            if (name instanceof String) {
-              values.add(helper.getMethodArgument((String) name));
-            }
-          }
-          guardrailEngineParams.put(guardrailParamName, values);
-        }
-      } else {
-        // This case should ideally not happen for inputMapping
-        guardrailEngineParams.put(guardrailParamName, mappedValue);
-      }
-    }
+				if (isStringCombination && combinedPrompt.length() > 0) {
+					guardrailEngineParams.put(guardrailParamName, combinedPrompt.toString().trim());
+				} else {
+					List<Object> values = new ArrayList<>();
+					for (Object name : argNames) {
+						if (name instanceof String) {
+							values.add(helper.getMethodArgument((String) name));
+						}
+					}
+					guardrailEngineParams.put(guardrailParamName, values);
+				}
+			} else {
+				// This case should ideally not happen for inputMapping
+				guardrailEngineParams.put(guardrailParamName, mappedValue);
+			}
+		}
 
-    // Add direct parameters from the 'directParameters' map in the reactor's config
-    Map<String, Object> directParameters = helper.getConfigParameter("directParameters", Map.class);
-    if (directParameters != null) {
-      guardrailEngineParams.putAll(directParameters);
-    }
+		// Add direct parameters from the 'directParameters' map in the reactor's config
+		Map<String, Object> directParameters = helper.getConfigParameter("directParameters", Map.class);
+		if (directParameters != null) {
+			guardrailEngineParams.putAll(directParameters);
+		}
 
-    // Now, prepare the NounStore for the guardrail engine
-    NounStore guardrailInputNounStore = new NounStore("guardrailInput");
-    for (Map.Entry<String, Object> paramEntry : guardrailEngineParams.entrySet()) {
-      String paramName = paramEntry.getKey();
-      Object paramValue = paramEntry.getValue();
+		// Now, prepare the NounStore for the guardrail engine
+		NounStore guardrailInputNounStore = new NounStore("guardrailInput");
+		for (Map.Entry<String, Object> paramEntry : guardrailEngineParams.entrySet()) {
+			String paramName = paramEntry.getKey();
+			Object paramValue = paramEntry.getValue();
 
-      GenRowStruct nounGrs = guardrailInputNounStore.makeNoun(paramName);
-      if (paramValue instanceof Collection) {
-        Collection<Object> paramValueCollection = (Collection<Object>) paramValue;
-        for (Object paramValueEle : paramValueCollection) {
-          nounGrs.add(NounMetadata.predictNounMetadata(paramValueEle));
-        }
-      } else {
-        nounGrs.add(NounMetadata.predictNounMetadata(paramValue));
-      }
-    }
+			GenRowStruct nounGrs = guardrailInputNounStore.makeNoun(paramName);
+			if (paramValue instanceof Collection) {
+				Collection<Object> paramValueCollection = (Collection<Object>) paramValue;
+				for (Object paramValueEle : paramValueCollection) {
+					nounGrs.add(NounMetadata.predictNounMetadata(paramValueEle));
+				}
+			} else {
+				nounGrs.add(NounMetadata.predictNounMetadata(paramValue));
+			}
+		}
 
-    // Call the guardrail engine's execute method
-    GuardrailNounMetadata output =
-        (GuardrailNounMetadata) guardrailEngine.execute(guardrailInputNounStore, null);
+		// Call the guardrail engine's execute method
+		GuardrailNounMetadata output = (GuardrailNounMetadata) guardrailEngine.execute(guardrailInputNounStore, null);
 
-    Map<String, Object> resultMap = createInterimResult(output.isPass(), this.getClass().getName());
+		Map<String, Object> resultMap = createInterimResult(output.isPass(), this.getClass().getName());
 
-    // Update the processedArguments with the interim result
-    Map<String, Object> processedArguments = helper.getArgumentsMap();
-    processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, resultMap);
-    return new NounMetadata(processedArguments, PixelDataType.MAP);
-  }
+		// Update the processedArguments with the interim result
+		Map<String, Object> processedArguments = helper.getArgumentsMap();
+		processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, resultMap);
+		return new NounMetadata(processedArguments, PixelDataType.MAP);
+	}
 
-  /**
-   * Helper method to create the interim result map (already exists)
-   *
-   * @param pass
-   * @param interceptorName
-   * @return
-   */
-  private Map<String, Object> createInterimResult(boolean pass, String interceptorName) {
-    Map<String, Object> resultMap = new HashMap<>();
-    resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
-    resultMap.put(PipelineReactorUtils.PASS, pass);
-    return resultMap;
-  }
+	/**
+	 * Helper method to create the interim result map (already exists)
+	 *
+	 * @param pass
+	 * @param interceptorName
+	 * @return
+	 */
+	private Map<String, Object> createInterimResult(boolean pass, String interceptorName) {
+		Map<String, Object> resultMap = new HashMap<>();
+		resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
+		resultMap.put(PipelineReactorUtils.PASS, pass);
+		return resultMap;
+	}
 }

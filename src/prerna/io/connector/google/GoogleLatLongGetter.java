@@ -31,49 +31,45 @@ import prerna.util.BeanFiller;
 
 public class GoogleLatLongGetter implements IConnectorIOp {
 
-  String url = "https://maps.googleapis.com/maps/api/geocode/json";
+	String url = "https://maps.googleapis.com/maps/api/geocode/json";
 
-  // name of the object to return
-  String[] beanProps = {"latitude", "longitude"}; // add is done when you have a list
-  String jsonPattern = "results[*].geometry.location.[lat, lng][]";
+	// name of the object to return
+	String[] beanProps = {"latitude", "longitude"}; // add is done when you have a list
+	String jsonPattern = "results[*].geometry.location.[lat, lng][]";
 
-  @Override
-  public Object execute(User user, Map params) {
-    if (params == null) {
-      params = new HashMap();
-    }
+	@Override
+	public Object execute(User user, Map params) {
+		if (params == null) {
+			params = new HashMap();
+		}
 
-    AccessToken googToken = null;
-    if (user != null) {
-      googToken = user.getAccessToken(AuthProvider.GOOGLE_MAP);
-    }
-    if (googToken == null) {
-      googToken = AppTokens.getInstance().getAccessToken(AuthProvider.GOOGLE_MAP);
-    }
+		AccessToken googToken = null;
+		if (user != null) {
+			googToken = user.getAccessToken(AuthProvider.GOOGLE_MAP);
+		}
+		if (googToken == null) {
+			googToken = AppTokens.getInstance().getAccessToken(AuthProvider.GOOGLE_MAP);
+		}
 
-    if (googToken == null) {
-      SemossPixelException exception =
-          new SemossPixelException(
-              new NounMetadata(
-                  "Requires login to google",
-                  PixelDataType.CONST_STRING,
-                  PixelOperationType.ERROR));
-      exception.setContinueThreadOfExecution(false);
-      throw exception;
-    }
+		if (googToken == null) {
+			SemossPixelException exception = new SemossPixelException(
+					new NounMetadata("Requires login to google", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 
-    String accessToken = googToken.getAccess_token();
-    // you fill what you want to send on the API call
-    // the other thing it needs is an address
-    params.put("key", accessToken);
+		String accessToken = googToken.getAccess_token();
+		// you fill what you want to send on the API call
+		// the other thing it needs is an address
+		params.put("key", accessToken);
 
-    // make the API call
-    String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
-    // System.out.println("Output >>>>> " + output);
+		// make the API call
+		String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
+		// System.out.println("Output >>>>> " + output);
 
-    // fill the bean with the return
-    GeoLocation retLocation =
-        (GeoLocation) BeanFiller.fillFromJson(output, jsonPattern, beanProps, new GeoLocation());
-    return retLocation;
-  }
+		// fill the bean with the return
+		GeoLocation retLocation = (GeoLocation) BeanFiller.fillFromJson(output, jsonPattern, beanProps,
+				new GeoLocation());
+		return retLocation;
+	}
 }

@@ -37,82 +37,77 @@ import prerna.util.Utility;
 
 public class LoadProjectMetadataReactor extends AbstractSetMetadataReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(LoadProjectMetadataReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(LoadProjectMetadataReactor.class);
 
-  public LoadProjectMetadataReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
-  }
+	public LoadProjectMetadataReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String fileLocation =
-        Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
-    if (!new File(fileLocation).exists()) {
-      throw new IllegalArgumentException("Unable to locate file");
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+		if (!new File(fileLocation).exists()) {
+			throw new IllegalArgumentException("Unable to locate file");
+		}
 
-    Map<String, Object> metadata = null;
-    JsonReader jReader = null;
-    BufferedReader fReader = null;
-    try {
-      Gson gson = new Gson();
-      fReader = Files.newBufferedReader(Paths.get(fileLocation), StandardCharsets.UTF_8);
-      jReader = new JsonReader(fReader);
-      metadata = gson.fromJson(jReader, Map.class);
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    } finally {
-      if (fReader != null) {
-        try {
-          fReader.close();
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-      if (jReader != null) {
-        try {
-          jReader.close();
-        } catch (IOException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
+		Map<String, Object> metadata = null;
+		JsonReader jReader = null;
+		BufferedReader fReader = null;
+		try {
+			Gson gson = new Gson();
+			fReader = Files.newBufferedReader(Paths.get(fileLocation), StandardCharsets.UTF_8);
+			jReader = new JsonReader(fReader);
+			metadata = gson.fromJson(jReader, Map.class);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (fReader != null) {
+				try {
+					fReader.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if (jReader != null) {
+				try {
+					jReader.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 
-    String projectId = (String) metadata.remove("projectId");
-    if (projectId == null) {
-      // assume its in the filename
-      String projectAliasAndId = FilenameUtils.getBaseName(fileLocation);
-      if (projectAliasAndId.contains("__")) {
-        projectId = projectAliasAndId.split("__")[1];
-      } else {
-        projectId = projectAliasAndId;
-      }
-    }
+		String projectId = (String) metadata.remove("projectId");
+		if (projectId == null) {
+			// assume its in the filename
+			String projectAliasAndId = FilenameUtils.getBaseName(fileLocation);
+			if (projectAliasAndId.contains("__")) {
+				projectId = projectAliasAndId.split("__")[1];
+			} else {
+				projectId = projectAliasAndId;
+			}
+		}
 
-    if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-      throw new IllegalArgumentException(
-          "Project does not exist or user does not have access to edit");
-    }
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
+		}
 
-    // check for invalid metakeys
-    List<String> validMetakeys = SecurityProjectUtils.getAllMetakeys();
-    if (!validMetakeys.containsAll(metadata.keySet())) {
-      throw new IllegalArgumentException(
-          "Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
-    }
+		// check for invalid metakeys
+		List<String> validMetakeys = SecurityProjectUtils.getAllMetakeys();
+		if (!validMetakeys.containsAll(metadata.keySet())) {
+			throw new IllegalArgumentException("Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
+		}
 
-    SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
-    NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-    noun.addAdditionalReturn(
-        NounMetadata.getSuccessNounMessage(
-            "Successfully set the new metadata values for the engine"));
-    return noun;
-  }
+		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		noun.addAdditionalReturn(
+				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the engine"));
+		return noun;
+	}
 
-  @Override
-  public String getReactorDescription() {
-    return "Define metadata on a project through a JSON file";
-  }
+	@Override
+	public String getReactorDescription() {
+		return "Define metadata on a project through a JSON file";
+	}
 }

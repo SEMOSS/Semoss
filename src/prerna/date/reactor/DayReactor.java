@@ -21,15 +21,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class DayReactor extends AbstractReactor {
 
-  public DayReactor() {
-    this.keysToGet = new String[] {"days"};
-  }
+	public DayReactor() {
+		this.keysToGet = new String[]{"days"};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String numDays = this.keyValue.get(this.keysToGet[0]);
-    SemossDay day = new SemossDay(numDays);
-    return new NounMetadata(day, PixelDataType.CONST_DAY);
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String numDays = this.keyValue.get(this.keysToGet[0]);
+		SemossDay day = new SemossDay(numDays);
+		return new NounMetadata(day, PixelDataType.CONST_DAY);
+	}
 }

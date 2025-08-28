@@ -30,69 +30,67 @@ import prerna.util.Utility;
 
 public class BQReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(BQReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(BQReactor.class);
 
-  public BQReactor() {
-    this.keysToGet = new String[] {"fancy"};
-  }
+	public BQReactor() {
+		this.keysToGet = new String[]{"fancy"};
+	}
 
-  @Override
-  public NounMetadata execute() {
+	@Override
+	public NounMetadata execute() {
 
-    organizeKeys();
-    RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
-    Connection conn = null;
-    try {
-      conn = engine.makeConnection();
-    } catch (SQLException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new IllegalArgumentException("Could not make connection to engine.");
-    }
+		organizeKeys();
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		Connection conn = null;
+		try {
+			conn = engine.makeConnection();
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not make connection to engine.");
+		}
 
-    String embed = "";
-    Statement stmt = null;
-    try {
-      // check to see if such a fancy name exists
-      stmt = conn.createStatement();
-      String query = "SELECT embed from bitly where fancy='" + this.keyValue.get("fancy") + "'";
-      ResultSet rs = stmt.executeQuery(query);
-      // if there is a has next not sure what
+		String embed = "";
+		Statement stmt = null;
+		try {
+			// check to see if such a fancy name exists
+			stmt = conn.createStatement();
+			String query = "SELECT embed from bitly where fancy='" + this.keyValue.get("fancy") + "'";
+			ResultSet rs = stmt.executeQuery(query);
+			// if there is a has next not sure what
 
-      if (rs.next()) {
-        embed = Utility.decodeURIComponent(rs.getString(1));
-      }
-    } catch (SQLException e) {
-      // TODO Auto-generated catch block
-      classLogger.error(Constants.STACKTRACE, e);
-    } finally {
-      if (stmt != null) {
-        try {
-          stmt.close();
-        } catch (SQLException e) {
-          // TODO Auto-generated catch block
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-      if (engine.isConnectionPooling() && conn != null) {
-        try {
-          conn.close();
-        } catch (SQLException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
+			if (rs.next()) {
+				embed = Utility.decodeURIComponent(rs.getString(1));
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if (engine.isConnectionPooling() && conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 
-    if (!embed.isEmpty()) {
-      return new NounMetadata(embed, PixelDataType.CONST_STRING);
-    } else {
-      return new NounMetadata(
-          "No URL Found for " + this.keyValue.get("fancy"),
-          PixelDataType.CONST_STRING,
-          PixelOperationType.ERROR);
-    }
-  }
+		if (!embed.isEmpty()) {
+			return new NounMetadata(embed, PixelDataType.CONST_STRING);
+		} else {
+			return new NounMetadata("No URL Found for " + this.keyValue.get("fancy"), PixelDataType.CONST_STRING,
+					PixelOperationType.ERROR);
+		}
+	}
 
-  public String getName() {
-    return "bq";
-  }
+	public String getName() {
+		return "bq";
+	}
 }

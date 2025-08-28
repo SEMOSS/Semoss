@@ -30,45 +30,43 @@ import prerna.util.Constants;
 
 public class GoogleGmailSummarizeTopKEmailsReactor extends AbstractReactor {
 
-  private static final Logger classLogger =
-      LogManager.getLogger(GoogleGmailSummarizeTopKEmailsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleGmailSummarizeTopKEmailsReactor.class);
 
-  public GoogleGmailSummarizeTopKEmailsReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.LIMIT.getKey()};
-    this.keyRequired = new int[] {1};
-  }
+	public GoogleGmailSummarizeTopKEmailsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.LIMIT.getKey()};
+		this.keyRequired = new int[]{1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    this.organizeKeys();
-    String limitStr = this.keyValue.get(this.keysToGet[0]);
-    try {
-      User user = this.insight.getUser();
-      String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-      int limit = Integer.parseInt(limitStr);
-      List<Map<String, Object>> result = GoogleGmailHelper.summarizeTopKEmails(accessToken, limit);
-      return new NounMetadata(
-          result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-    } catch (SemossPixelException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw e;
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new SemossPixelException(
-          "An error occurred summarizing the emails. Error message: " + e.getMessage());
-    }
-  }
+	@Override
+	public NounMetadata execute() {
+		this.organizeKeys();
+		String limitStr = this.keyValue.get(this.keysToGet[0]);
+		try {
+			User user = this.insight.getUser();
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
+			int limit = Integer.parseInt(limitStr);
+			List<Map<String, Object>> result = GoogleGmailHelper.summarizeTopKEmails(accessToken, limit);
+			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		} catch (SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(
+					"An error occurred summarizing the emails. Error message: " + e.getMessage());
+		}
+	}
 
-  @Override
-  public String getReactorDescription() {
-    return "Summarize the top k emails";
-  }
+	@Override
+	public String getReactorDescription() {
+		return "Summarize the top k emails";
+	}
 
-  @Override
-  protected String getDescriptionForKey(String key) {
-    if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-      return "The limit for the number of emails to summarize";
-    }
-    return super.getDescriptionForKey(key);
-  }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "The limit for the number of emails to summarize";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

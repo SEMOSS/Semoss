@@ -31,101 +31,101 @@ import prerna.util.insight.InsightUtility;
 
 public class RemoveFrameFilterReactor extends AbstractFilterReactor {
 
-  public RemoveFrameFilterReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.FILTERS.getKey(), TASK_REFRESH_KEY};
-  }
+	public RemoveFrameFilterReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILTERS.getKey(), TASK_REFRESH_KEY};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    ITableDataFrame frame = getFrame();
-    GenRowFilters filters = null;
+	@Override
+	public NounMetadata execute() {
+		ITableDataFrame frame = getFrame();
+		GenRowFilters filters = null;
 
-    // get the existing filters
-    if (frame != null) {
-      filters = frame.getFrameFilters();
-    } else {
-      throw new IllegalArgumentException(
-          "No frame is defined in the insight to remove the filters from");
-    }
+		// get the existing filters
+		if (frame != null) {
+			filters = frame.getFrameFilters();
+		} else {
+			throw new IllegalArgumentException("No frame is defined in the insight to remove the filters from");
+		}
 
-    // get the filters that were inputted
-    List<IQueryFilter> allDeleteFilters = getDeleteFilters();
+		// get the filters that were inputted
+		List<IQueryFilter> allDeleteFilters = getDeleteFilters();
 
-    // keep track of empty filters to remove the index if we need to
-    List<Integer> indicesToRemove = new Vector<Integer>();
+		// keep track of empty filters to remove the index if we need to
+		List<Integer> indicesToRemove = new Vector<Integer>();
 
-    // for each qf...
-    for (IQueryFilter deleteFilters : allDeleteFilters) {
-      // only consider simple filters
-      if (deleteFilters.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-        SimpleQueryFilter deleteFilter = (SimpleQueryFilter) deleteFilters;
-        // compare the filter with existing filters to only delete the correct one, assuming it does
-        // exist
-        List<IQueryFilter> allCurrentFilters = filters.getFilters();
-        for (int filterIndex = 0; filterIndex < allCurrentFilters.size(); filterIndex++) {
-          IQueryFilter currentFilter = allCurrentFilters.get(filterIndex);
-          // only consider simple filters
-          if (currentFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-            SimpleQueryFilter curFilter = (SimpleQueryFilter) currentFilter;
-            if (IQueryFilter.comparatorNotNumeric(curFilter.getComparator())
-                && IQueryFilter.comparatorNotNumeric(deleteFilter.getComparator())
-                && curFilter.equivalentColumnModifcation(deleteFilter)) {
-              // if comparator is not numeric in both
-              // and they are equivalent
-              curFilter.subtractInstanceFilters(deleteFilter);
-              // is the filter now gone?
-              if (curFilter.isEmptyFilterValues()) {
-                // grab the index
-                indicesToRemove.add(filterIndex);
-              }
-            }
-          }
-        }
-      }
-    }
+		// for each qf...
+		for (IQueryFilter deleteFilters : allDeleteFilters) {
+			// only consider simple filters
+			if (deleteFilters.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+				SimpleQueryFilter deleteFilter = (SimpleQueryFilter) deleteFilters;
+				// compare the filter with existing filters to only delete the correct one,
+				// assuming it does
+				// exist
+				List<IQueryFilter> allCurrentFilters = filters.getFilters();
+				for (int filterIndex = 0; filterIndex < allCurrentFilters.size(); filterIndex++) {
+					IQueryFilter currentFilter = allCurrentFilters.get(filterIndex);
+					// only consider simple filters
+					if (currentFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+						SimpleQueryFilter curFilter = (SimpleQueryFilter) currentFilter;
+						if (IQueryFilter.comparatorNotNumeric(curFilter.getComparator())
+								&& IQueryFilter.comparatorNotNumeric(deleteFilter.getComparator())
+								&& curFilter.equivalentColumnModifcation(deleteFilter)) {
+							// if comparator is not numeric in both
+							// and they are equivalent
+							curFilter.subtractInstanceFilters(deleteFilter);
+							// is the filter now gone?
+							if (curFilter.isEmptyFilterValues()) {
+								// grab the index
+								indicesToRemove.add(filterIndex);
+							}
+						}
+					}
+				}
+			}
+		}
 
-    // do we have things to remove?
-    if (!indicesToRemove.isEmpty()) {
-      Collections.sort(indicesToRemove);
-      // first we need to delete the highest index in order to not change the index of what we are
-      // deleting
-      for (int i = indicesToRemove.size(); i > 0; i--) {
-        // remove the filter at the index specified by the index list
-        filters.removeFilter(indicesToRemove.get(i - 1).intValue());
-      }
-    }
+		// do we have things to remove?
+		if (!indicesToRemove.isEmpty()) {
+			Collections.sort(indicesToRemove);
+			// first we need to delete the highest index in order to not change the index of
+			// what we are
+			// deleting
+			for (int i = indicesToRemove.size(); i > 0; i--) {
+				// remove the filter at the index specified by the index list
+				filters.removeFilter(indicesToRemove.get(i - 1).intValue());
+			}
+		}
 
-    // clear panel temp filter model state
-    InsightUtility.clearPanelTempFilterModel(this.insight, frame);
+		// clear panel temp filter model state
+		InsightUtility.clearPanelTempFilterModel(this.insight, frame);
 
-    BooleanValMetadata fFilterVal = BooleanValMetadata.getFrameVal();
-    fFilterVal.setName(frame.getOriginalName());
-    fFilterVal.setFilterVal(true);
-    NounMetadata noun =
-        new NounMetadata(
-            fFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.FRAME_FILTER_CHANGE);
-    if (isRefreshTasks()) {
-      Logger logger = getLogger(RemoveFrameFilterReactor.class.getName());
-      InsightUtility.addInsightPanelRefreshFromFrameFilter(this.insight, frame, noun, logger);
-    }
-    return noun;
-  }
+		BooleanValMetadata fFilterVal = BooleanValMetadata.getFrameVal();
+		fFilterVal.setName(frame.getOriginalName());
+		fFilterVal.setFilterVal(true);
+		NounMetadata noun = new NounMetadata(fFilterVal, PixelDataType.BOOLEAN_METADATA,
+				PixelOperationType.FRAME_FILTER_CHANGE);
+		if (isRefreshTasks()) {
+			Logger logger = getLogger(RemoveFrameFilterReactor.class.getName());
+			InsightUtility.addInsightPanelRefreshFromFrameFilter(this.insight, frame, noun, logger);
+		}
+		return noun;
+	}
 
-  //////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
   ///////////////////////// GET PIXEL INPUT ////////////////////////////
   //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
 
-  /**
-   * get the filters to be deleted
-   *
-   * @return
-   */
-  private List<IQueryFilter> getDeleteFilters() {
-    // retrieve filter input
-    GenRowFilters grf = getFilters();
-    List<IQueryFilter> qfList = grf.getFilters();
-    return qfList;
-  }
+	/**
+	 * get the filters to be deleted
+	 *
+	 * @return
+	 */
+	private List<IQueryFilter> getDeleteFilters() {
+		// retrieve filter input
+		GenRowFilters grf = getFilters();
+		List<IQueryFilter> qfList = grf.getFilters();
+		return qfList;
+	}
 }

@@ -20,97 +20,101 @@ import java.sql.SQLException;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
-/** An Abstract Engine that sets up the base constructs needed to create an engine. */
+/**
+ * An Abstract Engine that sets up the base constructs needed to create an
+ * engine.
+ */
 public interface IRDBMSEngine extends IDatabaseEngine {
 
-  /**
-   * Get the connection
-   *
-   * @return
-   * @throws SQLException
-   */
-  java.sql.Connection getConnection() throws SQLException;
+	/**
+	 * Get the connection
+	 *
+	 * @return
+	 * @throws SQLException
+	 */
+	java.sql.Connection getConnection() throws SQLException;
 
-  /**
-   * Make the connection and return it
-   *
-   * @return
-   * @throws SQLException
-   */
-  java.sql.Connection makeConnection() throws SQLException;
+	/**
+	 * Make the connection and return it
+	 *
+	 * @return
+	 * @throws SQLException
+	 */
+	java.sql.Connection makeConnection() throws SQLException;
 
-  /**
-   * This is intended to be executed via doAction
-   *
-   * @param args Object[] where the first index is the table name and every other entry are the
-   *     column names
-   * @return PreparedStatement to perform a bulk insert
-   * @throws SQLException
-   */
-  java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) throws SQLException;
+	/**
+	 * This is intended to be executed via doAction
+	 *
+	 * @param args
+	 *            Object[] where the first index is the table name and every other
+	 *            entry are the column names
+	 * @return PreparedStatement to perform a bulk insert
+	 * @throws SQLException
+	 */
+	java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) throws SQLException;
 
-  /**
-   * This is to get a prepared statement based on the input query
-   *
-   * @param query
-   * @return
-   * @throws SQLException
-   */
-  java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException;
+	/**
+	 * This is to get a prepared statement based on the input query
+	 *
+	 * @param query
+	 * @return
+	 * @throws SQLException
+	 */
+	java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException;
 
-  /**
-   * Return the engine metadata
-   *
-   * @return
-   */
-  DatabaseMetaData getConnectionMetadata();
+	/**
+	 * Return the engine metadata
+	 *
+	 * @return
+	 */
+	DatabaseMetaData getConnectionMetadata();
 
-  /**
-   * Get the RDBMS Type Enum
-   *
-   * @return
-   */
-  RdbmsTypeEnum getDbType();
+	/**
+	 * Get the RDBMS Type Enum
+	 *
+	 * @return
+	 */
+	RdbmsTypeEnum getDbType();
 
-  /**
-   * Get the query util
-   *
-   * @return
-   */
-  AbstractSqlQueryUtil getQueryUtil();
+	/**
+	 * Get the query util
+	 *
+	 * @return
+	 */
+	AbstractSqlQueryUtil getQueryUtil();
 
-  /**
-   * Get the schema if its defined
-   *
-   * @return
-   */
-  public String getSchema();
+	/**
+	 * Get the schema if its defined
+	 *
+	 * @return
+	 */
+	public String getSchema();
 
-  /**
-   * Get the database if its defined
-   *
-   * @return
-   */
-  public String getDatabase();
+	/**
+	 * Get the database if its defined
+	 *
+	 * @return
+	 */
+	public String getDatabase();
 
-  /**
-   * Get the connection url
-   *
-   * @return
-   */
-  String getConnectionUrl();
+	/**
+	 * Get the connection url
+	 *
+	 * @return
+	 */
+	String getConnectionUrl();
 
-  /**
-   * Get the data source
-   *
-   * @return
-   */
-  HikariDataSource getDataSource();
+	/**
+	 * Get the data source
+	 *
+	 * @return
+	 */
+	HikariDataSource getDataSource();
 
-  /**
-   * Get if the database is using connection pooling or a single connection
-   *
-   * @return
-   */
-  boolean isConnectionPooling();
+	/**
+	 * Get if the database is using connection pooling or a single connection
+	 *
+	 * @return
+	 */
+	boolean isConnectionPooling();
 }

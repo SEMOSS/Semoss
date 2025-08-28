@@ -23,40 +23,40 @@ import prerna.om.PixelList;
 
 public class PixelListAdapter extends AbstractSemossTypeAdapter<PixelList> {
 
-  @Override
-  public PixelList read(JsonReader in) throws IOException {
-    if (in.peek() == JsonToken.NULL) {
-      in.nextNull();
-      return null;
-    }
+	@Override
+	public PixelList read(JsonReader in) throws IOException {
+		if (in.peek() == JsonToken.NULL) {
+			in.nextNull();
+			return null;
+		}
 
-    PixelList pixelList = new PixelList();
+		PixelList pixelList = new PixelList();
 
-    PixelAdapter adapter = new PixelAdapter();
-    in.beginArray();
-    while (in.hasNext()) {
-      Pixel pixel = adapter.read(in);
-      pixelList.addPixel(pixel);
-    }
-    in.endArray();
+		PixelAdapter adapter = new PixelAdapter();
+		in.beginArray();
+		while (in.hasNext()) {
+			Pixel pixel = adapter.read(in);
+			pixelList.addPixel(pixel);
+		}
+		in.endArray();
 
-    return pixelList;
-  }
+		return pixelList;
+	}
 
-  @Override
-  public void write(JsonWriter out, PixelList value) throws IOException {
-    if (value == null) {
-      out.nullValue();
-      return;
-    }
+	@Override
+	public void write(JsonWriter out, PixelList value) throws IOException {
+		if (value == null) {
+			out.nullValue();
+			return;
+		}
 
-    PixelAdapter adapter = new PixelAdapter();
-    out.beginArray();
-    int size = value.size();
-    for (int i = 0; i < size; i++) {
-      Pixel p = value.get(i);
-      adapter.write(out, p);
-    }
-    out.endArray();
-  }
+		PixelAdapter adapter = new PixelAdapter();
+		out.beginArray();
+		int size = value.size();
+		for (int i = 0; i < size; i++) {
+			Pixel p = value.get(i);
+			adapter.write(out, p);
+		}
+		out.endArray();
+	}
 }

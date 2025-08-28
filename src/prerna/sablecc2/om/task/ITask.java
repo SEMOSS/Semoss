@@ -27,70 +27,71 @@ import prerna.sablecc2.om.task.options.TaskOptions;
 
 public interface ITask extends Iterator<IHeadersDataRow>, Closeable {
 
-  /**
-   * Basic operation to get a certain number of records from the data Meta is used to determine if
-   * we need to send additional meta data around the creation of the task
-   *
-   * @param numRecordsToGet
-   * @param meta
-   * @return
-   * @throws Exception
-   */
-  Map<String, Object> collect(boolean meta) throws Exception;
+	/**
+	 * Basic operation to get a certain number of records from the data Meta is used
+	 * to determine if we need to send additional meta data around the creation of
+	 * the task
+	 *
+	 * @param numRecordsToGet
+	 * @param meta
+	 * @return
+	 * @throws Exception
+	 */
+	Map<String, Object> collect(boolean meta) throws Exception;
 
-  Map<String, Object> getMetaMap();
+	Map<String, Object> getMetaMap();
 
-  boolean getMeta();
+	boolean getMeta();
 
-  void setMeta(boolean meta);
+	void setMeta(boolean meta);
 
-  void setNumCollect(int numCollect);
+	void setNumCollect(int numCollect);
 
-  int getNumCollect();
+	int getNumCollect();
 
-  void setId(String taskId);
+	void setId(String taskId);
 
-  String getId();
+	String getId();
 
-  void setFormat(String formatType);
+	void setFormat(String formatType);
 
-  void setFormat(IFormatter formatter);
+	void setFormat(IFormatter formatter);
 
-  IFormatter getFormatter();
+	IFormatter getFormatter();
 
-  void setFormatOptions(Map<String, Object> optionValues);
+	void setFormatOptions(Map<String, Object> optionValues);
 
-  void setTaskOptions(TaskOptions taskOptions);
+	void setTaskOptions(TaskOptions taskOptions);
 
-  TaskOptions getTaskOptions();
+	TaskOptions getTaskOptions();
 
-  void setHeaderInfo(List<Map<String, Object>> headerInfo);
+	void setHeaderInfo(List<Map<String, Object>> headerInfo);
 
-  List<Map<String, Object>> getHeaderInfo();
+	List<Map<String, Object>> getHeaderInfo();
 
-  void setSortInfo(List<Map<String, Object>> sortInfo);
+	void setSortInfo(List<Map<String, Object>> sortInfo);
 
-  List<Map<String, Object>> getSortInfo();
+	List<Map<String, Object>> getSortInfo();
 
-  void setFilterInfo(GenRowFilters grf);
+	void setFilterInfo(GenRowFilters grf);
 
-  List<Map<String, Object>> getFilterInfo();
+	List<Map<String, Object>> getFilterInfo();
 
-  List<Object[]> flushOutIteratorAsGrid();
+	List<Object[]> flushOutIteratorAsGrid();
 
-  void setLogger(Logger logger);
+	void setLogger(Logger logger);
 
-  void optimizeQuery(int limit) throws Exception;
+	void optimizeQuery(int limit) throws Exception;
 
-  boolean isOptimized();
+	boolean isOptimized();
 
-  void toOptimize(boolean toOptimize);
+	void toOptimize(boolean toOptimize);
 
-  void reset() throws Exception;
+	void reset() throws Exception;
 
-  // creates a cache object to be utilized
-  RawCachedWrapper createCache() throws Exception;
+	// creates a cache object to be utilized
+	RawCachedWrapper createCache() throws Exception;
 
-  // get the pragma being set
-  String getPragma(String key);
+	// get the pragma being set
+	String getPragma(String key);
 }

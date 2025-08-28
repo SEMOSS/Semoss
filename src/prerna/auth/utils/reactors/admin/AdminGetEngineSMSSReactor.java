@@ -30,45 +30,42 @@ import prerna.util.Utility;
 
 public class AdminGetEngineSMSSReactor extends AbstractReactor {
 
-  public AdminGetEngineSMSSReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey()};
-  }
+	public AdminGetEngineSMSSReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    User user = this.insight.getUser();
-    SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-    if (adminUtils == null) {
-      throw new IllegalArgumentException("User must be an admin to perform this function");
-    }
+	@Override
+	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+		if (adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
 
-    organizeKeys();
-    String engineId = this.keyValue.get(this.keysToGet[0]);
-    if (engineId == null) {
-      throw new IllegalArgumentException("Need to define the engine");
-    }
+		organizeKeys();
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if (engineId == null) {
+			throw new IllegalArgumentException("Need to define the engine");
+		}
 
-    IEngine engine = Utility.getEngine(engineId);
-    String currentSmssFileLocation = engine.getSmssFilePath();
-    Path currentSmssPath = Paths.get(currentSmssFileLocation);
+		IEngine engine = Utility.getEngine(engineId);
+		String currentSmssFileLocation = engine.getSmssFilePath();
+		Path currentSmssPath = Paths.get(currentSmssFileLocation);
 
-    if (!Files.exists(currentSmssPath) || !Files.isRegularFile(currentSmssPath)) {
-      throw new IllegalArgumentException(
-          "Could not find smss file for engine "
-              + engineId
-              + ". Please reach out to an administrator for assistance");
-    }
+		if (!Files.exists(currentSmssPath) || !Files.isRegularFile(currentSmssPath)) {
+			throw new IllegalArgumentException("Could not find smss file for engine " + engineId
+					+ ". Please reach out to an administrator for assistance");
+		}
 
-    String currentSmssContent = null;
-    try {
-      currentSmssContent = new String(Files.readAllBytes(Paths.get(currentSmssPath.toUri())));
-    } catch (IOException e) {
-      throw new IllegalArgumentException(
-          "An error occurred reading the current engine smss details. Detailed message = "
-              + e.getMessage());
-    }
+		String currentSmssContent = null;
+		try {
+			currentSmssContent = new String(Files.readAllBytes(Paths.get(currentSmssPath.toUri())));
+		} catch (IOException e) {
+			throw new IllegalArgumentException(
+					"An error occurred reading the current engine smss details. Detailed message = " + e.getMessage());
+		}
 
-    String concealedSmssContent = SmssUtilities.concealSmssSensitiveInfo(currentSmssContent);
-    return new NounMetadata(concealedSmssContent, PixelDataType.CONST_STRING);
-  }
+		String concealedSmssContent = SmssUtilities.concealSmssSensitiveInfo(currentSmssContent);
+		return new NounMetadata(concealedSmssContent, PixelDataType.CONST_STRING);
+	}
 }

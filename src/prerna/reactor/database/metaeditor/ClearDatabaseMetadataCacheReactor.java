@@ -22,15 +22,15 @@ import prerna.util.EngineSyncUtility;
 
 public class ClearDatabaseMetadataCacheReactor extends AbstractReactor {
 
-  public ClearDatabaseMetadataCacheReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
-  }
+	public ClearDatabaseMetadataCacheReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String databaseId = this.keyValue.get(this.keysToGet[0]);
-    EngineSyncUtility.clearEngineCache(databaseId);
-    return new NounMetadata(true, PixelDataType.BOOLEAN);
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
 }

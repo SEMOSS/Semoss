@@ -25,45 +25,46 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 
 public class DeleteReactorApiTests {
-  private DeleteReactor reactor;
-  private NounStore nounStore;
-  private SelectQueryStruct qs;
-  private SelectQueryStruct exist_qs;
-  private GenRowStruct mockGR;
-  private IQuerySelector mockQueryS;
+	private DeleteReactor reactor;
+	private NounStore nounStore;
+	private SelectQueryStruct qs;
+	private SelectQueryStruct exist_qs;
+	private GenRowStruct mockGR;
+	private IQuerySelector mockQueryS;
 
-  @Before
-  public void setUp() {
-    reactor = new DeleteReactor();
-    qs = new SelectQueryStruct();
-    exist_qs = new SelectQueryStruct();
-  }
+	@Before
+	public void setUp() {
+		reactor = new DeleteReactor();
+		qs = new SelectQueryStruct();
+		exist_qs = new SelectQueryStruct();
+	}
 
-  /*    @Test
-  public void testMergeExistingValues(){
-     //String engine = ApiSemossTestEngineUtils.createBasicEngine();
-     String engine = ApiSemossTestEngineUtils.createBasicEngine();
-  Map<String, Object> map = new HashMap<>();
+	/*
+	 * @Test public void testMergeExistingValues(){ //String engine =
+	 * ApiSemossTestEngineUtils.createBasicEngine(); String engine =
+	 * ApiSemossTestEngineUtils.createBasicEngine(); Map<String, Object> map = new
+	 * HashMap<>();
+	 * 
+	 * String pixel = ApiSemossTestUtils.buildPixelCall(DeleteReactor.class);
+	 * NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+	 * TestEngineUtilities.setEngineMetadata(engine, map);
+	 * 
+	 * }
+	 */
 
-     String pixel = ApiSemossTestUtils.buildPixelCall(DeleteReactor.class);
-     NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-     TestEngineUtilities.setEngineMetadata(engine, map);
+	@Test
+	public void testSetNounStore() {
+		reactor.setNounStore(nounStore);
+	}
 
-  }*/
+	@Test
+	public void testSetQs() {
+		reactor.setQs(qs);
+	}
 
-  @Test
-  public void testSetNounStore() {
-    reactor.setNounStore(nounStore);
-  }
-
-  @Test
-  public void testSetQs() {
-    reactor.setQs(qs);
-  }
-
-  @Test
-  public void testGetName() {
-    String name = reactor.getName();
-    assertEquals("Delete", name);
-  }
+	@Test
+	public void testGetName() {
+		String name = reactor.getName();
+		assertEquals("Delete", name);
+	}
 }

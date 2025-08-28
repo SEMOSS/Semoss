@@ -23,22 +23,21 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetFrameTableStructureReactor extends AbstractFrameReactor {
 
-  /*
-   * PAYLOAD MUST MATCH THAT OF
-   * {@link prerna.sablecc2.reactor.masterdatabase.GetDatabaseTableStructureReactor}
-   */
+	/*
+	 * PAYLOAD MUST MATCH THAT OF {@link
+	 * prerna.sablecc2.reactor.masterdatabase.GetDatabaseTableStructureReactor}
+	 */
 
-  private static final String CLASS_NAME = GetFrameTableStructureReactor.class.getName();
+	private static final String CLASS_NAME = GetFrameTableStructureReactor.class.getName();
 
-  public GetFrameTableStructureReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.FRAME.getKey()};
-  }
+	public GetFrameTableStructureReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    ITableDataFrame frame = getFrame();
-    List<Object[]> data = frame.getMetaData().getAllTablesAndColumns();
-    return new NounMetadata(
-        data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_TABLE_STRUCTURE);
-  }
+	@Override
+	public NounMetadata execute() {
+		ITableDataFrame frame = getFrame();
+		List<Object[]> data = frame.getMetaData().getAllTablesAndColumns();
+		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_TABLE_STRUCTURE);
+	}
 }

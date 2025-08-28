@@ -32,39 +32,41 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class TimestampReactorUnitTests {
 
-  @InjectMocks private TimestampReactor reactor;
+	@InjectMocks
+	private TimestampReactor reactor;
 
-  @Mock private SemossDate mockDate;
+	@Mock
+	private SemossDate mockDate;
 
-  private Map<String, String> keyValues;
+	private Map<String, String> keyValues;
 
-  @BeforeEach
-  void setup() {
-    MockitoAnnotations.openMocks(this);
-    keyValues = new HashMap<>();
-    reactor.keyValue = keyValues;
-  }
+	@BeforeEach
+	void setup() {
+		MockitoAnnotations.openMocks(this);
+		keyValues = new HashMap<>();
+		reactor.keyValue = keyValues;
+	}
 
-  @Test
-  void testDefaultTimestamp() {
-    Calendar calendar = Calendar.getInstance();
-    when(mockDate.getDate()).thenReturn(calendar.getTime());
+	@Test
+	void testDefaultTimestamp() {
+		Calendar calendar = Calendar.getInstance();
+		when(mockDate.getDate()).thenReturn(calendar.getTime());
 
-    NounMetadata nm = reactor.execute();
+		NounMetadata nm = reactor.execute();
 
-    assertEquals(PixelDataType.CONST_DATE, nm.getNounType());
-    SemossDate date = (SemossDate) nm.getValue();
-    assertEquals("yyyy-MM-dd HH:mm:ss", date.getPattern());
-  }
+		assertEquals(PixelDataType.CONST_DATE, nm.getNounType());
+		SemossDate date = (SemossDate) nm.getValue();
+		assertEquals("yyyy-MM-dd HH:mm:ss", date.getPattern());
+	}
 
-  @Test
-  void testTimestampWithDateOnly() {
-    keyValues.put("date", "2022-03-19 01:20:12");
+	@Test
+	void testTimestampWithDateOnly() {
+		keyValues.put("date", "2022-03-19 01:20:12");
 
-    NounMetadata nm = reactor.execute();
+		NounMetadata nm = reactor.execute();
 
-    assertEquals(PixelDataType.CONST_DATE, nm.getNounType());
-    SemossDate date = (SemossDate) nm.getValue();
-    assertEquals("2022-03-19 01:20:12", date.getFormattedDate());
-  }
+		assertEquals(PixelDataType.CONST_DATE, nm.getNounType());
+		SemossDate date = (SemossDate) nm.getValue();
+		assertEquals("2022-03-19 01:20:12", date.getFormattedDate());
+	}
 }

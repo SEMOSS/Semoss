@@ -27,32 +27,31 @@ import prerna.util.Constants;
 
 public class GoogleGmailProfileByIdReactor extends AbstractReactor {
 
-  private static final Logger classLogger =
-      LogManager.getLogger(GoogleGmailProfileByIdReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleGmailProfileByIdReactor.class);
 
-  public GoogleGmailProfileByIdReactor() {
-    this.keysToGet = new String[] {};
-  }
+	public GoogleGmailProfileByIdReactor() {
+		this.keysToGet = new String[]{};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    try {
-      User user = this.insight.getUser();
-      String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-      Map<String, Object> retMap = GoogleGmailHelper.getGmailProfileById(accessToken);
-      return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
-    } catch (SemossPixelException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw e;
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new SemossPixelException(
-          "An error occurred getting the user profile details. Error message: " + e.getMessage());
-    }
-  }
+	@Override
+	public NounMetadata execute() {
+		try {
+			User user = this.insight.getUser();
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
+			Map<String, Object> retMap = GoogleGmailHelper.getGmailProfileById(accessToken);
+			return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		} catch (SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(
+					"An error occurred getting the user profile details. Error message: " + e.getMessage());
+		}
+	}
 
-  @Override
-  public String getReactorDescription() {
-    return "Get the user profile details";
-  }
+	@Override
+	public String getReactorDescription() {
+		return "Get the user profile details";
+	}
 }

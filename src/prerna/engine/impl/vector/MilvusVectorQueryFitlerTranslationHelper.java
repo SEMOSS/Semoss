@@ -29,152 +29,135 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class MilvusVectorQueryFitlerTranslationHelper {
 
-  public StringBuilder processMilvusFilter(IQueryFilter filter) {
-    IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
-    if (filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-      return processSimpleQueryFilterForMilvus((SimpleQueryFilter) filter);
-    } else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
-      return processAndQueryFilterForMilvus((AndQueryFilter) filter);
-    } else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
-      return processOrQueryFilterForMilvus((OrQueryFilter) filter);
-    }
-    return null;
-  }
+	public StringBuilder processMilvusFilter(IQueryFilter filter) {
+		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
+		if (filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+			return processSimpleQueryFilterForMilvus((SimpleQueryFilter) filter);
+		} else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+			return processAndQueryFilterForMilvus((AndQueryFilter) filter);
+		} else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+			return processOrQueryFilterForMilvus((OrQueryFilter) filter);
+		}
+		return null;
+	}
 
-  protected StringBuilder processOrQueryFilterForMilvus(OrQueryFilter filter) {
-    StringBuilder filterBuilder = new StringBuilder();
-    List<IQueryFilter> filterList = filter.getFilterList();
-    int numAnds = filterList.size();
-    for (int i = 0; i < numAnds; i++) {
-      if (i > 0) {
-        filterBuilder.append(" OR ");
-      }
-      filterBuilder.append(processMilvusFilter(filterList.get(i)));
-    }
+	protected StringBuilder processOrQueryFilterForMilvus(OrQueryFilter filter) {
+		StringBuilder filterBuilder = new StringBuilder();
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for (int i = 0; i < numAnds; i++) {
+			if (i > 0) {
+				filterBuilder.append(" OR ");
+			}
+			filterBuilder.append(processMilvusFilter(filterList.get(i)));
+		}
 
-    return filterBuilder;
-  }
+		return filterBuilder;
+	}
 
-  protected StringBuilder processAndQueryFilterForMilvus(AndQueryFilter filter) {
-    StringBuilder filterBuilder = new StringBuilder();
-    List<IQueryFilter> filterList = filter.getFilterList();
-    int numAnds = filterList.size();
+	protected StringBuilder processAndQueryFilterForMilvus(AndQueryFilter filter) {
+		StringBuilder filterBuilder = new StringBuilder();
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
 
-    for (int i = 0; i < numAnds; i++) {
-      if (i > 0) {
-        filterBuilder.append(" AND ");
-      }
-      filterBuilder.append(processMilvusFilter(filterList.get(i)));
-    }
+		for (int i = 0; i < numAnds; i++) {
+			if (i > 0) {
+				filterBuilder.append(" AND ");
+			}
+			filterBuilder.append(processMilvusFilter(filterList.get(i)));
+		}
 
-    return filterBuilder;
-  }
+		return filterBuilder;
+	}
 
-  protected StringBuilder processSimpleQueryFilterForMilvus(SimpleQueryFilter filter) {
-    NounMetadata leftComparison = filter.getLComparison();
-    NounMetadata rightComparison = filter.getRComparison();
-    String comparator = filter.getComparator();
+	protected StringBuilder processSimpleQueryFilterForMilvus(SimpleQueryFilter filter) {
+		NounMetadata leftComparison = filter.getLComparison();
+		NounMetadata rightComparison = filter.getRComparison();
+		String comparator = filter.getComparator();
 
-    // Handling rightComparison if it is a SelectQueryStruct
-    if (rightComparison.getValue() instanceof SelectQueryStruct) {
-      SelectQueryStruct selectQueryStruct = (SelectQueryStruct) rightComparison.getValue();
-      List<IQuerySelector> querySelectors = selectQueryStruct.getSelectors();
+		// Handling rightComparison if it is a SelectQueryStruct
+		if (rightComparison.getValue() instanceof SelectQueryStruct) {
+			SelectQueryStruct selectQueryStruct = (SelectQueryStruct) rightComparison.getValue();
+			List<IQuerySelector> querySelectors = selectQueryStruct.getSelectors();
 
-      if (!querySelectors.isEmpty() && querySelectors.get(0) instanceof QueryArithmeticSelector) {
-        QueryArithmeticSelector arithmeticSelector =
-            (QueryArithmeticSelector) querySelectors.get(0);
+			if (!querySelectors.isEmpty() && querySelectors.get(0) instanceof QueryArithmeticSelector) {
+				QueryArithmeticSelector arithmeticSelector = (QueryArithmeticSelector) querySelectors.get(0);
 
-        IQuerySelector leftOperand = arithmeticSelector.getLeftSelector();
-        String operator = arithmeticSelector.getMathExpr();
-        IQuerySelector rightOperand = arithmeticSelector.getRightSelector();
+				IQuerySelector leftOperand = arithmeticSelector.getLeftSelector();
+				String operator = arithmeticSelector.getMathExpr();
+				IQuerySelector rightOperand = arithmeticSelector.getRightSelector();
 
-        return new StringBuilder()
-            .append(leftComparison.getValue())
-            .append(" ")
-            .append(comparator)
-            .append(" ")
-            .append(leftOperand.toString())
-            .append(" ")
-            .append(operator)
-            .append(" ")
-            .append(rightOperand.toString());
-      }
-    }
+				return new StringBuilder().append(leftComparison.getValue()).append(" ").append(comparator).append(" ")
+						.append(leftOperand.toString()).append(" ").append(operator).append(" ")
+						.append(rightOperand.toString());
+			}
+		}
 
-    // Handling leftComparison if it is a SelectQueryStruct
-    if (leftComparison.getValue() instanceof SelectQueryStruct) {
-      SelectQueryStruct selectQueryStruct = (SelectQueryStruct) leftComparison.getValue();
-      List<IQuerySelector> querySelectors = selectQueryStruct.getSelectors();
+		// Handling leftComparison if it is a SelectQueryStruct
+		if (leftComparison.getValue() instanceof SelectQueryStruct) {
+			SelectQueryStruct selectQueryStruct = (SelectQueryStruct) leftComparison.getValue();
+			List<IQuerySelector> querySelectors = selectQueryStruct.getSelectors();
 
-      if (!querySelectors.isEmpty() && querySelectors.get(0) instanceof QueryArithmeticSelector) {
-        QueryArithmeticSelector arithmeticSelector =
-            (QueryArithmeticSelector) querySelectors.get(0);
+			if (!querySelectors.isEmpty() && querySelectors.get(0) instanceof QueryArithmeticSelector) {
+				QueryArithmeticSelector arithmeticSelector = (QueryArithmeticSelector) querySelectors.get(0);
 
-        IQuerySelector leftOperand = arithmeticSelector.getLeftSelector();
-        String operator = arithmeticSelector.getMathExpr();
-        IQuerySelector rightOperand = arithmeticSelector.getRightSelector();
+				IQuerySelector leftOperand = arithmeticSelector.getLeftSelector();
+				String operator = arithmeticSelector.getMathExpr();
+				IQuerySelector rightOperand = arithmeticSelector.getRightSelector();
 
-        return new StringBuilder()
-            .append(leftOperand.toString())
-            .append(" ")
-            .append(operator)
-            .append(" ")
-            .append(rightOperand.toString())
-            .append(" ")
-            .append(comparator)
-            .append(" ")
-            .append(rightComparison.getValue());
-      }
-    }
+				return new StringBuilder().append(leftOperand.toString()).append(" ").append(operator).append(" ")
+						.append(rightOperand.toString()).append(" ").append(comparator).append(" ")
+						.append(rightComparison.getValue());
+			}
+		}
 
-    return addSelectorToValuesMilvusFilter(leftComparison, rightComparison, comparator);
-  }
+		return addSelectorToValuesMilvusFilter(leftComparison, rightComparison, comparator);
+	}
 
-  protected StringBuilder addSelectorToValuesMilvusFilter(
-      NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
-    // get the left side
-    IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
-    String leftDataType = leftSelector.getDataType();
+	protected StringBuilder addSelectorToValuesMilvusFilter(NounMetadata leftComp, NounMetadata rightComp,
+			String thisComparator) {
+		// get the left side
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		String leftDataType = leftSelector.getDataType();
 
-    List<Object> objects = new ArrayList<>();
-    // ugh... this is gross
-    if (rightComp.getValue() instanceof Collection) {
-      objects.addAll((Collection) rightComp.getValue());
-    } else {
-      objects.add(rightComp.getValue());
-    }
+		List<Object> objects = new ArrayList<>();
+		// ugh... this is gross
+		if (rightComp.getValue() instanceof Collection) {
+			objects.addAll((Collection) rightComp.getValue());
+		} else {
+			objects.add(rightComp.getValue());
+		}
 
-    StringBuilder filterBuilder = new StringBuilder();
-    filterBuilder.append(leftSelector).append(" ");
-    SqlInterpreter getInterpreter = new SqlInterpreter();
-    String myFilterFormatted =
-        getInterpreter.getFormatedObject(leftDataType, objects, thisComparator);
-    String trimmedComparator = thisComparator.trim();
+		StringBuilder filterBuilder = new StringBuilder();
+		filterBuilder.append(leftSelector).append(" ");
+		SqlInterpreter getInterpreter = new SqlInterpreter();
+		String myFilterFormatted = getInterpreter.getFormatedObject(leftDataType, objects, thisComparator);
+		String trimmedComparator = thisComparator.trim();
 
-    switch (trimmedComparator.toUpperCase()) {
-      // Comparison operators
-      case "==":
-      case "!=":
-      case ">":
-      case "<":
-      case "<=":
-      case ">=":
-        filterBuilder.append(thisComparator).append(" ").append(myFilterFormatted);
-        break;
-      // Range Operators
-      case "IN":
-        filterBuilder.append("IN [").append(myFilterFormatted).append("]");
-        break;
-      case "?LIKE":
-        filterBuilder.append("LIKE").append(myFilterFormatted).append(" ");
-        break;
-      case "?NLIKE":
-        filterBuilder.append("NOT IN [").append(myFilterFormatted).append("]");
-        break;
-      default:
-        filterBuilder.append(thisComparator).append(" ").append(myFilterFormatted);
-    }
+		switch (trimmedComparator.toUpperCase()) {
+			// Comparison operators
+			case "==" :
+			case "!=" :
+			case ">" :
+			case "<" :
+			case "<=" :
+			case ">=" :
+				filterBuilder.append(thisComparator).append(" ").append(myFilterFormatted);
+				break;
+			// Range Operators
+			case "IN" :
+				filterBuilder.append("IN [").append(myFilterFormatted).append("]");
+				break;
+			case "?LIKE" :
+				filterBuilder.append("LIKE").append(myFilterFormatted).append(" ");
+				break;
+			case "?NLIKE" :
+				filterBuilder.append("NOT IN [").append(myFilterFormatted).append("]");
+				break;
+			default :
+				filterBuilder.append(thisComparator).append(" ").append(myFilterFormatted);
+		}
 
-    return filterBuilder;
-  }
+		return filterBuilder;
+	}
 }

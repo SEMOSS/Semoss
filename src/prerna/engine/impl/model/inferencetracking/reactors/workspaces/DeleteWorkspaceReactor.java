@@ -31,56 +31,54 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class DeleteWorkspaceReactor extends AbstractReactor {
-  private static final Logger LOGGER = LogManager.getLogger(DeleteWorkspaceReactor.class);
+	private static final Logger LOGGER = LogManager.getLogger(DeleteWorkspaceReactor.class);
 
-  public DeleteWorkspaceReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey()};
-    this.keyRequired = new int[] {1};
-  }
+	public DeleteWorkspaceReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.WORKSPACE_ID.getKey()};
+		this.keyRequired = new int[]{1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
 
-    User user = this.insight.getUser();
+		User user = this.insight.getUser();
 
-    String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
+		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 
-    Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-    if (current == null) {
-      throw new IllegalArgumentException("Workspace not found");
-    }
-    String currentOwner = (String) current.get("owner");
+		Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+		if (current == null) {
+			throw new IllegalArgumentException("Workspace not found");
+		}
+		String currentOwner = (String) current.get("owner");
 
-    Object currentlySharingEnabled = current.get("sharing_enabled");
-    Boolean currentlyShared = (Boolean) currentlySharingEnabled;
+		Object currentlySharingEnabled = current.get("sharing_enabled");
+		Boolean currentlyShared = (Boolean) currentlySharingEnabled;
 
-    boolean hasPermission = false;
-    if (currentOwner != null) {
-      for (AuthProvider provider : user.getLogins()) {
-        if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
-          hasPermission = true;
-          break;
-        }
-      }
-    }
-    if (!hasPermission
-        && (Boolean.TRUE != currentlyShared
-            || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(
-                workspaceId, user, AccessPermissionEnum.OWNER.getId()))) {
-      throw new IllegalArgumentException("User unauthorized to perform this operation");
-    }
+		boolean hasPermission = false;
+		if (currentOwner != null) {
+			for (AuthProvider provider : user.getLogins()) {
+				if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
+					hasPermission = true;
+					break;
+				}
+			}
+		}
+		if (!hasPermission && (Boolean.TRUE != currentlyShared || !ModelInferenceLogsUtils
+				.isWorkspaceSharedWithUser(workspaceId, user, AccessPermissionEnum.OWNER.getId()))) {
+			throw new IllegalArgumentException("User unauthorized to perform this operation");
+		}
 
-    try {
-      ModelInferenceLogsUtils.deleteWorkspaceEntry(workspaceId);
-      if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
-        IProject project = Utility.getProject(workspaceId);
-        ModelInferenceLogsUtils.deleteWorkspaceProject(workspaceId, project);
-      }
-    } catch (Exception e) {
-      LOGGER.error(Constants.STACKTRACE, e);
-      return getError("Error during workspace delete: " + e.getMessage());
-    }
-    return new NounMetadata(true, PixelDataType.BOOLEAN);
-  }
+		try {
+			ModelInferenceLogsUtils.deleteWorkspaceEntry(workspaceId);
+			if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
+				IProject project = Utility.getProject(workspaceId);
+				ModelInferenceLogsUtils.deleteWorkspaceProject(workspaceId, project);
+			}
+		} catch (Exception e) {
+			LOGGER.error(Constants.STACKTRACE, e);
+			return getError("Error during workspace delete: " + e.getMessage());
+		}
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
 }

@@ -30,50 +30,49 @@ import prerna.util.Utility;
 
 public class GetUserDatabaseVotesReactor extends AbstractReactor {
 
-  public GetUserDatabaseVotesReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
-  }
+	public GetUserDatabaseVotesReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
 
-    if (Utility.isUserTrackingDisabled()) {
-      return new NounMetadata(
-          false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
-    }
+		if (Utility.isUserTrackingDisabled()) {
+			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
+		}
 
-    String databaseId = this.keyValue.get(this.keysToGet[0]);
-    if (databaseId == null) {
-      throw new IllegalArgumentException("Database Id cannot be null.");
-    }
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		if (databaseId == null) {
+			throw new IllegalArgumentException("Database Id cannot be null.");
+		}
 
-    if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-      throw new IllegalArgumentException("Database cannot be viewed by user.");
-    }
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("Database cannot be viewed by user.");
+		}
 
-    // get the primary login in case of different upvote and downvote for different
-    // authproviders.
-    List<Pair<String, String>> creds = User.getPrimaryUserIdAndType(this.insight.getUser());
+		// get the primary login in case of different upvote and downvote for different
+		// authproviders.
+		List<Pair<String, String>> creds = User.getPrimaryUserIdAndType(this.insight.getUser());
 
-    if (creds.size() != 1) {
-      throw new IllegalArgumentException("Could not get primary login details.");
-    }
-    Pair<String, String> primaryCredentials = creds.get(0);
+		if (creds.size() != 1) {
+			throw new IllegalArgumentException("Could not get primary login details.");
+		}
+		Pair<String, String> primaryCredentials = creds.get(0);
 
-    Map<Pair<String, String>, Integer> userVotes = UserCatalogVoteUtils.getVote(creds, databaseId);
+		Map<Pair<String, String>, Integer> userVotes = UserCatalogVoteUtils.getVote(creds, databaseId);
 
-    int userVote = 0;
-    if (userVotes.containsKey(primaryCredentials)) {
-      userVote = userVotes.get(primaryCredentials);
-    }
+		int userVote = 0;
+		if (userVotes.containsKey(primaryCredentials)) {
+			userVote = userVotes.get(primaryCredentials);
+		}
 
-    int total = UserCatalogVoteUtils.getAllVotes(databaseId);
+		int total = UserCatalogVoteUtils.getAllVotes(databaseId);
 
-    Map<String, Integer> votes = new HashMap<>();
-    votes.put("userVote", userVote);
-    votes.put("total", total);
+		Map<String, Integer> votes = new HashMap<>();
+		votes.put("userVote", userVote);
+		votes.put("total", total);
 
-    return new NounMetadata(votes, PixelDataType.MAP);
-  }
+		return new NounMetadata(votes, PixelDataType.MAP);
+	}
 }

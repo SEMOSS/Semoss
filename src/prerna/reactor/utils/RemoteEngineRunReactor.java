@@ -31,62 +31,60 @@ import prerna.util.Utility;
 
 public class RemoteEngineRunReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(RemoteEngineRunReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(RemoteEngineRunReactor.class);
 
-  public RemoteEngineRunReactor() {
-    this.keysToGet =
-        new String[] {
-          ReactorKeysEnum.PAYLOAD.getKey()
-        }; // just get this as string and turn it into json
-    this.keyRequired = new int[] {1};
-  }
+	public RemoteEngineRunReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PAYLOAD.getKey()}; // just get this as string and turn it into
+																			// json
+		this.keyRequired = new int[]{1};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    this.organizeKeys();
+	@Override
+	public NounMetadata execute() {
+		this.organizeKeys();
 
-    // get the PayloadStruct string
-    String message = Utility.decodeURIComponent(keyValue.get(ReactorKeysEnum.PAYLOAD.getKey()));
-    PayloadStruct ps = new Gson().fromJson(message, PayloadStruct.class);
-    ps = convertPayloadClasses(ps);
+		// get the PayloadStruct string
+		String message = Utility.decodeURIComponent(keyValue.get(ReactorKeysEnum.PAYLOAD.getKey()));
+		PayloadStruct ps = new Gson().fromJson(message, PayloadStruct.class);
+		ps = convertPayloadClasses(ps);
 
-    // run the engine call
-    NativePyEngineWorker pyw = new NativePyEngineWorker(this.insight.getUser(), ps, this.insight);
-    pyw.run();
+		// run the engine call
+		NativePyEngineWorker pyw = new NativePyEngineWorker(this.insight.getUser(), ps, this.insight);
+		pyw.run();
 
-    // retrieve the output
-    PayloadStruct output = null;
-    try {
-      output = pyw.getOutput();
-      output.payloadClasses = null;
-    } catch (Exception ex) {
-      StringWriter sw = new StringWriter();
-      PrintWriter pw = new PrintWriter(sw);
-      ex.printStackTrace(pw);
-      output.response = true;
-      output.ex = sw.toString();
-    }
+		// retrieve the output
+		PayloadStruct output = null;
+		try {
+			output = pyw.getOutput();
+			output.payloadClasses = null;
+		} catch (Exception ex) {
+			StringWriter sw = new StringWriter();
+			PrintWriter pw = new PrintWriter(sw);
+			ex.printStackTrace(pw);
+			output.response = true;
+			output.ex = sw.toString();
+		}
 
-    return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
-  }
+		return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
+	}
 
-  private PayloadStruct convertPayloadClasses(PayloadStruct input) {
-    if (input.payloadClassNames != null) {
-      input.payloadClasses = new Class[input.payloadClassNames.length];
-      for (int classIndex = 0; classIndex < input.payloadClassNames.length; classIndex++) {
-        try {
-          String className = input.payloadClassNames[classIndex];
-          input.payloadClasses[classIndex] = Class.forName(className);
-          if (input.payloadClasses[classIndex] == Insight.class) {
-            Insight insight = this.insight;
-            input.payload[classIndex] = insight;
-          }
-        } catch (ClassNotFoundException e) {
-          classLogger.error(Constants.STACKTRACE, e);
-        }
-      }
-    }
+	private PayloadStruct convertPayloadClasses(PayloadStruct input) {
+		if (input.payloadClassNames != null) {
+			input.payloadClasses = new Class[input.payloadClassNames.length];
+			for (int classIndex = 0; classIndex < input.payloadClassNames.length; classIndex++) {
+				try {
+					String className = input.payloadClassNames[classIndex];
+					input.payloadClasses[classIndex] = Class.forName(className);
+					if (input.payloadClasses[classIndex] == Insight.class) {
+						Insight insight = this.insight;
+						input.payload[classIndex] = insight;
+					}
+				} catch (ClassNotFoundException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 
-    return input;
-  }
+		return input;
+	}
 }

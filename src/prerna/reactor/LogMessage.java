@@ -21,18 +21,18 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class LogMessage extends AbstractReactor {
 
-  private static final String CLASS_NAME = LogMessage.class.getName();
+	private static final String CLASS_NAME = LogMessage.class.getName();
 
-  public LogMessage() {
-    this.keysToGet = new String[] {ReactorKeysEnum.MESSAGE.getKey()};
-  }
+	public LogMessage() {
+		this.keysToGet = new String[]{ReactorKeysEnum.MESSAGE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String message = this.keyValue.get(this.keysToGet[0]);
-    Logger logger = getLogger(CLASS_NAME);
-    logger.info(message);
-    return new NounMetadata(message, PixelDataType.CONST_STRING);
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String message = this.keyValue.get(this.keysToGet[0]);
+		Logger logger = getLogger(CLASS_NAME);
+		logger.info(message);
+		return new NounMetadata(message, PixelDataType.CONST_STRING);
+	}
 }

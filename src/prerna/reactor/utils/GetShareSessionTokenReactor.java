@@ -25,21 +25,19 @@ import prerna.util.Constants;
 
 public class GetShareSessionTokenReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(GetShareSessionTokenReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetShareSessionTokenReactor.class);
 
-  @Override
-  public NounMetadata execute() {
-    String token;
-    try {
-      token =
-          SecurityShareSessionUtils.createShareToken(
-              this.insight.getUser(), getSessionId(), getRouteId());
-    } catch (SQLException e) {
-      classLogger.error(e.getMessage());
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new IllegalArgumentException("Could not create share token.");
-    }
-    NounMetadata noun = new NounMetadata(token, PixelDataType.CONST_STRING);
-    return noun;
-  }
+	@Override
+	public NounMetadata execute() {
+		String token;
+		try {
+			token = SecurityShareSessionUtils.createShareToken(this.insight.getUser(), getSessionId(), getRouteId());
+		} catch (SQLException e) {
+			classLogger.error(e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not create share token.");
+		}
+		NounMetadata noun = new NounMetadata(token, PixelDataType.CONST_STRING);
+		return noun;
+	}
 }

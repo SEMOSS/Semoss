@@ -24,27 +24,27 @@ import prerna.util.Utility;
 
 public class PullEngineFromCloudReactor extends AbstractReactor {
 
-  public PullEngineFromCloudReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey()};
-  }
+	public PullEngineFromCloudReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String engineId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String engineId = this.keyValue.get(this.keysToGet[0]);
 
-    if (engineId == null || engineId.isEmpty()) {
-      throw new IllegalArgumentException("Must input an engine id");
-    }
+		if (engineId == null || engineId.isEmpty()) {
+			throw new IllegalArgumentException("Must input an engine id");
+		}
 
-    // make sure valid id for user
-    if (!SecurityEngineUtils.userIsOwner(this.insight.getUser(), engineId)) {
-      // you dont have access
-      throw new IllegalArgumentException(
-          "Engine does not exist or user is not an owner to force pulling from cloud storage");
-    }
+		// make sure valid id for user
+		if (!SecurityEngineUtils.userIsOwner(this.insight.getUser(), engineId)) {
+			// you dont have access
+			throw new IllegalArgumentException(
+					"Engine does not exist or user is not an owner to force pulling from cloud storage");
+		}
 
-    ClusterUtil.pullEngine(engineId, null, Utility.isEngineLoaded(engineId));
-    return new NounMetadata(true, PixelDataType.BOOLEAN);
-  }
+		ClusterUtil.pullEngine(engineId, null, Utility.isEngineLoaded(engineId));
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
 }

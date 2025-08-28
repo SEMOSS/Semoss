@@ -18,5 +18,5 @@ import java.util.Iterator;
 
 public interface IConstructWrapper extends IEngineWrapper, Iterator {
 
-  public IConstructStatement next();
+	public IConstructStatement next();
 }

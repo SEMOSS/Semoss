@@ -32,46 +32,44 @@ import prerna.util.Utility;
 
 public class PixelSourceReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(PixelSourceReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(PixelSourceReactor.class);
 
-  public PixelSourceReactor() {
-    this.keysToGet =
-        new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
-  }
+	public PixelSourceReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    this.organizeKeys();
-    String relativePath = this.keyValue.get(this.keysToGet[0]);
-    String space = this.keyValue.get(this.keysToGet[1]);
-    String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
-    String path = assetFolder + DIR_SEPARATOR + relativePath;
+	@Override
+	public NounMetadata execute() {
+		this.organizeKeys();
+		String relativePath = this.keyValue.get(this.keysToGet[0]);
+		String space = this.keyValue.get(this.keysToGet[1]);
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
+		String path = assetFolder + DIR_SEPARATOR + relativePath;
 
-    // read in the file
-    // execute it within this insight
-    // return the results
-    File file = new File(Utility.normalizePath(path));
-    if (!file.exists()) {
-      throw new IllegalArgumentException("Could not find the file path : " + relativePath);
-    }
+		// read in the file
+		// execute it within this insight
+		// return the results
+		File file = new File(Utility.normalizePath(path));
+		if (!file.exists()) {
+			throw new IllegalArgumentException("Could not find the file path : " + relativePath);
+		}
 
-    String pixel = null;
-    try {
-      pixel = FileUtils.readFileToString(file);
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw new IllegalArgumentException("Issue occurred properly reading file");
-    }
+		String pixel = null;
+		try {
+			pixel = FileUtils.readFileToString(file);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Issue occurred properly reading file");
+		}
 
-    if (pixel == null || (pixel = pixel.trim()).isEmpty()) {
-      throw new IllegalArgumentException("Pixel file is empty");
-    }
+		if (pixel == null || (pixel = pixel.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Pixel file is empty");
+		}
 
-    PixelRunner pixelReturn = this.insight.runPixel(pixel);
-    Map<String, Object> runnerWraper = new HashMap<String, Object>();
-    runnerWraper.put("runner", pixelReturn);
-    NounMetadata noun =
-        new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.SUB_SCRIPT);
-    return noun;
-  }
+		PixelRunner pixelReturn = this.insight.runPixel(pixel);
+		Map<String, Object> runnerWraper = new HashMap<String, Object>();
+		runnerWraper.put("runner", pixelReturn);
+		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.SUB_SCRIPT);
+		return noun;
+	}
 }

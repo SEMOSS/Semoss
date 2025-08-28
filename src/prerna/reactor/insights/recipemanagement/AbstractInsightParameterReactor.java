@@ -24,23 +24,23 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public abstract class AbstractInsightParameterReactor extends AbstractReactor {
 
-  /**
-   * Get the input map
-   *
-   * @return
-   */
-  protected Map<String, Object> getParamMap() {
-    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PARAM_STRUCT.getKey());
-    if (grs != null && !grs.isEmpty()) {
-      Map<String, Object> mapInput = (Map<String, Object>) grs.get(0);
-      return mapInput;
-    }
+	/**
+	 * Get the input map
+	 *
+	 * @return
+	 */
+	protected Map<String, Object> getParamMap() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PARAM_STRUCT.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			Map<String, Object> mapInput = (Map<String, Object>) grs.get(0);
+			return mapInput;
+		}
 
-    List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-    if (mapInputs != null && !mapInputs.isEmpty()) {
-      return (Map<String, Object>) mapInputs.get(0).getValue();
-    }
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
 
-    throw new NullPointerException("Could not find the input for the param struct map");
-  }
+		throw new NullPointerException("Could not find the input for the param struct map");
+	}
 }

@@ -24,42 +24,35 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class TransposeReactor extends AbstractRFrameReactor {
 
-  public TransposeReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.FRAME.getKey()};
-  }
+	public TransposeReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey()};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    /** This reactor transposes the frame No inputs are needed */
+	@Override
+	public NounMetadata execute() {
+		/** This reactor transposes the frame No inputs are needed */
 
-    // get frame
-    // use init to initialize rJavaTranslator object that will be used later
-    init();
-    RDataTable frame = (RDataTable) getFrame();
+		// get frame
+		// use init to initialize rJavaTranslator object that will be used later
+		init();
+		RDataTable frame = (RDataTable) getFrame();
 
-    // get table name
-    String table = frame.getName();
+		// get table name
+		String table = frame.getName();
 
-    // define r script string to be executed
-    String script = table + " <- " + table + "[, data.table(t(.SD), keep.rownames=TRUE)]";
-    // execute the r script
-    frame.executeRScript(script);
-    this.addExecutedCode(script);
+		// define r script string to be executed
+		String script = table + " <- " + table + "[, data.table(t(.SD), keep.rownames=TRUE)]";
+		// execute the r script
+		frame.executeRScript(script);
+		this.addExecutedCode(script);
 
-    // NEW TRACKING
-    UserTrackerFactory.getInstance()
-        .trackAnalyticsWidget(
-            this.insight,
-            frame,
-            "Transpose",
-            AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "Transpose",
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
-    // with transpose - the column data is changing so we must recreate metadata
-    frame.recreateMeta();
-    return new NounMetadata(
-        frame,
-        PixelDataType.FRAME,
-        PixelOperationType.FRAME_DATA_CHANGE,
-        PixelOperationType.FRAME_HEADERS_CHANGE);
-  }
+		// with transpose - the column data is changing so we must recreate metadata
+		frame.recreateMeta();
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
+	}
 }

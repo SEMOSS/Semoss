@@ -19,15 +19,15 @@ import prerna.engine.api.IHeadersDataRow;
 
 public interface IFormatter {
 
-  public void addData(IHeadersDataRow nextData);
+	public void addData(IHeadersDataRow nextData);
 
-  public Object getFormattedData();
+	public Object getFormattedData();
 
-  void clear();
+	void clear();
 
-  void setOptionsMap(Map<String, Object> options);
+	void setOptionsMap(Map<String, Object> options);
 
-  Map<String, Object> getOptionsMap();
+	Map<String, Object> getOptionsMap();
 
-  String getFormatType();
+	String getFormatType();
 }

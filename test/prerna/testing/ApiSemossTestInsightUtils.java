@@ -29,59 +29,57 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class ApiSemossTestInsightUtils {
 
-  private static final Logger classLogger = LogManager.getLogger(ApiSemossTestInsightUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(ApiSemossTestInsightUtils.class);
 
-  private static Path TEST_INSIGHT_CACHE = null;
-  private static Insight INSIGHT = null;
+	private static Path TEST_INSIGHT_CACHE = null;
+	private static Insight INSIGHT = null;
 
-  public static Path getInsightCache() {
-    return TEST_INSIGHT_CACHE;
-  }
+	public static Path getInsightCache() {
+		return TEST_INSIGHT_CACHE;
+	}
 
-  public static Insight getInsight() {
-    return INSIGHT;
-  }
+	public static Insight getInsight() {
+		return INSIGHT;
+	}
 
-  static void initializeInsight() throws IOException {
-    clearFullInsightCache();
-    INSIGHT = new Insight();
+	static void initializeInsight() throws IOException {
+		clearFullInsightCache();
+		INSIGHT = new Insight();
 
-    ApiSemossTestUserUtils.setDefaultTestUser();
+		ApiSemossTestUserUtils.setDefaultTestUser();
 
-    String insightId = INSIGHT.getInsightId();
-    String session = "test";
-    ThreadStore.setSessionId(session);
-    TEST_INSIGHT_CACHE =
-        Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "InsightCache", session, insightId);
-    Files.createDirectories(TEST_INSIGHT_CACHE);
-  }
+		String insightId = INSIGHT.getInsightId();
+		String session = "test";
+		ThreadStore.setSessionId(session);
+		TEST_INSIGHT_CACHE = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "InsightCache", session, insightId);
+		Files.createDirectories(TEST_INSIGHT_CACHE);
+	}
 
-  private static void clearFullInsightCache() throws IOException {
-    Path p = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "InsightCache");
-    if (Files.exists(p)) {
-      FileUtils.cleanDirectory(p.toFile());
-    }
-  }
+	private static void clearFullInsightCache() throws IOException {
+		Path p = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "InsightCache");
+		if (Files.exists(p)) {
+			FileUtils.cleanDirectory(p.toFile());
+		}
+	}
 
-  static void clearInsightCacheDifferently() {
-    if (Files.exists(TEST_INSIGHT_CACHE)) {
-      try {
-        FileUtils.cleanDirectory(TEST_INSIGHT_CACHE.toFile());
-      } catch (IOException e) {
-        classLogger.error("Could not clear Insight cache", e);
-        e.printStackTrace();
-      }
-    }
-  }
+	static void clearInsightCacheDifferently() {
+		if (Files.exists(TEST_INSIGHT_CACHE)) {
+			try {
+				FileUtils.cleanDirectory(TEST_INSIGHT_CACHE.toFile());
+			} catch (IOException e) {
+				classLogger.error("Could not clear Insight cache", e);
+				e.printStackTrace();
+			}
+		}
+	}
 
-  @SuppressWarnings("unchecked")
-  public static String createInsight(String projectId, String insightName) {
-    String pixel =
-        ApiSemossTestUtils.buildPixelCall(
-            SaveInsightReactor.class, "project", projectId, "insightName", insightName);
-    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-    Map<String, Object> ret = (Map<String, Object>) nm.getValue();
-    String insightId = ret.get("app_insight_id").toString();
-    return insightId;
-  }
+	@SuppressWarnings("unchecked")
+	public static String createInsight(String projectId, String insightName) {
+		String pixel = ApiSemossTestUtils.buildPixelCall(SaveInsightReactor.class, "project", projectId, "insightName",
+				insightName);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		Map<String, Object> ret = (Map<String, Object>) nm.getValue();
+		String insightId = ret.get("app_insight_id").toString();
+		return insightId;
+	}
 }

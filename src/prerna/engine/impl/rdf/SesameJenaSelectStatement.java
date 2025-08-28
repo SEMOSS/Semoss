@@ -20,70 +20,77 @@ import java.util.Hashtable;
 @Deprecated
 public class SesameJenaSelectStatement {
 
-  public transient Hashtable propHash = new Hashtable();
-  public transient Hashtable rawPropHash = new Hashtable();
-  String serialRep = null;
-  public boolean remote = false;
+	public transient Hashtable propHash = new Hashtable();
+	public transient Hashtable rawPropHash = new Hashtable();
+	String serialRep = null;
+	public boolean remote = false;
 
-  /**
-   * Method setVar. Sets the variables and the values.
-   *
-   * @param var Object - The variable name.
-   * @param val Object - The value of the variable.
-   */
-  public void setVar(Object var, Object val) {
-    propHash.put(var, val);
-  }
+	/**
+	 * Method setVar. Sets the variables and the values.
+	 *
+	 * @param var
+	 *            Object - The variable name.
+	 * @param val
+	 *            Object - The value of the variable.
+	 */
+	public void setVar(Object var, Object val) {
+		propHash.put(var, val);
+	}
 
-  /**
-   * Method getVar. Gets the value associated with a certain variable name.
-   *
-   * @param var Object - The variable name.
-   * @return Object - the value of the variable.
-   */
-  public Object getVar(Object var) {
-    Object retVal = propHash.get(var);
-    return retVal;
-  }
+	/**
+	 * Method getVar. Gets the value associated with a certain variable name.
+	 *
+	 * @param var
+	 *            Object - The variable name.
+	 * @return Object - the value of the variable.
+	 */
+	public Object getVar(Object var) {
+		Object retVal = propHash.get(var);
+		return retVal;
+	}
 
-  /**
-   * Method setRawVar. Sets the variables and the values. Uses the full URI.
-   *
-   * @param var Object - The variable name.
-   * @param val Object - The value of the variable.
-   */
-  public void setRawVar(Object var, Object val) {
-    rawPropHash.put(var, val);
-  }
+	/**
+	 * Method setRawVar. Sets the variables and the values. Uses the full URI.
+	 *
+	 * @param var
+	 *            Object - The variable name.
+	 * @param val
+	 *            Object - The value of the variable.
+	 */
+	public void setRawVar(Object var, Object val) {
+		rawPropHash.put(var, val);
+	}
 
-  /**
-   * Method getVar. Gets the value associated with a certain variable name. Uses the full URI.
-   *
-   * @param var Object - The variable name.
-   * @return Object - the value of the variable.
-   */
-  public Object getRawVar(Object var) {
-    Object retVal = rawPropHash.get(var);
-    return retVal;
-  }
+	/**
+	 * Method getVar. Gets the value associated with a certain variable name. Uses
+	 * the full URI.
+	 *
+	 * @param var
+	 *            Object - The variable name.
+	 * @return Object - the value of the variable.
+	 */
+	public Object getRawVar(Object var) {
+		Object retVal = rawPropHash.get(var);
+		return retVal;
+	}
 
-  public Hashtable getPropHash() {
-    return propHash;
-  }
+	public Hashtable getPropHash() {
+		return propHash;
+	}
 
-  public void setPropHash(Hashtable propHash) {
-    this.propHash = propHash;
-  }
+	public void setPropHash(Hashtable propHash) {
+		this.propHash = propHash;
+	}
 
-  public void setRawPropHash(Hashtable rawPropHash) {
-    this.rawPropHash = rawPropHash;
-  }
+	public void setRawPropHash(Hashtable rawPropHash) {
+		this.rawPropHash = rawPropHash;
+	}
 
-  public String getSerialRep() {
-    return serialRep;
-  }
+	public String getSerialRep() {
+		return serialRep;
+	}
 
-  public void setSerialRep(String propHashRep) {
-    this.serialRep = propHashRep;
-  }
+	public void setSerialRep(String propHashRep) {
+		this.serialRep = propHashRep;
+	}
 }

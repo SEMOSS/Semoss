@@ -27,28 +27,27 @@ import prerna.util.Constants;
 
 public class PDFProcessor extends AbstractFileProcessor {
 
-  private static final Logger classLogger = LogManager.getLogger(PDFProcessor.class);
+	private static final Logger classLogger = LogManager.getLogger(PDFProcessor.class);
 
-  public PDFProcessor(String filePath, VectorDatabaseCSVWriter writer) {
-    super(filePath, writer);
-  }
+	public PDFProcessor(String filePath, VectorDatabaseCSVWriter writer) {
+		super(filePath, writer);
+	}
 
-  @Override
-  public void process() throws IOException {
-    try (PDDocument document =
-        Loader.loadPDF(new RandomAccessReadBufferedFile(new File(this.filePath)))) {
-      String source = getSource(this.filePath);
-      PDFTextStripper pdfStripper = new PDFTextStripper();
-      for (int pageIndex = 1; pageIndex <= document.getNumberOfPages(); pageIndex++) {
-        // stripper is 1 based
-        pdfStripper.setStartPage(pageIndex);
-        pdfStripper.setEndPage(pageIndex);
-        String parsedText = pdfStripper.getText(document);
-        this.writer.writeRow(source, pageIndex + "", parsedText);
-      }
-    } catch (IOException e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      throw e;
-    }
-  }
+	@Override
+	public void process() throws IOException {
+		try (PDDocument document = Loader.loadPDF(new RandomAccessReadBufferedFile(new File(this.filePath)))) {
+			String source = getSource(this.filePath);
+			PDFTextStripper pdfStripper = new PDFTextStripper();
+			for (int pageIndex = 1; pageIndex <= document.getNumberOfPages(); pageIndex++) {
+				// stripper is 1 based
+				pdfStripper.setStartPage(pageIndex);
+				pdfStripper.setEndPage(pageIndex);
+				String parsedText = pdfStripper.getText(document);
+				this.writer.writeRow(source, pageIndex + "", parsedText);
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		}
+	}
 }

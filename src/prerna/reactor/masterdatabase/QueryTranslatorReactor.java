@@ -29,34 +29,33 @@ import prerna.util.Utility;
 
 public class QueryTranslatorReactor extends AbstractReactor {
 
-  private static final Logger classLogger = LogManager.getLogger(QueryTranslatorReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(QueryTranslatorReactor.class);
 
-  public QueryTranslatorReactor() {
-    this.keysToGet = new String[] {"query", "sourceDB", "targetDB"};
-  }
+	public QueryTranslatorReactor() {
+		this.keysToGet = new String[]{"query", "sourceDB", "targetDB"};
+	}
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
-    String query = this.keyValue.get(this.keysToGet[0]);
-    query = Utility.decodeURIComponent(query);
-    System.out.println(query);
-    String sourceDbId = this.keyValue.get(this.keysToGet[1]);
-    String targetDbId = this.keyValue.get(this.keysToGet[2]);
-    sourceDbId = MasterDatabaseUtility.testDatabaseIdIfAlias(sourceDbId);
-    targetDbId = MasterDatabaseUtility.testDatabaseIdIfAlias(targetDbId);
-    // get physical to physical translation from sourceDB to targetDB
-    Map<String, List<String>> translation =
-        MasterDatabaseUtility.databaseTranslator(sourceDbId, targetDbId);
-    // generate translated queries
-    SqlTranslator translator = new SqlTranslator(translation);
-    Set<String> queries = null;
-    try {
-      queries = translator.processQuery(query);
-    } catch (Exception e) {
-      // TODO Auto-generated catch block
-      classLogger.error(Constants.STACKTRACE, e);
-    }
-    return new NounMetadata(queries, PixelDataType.CUSTOM_DATA_STRUCTURE);
-  }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String query = this.keyValue.get(this.keysToGet[0]);
+		query = Utility.decodeURIComponent(query);
+		System.out.println(query);
+		String sourceDbId = this.keyValue.get(this.keysToGet[1]);
+		String targetDbId = this.keyValue.get(this.keysToGet[2]);
+		sourceDbId = MasterDatabaseUtility.testDatabaseIdIfAlias(sourceDbId);
+		targetDbId = MasterDatabaseUtility.testDatabaseIdIfAlias(targetDbId);
+		// get physical to physical translation from sourceDB to targetDB
+		Map<String, List<String>> translation = MasterDatabaseUtility.databaseTranslator(sourceDbId, targetDbId);
+		// generate translated queries
+		SqlTranslator translator = new SqlTranslator(translation);
+		Set<String> queries = null;
+		try {
+			queries = translator.processQuery(query);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return new NounMetadata(queries, PixelDataType.CUSTOM_DATA_STRUCTURE);
+	}
 }
