@@ -1,30 +1,17 @@
-/*******************************************************************************
+/***************************************************************************************************
  * Copyright 2015 Defense Health Agency (DHA)
  *
- * If your use of this software does not include any GPLv2 components:
- * 	Licensed under the Apache License, Version 2.0 (the "License");
- * 	you may not use this file except in compliance with the License.
- * 	You may obtain a copy of the License at
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
  *
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * 	Unless required by applicable law or agreed to in writing, software
- * 	distributed under the License is distributed on an "AS IS" BASIS,
- * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * 	See the License for the specific language governing permissions and
- * 	limitations under the License.
- * ----------------------------------------------------------------------------
- * If your use of this software includes any GPLv2 components:
- * 	This program is free software; you can redistribute it and/or
- * 	modify it under the terms of the GNU General Public License
- * 	as published by the Free Software Foundation; either version 2
- * 	of the License, or (at your option) any later version.
- *
- * 	This program is distributed in the hope that it will be useful,
- * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
- * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * 	GNU General Public License for more details.
- *******************************************************************************/
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.poi.main.helper;
 
 import java.io.FileInputStream;
@@ -192,11 +179,11 @@ public class XLFileHelper {
     // assimilate the properties
     // TODO: this logic isn't valid since we get the headers on instantiation of the
     // instance
-    //		if(counter == 0) {
-    //			for(int colIndex = colStarter; colIndex < thisRow.length; colIndex++) {
-    //				putProp(thisRow[colIndex], sheetName);
-    //			}
-    //		}
+    // if(counter == 0) {
+    // for(int colIndex = colStarter; colIndex < thisRow.length; colIndex++) {
+    // putProp(thisRow[colIndex], sheetName);
+    // }
+    // }
 
     return thisRow;
   }
@@ -241,11 +228,11 @@ public class XLFileHelper {
     // assimilate the properties
     // TODO: this logic isn't valid since we get the headers on instantiation of the
     // instance
-    //		if(counter == 0) {
-    //			for(int colIndex = colStarter; colIndex < thisRow.length; colIndex++) {
-    //				putProp(thisRow[colIndex], sheetName);
-    //			}
-    //		}
+    // if(counter == 0) {
+    // for(int colIndex = colStarter; colIndex < thisRow.length; colIndex++) {
+    // putProp(thisRow[colIndex], sheetName);
+    // }
+    // }
 
     return thisRow;
   }
@@ -302,11 +289,11 @@ public class XLFileHelper {
     // assimilate the properties
     // TODO: this logic isn't valid since we get the headers on instantiation of the
     // instance
-    //		if(counter == 0) {
-    //			for(int colIndex = colStarter; colIndex < thisRow.length; colIndex++) {
-    //				putProp(thisRow[colIndex], sheetName);
-    //			}
-    //		}
+    // if(counter == 0) {
+    // for(int colIndex = colStarter; colIndex < thisRow.length; colIndex++) {
+    // putProp(thisRow[colIndex], sheetName);
+    // }
+    // }
 
     return thisRow;
   }
@@ -335,8 +322,8 @@ public class XLFileHelper {
       return thisCell.getStringCellValue();
     } else if (type == CellType.NUMERIC) {
       if (DateUtil.isCellDateFormatted(thisCell)) {
-        return new SemossDate(
-            thisCell.getDateCellValue(), thisCell.getCellStyle().getDataFormatString());
+        return new SemossDate(thisCell.getDateCellValue(),
+            thisCell.getCellStyle().getDataFormatString());
       }
       return thisCell.getNumericCellValue();
     } else if (type == CellType.BOOLEAN) {
@@ -351,8 +338,8 @@ public class XLFileHelper {
         return thisCell.getStringCellValue();
       } else if (formulatype == CellType.NUMERIC) {
         if (DateUtil.isCellDateFormatted(thisCell)) {
-          return new SemossDate(
-              thisCell.getDateCellValue(), thisCell.getCellStyle().getDataFormatString());
+          return new SemossDate(thisCell.getDateCellValue(),
+              thisCell.getCellStyle().getDataFormatString());
         }
         return thisCell.getNumericCellValue();
       } else if (formulatype == CellType.BOOLEAN) {
@@ -431,18 +418,13 @@ public class XLFileHelper {
     return predictedTypes;
   }
 
-  private void predictTypesLoop(
-      Sheet lSheet,
-      int numRows,
-      Object[][] predictedTypes,
-      List<Map<String, Integer>> additionalFormatTracker,
-      int colIndex) {
+  private void predictTypesLoop(Sheet lSheet, int numRows, Object[][] predictedTypes,
+      List<Map<String, Integer>> additionalFormatTracker, int colIndex) {
     SemossDataType type = null;
     Map<String, Integer> formatTracker = new HashMap<String, Integer>();
     additionalFormatTracker.add(colIndex, formatTracker);
 
-    ROW_LOOP:
-    for (int j = 1; j < numRows && j < NUM_ROWS_TO_PREDICT_TYPES; j++) {
+    ROW_LOOP: for (int j = 1; j < numRows && j < NUM_ROWS_TO_PREDICT_TYPES; j++) {
       Row row = lSheet.getRow(j);
       if (row != null) {
         Object value = getCell(row.getCell(colIndex));
@@ -460,8 +442,8 @@ public class XLFileHelper {
         if (additionalFormatting != null) {
           if (formatTracker.containsKey(additionalFormatting)) {
             // increase counter by 1
-            formatTracker.put(
-                additionalFormatting, new Integer(formatTracker.get(additionalFormatting) + 1));
+            formatTracker.put(additionalFormatting,
+                new Integer(formatTracker.get(additionalFormatting) + 1));
           } else {
             formatTracker.put(additionalFormatting, new Integer(1));
           }
@@ -752,46 +734,46 @@ public class XLFileHelper {
 
   ///// TESTING CODE STARTS HERE /////
 
-  //	public static void main(String [] args) throws Exception
-  //	{
-  //		// ugh, need to load this in for the header exceptions
-  //		// this contains all the sql reserved words
-  //		TestUtilityMethods.loadDIHelper();
+  // public static void main(String [] args) throws Exception
+  // {
+  // // ugh, need to load this in for the header exceptions
+  // // this contains all the sql reserved words
+  // TestUtilityMethods.loadDIHelper();
   //
-  //		String fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
-  //		long before, after;
-  //		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/consumer_complaints.csv";
-  //		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
-  //		fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/XLUploadTester.xlsx";
-  //		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Medical_devices_data.xlsx";
+  // String fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
+  // long before, after;
+  // //fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/consumer_complaints.csv";
+  // //fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
+  // fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/XLUploadTester.xlsx";
+  // //fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Medical_devices_data.xlsx";
   //
-  //		fileName = "C:/Users/mahkhalil/Desktop/Copy of eXAMPLE_DATA.xlsx";
-  //		before = System.nanoTime();
-  //		XLFileHelper test = new XLFileHelper();
-  //		test.parse(fileName);
-  //		String [] tables = test.getTables();
-  //		test.printRow(tables);
-  //		for(int tabIndex = 0;tabIndex < tables.length;tabIndex++)
-  //		{
-  //			test.printRow(test.getHeaders(tables[tabIndex]));
-  //			test.printRow(test.getNextRow(tables[tabIndex]));
-  //			test.printRow(test.getNextRow(tables[tabIndex]));
-  //			test.printRow(test.getNextRow(tables[tabIndex]));
-  //			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
-  //			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
-  //			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
-  //		}
-  //		Vector <String> allRels = test.getRelations();
+  // fileName = "C:/Users/mahkhalil/Desktop/Copy of eXAMPLE_DATA.xlsx";
+  // before = System.nanoTime();
+  // XLFileHelper test = new XLFileHelper();
+  // test.parse(fileName);
+  // String [] tables = test.getTables();
+  // test.printRow(tables);
+  // for(int tabIndex = 0;tabIndex < tables.length;tabIndex++)
+  // {
+  // test.printRow(test.getHeaders(tables[tabIndex]));
+  // test.printRow(test.getNextRow(tables[tabIndex]));
+  // test.printRow(test.getNextRow(tables[tabIndex]));
+  // test.printRow(test.getNextRow(tables[tabIndex]));
+  // System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
+  // System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
+  // System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
+  // }
+  // Vector <String> allRels = test.getRelations();
   //
-  //		for(int tabIndex = 0;tabIndex < allRels.size();tabIndex++)
-  //		{
-  //			System.out.println(allRels.elementAt(tabIndex));
-  //		}
+  // for(int tabIndex = 0;tabIndex < allRels.size();tabIndex++)
+  // {
+  // System.out.println(allRels.elementAt(tabIndex));
+  // }
   //
-  //		//test.printRow(test.getRow());
-  //		after = System.nanoTime();
-  //		System.out.println((after - before)/1000000);
-  //	}
+  // //test.printRow(test.getRow());
+  // after = System.nanoTime();
+  // System.out.println((after - before)/1000000);
+  // }
 
   private void printRow(Object[] nextRow) {
     if (nextRow != null) {
