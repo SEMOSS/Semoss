@@ -60,7 +60,10 @@ public class SocketClient implements Runnable, Closeable {
 	InputStream is = null;
 	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
-	Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
+	Gson gson = new GsonBuilder()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping()
+			.create();
 
 	/**
 	 * 
