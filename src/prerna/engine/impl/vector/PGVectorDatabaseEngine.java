@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -723,7 +724,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	            case "RRF": {
 	                int candidatePoolSize = Math.min(50, topN * 3);
-	                bm25Results = bm25Service.search(searchStatement, candidatePoolSize);
+	                bm25Results = bm25ServiceForCall != null ? bm25ServiceForCall.search(searchStatement, candidatePoolSize) : Collections.emptyList();
 	                vectorResults = runVectorSearch(insight, searchStatement, candidatePoolSize, parameters);
 	                finalResults = VectorRankingUtils.rrfFuse(bm25Results, vectorResults, topN);
 	                break;
@@ -731,7 +732,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	            case "HYBRID": {
 	                int candidatePoolSize = Math.min(50, topN);
-	                bm25Results = bm25Service.search(searchStatement, candidatePoolSize);
+	                bm25Results = bm25ServiceForCall != null ? bm25ServiceForCall.search(searchStatement, candidatePoolSize) : Collections.emptyList();
 	                vectorResults = runVectorSearch(insight, searchStatement, candidatePoolSize, parameters);
 
 	                double alpha = 0.35, beta = 0.65;
@@ -749,11 +750,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	        classLogger.error("Search failed", e);
 	    }
 	    
-	    if (bm25ServiceForCall != this.bm25Service) {
+	    if (bm25ServiceForCall != null && bm25ServiceForCall != this.bm25Service) {
 	        try {
 	        	bm25ServiceForCall.close();
 	        } catch (Exception e) {
-	            classLogger.error("BM25 insert failed", e);
+	        	classLogger.error("Failed to close temporary BM25RankerService", e);
 	        }
 	    }
 

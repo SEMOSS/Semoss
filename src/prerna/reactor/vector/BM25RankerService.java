@@ -256,7 +256,8 @@ public class BM25RankerService implements Closeable {
      * @throws Exception if loading fails
      */
     public static BM25RankerService loadFromConfig(Properties props) throws Exception {
-        String method = props.getProperty("BM25_INDEX_METHOD").toUpperCase();
+    	String methodProp = props.getProperty("BM25_INDEX_METHOD");
+    	String method = (methodProp == null) ? "DISK" : methodProp.toUpperCase();
         switch (method) {
             case "DISK":
                 String diskPath = props.getProperty("BM25_INDEX_PATH");
