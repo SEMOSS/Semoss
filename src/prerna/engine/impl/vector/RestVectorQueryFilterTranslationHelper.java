@@ -217,16 +217,22 @@ public final class RestVectorQueryFilterTranslationHelper {
 				{
 					JsonArray shouldArray = new JsonArray();
 					{
-						for(int i=0; i<normalizedValues.size(); i++) {
+						if(normalizedValues.isEmpty()) {
 							JsonObject matchParent = new JsonObject();
-							{
-								JsonObject match = new JsonObject();
-								{
-									match.addProperty(leftComp.getValue().toString(), normalizedValues.get(i).toString());
-								}	
-								matchParent.add("match", match);
-							}
+							matchParent.add("match_none", new JsonObject());
 							shouldArray.add(matchParent);
+						} else {
+							for(int i=0; i<normalizedValues.size(); i++) {
+								JsonObject matchParent = new JsonObject();
+								{
+									JsonObject match = new JsonObject();
+									{
+										match.addProperty(leftComp.getValue().toString(), normalizedValues.get(i).toString());
+									}	
+									matchParent.add("match", match);
+								}
+								shouldArray.add(matchParent);
+							}
 						}
 					}
 					jsonBuilder.add("should", shouldArray);
@@ -242,18 +248,35 @@ public final class RestVectorQueryFilterTranslationHelper {
 				{
 					JsonObject column = new JsonObject();
 					{
-						if (thisComparator.equals("<")) {							
-							column.addProperty("lt", new BigDecimal(rightComp.getValue().toString()));
+						String rightStringValue = rightComp.getValue().toString();
+						try {
+							BigDecimal rightNumberValue = new BigDecimal(rightStringValue);
+							if (thisComparator.equals("<")) {
+								column.addProperty("lt", rightNumberValue);
+							}
+							if (thisComparator.equals(">")) {
+								column.addProperty("gt", rightNumberValue);
+							}
+							if (thisComparator.equals(">=")) {
+								column.addProperty("gte", rightNumberValue);
+							}
+							if (thisComparator.equals("<=")) {
+								column.addProperty("lte", rightNumberValue);
+							}
+						} catch(Exception e) {
+							if (thisComparator.equals("<")) {
+								column.addProperty("lt", rightStringValue);
+							}
+							if (thisComparator.equals(">")) {
+								column.addProperty("gt", rightStringValue);
+							}
+							if (thisComparator.equals(">=")) {
+								column.addProperty("gte", rightStringValue);
+							}
+							if (thisComparator.equals("<=")) {
+								column.addProperty("lte", rightStringValue);
+							}
 						}
-						if (thisComparator.equals(">")) {							
-							column.addProperty("gt", new BigDecimal(rightComp.getValue().toString()));
-						}
-						if (thisComparator.equals(">=")) {							
-							column.addProperty("gte", new BigDecimal(rightComp.getValue().toString()));
-						}
-						if (thisComparator.equals("<=")) {							
-							column.addProperty("lte", new BigDecimal(rightComp.getValue().toString()));
-						}			
 					}
 					range.add(leftComp.getValue().toString(), column);
 				}

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
@@ -148,18 +149,27 @@ public final class MCPUtility {
 				
 				paramString.append(propName).append("=");
 	
-				// compose the string
-				// if it is none send it as is
-				if(propType.toUpperCase().contains("STR") && !propValue.toString().equals("None")) {
-					paramString.append("'").append(propValue).append("'");
-				} else {
-					paramString.append(propValue);
-				}
+				// handle scalar and arrays
+	            if(propValue instanceof List || propValue instanceof JSONArray) {
+	                // handle arrays/lists
+	                paramString.append(formatArrayValue(propValue, propType));
+	            } else {
+	                // handle single values
+	                if(propType.toUpperCase().contains("STR") && !propValue.toString().equals("None")) {
+	                    paramString.append("'").append(propValue).append("'");
+	                } else {
+	                    paramString.append(propValue);
+	                }
+	            }
 			}
 		}
 		
 		String runMethod = functionName+"("+paramString+");";
-		classLogger.info("Running pixel tool '" + runMethod + "' from project " + project.getProjectId());
+		if(project != null) {
+			classLogger.info("Running pixel tool '" + runMethod + "' from project " + project.getProjectId());
+		} else {
+			classLogger.info("Running pixel tool '" + runMethod + "' directly without a project");
+		}
 		// run pixel
 		PixelRunner pixelReturn = insight.runPixel(runMethod);
 		NounMetadata result = pixelReturn.getResults().get(0);
@@ -167,6 +177,45 @@ public final class MCPUtility {
 			throw new SemossMCPException(result.getValue()+"", MCPErrorCode.SERVER_ERROR);
 		}
 		return result.getValue()+"";
+	}
+	
+	/**
+	 * Format array values for pixel execution
+	 * @param arrayValue - the array value (List or JSONArray)
+	 * @param propType - the property type
+	 * @return formatted string representation
+	 */
+	private static String formatArrayValue(Object arrayValue, String propType) {
+	    StringBuilder arrayString = new StringBuilder("[");
+	    
+	    if(arrayValue instanceof List) {
+	        List<?> list = (List<?>) arrayValue;
+	        for(int i = 0; i < list.size(); i++) {
+	            if(i > 0) arrayString.append(", ");
+	            
+	            Object item = list.get(i);
+	            if(propType.toUpperCase().contains("STR") && item != null && !item.toString().equals("None")) {
+	                arrayString.append("'").append(item).append("'");
+	            } else {
+	                arrayString.append(item);
+	            }
+	        }
+	    } else if(arrayValue instanceof JSONArray) {
+	        JSONArray jsonArray = (JSONArray) arrayValue;
+	        for(int i = 0; i < jsonArray.length(); i++) {
+	            if(i > 0) arrayString.append(", ");
+	            
+	            Object item = jsonArray.get(i);
+	            if(propType.toUpperCase().contains("STR") && item != null && !item.toString().equals("None")) {
+	                arrayString.append("'").append(item).append("'");
+	            } else {
+	                arrayString.append(item);
+	            }
+	        }
+	    }
+	    
+	    arrayString.append("]");
+	    return arrayString.toString();
 	}
 	
 	/**
