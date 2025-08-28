@@ -58,9 +58,9 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
                 try {
                 	arguments = new GsonBuilder()
                 					.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-                					.disableHtmlEscaping
-                					().create
-                					().fromJson(argumentsJson, Map.class);
+                					.disableHtmlEscaping()
+                					.create()
+                					.fromJson(argumentsJson, Map.class);
                 } catch (Exception e) {
                 	classLogger.error(Constants.STACKTRACE, e);
                 }
