@@ -1,4 +1,5 @@
 import ast
+import sys
 from typing import List, Optional, Dict, Any, Tuple
 import json
 from pydantic import BaseModel
@@ -107,7 +108,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         # Handling new history format through message_json
         if self.ask_settings.semoss_messages:
-            msg_history = self._handle_semoss_msgs()
+            return self._handle_semoss_msgs(prefix=prefix)
 
         # Handling full prompt from Elsa...
         elif self.ask_settings.full_prompt:
@@ -144,8 +145,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             messageType="CHAT",
         )
 
-    def _handle_semoss_msgs(self):
-        """When we update everything to the new history format this will be the only method we need"""
+    def _handle_semoss_msgs(self, prefix):
+        """Handle SEMOSS messages through AnthropicMessageBuilder"""
         try:
             msg_history, param_map = AnthropicMessageBuilder().build_messages(
                 semoss_messages=self.ask_settings.semoss_messages,
@@ -155,12 +156,38 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 f"Failed to build messages in Anthropic format from SEMOSS format: {e}"
             )
 
+        # Create request config with tools from param_map
         self.request_config = self._convert_args_to_provider_config(
             history=msg_history,
             **param_map,
         )
 
-        return msg_history
+        if self.ask_settings.streaming:
+            response = self._handle_streaming(prefix=prefix, msg_history=msg_history)
+            response_text = response.text
+            usage = response.usage
+        else:
+            response = self.client.messages.create(
+                **self.request_config.model_dump(exclude_none=True),
+            )
+            if response.stop_reason == "tool_use":
+                return self._parse_tools_call_response(
+                    response,
+                    prompt_tokens=response.usage.input_tokens,
+                    response_tokens=response.usage.output_tokens,
+                )
+            response_text = response.content[0].text
+            usage = Usage(
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
+            )
+
+        return AskModelEngineResponse(
+            response=response_text,
+            response_tokens=usage.output_tokens,
+            prompt_tokens=usage.input_tokens,
+            messageType="CHAT",
+        )
 
     def _handle_full_prompt_msgs(self, **kwargs):
         """
@@ -261,8 +288,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         tools = kwargs.pop("tools", None)
         if tools is not None:
-            tools = self._handle_tools_conversion(tools)
-            tools = [tools.model_dump(mode="json") for tools in tools]
+            # Tools are already in Anthropic format from the message builder
+            # Disable streaming when tools are present
             self.ask_settings.streaming = False
 
         return AnthropicRequestConfig(

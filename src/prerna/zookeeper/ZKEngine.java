@@ -145,6 +145,16 @@ public class ZKEngine implements IEngine {
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	@Override
+	public boolean isBasic() {
+		return false;
+	}
+	
+	@Override
+	public void setBasic(boolean isBasic) {
+		// always false
+	}
 
 	@Override
 	public void delete() throws IOException {

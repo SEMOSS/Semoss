@@ -17,6 +17,8 @@ import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -53,7 +55,7 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 			}
 		}
 		
-		this.engineDirectoryPath = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
+		this.engineDirectoryPath = EngineUtility.getSpecificEngineAssetsFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
 		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
 		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
 		
@@ -70,13 +72,13 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 	}
 	
 	@Override
-	public GuardrailNounMetadata execute() {
+	public GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow) {
 		checkSocketStatus();
-		organizeKeys();
-		String prompt = this.keyValue.get(this.keysToGet[0]);
+		Map<String, String> keyValue = organizeKeys(ns, curRow);
+		String prompt = keyValue.get(this.keysToGet[0]);
 		double threshold = this.defaultThreshold;
-		if(this.keyValue.containsKey("threshold")) {
-			threshold = Double.parseDouble(this.keyValue.get("threshold"));
+		if(keyValue.containsKey("threshold")) {
+			threshold = Double.parseDouble(keyValue.get("threshold"));
 		}
 		String script = "model.predict(\"\"\""+prompt+"\"\"\")";
 		Map<String, Object> value = (Map<String, Object>) pyTranslator.runDirectPy(script);

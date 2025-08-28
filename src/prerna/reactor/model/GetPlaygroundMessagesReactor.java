@@ -12,7 +12,9 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -98,6 +100,9 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		 * Add messages to list
 		 */
 		for (AbstractMessage m : page) {
+			if(m.getMessageType() == MessageType.RESPONSE_TOOL) {
+				MessageUtils.updateToolResponseWithProjectMeta((ResponseMessage) m);
+			}
 			outputMap.add(jsonToMap(MessageUtils.toJson(m)));
 		}
 
@@ -114,8 +119,7 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
 			throw new IllegalArgumentException("Input must be a valid JSON object string.");
 		}
-		return gson.fromJson(json, new TypeToken<Map<String, Object>>() {
-		}.getType());
+		return gson.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
 	}
 
 }
