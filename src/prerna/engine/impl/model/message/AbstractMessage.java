@@ -135,6 +135,7 @@ public abstract class AbstractMessage {
         if (ornaments == null) ornaments = new HashMap<>();
         ornaments.put(key, value);
     }
+    
     public Object getOrnament(String key) {
         return ornaments != null ? ornaments.get(key) : null;
     }
