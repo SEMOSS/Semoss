@@ -192,9 +192,10 @@ public class ExportEngineReactor extends AbstractReactor {
 		//clear the data from database and export it while schema remains the same
 		if(includeData!=null&&includeData.equals("false")) {
 			try {
-				clearDatabaseInZip(zipFilePath);
+				removeDataFromTables(zipFilePath);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
+				throw new SemossPixelException("database.mv.db not found inside");
 			}
 
 		}
@@ -210,16 +211,17 @@ public class ExportEngineReactor extends AbstractReactor {
 		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
 	
-	public static void clearDatabaseInZip(String zipFilePath) throws Exception {
-        File zipFile = new File(zipFilePath);
+	public static void removeDataFromTables(String zipFilePath) throws Exception {
+        File path = new File(zipFilePath);
  
         // checking whether database.mv.db is present or not
         String dbEntryPath = null;
-        try (ZipFile zf = new ZipFile(zipFile)) {
+        final String fileName = "/database.mv.db";
+        try (ZipFile zf = new ZipFile(path)) {
             Enumeration<? extends ZipEntry> entries = zf.entries();
             while (entries.hasMoreElements()) {
                 ZipEntry entry = entries.nextElement();
-                if (entry.getName().contains("/database.mv.db")) {
+                if (entry.getName().contains(fileName)) {
                     dbEntryPath = entry.getName();
                     break;
                 }
@@ -232,7 +234,7 @@ public class ExportEngineReactor extends AbstractReactor {
         File tempDb = File.createTempFile("h2db", ".mv.db");
         tempDb.deleteOnExit();
  
-        try (ZipFile zf = new ZipFile(zipFile)) {
+        try (ZipFile zf = new ZipFile(path)) {
             ZipEntry dbEntry = zf.getEntry(dbEntryPath);
             try (InputStream is = zf.getInputStream(dbEntry);
                  OutputStream os = new FileOutputStream(tempDb)) {
@@ -262,10 +264,11 @@ public class ExportEngineReactor extends AbstractReactor {
             }
  
             conn.commit();
+            conn.close();
         }
  
         Path tempZipPath = Files.createTempFile("updatedZip", ".zip");
-        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile));
+        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(path));
              ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(tempZipPath.toFile()))) {
  
             ZipEntry entry;
@@ -289,8 +292,23 @@ public class ExportEngineReactor extends AbstractReactor {
             }
         }
  
-        Files.move(tempZipPath, zipFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        Files.move(tempZipPath, path.toPath(), StandardCopyOption.REPLACE_EXISTING);
         
     }
+	
+	@Override
+	public String getReactorDescription() {
+		return "This reactor exports the model data in a zip file";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "This is a required field containing the engine id of an engine";
+		} else if (key.equals(INCLUDE_DATA)) {
+			return "This is a required field contains the consent to include data or not";
+		}
+		return super.getDescriptionForKey(key);
+	}
 	
 }
