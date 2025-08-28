@@ -6330,11 +6330,17 @@ public final class Utility {
             return new JSONObject(response.toString());
 
         } catch (SocketTimeoutException e) {
-            classLogger.error("HTTP GET timed out", e);
-            throw new IOException("HTTP GET timed out", e);
+            classLogger.error(Constants.STACKTRACE, e);
+            Map<String, Object> retMap=new HashMap<String, Object>();
+            retMap.put("type", "SocketTimeoutException");
+            retMap.put("message", "HTTP GET timed out");
+            throw new IOException("SocketTimeoutException: "+retMap.toString(), e);
         } catch (IOException e) {
             classLogger.error(Constants.STACKTRACE, e);
-            throw e;
+            Map<String, Object> retMap=new HashMap<String, Object>();
+            retMap.put("type", "IOException");
+            retMap.put("message", e.getMessage());
+            throw new IOException("IOException: "+retMap,e);
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);
             throw new IOException("Unexpected error during HTTP GET", e);
