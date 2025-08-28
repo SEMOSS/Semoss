@@ -2523,6 +2523,51 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 	}
+	
+	public static List<Map<String, String>> getWorkspaceResources(
+		    String workspaceId, String resourceType, String resourceSubType) {
+		    Connection con = null;
+		    List<Map<String, String>> resources = new ArrayList<>();
+		    try {
+		        con = modelInferenceLogsDb.getConnection();
+		        // Build base query
+		        StringBuilder sql = new StringBuilder(
+		            "SELECT RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE " +
+		            "FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?"
+		        );
+		        List<Object> params = new ArrayList<>();
+		        params.add(workspaceId);
+
+		        if (resourceType != null) {
+		            sql.append(" AND RESOURCE_TYPE = ?");
+		            params.add(resourceType);
+		        }
+		        if (resourceSubType != null) {
+		            sql.append(" AND RESOURCE_SUBTYPE = ?");
+		            params.add(resourceSubType);
+		        }
+
+		        try (PreparedStatement ps = con.prepareStatement(sql.toString())) {
+		            for (int i = 0; i < params.size(); i++) {
+		                ps.setObject(i + 1, params.get(i));
+		            }
+		            ResultSet rs = ps.executeQuery();
+		            while (rs.next()) {
+		                Map<String, String> resource = new HashMap<>();
+		                resource.put("resource_id", rs.getString("RESOURCE_ID"));
+		                resource.put("resource_type", rs.getString("RESOURCE_TYPE"));
+		                resource.put("resource_subtype", rs.getString("RESOURCE_SUBTYPE"));
+		                resources.add(resource);
+		            }
+		        }
+		    } catch (SQLException e) {
+		        classLogger.error(Constants.STACKTRACE, e);
+		        throw new IllegalArgumentException("Error fetching workspace resources: " + e.getMessage(), e);
+		    } finally {
+		        ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		    }
+		    return resources;
+		}
 
 	/**
 	 * 
