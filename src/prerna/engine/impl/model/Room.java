@@ -13,6 +13,9 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -40,7 +43,9 @@ public class Room {
 	private Timestamp updatedAt;
 	private final List<AbstractMessage> messages = new ArrayList<>();
 	private boolean pinned;
-	private String options;
+    private String options; // Stays as string (as from DB)
+    private transient Map<String, Object> optionsMap; // Not stored, just for use in code
+
 	private String modelId;
 	private String messagesJson;
 
@@ -53,24 +58,34 @@ public class Room {
 
 	// Use this constructor if you want to load from JSON (as from DB)
 	public Room(String room_id, String userId, String roomName, String systemMessage, String shareId, boolean isActive,
-			Timestamp createdAt, Timestamp updatedAt, String messagesJson, boolean pinned, String options,
-			String modelId) {
-		this.room_id = room_id;
-		this.userId = userId;
-		this.roomName = roomName;
-		this.systemMessage = systemMessage;
-		this.shareId = shareId;
-		this.isActive = isActive;
-		this.createdAt = createdAt;
-		this.updatedAt = updatedAt;
-		this.pinned = pinned;
-		this.options = options;
-		this.modelId = modelId;
-		this.messagesJson = messagesJson;
+		    Timestamp createdAt, Timestamp updatedAt, String messagesJson, boolean pinned, String options,
+		    String modelId) {
+		    this.room_id = room_id;
+		    this.userId = userId;
+		    this.roomName = roomName;
+		    this.systemMessage = systemMessage;
+		    this.shareId = shareId;
+		    this.isActive = isActive;
+		    this.createdAt = createdAt;
+		    this.updatedAt = updatedAt;
+		    this.pinned = pinned;
+		    this.options = options;
+		    this.modelId = modelId;
+		    this.messagesJson = messagesJson;
+		    this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
+		    parseMessages();
 
-		this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
-		parseMessages();
-	}
+		    // --------- Parse options on object creation -------------
+		    if (options != null && !options.trim().isEmpty()) {
+		        try {
+		            this.optionsMap = new Gson().fromJson(options, new TypeToken<Map<String, Object>>(){}.getType());
+		        } catch (Exception e) {
+		            this.optionsMap = new HashMap<>();
+		        }
+		    } else {
+		        this.optionsMap = new HashMap<>();
+		    }
+		}
 
 	public void parseMessages() {
 		setMessagesFromString(this.messagesJson);
@@ -423,13 +438,33 @@ public class Room {
 	}
 
 	public String getOptions() {
-		return options;
+	    return options;
 	}
-
+	
 	public void setOptions(String options) {
-		this.options = options;
+	    this.options = options;
 	}
+	
+    public Map<String, Object> getOptionsMap() {
+        if (optionsMap == null) {
+            if (options != null && !options.trim().isEmpty()) {
+                try {
+                    optionsMap = new Gson().fromJson(options, new TypeToken<Map<String, Object>>(){}.getType());
+                } catch (Exception e) {
+                    optionsMap = new HashMap<>();
+                }
+            } else {
+                optionsMap = new HashMap<>();
+            }
+        }
+        return optionsMap;
+    }
 
+    public void setOptionsMap(Map<String, Object> map) {
+        this.optionsMap = map;
+        this.options = map == null ? null : new Gson().toJson(map);
+    }
+	
 	public String getModelId() {
 		return modelId;
 	}
