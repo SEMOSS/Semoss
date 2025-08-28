@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.database.upload;
 
 import java.io.File;
@@ -8,7 +35,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.reactor.AbstractReactor;
@@ -20,229 +46,242 @@ import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 
 public class PredictMetamodelReactor extends AbstractReactor {
-	
-	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	public PredictMetamodelReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE, UploadInputUtility.DELIMITER, UploadInputUtility.ROW_COUNT };
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		// get csv file path
-		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
-		if(!new File(filePath).exists()) {
-			throw new IllegalArgumentException("Unable to locate file");
-		}
-		// get delimiter
-		String delimiter = UploadInputUtility.getDelimiter(this.store);
-		char delim = delimiter.charAt(0);
+  protected static final String DIR_SEPARATOR =
+      java.nio.file.FileSystems.getDefault().getSeparator();
 
-		// set csv file helper
-		CSVFileHelper helper = new CSVFileHelper();
-		helper.setDelimiter(delim);
-		helper.parse(filePath);
+  public PredictMetamodelReactor() {
+    this.keysToGet =
+        new String[] {
+          UploadInputUtility.FILE_PATH,
+          UploadInputUtility.SPACE,
+          UploadInputUtility.DELIMITER,
+          UploadInputUtility.ROW_COUNT
+        };
+  }
 
-		return new NounMetadata(autoGenerateMetaModel(helper), PixelDataType.MAP);
-	}
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    // get csv file path
+    String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+    if (!new File(filePath).exists()) {
+      throw new IllegalArgumentException("Unable to locate file");
+    }
+    // get delimiter
+    String delimiter = UploadInputUtility.getDelimiter(this.store);
+    char delim = delimiter.charAt(0);
 
-	/**
-	 * predict the meta model
-	 */
-	private Map<String, Object> autoGenerateMetaModel(CSVFileHelper helper) {
-		// return map with file metamodel
-		Map<String, Object> fileMetaModelData = new HashMap<String, Object>();
-		String[] columnHeaders = helper.getHeaders();
-		Map<String, SemossDataType> dataTypeMap = new LinkedHashMap<String, SemossDataType>();
-		Map<String, String> additionalDataTypeMap = new LinkedHashMap<String, String>();
+    // set csv file helper
+    CSVFileHelper helper = new CSVFileHelper();
+    helper.setDelimiter(delim);
+    helper.parse(filePath);
 
-		// predict datatypes and additional types
-		Object[][] dataTypes = helper.predictTypes();
-		int size = columnHeaders.length;
-		for (int colIdx = 0; colIdx < size; colIdx++) {
-			Object[] prediction = dataTypes[colIdx];
-			dataTypeMap.put(columnHeaders[colIdx], (SemossDataType) prediction[0]);
-			if (prediction[1] != null) {
-				additionalDataTypeMap.put(columnHeaders[colIdx], (String) prediction[1]);
-			}
-		}
+    return new NounMetadata(autoGenerateMetaModel(helper), PixelDataType.MAP);
+  }
 
-		// get data from csv to predict types
-		List<String[]> data = new ArrayList<>(500);
-		String[] cells = null;
-		int count = 1;
-		// predict meta model from limit row count
-		int limit = 500;
-		// get end row count
-		boolean getEndRowCount = UploadInputUtility.getRowCount(this.store);
-		while ((cells = helper.getNextRow()) != null) {
-			if (count <= limit) {
-				data.add(cells);
-				count++;
-			} else {
-				// if we need to get total number of rows from csv continue
-				if (getEndRowCount) {
-					count++;
-				} else {
-					break;
-				}
-			}
+  /** predict the meta model */
+  private Map<String, Object> autoGenerateMetaModel(CSVFileHelper helper) {
+    // return map with file metamodel
+    Map<String, Object> fileMetaModelData = new HashMap<String, Object>();
+    String[] columnHeaders = helper.getHeaders();
+    Map<String, SemossDataType> dataTypeMap = new LinkedHashMap<String, SemossDataType>();
+    Map<String, String> additionalDataTypeMap = new LinkedHashMap<String, String>();
 
-		}
-		int endRow = count;
+    // predict datatypes and additional types
+    Object[][] dataTypes = helper.predictTypes();
+    int size = columnHeaders.length;
+    for (int colIdx = 0; colIdx < size; colIdx++) {
+      Object[] prediction = dataTypes[colIdx];
+      dataTypeMap.put(columnHeaders[colIdx], (SemossDataType) prediction[0]);
+      if (prediction[1] != null) {
+        additionalDataTypeMap.put(columnHeaders[colIdx], (String) prediction[1]);
+      }
+    }
 
-		fileMetaModelData.put("startCount", 2);
-		if (getEndRowCount) {
-			fileMetaModelData.put("endCount", endRow);
-		}
-		fileMetaModelData.put("dataTypes", dataTypeMap);
-		fileMetaModelData.put("additionalDataTypes", additionalDataTypeMap);
-		// store auto modified header names
-		fileMetaModelData.put("headerModifications", helper.getChangedHeaders());
+    // get data from csv to predict types
+    List<String[]> data = new ArrayList<>(500);
+    String[] cells = null;
+    int count = 1;
+    // predict meta model from limit row count
+    int limit = 500;
+    // get end row count
+    boolean getEndRowCount = UploadInputUtility.getRowCount(this.store);
+    while ((cells = helper.getNextRow()) != null) {
+      if (count <= limit) {
+        data.add(cells);
+        count++;
+      } else {
+        // if we need to get total number of rows from csv continue
+        if (getEndRowCount) {
+          count++;
+        } else {
+          break;
+        }
+      }
+    }
+    int endRow = count;
 
-		Map<String, Set<String>> matches = new HashMap<>(columnHeaders.length);
-		Map<String, Boolean> columnPropMap = new HashMap<>(columnHeaders.length);
-		for (String header : columnHeaders) {
-			columnPropMap.put(header, false);
-		}
+    fileMetaModelData.put("startCount", 2);
+    if (getEndRowCount) {
+      fileMetaModelData.put("endCount", endRow);
+    }
+    fileMetaModelData.put("dataTypes", dataTypeMap);
+    fileMetaModelData.put("additionalDataTypes", additionalDataTypeMap);
+    // store auto modified header names
+    fileMetaModelData.put("headerModifications", helper.getChangedHeaders());
 
-		for (int i = 0; i < columnHeaders.length; i++) {
-			runAllComparisons(columnHeaders, i, matches, columnPropMap, dataTypeMap, data);
-		}
+    Map<String, Set<String>> matches = new HashMap<>(columnHeaders.length);
+    Map<String, Boolean> columnPropMap = new HashMap<>(columnHeaders.length);
+    for (String header : columnHeaders) {
+      columnPropMap.put(header, false);
+    }
 
-		// Format metamodel data
-		Map<String, Object> propFileData = new HashMap<>();
-		List<Map<String, Object>> relationMapList = new ArrayList<>();
-		Map<String, List<String>> nodePropMap = new HashMap<>();
+    for (int i = 0; i < columnHeaders.length; i++) {
+      runAllComparisons(columnHeaders, i, matches, columnPropMap, dataTypeMap, data);
+    }
 
-		for (String subject : matches.keySet()) {
-			Set<String> set = matches.get(subject);
-			for (String object : set) {
-				SemossDataType datatype = dataTypeMap.get(object);
-				if (datatype == SemossDataType.STRING) {
-					Map<String, Object> relMap = new HashMap<>();
-					String relName = subject + "_" + object;
-					relMap.put(Constants.FROM_TABLE, subject);
-					relMap.put(Constants.TO_TABLE, object);
-					relMap.put(Constants.REL_NAME, relName);
-					relationMapList.add(relMap);
-				} else {
-					List<String> properties = new ArrayList<>();
-					if (nodePropMap.containsKey(subject)) {
-						properties = nodePropMap.get(subject);
-					}
-					properties.add(object);
-					nodePropMap.put(subject, properties);
-				}
-			}
-		}
+    // Format metamodel data
+    Map<String, Object> propFileData = new HashMap<>();
+    List<Map<String, Object>> relationMapList = new ArrayList<>();
+    Map<String, List<String>> nodePropMap = new HashMap<>();
 
-		propFileData.put(Constants.RELATION, relationMapList);
-		propFileData.put(Constants.NODE_PROP, nodePropMap);
-		// position tables in metamodel to be spaced and not overlap
-		Map<String, Map<String, Double>> nodePositionMap = GenerateMetamodelLayout.generateMetamodelPredictionLayout(nodePropMap, relationMapList);
-		propFileData.put(Constants.POSITION_PROP, nodePositionMap);
+    for (String subject : matches.keySet()) {
+      Set<String> set = matches.get(subject);
+      for (String object : set) {
+        SemossDataType datatype = dataTypeMap.get(object);
+        if (datatype == SemossDataType.STRING) {
+          Map<String, Object> relMap = new HashMap<>();
+          String relName = subject + "_" + object;
+          relMap.put(Constants.FROM_TABLE, subject);
+          relMap.put(Constants.TO_TABLE, object);
+          relMap.put(Constants.REL_NAME, relName);
+          relationMapList.add(relMap);
+        } else {
+          List<String> properties = new ArrayList<>();
+          if (nodePropMap.containsKey(subject)) {
+            properties = nodePropMap.get(subject);
+          }
+          properties.add(object);
+          nodePropMap.put(subject, properties);
+        }
+      }
+    }
 
-		fileMetaModelData.putAll(propFileData);
-		// get file location and file name
-		String filePath = helper.getFileLocation();
-		String file = filePath.substring(filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(), filePath.lastIndexOf("."));
-		try {
-			file = file.substring(0, file.indexOf("_____UNIQUE"));
-		} catch (Exception e) {
-			// just in case that fails, this shouldn't because if its a filename
-			// it should have a "."
-			file = filePath.substring(filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(), filePath.lastIndexOf("."));
-		}
+    propFileData.put(Constants.RELATION, relationMapList);
+    propFileData.put(Constants.NODE_PROP, nodePropMap);
+    // position tables in metamodel to be spaced and not overlap
+    Map<String, Map<String, Double>> nodePositionMap =
+        GenerateMetamodelLayout.generateMetamodelPredictionLayout(nodePropMap, relationMapList);
+    propFileData.put(Constants.POSITION_PROP, nodePositionMap);
 
-		// store file path and file name to send to FE
-		fileMetaModelData.put("fileLocation", filePath);
-		fileMetaModelData.put("fileName", file);
-		helper.clear();
-		return fileMetaModelData;
-	}
+    fileMetaModelData.putAll(propFileData);
+    // get file location and file name
+    String filePath = helper.getFileLocation();
+    String file =
+        filePath.substring(
+            filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(),
+            filePath.lastIndexOf("."));
+    try {
+      file = file.substring(0, file.indexOf("_____UNIQUE"));
+    } catch (Exception e) {
+      // just in case that fails, this shouldn't because if its a filename
+      // it should have a "."
+      file =
+          filePath.substring(
+              filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(),
+              filePath.lastIndexOf("."));
+    }
 
-	/**
-	 * 
-	 * @param columnHeaders
-	 *            - the column headers in the csv
-	 * @param firstColIndex
-	 *            - the column which we are comparing to other columns
-	 * @param matches
-	 * @param columnPropMap
-	 * @param dataTypeMap
-	 * @param data
-	 */
-	private void runAllComparisons(String[] columnHeaders, int firstColIndex, Map<String, Set<String>> matches, Map<String, Boolean> columnPropMap, Map<String, SemossDataType> dataTypeMap, List<String[]> data) {
-		for(int i = 0; i < columnHeaders.length; i++) {
-			//don't compare a column to itself
-			if(i == firstColIndex) continue;
+    // store file path and file name to send to FE
+    fileMetaModelData.put("fileLocation", filePath);
+    fileMetaModelData.put("fileName", file);
+    helper.clear();
+    return fileMetaModelData;
+  }
 
-			String firstColumn = columnHeaders[firstColIndex];
-			String secondColumn = columnHeaders[i];
+  /**
+   * @param columnHeaders - the column headers in the csv
+   * @param firstColIndex - the column which we are comparing to other columns
+   * @param matches
+   * @param columnPropMap
+   * @param dataTypeMap
+   * @param data
+   */
+  private void runAllComparisons(
+      String[] columnHeaders,
+      int firstColIndex,
+      Map<String, Set<String>> matches,
+      Map<String, Boolean> columnPropMap,
+      Map<String, SemossDataType> dataTypeMap,
+      List<String[]> data) {
+    for (int i = 0; i < columnHeaders.length; i++) {
+      // don't compare a column to itself
+      if (i == firstColIndex) continue;
 
-			//need to make sure second column does not have first column as a a property already
-			if(!matches.containsKey(secondColumn) || !matches.get(secondColumn).contains(firstColumn)) {
-				if(!columnPropMap.get(secondColumn) && compareCols(firstColIndex, i, data)) {
-					//we have a match
-					boolean useInverse = false;
-					int firstColIndexInCSV = ArrayUtilityMethods.arrayContainsValueAtIndex(columnHeaders, firstColumn);
-					int secondColIndexInCSV = ArrayUtilityMethods.arrayContainsValueAtIndex(columnHeaders, secondColumn);
-					if(firstColIndexInCSV > secondColIndexInCSV) {
-						//try to see if inverse order is better
-						//but first, check to make sure the second column in not a double or date
-						SemossDataType dataType = dataTypeMap.get(secondColumn);
-						if(dataType == SemossDataType.STRING) {
-							if(!columnPropMap.get(firstColumn) && compareCols(i, firstColIndex, data)) {
-								//use reverse order
-								useInverse = true;
-								if(matches.containsKey(secondColumn)) {
-									matches.get(secondColumn).add(firstColumn);
-								} else {
-									Set<String> set = new HashSet<String>(1);
-									set.add(firstColumn);
-									matches.put(secondColumn, set);
-								}
-								columnPropMap.put(firstColumn, true);
-							}
-						}
-					}
+      String firstColumn = columnHeaders[firstColIndex];
+      String secondColumn = columnHeaders[i];
 
-					if(!useInverse) {
-						if(matches.containsKey(firstColumn)) {
-							matches.get(firstColumn).add(secondColumn);
-						} else {
-							Set<String> set = new HashSet<String>(1);
-							set.add(secondColumn);
-							matches.put(firstColumn, set);
-						}
-						columnPropMap.put(secondColumn, true);
-					}
-				}
-			}
-		}
-	}
+      // need to make sure second column does not have first column as a a property already
+      if (!matches.containsKey(secondColumn) || !matches.get(secondColumn).contains(firstColumn)) {
+        if (!columnPropMap.get(secondColumn) && compareCols(firstColIndex, i, data)) {
+          // we have a match
+          boolean useInverse = false;
+          int firstColIndexInCSV =
+              ArrayUtilityMethods.arrayContainsValueAtIndex(columnHeaders, firstColumn);
+          int secondColIndexInCSV =
+              ArrayUtilityMethods.arrayContainsValueAtIndex(columnHeaders, secondColumn);
+          if (firstColIndexInCSV > secondColIndexInCSV) {
+            // try to see if inverse order is better
+            // but first, check to make sure the second column in not a double or date
+            SemossDataType dataType = dataTypeMap.get(secondColumn);
+            if (dataType == SemossDataType.STRING) {
+              if (!columnPropMap.get(firstColumn) && compareCols(i, firstColIndex, data)) {
+                // use reverse order
+                useInverse = true;
+                if (matches.containsKey(secondColumn)) {
+                  matches.get(secondColumn).add(firstColumn);
+                } else {
+                  Set<String> set = new HashSet<String>(1);
+                  set.add(firstColumn);
+                  matches.put(secondColumn, set);
+                }
+                columnPropMap.put(firstColumn, true);
+              }
+            }
+          }
 
-	/**
-	 * 
-	 * @return
-	 */
-	private boolean compareCols(int firstIndex, int secondIndex, List<String[]> data) {
-		Map<Object, Object> values = new HashMap<>();
-		for(Object[] row : data) {
-			Object firstValue = row[firstIndex];
-			Object secondValue = row[secondIndex];
-			if(values.containsKey(firstValue)) {
-				if(!values.get(firstValue).equals(secondValue)) {
-					return false;
-				}
-			} else {
-				values.put(firstValue, secondValue);
-			}
-		}
-		return true;
-	}
+          if (!useInverse) {
+            if (matches.containsKey(firstColumn)) {
+              matches.get(firstColumn).add(secondColumn);
+            } else {
+              Set<String> set = new HashSet<String>(1);
+              set.add(secondColumn);
+              matches.put(firstColumn, set);
+            }
+            columnPropMap.put(secondColumn, true);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * @return
+   */
+  private boolean compareCols(int firstIndex, int secondIndex, List<String[]> data) {
+    Map<Object, Object> values = new HashMap<>();
+    for (Object[] row : data) {
+      Object firstValue = row[firstIndex];
+      Object secondValue = row[secondIndex];
+      if (values.containsKey(firstValue)) {
+        if (!values.get(firstValue).equals(secondValue)) {
+          return false;
+        }
+      } else {
+        values.put(firstValue, secondValue);
+      }
+    }
+    return true;
+  }
 }
-
-

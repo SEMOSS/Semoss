@@ -1,8 +1,34 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.util.git.reactors;
 
 import java.util.List;
 import java.util.Map;
-
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.reactor.AbstractReactor;
@@ -16,35 +42,39 @@ import prerna.util.git.GitRepoUtils;
 
 public class GetAssetCommentReactor extends AbstractReactor {
 
-	public GetAssetCommentReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
-	}
+  public GetAssetCommentReactor() {
+    this.keysToGet =
+        new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		// check if user is logged in
-		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    // check if user is logged in
+    User user = this.insight.getUser();
+    if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+      throwAnonymousUserError();
+    }
 
-		String space = this.keyValue.get(this.keysToGet[1]);
-		if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
-			// if we are in the insight space
-			// it must be a saved insight
-			if(!this.insight.isSavedInsight()) {
-				return NounMetadata.getWarningNounMessage("Unable to get comments the insight must be saved to allow commenting.");
-			}
-		}
-		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
-		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
+    String space = this.keyValue.get(this.keysToGet[1]);
+    if (space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
+      // if we are in the insight space
+      // it must be a saved insight
+      if (!this.insight.isSavedInsight()) {
+        return NounMetadata.getWarningNounMessage(
+            "Unable to get comments the insight must be saved to allow commenting.");
+      }
+    }
+    String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
+    String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 
-		// specify a file
-		String filePath = relativePath + "/" + Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
+    // specify a file
+    String filePath =
+        relativePath + "/" + Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 
-		// get comments
-		List<Map<String, Object>> comments = GitRepoUtils.getCommits(assetFolder, filePath);
-		return new NounMetadata(comments, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-	}
+    // get comments
+    List<Map<String, Object>> comments = GitRepoUtils.getCommits(assetFolder, filePath);
+    return new NounMetadata(
+        comments, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+  }
 }

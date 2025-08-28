@@ -27,18 +27,15 @@
  *******************************************************************************/
 package prerna.engine.impl.r;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RIterator;
@@ -60,203 +57,204 @@ import prerna.util.Utility;
 
 public class RNativeEngine extends AbstractDatabaseEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(RNativeEngine.class.getName());
+  private static final Logger classLogger = LogManager.getLogger(RNativeEngine.class.getName());
 
-	private File file = null;
-	private String fileLocation = null;
-	private Map<String, String> columnToType = null;
-	private Map<String, String> additionalDataType = null;
-	private Map<String, String> newHeaders = null;
-	// to store based on columnToType
-	private Map<String, SemossDataType> columnTypes = null;
-	
-	private String dtName;
-	private Insight in;
-	private AbstractRJavaTranslator rJavaTranslator;
-	private RDataTable dt;
-	
-	@Override
-	public void open(Properties smssProp) throws Exception {
-		super.open(smssProp);
+  private File file = null;
+  private String fileLocation = null;
+  private Map<String, String> columnToType = null;
+  private Map<String, String> additionalDataType = null;
+  private Map<String, String> newHeaders = null;
+  // to store based on columnToType
+  private Map<String, SemossDataType> columnTypes = null;
 
-		this.file = SmssUtilities.getDataFile(this.smssProp);
-		this.fileLocation = this.file.getAbsolutePath().replace('\\', '/');
+  private String dtName;
+  private Insight in;
+  private AbstractRJavaTranslator rJavaTranslator;
+  private RDataTable dt;
 
-		List<String> concepts = this.getConcepts();
-		// usually there should be only one, but just a check again
-		// need to account for concept being itself
-		if(concepts.size() > 2) {
-			throw new IllegalArgumentException("Cannot support more than 1 table in R Native Engine");
-		}
+  @Override
+  public void open(Properties smssProp) throws Exception {
+    super.open(smssProp);
 
-		String tableUri = concepts.get(0);
-		this.dtName = Utility.getInstanceName(tableUri);
+    this.file = SmssUtilities.getDataFile(this.smssProp);
+    this.fileLocation = this.file.getAbsolutePath().replace('\\', '/');
 
-		List<String> propertyUris = this.getPropertyUris4PhysicalUri(tableUri);
-		String[] propertyUriArr = propertyUris.toArray(new String[propertyUris.size()]);
-		String typeMapStr = this.smssProp.getProperty(Constants.SMSS_DATA_TYPES);
-		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
-			try {
-				this.columnToType = new ObjectMapper().readValue(typeMapStr, Map.class);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		} else {
-			this.columnToType = this.getDataTypes(propertyUriArr);
-		}
-		
-		String addTypeStr = this.smssProp.getProperty(Constants.ADDITIONAL_DATA_TYPES);
-		if (addTypeStr != null && !addTypeStr.trim().isEmpty()) {
-			try {
-				this.additionalDataType = new ObjectMapper().readValue(addTypeStr, Map.class);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		} else {
-			this.additionalDataType = this.getAdtlDataTypes(propertyUriArr);
-		}
+    List<String> concepts = this.getConcepts();
+    // usually there should be only one, but just a check again
+    // need to account for concept being itself
+    if (concepts.size() > 2) {
+      throw new IllegalArgumentException("Cannot support more than 1 table in R Native Engine");
+    }
 
-		String newHeadersStr = this.smssProp.getProperty(Constants.NEW_HEADERS);
-		if (newHeadersStr != null && !newHeadersStr.trim().isEmpty()) {
-			try {
-				this.newHeaders = new ObjectMapper().readValue(newHeadersStr, Map.class);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		
-		this.in = new Insight();
-		this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this.in, classLogger);
-		
-		CsvQueryStruct cqs = new CsvQueryStruct();
-		cqs.setFilePath(this.fileLocation);
-		cqs.setColumnTypes(this.columnToType);
-		cqs.setAdditionalTypes(this.additionalDataType);
-		cqs.setNewHeaderNames(this.newHeaders);
-		CsvFileIterator iterator = new CsvFileIterator(cqs);
-		
-		this.dt = new RDataTable(rJavaTranslator, this.dtName);
-		RImporter importer = new RImporter(dt, cqs, iterator);
-		importer.insertData();
-		
-		// store the data types
-		this.columnTypes = this.dt.getMetaData().getHeaderToTypeMap();
-	}
-	
-	/**
-	 * Generate the OWL based on a flat file
-	 * @param dataFile
-	 * @param owlFile
-	 * @param owlFileName
-	 * @return
-	 * @throws Exception 
-	 */
-	protected String generateOwlFromFlatFile(String engineId, String dataFile, String owlFile, String owlFileName) throws Exception {
-		CSVToOwlMaker maker = new CSVToOwlMaker();
-		maker.makeFlatOwl(getOWLEngineFactory().getWriteOWL(), dataFile, owlFile, getDatabaseType(), false);
-		if(owlFile.equals("REMAKE")) {
-			try {
-				Utility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		return owlFile;
-	}
+    String tableUri = concepts.get(0);
+    this.dtName = Utility.getInstanceName(tableUri);
 
-	@Override
-	// need to clean up the exception it will never be thrown
-	public void insertData(String query) {
-		// there is no insert data on R not with queries
-	}
+    List<String> propertyUris = this.getPropertyUris4PhysicalUri(tableUri);
+    String[] propertyUriArr = propertyUris.toArray(new String[propertyUris.size()]);
+    String typeMapStr = this.smssProp.getProperty(Constants.SMSS_DATA_TYPES);
+    if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
+      try {
+        this.columnToType = new ObjectMapper().readValue(typeMapStr, Map.class);
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    } else {
+      this.columnToType = this.getDataTypes(propertyUriArr);
+    }
 
-	@Override
-	public DATABASE_TYPE getDatabaseType() {
-		return IDatabaseEngine.DATABASE_TYPE.R;
-	}
+    String addTypeStr = this.smssProp.getProperty(Constants.ADDITIONAL_DATA_TYPES);
+    if (addTypeStr != null && !addTypeStr.trim().isEmpty()) {
+      try {
+        this.additionalDataType = new ObjectMapper().readValue(addTypeStr, Map.class);
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    } else {
+      this.additionalDataType = this.getAdtlDataTypes(propertyUriArr);
+    }
 
-	@Override
-	public Vector<Object> getEntityOfType(String type) {
-		// need to confirm if it is only legacy or we should implement
-		// need a way to maintain 
+    String newHeadersStr = this.smssProp.getProperty(Constants.NEW_HEADERS);
+    if (newHeadersStr != null && !newHeadersStr.trim().isEmpty()) {
+      try {
+        this.newHeaders = new ObjectMapper().readValue(newHeadersStr, Map.class);
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
 
-		return null;
-	}
+    this.in = new Insight();
+    this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this.in, classLogger);
 
-	/**
-	 * This returns a RIterator
-	 */
-	@Override
-	public Object execQuery(String query) {
-		RIterator exec = new RIterator(this.dt.getBuilder(), query);
-		return exec;
-	}
-	
-	public Object execQuery(String query, SelectQueryStruct qs) {
-		RIterator exec = new RIterator(this.dt.getBuilder(), query, qs);
-		return exec;
-	}
+    CsvQueryStruct cqs = new CsvQueryStruct();
+    cqs.setFilePath(this.fileLocation);
+    cqs.setColumnTypes(this.columnToType);
+    cqs.setAdditionalTypes(this.additionalDataType);
+    cqs.setNewHeaderNames(this.newHeaders);
+    CsvFileIterator iterator = new CsvFileIterator(cqs);
 
-	@Override
-	public boolean isConnected() {
-		return true;
-	}
+    this.dt = new RDataTable(rJavaTranslator, this.dtName);
+    RImporter importer = new RImporter(dt, cqs, iterator);
+    importer.insertData();
 
-	@Override
-	public void close() throws IOException {
-		this.dt.close();
-		super.close();
-	}
+    // store the data types
+    this.columnTypes = this.dt.getMetaData().getHeaderToTypeMap();
+  }
 
-	@Override
-	public void removeData(String query) {
-		// not implemented for R
-	}
+  /**
+   * Generate the OWL based on a flat file
+   *
+   * @param dataFile
+   * @param owlFile
+   * @param owlFileName
+   * @return
+   * @throws Exception
+   */
+  protected String generateOwlFromFlatFile(
+      String engineId, String dataFile, String owlFile, String owlFileName) throws Exception {
+    CSVToOwlMaker maker = new CSVToOwlMaker();
+    maker.makeFlatOwl(
+        getOWLEngineFactory().getWriteOWL(), dataFile, owlFile, getDatabaseType(), false);
+    if (owlFile.equals("REMAKE")) {
+      try {
+        Utility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
+    return owlFile;
+  }
 
-	@Override
-	public void commit() {
-		// not implemented for R
-	}
+  @Override
+  // need to clean up the exception it will never be thrown
+  public void insertData(String query) {
+    // there is no insert data on R not with queries
+  }
 
-	@Override
-	public IQueryInterpreter getQueryInterpreter(){
-		RInterpreter retInterp = new RInterpreter();
-		retInterp.setDataTableName(this.dtName);
-		retInterp.setColDataTypes(this.columnTypes);
-//		retInterp.setAdditionalTypes(this.additionalDataType);
-		return retInterp;
-	}
-	
-	/**
-	 * Reload the file to generate the frame
-	 */
-	public void reloadFile() {
-		CsvQueryStruct cqs = new CsvQueryStruct();
-		cqs.setFilePath(this.fileLocation);
-		cqs.setColumnTypes(this.columnToType);
-		cqs.setAdditionalTypes(this.additionalDataType);
-		cqs.setNewHeaderNames(this.newHeaders);
-		CsvFileIterator iterator = new CsvFileIterator(cqs);
-		
-		// the insertData will generate a new variable
-		RImporter importer = new RImporter(this.dt, cqs, iterator);
-		importer.insertData();
-	}
-	
-	/**
-	 * Load data from this R env to another R env
-	 * This is used for performance enhancements when moving from engine to frame
-	 * @param otherTranslator
-	 * @param assignVar
-	 * @param rScript
-	 */
-	public void directLoad(AbstractRJavaTranslator otherTranslator, String assignVar, String rScript) {
-		AbstractRJavaTranslator.loadDataBetweenEnv(otherTranslator, assignVar, this.rJavaTranslator, rScript);
-	}
-	
-	@Override
-	public boolean holdsFileLocks() {
-		return false;
-	}
-	
+  @Override
+  public DATABASE_TYPE getDatabaseType() {
+    return IDatabaseEngine.DATABASE_TYPE.R;
+  }
+
+  @Override
+  public Vector<Object> getEntityOfType(String type) {
+    // need to confirm if it is only legacy or we should implement
+    // need a way to maintain
+
+    return null;
+  }
+
+  /** This returns a RIterator */
+  @Override
+  public Object execQuery(String query) {
+    RIterator exec = new RIterator(this.dt.getBuilder(), query);
+    return exec;
+  }
+
+  public Object execQuery(String query, SelectQueryStruct qs) {
+    RIterator exec = new RIterator(this.dt.getBuilder(), query, qs);
+    return exec;
+  }
+
+  @Override
+  public boolean isConnected() {
+    return true;
+  }
+
+  @Override
+  public void close() throws IOException {
+    this.dt.close();
+    super.close();
+  }
+
+  @Override
+  public void removeData(String query) {
+    // not implemented for R
+  }
+
+  @Override
+  public void commit() {
+    // not implemented for R
+  }
+
+  @Override
+  public IQueryInterpreter getQueryInterpreter() {
+    RInterpreter retInterp = new RInterpreter();
+    retInterp.setDataTableName(this.dtName);
+    retInterp.setColDataTypes(this.columnTypes);
+    //		retInterp.setAdditionalTypes(this.additionalDataType);
+    return retInterp;
+  }
+
+  /** Reload the file to generate the frame */
+  public void reloadFile() {
+    CsvQueryStruct cqs = new CsvQueryStruct();
+    cqs.setFilePath(this.fileLocation);
+    cqs.setColumnTypes(this.columnToType);
+    cqs.setAdditionalTypes(this.additionalDataType);
+    cqs.setNewHeaderNames(this.newHeaders);
+    CsvFileIterator iterator = new CsvFileIterator(cqs);
+
+    // the insertData will generate a new variable
+    RImporter importer = new RImporter(this.dt, cqs, iterator);
+    importer.insertData();
+  }
+
+  /**
+   * Load data from this R env to another R env This is used for performance enhancements when
+   * moving from engine to frame
+   *
+   * @param otherTranslator
+   * @param assignVar
+   * @param rScript
+   */
+  public void directLoad(
+      AbstractRJavaTranslator otherTranslator, String assignVar, String rScript) {
+    AbstractRJavaTranslator.loadDataBetweenEnv(
+        otherTranslator, assignVar, this.rJavaTranslator, rScript);
+  }
+
+  @Override
+  public boolean holdsFileLocks() {
+    return false;
+  }
 }

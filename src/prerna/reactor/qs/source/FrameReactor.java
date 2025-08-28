@@ -1,7 +1,33 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.qs.source;
 
 import java.util.List;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -13,64 +39,63 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class FrameReactor extends AbstractQueryStructReactor {
 
-	public FrameReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey()};
-	}
+  public FrameReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.FRAME.getKey()};
+  }
 
-	@Override
-	protected AbstractQueryStruct createQueryStruct() {
-		ITableDataFrame frame = getFrameInput();
-		qs.setFrame(frame);
-		qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME);
-		return qs;
-	}
+  @Override
+  protected AbstractQueryStruct createQueryStruct() {
+    ITableDataFrame frame = getFrameInput();
+    qs.setFrame(frame);
+    qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME);
+    return qs;
+  }
 
-	private ITableDataFrame getFrameInput() {
-		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[0]);
-		if(frameGrs != null && !frameGrs.isEmpty()) {
-			NounMetadata noun = frameGrs.getNoun(0);
-			if(noun.getNounType() == PixelDataType.FRAME) {
-				return (ITableDataFrame) noun.getValue();
-			} else if(noun.getNounType() == PixelDataType.CONST_STRING) {
-				// is it a variable?
-				NounMetadata possibleFrameNoun = this.insight.getVarStore().get(noun.getValue() + "");
-				if(possibleFrameNoun.getNounType() == PixelDataType.FRAME) {
-					return (ITableDataFrame) possibleFrameNoun.getValue();
-				}
-			}
-		}
-		
-		frameGrs = this.store.getNoun(PixelDataType.FRAME.toString());
-		if(frameGrs != null && !frameGrs.isEmpty()) {
-			NounMetadata noun = frameGrs.getNoun(0);
-			if(noun.getNounType() == PixelDataType.FRAME) {
-				return (ITableDataFrame) noun.getValue();
-			} else if(noun.getNounType() == PixelDataType.CONST_STRING) {
-				// is it a variable?
-				NounMetadata possibleFrameNoun = this.insight.getVarStore().get(noun.getValue() + "");
-				if(possibleFrameNoun.getNounType() == PixelDataType.FRAME) {
-					return (ITableDataFrame) possibleFrameNoun.getValue();
-				}
-			}
-		}
+  private ITableDataFrame getFrameInput() {
+    GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[0]);
+    if (frameGrs != null && !frameGrs.isEmpty()) {
+      NounMetadata noun = frameGrs.getNoun(0);
+      if (noun.getNounType() == PixelDataType.FRAME) {
+        return (ITableDataFrame) noun.getValue();
+      } else if (noun.getNounType() == PixelDataType.CONST_STRING) {
+        // is it a variable?
+        NounMetadata possibleFrameNoun = this.insight.getVarStore().get(noun.getValue() + "");
+        if (possibleFrameNoun.getNounType() == PixelDataType.FRAME) {
+          return (ITableDataFrame) possibleFrameNoun.getValue();
+        }
+      }
+    }
 
-		List<NounMetadata> frameCur = this.curRow.getNounsOfType(PixelDataType.FRAME);
-		if(frameCur != null && !frameCur.isEmpty()) {
-			return (ITableDataFrame) frameCur.get(0).getValue();
-		}
+    frameGrs = this.store.getNoun(PixelDataType.FRAME.toString());
+    if (frameGrs != null && !frameGrs.isEmpty()) {
+      NounMetadata noun = frameGrs.getNoun(0);
+      if (noun.getNounType() == PixelDataType.FRAME) {
+        return (ITableDataFrame) noun.getValue();
+      } else if (noun.getNounType() == PixelDataType.CONST_STRING) {
+        // is it a variable?
+        NounMetadata possibleFrameNoun = this.insight.getVarStore().get(noun.getValue() + "");
+        if (possibleFrameNoun.getNounType() == PixelDataType.FRAME) {
+          return (ITableDataFrame) possibleFrameNoun.getValue();
+        }
+      }
+    }
 
-		List<String> frameVariableName = this.curRow.getAllStrValues();
-		if(frameVariableName != null && !frameVariableName.isEmpty()) {
-			NounMetadata possibleFrameNoun = this.insight.getVarStore().get(frameVariableName.get(0));
-			if(possibleFrameNoun != null && possibleFrameNoun.getNounType() == PixelDataType.FRAME) {
-				return (ITableDataFrame) possibleFrameNoun.getValue();
-			}
-		}
-		
-		if(this.insight != null) {
-			return (ITableDataFrame) this.insight.getDataMaker();	
-		}
-		return null;
-	}
+    List<NounMetadata> frameCur = this.curRow.getNounsOfType(PixelDataType.FRAME);
+    if (frameCur != null && !frameCur.isEmpty()) {
+      return (ITableDataFrame) frameCur.get(0).getValue();
+    }
 
+    List<String> frameVariableName = this.curRow.getAllStrValues();
+    if (frameVariableName != null && !frameVariableName.isEmpty()) {
+      NounMetadata possibleFrameNoun = this.insight.getVarStore().get(frameVariableName.get(0));
+      if (possibleFrameNoun != null && possibleFrameNoun.getNounType() == PixelDataType.FRAME) {
+        return (ITableDataFrame) possibleFrameNoun.getValue();
+      }
+    }
+
+    if (this.insight != null) {
+      return (ITableDataFrame) this.insight.getDataMaker();
+    }
+    return null;
+  }
 }

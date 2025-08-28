@@ -29,8 +29,7 @@ package prerna.engine.api;
 
 import java.util.Iterator;
 
-public interface IConstructWrapper extends IEngineWrapper, Iterator{
-	
-	public IConstructStatement next();
+public interface IConstructWrapper extends IEngineWrapper, Iterator {
 
+  public IConstructStatement next();
 }

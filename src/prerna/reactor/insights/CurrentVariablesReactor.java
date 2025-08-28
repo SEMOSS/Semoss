@@ -1,56 +1,80 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.insights;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class CurrentVariablesReactor extends AbstractReactor{
+public class CurrentVariablesReactor extends AbstractReactor {
 
-	@Override
-	public NounMetadata execute() {
-		
-		Map<String, Object> varMap = new HashMap<String, Object>();
+  @Override
+  public NounMetadata execute() {
 
-		
-		//lets get pixel vars first
-		Set<PixelDataType> printableTypes = new HashSet<PixelDataType>();
-		printableTypes.add(PixelDataType.CONST_DECIMAL);
-		printableTypes.add(PixelDataType.CONST_INT);
-		printableTypes.add(PixelDataType.CONST_STRING);
-		printableTypes.add(PixelDataType.CONST_DATE);
-		printableTypes.add(PixelDataType.CONST_TIMESTAMP);
+    Map<String, Object> varMap = new HashMap<String, Object>();
 
-		VarStore pixelVar = this.insight.getVarStore();
-		Map<String, String> returnPixelMap = new HashMap<String, String>();
+    // lets get pixel vars first
+    Set<PixelDataType> printableTypes = new HashSet<PixelDataType>();
+    printableTypes.add(PixelDataType.CONST_DECIMAL);
+    printableTypes.add(PixelDataType.CONST_INT);
+    printableTypes.add(PixelDataType.CONST_STRING);
+    printableTypes.add(PixelDataType.CONST_DATE);
+    printableTypes.add(PixelDataType.CONST_TIMESTAMP);
 
-		Set<String> pixelkeys = pixelVar.getKeys();
-		for(String key : pixelkeys){
-			//if the key starts with a $ we are going to skip it ? double check. 
-			if(key.charAt(0) == '$'){
-				continue;
-			}
-			String value = "";
-			if(printableTypes.contains(pixelVar.get(key).getNounType())){
-				value = pixelVar.get(key).getValue().toString();
-			} else{
-				value=pixelVar.get(key).getNounType().toString();
-			}
-			returnPixelMap.put(key, value);
-		}
-		
-		
-		//guess we try R now
-//		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
-//		rJavaTranslator.
-		varMap.put("PIXEL", returnPixelMap);
-		return new NounMetadata(varMap, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
+    VarStore pixelVar = this.insight.getVarStore();
+    Map<String, String> returnPixelMap = new HashMap<String, String>();
 
+    Set<String> pixelkeys = pixelVar.getKeys();
+    for (String key : pixelkeys) {
+      // if the key starts with a $ we are going to skip it ? double check.
+      if (key.charAt(0) == '$') {
+        continue;
+      }
+      String value = "";
+      if (printableTypes.contains(pixelVar.get(key).getNounType())) {
+        value = pixelVar.get(key).getValue().toString();
+      } else {
+        value = pixelVar.get(key).getNounType().toString();
+      }
+      returnPixelMap.put(key, value);
+    }
+
+    // guess we try R now
+    //		AbstractRJavaTranslator rJavaTranslator =
+    // this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
+    //		rJavaTranslator.
+    varMap.put("PIXEL", returnPixelMap);
+    return new NounMetadata(varMap, PixelDataType.MAP, PixelOperationType.OPERATION);
+  }
 }

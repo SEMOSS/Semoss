@@ -1,8 +1,31 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.ds.py;
-
-import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -13,76 +36,80 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.gson.Gson;
-
-
+import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PandasTimestampDeserializer extends SimpleModule {
-	private static final long serialVersionUID = -2389464189802719725L;
+  private static final long serialVersionUID = -2389464189802719725L;
 
-	public static final ObjectMapper MAPPER = new ObjectMapper()
-			.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
-			.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
-			.registerModule(new PandasTimestampDeserializer());
-    
-    public PandasTimestampDeserializer() {
-        addDeserializer(Object.class, new StdDeserializer<Object>(Object.class) {
-			private static final long serialVersionUID = -4179939507094287588L;
+  public static final ObjectMapper MAPPER =
+      new ObjectMapper()
+          .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+          .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+          .registerModule(new PandasTimestampDeserializer());
 
-			@Override
-			public Object deserialize(final JsonParser jp, final DeserializationContext ctxt)
-					throws IOException, JsonProcessingException {
-				String payloadString = jp.getText();
-				
-		        String jsonString = removeTimestamp(payloadString);
-		        
-		        Object obj = new Gson().fromJson(jsonString, Object.class);
-		        
-		        return obj;
-		        
-		        
-		        // leaving this logic for now in case we come back to it
-//		        ObjectMapper objectMapper = new ObjectMapper();
-//		     // Convert the JSON string to a JSON object
-//		        JsonNode jsonNode = objectMapper.readTree(jsonString);
-//		        
-//		        if (jsonNode.isObject()) {
-//		            // Convert JsonObject to Map
-//		            Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-//		            return map;
-//		        } else if (jsonNode.isArray()) {
-//		        	 // Convert JsonNode to List
-//		            List<Object> list = objectMapper.convertValue(jsonNode, List.class);
-//		            return list;
-//		        }
-//		        
-//		        System.out.println("It's neither a JsonObject nor a JsonArray.");
-//		        return null;
-			}
-		});
+  public PandasTimestampDeserializer() {
+    addDeserializer(
+        Object.class,
+        new StdDeserializer<Object>(Object.class) {
+          private static final long serialVersionUID = -4179939507094287588L;
+
+          @Override
+          public Object deserialize(final JsonParser jp, final DeserializationContext ctxt)
+              throws IOException, JsonProcessingException {
+            String payloadString = jp.getText();
+
+            String jsonString = removeTimestamp(payloadString);
+
+            Object obj = new Gson().fromJson(jsonString, Object.class);
+
+            return obj;
+
+            // leaving this logic for now in case we come back to it
+            //		        ObjectMapper objectMapper = new ObjectMapper();
+            //		     // Convert the JSON string to a JSON object
+            //		        JsonNode jsonNode = objectMapper.readTree(jsonString);
+            //
+            //		        if (jsonNode.isObject()) {
+            //		            // Convert JsonObject to Map
+            //		            Map<String, Object> map = objectMapper.convertValue(jsonNode,
+            // Map.class);
+            //		            return map;
+            //		        } else if (jsonNode.isArray()) {
+            //		        	 // Convert JsonNode to List
+            //		            List<Object> list = objectMapper.convertValue(jsonNode, List.class);
+            //		            return list;
+            //		        }
+            //
+            //		        System.out.println("It's neither a JsonObject nor a JsonArray.");
+            //		        return null;
+          }
+        });
+  }
+
+  /**
+   * Change a String from having Timestamp(<timestamp value>) to just <timestamp value>
+   *
+   * @param jsonText Python Dictionary that we were unable to desearlize and comes back as a String
+   * @return String where we tried to remove pandas timestamps
+   */
+  public static String removeTimestamp(String jsonText) {
+    // String patternString = "(, |\\[|\\{)(Timestamp\\('([^']+)'\\))(\\]|\\}|,)";
+    String patternString = "(, |\\[|\\{)(Timestamp\\('([^']+)'\\))(?=(,|\\]|\\}|,))";
+    Pattern pattern = Pattern.compile(patternString);
+    Matcher matcher = pattern.matcher(jsonText);
+
+    StringBuffer modifiedJson = new StringBuffer();
+    while (matcher.find()) {
+      String beforeDelimiter = matcher.group(1);
+      String timestampReplacement = matcher.group(3);
+      // String afterDelimiter = matcher.group(4);
+      String replacement = beforeDelimiter + "\'" + timestampReplacement + "\'";
+      matcher.appendReplacement(modifiedJson, replacement);
     }
+    matcher.appendTail(modifiedJson);
 
-
-	/**
-	 * Change a String from having Timestamp(<timestamp value>) to just <timestamp value>
-	 * @param jsonText				Python Dictionary that we were unable to desearlize and comes back as a String
-	 * @return						String where we tried to remove pandas timestamps
-	 */
-    public static String removeTimestamp(String jsonText) {
-        // String patternString = "(, |\\[|\\{)(Timestamp\\('([^']+)'\\))(\\]|\\}|,)";
-        String patternString = "(, |\\[|\\{)(Timestamp\\('([^']+)'\\))(?=(,|\\]|\\}|,))";
-        Pattern pattern = Pattern.compile(patternString);
-        Matcher matcher = pattern.matcher(jsonText);
-        
-        StringBuffer modifiedJson = new StringBuffer();
-        while (matcher.find()) {
-            String beforeDelimiter = matcher.group(1);
-            String timestampReplacement = matcher.group(3);
-            //String afterDelimiter = matcher.group(4);
-            String replacement = beforeDelimiter + "\'" + timestampReplacement + "\'";
-            matcher.appendReplacement(modifiedJson, replacement);
-        }
-        matcher.appendTail(modifiedJson);
-
-        return modifiedJson.toString();
-    }
+    return modifiedJson.toString();
+  }
 }

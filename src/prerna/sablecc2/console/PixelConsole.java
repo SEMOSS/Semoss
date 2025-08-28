@@ -1,18 +1,42 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.sablecc2.console;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.om.Insight;
 import prerna.sablecc2.PixelRunner;
 import prerna.util.Constants;
@@ -20,131 +44,127 @@ import prerna.util.gson.GsonUtility;
 
 public class PixelConsole {
 
-	private static final Logger classLogger = LogManager.getLogger(PixelConsole.class);
-	private static Gson gson = GsonUtility.getDefaultGson();
-	
-//	public static void main(String[] args) throws Exception{
-//		TestUtilityMethods.loadDIHelper();
-//		loadEngines();
-//
-//		Insight insight = new Insight();
-//		InsightStore.getInstance().put(insight);
-//		Thread thread = new Thread(){
-//			public void run()
-//			{
-//				openCommandLine(insight);				
-//			}
-//		};
-//		thread.start();
-//	}
+  private static final Logger classLogger = LogManager.getLogger(PixelConsole.class);
+  private static Gson gson = GsonUtility.getDefaultGson();
 
-	public static void openCommandLine(Insight insight)
-	{
-		String end = "";
-		while(!end.equalsIgnoreCase("end"))
-		{
-			try {
-				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-				System.out.println("Enter new pixel command ");
-				String pixel = reader.readLine();   
-				pixel = pixel.trim();
-				if(!pixel.isEmpty()) {
-//					if(!pixel.endsWith(";")) {
-//						pixel = pixel + ";";
-//					}
-					long start = System.currentTimeMillis();
-					PixelRunner returnData = run(insight, pixel);
-					System.out.println(gson.toJson(returnData.getResults()));
-					long time2 = System.currentTimeMillis();
-					System.out.println("Execution time : " + (time2 - start )+ " ms");
-				} else {
-					end = "end";
-				}
-			} catch(RuntimeException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-	}
+  //	public static void main(String[] args) throws Exception{
+  //		TestUtilityMethods.loadDIHelper();
+  //		loadEngines();
+  //
+  //		Insight insight = new Insight();
+  //		InsightStore.getInstance().put(insight);
+  //		Thread thread = new Thread(){
+  //			public void run()
+  //			{
+  //				openCommandLine(insight);
+  //			}
+  //		};
+  //		thread.start();
+  //	}
 
-	public static PixelRunner run(Insight insight, String pixel) {
-		return insight.runPixel(pixel);
-	}
+  public static void openCommandLine(Insight insight) {
+    String end = "";
+    while (!end.equalsIgnoreCase("end")) {
+      try {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        System.out.println("Enter new pixel command ");
+        String pixel = reader.readLine();
+        pixel = pixel.trim();
+        if (!pixel.isEmpty()) {
+          //					if(!pixel.endsWith(";")) {
+          //						pixel = pixel + ";";
+          //					}
+          long start = System.currentTimeMillis();
+          PixelRunner returnData = run(insight, pixel);
+          System.out.println(gson.toJson(returnData.getResults()));
+          long time2 = System.currentTimeMillis();
+          System.out.println("Execution time : " + (time2 - start) + " ms");
+        } else {
+          end = "end";
+        }
+      } catch (RuntimeException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
+  }
 
-	public static void loadEngines() throws Exception {
-//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-//		IEngine coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-//		coreEngine.open(engineProp);
-//		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
-		
-//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinInput.smss";
-//		coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineName("MinInput");
-//		coreEngine.open(engineProp);
-//		DIHelper.getInstance().setLocalProperty("MinInput", coreEngine);
-//		
-//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinImpact.smss";
-//		coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineName("MinImpact");
-//		coreEngine.open(engineProp);
-//		DIHelper.getInstance().setLocalProperty("MinImpact", coreEngine);
-		
+  public static PixelRunner run(Insight insight, String pixel) {
+    return insight.runPixel(pixel);
+  }
 
-//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Forms_TAP_Core_Data.smss";
-//		coreEngine = new BigDataEngine();
-//		coreEngine.setEngineName("Forms_TAP_Core_Data");
-//		coreEngine.open(engineProp);
-//		DIHelper.getInstance().setLocalProperty("Forms_TAP_Core_Data", coreEngine);
+  public static void loadEngines() throws Exception {
+    //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+    //		IEngine coreEngine = new RDBMSNativeEngine();
+    //		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
+    //		coreEngine.open(engineProp);
+    //		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 
-//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
-//		coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineId("Movie_RDBMS");
-//		coreEngine.open(engineProp);
-//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
-//		
-//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDF.smss";
-//		coreEngine = new BigDataEngine();
-//		coreEngine.setEngineId("Movie_RDF");
-//		coreEngine.open(engineProp);
-//		DIHelper.getInstance().setLocalProperty("Movie_RDF", coreEngine);
-//		
-//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
-//		coreEngine = new BigDataEngine();
-//		coreEngine.setEngineName("TAP_Core_Data");
-//		coreEngine.open(engineProp);
-//		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
-	}
+    //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinInput.smss";
+    //		coreEngine = new RDBMSNativeEngine();
+    //		coreEngine.setEngineName("MinInput");
+    //		coreEngine.open(engineProp);
+    //		DIHelper.getInstance().setLocalProperty("MinInput", coreEngine);
+    //
+    //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinImpact.smss";
+    //		coreEngine = new RDBMSNativeEngine();
+    //		coreEngine.setEngineName("MinImpact");
+    //		coreEngine.open(engineProp);
+    //		DIHelper.getInstance().setLocalProperty("MinImpact", coreEngine);
+
+    //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Forms_TAP_Core_Data.smss";
+    //		coreEngine = new BigDataEngine();
+    //		coreEngine.setEngineName("Forms_TAP_Core_Data");
+    //		coreEngine.open(engineProp);
+    //		DIHelper.getInstance().setLocalProperty("Forms_TAP_Core_Data", coreEngine);
+
+    //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+    //		coreEngine = new RDBMSNativeEngine();
+    //		coreEngine.setEngineId("Movie_RDBMS");
+    //		coreEngine.open(engineProp);
+    //		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+    //
+    //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDF.smss";
+    //		coreEngine = new BigDataEngine();
+    //		coreEngine.setEngineId("Movie_RDF");
+    //		coreEngine.open(engineProp);
+    //		DIHelper.getInstance().setLocalProperty("Movie_RDF", coreEngine);
+    //
+    //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
+    //		coreEngine = new BigDataEngine();
+    //		coreEngine.setEngineName("TAP_Core_Data");
+    //		coreEngine.open(engineProp);
+    //		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
+  }
 }
 
 /**
- * Generation of new NumberAdaptor to not send NaN/Infinity to the FE
- * since they are invalid JSON values
+ * Generation of new NumberAdaptor to not send NaN/Infinity to the FE since they are invalid JSON
+ * values
  */
-class NumberAdaptor extends TypeAdapter<Double>{
+class NumberAdaptor extends TypeAdapter<Double> {
 
-	@Override 
-	public Double read(JsonReader in) throws IOException {
-		if (in.peek() == JsonToken.NULL) {
-			in.nextNull();
-			return null;
-		}
-		return in.nextDouble();
-	}
+  @Override
+  public Double read(JsonReader in) throws IOException {
+    if (in.peek() == JsonToken.NULL) {
+      in.nextNull();
+      return null;
+    }
+    return in.nextDouble();
+  }
 
-	@Override 
-	public void write(JsonWriter out, Double value) throws IOException {
-		if (value == null) {
-			out.nullValue();
-			return;
-		}
-		double doubleValue = value.doubleValue();
-		if(Double.isNaN(doubleValue) || Double.isInfinite(doubleValue)) {
-			out.nullValue();
-		} else {
-			out.value(value);
-		}
-	}
+  @Override
+  public void write(JsonWriter out, Double value) throws IOException {
+    if (value == null) {
+      out.nullValue();
+      return;
+    }
+    double doubleValue = value.doubleValue();
+    if (Double.isNaN(doubleValue) || Double.isInfinite(doubleValue)) {
+      out.nullValue();
+    } else {
+      out.value(value);
+    }
+  }
 }
-

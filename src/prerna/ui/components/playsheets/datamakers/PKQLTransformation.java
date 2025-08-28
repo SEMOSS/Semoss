@@ -1,167 +1,198 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.ui.components.playsheets.datamakers;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class PKQLTransformation extends AbstractTransformation {
 
-	private static final Logger LOGGER = LogManager.getLogger(PKQLTransformation.class.getName());
-	
-	public static final String METHOD_NAME = "pkql";
-	public static final String EXPRESSION = "EXPRESSION";
+  private static final Logger LOGGER = LogManager.getLogger(PKQLTransformation.class.getName());
 
-//	private PKQLRunner runner;
-	private List<String> parsedPkqls = new Vector<String>();
-//	private List<IPkqlMetadata> metadataList;
+  public static final String METHOD_NAME = "pkql";
+  public static final String EXPRESSION = "EXPRESSION";
 
-//	private Map<String, Object> feData = new HashMap<String, Object>();
-//	private Map<String, String> newColumns = new HashMap<String, String>();
-	
-	IDataMaker dm;
-	
-	boolean addToRecipe = true;
-	int recipeIndex = -1;
-	
-	public boolean isAddToRecipe() {
-		return this.addToRecipe;
-	}
-	
-	public int getRecipeIndex() {
-		return this.recipeIndex;
-	}
+  //	private PKQLRunner runner;
+  private List<String> parsedPkqls = new Vector<String>();
+  //	private List<IPkqlMetadata> metadataList;
 
-//	public List<IPkqlMetadata> getPkqlMetadataList() {
-//		return this.metadataList;
-//	}
-	
-	@Override
-	public void setProperties(Map<String, Object> props) {
-		//TODO: validate hash and set values
-		this.props = props;
-	}
+  //	private Map<String, Object> feData = new HashMap<String, Object>();
+  //	private Map<String, String> newColumns = new HashMap<String, String>();
 
-	@Override
-	public void setDataMakers(IDataMaker... dms){
-		this.dm = (IDataMaker) dms[0];
-	}
+  IDataMaker dm;
 
-	@Override
-	public void setDataMakerComponent(DataMakerComponent dmc){
-		LOGGER.info("dmc is not needed for pkql");
-	}
+  boolean addToRecipe = true;
+  int recipeIndex = -1;
 
-	@Override
-	public void setTransformationType(Boolean preTransformation){
-		LOGGER.info("pre transformation is not needed for pkql");
-	}
+  public boolean isAddToRecipe() {
+    return this.addToRecipe;
+  }
 
-	@Override
-	public void runMethod() {
-//		if(runner == null) {
-//			String expression = props.get(EXPRESSION) + "";	
-//			runner2.runPixel(expression, this.dm);
-//			return;
-//		}
-		// check how long runner response array is
-//		int numOldCmds = runner.getResults().size();
-//		
-//		String expression = props.get(EXPRESSION) + "";		
-//		runner.runPKQL(expression, (IDataMaker) this.dm);
-//				
-//		this.dm = runner.getDataFrame();
-		
-//		this.feData.putAll(runner.getFeData());
-		
-//		if(runner.getNewColumns() != null) {
-//			this.newColumns.putAll(runner.getNewColumns());
-//		}
-		
-		// running the pkql may have changed the datamaker:::::::::::::::::::::::::::::::::::::::::::::::::::::
-		// need to remember to set this back into the insight:::::::::::::::::::::::::::::::::::::::::::::::::
-//		this.dm = runner.getDataFrame();
-		
-		// store added responses
-//		List<Map> allCmds = runner.getResults();
-//		for(int i = numOldCmds ; i < allCmds.size(); i++){
-//			String cmd = (String) allCmds.get(i).get("command");
-//			if(cmd != null){
-//				if(cmd.startsWith("v:") || cmd.startsWith("data.query")) {
-//					if(!cmd.contains("user.input")) {
-//						this.addToRecipe = false;
-//					} else {
-//						this.recipeIndex = 0;
-//					}
-//				} 
-//				parsedPkqls.add(cmd);
-//			}
-//			else {
-//				LOGGER.error("this is weird... my runner response doesn't have a PKQL command stored. Skipping for now in terms of adding to recipe");
-//			}
-//		}
-//		
-		// store the metadata list on the post transformation
-		// this will be consolidated at the insight lvl
-		// but since insight runs all the pkql post transformations at the same 
-		// time on the datamaker
-		// i want to separate each one out since i dont want to have to constantly
-		// loop through everything in order to determine the difference
-		// would be unnecessary operation to perform when doing through create
-//		this.metadataList = runner.getMetadataResponse();
-//		if(this.metadataList != null) {
-//			for(IPkqlMetadata meta : metadataList) {
-//				meta.setInvokingPkqlTransformation(this);
-//			}
-//		}
-	}
+  public int getRecipeIndex() {
+    return this.recipeIndex;
+  }
 
-	@Override
-	public Map<String, Object> getProperties() {
-		props.put(TYPE, METHOD_NAME);
-		return this.props;
-	}
+  //	public List<IPkqlMetadata> getPkqlMetadataList() {
+  //		return this.metadataList;
+  //	}
 
-	@Override
-	public void undoTransformation() {
-		LOGGER.info("unable to undo pkql transformation");
-	}
+  @Override
+  public void setProperties(Map<String, Object> props) {
+    // TODO: validate hash and set values
+    this.props = props;
+  }
 
-	@Override
-	public PKQLTransformation copy() {
-		return this;
-//		PKQLTransformation joinCopy = new PKQLTransformation();
-//		joinCopy.setDataMakers(dm);
-//		joinCopy.setId(id);
-//		joinCopy.runner = this.runner; // keep this shallow so updates can be gotten
-//		joinCopy.feData = this.feData; // keep this shallow so updates can be gotten
-//		joinCopy.parsedPkqls = this.parsedPkqls; // keep this shallow so updates can be gotten
-//
-//		if(props != null) {
-//			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
-//			String propCopy = gson.toJson(props);
-//			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
-//			joinCopy.setProperties(newProps);
-//		}
-//
-//		return joinCopy;
-	}
-	
-//	public Map<String, Object> getFeData(){
-//		return this.feData;
-//	}
-	
-//	public Map<String, String> getNewColumns() {
-//		return this.newColumns;
-//	}
-	
-	public List<String> getPkql() {
-		return parsedPkqls;
-	}
-	
-	public void setPkql(List<String> parsedPkqls) {
-		this.parsedPkqls = parsedPkqls;
-	}
+  @Override
+  public void setDataMakers(IDataMaker... dms) {
+    this.dm = (IDataMaker) dms[0];
+  }
+
+  @Override
+  public void setDataMakerComponent(DataMakerComponent dmc) {
+    LOGGER.info("dmc is not needed for pkql");
+  }
+
+  @Override
+  public void setTransformationType(Boolean preTransformation) {
+    LOGGER.info("pre transformation is not needed for pkql");
+  }
+
+  @Override
+  public void runMethod() {
+    //		if(runner == null) {
+    //			String expression = props.get(EXPRESSION) + "";
+    //			runner2.runPixel(expression, this.dm);
+    //			return;
+    //		}
+    // check how long runner response array is
+    //		int numOldCmds = runner.getResults().size();
+    //
+    //		String expression = props.get(EXPRESSION) + "";
+    //		runner.runPKQL(expression, (IDataMaker) this.dm);
+    //
+    //		this.dm = runner.getDataFrame();
+
+    //		this.feData.putAll(runner.getFeData());
+
+    //		if(runner.getNewColumns() != null) {
+    //			this.newColumns.putAll(runner.getNewColumns());
+    //		}
+
+    // running the pkql may have changed the
+    // datamaker:::::::::::::::::::::::::::::::::::::::::::::::::::::
+    // need to remember to set this back into the
+    // insight:::::::::::::::::::::::::::::::::::::::::::::::::
+    //		this.dm = runner.getDataFrame();
+
+    // store added responses
+    //		List<Map> allCmds = runner.getResults();
+    //		for(int i = numOldCmds ; i < allCmds.size(); i++){
+    //			String cmd = (String) allCmds.get(i).get("command");
+    //			if(cmd != null){
+    //				if(cmd.startsWith("v:") || cmd.startsWith("data.query")) {
+    //					if(!cmd.contains("user.input")) {
+    //						this.addToRecipe = false;
+    //					} else {
+    //						this.recipeIndex = 0;
+    //					}
+    //				}
+    //				parsedPkqls.add(cmd);
+    //			}
+    //			else {
+    //				LOGGER.error("this is weird... my runner response doesn't have a PKQL command stored.
+    // Skipping for now in terms of adding to recipe");
+    //			}
+    //		}
+    //
+    // store the metadata list on the post transformation
+    // this will be consolidated at the insight lvl
+    // but since insight runs all the pkql post transformations at the same
+    // time on the datamaker
+    // i want to separate each one out since i dont want to have to constantly
+    // loop through everything in order to determine the difference
+    // would be unnecessary operation to perform when doing through create
+    //		this.metadataList = runner.getMetadataResponse();
+    //		if(this.metadataList != null) {
+    //			for(IPkqlMetadata meta : metadataList) {
+    //				meta.setInvokingPkqlTransformation(this);
+    //			}
+    //		}
+  }
+
+  @Override
+  public Map<String, Object> getProperties() {
+    props.put(TYPE, METHOD_NAME);
+    return this.props;
+  }
+
+  @Override
+  public void undoTransformation() {
+    LOGGER.info("unable to undo pkql transformation");
+  }
+
+  @Override
+  public PKQLTransformation copy() {
+    return this;
+    //		PKQLTransformation joinCopy = new PKQLTransformation();
+    //		joinCopy.setDataMakers(dm);
+    //		joinCopy.setId(id);
+    //		joinCopy.runner = this.runner; // keep this shallow so updates can be gotten
+    //		joinCopy.feData = this.feData; // keep this shallow so updates can be gotten
+    //		joinCopy.parsedPkqls = this.parsedPkqls; // keep this shallow so updates can be gotten
+    //
+    //		if(props != null) {
+    //			Gson gson = new
+    // GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+    //			String propCopy = gson.toJson(props);
+    //			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>()
+    // {}.getType());
+    //			joinCopy.setProperties(newProps);
+    //		}
+    //
+    //		return joinCopy;
+  }
+
+  //	public Map<String, Object> getFeData(){
+  //		return this.feData;
+  //	}
+
+  //	public Map<String, String> getNewColumns() {
+  //		return this.newColumns;
+  //	}
+
+  public List<String> getPkql() {
+    return parsedPkqls;
+  }
+
+  public void setPkql(List<String> parsedPkqls) {
+    this.parsedPkqls = parsedPkqls;
+  }
 }

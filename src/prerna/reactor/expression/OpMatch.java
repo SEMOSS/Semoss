@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.expression;
 
 import java.util.ArrayList;
@@ -7,165 +34,171 @@ import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
-
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class OpMatch extends OpBasic {
-	
-	public OpMatch() {
-		this.keysToGet = new String[]{ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.ARRAY.getKey(), "matchType"};
-	}
 
-	@Override
-	protected NounMetadata evaluate(Object[] values) {
-		int offset = 0;
-		if (this.curRow.size() == 3) {
-			offset = 1;
-		}
-		boolean comparingNumbers = false;
-		
-		boolean isString = this.curRow.getNoun(0).getNounType().equals(PixelDataType.CONST_STRING);
-		// figure out
-		// if sort needs to do a number sort
-		// or do a string sort
-		// if we have 1 string -> assumption is all are string values
-		// return -1 if match not found
-		List<NounMetadata> intGrs = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
-		
-		if (intGrs != null && intGrs.size() > offset) {
-			comparingNumbers = true;
-		}
-		if (!comparingNumbers) {
-			List<NounMetadata> doubleGrs = this.curRow.getNounsOfType(PixelDataType.CONST_DECIMAL);
-			if (doubleGrs != null && doubleGrs.size() > 0) {
-				comparingNumbers = true;
-			}
-		}
+  public OpMatch() {
+    this.keysToGet =
+        new String[] {ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.ARRAY.getKey(), "matchType"};
+  }
 
-		Object objInput = values[0];
-		int index = 1; // default value of index is 1
-		if (values.length == 3) {
-			index = (int) (values[2]);
-		}
+  @Override
+  protected NounMetadata evaluate(Object[] values) {
+    int offset = 0;
+    if (this.curRow.size() == 3) {
+      offset = 1;
+    }
+    boolean comparingNumbers = false;
 
-		List<Object> objArrList = new ArrayList<Object>();
+    boolean isString = this.curRow.getNoun(0).getNounType().equals(PixelDataType.CONST_STRING);
+    // figure out
+    // if sort needs to do a number sort
+    // or do a string sort
+    // if we have 1 string -> assumption is all are string values
+    // return -1 if match not found
+    List<NounMetadata> intGrs = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
 
-		for (Object objArr : (Object[]) values[1]) {
-			Object val = objArr;
-			objArrList.add(val);
-		}
+    if (intGrs != null && intGrs.size() > offset) {
+      comparingNumbers = true;
+    }
+    if (!comparingNumbers) {
+      List<NounMetadata> doubleGrs = this.curRow.getNounsOfType(PixelDataType.CONST_DECIMAL);
+      if (doubleGrs != null && doubleGrs.size() > 0) {
+        comparingNumbers = true;
+      }
+    }
 
-		int matchValIndex = -1;
+    Object objInput = values[0];
+    int index = 1; // default value of index is 1
+    if (values.length == 3) {
+      index = (int) (values[2]);
+    }
 
-		if (!comparingNumbers && isString) {
-			matchValIndex = evaluateStrings(objArrList, matchValIndex, index, objInput);
-		} else {
-			matchValIndex = evaluateIntegers(objArrList, matchValIndex, index, objInput);
-		}
+    List<Object> objArrList = new ArrayList<Object>();
 
-		NounMetadata match = new NounMetadata(matchValIndex, PixelDataType.CONST_INT);
-		return match;
-	}
+    for (Object objArr : (Object[]) values[1]) {
+      Object val = objArr;
+      objArrList.add(val);
+    }
 
-	public int evaluateIntegers(List<Object> objArrList, int matchValIndex, int index, Object objInput) {
-		List<Integer> intArrlist = objArrList.stream().map(object -> (Integer.parseInt(Objects.toString(object, null))))
-				.collect(Collectors.toList());
+    int matchValIndex = -1;
 
-		NavigableSet<Integer> navSet = new TreeSet<Integer>();
+    if (!comparingNumbers && isString) {
+      matchValIndex = evaluateStrings(objArrList, matchValIndex, index, objInput);
+    } else {
+      matchValIndex = evaluateIntegers(objArrList, matchValIndex, index, objInput);
+    }
 
-		NavigableSet<Integer> reverseNavSet = new TreeSet<Integer>();
+    NounMetadata match = new NounMetadata(matchValIndex, PixelDataType.CONST_INT);
+    return match;
+  }
 
-		int inputVal = (int) objInput;
+  public int evaluateIntegers(
+      List<Object> objArrList, int matchValIndex, int index, Object objInput) {
+    List<Integer> intArrlist =
+        objArrList.stream()
+            .map(object -> (Integer.parseInt(Objects.toString(object, null))))
+            .collect(Collectors.toList());
 
-		if (index == 0) {
-			final int inputVal1 = inputVal;
-			if (intArrlist.contains(inputVal)) {
-				Integer firstInputVal = intArrlist.stream().filter(str -> str.equals(inputVal1)).findFirst().get();
-				Integer matchVal3 = firstInputVal;
-				matchValIndex = intArrlist.indexOf(matchVal3) + 1;
-			} else {
-				matchValIndex = -1;
-			}
+    NavigableSet<Integer> navSet = new TreeSet<Integer>();
 
-		} else if (index == 1) { // Elements should be in ascending order
-			Collections.sort(intArrlist);
-			navSet.addAll(intArrlist);
-			int matchVal1 = navSet.floor(inputVal);
-			matchValIndex = intArrlist.indexOf(matchVal1)+1;
-		} else if (index == -1) { // Elements should be in descending order
-			reverseNavSet.addAll(intArrlist);
-			reverseNavSet = reverseNavSet.descendingSet();
-			int matchVal2 = reverseNavSet.ceiling(inputVal);
-			matchValIndex = intArrlist.indexOf(matchVal2) + 1;
-		}
-		return matchValIndex;
+    NavigableSet<Integer> reverseNavSet = new TreeSet<Integer>();
 
-	}
+    int inputVal = (int) objInput;
 
-	public int evaluateStrings(List<Object> objArrList, int matchValIndex, int index, Object objInput) {
+    if (index == 0) {
+      final int inputVal1 = inputVal;
+      if (intArrlist.contains(inputVal)) {
+        Integer firstInputVal =
+            intArrlist.stream().filter(str -> str.equals(inputVal1)).findFirst().get();
+        Integer matchVal3 = firstInputVal;
+        matchValIndex = intArrlist.indexOf(matchVal3) + 1;
+      } else {
+        matchValIndex = -1;
+      }
 
-		List<String> strArrlist = objArrList.stream().map(object -> Objects.toString(object, null))
-				.collect(Collectors.toList());
+    } else if (index == 1) { // Elements should be in ascending order
+      Collections.sort(intArrlist);
+      navSet.addAll(intArrlist);
+      int matchVal1 = navSet.floor(inputVal);
+      matchValIndex = intArrlist.indexOf(matchVal1) + 1;
+    } else if (index == -1) { // Elements should be in descending order
+      reverseNavSet.addAll(intArrlist);
+      reverseNavSet = reverseNavSet.descendingSet();
+      int matchVal2 = reverseNavSet.ceiling(inputVal);
+      matchValIndex = intArrlist.indexOf(matchVal2) + 1;
+    }
+    return matchValIndex;
+  }
 
-		String inputVal = objInput.toString();
-		inputVal = inputVal.replaceAll("\\*", "\\\\w*").replaceAll("\\?", "\\\\w?");
-		boolean regexCheck = false;
-		NavigableSet<String> navSet = new TreeSet<String>();
-		for (int i = 0; i < objArrList.size(); i++) {
-			if (objArrList.get(i).toString().matches(inputVal)) {
-				regexCheck = true;
-				inputVal = objArrList.get(i).toString();
-				break;
-			}
-		}
-		if (regexCheck) {
-			if (index == 0) { // Exact match
-				final String inputVal1 = inputVal;
-				if (strArrlist.contains(inputVal)) {
-					String firstInputVal = strArrlist.stream().filter(str -> str.equalsIgnoreCase(inputVal1))
-							.findFirst().get();
-					String matchVal3 = firstInputVal;
-					matchValIndex = strArrlist.indexOf(matchVal3) + 1;
-				} else {
-					matchValIndex = -1;
-				}
-			} else if (index == 1) { // Elements should be in ascending order
-				Collections.sort(strArrlist);
-				navSet.addAll(strArrlist);
-				String matchVal1 = navSet.floor(inputVal.toString());
-				matchValIndex = strArrlist.indexOf(matchVal1) + 1;
+  public int evaluateStrings(
+      List<Object> objArrList, int matchValIndex, int index, Object objInput) {
 
-			} else if (index == -1) { // Elements should be in descending order
+    List<String> strArrlist =
+        objArrList.stream()
+            .map(object -> Objects.toString(object, null))
+            .collect(Collectors.toList());
 
-				NavigableSet<String> reverseNavSet = new TreeSet<String>();
-				reverseNavSet.addAll(strArrlist);
-				reverseNavSet = navSet.descendingSet();
+    String inputVal = objInput.toString();
+    inputVal = inputVal.replaceAll("\\*", "\\\\w*").replaceAll("\\?", "\\\\w?");
+    boolean regexCheck = false;
+    NavigableSet<String> navSet = new TreeSet<String>();
+    for (int i = 0; i < objArrList.size(); i++) {
+      if (objArrList.get(i).toString().matches(inputVal)) {
+        regexCheck = true;
+        inputVal = objArrList.get(i).toString();
+        break;
+      }
+    }
+    if (regexCheck) {
+      if (index == 0) { // Exact match
+        final String inputVal1 = inputVal;
+        if (strArrlist.contains(inputVal)) {
+          String firstInputVal =
+              strArrlist.stream().filter(str -> str.equalsIgnoreCase(inputVal1)).findFirst().get();
+          String matchVal3 = firstInputVal;
+          matchValIndex = strArrlist.indexOf(matchVal3) + 1;
+        } else {
+          matchValIndex = -1;
+        }
+      } else if (index == 1) { // Elements should be in ascending order
+        Collections.sort(strArrlist);
+        navSet.addAll(strArrlist);
+        String matchVal1 = navSet.floor(inputVal.toString());
+        matchValIndex = strArrlist.indexOf(matchVal1) + 1;
 
-				String matchVal2 = reverseNavSet.ceiling(inputVal.toString());
-				matchValIndex = strArrlist.indexOf(matchVal2) + 1;
-			}
-		} else {
-			matchValIndex = -1;
-		}
+      } else if (index == -1) { // Elements should be in descending order
 
-		return matchValIndex;
-	}
+        NavigableSet<String> reverseNavSet = new TreeSet<String>();
+        reverseNavSet.addAll(strArrlist);
+        reverseNavSet = navSet.descendingSet();
 
-	@Override
-	public String getReturnType() {
-		return "int";
-	}
-	
-	///////////////////////// KEYS /////////////////////////////////////
+        String matchVal2 = reverseNavSet.ceiling(inputVal.toString());
+        matchValIndex = strArrlist.indexOf(matchVal2) + 1;
+      }
+    } else {
+      matchValIndex = -1;
+    }
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("matchType")) {
-			return "The type of match, either 0 (first matching value), 1 (largest value less than or equal to), or -1 (smallest value greater than or equal to)";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
-	}
+    return matchValIndex;
+  }
+
+  @Override
+  public String getReturnType() {
+    return "int";
+  }
+
+  ///////////////////////// KEYS /////////////////////////////////////
+
+  @Override
+  protected String getDescriptionForKey(String key) {
+    if (key.equals("matchType")) {
+      return "The type of match, either 0 (first matching value), 1 (largest value less than or equal to), or -1 (smallest value greater than or equal to)";
+    } else {
+      return super.getDescriptionForKey(key);
+    }
+  }
 }

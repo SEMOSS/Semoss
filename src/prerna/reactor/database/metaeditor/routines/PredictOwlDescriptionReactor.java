@@ -1,13 +1,38 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.database.metaeditor.routines;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -25,220 +50,236 @@ import prerna.wikidata.WikiDescriptionExtractor;
 
 public class PredictOwlDescriptionReactor extends AbstractMetaEditorReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(PredictOwlDescriptionReactor.class);
+  private static final Logger classLogger =
+      LogManager.getLogger(PredictOwlDescriptionReactor.class);
 
-	private static final String CLASS_NAME = PredictOwlDescriptionReactor.class.getName();
-	
-	/**
-	 * 
-	 * Example script
-	 
-	 source("C:/workspace/Semoss_Dev/R/OwlMatchRoutines/OwlPredictDescriptions.R");
-	 instanceValues_aIPO75a <- c("Classic Cars","Motorcycles","Planes","Ships","Trains");
-	 descriptionsFrame_a9L7hr1 <- predictDescriptions(instanceValues_aIPO75a);
-	 
-	 * 
-	 */
-	
-	public PredictOwlDescriptionReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey()};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		Logger logger = getLogger(CLASS_NAME);
+  private static final String CLASS_NAME = PredictOwlDescriptionReactor.class.getName();
 
-		List<String> values = new Vector<String>();
-		
-		// make sure R is good to go
-//		Logger logger = getLogger(CLASS_NAME);
-//		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
-//		rJavaTranslator.startR(); 
-//		// check if packages are installed
-//		String[] packages = { "WikidataR", "XML", "RCurl", "stringr"};
-//		rJavaTranslator.checkPackages(packages);
-		
-		String databaseId = getDatabaseId();
-		// we may have an alias
-		databaseId = testDatabaseId(databaseId, true);
-		
-		String physicalUri = null;
-		String concept = getConcept();
-		String prop = getProperty();
-		
-		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		SemossDataType dataType = null;
-		String qsName = null;
-		if(prop == null || prop.isEmpty()) {
-			values.add(concept);
-			qsName = concept;
-		} else {
-			values.add(prop);
-			qsName = concept + "__" + prop;
-		}
-		
-		physicalUri = database.getPhysicalUriFromPixelSelector(qsName);
-		dataType = SemossDataType.convertStringToDataType(database.getDataTypes(physicalUri));
-		
-		Set<String> logicalNames = database.getLogicalNames(physicalUri);
-		values.addAll(logicalNames);
-		
-		if(dataType == SemossDataType.STRING) {
-			logger.info("Grabbing most popular instances to use for searching...");
-			IRawSelectWrapper wrapper = null;
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(database, getMostOccuringSingleColumnNonEmptyQs(qsName, 10));
-				while(wrapper.hasNext()) {
-					Object value = wrapper.next().getValues()[0];
-					if(value == null || value.toString().isEmpty()) {
-						continue;
-					}
-					values.add(value.toString());
-				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(wrapper != null) {
-					try {
-						wrapper.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-			logger.info("Done grabbing must popular instances");
-		}
-		
-		List<String> descriptions = new Vector<String>();
-		WikiDescriptionExtractor extractor = new WikiDescriptionExtractor();
-		extractor.setLogger(logger);
-		for(String value : values) {
-			try {
-				descriptions.addAll(extractor.getDescriptions(value));
-			} catch (Exception e) {
-				logger.info("ERROR ::: Could not process input = " + Utility.cleanLogString(value));
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		int numDescriptions = descriptions.size();
-		if(numDescriptions == 0) {
-			throw new SemossPixelException(new NounMetadata("Unable to generate a description for the input column", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-		}
-		
-		StringBuilder masterDescription = new StringBuilder();
-		for(int i = 0; i < numDescriptions; i++) {
-			masterDescription.append(descriptions.get(i));
-			if((i+1) < numDescriptions) {
-				masterDescription.append("\n");
-			}
-		}
-		
-		
-//		StringBuilder script = new StringBuilder();
-//		// first source the file where we have the main method for running
-//		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlPredictDescriptions.R"; 
-//		rScriptPath = rScriptPath.replace("\\", "/");
-//		script.append("source(\"" + rScriptPath + "\");");
-//		
-//		String descriptionsFrameVar = "descriptionsFrame_" + Utility.getRandomString(6);
-//		String instanceVectorVar = "instanceValues_" + Utility.getRandomString(6);
-//		script.append(instanceVectorVar).append(" <- ").append(RSyntaxHelper.createStringRColVec(values)).append(";");
-//		script.append(descriptionsFrameVar).append(" <- predictDescriptions(").append(instanceVectorVar).append(");");
-//
-//		// execute!
-//		logger.info("Running script to auto generate descriptions...");
-//		rJavaTranslator.runR(script.toString());
-//		logger.info("Finished running scripts!");
-//
-//		String[] descriptionValues = rJavaTranslator.getStringArray(descriptionsFrameVar);
-//
-//		// try to get rid of the duplications
-//		Set<String> uniqueDescriptions = new HashSet<String>();
-//		for(String s : descriptionValues) {
-//			if(s.trim().isEmpty()) {
-//				continue;
-//			}
-//			String[] newSplit = s.trim().split("\\*\\*\\*NEW LINE\\*\\*\\*");
-//			for(String split : newSplit) {
-//				uniqueDescriptions.add(split);
-//			}
-//		}
-//		
-//		StringBuilder masterDescription = new StringBuilder();
-//		for(String uniqueVal : uniqueDescriptions) {
-//			masterDescription.append(uniqueVal).append(". ");
-//		}
-		
-//		OWLER owler = getOWLER(appId);
-//		for(String desc : descriptionValues) {
-//			desc = desc.replace("***NEW LINE***", "\n");
-//			if(prop == null || prop.isEmpty()) {
-//				owler.addConceptDescription(concept, prop, desc);
-//			} else {
-//				owler.addPropDescription(concept, prop, desc);
-//			}
-//		}
-//		owler.commit();
-//		
-//		try {
-//			owler.export();
-//		} catch (IOException e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-//			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add descriptions", 
-//					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-//			return noun;
-//		}
-		
-		String description = masterDescription.toString();
-		if(description.isEmpty()) {
-			throw new SemossPixelException(new NounMetadata("Unable to generate a description for the input column", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-		}
-		
-		NounMetadata noun = new NounMetadata(new String[]{description}, PixelDataType.CONST_STRING);
-		noun.addAdditionalReturn(new NounMetadata("Predicted descriptions for review",
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
-		return noun;
-	}
+  /**
+   * Example script
+   *
+   * <p>source("C:/workspace/Semoss_Dev/R/OwlMatchRoutines/OwlPredictDescriptions.R");
+   * instanceValues_aIPO75a <- c("Classic Cars","Motorcycles","Planes","Ships","Trains");
+   * descriptionsFrame_a9L7hr1 <- predictDescriptions(instanceValues_aIPO75a);
+   */
+  public PredictOwlDescriptionReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.DATABASE.getKey(),
+          ReactorKeysEnum.CONCEPT.getKey(),
+          ReactorKeysEnum.COLUMN.getKey()
+        };
+  }
 
-	
-	///////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////
-	///////////// GRAB INPUTS FROM PIXEL REACTOR //////////////
-	///////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////
+  @Override
+  public NounMetadata execute() {
+    Logger logger = getLogger(CLASS_NAME);
 
-	private String getDatabaseId() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
-		if (grs != null && !grs.isEmpty()) {
-			String databaseId = (String) grs.get(0);
-			if (databaseId != null && !databaseId.isEmpty()) {
-				return databaseId;
-			}
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[0]);
-	}
+    List<String> values = new Vector<String>();
 
-	private String getConcept() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[1]);
-		if (grs != null && !grs.isEmpty()) {
-			String concept = (String) grs.get(0);
-			if (concept != null && !concept.isEmpty()) {
-				return concept;
-			}
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[1]);
-	}
-	
-	private String getProperty() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[2]);
-		if (grs != null && !grs.isEmpty()) {
-			String prop = (String) grs.get(0);
-			if (prop != null && !prop.isEmpty()) {
-				return prop;
-			}
-		}
+    // make sure R is good to go
+    //		Logger logger = getLogger(CLASS_NAME);
+    //		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
+    //		rJavaTranslator.startR();
+    //		// check if packages are installed
+    //		String[] packages = { "WikidataR", "XML", "RCurl", "stringr"};
+    //		rJavaTranslator.checkPackages(packages);
 
-		return "";
-	}
+    String databaseId = getDatabaseId();
+    // we may have an alias
+    databaseId = testDatabaseId(databaseId, true);
+
+    String physicalUri = null;
+    String concept = getConcept();
+    String prop = getProperty();
+
+    IDatabaseEngine database = Utility.getDatabase(databaseId);
+    SemossDataType dataType = null;
+    String qsName = null;
+    if (prop == null || prop.isEmpty()) {
+      values.add(concept);
+      qsName = concept;
+    } else {
+      values.add(prop);
+      qsName = concept + "__" + prop;
+    }
+
+    physicalUri = database.getPhysicalUriFromPixelSelector(qsName);
+    dataType = SemossDataType.convertStringToDataType(database.getDataTypes(physicalUri));
+
+    Set<String> logicalNames = database.getLogicalNames(physicalUri);
+    values.addAll(logicalNames);
+
+    if (dataType == SemossDataType.STRING) {
+      logger.info("Grabbing most popular instances to use for searching...");
+      IRawSelectWrapper wrapper = null;
+      try {
+        wrapper =
+            WrapperManager.getInstance()
+                .getRawWrapper(database, getMostOccuringSingleColumnNonEmptyQs(qsName, 10));
+        while (wrapper.hasNext()) {
+          Object value = wrapper.next().getValues()[0];
+          if (value == null || value.toString().isEmpty()) {
+            continue;
+          }
+          values.add(value.toString());
+        }
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      } finally {
+        if (wrapper != null) {
+          try {
+            wrapper.close();
+          } catch (IOException e) {
+            classLogger.error(Constants.STACKTRACE, e);
+          }
+        }
+      }
+      logger.info("Done grabbing must popular instances");
+    }
+
+    List<String> descriptions = new Vector<String>();
+    WikiDescriptionExtractor extractor = new WikiDescriptionExtractor();
+    extractor.setLogger(logger);
+    for (String value : values) {
+      try {
+        descriptions.addAll(extractor.getDescriptions(value));
+      } catch (Exception e) {
+        logger.info("ERROR ::: Could not process input = " + Utility.cleanLogString(value));
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
+    int numDescriptions = descriptions.size();
+    if (numDescriptions == 0) {
+      throw new SemossPixelException(
+          new NounMetadata(
+              "Unable to generate a description for the input column",
+              PixelDataType.CONST_STRING,
+              PixelOperationType.ERROR));
+    }
+
+    StringBuilder masterDescription = new StringBuilder();
+    for (int i = 0; i < numDescriptions; i++) {
+      masterDescription.append(descriptions.get(i));
+      if ((i + 1) < numDescriptions) {
+        masterDescription.append("\n");
+      }
+    }
+
+    //		StringBuilder script = new StringBuilder();
+    //		// first source the file where we have the main method for running
+    //		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlPredictDescriptions.R";
+    //		rScriptPath = rScriptPath.replace("\\", "/");
+    //		script.append("source(\"" + rScriptPath + "\");");
+    //
+    //		String descriptionsFrameVar = "descriptionsFrame_" + Utility.getRandomString(6);
+    //		String instanceVectorVar = "instanceValues_" + Utility.getRandomString(6);
+    //		script.append(instanceVectorVar).append(" <-
+    // ").append(RSyntaxHelper.createStringRColVec(values)).append(";");
+    //		script.append(descriptionsFrameVar).append(" <-
+    // predictDescriptions(").append(instanceVectorVar).append(");");
+    //
+    //		// execute!
+    //		logger.info("Running script to auto generate descriptions...");
+    //		rJavaTranslator.runR(script.toString());
+    //		logger.info("Finished running scripts!");
+    //
+    //		String[] descriptionValues = rJavaTranslator.getStringArray(descriptionsFrameVar);
+    //
+    //		// try to get rid of the duplications
+    //		Set<String> uniqueDescriptions = new HashSet<String>();
+    //		for(String s : descriptionValues) {
+    //			if(s.trim().isEmpty()) {
+    //				continue;
+    //			}
+    //			String[] newSplit = s.trim().split("\\*\\*\\*NEW LINE\\*\\*\\*");
+    //			for(String split : newSplit) {
+    //				uniqueDescriptions.add(split);
+    //			}
+    //		}
+    //
+    //		StringBuilder masterDescription = new StringBuilder();
+    //		for(String uniqueVal : uniqueDescriptions) {
+    //			masterDescription.append(uniqueVal).append(". ");
+    //		}
+
+    //		OWLER owler = getOWLER(appId);
+    //		for(String desc : descriptionValues) {
+    //			desc = desc.replace("***NEW LINE***", "\n");
+    //			if(prop == null || prop.isEmpty()) {
+    //				owler.addConceptDescription(concept, prop, desc);
+    //			} else {
+    //				owler.addPropDescription(concept, prop, desc);
+    //			}
+    //		}
+    //		owler.commit();
+    //
+    //		try {
+    //			owler.export();
+    //		} catch (IOException e) {
+    //			classLogger.error(Constants.STACKTRACE, e);
+    //			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+    //			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add
+    // descriptions",
+    //					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+    //			return noun;
+    //		}
+
+    String description = masterDescription.toString();
+    if (description.isEmpty()) {
+      throw new SemossPixelException(
+          new NounMetadata(
+              "Unable to generate a description for the input column",
+              PixelDataType.CONST_STRING,
+              PixelOperationType.ERROR));
+    }
+
+    NounMetadata noun = new NounMetadata(new String[] {description}, PixelDataType.CONST_STRING);
+    noun.addAdditionalReturn(
+        new NounMetadata(
+            "Predicted descriptions for review",
+            PixelDataType.CONST_STRING,
+            PixelOperationType.SUCCESS));
+    return noun;
+  }
+
+  ///////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////
+  ///////////// GRAB INPUTS FROM PIXEL REACTOR //////////////
+  ///////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////
+
+  private String getDatabaseId() {
+    GenRowStruct grs = this.store.getNoun(keysToGet[0]);
+    if (grs != null && !grs.isEmpty()) {
+      String databaseId = (String) grs.get(0);
+      if (databaseId != null && !databaseId.isEmpty()) {
+        return databaseId;
+      }
+    }
+    throw new IllegalArgumentException("Need to define " + keysToGet[0]);
+  }
+
+  private String getConcept() {
+    GenRowStruct grs = this.store.getNoun(keysToGet[1]);
+    if (grs != null && !grs.isEmpty()) {
+      String concept = (String) grs.get(0);
+      if (concept != null && !concept.isEmpty()) {
+        return concept;
+      }
+    }
+    throw new IllegalArgumentException("Need to define " + keysToGet[1]);
+  }
+
+  private String getProperty() {
+    GenRowStruct grs = this.store.getNoun(keysToGet[2]);
+    if (grs != null && !grs.isEmpty()) {
+      String prop = (String) grs.get(0);
+      if (prop != null && !prop.isEmpty()) {
+        return prop;
+      }
+    }
+
+    return "";
+  }
 }

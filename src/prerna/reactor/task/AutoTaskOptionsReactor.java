@@ -1,8 +1,34 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.task;
 
 import java.util.List;
 import java.util.Map;
-
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -13,57 +39,60 @@ import prerna.util.insight.InsightUtility;
 
 public class AutoTaskOptionsReactor extends TaskBuilderReactor {
 
-	private static final String IGNORE_PANEL_FILTERS = "ignoreFilters";
+  private static final String IGNORE_PANEL_FILTERS = "ignoreFilters";
 
-	public AutoTaskOptionsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), IGNORE_PANEL_FILTERS};
-	}
+  public AutoTaskOptionsReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), IGNORE_PANEL_FILTERS
+        };
+  }
 
-	@Override
-	protected void buildTask() {
-		organizeKeys();
-		String panelId = this.keyValue.get(this.keysToGet[0]);
-		String layout = this.keyValue.get(this.keysToGet[1]);
-		if (layout == null) {
-			// assume default value is grid
-			layout = "GRID";
-		}
-		
-		if (this.task instanceof BasicIteratorTask) {
-			SelectQueryStruct qs = ((BasicIteratorTask) this.task).getQueryStruct();
-			Map<String, Object> optMap = this.task.getFormatter().getOptionsMap();
-			TaskOptions tOptions = AutoTaskOptionsHelper.getAutoOptions((BasicIteratorTask) this.task, qs, panelId, layout, optMap);
-			if(tOptions != null) {
-				this.task.setTaskOptions(tOptions);
-				// if we use task options on a panel
-				// we automatically set the panel view to be visualization
-				InsightUtility.setPanelForVisualization(this.insight, panelId);
-				
-				// we will store this as the last run for this panel
-				// and start to merge in the panel filters that were applied
-				// determine if we are ignoring panel filters
-				boolean ignorePanelFilters = ignorePanelFilters();
-				if(!ignorePanelFilters) {
-					this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions(), task.getFormatter());
-					qs.addPanel(this.insight.getInsightPanel(panelId));
-				}
-			}
-		}
-	}
-	
-	private boolean ignorePanelFilters() {
-		GenRowStruct grs = this.store.getNoun(IGNORE_PANEL_FILTERS);
-		if(grs != null && !grs.isEmpty()) {
-			return Boolean.parseBoolean(grs.get(0) + "");
-			
-		}
-		
-		List<Object> booleanInputs = curRow.getValuesOfType(PixelDataType.BOOLEAN);
-		if(booleanInputs != null && !booleanInputs.isEmpty()) {
-			return (boolean) booleanInputs.get(0);
-		}
-		
-		return false;
-	}
-	
+  @Override
+  protected void buildTask() {
+    organizeKeys();
+    String panelId = this.keyValue.get(this.keysToGet[0]);
+    String layout = this.keyValue.get(this.keysToGet[1]);
+    if (layout == null) {
+      // assume default value is grid
+      layout = "GRID";
+    }
+
+    if (this.task instanceof BasicIteratorTask) {
+      SelectQueryStruct qs = ((BasicIteratorTask) this.task).getQueryStruct();
+      Map<String, Object> optMap = this.task.getFormatter().getOptionsMap();
+      TaskOptions tOptions =
+          AutoTaskOptionsHelper.getAutoOptions(
+              (BasicIteratorTask) this.task, qs, panelId, layout, optMap);
+      if (tOptions != null) {
+        this.task.setTaskOptions(tOptions);
+        // if we use task options on a panel
+        // we automatically set the panel view to be visualization
+        InsightUtility.setPanelForVisualization(this.insight, panelId);
+
+        // we will store this as the last run for this panel
+        // and start to merge in the panel filters that were applied
+        // determine if we are ignoring panel filters
+        boolean ignorePanelFilters = ignorePanelFilters();
+        if (!ignorePanelFilters) {
+          this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions(), task.getFormatter());
+          qs.addPanel(this.insight.getInsightPanel(panelId));
+        }
+      }
+    }
+  }
+
+  private boolean ignorePanelFilters() {
+    GenRowStruct grs = this.store.getNoun(IGNORE_PANEL_FILTERS);
+    if (grs != null && !grs.isEmpty()) {
+      return Boolean.parseBoolean(grs.get(0) + "");
+    }
+
+    List<Object> booleanInputs = curRow.getValuesOfType(PixelDataType.BOOLEAN);
+    if (booleanInputs != null && !booleanInputs.isEmpty()) {
+      return (boolean) booleanInputs.get(0);
+    }
+
+    return false;
+  }
 }

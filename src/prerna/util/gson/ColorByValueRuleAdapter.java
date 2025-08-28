@@ -1,89 +1,114 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.util.gson;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import prerna.om.ColorByValueRule;
 import prerna.query.querystruct.SelectQueryStruct;
 
 public class ColorByValueRuleAdapter extends AbstractSemossTypeAdapter<ColorByValueRule> {
-	
-	private static final Gson SIMPLE_GSON = new Gson();
-	
-	private boolean simple = false;
-	public void setSimple(boolean simple) {
-		this.simple= simple;
-	}
-	
-	@Override
-	public void write(JsonWriter out, ColorByValueRule value) throws IOException {
-		out.beginObject();
 
-		// cbv name
-		out.name("name").value(value.getId());
-		// options
-		if(value.getOptions() != null) {
-			out.name("options");
-			Map<String, Object> options = value.getOptions();
-			TypeAdapter oAdapter = SIMPLE_GSON.getAdapter(options.getClass());
-			oAdapter.write(out, options);
-		}
+  private static final Gson SIMPLE_GSON = new Gson();
 
-		SelectQueryStruct qs = value.getQueryStruct();
-		if(simple) {
-			out.name("filterInfo");
-			List<Map<String, Object>> formattedFilters = qs.getExplicitFilters().getFormatedFilters();
-			TypeAdapter fAdapter = SIMPLE_GSON.getAdapter(formattedFilters.getClass());
-			fAdapter.write(out, formattedFilters);
-			out.name("havingInfo");
-			List<Map<String, Object>> formattedHavings = qs.getHavingFilters().getFormatedFilters();
-			TypeAdapter hAdapter = SIMPLE_GSON.getAdapter(formattedFilters.getClass());
-			hAdapter.write(out, formattedHavings);
-		} else {
-			out.name("qs");
-			// write the QS
-			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
-			adapter.write(out, value.getQueryStruct());
-		}
-		
-		out.endObject();
-	}
+  private boolean simple = false;
 
-	@Override
-	public ColorByValueRule read(JsonReader in) throws IOException {
-		String id = null;
-		Map<String, Object> options = null;
-		SelectQueryStruct qs = null;
-		
-		in.beginObject();
-		while(in.hasNext()) {
-			String name = in.nextName();
-			if(name.equals("name")) {
-				id = in.nextString();
-			} else if(name.equals("options")) {
-				//TODO: adding null point as options isn't required yet on FE
-				if(in.peek() == JsonToken.NULL) {
-					in.nextNull();
-				} else {
-					TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
-					options = (Map<String, Object>) adapter.read(in);
-				}
-			} else if(name.equals("qs")) {
-				SelectQueryStructAdapter qsAdapter = new SelectQueryStructAdapter();
-				qsAdapter.setInsight(this.insight);
-				qs = qsAdapter.read(in);
-			}
-		}
-		in.endObject();
-		
-		return new ColorByValueRule(id, qs, options);
-	}
+  public void setSimple(boolean simple) {
+    this.simple = simple;
+  }
 
+  @Override
+  public void write(JsonWriter out, ColorByValueRule value) throws IOException {
+    out.beginObject();
+
+    // cbv name
+    out.name("name").value(value.getId());
+    // options
+    if (value.getOptions() != null) {
+      out.name("options");
+      Map<String, Object> options = value.getOptions();
+      TypeAdapter oAdapter = SIMPLE_GSON.getAdapter(options.getClass());
+      oAdapter.write(out, options);
+    }
+
+    SelectQueryStruct qs = value.getQueryStruct();
+    if (simple) {
+      out.name("filterInfo");
+      List<Map<String, Object>> formattedFilters = qs.getExplicitFilters().getFormatedFilters();
+      TypeAdapter fAdapter = SIMPLE_GSON.getAdapter(formattedFilters.getClass());
+      fAdapter.write(out, formattedFilters);
+      out.name("havingInfo");
+      List<Map<String, Object>> formattedHavings = qs.getHavingFilters().getFormatedFilters();
+      TypeAdapter hAdapter = SIMPLE_GSON.getAdapter(formattedFilters.getClass());
+      hAdapter.write(out, formattedHavings);
+    } else {
+      out.name("qs");
+      // write the QS
+      SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
+      adapter.write(out, value.getQueryStruct());
+    }
+
+    out.endObject();
+  }
+
+  @Override
+  public ColorByValueRule read(JsonReader in) throws IOException {
+    String id = null;
+    Map<String, Object> options = null;
+    SelectQueryStruct qs = null;
+
+    in.beginObject();
+    while (in.hasNext()) {
+      String name = in.nextName();
+      if (name.equals("name")) {
+        id = in.nextString();
+      } else if (name.equals("options")) {
+        // TODO: adding null point as options isn't required yet on FE
+        if (in.peek() == JsonToken.NULL) {
+          in.nextNull();
+        } else {
+          TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
+          options = (Map<String, Object>) adapter.read(in);
+        }
+      } else if (name.equals("qs")) {
+        SelectQueryStructAdapter qsAdapter = new SelectQueryStructAdapter();
+        qsAdapter.setInsight(this.insight);
+        qs = qsAdapter.read(in);
+      }
+    }
+    in.endObject();
+
+    return new ColorByValueRule(id, qs, options);
+  }
 }

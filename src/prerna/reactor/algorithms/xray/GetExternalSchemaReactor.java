@@ -1,30 +1,58 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.algorithms.xray;
-//package prerna.sablecc2.reactor.algorithms.xray;
+// package prerna.sablecc2.reactor.algorithms.xray;
 //
-//import java.io.IOException;
-//import java.sql.Connection;
-//import java.sql.DatabaseMetaData;
-//import java.sql.ResultSet;
-//import java.sql.SQLException;
-//import java.util.ArrayList;
-//import java.util.HashMap;
+// import java.io.IOException;
+// import java.sql.Connection;
+// import java.sql.DatabaseMetaData;
+// import java.sql.ResultSet;
+// import java.sql.SQLException;
+// import java.util.ArrayList;
+// import java.util.HashMap;
 //
-//import com.fasterxml.jackson.core.JsonGenerationException;
-//import com.fasterxml.jackson.databind.JsonMappingException;
-//import com.fasterxml.jackson.databind.ObjectMapper;
-//import com.fasterxml.jackson.databind.ObjectWriter;
+// import com.fasterxml.jackson.core.JsonGenerationException;
+// import com.fasterxml.jackson.databind.JsonMappingException;
+// import com.fasterxml.jackson.databind.ObjectMapper;
+// import com.fasterxml.jackson.databind.ObjectWriter;
 //
-//import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
-//import prerna.sablecc2.om.PixelDataType;
-//import prerna.sablecc2.om.PixelOperationType;
-//import prerna.sablecc2.om.ReactorKeysEnum;
-//import prerna.sablecc2.om.nounmeta.NounMetadata;
-//import prerna.sablecc2.reactor.AbstractReactor;
+// import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+// import prerna.sablecc2.om.PixelDataType;
+// import prerna.sablecc2.om.PixelOperationType;
+// import prerna.sablecc2.om.ReactorKeysEnum;
+// import prerna.sablecc2.om.nounmeta.NounMetadata;
+// import prerna.sablecc2.reactor.AbstractReactor;
 //
-//public class GetExternalSchemaReactor extends AbstractReactor {
-//	
+// public class GetExternalSchemaReactor extends AbstractReactor {
+//
 //	public GetExternalSchemaReactor() {
-//		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.HOST.getKey(),
+//		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(),
+// ReactorKeysEnum.HOST.getKey(),
 //				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(),
 //				ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.SCHEMA.getKey() };
 //	}
@@ -34,7 +62,8 @@ package prerna.reactor.algorithms.xray;
 //		organizeKeys();
 //		String dbDriver = this.keyValue.get(this.keysToGet[0]);
 //		if(dbDriver == null) {
-//			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DB_DRIVER_KEY.getKey());
+//			throw new IllegalArgumentException("Need to define the " +
+// ReactorKeysEnum.DB_DRIVER_KEY.getKey());
 //		}
 //		String host = this.keyValue.get(this.keysToGet[1]);
 //		if(host == null) {
@@ -56,16 +85,19 @@ package prerna.reactor.algorithms.xray;
 //		if(schema == null) {
 //			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.SCHEMA.getKey());
 //		}
-//		
+//
 //		Connection con = null;
 //		String schemaJSON = "";
 //		NounMetadata noun = null;
 //		try {
-//			con = RdbmsConnectionHelper.buildConnection(dbDriver, host, port, username, password, schema, null);
+//			con = RdbmsConnectionHelper.buildConnection(dbDriver, host, port, username, password, schema,
+// null);
 //			String url = "";
-//			HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>(); // tablename:
+//			HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>();
+// // tablename:
 //			// [colDetails]
-//			HashMap<String, ArrayList<HashMap>> relations = new HashMap<String, ArrayList<HashMap>>(); // sub_table:
+//			HashMap<String, ArrayList<HashMap>> relations = new HashMap<String, ArrayList<HashMap>>(); //
+// sub_table:
 //			// [(obj_table, fromCol, toCol)]
 //
 //			DatabaseMetaData meta = con.getMetaData();
@@ -112,7 +144,8 @@ package prerna.reactor.algorithms.xray;
 //			ret.put("relationships", relations);
 //			ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
 //			schemaJSON = ow.writeValueAsString(ret);
-//			noun = new NounMetadata(schemaJSON, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
+//			noun = new NounMetadata(schemaJSON, PixelDataType.CUSTOM_DATA_STRUCTURE,
+// PixelOperationType.CODE_EXECUTION);
 //
 //			con.close();
 //
@@ -137,4 +170,4 @@ package prerna.reactor.algorithms.xray;
 //		return noun;
 //	}
 //
-//}
+// }

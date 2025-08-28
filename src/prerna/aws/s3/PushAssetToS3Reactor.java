@@ -1,14 +1,33 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.aws.s3;
 
 import static prerna.aws.s3.S3Utils.BUCKET;
-
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
@@ -16,7 +35,11 @@ import com.amazonaws.services.s3.transfer.MultipleFileUpload;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -27,81 +50,83 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-/**
- * Deprecated on March 21st 2025. Please use StorageEngine Directly
- */
+/** Deprecated on March 21st 2025. Please use StorageEngine Directly */
 @Deprecated
 public class PushAssetToS3Reactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(PushAssetToS3Reactor.class);
+  private static final Logger logger = LogManager.getLogger(PushAssetToS3Reactor.class);
 
-	public PushAssetToS3Reactor() {
-		this.keysToGet = S3Utils.addCommonS3Keys(new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), BUCKET});
-	}
+  public PushAssetToS3Reactor() {
+    this.keysToGet =
+        S3Utils.addCommonS3Keys(
+            new String[] {
+              ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), BUCKET
+            });
+  }
 
-	@Override
-	public String getDescriptionForKey(String key) {
-		if(key.equals(BUCKET)) {
-			return "S3 bucket name";
-		} else {
-			String commonDescription = S3Utils.getDescriptionForCommonS3Key(key);
-			if(commonDescription != null) {
-				return commonDescription;
-			}
-		}
-		return super.getDescriptionForKey(key);
-	}
+  @Override
+  public String getDescriptionForKey(String key) {
+    if (key.equals(BUCKET)) {
+      return "S3 bucket name";
+    } else {
+      String commonDescription = S3Utils.getDescriptionForCommonS3Key(key);
+      if (commonDescription != null) {
+        return commonDescription;
+      }
+    }
+    return super.getDescriptionForKey(key);
+  }
 
-	@Override
-	public String getReactorDescription() {
-		return "Upload an asset file to an S3 bucket. Credentials can be set via a profile path/name or with an explicit access key and secret";
-	}
+  @Override
+  public String getReactorDescription() {
+    return "Upload an asset file to an S3 bucket. Credentials can be set via a profile path/name or with an explicit access key and secret";
+  }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		// get base asset folder
-		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
-		String pushPath = assetFolder;
-		// if a specific file is specified for download
-		String relativeAssetPath = keyValue.get(keysToGet[0]);
-		String bucketName = this.keyValue.get(BUCKET);
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    // get base asset folder
+    String space = this.keyValue.get(this.keysToGet[1]);
+    String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
+    String pushPath = assetFolder;
+    // if a specific file is specified for download
+    String relativeAssetPath = keyValue.get(keysToGet[0]);
+    String bucketName = this.keyValue.get(BUCKET);
 
-		AmazonS3 s3Client = S3Utils.getInstance().getS3Client(this.keyValue);
+    AmazonS3 s3Client = S3Utils.getInstance().getS3Client(this.keyValue);
 
-		if (relativeAssetPath != null && relativeAssetPath.length() > 0) {
-			pushPath = assetFolder + DIR_SEPARATOR + relativeAssetPath;
-			Path assetToPush = Paths.get(Utility.normalizePath(pushPath));
-			if (!Files.exists(assetToPush)) {
-				NounMetadata error = NounMetadata.getErrorNounMessage("File does not exist");
-				SemossPixelException exception = new SemossPixelException(error);
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
-			}
+    if (relativeAssetPath != null && relativeAssetPath.length() > 0) {
+      pushPath = assetFolder + DIR_SEPARATOR + relativeAssetPath;
+      Path assetToPush = Paths.get(Utility.normalizePath(pushPath));
+      if (!Files.exists(assetToPush)) {
+        NounMetadata error = NounMetadata.getErrorNounMessage("File does not exist");
+        SemossPixelException exception = new SemossPixelException(error);
+        exception.setContinueThreadOfExecution(false);
+        throw exception;
+      }
 
-			TransferManager xfer_mgr = TransferManagerBuilder.standard().withS3Client(s3Client).build();
-			boolean transferFailure = false;
-			try {
-				if (Files.isDirectory(assetToPush)) {
-					MultipleFileUpload xfer = xfer_mgr.uploadDirectory(bucketName,
-							relativeAssetPath, assetToPush.toFile(), true);
-					xfer.waitForCompletion();
-				} else {
-					Upload xfer = xfer_mgr.upload(bucketName, relativeAssetPath, assetToPush.toFile());
-					xfer.waitForCompletion();
-				}
-			} catch (AmazonClientException | InterruptedException e) {
-				logger.info("Amazon upload failure: " + e.getMessage());
-				logger.error(Constants.STACKTRACE, e);
-				transferFailure = true;
-			}
-			xfer_mgr.shutdownNow();
+      TransferManager xfer_mgr = TransferManagerBuilder.standard().withS3Client(s3Client).build();
+      boolean transferFailure = false;
+      try {
+        if (Files.isDirectory(assetToPush)) {
+          MultipleFileUpload xfer =
+              xfer_mgr.uploadDirectory(bucketName, relativeAssetPath, assetToPush.toFile(), true);
+          xfer.waitForCompletion();
+        } else {
+          Upload xfer = xfer_mgr.upload(bucketName, relativeAssetPath, assetToPush.toFile());
+          xfer.waitForCompletion();
+        }
+      } catch (AmazonClientException | InterruptedException e) {
+        logger.info("Amazon upload failure: " + e.getMessage());
+        logger.error(Constants.STACKTRACE, e);
+        transferFailure = true;
+      }
+      xfer_mgr.shutdownNow();
 
-			if(transferFailure) {
-				return getError("Error occurred during upload");
-			}
-		}
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.SUCCESS);
-	}
+      if (transferFailure) {
+        return getError("Error occurred during upload");
+      }
+    }
+    return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.SUCCESS);
+  }
 }

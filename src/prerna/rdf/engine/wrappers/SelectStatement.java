@@ -29,208 +29,196 @@ package prerna.rdf.engine.wrappers;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 
-public class SelectStatement  implements ISelectStatement {
-	
-	transient public Map propHash = new LinkedHashMap();
-	transient public Map rawPropHash = new LinkedHashMap();
-	String serialRep = null;
+public class SelectStatement implements ISelectStatement {
 
-	public Object getVar(Object var) {
-		Object retVal = propHash.get(var);
-		return retVal;
-	}
+  public transient Map propHash = new LinkedHashMap();
+  public transient Map rawPropHash = new LinkedHashMap();
+  String serialRep = null;
 
-	public Object getRawVar(Object var) {
-		// TODO Auto-generated method stub
-		return rawPropHash.get(var);
-	}
+  public Object getVar(Object var) {
+    Object retVal = propHash.get(var);
+    return retVal;
+  }
 
-	public void setPropHash(Map propHash) {
-		this.propHash = propHash;
-	}
+  public Object getRawVar(Object var) {
+    // TODO Auto-generated method stub
+    return rawPropHash.get(var);
+  }
 
-	public void setRPropHash(Map rawPropHash) {
-		// TODO Auto-generated method stub
-		this.rawPropHash = rawPropHash;
-	}
+  public void setPropHash(Map propHash) {
+    this.propHash = propHash;
+  }
 
-	public Map getPropHash() {
-		// TODO Auto-generated method stub
-		return propHash;
-	}
+  public void setRPropHash(Map rawPropHash) {
+    // TODO Auto-generated method stub
+    this.rawPropHash = rawPropHash;
+  }
 
-	public Map getRPropHash() {
-		// TODO Auto-generated method stub
-		return rawPropHash;
-	}
+  public Map getPropHash() {
+    // TODO Auto-generated method stub
+    return propHash;
+  }
 
-	
-	@Override
-	public void setVar(Object key, Object value) {
-		propHash.put(key, value);
-		
-	}
+  public Map getRPropHash() {
+    // TODO Auto-generated method stub
+    return rawPropHash;
+  }
 
-	@Override
-	public void setRawVar(Object key, Object value) {
-		rawPropHash.put(key, value);		
-	}
+  @Override
+  public void setVar(Object key, Object value) {
+    propHash.put(key, value);
+  }
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((propHash == null) ? 0 : propHash.hashCode());
-		result = prime * result
-				+ ((rawPropHash == null) ? 0 : rawPropHash.hashCode());
-		return result;
-	}
+  @Override
+  public void setRawVar(Object key, Object value) {
+    rawPropHash.put(key, value);
+  }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		SelectStatement other = (SelectStatement) obj;
-		if (propHash == null) {
-			if (other.propHash != null)
-				return false;
-		} else if (!propHash.equals(other.propHash))
-			return false;
-		if (rawPropHash == null) {
-			if (other.rawPropHash != null)
-				return false;
-		} else if (!rawPropHash.equals(other.rawPropHash))
-			return false;
-		return true;
-	}
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((propHash == null) ? 0 : propHash.hashCode());
+    result = prime * result + ((rawPropHash == null) ? 0 : rawPropHash.hashCode());
+    return result;
+  }
 
-	@Override
-	public int getRecordLength() {
-		// TODO Auto-generated method stub
-		return propHash.size();
-	}
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null) return false;
+    if (getClass() != obj.getClass()) return false;
+    SelectStatement other = (SelectStatement) obj;
+    if (propHash == null) {
+      if (other.propHash != null) return false;
+    } else if (!propHash.equals(other.propHash)) return false;
+    if (rawPropHash == null) {
+      if (other.rawPropHash != null) return false;
+    } else if (!rawPropHash.equals(other.rawPropHash)) return false;
+    return true;
+  }
 
-	@Override
-	public String[] getHeaders() {
-		// TODO Auto-generated method stub
-		return (String[]) propHash.keySet().toArray(new String[]{});
-	}
+  @Override
+  public int getRecordLength() {
+    // TODO Auto-generated method stub
+    return propHash.size();
+  }
 
-	@Override
-	public Object[] getValues() {
-		// TODO Auto-generated method stub
-		return propHash.values().toArray();
-	}
-	
-	@Override
-	public Object[] getRawValues() {
-		// TODO Auto-generated method stub
-		return rawPropHash.values().toArray();
-	}
+  @Override
+  public String[] getHeaders() {
+    // TODO Auto-generated method stub
+    return (String[]) propHash.keySet().toArray(new String[] {});
+  }
 
-	@Override
-	public String toRawString() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  @Override
+  public Object[] getValues() {
+    // TODO Auto-generated method stub
+    return propHash.values().toArray();
+  }
 
-	@Override
-	public String toJson() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  @Override
+  public Object[] getRawValues() {
+    // TODO Auto-generated method stub
+    return rawPropHash.values().toArray();
+  }
 
-	@Override
-	public void open() {
-		// TODO Auto-generated method stub
-		
-	}
+  @Override
+  public String toRawString() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-	@Override
-	public void addField(String fieldName, Object value) {
-		// TODO Auto-generated method stub
-		
-	}
+  @Override
+  public String toJson() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-	@Override
-	public Object getField(String fieldName) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  @Override
+  public void open() {
+    // TODO Auto-generated method stub
 
-	@Override
-	public String[] getRawHeaders() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  }
 
-	@Override
-	public void addFields(String[] addHeaders, Object[] addValues) {
-		// TODO Auto-generated method stub
-		
-	}
+  @Override
+  public void addField(String fieldName, Object value) {
+    // TODO Auto-generated method stub
 
-	@Override
-	public IHeadersDataRow copy() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  }
 
-	@Override
-	public void addFields(String addHeader, Object addValues) {
-		// TODO Auto-generated method stub
-		
-	}
+  @Override
+  public Object getField(String fieldName) {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-	@Override
-	public HEADERS_DATA_ROW_TYPE getHeaderType() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  @Override
+  public String[] getRawHeaders() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-	@Override
-	public String getQuery(){
-		return "";
-	}
+  @Override
+  public void addFields(String[] addHeaders, Object[] addValues) {
+    // TODO Auto-generated method stub
 
-	@Override
-	public void setQuery(String query) {
-		// TODO Auto-generated method stub
-		
-	}
+  }
 
-	@Override
-	public Map<String, Object> flushRowToMap() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  @Override
+  public IHeadersDataRow copy() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-//	@Override
-//	public boolean equals(ISelectStatement other){
-//		boolean equal = false;
-//		Hashtable otherRPropHash = other.getRPropHash();
-//		Hashtable compareRPropToHash = this.getPropHash();
-//		Hashtable otherPropHash = other.getRPropHash();
-//		Hashtable comparePropToHash = this.getPropHash();
-//		if(otherRPropHash.equals(compareRPropToHash) && otherPropHash.equals(comparePropToHash)){
-//			equal = true;
-//		} else {
-//			System.out.println("not equal!");
-//		}
-//		return equal;
-//	}
-//	
-//	@Override
-//	public int hashCode(){
-//		return 0;
-//	}
+  @Override
+  public void addFields(String addHeader, Object addValues) {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public HEADERS_DATA_ROW_TYPE getHeaderType() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public String getQuery() {
+    return "";
+  }
+
+  @Override
+  public void setQuery(String query) {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public Map<String, Object> flushRowToMap() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  //	@Override
+  //	public boolean equals(ISelectStatement other){
+  //		boolean equal = false;
+  //		Hashtable otherRPropHash = other.getRPropHash();
+  //		Hashtable compareRPropToHash = this.getPropHash();
+  //		Hashtable otherPropHash = other.getRPropHash();
+  //		Hashtable comparePropToHash = this.getPropHash();
+  //		if(otherRPropHash.equals(compareRPropToHash) && otherPropHash.equals(comparePropToHash)){
+  //			equal = true;
+  //		} else {
+  //			System.out.println("not equal!");
+  //		}
+  //		return equal;
+  //	}
+  //
+  //	@Override
+  //	public int hashCode(){
+  //		return 0;
+  //	}
 }

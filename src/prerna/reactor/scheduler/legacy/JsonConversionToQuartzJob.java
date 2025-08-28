@@ -1,58 +1,87 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.scheduler.legacy;
-//package prerna.sablecc2.reactor.scheduler.legacy;
+// package prerna.sablecc2.reactor.scheduler.legacy;
 //
-//import static org.quartz.JobBuilder.newJob;
+// import static org.quartz.JobBuilder.newJob;
 //
-//import java.io.File;
-//import java.io.FileInputStream;
-//import java.io.FileNotFoundException;
-//import java.io.IOException;
-//import java.io.InputStream;
-//import java.io.InputStreamReader;
-//import java.io.UnsupportedEncodingException;
-//import java.sql.Connection;
-//import java.sql.DriverManager;
-//import java.sql.SQLException;
-//import java.util.ArrayList;
-//import java.util.Properties;
-//import java.util.UUID;
+// import java.io.File;
+// import java.io.FileInputStream;
+// import java.io.FileNotFoundException;
+// import java.io.IOException;
+// import java.io.InputStream;
+// import java.io.InputStreamReader;
+// import java.io.UnsupportedEncodingException;
+// import java.sql.Connection;
+// import java.sql.DriverManager;
+// import java.sql.SQLException;
+// import java.util.ArrayList;
+// import java.util.Properties;
+// import java.util.UUID;
 //
-//import org.apache.commons.io.FilenameUtils;
-//import org.apache.logging.log4j.LogManager;
-//import org.apache.logging.log4j.Logger;
-//import org.h2.tools.Server;
-//import org.quartz.CronScheduleBuilder;
-//import org.quartz.Job;
-//import org.quartz.JobDetail;
-//import org.quartz.JobKey;
-//import org.quartz.Scheduler;
-//import org.quartz.SchedulerException;
-//import org.quartz.Trigger;
-//import org.quartz.TriggerBuilder;
-//import org.quartz.impl.StdSchedulerFactory;
+// import org.apache.commons.io.FilenameUtils;
+// import org.apache.logging.log4j.LogManager;
+// import org.apache.logging.log4j.Logger;
+// import org.h2.tools.Server;
+// import org.quartz.CronScheduleBuilder;
+// import org.quartz.Job;
+// import org.quartz.JobDetail;
+// import org.quartz.JobKey;
+// import org.quartz.Scheduler;
+// import org.quartz.SchedulerException;
+// import org.quartz.Trigger;
+// import org.quartz.TriggerBuilder;
+// import org.quartz.impl.StdSchedulerFactory;
 //
-//import com.google.gson.Gson;
-//import com.google.gson.JsonElement;
-//import com.google.gson.JsonIOException;
-//import com.google.gson.JsonParser;
-//import com.google.gson.JsonSyntaxException;
+// import com.google.gson.Gson;
+// import com.google.gson.JsonElement;
+// import com.google.gson.JsonIOException;
+// import com.google.gson.JsonParser;
+// import com.google.gson.JsonSyntaxException;
 //
-//import prerna.sablecc2.reactor.scheduler.SchedulerDatabaseUtility;
-//import prerna.sablecc2.reactor.scheduler.SchedulerFactorySingleton;
-//import prerna.util.Constants;
-//import prerna.util.DIHelper;
-//import prerna.util.Utility;
+// import prerna.sablecc2.reactor.scheduler.SchedulerDatabaseUtility;
+// import prerna.sablecc2.reactor.scheduler.SchedulerFactorySingleton;
+// import prerna.util.Constants;
+// import prerna.util.DIHelper;
+// import prerna.util.Utility;
 //
-//@Deprecated
-//public class JsonConversionToQuartzJob {
+// @Deprecated
+// public class JsonConversionToQuartzJob {
 //
 //	private static final Logger logger = LogManager.getLogger(JsonConversionToQuartzJob.class);
 //
 //	private static final String MY_DIRECTORY_PATH = "C:\\workspace\\Semoss_Dev\\rpa\\json";
 //	private static final String QUARTZ_CONFIGURATION_FILE = "quartz.properties";
-//	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+//	private static final String DIR_SEPARATOR =
+// java.nio.file.FileSystems.getDefault().getSeparator();
 //	private static final String JDBC_DRIVER = "org.h2.Driver";
-//	private static final String CONNECTION_URL = "jdbc:h2:nio:C:/workspace/Semoss_Dev/db/scheduler/db";
+//	private static final String CONNECTION_URL =
+// "jdbc:h2:nio:C:/workspace/Semoss_Dev/db/scheduler/db";
 //	private static final String JOB_QUALIFIED_NAME = "prerna.rpa.quartz.jobs.insight.";
 //
 //	private static String serverUrl = null;
@@ -112,11 +141,12 @@ package prerna.reactor.scheduler.legacy;
 //
 //		return serverUrl;
 //	}
-//	
+//
 //	public static void runUpdateFromLegacyFormat() {
 //		scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 //
-//		File directory = new File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/rpa/json");
+//		File directory = new File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) +
+// "/rpa/json");
 //		if(directory.exists()) {
 //			File[] directoryFileList = directory.listFiles();
 //			if (directoryFileList != null && directoryFileList.length > 0) {
@@ -124,7 +154,7 @@ package prerna.reactor.scheduler.legacy;
 //					if(FilenameUtils.getExtension(child.getAbsolutePath()).equals("json")) {
 //						Gson gson = new Gson();
 //						JsonParser jsonParser = new JsonParser();
-//		
+//
 //						JsonElement jsonObject = null;
 //						InputStreamReader is = null;
 //						FileInputStream fs = null;
@@ -132,7 +162,8 @@ package prerna.reactor.scheduler.legacy;
 //							fs = new FileInputStream(child);
 //							is = new InputStreamReader(fs, "UTF-8");
 //							jsonObject = jsonParser.parse(is);
-//						} catch (JsonIOException | JsonSyntaxException | UnsupportedEncodingException | FileNotFoundException se) {
+//						} catch (JsonIOException | JsonSyntaxException | UnsupportedEncodingException |
+// FileNotFoundException se) {
 //							logger.error(Constants.STACKTRACE, se);
 //						} finally {
 //							if(is != null) {
@@ -150,12 +181,13 @@ package prerna.reactor.scheduler.legacy;
 //								}
 //							}
 //						}
-//						
+//
 //						OldJobs oldJobs = gson.fromJson(jsonObject, OldJobs.class);
 //						try {
 //							convertJob(oldJobs);
 //							// renmae the file to loaded
-//							File loadedF = new File(directory.getAbsolutePath() + "/" + FilenameUtils.getBaseName(child.getAbsolutePath()) + ".json_loaded");
+//							File loadedF = new File(directory.getAbsolutePath() + "/" +
+// FilenameUtils.getBaseName(child.getAbsolutePath()) + ".json_loaded");
 //							boolean worked = child.renameTo(loadedF);
 //						} catch(Exception e) {
 //							logger.error(Constants.STACKTRACE, e);
@@ -199,17 +231,20 @@ package prerna.reactor.scheduler.legacy;
 //		try {
 //			if (scheduler.checkExists(jobKey)) {
 //				logger.error("job" + Utility.cleanLogString(jobKey.toString()) + "already exists");
-//				throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
+//				throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + "
+// already exists");
 //			}
 //
 //			// Schedule the job
 //			JobDetail job = newJob(jobClass).withIdentity(jobId, jobGroup).storeDurably().build();
-//			Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId+ "Trigger", jobGroup + "TriggerGroup")
+//			Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId+ "Trigger", jobGroup +
+// "TriggerGroup")
 //					.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
 //
 //			// insert into SMSS_JOB_RECIPES table
 //			// THERE WAS NO POSSIBILITY OF RUNNING OLD JOBS WITH RECIPE PARAMETERS
-//			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userAccess, jobId, jobName, jobGroup, cronExpression, pixel, null, "Default", triggerOnLoad, parameters, new ArrayList<String>());
+//			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userAccess, jobId, jobName, jobGroup,
+// cronExpression, pixel, null, "Default", triggerOnLoad, parameters, new ArrayList<String>());
 //
 //			if (active) {
 //				scheduler.scheduleJob(job, trigger);
@@ -270,4 +305,4 @@ package prerna.reactor.scheduler.legacy;
 //		return connection;
 //	}
 //
-//}
+// }

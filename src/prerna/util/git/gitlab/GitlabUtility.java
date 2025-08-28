@@ -1,212 +1,264 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.util.git.gitlab;
 
+import com.google.gson.Gson;
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GitlabUtility {
 
-	private static final Logger classLogger = LogManager.getLogger(GitlabUtility.class);
+  private static final Logger classLogger = LogManager.getLogger(GitlabUtility.class);
 
-	/**
-	 * 
-	 * @param host
-	 * @param gitProjectId
-	 * @param personalOAuthToken
-	 * @param privateToken
-	 * @param scope
-	 * @param useApplicationCert
-	 * @return
-	 */
-	public static List<Map<String, Object>> getGitlabJobs(String host, String gitProjectId, String personalOAuthToken, String privateToken, String scope, boolean useApplicationCert) {
-		String url = host;
-		if(url.endsWith("/")) {
-			url += "api/v4/projects/"+gitProjectId+"/jobs";
-		} else {
-			url += "/api/v4/projects/"+gitProjectId+"/jobs";
-		}
-		if(scope != null && !scope.isEmpty()) {
-			url += "?scope[]="+scope;
-		}
-		
-		String keyStore = null;
-		String keyStorePass = null;
-		String keyPass = null;
-		if(useApplicationCert) {
-			keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
-			keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-			keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
-		}
-		
-		Map<String, String> headersMap = new HashMap<>();
-		if(personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
-			headersMap.put("Authorization: Bearer", personalOAuthToken);
-		} else if(privateToken != null && !privateToken.isEmpty()) {
-			headersMap.put("PRIVATE-TOKEN", privateToken);
-		}
-		
-		String responseData = HttpHelperUtility.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
-		Gson gson = new Gson();
-        return gson.fromJson(responseData, List.class);
-	}
-	
-	/**
-	 * 
-	 * @param host
-	 * @param gitProjectId
-	 * @param personalOAuthToken
-	 * @param privateToken
-	 * @param useApplicationCert
-	 * @return
-	 */
-	public static List<Map<String, Object>> getGitlabBranches(String host, String gitProjectId, String personalOAuthToken, String privateToken, boolean useApplicationCert) {
-		String url = host;
-		if(url.endsWith("/")) {
-			url += "api/v4/projects/"+gitProjectId+"/repository/branches";
-		} else {
-			url += "/api/v4/projects/"+gitProjectId+"/repository/branches";
-		}
-		
-		String keyStore = null;
-		String keyStorePass = null;
-		String keyPass = null;
-		if(useApplicationCert) {
-			keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
-			keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-			keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
-		}
-		
-		Map<String, String> headersMap = new HashMap<>();
-		if(personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
-			headersMap.put("Authorization: Bearer", personalOAuthToken);
-		} else if(privateToken != null && !privateToken.isEmpty()) {
-			headersMap.put("PRIVATE-TOKEN", privateToken);
-		}
-		
-		String responseData = HttpHelperUtility.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
-		Gson gson = new Gson();
-        return gson.fromJson(responseData, List.class);
-	}
-	
-	/**
-	 * 
-	 * @param host
-	 * @param gitProjectId
-	 * @param jobId
-	 * @param personalOAuthToken
-	 * @param privateToken
-	 * @param useApplicationCert
-	 * @param saveFilePath
-	 * @param saveFileName
-	 * @return
-	 */
-	public static File pullJobArtifact(String host, String gitProjectId, String jobId, String personalOAuthToken, String privateToken, boolean useApplicationCert, String saveFilePath, String saveFileName) {
-		String url = host;
-		if(url.endsWith("/")) {
-			url += "api/v4/projects/"+gitProjectId+"/jobs/"+jobId+"/artifacts";
-		} else {
-			url += "/api/v4/projects/"+gitProjectId+"/jobs/"+jobId+"/artifacts";
-		}
-		
-		String keyStore = null;
-		String keyStorePass = null;
-		String keyPass = null;
-		if(useApplicationCert) {
-			keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
-			keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-			keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
-		}
-		
-		Map<String, String> headersMap = new HashMap<>();
-		if(personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
-			headersMap.put("Authorization: Bearer", personalOAuthToken);
-		} else if(privateToken != null && !privateToken.isEmpty()) {
-			headersMap.put("PRIVATE-TOKEN", privateToken);
-		}
+  /**
+   * @param host
+   * @param gitProjectId
+   * @param personalOAuthToken
+   * @param privateToken
+   * @param scope
+   * @param useApplicationCert
+   * @return
+   */
+  public static List<Map<String, Object>> getGitlabJobs(
+      String host,
+      String gitProjectId,
+      String personalOAuthToken,
+      String privateToken,
+      String scope,
+      boolean useApplicationCert) {
+    String url = host;
+    if (url.endsWith("/")) {
+      url += "api/v4/projects/" + gitProjectId + "/jobs";
+    } else {
+      url += "/api/v4/projects/" + gitProjectId + "/jobs";
+    }
+    if (scope != null && !scope.isEmpty()) {
+      url += "?scope[]=" + scope;
+    }
 
-		if(saveFileName == null || saveFileName.isEmpty()) {
-			saveFileName = "artifact.zip";
-		}
-		
-		File artifact = HttpHelperUtility.getRequestFileDownload(url, headersMap, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
-		return artifact;
-	}
-	
-	/**
-	 * 
-	 * @param host
-	 * @param gitProjectId
-	 * @param branch
-	 * @param jobName
-	 * @param personalOAuthToken
-	 * @param privateToken
-	 * @param useApplicationCert
-	 * @param saveFilePath
-	 * @param saveFileName
-	 * @return
-	 */
-	public static File pullLastSuccessfulJobArtifact(String host, String gitProjectId, String branch, String jobName, String personalOAuthToken, String privateToken, boolean useApplicationCert, String saveFilePath, String saveFileName) {
-		if(branch == null || (branch=branch.trim()).isEmpty()) {
-			throw new NullPointerException("Must provide the branch name");
-		}
-		if(jobName == null || (jobName=jobName.trim()).isEmpty()) {
-			throw new NullPointerException("Must provide the job name");
-		}
-		String url = host;
-		if(url.endsWith("/")) {
-			url += "api/v4/projects/"+gitProjectId+"/jobs/artifacts/"+branch+"/download?job="+jobName;
-		} else {
-			url += "/api/v4/projects/"+gitProjectId+"/jobs/artifacts/"+branch+"/download?job="+jobName;
-		}
-		
-		String keyStore = null;
-		String keyStorePass = null;
-		String keyPass = null;
-		if(useApplicationCert) {
-			keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
-			keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-			keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
-		}
-		
-		Map<String, String> headersMap = new HashMap<>();
-		if(personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
-			headersMap.put("Authorization: Bearer", personalOAuthToken);
-		} else if(privateToken != null && !privateToken.isEmpty()) {
-			headersMap.put("PRIVATE-TOKEN", privateToken);
-		}
+    String keyStore = null;
+    String keyStorePass = null;
+    String keyPass = null;
+    if (useApplicationCert) {
+      keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
+      keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+      keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+    }
 
-		if(saveFileName == null || saveFileName.isEmpty()) {
-			saveFileName = "artifact.zip";
-		}
-		
-		File artifact = HttpHelperUtility.getRequestFileDownload(url, headersMap, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
-		return artifact;
-	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	/**
-	 * 
-	 */
-	private GitlabUtility() {
-		
-	}
-	
+    Map<String, String> headersMap = new HashMap<>();
+    if (personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
+      headersMap.put("Authorization: Bearer", personalOAuthToken);
+    } else if (privateToken != null && !privateToken.isEmpty()) {
+      headersMap.put("PRIVATE-TOKEN", privateToken);
+    }
+
+    String responseData =
+        HttpHelperUtility.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
+    Gson gson = new Gson();
+    return gson.fromJson(responseData, List.class);
+  }
+
+  /**
+   * @param host
+   * @param gitProjectId
+   * @param personalOAuthToken
+   * @param privateToken
+   * @param useApplicationCert
+   * @return
+   */
+  public static List<Map<String, Object>> getGitlabBranches(
+      String host,
+      String gitProjectId,
+      String personalOAuthToken,
+      String privateToken,
+      boolean useApplicationCert) {
+    String url = host;
+    if (url.endsWith("/")) {
+      url += "api/v4/projects/" + gitProjectId + "/repository/branches";
+    } else {
+      url += "/api/v4/projects/" + gitProjectId + "/repository/branches";
+    }
+
+    String keyStore = null;
+    String keyStorePass = null;
+    String keyPass = null;
+    if (useApplicationCert) {
+      keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
+      keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+      keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+    }
+
+    Map<String, String> headersMap = new HashMap<>();
+    if (personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
+      headersMap.put("Authorization: Bearer", personalOAuthToken);
+    } else if (privateToken != null && !privateToken.isEmpty()) {
+      headersMap.put("PRIVATE-TOKEN", privateToken);
+    }
+
+    String responseData =
+        HttpHelperUtility.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
+    Gson gson = new Gson();
+    return gson.fromJson(responseData, List.class);
+  }
+
+  /**
+   * @param host
+   * @param gitProjectId
+   * @param jobId
+   * @param personalOAuthToken
+   * @param privateToken
+   * @param useApplicationCert
+   * @param saveFilePath
+   * @param saveFileName
+   * @return
+   */
+  public static File pullJobArtifact(
+      String host,
+      String gitProjectId,
+      String jobId,
+      String personalOAuthToken,
+      String privateToken,
+      boolean useApplicationCert,
+      String saveFilePath,
+      String saveFileName) {
+    String url = host;
+    if (url.endsWith("/")) {
+      url += "api/v4/projects/" + gitProjectId + "/jobs/" + jobId + "/artifacts";
+    } else {
+      url += "/api/v4/projects/" + gitProjectId + "/jobs/" + jobId + "/artifacts";
+    }
+
+    String keyStore = null;
+    String keyStorePass = null;
+    String keyPass = null;
+    if (useApplicationCert) {
+      keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
+      keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+      keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+    }
+
+    Map<String, String> headersMap = new HashMap<>();
+    if (personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
+      headersMap.put("Authorization: Bearer", personalOAuthToken);
+    } else if (privateToken != null && !privateToken.isEmpty()) {
+      headersMap.put("PRIVATE-TOKEN", privateToken);
+    }
+
+    if (saveFileName == null || saveFileName.isEmpty()) {
+      saveFileName = "artifact.zip";
+    }
+
+    File artifact =
+        HttpHelperUtility.getRequestFileDownload(
+            url, headersMap, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
+    return artifact;
+  }
+
+  /**
+   * @param host
+   * @param gitProjectId
+   * @param branch
+   * @param jobName
+   * @param personalOAuthToken
+   * @param privateToken
+   * @param useApplicationCert
+   * @param saveFilePath
+   * @param saveFileName
+   * @return
+   */
+  public static File pullLastSuccessfulJobArtifact(
+      String host,
+      String gitProjectId,
+      String branch,
+      String jobName,
+      String personalOAuthToken,
+      String privateToken,
+      boolean useApplicationCert,
+      String saveFilePath,
+      String saveFileName) {
+    if (branch == null || (branch = branch.trim()).isEmpty()) {
+      throw new NullPointerException("Must provide the branch name");
+    }
+    if (jobName == null || (jobName = jobName.trim()).isEmpty()) {
+      throw new NullPointerException("Must provide the job name");
+    }
+    String url = host;
+    if (url.endsWith("/")) {
+      url +=
+          "api/v4/projects/"
+              + gitProjectId
+              + "/jobs/artifacts/"
+              + branch
+              + "/download?job="
+              + jobName;
+    } else {
+      url +=
+          "/api/v4/projects/"
+              + gitProjectId
+              + "/jobs/artifacts/"
+              + branch
+              + "/download?job="
+              + jobName;
+    }
+
+    String keyStore = null;
+    String keyStorePass = null;
+    String keyPass = null;
+    if (useApplicationCert) {
+      keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
+      keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+      keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+    }
+
+    Map<String, String> headersMap = new HashMap<>();
+    if (personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
+      headersMap.put("Authorization: Bearer", personalOAuthToken);
+    } else if (privateToken != null && !privateToken.isEmpty()) {
+      headersMap.put("PRIVATE-TOKEN", privateToken);
+    }
+
+    if (saveFileName == null || saveFileName.isEmpty()) {
+      saveFileName = "artifact.zip";
+    }
+
+    File artifact =
+        HttpHelperUtility.getRequestFileDownload(
+            url, headersMap, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
+    return artifact;
+  }
+
+  /** */
+  private GitlabUtility() {}
 }

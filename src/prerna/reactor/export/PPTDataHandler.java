@@ -1,222 +1,244 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.export;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.poi.xddf.usermodel.chart.XDDFDataSource;
 import org.apache.poi.xddf.usermodel.chart.XDDFDataSourcesFactory;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.task.ITask;
 
 public class PPTDataHandler {
-	
-	private Map<String, List<Object>> dataMap = new HashMap<String, List<Object>>();
-	private String[] headers = null;
-	private SemossDataType[] typesArr = null;
 
-	public void setData(ITask task) {
-		int i = 0;
-		int size = 0;
+  private Map<String, List<Object>> dataMap = new HashMap<String, List<Object>>();
+  private String[] headers = null;
+  private SemossDataType[] typesArr = null;
 
-		// Grab headers
-		if (task.hasNext()) {
-			IHeadersDataRow row = task.next();
-			List<Map<String, Object>> headerInfo = task.getHeaderInfo();
+  public void setData(ITask task) {
+    int i = 0;
+    int size = 0;
 
-			// generate the header row
-			// and define constants used throughout like size, and types
-			i = 0;
-			this.headers = row.getHeaders();
-			size = this.headers.length;
+    // Grab headers
+    if (task.hasNext()) {
+      IHeadersDataRow row = task.next();
+      List<Map<String, Object>> headerInfo = task.getHeaderInfo();
 
-			this.typesArr = new SemossDataType[size];
-			for (; i < size; i++) {
-				this.typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
-			}
+      // generate the header row
+      // and define constants used throughout like size, and types
+      i = 0;
+      this.headers = row.getHeaders();
+      size = this.headers.length;
 
-			Object[] dataRow = row.getValues();
-			for (i = 0; i < size; i++) {
-				List<Object> data = new ArrayList<Object>();
-				String header = this.headers[i];
+      this.typesArr = new SemossDataType[size];
+      for (; i < size; i++) {
+        this.typesArr[i] =
+            SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
+      }
 
-				Object value = dataRow[i];
-				if (value == null) {
-					data.add("");
-				} else {
-					if (typesArr[i] == SemossDataType.STRING) {
-						data.add(value);
-					} else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
-						data.add(((Number) value).doubleValue());
-					} else if (typesArr[i] == SemossDataType.DATE) {
-						if(value instanceof SemossDate) {
-							data.add( ((SemossDate) value).getDate() ) ;
-						} else {
-							data.add(value + "");
-						}
-					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
-						if(value instanceof SemossDate) {
-							data.add( ((SemossDate) value).getDate() ) ;
-						} else {
-							data.add(value + "");
-						}
-					} else if (typesArr[i] == SemossDataType.BOOLEAN) {
-						data.add(Boolean.toString((boolean) value));
-					} else {
-						data.add(value + "");
-					}
-				}
+      Object[] dataRow = row.getValues();
+      for (i = 0; i < size; i++) {
+        List<Object> data = new ArrayList<Object>();
+        String header = this.headers[i];
 
-				this.dataMap.put(header, data);
-			}
-		}
+        Object value = dataRow[i];
+        if (value == null) {
+          data.add("");
+        } else {
+          if (typesArr[i] == SemossDataType.STRING) {
+            data.add(value);
+          } else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
+            data.add(((Number) value).doubleValue());
+          } else if (typesArr[i] == SemossDataType.DATE) {
+            if (value instanceof SemossDate) {
+              data.add(((SemossDate) value).getDate());
+            } else {
+              data.add(value + "");
+            }
+          } else if (typesArr[i] == SemossDataType.TIMESTAMP) {
+            if (value instanceof SemossDate) {
+              data.add(((SemossDate) value).getDate());
+            } else {
+              data.add(value + "");
+            }
+          } else if (typesArr[i] == SemossDataType.BOOLEAN) {
+            data.add(Boolean.toString((boolean) value));
+          } else {
+            data.add(value + "");
+          }
+        }
 
-		// now iterate through all the data
-		while (task.hasNext()) {
-			IHeadersDataRow row = task.next();
-			Object[] dataRow = row.getValues();
+        this.dataMap.put(header, data);
+      }
+    }
 
-			for (i = 0; i < size; i++) {
-				String header = headers[i];
-				List<Object> data = this.dataMap.get(header);
+    // now iterate through all the data
+    while (task.hasNext()) {
+      IHeadersDataRow row = task.next();
+      Object[] dataRow = row.getValues();
 
-				Object value = dataRow[i];
-				if (value == null) {
-					data.add("");
-				} else {
-					if (typesArr[i] == SemossDataType.STRING) {
-						data.add(value);
-					} else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
-						data.add(((Number) value).doubleValue());
-					} else if (typesArr[i] == SemossDataType.DATE) {
-						if(value instanceof SemossDate) {
-							data.add( ((SemossDate) value).getDate() ) ;
-						} else {
-							data.add(value + "");
-						}
-					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
-						if(value instanceof SemossDate) {
-							data.add( ((SemossDate) value).getDate() ) ;
-						} else {
-							data.add(value + "");
-						}
-					} else if (typesArr[i] == SemossDataType.BOOLEAN) {
-						data.add(Boolean.toString((boolean) value));
-					} else {
-						data.add(value + "");
-					}
-				}
-			}
-		}
-	}
+      for (i = 0; i < size; i++) {
+        String header = headers[i];
+        List<Object> data = this.dataMap.get(header);
 
-	private String getColumnDataType(String col) {
-		if (!this.dataMap.containsKey(col)) {
-			return null;
-		}
+        Object value = dataRow[i];
+        if (value == null) {
+          data.add("");
+        } else {
+          if (typesArr[i] == SemossDataType.STRING) {
+            data.add(value);
+          } else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
+            data.add(((Number) value).doubleValue());
+          } else if (typesArr[i] == SemossDataType.DATE) {
+            if (value instanceof SemossDate) {
+              data.add(((SemossDate) value).getDate());
+            } else {
+              data.add(value + "");
+            }
+          } else if (typesArr[i] == SemossDataType.TIMESTAMP) {
+            if (value instanceof SemossDate) {
+              data.add(((SemossDate) value).getDate());
+            } else {
+              data.add(value + "");
+            }
+          } else if (typesArr[i] == SemossDataType.BOOLEAN) {
+            data.add(Boolean.toString((boolean) value));
+          } else {
+            data.add(value + "");
+          }
+        }
+      }
+    }
+  }
 
-		List<Object> colAsList = this.dataMap.get(col);
-		if (colAsList.size() == 0) {
-			return null;
-		}
+  private String getColumnDataType(String col) {
+    if (!this.dataMap.containsKey(col)) {
+      return null;
+    }
 
-		Object firstItem = colAsList.get(0);
-		if (firstItem instanceof String) {
-			return "String";
-		} else if (firstItem instanceof Number) {
-			return "Number";
-		}
+    List<Object> colAsList = this.dataMap.get(col);
+    if (colAsList.size() == 0) {
+      return null;
+    }
 
-		return null;
+    Object firstItem = colAsList.get(0);
+    if (firstItem instanceof String) {
+      return "String";
+    } else if (firstItem instanceof Number) {
+      return "Number";
+    }
 
-	}
+    return null;
+  }
 
-	/**
-	 * Return a column as an array of strings (meant for
-	 * XDDFDataSourcesFactory.fromArray())
-	 * 
-	 * @param col
-	 * @return
-	 */
-	public String[] getColumnAsStringArray(String col) {
-		if (!this.dataMap.containsKey(col)) {
-			return null;
-		}
+  /**
+   * Return a column as an array of strings (meant for XDDFDataSourcesFactory.fromArray())
+   *
+   * @param col
+   * @return
+   */
+  public String[] getColumnAsStringArray(String col) {
+    if (!this.dataMap.containsKey(col)) {
+      return null;
+    }
 
-		List<Object> colAsList = this.dataMap.get(col);
-		String[] colAsStringArray = colAsList.toArray(new String[colAsList.size()]);
+    List<Object> colAsList = this.dataMap.get(col);
+    String[] colAsStringArray = colAsList.toArray(new String[colAsList.size()]);
 
-		return colAsStringArray;
-	}
+    return colAsStringArray;
+  }
 
-	/**
-	 * Return a column as an array of numbers (meant for
-	 * XDDFDataSourcesFactory.fromArray())
-	 * 
-	 * @param col
-	 * @return
-	 */
-	public Number[] getColumnAsNumberArray(String col) {
-		if (!this.dataMap.containsKey(col)) {
-			return null;
-		}
+  /**
+   * Return a column as an array of numbers (meant for XDDFDataSourcesFactory.fromArray())
+   *
+   * @param col
+   * @return
+   */
+  public Number[] getColumnAsNumberArray(String col) {
+    if (!this.dataMap.containsKey(col)) {
+      return null;
+    }
 
-		List<Object> colAsList = this.dataMap.get(col);
-		Number[] colAsNumberArray = new Number[colAsList.size()];
-		for (int i = 0; i < colAsList.size(); i++) {
-			if (colAsList.get(i) != null && !"".equals(colAsList.get(i))) {
-				colAsNumberArray[i] = (Number) colAsList.get(i);
-			} else {
-				colAsNumberArray[i] = 0;
-			}
-		}
+    List<Object> colAsList = this.dataMap.get(col);
+    Number[] colAsNumberArray = new Number[colAsList.size()];
+    for (int i = 0; i < colAsList.size(); i++) {
+      if (colAsList.get(i) != null && !"".equals(colAsList.get(i))) {
+        colAsNumberArray[i] = (Number) colAsList.get(i);
+      } else {
+        colAsNumberArray[i] = 0;
+      }
+    }
 
-		return colAsNumberArray;
-	}	
-	
-	/**
-	 * Automatically figure out whether to build XDDFDataSource 
-	 * from String Array or Number Array
-	 * 
-	 * @param col
-	 * @return
-	 */
-	public XDDFDataSource<?> getColumnAsXDDFDataSource(String col) {
-		String colDataType = getColumnDataType(col);
-		if (colDataType.equals("String")) {
-			String[] stringArray = getColumnAsStringArray(col);
-			return XDDFDataSourcesFactory.fromArray(stringArray);
-		} else if (colDataType.equals("Number")) {
-			Number[] numberArray = getColumnAsNumberArray(col);
-			return XDDFDataSourcesFactory.fromArray(numberArray);
-		}
+    return colAsNumberArray;
+  }
 
-		return null;
-	}
+  /**
+   * Automatically figure out whether to build XDDFDataSource from String Array or Number Array
+   *
+   * @param col
+   * @return
+   */
+  public XDDFDataSource<?> getColumnAsXDDFDataSource(String col) {
+    String colDataType = getColumnDataType(col);
+    if (colDataType.equals("String")) {
+      String[] stringArray = getColumnAsStringArray(col);
+      return XDDFDataSourcesFactory.fromArray(stringArray);
+    } else if (colDataType.equals("Number")) {
+      Number[] numberArray = getColumnAsNumberArray(col);
+      return XDDFDataSourcesFactory.fromArray(numberArray);
+    }
 
-	/**
-	 * Getting the correct XDDFDataSource based on the data type of array
-	 * 
-	 * @param col
-	 * @param xAxisIndx
-	 * @return
-	 */
-	public XDDFDataSource<?> getColumnAsXDDFDataSourceByType(String col, int xAxisIndx) {
-		if (this.typesArr[xAxisIndx] == SemossDataType.STRING || 
-				this.typesArr[xAxisIndx] == SemossDataType.DATE || 
-				this.typesArr[xAxisIndx] == SemossDataType.TIMESTAMP) {
-			String[] stringArray = getColumnAsStringArray(col);
-			return XDDFDataSourcesFactory.fromArray(stringArray);
-		} else if (this.typesArr[xAxisIndx] == SemossDataType.INT
-				|| this.typesArr[xAxisIndx] == SemossDataType.DOUBLE) {
-			Number[] numberArray = getColumnAsNumberArray(col);
-			return XDDFDataSourcesFactory.fromArray(numberArray);
-		}
+    return null;
+  }
 
-		return null;
-	}
+  /**
+   * Getting the correct XDDFDataSource based on the data type of array
+   *
+   * @param col
+   * @param xAxisIndx
+   * @return
+   */
+  public XDDFDataSource<?> getColumnAsXDDFDataSourceByType(String col, int xAxisIndx) {
+    if (this.typesArr[xAxisIndx] == SemossDataType.STRING
+        || this.typesArr[xAxisIndx] == SemossDataType.DATE
+        || this.typesArr[xAxisIndx] == SemossDataType.TIMESTAMP) {
+      String[] stringArray = getColumnAsStringArray(col);
+      return XDDFDataSourcesFactory.fromArray(stringArray);
+    } else if (this.typesArr[xAxisIndx] == SemossDataType.INT
+        || this.typesArr[xAxisIndx] == SemossDataType.DOUBLE) {
+      Number[] numberArray = getColumnAsNumberArray(col);
+      return XDDFDataSourcesFactory.fromArray(numberArray);
+    }
+
+    return null;
+  }
 }

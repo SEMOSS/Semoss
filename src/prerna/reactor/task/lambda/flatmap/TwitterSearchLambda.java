@@ -1,139 +1,164 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.task.lambda.flatmap;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.engine.api.IHeadersDataRow;
 import prerna.io.connector.twitter.TwitterSearcher;
 import prerna.om.Viewpoint;
 import prerna.util.Constants;
 
 public class TwitterSearchLambda extends AbstractFlatMapLambda {
-	
-	private static final Logger classLogger = LogManager.getLogger(TwitterSearchLambda.class);
 
-	// col index we care about to get lat/long from
-	private int colIndex;
-	// total number of columns
-	private int totalCols;
-	
-	@Override
-	public List<IHeadersDataRow> process(IHeadersDataRow row) {
-		Object value = row.getValues()[colIndex];
-		if(value == null || value.toString().isEmpty()) {
-			return new Vector<IHeadersDataRow>();
-		}
-		// construct new values to append onto the row
-		// add new headers
-		String[] newHeaders = new String[]{"review", "author", "retweet_count"};
-		
-		Map<String, Object> params = new HashMap<>();
-		params.put("q", value.toString().replace("_", " "));
-		params.put("lang", "en");
-		if(this.params.containsKey("output"))
-			params.put("count", this.params.get("output"));		
-		else
-			params.put("count", "10");
-		
-		if(this.params.containsKey("result_type"))
-			params.put("result_type", this.params.get("result_type"));
-		else
-			params.put("result_type", "mixed");
-		
-		List<IHeadersDataRow> retList = new Vector<IHeadersDataRow>();
-		// add new values
-		try {
-			// loop through the results
-			TwitterSearcher ts = new TwitterSearcher();
-			Object resultObj = ts.execute(this.user, params);
-			if(resultObj instanceof List) {
-				List<Viewpoint> results = (List<Viewpoint>) resultObj;
-				for(int i = 0; i < results.size(); i++) {
-					Viewpoint view = results.get(i);
-					processView(view, newHeaders, row, retList);
-				}
-			} else {
-				Viewpoint view = (Viewpoint) resultObj;
-				processView(view, newHeaders, row, retList);
-			}
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		
-		return retList;
-	}
-	
-	/**
-	 * Process a view point
-	 * @param view
-	 * @param newHeaders
-	 * @param curRow
-	 * @param retList
-	 */
-	private void processView(Viewpoint view, String[] newHeaders, IHeadersDataRow curRow, List<IHeadersDataRow> retList) {
-		Object[] newValues = new Object[3];
-		newValues[0] = view.getReview();
-		if(newValues[0] != null) {
-			newValues[0] = newValues[0].toString()
-					.replace("\n", " *LINE BREAK* ")
-					.replace("\r", " *LINE BREAK* ")
-					.replace("\t", " ")
-					.replace("\"", "");
-		}
-		newValues[1] = view.getAuthorId();
-		newValues[2] = view.getRepeatCount();
-		
-		// copy the row so we dont mess up references
-		IHeadersDataRow rowCopy = curRow.copy();
-		rowCopy.addFields(newHeaders, newValues);
-		retList.add(rowCopy);
-	}
-	
-	
-	@Override
-	public void init(List<Map<String, Object>> headerInfo, List<String> columns) {
-		this.headerInfo = headerInfo;
-		this.totalCols = headerInfo.size();
-		
-		String headerToConvert = columns.get(0);
-		for(int j = 0; j < totalCols; j++) {
-			Map<String, Object> headerMap = headerInfo.get(j);
-			String alias = headerMap.get("alias").toString();
-			if(alias.equals(headerToConvert)) {
-				// we found the index
-				this.colIndex = j;
-			}
-		}
-		
-		// this modifies the header info map by reference
-		Map<String, Object> reviewHeader = getBaseHeader("review", "STRING");
-		this.headerInfo.add(reviewHeader);
-		
-		Map<String, Object> authHeader = getBaseHeader("author", "STRING");
-		this.headerInfo.add(authHeader);
-		
-		Map<String, Object> repeatHeader = getBaseHeader("retweet_count", "NUMBER");
-		this.headerInfo.add(repeatHeader);
-	}
-	
-	/**
-	 * Grab a base header object
-	 * @param name
-	 * @param type
-	 * @return
-	 */
-	private Map<String, Object> getBaseHeader(String name, String type) {
-		Map<String, Object> header = new HashMap<String, Object>();
-		header.put("alias", name);
-		header.put("header", name);
-		header.put("derived", true);
-		header.put("type", type.toUpperCase());
-		return header;
-	}
+  private static final Logger classLogger = LogManager.getLogger(TwitterSearchLambda.class);
 
+  // col index we care about to get lat/long from
+  private int colIndex;
+  // total number of columns
+  private int totalCols;
+
+  @Override
+  public List<IHeadersDataRow> process(IHeadersDataRow row) {
+    Object value = row.getValues()[colIndex];
+    if (value == null || value.toString().isEmpty()) {
+      return new Vector<IHeadersDataRow>();
+    }
+    // construct new values to append onto the row
+    // add new headers
+    String[] newHeaders = new String[] {"review", "author", "retweet_count"};
+
+    Map<String, Object> params = new HashMap<>();
+    params.put("q", value.toString().replace("_", " "));
+    params.put("lang", "en");
+    if (this.params.containsKey("output")) params.put("count", this.params.get("output"));
+    else params.put("count", "10");
+
+    if (this.params.containsKey("result_type"))
+      params.put("result_type", this.params.get("result_type"));
+    else params.put("result_type", "mixed");
+
+    List<IHeadersDataRow> retList = new Vector<IHeadersDataRow>();
+    // add new values
+    try {
+      // loop through the results
+      TwitterSearcher ts = new TwitterSearcher();
+      Object resultObj = ts.execute(this.user, params);
+      if (resultObj instanceof List) {
+        List<Viewpoint> results = (List<Viewpoint>) resultObj;
+        for (int i = 0; i < results.size(); i++) {
+          Viewpoint view = results.get(i);
+          processView(view, newHeaders, row, retList);
+        }
+      } else {
+        Viewpoint view = (Viewpoint) resultObj;
+        processView(view, newHeaders, row, retList);
+      }
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+
+    return retList;
+  }
+
+  /**
+   * Process a view point
+   *
+   * @param view
+   * @param newHeaders
+   * @param curRow
+   * @param retList
+   */
+  private void processView(
+      Viewpoint view, String[] newHeaders, IHeadersDataRow curRow, List<IHeadersDataRow> retList) {
+    Object[] newValues = new Object[3];
+    newValues[0] = view.getReview();
+    if (newValues[0] != null) {
+      newValues[0] =
+          newValues[0]
+              .toString()
+              .replace("\n", " *LINE BREAK* ")
+              .replace("\r", " *LINE BREAK* ")
+              .replace("\t", " ")
+              .replace("\"", "");
+    }
+    newValues[1] = view.getAuthorId();
+    newValues[2] = view.getRepeatCount();
+
+    // copy the row so we dont mess up references
+    IHeadersDataRow rowCopy = curRow.copy();
+    rowCopy.addFields(newHeaders, newValues);
+    retList.add(rowCopy);
+  }
+
+  @Override
+  public void init(List<Map<String, Object>> headerInfo, List<String> columns) {
+    this.headerInfo = headerInfo;
+    this.totalCols = headerInfo.size();
+
+    String headerToConvert = columns.get(0);
+    for (int j = 0; j < totalCols; j++) {
+      Map<String, Object> headerMap = headerInfo.get(j);
+      String alias = headerMap.get("alias").toString();
+      if (alias.equals(headerToConvert)) {
+        // we found the index
+        this.colIndex = j;
+      }
+    }
+
+    // this modifies the header info map by reference
+    Map<String, Object> reviewHeader = getBaseHeader("review", "STRING");
+    this.headerInfo.add(reviewHeader);
+
+    Map<String, Object> authHeader = getBaseHeader("author", "STRING");
+    this.headerInfo.add(authHeader);
+
+    Map<String, Object> repeatHeader = getBaseHeader("retweet_count", "NUMBER");
+    this.headerInfo.add(repeatHeader);
+  }
+
+  /**
+   * Grab a base header object
+   *
+   * @param name
+   * @param type
+   * @return
+   */
+  private Map<String, Object> getBaseHeader(String name, String type) {
+    Map<String, Object> header = new HashMap<String, Object>();
+    header.put("alias", name);
+    header.put("header", name);
+    header.put("derived", true);
+    header.put("type", type.toUpperCase());
+    return header;
+  }
 }

@@ -1,9 +1,35 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.graph.r;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.engine.impl.tinker.iGraphUtilities;
@@ -13,93 +39,94 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class ClusterGraphReactor extends AbstractRFrameReactor {
 
-	private static final String CLASS_NAME = ClusterGraphReactor.class.getName();
+  private static final String CLASS_NAME = ClusterGraphReactor.class.getName();
 
-	/**
-	 * Example input for routine
-	 * 
-	 * previous method from AbstractBaseRClass -> Reactor input
-	 * walk info 	-> 	cluster_walktrap
-	 * cluster info -> 	clus
-	 */
-	
-	public ClusterGraphReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ROUTINE.getKey()};
-	}
+  /**
+   * Example input for routine
+   *
+   * <p>previous method from AbstractBaseRClass -> Reactor input walk info -> cluster_walktrap
+   * cluster info -> clus
+   */
+  public ClusterGraphReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.ROUTINE.getKey()};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		init();
-		organizeKeys();
-		String[] packages = new String[] {"igraph"};
-		this.rJavaTranslator.checkPackages(packages);
-		this.rJavaTranslator.executeEmptyR("library(igraph)");
-		Logger logger = getLogger(CLASS_NAME);
-		String routine = this.keyValue.get(this.keysToGet[0]);
+  @Override
+  public NounMetadata execute() {
+    init();
+    organizeKeys();
+    String[] packages = new String[] {"igraph"};
+    this.rJavaTranslator.checkPackages(packages);
+    this.rJavaTranslator.executeEmptyR("library(igraph)");
+    Logger logger = getLogger(CLASS_NAME);
+    String routine = this.keyValue.get(this.keysToGet[0]);
 
-		ITableDataFrame frame = getFrame();
-		if(!(frame instanceof TinkerFrame)) {
-			throw new IllegalArgumentException("Frame must be a graph frame type");
-		}
-		TinkerFrame graph = (TinkerFrame) frame;
-		if(!graph.isIGraphSynched()) {
-			AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(CLASS_NAME);
-			String wd = this.insight.getInsightFolder();
-			iGraphUtilities.synchronizeGraphToR(graph, rJavaTranslator, graph.getName(), wd, logger);
-		}
-		String graphName = graph.getName();
-		
-		try {
-			logger.info("Determining graph clusters...");
-			String clusterName = "clus" + Utility.getRandomString(8);
-			// run iGraph routine
-			if (routine.toLowerCase().equals("clusters")) {
-				this.rJavaTranslator.executeEmptyR(clusterName + " <- " + routine + "(" + graphName + ")");
-			} else if (routine.toLowerCase().equals("cluster_walktrap")) {
-				this.rJavaTranslator.executeEmptyR(clusterName + " <- " + routine + "(" + graphName + ", membership=TRUE)");
-			} else {
-				throw new IllegalArgumentException("Invalid igraph routine");
-			}
+    ITableDataFrame frame = getFrame();
+    if (!(frame instanceof TinkerFrame)) {
+      throw new IllegalArgumentException("Frame must be a graph frame type");
+    }
+    TinkerFrame graph = (TinkerFrame) frame;
+    if (!graph.isIGraphSynched()) {
+      AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(CLASS_NAME);
+      String wd = this.insight.getInsightFolder();
+      iGraphUtilities.synchronizeGraphToR(graph, rJavaTranslator, graph.getName(), wd, logger);
+    }
+    String graphName = graph.getName();
 
-			logger.info("Done calculating graph clusters...");
-			colorClusters(graph, graphName, clusterName);
-			// clean up temp variable
-			this.rJavaTranslator.executeEmptyR("rm(" + clusterName + ")");
-			return new NounMetadata(graph, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
-		}
+    try {
+      logger.info("Determining graph clusters...");
+      String clusterName = "clus" + Utility.getRandomString(8);
+      // run iGraph routine
+      if (routine.toLowerCase().equals("clusters")) {
+        this.rJavaTranslator.executeEmptyR(clusterName + " <- " + routine + "(" + graphName + ")");
+      } else if (routine.toLowerCase().equals("cluster_walktrap")) {
+        this.rJavaTranslator.executeEmptyR(
+            clusterName + " <- " + routine + "(" + graphName + ", membership=TRUE)");
+      } else {
+        throw new IllegalArgumentException("Invalid igraph routine");
+      }
 
-		throw new IllegalArgumentException("Unable to cluster graph");
-	}
+      logger.info("Done calculating graph clusters...");
+      colorClusters(graph, graphName, clusterName);
+      // clean up temp variable
+      this.rJavaTranslator.executeEmptyR("rm(" + clusterName + ")");
+      return new NounMetadata(graph, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+    } catch (Exception ex) {
+      logger.error(Constants.STACKTRACE, ex);
+    }
 
-	private void colorClusters(TinkerFrame graph, String graphName, String clusterName) {
-		Logger logger = getLogger(CLASS_NAME);
+    throw new IllegalArgumentException("Unable to cluster graph");
+  }
 
-		logger.info("Synchronizing graph clusters into frame...");
-		double[] memberships = this.rJavaTranslator.getDoubleArray(clusterName + "$membership");
-		String[] IDs = this.rJavaTranslator
-				.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
-		for (int memIndex = 0; memIndex < memberships.length; memIndex++) {
-			String thisID = IDs[memIndex];
-			Vertex retVertex = null;
-			GraphTraversal<Vertex, Vertex> gt = graph.g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
-			if (gt.hasNext()) {
-				retVertex = gt.next();
-			}
-			if (retVertex != null) {
-				retVertex.property("CLUSTER", memberships[memIndex]);
-			}
-			if (memIndex % 100 == 0) {
-				logger.info("Done synchronizing graph vertex number " + memIndex + " out of " + memberships.length);
-			}
-		}
-		logger.info("Done synchronizing graph vertices");
-	}
+  private void colorClusters(TinkerFrame graph, String graphName, String clusterName) {
+    Logger logger = getLogger(CLASS_NAME);
 
+    logger.info("Synchronizing graph clusters into frame...");
+    double[] memberships = this.rJavaTranslator.getDoubleArray(clusterName + "$membership");
+    String[] IDs =
+        this.rJavaTranslator.getStringArray(
+            "vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
+    for (int memIndex = 0; memIndex < memberships.length; memIndex++) {
+      String thisID = IDs[memIndex];
+      Vertex retVertex = null;
+      GraphTraversal<Vertex, Vertex> gt =
+          graph.g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
+      if (gt.hasNext()) {
+        retVertex = gt.next();
+      }
+      if (retVertex != null) {
+        retVertex.property("CLUSTER", memberships[memIndex]);
+      }
+      if (memIndex % 100 == 0) {
+        logger.info(
+            "Done synchronizing graph vertex number " + memIndex + " out of " + memberships.length);
+      }
+    }
+    logger.info("Done synchronizing graph vertices");
+  }
 }

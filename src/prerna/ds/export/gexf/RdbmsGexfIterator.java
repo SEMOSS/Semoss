@@ -1,242 +1,288 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.ds.export.gexf;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
-
-import prerna.ds.rdbms.h2.H2Frame;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.util.Constants;
-
 
 public class RdbmsGexfIterator extends AbstractGexfIterator {
 
-	private static final Logger classLogger = LogManager.getLogger(RdbmsGexfIterator.class);
+  private static final Logger classLogger = LogManager.getLogger(RdbmsGexfIterator.class);
 
-	private H2Frame dataframe;
+  private H2Frame dataframe;
 
-	private ResultSet nodeRs;
-	private String[] nodeRsColumns;
+  private ResultSet nodeRs;
+  private String[] nodeRsColumns;
 
-	private ResultSet edgeRs;
-	private String[] edgeRsColumns;
+  private ResultSet edgeRs;
+  private String[] edgeRsColumns;
 
+  public RdbmsGexfIterator(
+      H2Frame dataframe, String nodeMap, String edgeMap, Map<String, String> aliasMap) {
+    super(nodeMap, edgeMap, aliasMap);
+    this.dataframe = dataframe;
+  }
 
-	public RdbmsGexfIterator(H2Frame dataframe, String nodeMap, String edgeMap, Map<String, String> aliasMap) {
-		super(nodeMap, edgeMap, aliasMap);
-		this.dataframe = dataframe;
-	}
+  @Override
+  public boolean hasNextNode() {
+    try {
+      if (this.nodeRs == null) {
+        if (this.nodeMapSplit == null || this.nodeMapSplit.length == 0) {
+          return false;
+        }
 
-	@Override
-	public boolean hasNextNode() {
-		try {
-			if(this.nodeRs == null) {
-				if(this.nodeMapSplit == null || this.nodeMapSplit.length == 0) {
-					return false;
-				}
-				
-				String nodeString = this.nodeMapSplit[this.nodeIndex];
-				this.nodeRsColumns = nodeString.split(",");
-				this.nodeRs = this.dataframe.execQuery( createQueryString(this.nodeRsColumns) );
-				this.nodeIndex++;
-				// use the method itself to execute the first hasNext
-				return hasNextNode();
-			} else {
-				if(this.nodeRs.next()) {
-					return true;
-				} else {
-					// close the connection
-					closeRs(this.nodeRs);
-					
-					// we finished going through for all the nodes
-					if(this.nodeIndex >= this.nodeMapSplit.length) {
-						return false;
-					} else {
-						String nodeString = this.nodeMapSplit[this.nodeIndex];
-						this.nodeRsColumns = nodeString.split(",");
-						this.nodeRs = this.dataframe.execQuery( createQueryString(this.nodeRsColumns) );
-						this.nodeIndex++;
-						// use the method itself to execute the first hasNext
-						return hasNextNode();
-					}
-				}
-			}
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		return false;
-	}
+        String nodeString = this.nodeMapSplit[this.nodeIndex];
+        this.nodeRsColumns = nodeString.split(",");
+        this.nodeRs = this.dataframe.execQuery(createQueryString(this.nodeRsColumns));
+        this.nodeIndex++;
+        // use the method itself to execute the first hasNext
+        return hasNextNode();
+      } else {
+        if (this.nodeRs.next()) {
+          return true;
+        } else {
+          // close the connection
+          closeRs(this.nodeRs);
 
-	@Override
-	public String getNextNodeString() {
-		StringBuilder node = new StringBuilder("<node ");
-		try {
-			// get the node name
-			Object nodeName = this.nodeRs.getObject(1);
-			// define the node id
-			node.append("id=\"").append(nodeName).append("\" value=\"").append(nodeName).append("\">");
-			// define the properties
-			// default property on every node is the type
-			node.append("<attvalues>");
-			String typeName = this.nodeRsColumns[0];
-			if(this.aliasMap.containsKey(typeName)) {
-				typeName = this.aliasMap.get(typeName);
-			}
-			node.append("<attvalue for=\"type\" value=\"").append(typeName).append("\"/>");
-			
-			// add all the other properties
-			for(int i = 1; i < this.nodeRsColumns.length; i++) {
-				String propName = this.nodeRsColumns[i];
-				if(this.aliasMap.containsKey(propName)) {
-					propName = this.aliasMap.get(propName);
-				}
-				
-				Object prop = this.nodeRs.getObject(i+1);
-				if(prop != null) {
-					if(prop instanceof Double || prop instanceof Integer) {
-						node.append("<attvalue for=\"").append(propName).append("\" value=").append(prop).append("/>");
-					} else {
-						node.append("<attvalue for=\"").append(propName).append("\" value=\"").append(prop).append("\"/>");
-					}
-				}
-			}
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+          // we finished going through for all the nodes
+          if (this.nodeIndex >= this.nodeMapSplit.length) {
+            return false;
+          } else {
+            String nodeString = this.nodeMapSplit[this.nodeIndex];
+            this.nodeRsColumns = nodeString.split(",");
+            this.nodeRs = this.dataframe.execQuery(createQueryString(this.nodeRsColumns));
+            this.nodeIndex++;
+            // use the method itself to execute the first hasNext
+            return hasNextNode();
+          }
+        }
+      }
+    } catch (SQLException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+    return false;
+  }
 
-		node.append("</attvalues></node>");
-		return node.toString();
-	}
+  @Override
+  public String getNextNodeString() {
+    StringBuilder node = new StringBuilder("<node ");
+    try {
+      // get the node name
+      Object nodeName = this.nodeRs.getObject(1);
+      // define the node id
+      node.append("id=\"").append(nodeName).append("\" value=\"").append(nodeName).append("\">");
+      // define the properties
+      // default property on every node is the type
+      node.append("<attvalues>");
+      String typeName = this.nodeRsColumns[0];
+      if (this.aliasMap.containsKey(typeName)) {
+        typeName = this.aliasMap.get(typeName);
+      }
+      node.append("<attvalue for=\"type\" value=\"").append(typeName).append("\"/>");
 
-	@Override
-	public boolean hasNextEdge() {
-		try {
-			if(this.edgeRs == null) {
-				if(this.edgeMapSplit == null || this.edgeMapSplit.length == 0) {
-					return false;
-				}
-				
-				String edgeString = this.edgeMapSplit[this.edgeIndex];
-				this.edgeRsColumns = edgeString.split(",");
-				this.edgeRs = this.dataframe.execQuery( createQueryString(this.edgeRsColumns) );
-				this.edgeIndex++;
-				// use the method itself to execute the first hasNext
-				return hasNextEdge();
-			} else {
-				if(this.edgeRs.next()) {
-					return true;
-				} else {
-					// close the connection
-					closeRs(this.edgeRs);
-					
-					// we finished going through for all the nodes
-					if(this.edgeIndex >= this.edgeMapSplit.length) {
-						return false;
-					} else {
-						String edgeString = this.edgeMapSplit[this.edgeIndex];
-						this.edgeRsColumns = edgeString.split(",");
-						this.edgeRs = this.dataframe.execQuery( createQueryString(this.edgeRsColumns) );
-						this.edgeIndex++;
-						// use the method itself to execute the first hasNext
-						return hasNextEdge();
-					}
-				}
-			}
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		return false;
-	}
+      // add all the other properties
+      for (int i = 1; i < this.nodeRsColumns.length; i++) {
+        String propName = this.nodeRsColumns[i];
+        if (this.aliasMap.containsKey(propName)) {
+          propName = this.aliasMap.get(propName);
+        }
 
-	@Override
-	public String getNextEdgeString() {
-		StringBuilder edge = new StringBuilder("<edge ");
-		try {
-			// grab the source and target
-			Object sourceName = this.edgeRs.getObject(1);
-			Object targetName = this.edgeRs.getObject(2);
+        Object prop = this.nodeRs.getObject(i + 1);
+        if (prop != null) {
+          if (prop instanceof Double || prop instanceof Integer) {
+            node.append("<attvalue for=\"")
+                .append(propName)
+                .append("\" value=")
+                .append(prop)
+                .append("/>");
+          } else {
+            node.append("<attvalue for=\"")
+                .append(propName)
+                .append("\" value=\"")
+                .append(prop)
+                .append("\"/>");
+          }
+        }
+      }
+    } catch (SQLException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
 
-			// the id is the combination of the source and target
-			edge.append("id=\"").append(sourceName).append("+++").append(targetName).append("\"");
-			// define the source and target
-			edge.append(" source=\"").append(sourceName).append("\" target=\"").append(targetName).append("\">");
-			
-			if(this.edgeRsColumns.length > 2) {
-				edge.append("<attvalues>");
-			}
-			
-			// add the edge properties
-			for(int i = 2; i < this.edgeRsColumns.length; i++) {
-				String propName = this.edgeRsColumns[i];
-				if(this.aliasMap.containsKey(propName)) {
-					propName = this.aliasMap.get(propName);
-				}
-				
-				Object prop = this.edgeRs.getObject(i+1);
-				if(prop != null) {
-					if(prop instanceof Double || prop instanceof Integer) {
-						edge.append("<attvalue for=\"").append(propName).append("\" value=").append(prop).append("/>");
-					} else {
-						edge.append("<attvalue for=\"").append(propName).append("\" value=\"").append(prop).append("\"/>");
-					}
-				}
-			}
-			
-			if(this.edgeRsColumns.length > 2) {
-				edge.append("</attvalues>");
-			}
-			
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+    node.append("</attvalues></node>");
+    return node.toString();
+  }
 
-		edge.append("</edge>");
-		return edge.toString();
-	}
+  @Override
+  public boolean hasNextEdge() {
+    try {
+      if (this.edgeRs == null) {
+        if (this.edgeMapSplit == null || this.edgeMapSplit.length == 0) {
+          return false;
+        }
 
-	/**
-	 * Create the query string to get a node and a list of properties
-	 * @param nodeName
-	 * @param props
-	 * @return
-	 */
-	private String createQueryString(String[] selectors) {
-		StringBuilder sql = new StringBuilder("SELECT DISTINCT ");
-		sql.append(selectors[0]).append(" ");
-		for(int i = 1; i < selectors.length; i++) {
-			sql.append(", ").append(selectors[i]);
-		}
-		sql.append(" FROM ").append(dataframe.getName());
-		return sql.toString();
-	}
-	
-	/**
-	 * Close the result set and grab its statement to close
-	 * @param rs
-	 */
-	private void closeRs(ResultSet rs) {
-		Statement stmt = null;
-		if(rs != null) {
-			try {
-				stmt = rs.getStatement();
-			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-			try {
-				rs.close();
-			} catch(SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		if(stmt != null) {
-			try {
-				stmt.close();
-			} catch(SQLException e1) {
-				classLogger.error(Constants.STACKTRACE, e1);
-			}
-		}
-	}
+        String edgeString = this.edgeMapSplit[this.edgeIndex];
+        this.edgeRsColumns = edgeString.split(",");
+        this.edgeRs = this.dataframe.execQuery(createQueryString(this.edgeRsColumns));
+        this.edgeIndex++;
+        // use the method itself to execute the first hasNext
+        return hasNextEdge();
+      } else {
+        if (this.edgeRs.next()) {
+          return true;
+        } else {
+          // close the connection
+          closeRs(this.edgeRs);
+
+          // we finished going through for all the nodes
+          if (this.edgeIndex >= this.edgeMapSplit.length) {
+            return false;
+          } else {
+            String edgeString = this.edgeMapSplit[this.edgeIndex];
+            this.edgeRsColumns = edgeString.split(",");
+            this.edgeRs = this.dataframe.execQuery(createQueryString(this.edgeRsColumns));
+            this.edgeIndex++;
+            // use the method itself to execute the first hasNext
+            return hasNextEdge();
+          }
+        }
+      }
+    } catch (SQLException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+    return false;
+  }
+
+  @Override
+  public String getNextEdgeString() {
+    StringBuilder edge = new StringBuilder("<edge ");
+    try {
+      // grab the source and target
+      Object sourceName = this.edgeRs.getObject(1);
+      Object targetName = this.edgeRs.getObject(2);
+
+      // the id is the combination of the source and target
+      edge.append("id=\"").append(sourceName).append("+++").append(targetName).append("\"");
+      // define the source and target
+      edge.append(" source=\"")
+          .append(sourceName)
+          .append("\" target=\"")
+          .append(targetName)
+          .append("\">");
+
+      if (this.edgeRsColumns.length > 2) {
+        edge.append("<attvalues>");
+      }
+
+      // add the edge properties
+      for (int i = 2; i < this.edgeRsColumns.length; i++) {
+        String propName = this.edgeRsColumns[i];
+        if (this.aliasMap.containsKey(propName)) {
+          propName = this.aliasMap.get(propName);
+        }
+
+        Object prop = this.edgeRs.getObject(i + 1);
+        if (prop != null) {
+          if (prop instanceof Double || prop instanceof Integer) {
+            edge.append("<attvalue for=\"")
+                .append(propName)
+                .append("\" value=")
+                .append(prop)
+                .append("/>");
+          } else {
+            edge.append("<attvalue for=\"")
+                .append(propName)
+                .append("\" value=\"")
+                .append(prop)
+                .append("\"/>");
+          }
+        }
+      }
+
+      if (this.edgeRsColumns.length > 2) {
+        edge.append("</attvalues>");
+      }
+
+    } catch (SQLException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+
+    edge.append("</edge>");
+    return edge.toString();
+  }
+
+  /**
+   * Create the query string to get a node and a list of properties
+   *
+   * @param nodeName
+   * @param props
+   * @return
+   */
+  private String createQueryString(String[] selectors) {
+    StringBuilder sql = new StringBuilder("SELECT DISTINCT ");
+    sql.append(selectors[0]).append(" ");
+    for (int i = 1; i < selectors.length; i++) {
+      sql.append(", ").append(selectors[i]);
+    }
+    sql.append(" FROM ").append(dataframe.getName());
+    return sql.toString();
+  }
+
+  /**
+   * Close the result set and grab its statement to close
+   *
+   * @param rs
+   */
+  private void closeRs(ResultSet rs) {
+    Statement stmt = null;
+    if (rs != null) {
+      try {
+        stmt = rs.getStatement();
+      } catch (SQLException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+      try {
+        rs.close();
+      } catch (SQLException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
+    if (stmt != null) {
+      try {
+        stmt.close();
+      } catch (SQLException e1) {
+        classLogger.error(Constants.STACKTRACE, e1);
+      }
+    }
+  }
 }

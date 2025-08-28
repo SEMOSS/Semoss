@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.r.util;
 
 import java.io.File;
@@ -5,10 +32,8 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.impl.r.RserveUtil;
@@ -16,303 +41,320 @@ import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-
 public class RJavaTranslatorFactory {
 
-	private static final Logger classLogger = LogManager.getLogger(RJavaTranslatorFactory.class);
+  private static final Logger classLogger = LogManager.getLogger(RJavaTranslatorFactory.class);
 
-	// get the OS type
-	private static String OS = System.getProperty("os.name").toLowerCase();
-	private static int envNum = 0;
-	private static String prefix = "env";
+  // get the OS type
+  private static String OS = System.getProperty("os.name").toLowerCase();
+  private static int envNum = 0;
+  private static String prefix = "env";
 
-	private static boolean isWin = false;
-	static {
-		isWin = (OS.indexOf("win") >= 0);
-	}
+  private static boolean isWin = false;
 
-	// determine if we should even try to do R
-	private static boolean USE_R = true;
-	// this is so we only grab from DIHelper once
-	private static boolean INIT = false;
-	// this will be the specific class we want
-	// either JRI version or RServe version
-	private static Class translatorClass = null;
+  static {
+    isWin = (OS.indexOf("win") >= 0);
+  }
 
-	// since JRI shuts down java
-	// need to determine if we should risk it
-	private static Boolean attemptConnection = null;
-	// boolean for using jri or not
-	private static boolean useJri = false;
-	// boolean for using netty or not
-	private static boolean useNetty = false;
-	
-	// value for r mem size
-	public static String rMemory = "4096"; 
+  // determine if we should even try to do R
+  private static boolean USE_R = true;
+  // this is so we only grab from DIHelper once
+  private static boolean INIT = false;
+  // this will be the specific class we want
+  // either JRI version or RServe version
+  private static Class translatorClass = null;
 
-	private RJavaTranslatorFactory() {
+  // since JRI shuts down java
+  // need to determine if we should risk it
+  private static Boolean attemptConnection = null;
+  // boolean for using jri or not
+  private static boolean useJri = false;
+  // boolean for using netty or not
+  private static boolean useNetty = false;
 
-	}
+  // value for r mem size
+  public static String rMemory = "4096";
 
-	/**
-	 * This will determine the translator class to use (Rserve or JRI)
-	 */
-	private static void init() {
-		String useRStr =  Utility.getDIHelperProperty(Constants.USE_R);
-		if(useRStr != null) {
-			RJavaTranslatorFactory.USE_R = Boolean.parseBoolean(useRStr);
-			if(!RJavaTranslatorFactory.USE_R) {
-				INIT = true;
-				return;
-			}
-		}
-		
-		String rMemory = Utility.getDIHelperProperty(Constants.R_MEM_LIMIT);
-		if(rMemory != null) {
-			RJavaTranslatorFactory.rMemory = rMemory; 
-		}
-		
-		String nettyStr =  Utility.getDIHelperProperty(Constants.NETTY_R);
-		if(nettyStr != null) {
-			useNetty = Boolean.parseBoolean(nettyStr);
-		}
+  private RJavaTranslatorFactory() {}
 
-		String useJriStr = Utility.getDIHelperProperty(Constants.R_CONNECTION_JRI);
-		if(useJriStr != null) {
-			useJri = Boolean.valueOf(useJriStr);
-		}
+  /** This will determine the translator class to use (Rserve or JRI) */
+  private static void init() {
+    String useRStr = Utility.getDIHelperProperty(Constants.USE_R);
+    if (useRStr != null) {
+      RJavaTranslatorFactory.USE_R = Boolean.parseBoolean(useRStr);
+      if (!RJavaTranslatorFactory.USE_R) {
+        INIT = true;
+        return;
+      }
+    }
 
-		String className = null;
-		// making netty take precedence so we dont need to set multiple variabled
-		if(useNetty) {
-			className = TCPRTranslator.class.getName();
-		} else if(useJri) {
-			className = RJavaJriTranslator.class.getName();
-		} else if (RserveUtil.IS_USER_RSERVE) {
-			className = RJavaUserRserveTranslator.class.getName();
-		} else if (Boolean.parseBoolean(System.getenv("REMOTE_RSERVE"))) {
-			className = RJavaRemoteRserveTranslator.class.getName();
-		} else{
-			className = RJavaRserveTranslator.class.getName();
-		}
+    String rMemory = Utility.getDIHelperProperty(Constants.R_MEM_LIMIT);
+    if (rMemory != null) {
+      RJavaTranslatorFactory.rMemory = rMemory;
+    }
 
-		try {
-			translatorClass = Class.forName(className);
-		} catch (ClassNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+    String nettyStr = Utility.getDIHelperProperty(Constants.NETTY_R);
+    if (nettyStr != null) {
+      useNetty = Boolean.parseBoolean(nettyStr);
+    }
 
-		INIT = true;
-	}
-	
-	/**
-	 * Get a new RJavaTranslator based on if we are using rserve or jri
-	 * @param insightForGlobalStore
-	 * @param classLogger
-	 * @return
-	 */
-	public static void initRConnection() {
-		if(!INIT) {
-			init();
-		}
-		
-		if(!USE_R) {
-			throw new IllegalArgumentException("R is set to false for this instance");
-		}
+    String useJriStr = Utility.getDIHelperProperty(Constants.R_CONNECTION_JRI);
+    if (useJriStr != null) {
+      useJri = Boolean.valueOf(useJriStr);
+    }
 
-		if(!getAttemptConnection()) {
-			throw new IllegalArgumentException("Cannot find valid R paths to connect to R");
-		}
+    String className = null;
+    // making netty take precedence so we dont need to set multiple variabled
+    if (useNetty) {
+      className = TCPRTranslator.class.getName();
+    } else if (useJri) {
+      className = RJavaJriTranslator.class.getName();
+    } else if (RserveUtil.IS_USER_RSERVE) {
+      className = RJavaUserRserveTranslator.class.getName();
+    } else if (Boolean.parseBoolean(System.getenv("REMOTE_RSERVE"))) {
+      className = RJavaRemoteRserveTranslator.class.getName();
+    } else {
+      className = RJavaRserveTranslator.class.getName();
+    }
 
-		try {
-			AbstractRJavaTranslator newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
-			Insight dummyIn = new Insight();
-			Logger dummyLogger = LogManager.getLogger(RJavaTranslatorFactory.class.getName());
-			newInstance.setInsight(dummyIn);
-			newInstance.setLogger(dummyLogger);
-			newInstance.startR();
-		} catch (InstantiationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IllegalAccessException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-	
-	/**
-	 * Stop the R connection if running
-	 */
-	public static void stopRConnection() {
-		if(INIT) {
-			try {
-				AbstractRJavaTranslator newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
-				Insight dummyIn = new Insight();
-				Logger dummyLogger = LogManager.getLogger(RJavaTranslatorFactory.class.getName());
-				newInstance.setInsight(dummyIn);
-				newInstance.setLogger(dummyLogger);
-				newInstance.endR();
-			} catch (InstantiationException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} catch (IllegalAccessException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-	}
+    try {
+      translatorClass = Class.forName(className);
+    } catch (ClassNotFoundException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
 
-	/**
-	 * Get a new RJavaTranslator based on if we are using rserve or jri
-	 * @param insight
-	 * @param logger
-	 * @return
-	 */
-	public static AbstractRJavaTranslator getRJavaTranslator(Insight insight, Logger logger) {
-		AbstractRJavaTranslator newInstance  = null;
-		if(!INIT) {
-			init();
-		}
+    INIT = true;
+  }
 
-		if(!USE_R) {
-			throw new IllegalArgumentException("R is set to false for this instance");
-		}
-		
-		if(!getAttemptConnection()) {
-			throw new IllegalArgumentException("Cannot find valid R paths to connect to R");
-		}
+  /**
+   * Get a new RJavaTranslator based on if we are using rserve or jri
+   *
+   * @param insightForGlobalStore
+   * @param classLogger
+   * @return
+   */
+  public static void initRConnection() {
+    if (!INIT) {
+      init();
+    }
 
-		try {
-			newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
-			newInstance.setLogger(logger);
-			
-			// make the environment here
-			newInstance.env = prefix+envNum;
-			envNum++;
-			
+    if (!USE_R) {
+      throw new IllegalArgumentException("R is set to false for this instance");
+    }
 
-			// TODO: until we get everythign using this
-			// let us pass the r connection info
-			// if we have an r data table
-			if(insight != null) {
-				newInstance.setInsight(insight);
-				ITableDataFrame dm = (ITableDataFrame) insight.getDataMaker();
-				if(dm != null && dm instanceof RDataTable) {
-					newInstance.setConnection(((RDataTable) dm).getConnection());
-					newInstance.setPort(((RDataTable) dm).getPort());
-					
-					// set the environment
-					newInstance.initREnv(newInstance.env);
+    if (!getAttemptConnection()) {
+      throw new IllegalArgumentException("Cannot find valid R paths to connect to R");
+    }
 
-				}
-			}
-		} catch (InstantiationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IllegalAccessException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		return newInstance;
-	}
+    try {
+      AbstractRJavaTranslator newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
+      Insight dummyIn = new Insight();
+      Logger dummyLogger = LogManager.getLogger(RJavaTranslatorFactory.class.getName());
+      newInstance.setInsight(dummyIn);
+      newInstance.setLogger(dummyLogger);
+      newInstance.startR();
+    } catch (InstantiationException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    } catch (IllegalAccessException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+  }
 
-	private static boolean getAttemptConnection() {
-		/*
-		 * Since the FE calls this all the time
-		 * And if it hangs up and breaks an issue arises
-		 * We will be more clever for when we try to call the startR method
-		 */
+  /** Stop the R connection if running */
+  public static void stopRConnection() {
+    if (INIT) {
+      try {
+        AbstractRJavaTranslator newInstance =
+            (AbstractRJavaTranslator) translatorClass.newInstance();
+        Insight dummyIn = new Insight();
+        Logger dummyLogger = LogManager.getLogger(RJavaTranslatorFactory.class.getName());
+        newInstance.setInsight(dummyIn);
+        newInstance.setLogger(dummyLogger);
+        newInstance.endR();
+      } catch (InstantiationException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      } catch (IllegalAccessException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
+  }
 
-		if(attemptConnection == null) {
-			determineAttemptConnection();
-		}
+  /**
+   * Get a new RJavaTranslator based on if we are using rserve or jri
+   *
+   * @param insight
+   * @param logger
+   * @return
+   */
+  public static AbstractRJavaTranslator getRJavaTranslator(Insight insight, Logger logger) {
+    AbstractRJavaTranslator newInstance = null;
+    if (!INIT) {
+      init();
+    }
 
-		return attemptConnection;
-	}
+    if (!USE_R) {
+      throw new IllegalArgumentException("R is set to false for this instance");
+    }
 
-	public static synchronized void determineAttemptConnection() {
-		if(isWin && useJri) {
-			boolean hasRHome = true;
-			// first, check if R is in the path
-			String r_home = System.getenv("R_HOME");
-			if( (r_home == null || (r_home=r_home.trim()).isEmpty())) {
-				hasRHome = false;
-			}
-			classLogger.info("Using R_HOME = \""+r_home+"\"");
-			
-			boolean hasRLibs = true;
-			// check for r_libs
-			String r_libs = System.getenv("R_LIBS");
-			if( (r_libs == null || (r_libs=r_libs.trim()).isEmpty())) {
-				hasRLibs = false;
-			}
-			classLogger.info("Using R_LIBS = \""+r_libs+"\"");
+    if (!getAttemptConnection()) {
+      throw new IllegalArgumentException("Cannot find valid R paths to connect to R");
+    }
 
-			String path = System.getenv("Path");
-			List<String> pathSplit = Stream.of(path.split(";")).map(p -> p.replace("\\", "/")).distinct().collect(Collectors.toList());
-			if(hasRHome && hasRLibs) {
-				// make sure R_HOME and R_LIBS both exist
-				if(!(new File(r_home).isDirectory()) || !(new File(r_libs)).isDirectory() ) {
-					attemptConnection = false;
-				} else {
-					String cleanedRHome = r_home.replace("\\", "/");
-					String cleanedRLibs = r_libs.replace("\\", "/");
-					// we need R_HOME\bin\x64 or R_HOME\bin\x86
-					// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
+    try {
+      newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
+      newInstance.setLogger(logger);
 
-					long rHomeInPath = pathSplit.stream().filter(p -> 
-						( p.matches(Pattern.quote(cleanedRHome) + "/bin/.*") && 
-						(new File(Utility.normalizePath(p)).isDirectory()) ) ).count();
+      // make the environment here
+      newInstance.env = prefix + envNum;
+      envNum++;
 
-					long rLibInPath = pathSplit.stream().filter(p -> 
-						( p.matches(Pattern.quote(cleanedRLibs) + "/rJava/jri/.*") &&
-						(new File(Utility.normalizePath(p)).isDirectory()) ) ).count();
+      // TODO: until we get everythign using this
+      // let us pass the r connection info
+      // if we have an r data table
+      if (insight != null) {
+        newInstance.setInsight(insight);
+        ITableDataFrame dm = (ITableDataFrame) insight.getDataMaker();
+        if (dm != null && dm instanceof RDataTable) {
+          newInstance.setConnection(((RDataTable) dm).getConnection());
+          newInstance.setPort(((RDataTable) dm).getPort());
 
-					if(rHomeInPath >= 1 && rLibInPath >= 1) {
-						attemptConnection = true;
-					} else {
-						attemptConnection = false;
-					}
-				}
-			} else {
-				List<String> rOrPortables = pathSplit.stream().filter(p -> 
-					( p.matches(".*/R/.*") && (new File(Utility.normalizePath(p)).isDirectory()) ) 
-						|| ( p.matches(".*/R-Portables/.*") && (new File(Utility.normalizePath(p)).isDirectory()) ) 
-					).collect(Collectors.toList());
-				
-				long rLibInPath = rOrPortables.stream().filter(p -> ( p.matches(".*/rJava/jri/.*") && (new File(Utility.normalizePath(p)).isDirectory()) ) ).count();
-				
-				if(rLibInPath >= 1) {
-					attemptConnection = false;
-				}
+          // set the environment
+          newInstance.initREnv(newInstance.env);
+        }
+      }
+    } catch (InstantiationException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    } catch (IllegalAccessException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+    return newInstance;
+  }
 
-				// if we get to this point
-				// we are good
-				attemptConnection = true;
-			}
-		} else {
-			attemptConnection = true;
-		}
-	}
+  private static boolean getAttemptConnection() {
+    /*
+     * Since the FE calls this all the time
+     * And if it hangs up and breaks an issue arises
+     * We will be more clever for when we try to call the startR method
+     */
 
-//
-//	public static void main(String[] args) {
-//		String r_home = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable";
-//		String r_libs = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library";
-//
-//		String path = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable;"
-//				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library;"
-//				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library\\rJava\\jri;"
-//				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\bin";
-//
-//		String cleanedRHome = r_home.replace("\\", "/");
-//		String cleanedRLibs = r_libs.replace("\\", "/");
-//		// we need R_HOME
-//		// we need R_HOME\bin\x64 or R_HOME\bin\x86
-//		// we need R_LIBS
-//		// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
-//		boolean hasAllRequiredPaths = Stream.of(path.split(";")).map(p -> p.replace("\\", "/"))
-//				.anyMatch(p -> 
-//				p.matches(Pattern.quote(cleanedRHome))
-//				|| p.matches(Pattern.quote(cleanedRHome + "/bin/"))
-//				|| p.matches(Pattern.quote(cleanedRLibs))
-//				|| p.matches(Pattern.quote(cleanedRLibs + "/rJava/jri/"))
-//				);
-//
-//		System.out.println(hasAllRequiredPaths);
-//	}
+    if (attemptConnection == null) {
+      determineAttemptConnection();
+    }
+
+    return attemptConnection;
+  }
+
+  public static synchronized void determineAttemptConnection() {
+    if (isWin && useJri) {
+      boolean hasRHome = true;
+      // first, check if R is in the path
+      String r_home = System.getenv("R_HOME");
+      if ((r_home == null || (r_home = r_home.trim()).isEmpty())) {
+        hasRHome = false;
+      }
+      classLogger.info("Using R_HOME = \"" + r_home + "\"");
+
+      boolean hasRLibs = true;
+      // check for r_libs
+      String r_libs = System.getenv("R_LIBS");
+      if ((r_libs == null || (r_libs = r_libs.trim()).isEmpty())) {
+        hasRLibs = false;
+      }
+      classLogger.info("Using R_LIBS = \"" + r_libs + "\"");
+
+      String path = System.getenv("Path");
+      List<String> pathSplit =
+          Stream.of(path.split(";"))
+              .map(p -> p.replace("\\", "/"))
+              .distinct()
+              .collect(Collectors.toList());
+      if (hasRHome && hasRLibs) {
+        // make sure R_HOME and R_LIBS both exist
+        if (!(new File(r_home).isDirectory()) || !(new File(r_libs)).isDirectory()) {
+          attemptConnection = false;
+        } else {
+          String cleanedRHome = r_home.replace("\\", "/");
+          String cleanedRLibs = r_libs.replace("\\", "/");
+          // we need R_HOME\bin\x64 or R_HOME\bin\x86
+          // we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
+
+          long rHomeInPath =
+              pathSplit.stream()
+                  .filter(
+                      p ->
+                          (p.matches(Pattern.quote(cleanedRHome) + "/bin/.*")
+                              && (new File(Utility.normalizePath(p)).isDirectory())))
+                  .count();
+
+          long rLibInPath =
+              pathSplit.stream()
+                  .filter(
+                      p ->
+                          (p.matches(Pattern.quote(cleanedRLibs) + "/rJava/jri/.*")
+                              && (new File(Utility.normalizePath(p)).isDirectory())))
+                  .count();
+
+          if (rHomeInPath >= 1 && rLibInPath >= 1) {
+            attemptConnection = true;
+          } else {
+            attemptConnection = false;
+          }
+        }
+      } else {
+        List<String> rOrPortables =
+            pathSplit.stream()
+                .filter(
+                    p ->
+                        (p.matches(".*/R/.*") && (new File(Utility.normalizePath(p)).isDirectory()))
+                            || (p.matches(".*/R-Portables/.*")
+                                && (new File(Utility.normalizePath(p)).isDirectory())))
+                .collect(Collectors.toList());
+
+        long rLibInPath =
+            rOrPortables.stream()
+                .filter(
+                    p ->
+                        (p.matches(".*/rJava/jri/.*")
+                            && (new File(Utility.normalizePath(p)).isDirectory())))
+                .count();
+
+        if (rLibInPath >= 1) {
+          attemptConnection = false;
+        }
+
+        // if we get to this point
+        // we are good
+        attemptConnection = true;
+      }
+    } else {
+      attemptConnection = true;
+    }
+  }
+
+  //
+  //	public static void main(String[] args) {
+  //		String r_home = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable";
+  //		String r_libs = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library";
+  //
+  //		String path = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable;"
+  //				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library;"
+  //				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library\\rJava\\jri;"
+  //				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\bin";
+  //
+  //		String cleanedRHome = r_home.replace("\\", "/");
+  //		String cleanedRLibs = r_libs.replace("\\", "/");
+  //		// we need R_HOME
+  //		// we need R_HOME\bin\x64 or R_HOME\bin\x86
+  //		// we need R_LIBS
+  //		// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
+  //		boolean hasAllRequiredPaths = Stream.of(path.split(";")).map(p -> p.replace("\\", "/"))
+  //				.anyMatch(p ->
+  //				p.matches(Pattern.quote(cleanedRHome))
+  //				|| p.matches(Pattern.quote(cleanedRHome + "/bin/"))
+  //				|| p.matches(Pattern.quote(cleanedRLibs))
+  //				|| p.matches(Pattern.quote(cleanedRLibs + "/rJava/jri/"))
+  //				);
+  //
+  //		System.out.println(hasAllRequiredPaths);
+  //	}
 }

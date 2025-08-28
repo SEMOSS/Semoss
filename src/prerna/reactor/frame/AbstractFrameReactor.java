@@ -1,8 +1,34 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame;
 
 import java.util.List;
 import java.util.Set;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.HeadersException;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -14,141 +40,144 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public abstract class AbstractFrameReactor extends AbstractReactor {
 
-	/**
-	 * 
-	 * @return
-	 */
-	protected ITableDataFrame getFrame() {
-		GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.getKey());
-		// see if a frame is passed in
-		if (grs != null && !grs.isEmpty()) {
-			List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
-			return (ITableDataFrame) frameInputs.get(0);
-		}
-		
-		List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
-		if(curNouns != null && !curNouns.isEmpty()) {
-			return (ITableDataFrame) curNouns.get(0).getValue();
-		}
-		
-		// else, grab the default frame from the insight
-		// put this into the noun store
-		// so that we can pull it for other pipeline
-		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
-		if (defaultFrame != null) {
-			this.store.makeNoun(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
-			return defaultFrame;
-		}
+  /**
+   * @return
+   */
+  protected ITableDataFrame getFrame() {
+    GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.getKey());
+    // see if a frame is passed in
+    if (grs != null && !grs.isEmpty()) {
+      List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
+      return (ITableDataFrame) frameInputs.get(0);
+    }
 
-		throw new NullPointerException("No frame found");
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	protected ITableDataFrame getFrameDefaultLast() {
-		GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.getKey());
-		// see if a frame is passed in
-		if (grs != null && !grs.isEmpty()) {
-			List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
-			return (ITableDataFrame) frameInputs.get(0);
-		}
-		
-		List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
-		if(curNouns != null && !curNouns.isEmpty()) {
-			return (ITableDataFrame) curNouns.get(0).getValue();
-		}
-		
-		ITableDataFrame defaultFrame = null;
-		// get the last frame
-		SelectQueryStruct qs = this.insight.getLastQS(this.insight.getLastPanelId());
-		if(qs != null) {
-			defaultFrame = qs.getFrame();
-		}
-		if(defaultFrame != null) {
-			return defaultFrame;
-		}
-		
-		// else, grab the default frame from the insight
-		// put this into the noun store
-		// so that we can pull it for other pipeline
-		defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
-		if (defaultFrame != null) {
-			this.store.makeNoun(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
-			return defaultFrame;
-		}
+    List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
+    if (curNouns != null && !curNouns.isEmpty()) {
+      return (ITableDataFrame) curNouns.get(0).getValue();
+    }
 
-		throw new NullPointerException("No frame found");
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	protected Set<ITableDataFrame> getAllFrames() {
-		return this.insight.getVarStore().getAllCreatedFrames();
-	}
-	
-	/**
-	 * Replace all the references in the noun store to point to a specific frame
-	 * @param frameNoun
-	 */
-	protected void setFrameInNounStore(NounMetadata frameNoun) {
-		GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.getKey());
-		// see if a frame is passed in
-		if (grs != null && !grs.isEmpty()) {
-			grs.removeValuesOfType(PixelDataType.FRAME);
-			grs.add(frameNoun);
-		}
-		
-		List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
-		if(curNouns != null && !curNouns.isEmpty()) {
-			this.curRow.removeValuesOfType(PixelDataType.FRAME);
-			this.curRow.add(frameNoun);
-		}
-	}
-	
-	/**
-	 * Quick method for {@link #getCleanNewColName(ITableDataFrame, String, String)}
-	 * using passed in frame
-	 * @param frameName
-	 * @param colName
-	 * @return
-	 */
-	protected String getCleanNewColName(String colName) {
-		return getCleanNewColName(getFrame(), colName);
-	}
-	
-	/**
-	 * Quick method for {@link #getColNames(ITableDataFrame, String)}
-	 * using passed in frame
-	 * @param frameName
-	 * @param colName
-	 * @return
-	 */
-	protected String[] getColNames() {
-		return getColNames(getFrame());
-	}
-	
-	protected String getCleanNewColName(ITableDataFrame frame, String colName) {
-		// make the new column name valid
-		HeadersException colNameChecker = HeadersException.getInstance();
-		String[] currentColumnNames = getColNames(frame);
-		String validNewHeader = colNameChecker.recursivelyFixHeaders(colName, currentColumnNames);
-		return validNewHeader;
-	}
-	
-	protected String[] getColNames(ITableDataFrame frame) {
-		List<String> colNames = frame.getMetaData().getOrderedAliasOrUniqueNames();
-		String[] colString = new String[colNames.size()];
-		for (int i = 0; i < colNames.size(); i++) {
-			String column = colNames.get(i);
-			if (column.contains("__")) {
-				column = colNames.get(i).split("__")[1];
-			}
-			colString[i] = colNames.get(i);
-		}
-		return colString;
-	}
+    // else, grab the default frame from the insight
+    // put this into the noun store
+    // so that we can pull it for other pipeline
+    ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+    if (defaultFrame != null) {
+      this.store
+          .makeNoun(ReactorKeysEnum.FRAME.getKey())
+          .add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+      return defaultFrame;
+    }
+
+    throw new NullPointerException("No frame found");
+  }
+
+  /**
+   * @return
+   */
+  protected ITableDataFrame getFrameDefaultLast() {
+    GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.getKey());
+    // see if a frame is passed in
+    if (grs != null && !grs.isEmpty()) {
+      List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
+      return (ITableDataFrame) frameInputs.get(0);
+    }
+
+    List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
+    if (curNouns != null && !curNouns.isEmpty()) {
+      return (ITableDataFrame) curNouns.get(0).getValue();
+    }
+
+    ITableDataFrame defaultFrame = null;
+    // get the last frame
+    SelectQueryStruct qs = this.insight.getLastQS(this.insight.getLastPanelId());
+    if (qs != null) {
+      defaultFrame = qs.getFrame();
+    }
+    if (defaultFrame != null) {
+      return defaultFrame;
+    }
+
+    // else, grab the default frame from the insight
+    // put this into the noun store
+    // so that we can pull it for other pipeline
+    defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+    if (defaultFrame != null) {
+      this.store
+          .makeNoun(ReactorKeysEnum.FRAME.getKey())
+          .add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+      return defaultFrame;
+    }
+
+    throw new NullPointerException("No frame found");
+  }
+
+  /**
+   * @return
+   */
+  protected Set<ITableDataFrame> getAllFrames() {
+    return this.insight.getVarStore().getAllCreatedFrames();
+  }
+
+  /**
+   * Replace all the references in the noun store to point to a specific frame
+   *
+   * @param frameNoun
+   */
+  protected void setFrameInNounStore(NounMetadata frameNoun) {
+    GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.getKey());
+    // see if a frame is passed in
+    if (grs != null && !grs.isEmpty()) {
+      grs.removeValuesOfType(PixelDataType.FRAME);
+      grs.add(frameNoun);
+    }
+
+    List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
+    if (curNouns != null && !curNouns.isEmpty()) {
+      this.curRow.removeValuesOfType(PixelDataType.FRAME);
+      this.curRow.add(frameNoun);
+    }
+  }
+
+  /**
+   * Quick method for {@link #getCleanNewColName(ITableDataFrame, String, String)} using passed in
+   * frame
+   *
+   * @param frameName
+   * @param colName
+   * @return
+   */
+  protected String getCleanNewColName(String colName) {
+    return getCleanNewColName(getFrame(), colName);
+  }
+
+  /**
+   * Quick method for {@link #getColNames(ITableDataFrame, String)} using passed in frame
+   *
+   * @param frameName
+   * @param colName
+   * @return
+   */
+  protected String[] getColNames() {
+    return getColNames(getFrame());
+  }
+
+  protected String getCleanNewColName(ITableDataFrame frame, String colName) {
+    // make the new column name valid
+    HeadersException colNameChecker = HeadersException.getInstance();
+    String[] currentColumnNames = getColNames(frame);
+    String validNewHeader = colNameChecker.recursivelyFixHeaders(colName, currentColumnNames);
+    return validNewHeader;
+  }
+
+  protected String[] getColNames(ITableDataFrame frame) {
+    List<String> colNames = frame.getMetaData().getOrderedAliasOrUniqueNames();
+    String[] colString = new String[colNames.size()];
+    for (int i = 0; i < colNames.size(); i++) {
+      String column = colNames.get(i);
+      if (column.contains("__")) {
+        column = colNames.get(i).split("__")[1];
+      }
+      colString[i] = colNames.get(i);
+    }
+    return colString;
+  }
 }

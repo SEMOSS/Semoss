@@ -1,7 +1,33 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.qs;
 
 import java.util.List;
-
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.reactor.EmbeddedRoutineReactor;
@@ -13,90 +39,94 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WithReactor extends AbstractQueryStructReactor {
-	
-	public WithReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey()};
-	}
 
-	@Override
-	protected AbstractQueryStruct createQueryStruct() {
-		InsightPanel panel = getPanel();
-		this.qs.addPanel(panel);
-		
-		/*
-		 * 
-		 * THIS REACTOR IS NOT REQUIRED ANYMORE
-		 * THIS IS AUTOMATICALLY ASSUMED WHEN A 
-		 * TASK OPTIONS IS ADDED IN THE QUERY
-		 * 
-		 */
-		
-		return this.qs;
-	}
-	
-	/**
-	 * Get the panel filter grs
-	 * @return
-	 */
-	private InsightPanel getPanel() {
-		// passed in directly as panel
-		GenRowStruct genericReactorGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
-		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
-			NounMetadata noun = genericReactorGrs.getNoun(0);
-			PixelDataType nounType = noun.getNounType();
-			if(nounType == PixelDataType.PANEL) {
-				return (InsightPanel) noun.getValue();
-			} else if(nounType == PixelDataType.COLUMN || nounType == PixelDataType.CONST_STRING
-					|| nounType == PixelDataType.CONST_INT) {
-				String panelId = noun.getValue().toString();
-				return this.insight.getInsightPanel(panelId);
-			}
-		}
+  public WithReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.PANEL.getKey()};
+  }
 
-		// see if it is in the curRow
-		// if it was passed directly in as a variable
-		List<NounMetadata> panelNouns = this.curRow.getNounsOfType(PixelDataType.PANEL);
-		if(panelNouns != null && !panelNouns.isEmpty()) {
-			return (InsightPanel) panelNouns.get(0).getValue();
-		}
+  @Override
+  protected AbstractQueryStruct createQueryStruct() {
+    InsightPanel panel = getPanel();
+    this.qs.addPanel(panel);
 
-		// see if string or column passed in
-		List<String> strInputs = this.curRow.getAllStrValues();
-		if(strInputs != null && !strInputs.isEmpty()) {
-			for(String panelId : strInputs) {
-				InsightPanel panel = this.insight.getInsightPanel(panelId);
-				if(panel != null) {
-					return panel;
-				}
-			}
-		}
-		
-		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
-		if(strNouns != null && !strNouns.isEmpty()) {
-			return this.insight.getInsightPanel(strNouns.get(0).getValue().toString());
-		}
-		
-		throw new IllegalArgumentException("Invalid panel id passed into With reactor");
-	}
-	
-	@Override
-	public void mergeUp() {
-		// merge this reactor into the parent reactor
-		init();
-//		createQueryStruct();
-//		setAlias(qs.getSelectors(), selectorAlias, existingSelectors);
-		if(parentReactor != null) {
-			// this is only called lazy
-			// have to init to set the qs
-			// to them add to the parent
-			NounMetadata data = new NounMetadata(createQueryStruct(), PixelDataType.QUERY_STRUCT);
-	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
-	    			|| parentReactor instanceof GenericReactor) {
-	    		parentReactor.getCurRow().add(data);
-	    	} else {
-	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.getKey());
-				parentQSInput.add(data);
-	    	}
-		}
-	}
+    /*
+     *
+     * THIS REACTOR IS NOT REQUIRED ANYMORE
+     * THIS IS AUTOMATICALLY ASSUMED WHEN A
+     * TASK OPTIONS IS ADDED IN THE QUERY
+     *
+     */
+
+    return this.qs;
+  }
+
+  /**
+   * Get the panel filter grs
+   *
+   * @return
+   */
+  private InsightPanel getPanel() {
+    // passed in directly as panel
+    GenRowStruct genericReactorGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+    if (genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
+      NounMetadata noun = genericReactorGrs.getNoun(0);
+      PixelDataType nounType = noun.getNounType();
+      if (nounType == PixelDataType.PANEL) {
+        return (InsightPanel) noun.getValue();
+      } else if (nounType == PixelDataType.COLUMN
+          || nounType == PixelDataType.CONST_STRING
+          || nounType == PixelDataType.CONST_INT) {
+        String panelId = noun.getValue().toString();
+        return this.insight.getInsightPanel(panelId);
+      }
+    }
+
+    // see if it is in the curRow
+    // if it was passed directly in as a variable
+    List<NounMetadata> panelNouns = this.curRow.getNounsOfType(PixelDataType.PANEL);
+    if (panelNouns != null && !panelNouns.isEmpty()) {
+      return (InsightPanel) panelNouns.get(0).getValue();
+    }
+
+    // see if string or column passed in
+    List<String> strInputs = this.curRow.getAllStrValues();
+    if (strInputs != null && !strInputs.isEmpty()) {
+      for (String panelId : strInputs) {
+        InsightPanel panel = this.insight.getInsightPanel(panelId);
+        if (panel != null) {
+          return panel;
+        }
+      }
+    }
+
+    List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
+    if (strNouns != null && !strNouns.isEmpty()) {
+      return this.insight.getInsightPanel(strNouns.get(0).getValue().toString());
+    }
+
+    throw new IllegalArgumentException("Invalid panel id passed into With reactor");
+  }
+
+  @Override
+  public void mergeUp() {
+    // merge this reactor into the parent reactor
+    init();
+    //		createQueryStruct();
+    //		setAlias(qs.getSelectors(), selectorAlias, existingSelectors);
+    if (parentReactor != null) {
+      // this is only called lazy
+      // have to init to set the qs
+      // to them add to the parent
+      NounMetadata data = new NounMetadata(createQueryStruct(), PixelDataType.QUERY_STRUCT);
+      if (parentReactor instanceof EmbeddedScriptReactor
+          || parentReactor instanceof EmbeddedRoutineReactor
+          || parentReactor instanceof GenericReactor) {
+        parentReactor.getCurRow().add(data);
+      } else {
+        GenRowStruct parentQSInput =
+            parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.getKey());
+        parentQSInput.add(data);
+      }
+    }
+  }
 }

@@ -1,10 +1,35 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.database.upload.modifications;
 
 import java.io.IOException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -22,77 +47,81 @@ import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 /**
- * 1) Rename the column in the DB
- * 2) Update the physical name in the owl, this does not change the conceptual name
- * 
- * @author rramirezjimenez
+ * 1) Rename the column in the DB 2) Update the physical name in the owl, this does not change the
+ * conceptual name
  *
+ * @author rramirezjimenez
  */
 public class DatabaseRenameColumnReactor extends AbstractReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(DatabaseRenameColumnReactor.class);
 
-	public DatabaseRenameColumnReactor() {
-		this.keysToGet = new String[] { 
-				ReactorKeysEnum.DATABASE.getKey(), 
-				ReactorKeysEnum.CONCEPT.getKey(),
-				ReactorKeysEnum.COLUMN.getKey(), 
-				ReactorKeysEnum.NEW_VALUE.getKey()
-				};
-		this.keyRequired = new int[] { 1, 1, 1, 1 };
-	}
+  private static final Logger classLogger = LogManager.getLogger(DatabaseRenameColumnReactor.class);
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-			throw new IllegalArgumentException("Database" + databaseId + " does not exist or user does not have access to database");
-		}
-		
-		String table = this.keyValue.get(this.keysToGet[1]);
-		String existingColumn = this.keyValue.get(this.keysToGet[2]);
-		String newColumn = this.keyValue.get(this.keysToGet[3]);
-		
-		boolean dbUpdate = false;
-		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
-			IEngineModifier modifier = EngineModificationFactory.getEngineModifier(database);
-			if (modifier == null) {
-				throw new IllegalArgumentException("This type of data modification has not been implemented for this database type");
-			}
-			try {
-				modifier.renameProperty(table, existingColumn, newColumn);
-				dbUpdate = true;
-			} catch (Exception e) {
-				throw new IllegalArgumentException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
-			}
-			
-			// update owl
-			try {
-				owlEngine.renameProp(table, existingColumn, newColumn);
-				owlEngine.commit();
-				owlEngine.export();
-				SyncDatabaseWithLocalMasterReactor syncWithLocal = new SyncDatabaseWithLocalMasterReactor();
-				syncWithLocal.setInsight(this.insight);
-				syncWithLocal.setNounStore(this.store);
-				syncWithLocal.In();
-				syncWithLocal.execute();
-			} catch (IOException e) {
-				NounMetadata noun = new NounMetadata(dbUpdate, PixelDataType.BOOLEAN);
-				noun.addAdditionalReturn(getError("Error occurred saving the metadata file with the executed changes"));
-				return noun;
-			}
-			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId, owlEngine);
-		} catch (IOException | InterruptedException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
-		}
+  public DatabaseRenameColumnReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.DATABASE.getKey(),
+          ReactorKeysEnum.CONCEPT.getKey(),
+          ReactorKeysEnum.COLUMN.getKey(),
+          ReactorKeysEnum.NEW_VALUE.getKey()
+        };
+    this.keyRequired = new int[] {1, 1, 1, 1};
+  }
 
-		NounMetadata noun = new NounMetadata(dbUpdate, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully renamed the column"));
-		return noun;
-	}
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+
+    String databaseId = this.keyValue.get(this.keysToGet[0]);
+    databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+    if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+      throw new IllegalArgumentException(
+          "Database" + databaseId + " does not exist or user does not have access to database");
+    }
+
+    String table = this.keyValue.get(this.keysToGet[1]);
+    String existingColumn = this.keyValue.get(this.keysToGet[2]);
+    String newColumn = this.keyValue.get(this.keysToGet[3]);
+
+    boolean dbUpdate = false;
+    IDatabaseEngine database = Utility.getDatabase(databaseId);
+    try (WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+      IEngineModifier modifier = EngineModificationFactory.getEngineModifier(database);
+      if (modifier == null) {
+        throw new IllegalArgumentException(
+            "This type of data modification has not been implemented for this database type");
+      }
+      try {
+        modifier.renameProperty(table, existingColumn, newColumn);
+        dbUpdate = true;
+      } catch (Exception e) {
+        throw new IllegalArgumentException(
+            "Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
+      }
+
+      // update owl
+      try {
+        owlEngine.renameProp(table, existingColumn, newColumn);
+        owlEngine.commit();
+        owlEngine.export();
+        SyncDatabaseWithLocalMasterReactor syncWithLocal = new SyncDatabaseWithLocalMasterReactor();
+        syncWithLocal.setInsight(this.insight);
+        syncWithLocal.setNounStore(this.store);
+        syncWithLocal.In();
+        syncWithLocal.execute();
+      } catch (IOException e) {
+        NounMetadata noun = new NounMetadata(dbUpdate, PixelDataType.BOOLEAN);
+        noun.addAdditionalReturn(
+            getError("Error occurred saving the metadata file with the executed changes"));
+        return noun;
+      }
+      EngineSyncUtility.clearEngineCache(databaseId);
+      ClusterUtil.pushOwl(databaseId, owlEngine);
+    } catch (IOException | InterruptedException e1) {
+      classLogger.error(Constants.STACKTRACE, e1);
+    }
+
+    NounMetadata noun = new NounMetadata(dbUpdate, PixelDataType.BOOLEAN);
+    noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully renamed the column"));
+    return noun;
+  }
 }

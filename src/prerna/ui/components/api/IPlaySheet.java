@@ -28,174 +28,203 @@
 package prerna.ui.components.api;
 
 import java.util.Map;
-
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
-
 import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 /**
- * This interface class is used to define the basic functionality for all play sheet classes.  A play sheet is loosely defined
- * as any class that displays data on the the main PlayPane Desktop.  This serves as the primary interface for all of the play sheets.
- * The data for a play sheet can be pulled directly from an engine or it can be set in the form of a Jena Model.
- * <p>
- * The functions associated with this interface revolve around specifying the data to display, creating the visualization, 
- * and defining the play sheet.
+ * This interface class is used to define the basic functionality for all play sheet classes. A play
+ * sheet is loosely defined as any class that displays data on the the main PlayPane Desktop. This
+ * serves as the primary interface for all of the play sheets. The data for a play sheet can be
+ * pulled directly from an engine or it can be set in the form of a Jena Model.
+ *
+ * <p>The functions associated with this interface revolve around specifying the data to display,
+ * creating the visualization, and defining the play sheet.
+ *
  * @author karverma
  * @version $Revision: 1.0 $
  */
-public interface IPlaySheet extends Runnable{
+public interface IPlaySheet extends Runnable {
 
-	/**
-	 * Sets the String version of the SPARQL query on the play sheet. <p> The query must be set before creating the model for
-	 * visualization.  Thus, this function is called before createView(), extendView(), overlayView()--everything that 
-	 * requires the play sheet to pull data through a SPARQL query.
-	 * @param query the full SPARQL query to be set on the play sheet
-	 * @see	#createView()
-	 * @see #extendView()
-	 * @see #overlayView()
-	 */
-	@Deprecated
-	void setQuery(String query);
-	
-	/**
-	 * Gets the latest query set to the play sheet.  <p> If multiple queries have been set to the specific play sheet through
-	 * Extend or Overlay, the function will return the last query set to the play sheet.
-	
-	 * @see #extendView()
-	 * @see #overlayView()
-	 * @return the SPARQL query previously set to this play sheet */
-//	String getQuery();
+  /**
+   * Sets the String version of the SPARQL query on the play sheet.
+   *
+   * <p>The query must be set before creating the model for visualization. Thus, this function is
+   * called before createView(), extendView(), overlayView()--everything that requires the play
+   * sheet to pull data through a SPARQL query.
+   *
+   * @param query the full SPARQL query to be set on the play sheet
+   * @see #createView()
+   * @see #extendView()
+   * @see #overlayView()
+   */
+  @Deprecated
+  void setQuery(String query);
 
-	/**
-	 * Sets the JDesktopPane to display the play sheet on. <p> This must be set before calling functions like 
-	 * {@link #createView()} or {@link #extendView()}, as functions like these add the panel to the desktop pane set in this
-	 * function.
-	 * @param pane the desktop pane that the play sheet is to be displayed on
-	 */
-	void setJDesktopPane(JComponent pane);
-	
-	/**
-	 * Sets the identification code for the question associated with the play sheet.  The question ID is what can be used in 
-	 * conjunction with the specified engine's properties file to get the SPARQL query associated with the question as well 
-	 * as the question String and play sheet class that the question is to be run on.
-	 * @param id representation of the question as laid out in the specified engine's question file
-	 */
-	void setQuestionID(String id);
+  /**
+   * Gets the latest query set to the play sheet.
+   *
+   * <p>If multiple queries have been set to the specific play sheet through Extend or Overlay, the
+   * function will return the last query set to the play sheet.
+   *
+   * @see #extendView()
+   * @see #overlayView()
+   * @return the SPARQL query previously set to this play sheet
+   */
+  //	String getQuery();
 
-	/**
-	 * Returns the question identification code that has been set to the play sheet. The question identification code can be used
-	 * in conjunction with the specified engine's properties file to get the SPARQL query associated with the question as well
-	 * as the question String and the play sheet class that the question is to be run on.  Only one question ID can be set to 
-	 * each play sheet, so after using {@link #extendView()} or {@link #overlayView()} the play sheet will have the most 
-	 * recent question ID associated with it.
-	
-	 * @return questionID the identification code of the question associated with the play sheet */
-	String getQuestionID();
-	
-	/**
-	 * This is the function that is used to create the first view 
-	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
-	 * {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IDatabaseEngine)}, and {@link #setTitle(String)} so that the play 
-	 * sheet is displayed correctly when the view is first created.  It generally creates the model for visualization from 
-	 * the specified engine, then creates the visualization, and finally displays it on the specified desktop pane
-	 * 
-	 * <p>This is the function called by the PlaysheetCreateRunner.  PlaysheetCreateRunner is the runner used whenever a play 
-	 * sheet is to first be created, most notably in ProcessQueryListener.
-	 */
-	void createView();
+  /**
+   * Sets the JDesktopPane to display the play sheet on.
+   *
+   * <p>This must be set before calling functions like {@link #createView()} or {@link
+   * #extendView()}, as functions like these add the panel to the desktop pane set in this function.
+   *
+   * @param pane the desktop pane that the play sheet is to be displayed on
+   */
+  void setJDesktopPane(JComponent pane);
 
-	/**
-	 * Recreates the visualizer and the repaints the play sheet without recreating the model or pulling anything 
-	 * from the specified engine.
-	 * This function is used when the model to be displayed has not been changed, but rather the visualization itself 
-	 * must be redone.
-	 * <p>This function takes into account the nodes that have been filtered either through FilterData or Hide Nodes so that these 
-	 * do not get included in the recreation of the visualization.
-	 */
-	void refineView();
+  /**
+   * Sets the identification code for the question associated with the play sheet. The question ID
+   * is what can be used in conjunction with the specified engine's properties file to get the
+   * SPARQL query associated with the question as well as the question String and play sheet class
+   * that the question is to be run on.
+   *
+   * @param id representation of the question as laid out in the specified engine's question file
+   */
+  void setQuestionID(String id);
 
-	/**
-	 * This function is very similar to {@link #extendView()}.  Its adds additional data to the model already associated with 
-	 * the play sheet.  The main difference between these two functions, though is {@link #overlayView()} is used to overlay 
-	 * a query that could be unrelated to the data that currently exists in the play sheet's model whereas {@link #extendView()} 
-	 * uses FilterNames to limit the results of the additional data so that it only add data relevant to the play sheet's current
-	 *  model.
-	 *  <p>This function is used by PlaysheetOverlayRunner which is called when the Overlay button is selected.
-	 */
-	void overlayView();
+  /**
+   * Returns the question identification code that has been set to the play sheet. The question
+   * identification code can be used in conjunction with the specified engine's properties file to
+   * get the SPARQL query associated with the question as well as the question String and the play
+   * sheet class that the question is to be run on. Only one question ID can be set to each play
+   * sheet, so after using {@link #extendView()} or {@link #overlayView()} the play sheet will have
+   * the most recent question ID associated with it.
+   *
+   * @return questionID the identification code of the question associated with the play sheet
+   */
+  String getQuestionID();
 
-	/**
-	 * Removes from the play sheet's current model everything that was returned from the query the last time the 
-	 * model was augmented.
-	 * 
-	 * TODO: Uncomment when exposing to other playsheets. Currently just graphs have the functionality in the UI
-	 * @param engine IDatabase
-	 */
-//	public void undoView();
-	
-	// redo the view - this is useful when the user selects custom data properties and object properties
-	/**
-	 * Uses the query and the engine associated with the play sheet to create the model, the visualization, and repaint the graph.  
-	 * This is very similar to {@link #createView()} with the main difference being that this function does not add the panel or 
-	 * do any of the visibility functionality that is necessary when first creating the play sheet.
-	 * 
-	 * TODO: Uncomment when exposing to other playsheets. Currently just graphs have the functionality in the UI
-	 */
-//	public void redoView();
+  /**
+   * This is the function that is used to create the first view of any play sheet. It often uses a
+   * lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
+   * {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IDatabaseEngine)}, and {@link
+   * #setTitle(String)} so that the play sheet is displayed correctly when the view is first
+   * created. It generally creates the model for visualization from the specified engine, then
+   * creates the visualization, and finally displays it on the specified desktop pane
+   *
+   * <p>This is the function called by the PlaysheetCreateRunner. PlaysheetCreateRunner is the
+   * runner used whenever a play sheet is to first be created, most notably in ProcessQueryListener.
+   */
+  void createView();
 
-	/**
-	 * Sets the RDF engine for the play sheet to run its query against.  Can be any of the active engines, all of which are 
-	 * stored in DIHelper
-	 * @param engine the active engine for the play sheet to run its query against.
-	 */
-	@Deprecated
-	void setRDFEngine(IDatabaseEngine engine);
+  /**
+   * Recreates the visualizer and the repaints the play sheet without recreating the model or
+   * pulling anything from the specified engine. This function is used when the model to be
+   * displayed has not been changed, but rather the visualization itself must be redone.
+   *
+   * <p>This function takes into account the nodes that have been filtered either through FilterData
+   * or Hide Nodes so that these do not get included in the recreation of the visualization.
+   */
+  void refineView();
 
-	/**
-	 * Gets the RDF engine for the play sheet to run its query against.  Can be any of the active engines, all of which are 
-	 * stored in DIHelper
-	
-	
-	 * @return IDatabase */
-//	public IDatabase getRDFEngine();
-	
-	/**
-	 * Sets the title of the play sheet.  The title is displayed as the text on top of the internal frame that is the play sheet.
-	 * @param title representative name for the play sheet.  Often a concatenation of the question ID and question text
-	 */
-	void setTitle(String title);
-	
-	// gets the title
-	/**
-	 * Gets the title of the play sheet.  The title is displayed as the text on top of the internal frame that is the play sheet.
-	 * @param title representative name for the play sheet.  Often a concatenation of the question ID and question text
-	 */
-	String getTitle();
-		
-	
-	// Interim call to create the data
-	@Deprecated
-	void createData();
-	void setDataMaker(IDataMaker data);
-	IDataMaker getDataMaker();
-	
-	// get the data
-//	public Object getData();
-	
-	// Interim call to run analytics
-	void runAnalytics();
+  /**
+   * This function is very similar to {@link #extendView()}. Its adds additional data to the model
+   * already associated with the play sheet. The main difference between these two functions, though
+   * is {@link #overlayView()} is used to overlay a query that could be unrelated to the data that
+   * currently exists in the play sheet's model whereas {@link #extendView()} uses FilterNames to
+   * limit the results of the additional data so that it only add data relevant to the play sheet's
+   * current model.
+   *
+   * <p>This function is used by PlaysheetOverlayRunner which is called when the Overlay button is
+   * selected.
+   */
+  void overlayView();
 
-	// this is for custom methods called from the front end
-	Object doMethod(String methodName, Map argHash);
+  /**
+   * Removes from the play sheet's current model everything that was returned from the query the
+   * last time the model was augmented.
+   *
+   * <p>TODO: Uncomment when exposing to other playsheets. Currently just graphs have the
+   * functionality in the UI
+   *
+   * @param engine IDatabase
+   */
+  //	public void undoView();
 
-	void processQueryData();
-	
-	// 
-	IDataMaker getDefaultDataMaker();
-	
-	 Map<String, String> getDataTableAlign();
-	 void setTableDataAlign(Map<String, String> tableDataAlign);
-		
+  // redo the view - this is useful when the user selects custom data properties and object
+  // properties
+  /**
+   * Uses the query and the engine associated with the play sheet to create the model, the
+   * visualization, and repaint the graph. This is very similar to {@link #createView()} with the
+   * main difference being that this function does not add the panel or do any of the visibility
+   * functionality that is necessary when first creating the play sheet.
+   *
+   * <p>TODO: Uncomment when exposing to other playsheets. Currently just graphs have the
+   * functionality in the UI
+   */
+  //	public void redoView();
+
+  /**
+   * Sets the RDF engine for the play sheet to run its query against. Can be any of the active
+   * engines, all of which are stored in DIHelper
+   *
+   * @param engine the active engine for the play sheet to run its query against.
+   */
+  @Deprecated
+  void setRDFEngine(IDatabaseEngine engine);
+
+  /**
+   * Gets the RDF engine for the play sheet to run its query against. Can be any of the active
+   * engines, all of which are stored in DIHelper
+   *
+   * @return IDatabase
+   */
+  //	public IDatabase getRDFEngine();
+
+  /**
+   * Sets the title of the play sheet. The title is displayed as the text on top of the internal
+   * frame that is the play sheet.
+   *
+   * @param title representative name for the play sheet. Often a concatenation of the question ID
+   *     and question text
+   */
+  void setTitle(String title);
+
+  // gets the title
+  /**
+   * Gets the title of the play sheet. The title is displayed as the text on top of the internal
+   * frame that is the play sheet.
+   *
+   * @param title representative name for the play sheet. Often a concatenation of the question ID
+   *     and question text
+   */
+  String getTitle();
+
+  // Interim call to create the data
+  @Deprecated
+  void createData();
+
+  void setDataMaker(IDataMaker data);
+
+  IDataMaker getDataMaker();
+
+  // get the data
+  //	public Object getData();
+
+  // Interim call to run analytics
+  void runAnalytics();
+
+  // this is for custom methods called from the front end
+  Object doMethod(String methodName, Map argHash);
+
+  void processQueryData();
+
+  //
+  IDataMaker getDefaultDataMaker();
+
+  Map<String, String> getDataTableAlign();
+
+  void setTableDataAlign(Map<String, String> tableDataAlign);
 }

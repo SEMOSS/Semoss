@@ -31,7 +31,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.neo4j.structure.Neo4jGraph;
@@ -41,7 +40,6 @@ import org.apache.tinkerpop.gremlin.structure.io.graphml.GraphMLIo;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
-
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.masterdatabase.util.GenerateMetamodelLayout;

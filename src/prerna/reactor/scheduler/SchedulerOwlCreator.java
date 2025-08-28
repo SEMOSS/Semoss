@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.scheduler;
 
 import static prerna.reactor.scheduler.SchedulerConstants.BIGINT;
@@ -100,269 +127,308 @@ import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_95;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Utility;
 
 public class SchedulerOwlCreator {
-	
-	private static List<String> conceptsRequired = new ArrayList<>();
-	private IDatabaseEngine schedulerDb;
 
-	static {
-		conceptsRequired.add(QRTZ_CALENDARS);
-		conceptsRequired.add(QRTZ_CRON_TRIGGERS);
-		conceptsRequired.add(QRTZ_FIRED_TRIGGERS);
-		conceptsRequired.add(QRTZ_PAUSED_TRIGGER_GRPS);
-		conceptsRequired.add(QRTZ_SCHEDULER_STATE);
-		conceptsRequired.add(QRTZ_LOCKS);
-		conceptsRequired.add(QRTZ_JOB_DETAILS);
-		conceptsRequired.add(QRTZ_SIMPLE_TRIGGERS);
-		conceptsRequired.add(QRTZ_SIMPROP_TRIGGERS);
-		conceptsRequired.add(QRTZ_BLOB_TRIGGERS);
-		conceptsRequired.add(QRTZ_TRIGGERS);
-		conceptsRequired.add(SMSS_JOB_RECIPES);
-		conceptsRequired.add(SMSS_AUDIT_TRAIL);
-		conceptsRequired.add(SMSS_EXECUTION);
-		conceptsRequired.add(SMSS_JOB_TAGS);
-	}
+  private static List<String> conceptsRequired = new ArrayList<>();
+  private IDatabaseEngine schedulerDb;
 
-	public SchedulerOwlCreator(IDatabaseEngine schedulerDb) {
-		this.schedulerDb = schedulerDb;
-	}
+  static {
+    conceptsRequired.add(QRTZ_CALENDARS);
+    conceptsRequired.add(QRTZ_CRON_TRIGGERS);
+    conceptsRequired.add(QRTZ_FIRED_TRIGGERS);
+    conceptsRequired.add(QRTZ_PAUSED_TRIGGER_GRPS);
+    conceptsRequired.add(QRTZ_SCHEDULER_STATE);
+    conceptsRequired.add(QRTZ_LOCKS);
+    conceptsRequired.add(QRTZ_JOB_DETAILS);
+    conceptsRequired.add(QRTZ_SIMPLE_TRIGGERS);
+    conceptsRequired.add(QRTZ_SIMPROP_TRIGGERS);
+    conceptsRequired.add(QRTZ_BLOB_TRIGGERS);
+    conceptsRequired.add(QRTZ_TRIGGERS);
+    conceptsRequired.add(SMSS_JOB_RECIPES);
+    conceptsRequired.add(SMSS_AUDIT_TRAIL);
+    conceptsRequired.add(SMSS_EXECUTION);
+    conceptsRequired.add(SMSS_JOB_TAGS);
+  }
 
-	/**
-	 * Determine if we need to remake the OWL
-	 * 
-	 * @return
-	 */
-	public boolean needsRemake() {
-		/*
-		 * This is a very simple check
-		 * Just looking at the tables
-		 * Not doing anything with columns but should eventually do that
-		 */
+  public SchedulerOwlCreator(IDatabaseEngine schedulerDb) {
+    this.schedulerDb = schedulerDb;
+  }
 
-		List<String> cleanConcepts = new ArrayList<>();
-		try {
-			List<String> concepts = schedulerDb.getPhysicalConcepts();
-			if(concepts.isEmpty()) {
-				return true;
-			}
-			for (String concept : concepts) {
-				if (concept.equals("http://semoss.org/ontologies/Concept")) {
-					continue;
-				}
-				String cTable = Utility.getInstanceName(concept);
-				cleanConcepts.add(cTable);
-			}
-		} catch(Exception e) {
-			//ignore
-		}
+  /**
+   * Determine if we need to remake the OWL
+   *
+   * @return
+   */
+  public boolean needsRemake() {
+    /*
+     * This is a very simple check
+     * Just looking at the tables
+     * Not doing anything with columns but should eventually do that
+     */
 
-		if(!cleanConcepts.containsAll(conceptsRequired)) {
-			return true;
-		}
-		
-		{
-			// dont need to keep adding a million things to this list
-			// just need the latest change ...
-			List<String> props = schedulerDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_JOB_RECIPES");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CRON_TIMEZONE/SMSS_JOB_RECIPES")) {
-				return true;
-			}
-		}
-		
-		return false;
-	}
+    List<String> cleanConcepts = new ArrayList<>();
+    try {
+      List<String> concepts = schedulerDb.getPhysicalConcepts();
+      if (concepts.isEmpty()) {
+        return true;
+      }
+      for (String concept : concepts) {
+        if (concept.equals("http://semoss.org/ontologies/Concept")) {
+          continue;
+        }
+        String cTable = Utility.getInstanceName(concept);
+        cleanConcepts.add(cTable);
+      }
+    } catch (Exception e) {
+      // ignore
+    }
 
-	/**
-	 * Remake the OWL
-	 * @throws Exception 
-	 */
-	public void remakeOwl() throws Exception {
-		try(WriteOWLEngine owlEngine = schedulerDb.getOWLEngineFactory().getWriteOWL()) {
-			owlEngine.createEmptyOWLFile();
-			// write the new OWL
-			writeNewOwl(owlEngine);
-		}
-	}
+    if (!cleanConcepts.containsAll(conceptsRequired)) {
+      return true;
+    }
 
-	/**
-	 * Method that uses the OWLER to generate a new OWL structure
-	 * 
-	 * @param owlLocation
-	 * @throws Exception 
-	 */
-	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
-		// QRTZ_CALENDARS
-		owler.addConcept(QRTZ_CALENDARS, null, null);
-		owler.addProp(QRTZ_CALENDARS, SCHED_NAME, VARCHAR_120);
-		owler.addProp(QRTZ_CALENDARS, CALENDAR_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_CALENDARS, CALENDAR, IMAGE);
+    {
+      // dont need to keep adding a million things to this list
+      // just need the latest change ...
+      List<String> props =
+          schedulerDb.getPropertyUris4PhysicalUri(
+              "http://semoss.org/ontologies/Concept/SMSS_JOB_RECIPES");
+      if (!props.contains(
+          "http://semoss.org/ontologies/Relation/Contains/CRON_TIMEZONE/SMSS_JOB_RECIPES")) {
+        return true;
+      }
+    }
 
-		// QRTZ_CRON_TRIGGERS
-		owler.addConcept(QRTZ_CRON_TRIGGERS, null, null);
-		owler.addProp(QRTZ_CRON_TRIGGERS, SCHED_NAME, VARCHAR_120);
-		owler.addProp(QRTZ_CRON_TRIGGERS, TRIGGER_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_CRON_TRIGGERS, TRIGGER_GROUP, VARCHAR_200);
-		owler.addProp(QRTZ_CRON_TRIGGERS, CRON_EXPRESSION, VARCHAR_120);
-		owler.addProp(QRTZ_CRON_TRIGGERS, TIME_ZONE_ID, VARCHAR_80);
+    return false;
+  }
 
-		// QRTZ_FIRED_TRIGGERS
-		owler.addConcept(QRTZ_FIRED_TRIGGERS, null, null);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, SCHED_NAME, VARCHAR_120);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, ENTRY_ID, VARCHAR_95);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, TRIGGER_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, TRIGGER_GROUP, VARCHAR_200);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, INSTANCE_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, FIRED_TIME, BIGINT);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, SCHED_TIME, BIGINT);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, PRIORITY, INTEGER);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, STATE, VARCHAR_16);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, JOB_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, JOB_GROUP, VARCHAR_200);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, IS_NONCONCURRENT, BOOLEAN);
-		owler.addProp(QRTZ_FIRED_TRIGGERS, REQUESTS_RECOVERY, BOOLEAN);
+  /**
+   * Remake the OWL
+   *
+   * @throws Exception
+   */
+  public void remakeOwl() throws Exception {
+    try (WriteOWLEngine owlEngine = schedulerDb.getOWLEngineFactory().getWriteOWL()) {
+      owlEngine.createEmptyOWLFile();
+      // write the new OWL
+      writeNewOwl(owlEngine);
+    }
+  }
 
-		// QRTZ_PAUSED_TRIGGER_GRPS
-		owler.addConcept(QRTZ_PAUSED_TRIGGER_GRPS, null, null);
-		owler.addProp(QRTZ_PAUSED_TRIGGER_GRPS, SCHED_NAME, VARCHAR_120);
-		owler.addProp(QRTZ_PAUSED_TRIGGER_GRPS, TRIGGER_GROUP, VARCHAR_200);
+  /**
+   * Method that uses the OWLER to generate a new OWL structure
+   *
+   * @param owlLocation
+   * @throws Exception
+   */
+  private void writeNewOwl(WriteOWLEngine owler) throws Exception {
+    // QRTZ_CALENDARS
+    owler.addConcept(QRTZ_CALENDARS, null, null);
+    owler.addProp(QRTZ_CALENDARS, SCHED_NAME, VARCHAR_120);
+    owler.addProp(QRTZ_CALENDARS, CALENDAR_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_CALENDARS, CALENDAR, IMAGE);
 
-		// QRTZ_SCHEDULER_STATE
-		owler.addConcept(QRTZ_SCHEDULER_STATE, null, null);
-		owler.addProp(QRTZ_SCHEDULER_STATE, SCHED_NAME, VARCHAR_120);
-		owler.addProp(QRTZ_SCHEDULER_STATE, INSTANCE_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_SCHEDULER_STATE, LAST_CHECKIN_TIME, BIGINT);
-		owler.addProp(QRTZ_SCHEDULER_STATE, CHECKIN_INTERVAL, BIGINT);
+    // QRTZ_CRON_TRIGGERS
+    owler.addConcept(QRTZ_CRON_TRIGGERS, null, null);
+    owler.addProp(QRTZ_CRON_TRIGGERS, SCHED_NAME, VARCHAR_120);
+    owler.addProp(QRTZ_CRON_TRIGGERS, TRIGGER_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_CRON_TRIGGERS, TRIGGER_GROUP, VARCHAR_200);
+    owler.addProp(QRTZ_CRON_TRIGGERS, CRON_EXPRESSION, VARCHAR_120);
+    owler.addProp(QRTZ_CRON_TRIGGERS, TIME_ZONE_ID, VARCHAR_80);
 
-		// QRTZ_LOCKS
-		owler.addConcept(QRTZ_LOCKS, null, null);
-		owler.addProp(QRTZ_LOCKS, SCHED_NAME, VARCHAR_120);
-		owler.addProp(QRTZ_LOCKS, LOCK_NAME, VARCHAR_40);
+    // QRTZ_FIRED_TRIGGERS
+    owler.addConcept(QRTZ_FIRED_TRIGGERS, null, null);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, SCHED_NAME, VARCHAR_120);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, ENTRY_ID, VARCHAR_95);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, TRIGGER_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, TRIGGER_GROUP, VARCHAR_200);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, INSTANCE_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, FIRED_TIME, BIGINT);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, SCHED_TIME, BIGINT);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, PRIORITY, INTEGER);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, STATE, VARCHAR_16);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, JOB_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, JOB_GROUP, VARCHAR_200);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, IS_NONCONCURRENT, BOOLEAN);
+    owler.addProp(QRTZ_FIRED_TRIGGERS, REQUESTS_RECOVERY, BOOLEAN);
 
-		// QRTZ_JOB_DETAILS
-		owler.addConcept(QRTZ_JOB_DETAILS, null, null);
-		owler.addProp(QRTZ_JOB_DETAILS, SCHED_NAME, VARCHAR_120);
-		owler.addProp(QRTZ_JOB_DETAILS, JOB_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_JOB_DETAILS, JOB_GROUP, VARCHAR_200);
-		owler.addProp(QRTZ_JOB_DETAILS, DESCRIPTION, VARCHAR_250);
-		owler.addProp(QRTZ_JOB_DETAILS, JOB_CLASS_NAME, VARCHAR_250);
-		owler.addProp(QRTZ_JOB_DETAILS, IS_DURABLE, BOOLEAN);
-		owler.addProp(QRTZ_JOB_DETAILS, IS_NONCONCURRENT, BOOLEAN);
-		owler.addProp(QRTZ_JOB_DETAILS, IS_UPDATE_DATA, BOOLEAN);
-		owler.addProp(QRTZ_JOB_DETAILS, REQUESTS_RECOVERY, BOOLEAN);
-		owler.addProp(QRTZ_JOB_DETAILS, JOB_DATA, IMAGE);
+    // QRTZ_PAUSED_TRIGGER_GRPS
+    owler.addConcept(QRTZ_PAUSED_TRIGGER_GRPS, null, null);
+    owler.addProp(QRTZ_PAUSED_TRIGGER_GRPS, SCHED_NAME, VARCHAR_120);
+    owler.addProp(QRTZ_PAUSED_TRIGGER_GRPS, TRIGGER_GROUP, VARCHAR_200);
 
-		// QRTZ_SIMPLE_TRIGGERS
-		owler.addConcept(QRTZ_SIMPLE_TRIGGERS, null, null);
-		owler.addProp(QRTZ_SIMPLE_TRIGGERS, SCHED_NAME, VARCHAR_120);
-		owler.addProp(QRTZ_SIMPLE_TRIGGERS, TRIGGER_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_SIMPLE_TRIGGERS, TRIGGER_GROUP, VARCHAR_200);
-		owler.addProp(QRTZ_SIMPLE_TRIGGERS, REPEAT_COUNT, BIGINT);
-		owler.addProp(QRTZ_SIMPLE_TRIGGERS, REPEAT_INTERVAL, BIGINT);
-		owler.addProp(QRTZ_SIMPLE_TRIGGERS, TIMES_TRIGGERED, BIGINT);
+    // QRTZ_SCHEDULER_STATE
+    owler.addConcept(QRTZ_SCHEDULER_STATE, null, null);
+    owler.addProp(QRTZ_SCHEDULER_STATE, SCHED_NAME, VARCHAR_120);
+    owler.addProp(QRTZ_SCHEDULER_STATE, INSTANCE_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_SCHEDULER_STATE, LAST_CHECKIN_TIME, BIGINT);
+    owler.addProp(QRTZ_SCHEDULER_STATE, CHECKIN_INTERVAL, BIGINT);
 
-		// qrtz_simprop_triggers
-		owler.addConcept(QRTZ_SIMPROP_TRIGGERS, null, null);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, SCHED_NAME, VARCHAR_120);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, TRIGGER_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, TRIGGER_GROUP, VARCHAR_200);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, STR_PROP_1, VARCHAR_512);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, STR_PROP_2, VARCHAR_512);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, STR_PROP_3, VARCHAR_512);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, INT_PROP_1, INTEGER);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, INT_PROP_2, INTEGER);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, LONG_PROP_1, BIGINT);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, LONG_PROP_2, BIGINT);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, DEC_PROP_1, NUMERIC_13_4);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, DEC_PROP_2, NUMERIC_13_4);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, BOOL_PROP_1, BOOLEAN);
-		owler.addProp(QRTZ_SIMPROP_TRIGGERS, BOOL_PROP_2, BOOLEAN);
+    // QRTZ_LOCKS
+    owler.addConcept(QRTZ_LOCKS, null, null);
+    owler.addProp(QRTZ_LOCKS, SCHED_NAME, VARCHAR_120);
+    owler.addProp(QRTZ_LOCKS, LOCK_NAME, VARCHAR_40);
 
-		// QRTZ_BLOB_TRIGGERS
-		owler.addConcept(QRTZ_BLOB_TRIGGERS, null, null);
-		owler.addProp(QRTZ_BLOB_TRIGGERS, SCHED_NAME, VARCHAR_120);
-		owler.addProp(QRTZ_BLOB_TRIGGERS, TRIGGER_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_BLOB_TRIGGERS, TRIGGER_GROUP, VARCHAR_200);
-		owler.addProp(QRTZ_BLOB_TRIGGERS, BLOB_DATA, IMAGE);
+    // QRTZ_JOB_DETAILS
+    owler.addConcept(QRTZ_JOB_DETAILS, null, null);
+    owler.addProp(QRTZ_JOB_DETAILS, SCHED_NAME, VARCHAR_120);
+    owler.addProp(QRTZ_JOB_DETAILS, JOB_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_JOB_DETAILS, JOB_GROUP, VARCHAR_200);
+    owler.addProp(QRTZ_JOB_DETAILS, DESCRIPTION, VARCHAR_250);
+    owler.addProp(QRTZ_JOB_DETAILS, JOB_CLASS_NAME, VARCHAR_250);
+    owler.addProp(QRTZ_JOB_DETAILS, IS_DURABLE, BOOLEAN);
+    owler.addProp(QRTZ_JOB_DETAILS, IS_NONCONCURRENT, BOOLEAN);
+    owler.addProp(QRTZ_JOB_DETAILS, IS_UPDATE_DATA, BOOLEAN);
+    owler.addProp(QRTZ_JOB_DETAILS, REQUESTS_RECOVERY, BOOLEAN);
+    owler.addProp(QRTZ_JOB_DETAILS, JOB_DATA, IMAGE);
 
-		// QRTZ_TRIGGERS
-		owler.addConcept(QRTZ_TRIGGERS, null, null);
-		owler.addProp(QRTZ_TRIGGERS, SCHED_NAME, VARCHAR_120);
-		owler.addProp(QRTZ_TRIGGERS, TRIGGER_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_TRIGGERS, TRIGGER_GROUP, VARCHAR_200);
-		owler.addProp(QRTZ_TRIGGERS, JOB_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_TRIGGERS, JOB_GROUP, VARCHAR_200);
-		owler.addProp(QRTZ_TRIGGERS, DESCRIPTION, VARCHAR_250);
-		owler.addProp(QRTZ_TRIGGERS, NEXT_FIRE_TIME, BIGINT);
-		owler.addProp(QRTZ_TRIGGERS, PREV_FIRE_TIME, BIGINT);
-		owler.addProp(QRTZ_TRIGGERS, PRIORITY, INTEGER);
-		owler.addProp(QRTZ_TRIGGERS, TRIGGER_STATE, VARCHAR_16);
-		owler.addProp(QRTZ_TRIGGERS, TRIGGER_TYPE, VARCHAR_8);
-		owler.addProp(QRTZ_TRIGGERS, START_TIME, BIGINT);
-		owler.addProp(QRTZ_TRIGGERS, END_TIME, BIGINT);
-		owler.addProp(QRTZ_TRIGGERS, CALENDAR_NAME, VARCHAR_200);
-		owler.addProp(QRTZ_TRIGGERS, MISFIRE_INSTR, SMALLINT);
-		owler.addProp(QRTZ_TRIGGERS, JOB_DATA, IMAGE);
+    // QRTZ_SIMPLE_TRIGGERS
+    owler.addConcept(QRTZ_SIMPLE_TRIGGERS, null, null);
+    owler.addProp(QRTZ_SIMPLE_TRIGGERS, SCHED_NAME, VARCHAR_120);
+    owler.addProp(QRTZ_SIMPLE_TRIGGERS, TRIGGER_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_SIMPLE_TRIGGERS, TRIGGER_GROUP, VARCHAR_200);
+    owler.addProp(QRTZ_SIMPLE_TRIGGERS, REPEAT_COUNT, BIGINT);
+    owler.addProp(QRTZ_SIMPLE_TRIGGERS, REPEAT_INTERVAL, BIGINT);
+    owler.addProp(QRTZ_SIMPLE_TRIGGERS, TIMES_TRIGGERED, BIGINT);
 
-		// SMSS_JOB_RECIPES
-		owler.addConcept(SMSS_JOB_RECIPES, null, null);
-		owler.addProp(SMSS_JOB_RECIPES, USER_ID, VARCHAR_120);
-		owler.addProp(SMSS_JOB_RECIPES, JOB_ID, VARCHAR_200);
-		owler.addProp(SMSS_JOB_RECIPES, JOB_NAME, VARCHAR_200);
-		owler.addProp(SMSS_JOB_RECIPES, JOB_GROUP, VARCHAR_200);
-		owler.addProp(SMSS_JOB_RECIPES, CRON_EXPRESSION, VARCHAR_250);
-		owler.addProp(SMSS_JOB_RECIPES, CRON_TIMEZONE, VARCHAR_120);
-		owler.addProp(SMSS_JOB_RECIPES, PIXEL_RECIPE, BLOB);
-		owler.addProp(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, BLOB);
-		owler.addProp(SMSS_JOB_RECIPES, JOB_CATEGORY, VARCHAR_200);
-		owler.addProp(SMSS_JOB_RECIPES, TRIGGER_ON_LOAD, BOOLEAN);
-		owler.addProp(SMSS_JOB_RECIPES, UI_STATE, BLOB);
+    // qrtz_simprop_triggers
+    owler.addConcept(QRTZ_SIMPROP_TRIGGERS, null, null);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, SCHED_NAME, VARCHAR_120);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, TRIGGER_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, TRIGGER_GROUP, VARCHAR_200);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, STR_PROP_1, VARCHAR_512);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, STR_PROP_2, VARCHAR_512);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, STR_PROP_3, VARCHAR_512);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, INT_PROP_1, INTEGER);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, INT_PROP_2, INTEGER);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, LONG_PROP_1, BIGINT);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, LONG_PROP_2, BIGINT);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, DEC_PROP_1, NUMERIC_13_4);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, DEC_PROP_2, NUMERIC_13_4);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, BOOL_PROP_1, BOOLEAN);
+    owler.addProp(QRTZ_SIMPROP_TRIGGERS, BOOL_PROP_2, BOOLEAN);
 
-		// SMSS_AUDIT_TRAIL
-		owler.addConcept(SMSS_AUDIT_TRAIL, null, null);
-		owler.addProp(SMSS_AUDIT_TRAIL, JOB_ID, VARCHAR_200);
-		owler.addProp(SMSS_AUDIT_TRAIL, JOB_NAME, VARCHAR_200);
-		owler.addProp(SMSS_AUDIT_TRAIL, JOB_GROUP, VARCHAR_200);
-		owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_START, TIMESTAMP);
-		owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_END, TIMESTAMP);
-		owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_DELTA, VARCHAR_255);
-		owler.addProp(SMSS_AUDIT_TRAIL, SUCCESS, BOOLEAN);
-		owler.addProp(SMSS_AUDIT_TRAIL, IS_LATEST, BOOLEAN);
-		owler.addProp(SMSS_AUDIT_TRAIL, SCHEDULER_OUTPUT, CLOB);
+    // QRTZ_BLOB_TRIGGERS
+    owler.addConcept(QRTZ_BLOB_TRIGGERS, null, null);
+    owler.addProp(QRTZ_BLOB_TRIGGERS, SCHED_NAME, VARCHAR_120);
+    owler.addProp(QRTZ_BLOB_TRIGGERS, TRIGGER_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_BLOB_TRIGGERS, TRIGGER_GROUP, VARCHAR_200);
+    owler.addProp(QRTZ_BLOB_TRIGGERS, BLOB_DATA, IMAGE);
 
-		// SMSS_JOB_TAGS
-		owler.addConcept(SMSS_JOB_TAGS, null, null);
-		owler.addProp(SMSS_JOB_TAGS, JOB_ID, VARCHAR_200);
-		owler.addProp(SMSS_JOB_TAGS, JOB_TAG, VARCHAR_200);
+    // QRTZ_TRIGGERS
+    owler.addConcept(QRTZ_TRIGGERS, null, null);
+    owler.addProp(QRTZ_TRIGGERS, SCHED_NAME, VARCHAR_120);
+    owler.addProp(QRTZ_TRIGGERS, TRIGGER_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_TRIGGERS, TRIGGER_GROUP, VARCHAR_200);
+    owler.addProp(QRTZ_TRIGGERS, JOB_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_TRIGGERS, JOB_GROUP, VARCHAR_200);
+    owler.addProp(QRTZ_TRIGGERS, DESCRIPTION, VARCHAR_250);
+    owler.addProp(QRTZ_TRIGGERS, NEXT_FIRE_TIME, BIGINT);
+    owler.addProp(QRTZ_TRIGGERS, PREV_FIRE_TIME, BIGINT);
+    owler.addProp(QRTZ_TRIGGERS, PRIORITY, INTEGER);
+    owler.addProp(QRTZ_TRIGGERS, TRIGGER_STATE, VARCHAR_16);
+    owler.addProp(QRTZ_TRIGGERS, TRIGGER_TYPE, VARCHAR_8);
+    owler.addProp(QRTZ_TRIGGERS, START_TIME, BIGINT);
+    owler.addProp(QRTZ_TRIGGERS, END_TIME, BIGINT);
+    owler.addProp(QRTZ_TRIGGERS, CALENDAR_NAME, VARCHAR_200);
+    owler.addProp(QRTZ_TRIGGERS, MISFIRE_INSTR, SMALLINT);
+    owler.addProp(QRTZ_TRIGGERS, JOB_DATA, IMAGE);
 
-		// SMSS_EXECUTION
-		owler.addConcept(SMSS_EXECUTION, null, null);
-		owler.addProp(SMSS_EXECUTION, EXEC_ID, VARCHAR_200);
-		owler.addProp(SMSS_EXECUTION, JOB_NAME, VARCHAR_200);
-		owler.addProp(SMSS_EXECUTION, JOB_GROUP, VARCHAR_200);
-		
-		// add Foreign Keys/Relations
-		owler.addRelation(QRTZ_CRON_TRIGGERS, QRTZ_TRIGGERS, QRTZ_CRON_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
-		owler.addRelation(QRTZ_CRON_TRIGGERS, QRTZ_TRIGGERS, QRTZ_CRON_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);
-		owler.addRelation(QRTZ_CRON_TRIGGERS, QRTZ_TRIGGERS, QRTZ_CRON_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_TRIGGERS + "." + TRIGGER_GROUP);
+    // SMSS_JOB_RECIPES
+    owler.addConcept(SMSS_JOB_RECIPES, null, null);
+    owler.addProp(SMSS_JOB_RECIPES, USER_ID, VARCHAR_120);
+    owler.addProp(SMSS_JOB_RECIPES, JOB_ID, VARCHAR_200);
+    owler.addProp(SMSS_JOB_RECIPES, JOB_NAME, VARCHAR_200);
+    owler.addProp(SMSS_JOB_RECIPES, JOB_GROUP, VARCHAR_200);
+    owler.addProp(SMSS_JOB_RECIPES, CRON_EXPRESSION, VARCHAR_250);
+    owler.addProp(SMSS_JOB_RECIPES, CRON_TIMEZONE, VARCHAR_120);
+    owler.addProp(SMSS_JOB_RECIPES, PIXEL_RECIPE, BLOB);
+    owler.addProp(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, BLOB);
+    owler.addProp(SMSS_JOB_RECIPES, JOB_CATEGORY, VARCHAR_200);
+    owler.addProp(SMSS_JOB_RECIPES, TRIGGER_ON_LOAD, BOOLEAN);
+    owler.addProp(SMSS_JOB_RECIPES, UI_STATE, BLOB);
 
-		owler.addRelation(QRTZ_SIMPLE_TRIGGERS, QRTZ_TRIGGERS, QRTZ_SIMPLE_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
-		owler.addRelation(QRTZ_SIMPLE_TRIGGERS, QRTZ_TRIGGERS, QRTZ_SIMPLE_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);
-		owler.addRelation(QRTZ_SIMPLE_TRIGGERS, QRTZ_TRIGGERS, QRTZ_SIMPLE_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_TRIGGERS + "." + TRIGGER_GROUP);
+    // SMSS_AUDIT_TRAIL
+    owler.addConcept(SMSS_AUDIT_TRAIL, null, null);
+    owler.addProp(SMSS_AUDIT_TRAIL, JOB_ID, VARCHAR_200);
+    owler.addProp(SMSS_AUDIT_TRAIL, JOB_NAME, VARCHAR_200);
+    owler.addProp(SMSS_AUDIT_TRAIL, JOB_GROUP, VARCHAR_200);
+    owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_START, TIMESTAMP);
+    owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_END, TIMESTAMP);
+    owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_DELTA, VARCHAR_255);
+    owler.addProp(SMSS_AUDIT_TRAIL, SUCCESS, BOOLEAN);
+    owler.addProp(SMSS_AUDIT_TRAIL, IS_LATEST, BOOLEAN);
+    owler.addProp(SMSS_AUDIT_TRAIL, SCHEDULER_OUTPUT, CLOB);
 
-		owler.addRelation(QRTZ_SIMPROP_TRIGGERS, QRTZ_TRIGGERS, QRTZ_SIMPROP_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
-		owler.addRelation(QRTZ_SIMPROP_TRIGGERS, QRTZ_TRIGGERS, QRTZ_SIMPROP_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);
-		owler.addRelation(QRTZ_SIMPROP_TRIGGERS, QRTZ_TRIGGERS, QRTZ_SIMPROP_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_TRIGGERS + "." + TRIGGER_GROUP);
-		
-		owler.addRelation(QRTZ_TRIGGERS, QRTZ_JOB_DETAILS, QRTZ_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_JOB_DETAILS + "." + SCHED_NAME);
-		owler.addRelation(QRTZ_TRIGGERS, QRTZ_JOB_DETAILS, QRTZ_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_JOB_DETAILS + "." + TRIGGER_NAME);
-		owler.addRelation(QRTZ_TRIGGERS, QRTZ_JOB_DETAILS, QRTZ_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_JOB_DETAILS + "." + TRIGGER_GROUP);
+    // SMSS_JOB_TAGS
+    owler.addConcept(SMSS_JOB_TAGS, null, null);
+    owler.addProp(SMSS_JOB_TAGS, JOB_ID, VARCHAR_200);
+    owler.addProp(SMSS_JOB_TAGS, JOB_TAG, VARCHAR_200);
 
-		owler.commit();
-		owler.export();
-	}
+    // SMSS_EXECUTION
+    owler.addConcept(SMSS_EXECUTION, null, null);
+    owler.addProp(SMSS_EXECUTION, EXEC_ID, VARCHAR_200);
+    owler.addProp(SMSS_EXECUTION, JOB_NAME, VARCHAR_200);
+    owler.addProp(SMSS_EXECUTION, JOB_GROUP, VARCHAR_200);
+
+    // add Foreign Keys/Relations
+    owler.addRelation(
+        QRTZ_CRON_TRIGGERS,
+        QRTZ_TRIGGERS,
+        QRTZ_CRON_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
+    owler.addRelation(
+        QRTZ_CRON_TRIGGERS,
+        QRTZ_TRIGGERS,
+        QRTZ_CRON_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);
+    owler.addRelation(
+        QRTZ_CRON_TRIGGERS,
+        QRTZ_TRIGGERS,
+        QRTZ_CRON_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_TRIGGERS + "." + TRIGGER_GROUP);
+
+    owler.addRelation(
+        QRTZ_SIMPLE_TRIGGERS,
+        QRTZ_TRIGGERS,
+        QRTZ_SIMPLE_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
+    owler.addRelation(
+        QRTZ_SIMPLE_TRIGGERS,
+        QRTZ_TRIGGERS,
+        QRTZ_SIMPLE_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);
+    owler.addRelation(
+        QRTZ_SIMPLE_TRIGGERS,
+        QRTZ_TRIGGERS,
+        QRTZ_SIMPLE_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_TRIGGERS + "." + TRIGGER_GROUP);
+
+    owler.addRelation(
+        QRTZ_SIMPROP_TRIGGERS,
+        QRTZ_TRIGGERS,
+        QRTZ_SIMPROP_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
+    owler.addRelation(
+        QRTZ_SIMPROP_TRIGGERS,
+        QRTZ_TRIGGERS,
+        QRTZ_SIMPROP_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);
+    owler.addRelation(
+        QRTZ_SIMPROP_TRIGGERS,
+        QRTZ_TRIGGERS,
+        QRTZ_SIMPROP_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_TRIGGERS + "." + TRIGGER_GROUP);
+
+    owler.addRelation(
+        QRTZ_TRIGGERS,
+        QRTZ_JOB_DETAILS,
+        QRTZ_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_JOB_DETAILS + "." + SCHED_NAME);
+    owler.addRelation(
+        QRTZ_TRIGGERS,
+        QRTZ_JOB_DETAILS,
+        QRTZ_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_JOB_DETAILS + "." + TRIGGER_NAME);
+    owler.addRelation(
+        QRTZ_TRIGGERS,
+        QRTZ_JOB_DETAILS,
+        QRTZ_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_JOB_DETAILS + "." + TRIGGER_GROUP);
+
+    owler.commit();
+    owler.export();
+  }
 }

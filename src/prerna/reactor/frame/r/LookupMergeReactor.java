@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.r;
 
 import java.util.ArrayList;
@@ -5,9 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
-
 import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -23,123 +48,129 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class LookupMergeReactor extends AbstractRFrameReactor {
-	private static final String CLASS_NAME = LookupMergeReactor.class.getName();
-	private Logger logger = null;
+  private static final String CLASS_NAME = LookupMergeReactor.class.getName();
+  private Logger logger = null;
 
-	public static final String MATCHES = "matches";
+  public static final String MATCHES = "matches";
 
-	public LookupMergeReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), MATCHES };
-	}
+  public LookupMergeReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.COLUMN.getKey(), MATCHES};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    User user = this.insight.getUser();
+    // check if user is logged in
+    if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+      throwAnonymousUserError();
+    }
 
-		// initialize the reactor
-		init();
-		this.logger = getLogger(CLASS_NAME);
+    // initialize the reactor
+    init();
+    this.logger = getLogger(CLASS_NAME);
 
-		// get frame
-		RDataTable frame = (RDataTable) getFrame();
+    // get frame
+    RDataTable frame = (RDataTable) getFrame();
 
-		// get frame name
-		String frameName = frame.getName();
+    // get frame name
+    String frameName = frame.getName();
 
-		// get inputs
-		String column = getColumn();
-		// clean column name
-		if (column.contains("__")) {
-			column = column.split("__")[1];
-		}
-		String newColumn = column + "_matched";
+    // get inputs
+    String column = getColumn();
+    // clean column name
+    if (column.contains("__")) {
+      column = column.split("__")[1];
+    }
+    String newColumn = column + "_matched";
 
-		// create the matches frame and get the matches
-		HashMap matches = getMatches();
-		StringJoiner request = new StringJoiner(",", "c(", ")");
-		StringJoiner match = new StringJoiner(",", "c(", ")");
-				
-		for (Object instance : matches.keySet()) {
-			List<String> group = (List<String>) matches.get(instance);
+    // create the matches frame and get the matches
+    HashMap matches = getMatches();
+    StringJoiner request = new StringJoiner(",", "c(", ")");
+    StringJoiner match = new StringJoiner(",", "c(", ")");
 
-			int groupIdx = 0;
-			int groupLen = group.size();
-			for (; groupIdx < groupLen; groupIdx++) {
-				request.add("\"" + instance + "\"");
-				match.add("\"" + group.get(groupIdx) + "\"");
-			}
-		}
+    for (Object instance : matches.keySet()) {
+      List<String> group = (List<String>) matches.get(instance);
 
-		StringBuilder matchScript = new StringBuilder();
-		matchScript.append("data.frame(");
-		matchScript.append("\"" + column + "\"" + "=" + request + ", ");
-		matchScript.append("\"" + newColumn + "\"" + "=" + match);
-		matchScript.append(")");
+      int groupIdx = 0;
+      int groupLen = group.size();
+      for (; groupIdx < groupLen; groupIdx++) {
+        request.add("\"" + instance + "\"");
+        match.add("\"" + group.get(groupIdx) + "\"");
+      }
+    }
 
-		String matchFrame = "LookupMatch" + Utility.getRandomString(6);
+    StringBuilder matchScript = new StringBuilder();
+    matchScript.append("data.frame(");
+    matchScript.append("\"" + column + "\"" + "=" + request + ", ");
+    matchScript.append("\"" + newColumn + "\"" + "=" + match);
+    matchScript.append(")");
 
-		// get the join
-		// we will merge on col1
-		List<Map<String, String>> joinsList = new ArrayList<Map<String, String>>();
-		Map<String, String> join = new HashMap<String, String>();
-		join.put(column, column);
-		joinsList.add(join);
+    String matchFrame = "LookupMatch" + Utility.getRandomString(6);
 
-		StringBuilder script = new StringBuilder();
-		script.append(matchFrame + " <- " + matchScript + ";");
-		script.append(RSyntaxHelper.getMergeSyntax(frameName, frameName, matchFrame, "inner.join", joinsList) + ";");
-		script.append("rm(" + matchFrame + ");gc();");
-		script.append("print(\"hello\")");
-		
-		//message out
-		logger.info("Running script to merge lookup table.");
+    // get the join
+    // we will merge on col1
+    List<Map<String, String>> joinsList = new ArrayList<Map<String, String>>();
+    Map<String, String> join = new HashMap<String, String>();
+    join.put(column, column);
+    joinsList.add(join);
 
-		// run it
-		this.rJavaTranslator.runR(script.toString());
-		this.addExecutedCode(script.toString());
+    StringBuilder script = new StringBuilder();
+    script.append(matchFrame + " <- " + matchScript + ";");
+    script.append(
+        RSyntaxHelper.getMergeSyntax(frameName, frameName, matchFrame, "inner.join", joinsList)
+            + ";");
+    script.append("rm(" + matchFrame + ");gc();");
+    script.append("print(\"hello\")");
 
-		// update the metadata to include the new column
-		OwlTemporalEngineMeta metaData = frame.getMetaData();
-		metaData.addProperty(frameName, frameName + "__" + newColumn);
-		metaData.setAliasToProperty(frameName + "__" + newColumn, newColumn);
-		metaData.setDataTypeToProperty(frameName + "__" + newColumn, SemossDataType.STRING.toString());
-		frame.syncHeaders();
+    // message out
+    logger.info("Running script to merge lookup table.");
 
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
-				PixelOperationType.FRAME_DATA_CHANGE);
-		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColumn));
-		return retNoun;
-	}
+    // run it
+    this.rJavaTranslator.runR(script.toString());
+    this.addExecutedCode(script.toString());
 
-	// get column using key "COLUMN"
-	private String getColumn() {
-		GenRowStruct columnGRS = this.store.getNoun(keysToGet[0]);
-		if (columnGRS != null && !columnGRS.isEmpty()) {
-			NounMetadata noun1 = columnGRS.getNoun(0);
-			String column = noun1.getValue() + "";
-			if (column.length() == 0) {
-				throw new IllegalArgumentException("Need to select column to merge a lookup table");
-			}
-			return column;
-		}
-		throw new IllegalArgumentException("Need to select column to merge a lookup table");
-	}
+    // update the metadata to include the new column
+    OwlTemporalEngineMeta metaData = frame.getMetaData();
+    metaData.addProperty(frameName, frameName + "__" + newColumn);
+    metaData.setAliasToProperty(frameName + "__" + newColumn, newColumn);
+    metaData.setDataTypeToProperty(frameName + "__" + newColumn, SemossDataType.STRING.toString());
+    frame.syncHeaders();
 
-	private HashMap getMatches() {
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				HashMap matches = (HashMap) columnGrs.getAllValues().get(0);
+    NounMetadata retNoun =
+        new NounMetadata(
+            frame,
+            PixelDataType.FRAME,
+            PixelOperationType.FRAME_HEADERS_CHANGE,
+            PixelOperationType.FRAME_DATA_CHANGE);
+    retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColumn));
+    return retNoun;
+  }
 
-				return matches;
-			}
-			throw new IllegalArgumentException("Need matches to merge a lookup table");
-		}
-		throw new IllegalArgumentException("Need matches to merge a lookup table");
-	}
+  // get column using key "COLUMN"
+  private String getColumn() {
+    GenRowStruct columnGRS = this.store.getNoun(keysToGet[0]);
+    if (columnGRS != null && !columnGRS.isEmpty()) {
+      NounMetadata noun1 = columnGRS.getNoun(0);
+      String column = noun1.getValue() + "";
+      if (column.length() == 0) {
+        throw new IllegalArgumentException("Need to select column to merge a lookup table");
+      }
+      return column;
+    }
+    throw new IllegalArgumentException("Need to select column to merge a lookup table");
+  }
+
+  private HashMap getMatches() {
+    GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
+    if (columnGrs != null) {
+      if (columnGrs.size() > 0) {
+        HashMap matches = (HashMap) columnGrs.getAllValues().get(0);
+
+        return matches;
+      }
+      throw new IllegalArgumentException("Need matches to merge a lookup table");
+    }
+    throw new IllegalArgumentException("Need matches to merge a lookup table");
+  }
 }

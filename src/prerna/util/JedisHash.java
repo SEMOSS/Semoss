@@ -29,53 +29,42 @@ package prerna.util;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import redis.clients.jedis.Jedis;
 
-public class JedisHash{
-	
-	private static final Logger classLogger = LogManager.getLogger(JedisHash.class);
+public class JedisHash {
 
-	public static JedisHash instance = null;
-	private Jedis jedis = null;
-	boolean connected = false;
-	
-	protected JedisHash()
-	{
-		try
-		{
-			String redisHost = DIHelper.getInstance().getProperty(Constants.REDIS_HOST);
-			if(redisHost != null)
-			{
-				int redisPort = Integer.parseInt(DIHelper.getInstance().getProperty(Constants.REDIS_PORT));
-				jedis = new Jedis (redisHost, redisPort); //pool.getResource();
-				connected = true;
-			}
-		}catch(RuntimeException ignored)
-		{
-			classLogger.error(Constants.STACKTRACE, ignored);
-		}
-	}
-	
-	public static JedisHash getInstance()
-	{
-		if(instance == null)
-			instance = new JedisHash();
-		return instance;
-	}
-	
-	public String get(String key)
-	{
-		if(connected)
-			return jedis.get(key); 
-		return null;
-	}
-	
-	public void put(String key, String object)
-	{
-		if(connected)
-			jedis.set(key,object);
-		// else 
-		// really nothing much to do
-	}
+  private static final Logger classLogger = LogManager.getLogger(JedisHash.class);
+
+  public static JedisHash instance = null;
+  private Jedis jedis = null;
+  boolean connected = false;
+
+  protected JedisHash() {
+    try {
+      String redisHost = DIHelper.getInstance().getProperty(Constants.REDIS_HOST);
+      if (redisHost != null) {
+        int redisPort = Integer.parseInt(DIHelper.getInstance().getProperty(Constants.REDIS_PORT));
+        jedis = new Jedis(redisHost, redisPort); // pool.getResource();
+        connected = true;
+      }
+    } catch (RuntimeException ignored) {
+      classLogger.error(Constants.STACKTRACE, ignored);
+    }
+  }
+
+  public static JedisHash getInstance() {
+    if (instance == null) instance = new JedisHash();
+    return instance;
+  }
+
+  public String get(String key) {
+    if (connected) return jedis.get(key);
+    return null;
+  }
+
+  public void put(String key, String object) {
+    if (connected) jedis.set(key, object);
+    // else
+    // really nothing much to do
+  }
 }

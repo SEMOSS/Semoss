@@ -1,13 +1,38 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.task.lambda.flatmap;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.engine.api.IHeadersDataRow;
@@ -20,129 +45,147 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class GoogleSentimentAnalyzerLambda extends AbstractFlatMapLambda {
-	
-	private static final Logger classLogger = LogManager.getLogger(GoogleSentimentAnalyzerLambda.class);
 
-	// col index we care about to get lat/long from
-	private int colIndex;
-	// total number of columns
-	private int totalCols;
-	
-	@Override
-	public List<IHeadersDataRow> process(IHeadersDataRow row) {
-		Object value = row.getValues()[colIndex];
-		if(value == null || value.toString().isEmpty()) {
-			return new Vector<IHeadersDataRow>();
-		}
-		// grab the column sindex we want to use as the address
-		Map<String, Object> params = new HashMap<>();
-		Map<String, Object> docParam = new HashMap<>();
-		docParam.put("type", "PLAIN_TEXT");
-		docParam.put("language", "EN");
-		docParam.put("content", value.toString().replace("_", " "));
-		params.put("document", docParam);
-		
-		// construct new values to append onto the row
-		// add new headers
-		String[] newHeaders = new String[]{"sentence", "magnitude", "score"};
-		
-		List<IHeadersDataRow> retList = new Vector<IHeadersDataRow>();
-		try {
-			// loop through the results
-			GoogleSentimentAnalyzer goog = new GoogleSentimentAnalyzer();
-			Object resultObj = goog.execute(this.user, params);
-			if(resultObj instanceof List) {
-				List<SentimentAnalysis> results = (List<SentimentAnalysis>) resultObj;
-				for(int i = 0; i < results.size(); i++) {
-					SentimentAnalysis sentiment = results.get(i);
-					processSentiment(sentiment, newHeaders, row, retList);
-				}
-			} else {
-				SentimentAnalysis sentiment = (SentimentAnalysis) resultObj;
-				processSentiment(sentiment, newHeaders, row, retList);
-			}
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		
-		return retList;
-	}
-	
-	/**
-	 * Process a sentiment
-	 * @param sentiment
-	 * @param newHeaders
-	 * @param curRow
-	 * @param retList
-	 */
-	private void processSentiment(SentimentAnalysis sentiment, String[] newHeaders, IHeadersDataRow curRow, List<IHeadersDataRow> retList) {
-		Object[] newValues = new Object[3];
-		newValues[0] = sentiment.getSentence();
-		if(newValues[0] != null) {
-			newValues[0] = newValues[0].toString()
-					.replace("\n", " *LINE BREAK* ")
-					.replace("\r", " *LINE BREAK* ")
-					.replace("\t", " ")
-					.replace("\"", "");
-		}
-		newValues[1] = sentiment.getMagnitude();
-		newValues[2] = sentiment.getScore();
-		
-		// copy the row so we dont mess up references
-		IHeadersDataRow rowCopy = curRow.copy();
-		rowCopy.addFields(newHeaders, newValues);
-		retList.add(rowCopy);
-	}
-	
-	@Override
-	public void init(List<Map<String, Object>> headerInfo, List<String> columns) {
-		if(this.user == null) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires login to google", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-		AccessToken googleAccess = this.user.getAccessToken(AuthProvider.GOOGLE);
-		if(googleAccess == null) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires login to google", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-		
-		this.headerInfo = headerInfo;
-		this.totalCols = headerInfo.size();
-		
-		String headerToConvert = columns.get(0);
-		for(int j = 0; j < totalCols; j++) {
-			Map<String, Object> headerMap = headerInfo.get(j);
-			String alias = headerMap.get("alias").toString();
-			if(alias.equals(headerToConvert)) {
-				// we found the index
-				this.colIndex = j;
-			}
-		}
-		
-		// this modifies the header info map by reference
-		Map<String, Object> sentenceHeader = getBaseHeader("sentence", "STRING");
-		this.headerInfo.add(sentenceHeader);
-		Map<String, Object> magnitudeHeader = getBaseHeader("magnitude", "NUMBER");
-		this.headerInfo.add(magnitudeHeader);
-		Map<String, Object> scoreHeader = getBaseHeader("score", "NUMBER");
-		this.headerInfo.add(scoreHeader);
-	}
-	
-	/**
-	 * Grab a base header object
-	 * @param name
-	 * @param type
-	 * @return
-	 */
-	private Map<String, Object> getBaseHeader(String name, String type) {
-		Map<String, Object> header = new HashMap<String, Object>();
-		header.put("alias", name);
-		header.put("header", name);
-		header.put("derived", true);
-		header.put("type", type.toUpperCase());
-		return header;
-	}
+  private static final Logger classLogger =
+      LogManager.getLogger(GoogleSentimentAnalyzerLambda.class);
 
+  // col index we care about to get lat/long from
+  private int colIndex;
+  // total number of columns
+  private int totalCols;
+
+  @Override
+  public List<IHeadersDataRow> process(IHeadersDataRow row) {
+    Object value = row.getValues()[colIndex];
+    if (value == null || value.toString().isEmpty()) {
+      return new Vector<IHeadersDataRow>();
+    }
+    // grab the column sindex we want to use as the address
+    Map<String, Object> params = new HashMap<>();
+    Map<String, Object> docParam = new HashMap<>();
+    docParam.put("type", "PLAIN_TEXT");
+    docParam.put("language", "EN");
+    docParam.put("content", value.toString().replace("_", " "));
+    params.put("document", docParam);
+
+    // construct new values to append onto the row
+    // add new headers
+    String[] newHeaders = new String[] {"sentence", "magnitude", "score"};
+
+    List<IHeadersDataRow> retList = new Vector<IHeadersDataRow>();
+    try {
+      // loop through the results
+      GoogleSentimentAnalyzer goog = new GoogleSentimentAnalyzer();
+      Object resultObj = goog.execute(this.user, params);
+      if (resultObj instanceof List) {
+        List<SentimentAnalysis> results = (List<SentimentAnalysis>) resultObj;
+        for (int i = 0; i < results.size(); i++) {
+          SentimentAnalysis sentiment = results.get(i);
+          processSentiment(sentiment, newHeaders, row, retList);
+        }
+      } else {
+        SentimentAnalysis sentiment = (SentimentAnalysis) resultObj;
+        processSentiment(sentiment, newHeaders, row, retList);
+      }
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+
+    return retList;
+  }
+
+  /**
+   * Process a sentiment
+   *
+   * @param sentiment
+   * @param newHeaders
+   * @param curRow
+   * @param retList
+   */
+  private void processSentiment(
+      SentimentAnalysis sentiment,
+      String[] newHeaders,
+      IHeadersDataRow curRow,
+      List<IHeadersDataRow> retList) {
+    Object[] newValues = new Object[3];
+    newValues[0] = sentiment.getSentence();
+    if (newValues[0] != null) {
+      newValues[0] =
+          newValues[0]
+              .toString()
+              .replace("\n", " *LINE BREAK* ")
+              .replace("\r", " *LINE BREAK* ")
+              .replace("\t", " ")
+              .replace("\"", "");
+    }
+    newValues[1] = sentiment.getMagnitude();
+    newValues[2] = sentiment.getScore();
+
+    // copy the row so we dont mess up references
+    IHeadersDataRow rowCopy = curRow.copy();
+    rowCopy.addFields(newHeaders, newValues);
+    retList.add(rowCopy);
+  }
+
+  @Override
+  public void init(List<Map<String, Object>> headerInfo, List<String> columns) {
+    if (this.user == null) {
+      SemossPixelException exception =
+          new SemossPixelException(
+              new NounMetadata(
+                  "Requires login to google",
+                  PixelDataType.CONST_STRING,
+                  PixelOperationType.ERROR));
+      exception.setContinueThreadOfExecution(false);
+      throw exception;
+    }
+    AccessToken googleAccess = this.user.getAccessToken(AuthProvider.GOOGLE);
+    if (googleAccess == null) {
+      SemossPixelException exception =
+          new SemossPixelException(
+              new NounMetadata(
+                  "Requires login to google",
+                  PixelDataType.CONST_STRING,
+                  PixelOperationType.ERROR));
+      exception.setContinueThreadOfExecution(false);
+      throw exception;
+    }
+
+    this.headerInfo = headerInfo;
+    this.totalCols = headerInfo.size();
+
+    String headerToConvert = columns.get(0);
+    for (int j = 0; j < totalCols; j++) {
+      Map<String, Object> headerMap = headerInfo.get(j);
+      String alias = headerMap.get("alias").toString();
+      if (alias.equals(headerToConvert)) {
+        // we found the index
+        this.colIndex = j;
+      }
+    }
+
+    // this modifies the header info map by reference
+    Map<String, Object> sentenceHeader = getBaseHeader("sentence", "STRING");
+    this.headerInfo.add(sentenceHeader);
+    Map<String, Object> magnitudeHeader = getBaseHeader("magnitude", "NUMBER");
+    this.headerInfo.add(magnitudeHeader);
+    Map<String, Object> scoreHeader = getBaseHeader("score", "NUMBER");
+    this.headerInfo.add(scoreHeader);
+  }
+
+  /**
+   * Grab a base header object
+   *
+   * @param name
+   * @param type
+   * @return
+   */
+  private Map<String, Object> getBaseHeader(String name, String type) {
+    Map<String, Object> header = new HashMap<String, Object>();
+    header.put("alias", name);
+    header.put("header", name);
+    header.put("derived", true);
+    header.put("type", type.toUpperCase());
+    return header;
+  }
 }

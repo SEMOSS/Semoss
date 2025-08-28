@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth;
 
 import java.io.IOException;
@@ -14,11 +41,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Vector;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
-
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -35,790 +60,821 @@ import prerna.util.Utility;
 
 public class User implements Serializable {
 
-	private static Logger classLogger = LogManager.getLogger(User.class);
-	
-	protected static final String DIR_SEPARATOR = "/";
-	
-	// main object storing the users access tokens
-	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
-	private List<AuthProvider> loggedInProfiles = new Vector<>();
-	// storing the timezone the user is in
-	private ZoneId zoneId;
-	
-	// store model conversation rooms
-	public Map<String,Object> roomHash = new HashMap<>();
-	
-	// store the users insights
-	private transient Map<String, List<String>> openInsights = null;
-	
-	// need to have an access token store
-	private transient IRUserConnection rcon; 
-	private transient RRemoteRserve rconRemote;
+  private static Logger classLogger = LogManager.getLogger(User.class);
 
-	// python related stuff
-	private transient ClientProcessWrapper pythonCPW = new ClientProcessWrapper();
-	private transient Process pyProcess = null;
+  protected static final String DIR_SEPARATOR = "/";
 
-	// r
-	private transient ClientProcessWrapper rCPW = new ClientProcessWrapper();
-	private transient Process rProcess = null;
+  // main object storing the users access tokens
+  private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
+  private List<AuthProvider> loggedInProfiles = new Vector<>();
+  // storing the timezone the user is in
+  private ZoneId zoneId;
 
-	private String chrootPath = null;
-	private transient SymlinkHelper symlinkHelper = null;
+  // store model conversation rooms
+  public Map<String, Object> roomHash = new HashMap<>();
 
-	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
-	private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
-	private AuthProvider primaryLogin;
-	
-	private transient Object assetSyncObject = null;
-	private transient Object workspaceSyncObject = null;
+  // store the users insights
+  private transient Map<String, List<String>> openInsights = null;
 
-	public transient CopyObject cp = null;
-	
-	private int rPort = -1;
-	private int pyPort = -1;
-	
-	// need to move everything here
-	// since on reconnect we need to redo serialization. 
-	private Map<String, Boolean> insightSerializedMap = new HashMap<String, Boolean>();
-	
-	// this is a unique identifier for this user instance
-	private String userEpoch = null;
-	
-	private boolean anonymous;
-	private String anonymousId;
-	
-	public User() {
-		// transient objects should be defined in the constructor
-		// since if this is serialized we dont want these values to be null
-		this.openInsights = new HashMap<>();
-		this.assetSyncObject = new Object();
-		this.workspaceSyncObject = new Object();
-		// set it in the mgmt utils
-		addUserMemory();
-		this.userEpoch = UUID.randomUUID().toString();
-	}
-	
-	/**
-	 * Set the access token for a given provider
-	 * @param value
-	 */
-	public void setAccessToken(AccessToken value) {
-		value = ReadOnlyAccessToken.unmodifiableToken(value);
-		AuthProvider name = value.getProvider();
-		if(!loggedInProfiles.contains(name)) {
-			loggedInProfiles.add(name);
-		}
-		accessTokens.put(name, value);
-		setAnonymous(false);
-	}
-	
-	/**
-	 * Set the access token for a given provider
-	 * We do not register in the logged in profiles but can still grab
-	 * from reactors that utilize them
-	 * @param value
-	 */
-	public void setGlobalAccessToken(AccessToken value) {
-		AuthProvider name = value.getProvider();
-		accessTokens.put(name, value);
-	}
-	
-	/**
-	 * Get the requested access token
-	 * @param name
-	 * @return
-	 */
-	public AccessToken getAccessToken(AuthProvider name) {
-		return accessTokens.get(name);
-	}
-	
-	/**
-	 * Drop the access token for a given provider
-	 * @param name			The name of the provider
-	 * @return				boolean if the provider was dropped
-	 */
-	public boolean dropAccessToken(String name) {
-		// remove from token map
-		AuthProvider tokenKey = AuthProvider.valueOf(name);
-		AccessToken token = accessTokens.remove(tokenKey);
-		// remove from profiles list
-		loggedInProfiles.remove(tokenKey);
+  // need to have an access token store
+  private transient IRUserConnection rcon;
+  private transient RRemoteRserve rconRemote;
 
-		// return false if the token actually wasn't found
-		return token != null;
-	}
-	
-	/**
-	 * Drop the access token for a given provider
-	 * @param tokenKey		The name of the provider
-	 * @return				boolean if the provider was dropped
-	 */
-	public boolean dropAccessToken(AuthProvider tokenKey) {
-		// remove from token map
-		AccessToken token = accessTokens.remove(tokenKey);
-		// remove from profiles list
-		loggedInProfiles.remove(tokenKey);
-		// return false if the token actually wasn't found
-		if(token == null) {
-			return false;
-		}
-		
-		// recalculate the primary login
-		if(this.primaryLogin == tokenKey && !this.loggedInProfiles.isEmpty()) {
-			this.primaryLogin = this.loggedInProfiles.get(0);
-		}
-		return true;
-	}
-	
-	/**
-	 * Get the list of logged in profiles
-	 * @return
-	 */
-	public List<AuthProvider> getLogins() {
-		return loggedInProfiles;
-	}
+  // python related stuff
+  private transient ClientProcessWrapper pythonCPW = new ClientProcessWrapper();
+  private transient Process pyProcess = null;
 
-	public boolean isLoggedIn() {
-		return !this.loggedInProfiles.isEmpty();
-	}
-	
-	public void setAnonymous(boolean anonymous) {
-		this.anonymous = anonymous;
-	}
-	
-	public boolean isAnonymous() {
-		return this.anonymous;
-	}
+  // r
+  private transient ClientProcessWrapper rCPW = new ClientProcessWrapper();
+  private transient Process rProcess = null;
 
-	public void setAnonymousId(String anonymousId) {
-		this.anonymousId = anonymousId;
-	}
-	
-	public String getAnonymousId() {
-		return this.anonymousId;
-	}
-	
-	////////////////////////////////////////////////////////////////////////
-	
-	public AuthProvider getPrimaryLogin() {
-		if(this.primaryLogin == null && isLoggedIn()) {
-			this.primaryLogin = this.loggedInProfiles.get(0);
-		}
-		return this.primaryLogin;
-	}
-	
-	public AccessToken getPrimaryLoginToken() {
-		if(this.primaryLogin == null && isLoggedIn()) {
-			this.primaryLogin = this.loggedInProfiles.get(0);
-		}
-		return accessTokens.get(primaryLogin);
-	}
-	
-	public void setPrimaryLogin(AuthProvider primaryLogin) {
-		this.primaryLogin = primaryLogin;
-	}
-	
-	public String getWorkspaceProjectId(AuthProvider token) {
-		if (this.workspaceProjectMap.get(token) != null) {
-			return this.workspaceProjectMap.get(token);
-		}
+  private String chrootPath = null;
+  private transient SymlinkHelper symlinkHelper = null;
 
-		String projectId = WorkspaceAssetUtils.getUserWorkspaceProject(this, token);
-		
-		if (projectId != null) {
-			this.workspaceProjectMap.put(token, projectId);
-		} else {
-			try {
-				synchronized(workspaceSyncObject) {
-					projectId = WorkspaceAssetUtils.getUserWorkspaceProject(this, token);
-					if(projectId == null) {
-						projectId = WorkspaceAssetUtils.createUserWorkspaceProject(this, token);
-					}
-				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
+  private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
+  private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
+  private AuthProvider primaryLogin;
 
-			this.workspaceProjectMap.put(token, projectId);
-		}
+  private transient Object assetSyncObject = null;
+  private transient Object workspaceSyncObject = null;
 
-		//TODO actually sync the pull, not sure pull it
-		if (ClusterUtil.IS_CLUSTER) {
-			ClusterUtil.pullUserWorkspace(projectId, false, false);
-		}
-		
-		return this.workspaceProjectMap.get(token);
-	}
-	
-	public String getAssetProjectId(AuthProvider token) {
-		if(this.assetProjectMap.get(token) != null) {
-			return this.assetProjectMap.get(token);
-		}
-		String projectId = WorkspaceAssetUtils.getUserAssetProject(this, token);
+  public transient CopyObject cp = null;
 
-		if (projectId != null) {
-			this.assetProjectMap.put(token, projectId);
-		} else {
-			try {
-				synchronized(assetSyncObject) {
-					projectId = WorkspaceAssetUtils.getUserAssetProject(this, token);
-					if(projectId == null) {
-						projectId = WorkspaceAssetUtils.createUserAssetProject(this, token);
-					}
-				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
+  private int rPort = -1;
+  private int pyPort = -1;
 
-			this.assetProjectMap.put(token, projectId);
-		}
+  // need to move everything here
+  // since on reconnect we need to redo serialization.
+  private Map<String, Boolean> insightSerializedMap = new HashMap<String, Boolean>();
 
-		//TODO actually sync the pull, not sure pull it
-		if (ClusterUtil.IS_CLUSTER) {
-			ClusterUtil.pullUserWorkspace(projectId, true, false);
-		}
+  // this is a unique identifier for this user instance
+  private String userEpoch = null;
 
-		return this.assetProjectMap.get(token);
-	}
+  private boolean anonymous;
+  private String anonymousId;
 
-	public Map<AuthProvider, String> getWorkspaceEngineMap() {
-		return this.workspaceProjectMap;
-	}
-	
-	public Map<AuthProvider, String> getAssetEngineMap() {
-		return this.assetProjectMap;
-	}
-	
-	public String getUserEpoch() {
-		return userEpoch;
-	}
+  public User() {
+    // transient objects should be defined in the constructor
+    // since if this is serialized we dont want these values to be null
+    this.openInsights = new HashMap<>();
+    this.assetSyncObject = new Object();
+    this.workspaceSyncObject = new Object();
+    // set it in the mgmt utils
+    addUserMemory();
+    this.userEpoch = UUID.randomUUID().toString();
+  }
 
-	////////////////////////////////////////////////////////////////////////
+  /**
+   * Set the access token for a given provider
+   *
+   * @param value
+   */
+  public void setAccessToken(AccessToken value) {
+    value = ReadOnlyAccessToken.unmodifiableToken(value);
+    AuthProvider name = value.getProvider();
+    if (!loggedInProfiles.contains(name)) {
+      loggedInProfiles.add(name);
+    }
+    accessTokens.put(name, value);
+    setAnonymous(false);
+  }
 
-	public IRUserConnection getRcon() {
-		return rcon;
-	}
+  /**
+   * Set the access token for a given provider We do not register in the logged in profiles but can
+   * still grab from reactors that utilize them
+   *
+   * @param value
+   */
+  public void setGlobalAccessToken(AccessToken value) {
+    AuthProvider name = value.getProvider();
+    accessTokens.put(name, value);
+  }
 
-	public void setRcon(IRUserConnection rcon) {
-		this.rcon = rcon;
-	}	
-	
-	public RRemoteRserve getRconRemote() {
-		return rconRemote; 
-	}
-	
-	public void setRconRemote(RRemoteRserve rconRemote) {
-		this.rconRemote = rconRemote;
-	}
-	
-	public void ctrlC(String source, String showSource) {
-		this.cp = new CopyObject();
-		cp.source = source;
-		cp.showSource = showSource;
-	}
-	
-	public CopyObject getCtrlC() {
-		return cp;
-	}
-	
-	public void ctrlX(String source, String showSource) {
-		this.cp = new CopyObject();
-		cp.source = source;
-		cp.showSource = showSource;
-		cp.delete = true;
-	}
-	
-	public void escapeCopy()
-	{
-		this.cp = null;
-	}
-	
-	/**
-	 * Store the open insight
-	 * @param operation
-	 * @param rdbmsId
-	 * @param insightId
-	 */
-	public void addOpenInsight(String engineId, String rdbmsId, String insightId) {
-		if(this.openInsights == null) {
-			this.openInsights = new HashMap<>();
-		}
-		String id = getUid(engineId, rdbmsId);
-		List<String> openInstances = null;
-		if(this.openInsights.containsKey(id)) {
-			openInstances = this.openInsights.get(id);
-		} else {
-			openInstances = new Vector<>();
-			this.openInsights.put(id, openInstances);
-		}
-		openInstances.add(insightId);
-	}
-	
-	/**
-	 * Remove open insight
-	 * @param engineId
-	 * @param rdbmsId
-	 * @param insightId
-	 */
-	public void removeOpenInsight(String engineId, String rdbmsId, String insightId) {
-		if(this.openInsights == null) {
-			return;
-		}
-		String id = getUid(engineId, rdbmsId);
-		List<String> openInstances = null;
-		if(this.openInsights.containsKey(id)) {
-			openInstances = this.openInsights.get(id);
-			openInstances.remove(insightId);
-		}
-	}
-	
-	/**
-	 * Grab the open insight ids for a specific saved insight
-	 * @param engineId
-	 * @param rdbmsId
-	 * @return
-	 */
-	public List<String> getOpenInsightInstances(String engineId, String rdbmsId) {
-		String id = getUid(engineId, rdbmsId);
-		return this.openInsights.get(id);
-	}
-	
-	private String getUid(String engineId, String rdbmsId) {
-		return engineId + "__" + rdbmsId;
-	}
-	
-	/**
-	 * Get the user open insights
-	 * @return
-	 */
-	public Map<String, List<String>> getOpenInsights() {
-		return openInsights;
-	}
-	
-	/**
-	 * 
-	 * @param timeZone
-	 */
-	public void setZoneId(ZoneId zoneId) {
-		this.zoneId = zoneId;
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	public ZoneId getZoneId() {
-		return zoneId;
-	}
-	
-	/////////////////////////////////////////////////////
-	
-	/*
-	 * Static utility methods
-	 */
-	
-	public static Map<String, String> getLoginNames(User semossUser) {
-		Map<String, String> retMap = new HashMap<>();
-		if(semossUser == null) {
-			return retMap;
-		}
-		if(semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled() && semossUser.isAnonymous()) {
-			retMap.put("ANONYMOUS", "Sign In");
-		} else {
-			for(AuthProvider p : semossUser.loggedInProfiles) {
-				String name = semossUser.getAccessToken(p).getName();
-				if(name == null) {
-					// need to send something
-					name = "";
-				}
-				retMap.put(p.toString().toUpperCase(), name);
-			}
-		}
-		
-		return retMap;
-	}
-	
-	public static Map<String, Map<String, Object>> getLoginDetails(User semossUser) {
-		Map<String, Map<String, Object>> retMap = new HashMap<>();
-		if(semossUser == null) {
-			return retMap;
-		}
-		if(semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled() && semossUser.isAnonymous()) {
-			Map<String, Object> innerMap = new HashMap<>();
-			innerMap.put("id", semossUser.getAnonymousId());
-			innerMap.put("name", "Sign In");
-			retMap.put("ANONYMOUS", innerMap);
-		} else {
-			for(AuthProvider p : semossUser.loggedInProfiles) {
-				AccessToken token = semossUser.getAccessToken(p);
-				String id = token.getId();
-				String name = token.getName();
-				if(name == null) {
-					// need to send something
-					name = "";
-				}
-				
-				Map<String, Object> innerMap = new HashMap<>();
-				innerMap.put("id", id);
-				innerMap.put("name", name);
-				Map<String, String> sans = token.getSAN();
-				if(sans!=null && sans.size()>0) {
-					innerMap.put("san", sans);
-				}
-				retMap.put(p.toString(), innerMap);
-			}
-		}
-		
-		return retMap;
-	}
-	
-	public static String getSingleLogginName(User semossUser) {
-		if(semossUser == null) {
-			return "";
-		}
-		
-		if(semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled() && semossUser.isAnonymous()) {
-			return "ANONYMOUS " + semossUser.anonymousId;
-		}
-		
-		AccessToken token = semossUser.accessTokens.get(semossUser.getPrimaryLogin());
-		return token.getId();
-	}
-	
-	public static List<Pair<String, String>> getUserIdAndType(User user) {
-		if (user == null) {
-			throw new IllegalArgumentException("User cannot be null.");
-		}
+  /**
+   * Get the requested access token
+   *
+   * @param name
+   * @return
+   */
+  public AccessToken getAccessToken(AuthProvider name) {
+    return accessTokens.get(name);
+  }
 
-		if (user.isAnonymous()) {
-			throw new IllegalArgumentException("User cannot be anonymous.");
-		}
+  /**
+   * Drop the access token for a given provider
+   *
+   * @param name The name of the provider
+   * @return boolean if the provider was dropped
+   */
+  public boolean dropAccessToken(String name) {
+    // remove from token map
+    AuthProvider tokenKey = AuthProvider.valueOf(name);
+    AccessToken token = accessTokens.remove(tokenKey);
+    // remove from profiles list
+    loggedInProfiles.remove(tokenKey);
 
-		List<Pair<String, String>> creds = new ArrayList<>();
-		if (user.getLogins() != null) {
-			for (AuthProvider login : user.getLogins()) {
-				String userid = user.getAccessToken(login).getId();
-				Pair<String, String> added = Pair.with(userid, login.name());
-				creds.add(added);
-			}
-		}
+    // return false if the token actually wasn't found
+    return token != null;
+  }
 
-		if (creds.size() == 0) {
-			throw new IllegalArgumentException("User needs to be logged in.");
-		}
+  /**
+   * Drop the access token for a given provider
+   *
+   * @param tokenKey The name of the provider
+   * @return boolean if the provider was dropped
+   */
+  public boolean dropAccessToken(AuthProvider tokenKey) {
+    // remove from token map
+    AccessToken token = accessTokens.remove(tokenKey);
+    // remove from profiles list
+    loggedInProfiles.remove(tokenKey);
+    // return false if the token actually wasn't found
+    if (token == null) {
+      return false;
+    }
 
-		return creds;
-	}
+    // recalculate the primary login
+    if (this.primaryLogin == tokenKey && !this.loggedInProfiles.isEmpty()) {
+      this.primaryLogin = this.loggedInProfiles.get(0);
+    }
+    return true;
+  }
 
-	public static Pair<String, String> getPrimaryUserIdAndTypePair(User user) {
-		if (user == null) {
-			throw new IllegalArgumentException("User cannot be null.");
-		}
+  /**
+   * Get the list of logged in profiles
+   *
+   * @return
+   */
+  public List<AuthProvider> getLogins() {
+    return loggedInProfiles;
+  }
 
-		if (user.isAnonymous()) {
-			throw new IllegalArgumentException("User cannot be anonymous.");
-		}
+  public boolean isLoggedIn() {
+    return !this.loggedInProfiles.isEmpty();
+  }
 
-		AuthProvider login = user.getPrimaryLogin();
-		if (login == null) {
-			throw new IllegalArgumentException("User must have primary login");
-		}
-		String userid = user.getAccessToken(login).getId();
-		return Pair.with(userid, login.getLabel());
-	}
-	
-	@Deprecated
-	public static List<Pair<String, String>> getPrimaryUserIdAndType(User user) {
-		if (user == null) {
-			throw new IllegalArgumentException("User cannot be null.");
-		}
+  public void setAnonymous(boolean anonymous) {
+    this.anonymous = anonymous;
+  }
 
-		if (user.isAnonymous()) {
-			throw new IllegalArgumentException("User cannot be anonymous.");
-		}
+  public boolean isAnonymous() {
+    return this.anonymous;
+  }
 
-		List<Pair<String, String>> creds = new ArrayList<>();
+  public void setAnonymousId(String anonymousId) {
+    this.anonymousId = anonymousId;
+  }
 
-		AuthProvider login = user.getPrimaryLogin();
-		if (login == null) {
-			throw new IllegalArgumentException("User must have primary login");
-		}
-		String userid = user.getAccessToken(login).getId();
-		creds.add(Pair.with(userid, login.getLabel()));
+  public String getAnonymousId() {
+    return this.anonymousId;
+  }
 
-		if (creds.size() == 0) {
-			throw new IllegalArgumentException("User needs to be logged in.");
-		}
+  ////////////////////////////////////////////////////////////////////////
 
-		return creds;
-	}
-	
-	/////////////////////////////////////////////////////
+  public AuthProvider getPrimaryLogin() {
+    if (this.primaryLogin == null && isLoggedIn()) {
+      this.primaryLogin = this.loggedInProfiles.get(0);
+    }
+    return this.primaryLogin;
+  }
 
-	/**
-	 * 
-	 * @return
-	 */
-	public ClientProcessWrapper getPythonClientProcessWrapper() {
-		return this.pythonCPW;
-	}
-	
-	/**
-	 * 
-	 * @param create
-	 * @return
-	 */
-	public SocketClient getPythonSocketClient(boolean create) {
-		return getPythonSocketClient(create, -1, null);
-	}
-	
-	/**
-	 * 
-	 * @param create
-	 * @param venvName
-	 * @return
-	 */
-	public SocketClient getPythonSocketClient(boolean create, String venvEngineId) {
-		return getPythonSocketClient(create, -1, venvEngineId);
-	}
-	
-	/**
-	 * 
-	 * @param create
-	 * @param port
-	 * @return
-	 */
-	public SocketClient getPythonSocketClient(boolean create, int port, String venvEngineId) {
-		if(!create) {
-			if(this.pythonCPW == null) {
-				return null;
-			}
-			return this.pythonCPW.getSocketClient();
-		}
-		if(this.pythonCPW == null || this.pythonCPW.getSocketClient() == null) {
-			startPythonSocketServerAndClient(-1, venvEngineId);
-			this.pythonCPW.getSocketClient().setUser(this);
-		} else if(!this.pythonCPW.getSocketClient().isConnected()) {
-			this.pythonCPW.shutdown(false);
-			try {
-				this.pythonCPW.reconnect();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
-			}
-		}
-		
-		// invalidate the serialization map
-		this.insightSerializedMap.clear();
+  public AccessToken getPrimaryLoginToken() {
+    if (this.primaryLogin == null && isLoggedIn()) {
+      this.primaryLogin = this.loggedInProfiles.get(0);
+    }
+    return accessTokens.get(primaryLogin);
+  }
 
-		return this.pythonCPW.getSocketClient();
-	}
+  public void setPrimaryLogin(AuthProvider primaryLogin) {
+    this.primaryLogin = primaryLogin;
+  }
 
-	/**
-	 * 
-	 * @return
-	 */
-	public SymlinkHelper getUserSymlinkHelper() {
-		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if(symlinkHelper == null) {		
-				String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
-				String chrootDir = Utility.getDIHelperProperty("CHROOT_DIR");
-				chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
-				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
-				symlinkHelper = new SymlinkHelper(chrootPath);
-			}
-			return symlinkHelper;
-		}
-		
-		throw new IllegalArgumentException("Chroot is not enabled on this instance");
-	}
-	
-	/**
-	 * 
-	 * @param port
-	 * @param venvEngineId
-	 */
-	public void startPythonSocketServerAndClient(int port, String venvEngineId) {
-		if(this.pythonCPW == null) {
-			this.pythonCPW = new ClientProcessWrapper();
-		}
-		if(this.pythonCPW.getSocketClient() == null || !this.pythonCPW.getSocketClient().isConnected()) {
-			boolean nativePyServer = false;
-			// defined in rdf map
-			String nativePyServerStr = Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER);
-			if(nativePyServerStr != null && !(nativePyServerStr=nativePyServerStr.trim()).isEmpty()) {
-				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
-			}
-			
-			boolean debug = false;
-			if(port < 0) {
-				String forcePort = Utility.getDIHelperProperty(Settings.FORCE_PORT);
-				// port has not been forced
-				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch(NumberFormatException e) {
-						// ignore
-						classLogger.warn("User " + User.getSingleLogginName(this) + " has an invalid FORCE_PORT value");
-					}
-				}
-			}
-			
-			String loggerLevel =  Utility.getDIHelperProperty(Settings.LOGGER_LEVEL);
-			if (loggerLevel == null || (loggerLevel=loggerLevel.trim()).isEmpty()) {
-				loggerLevel = "WARNING";
-			}
-			
-			String customClassPath = Utility.getDIHelperProperty("TCP_WORKER_CP");
-			if(customClassPath == null) {
-				classLogger.info("No custom class path set");
-			}
-			
-			Path serverDirectoryPath = null;
-			String serverDirectory = null;
+  public String getWorkspaceProjectId(AuthProvider token) {
+    if (this.workspaceProjectMap.get(token) != null) {
+      return this.workspaceProjectMap.get(token);
+    }
 
-			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
-				this.symlinkHelper = getUserSymlinkHelper();
-				
-				// we do not define the Server Directory here - because it will dynamically generate in the chroot location
-				try {
-					// TODO update once venv with chroot is enabled
-					this.pythonCPW.createProcessAndClient(nativePyServer, this.symlinkHelper, port, null, null, customClassPath, debug, "-1", loggerLevel);
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Unable to connect to user server");
-				}
-			} else {
-				if(Utility.getDIHelperProperty("PY_TUPLE_SPACE") != null 
-						&& !Utility.getDIHelperProperty("PY_TUPLE_SPACE").isEmpty()) {
-					serverDirectory = Utility.getDIHelperProperty("PY_TUPLE_SPACE");
-				} else {
-					serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
-				}
-				
-				try {
-					serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "a");
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Could not create directory to launch project process");
-				}
-				
-				classLogger.info("Starting Non-chroot TCP Server for User = " + User.getSingleLogginName(this));
-				try {
-					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-					this.pythonCPW.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel);				
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Unable to connect to user server");
-				}
-			}
-		}
-	}
+    String projectId = WorkspaceAssetUtils.getUserWorkspaceProject(this, token);
 
-	public Process getrProcess() {
-		return rProcess;
-	}
+    if (projectId != null) {
+      this.workspaceProjectMap.put(token, projectId);
+    } else {
+      try {
+        synchronized (workspaceSyncObject) {
+          projectId = WorkspaceAssetUtils.getUserWorkspaceProject(this, token);
+          if (projectId == null) {
+            projectId = WorkspaceAssetUtils.createUserWorkspaceProject(this, token);
+          }
+        }
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
 
-	public void setrProcess(Process rProcess) {
-		this.rProcess = rProcess;
-	}
+      this.workspaceProjectMap.put(token, projectId);
+    }
 
-	public Process getPyProcess() {
-		return pyProcess;
-	}
+    // TODO actually sync the pull, not sure pull it
+    if (ClusterUtil.IS_CLUSTER) {
+      ClusterUtil.pullUserWorkspace(projectId, false, false);
+    }
 
-	public void setPyProcess(Process pyProcess) {
-		this.pyProcess = pyProcess;
-	}
+    return this.workspaceProjectMap.get(token);
+  }
 
-	public int getrPort() {
-		return rPort;
-	}
+  public String getAssetProjectId(AuthProvider token) {
+    if (this.assetProjectMap.get(token) != null) {
+      return this.assetProjectMap.get(token);
+    }
+    String projectId = WorkspaceAssetUtils.getUserAssetProject(this, token);
 
-	public void setrPort(int rPport) {
-		this.rPort = rPport;
-	}
+    if (projectId != null) {
+      this.assetProjectMap.put(token, projectId);
+    } else {
+      try {
+        synchronized (assetSyncObject) {
+          projectId = WorkspaceAssetUtils.getUserAssetProject(this, token);
+          if (projectId == null) {
+            projectId = WorkspaceAssetUtils.createUserAssetProject(this, token);
+          }
+        }
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
 
-	public int getPyPort() {
-		return pyPort;
-	}
+      this.assetProjectMap.put(token, projectId);
+    }
 
-	public void setPyPort(int pyPport) {
-		this.pyPort = pyPport;
-	}
-	
-	private void addUserMemory() {
-		long memoryInGigs = 0;
-		// check if the user has memory
-		boolean checkMem = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CHECK_MEM) + "");
-		if(checkMem) {
-			long freeMem = MgmtUtil.getFreeMemory();
-			String memProfileSettings = Utility.getDIHelperProperty(Settings.MEM_PROFILE_SETTINGS);
-			if(memProfileSettings.equalsIgnoreCase(Settings.CONSTANT_MEM)) {
-				String memLimitSettings = Utility.getDIHelperProperty(Settings.USER_MEM_LIMIT);
-				memoryInGigs = Integer.parseInt(memLimitSettings);
-			}
-			
-			MgmtUtil.addMemory4User(memoryInGigs);
-		}
-	}
+    // TODO actually sync the pull, not sure pull it
+    if (ClusterUtil.IS_CLUSTER) {
+      ClusterUtil.pullUserWorkspace(projectId, true, false);
+    }
 
-	public void removeUserMemory() {
-		long memoryInGigs = 0;
-		// check if the user has memory
-		boolean checkMem = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CHECK_MEM) + "");
-		if(checkMem) {
-			long freeMem = MgmtUtil.getFreeMemory();
-			String memProfileSettings = Utility.getDIHelperProperty(Settings.MEM_PROFILE_SETTINGS);
-			
-			if(memProfileSettings.equalsIgnoreCase(Settings.CONSTANT_MEM)) {
-				String memLimitSettings = Utility.getDIHelperProperty(Settings.USER_MEM_LIMIT);
-				memoryInGigs = Integer.parseInt(memLimitSettings);
-			}
-			
-			MgmtUtil.removeMemory4User(memoryInGigs);
-		}
-	}
-	
-	public String [] getUserCredential(AuthProvider prov) {
-		// just need some specific one the user is using
-		if(prov != null && accessTokens.containsKey(prov)) {
-			String[] creds = getUserEmail(accessTokens.get(prov));
-			if(creds[1] != null) {
-				return creds;
-			}
-		}
+    return this.assetProjectMap.get(token);
+  }
 
-		Enumeration <AuthProvider> accessKeys = accessTokens.keys();
-		if(accessKeys.hasMoreElements()) {
-			AuthProvider provider = accessKeys.nextElement();
-			AccessToken tok = accessTokens.get(provider);
-			String[] creds = getUserEmail(tok);
-			if(creds[1] != null) {
-				return creds;
-			}
-		}
-		
-		return new String[] {"anonymous", "anonymous@not_logged_in.com"};
-	}
-	
-	public void setInsightSerialization(String insightId, Boolean serialize) {
-		insightSerializedMap.put(insightId, serialize);
-	}
-	
-	public Boolean getInsightSerialization(String insightId) {
-		return insightSerializedMap.containsKey(insightId) && insightSerializedMap.get(insightId);
-	}
-	
-	private String[] getUserEmail(AccessToken token) {
-		String [] userEmail = new String[2];
-		userEmail[0] = token.getUsername();
-		userEmail[1] = token.getEmail();
-	
-		return userEmail;
-	}
+  public Map<AuthProvider, String> getWorkspaceEngineMap() {
+    return this.workspaceProjectMap;
+  }
 
+  public Map<AuthProvider, String> getAssetEngineMap() {
+    return this.assetProjectMap;
+  }
+
+  public String getUserEpoch() {
+    return userEpoch;
+  }
+
+  ////////////////////////////////////////////////////////////////////////
+
+  public IRUserConnection getRcon() {
+    return rcon;
+  }
+
+  public void setRcon(IRUserConnection rcon) {
+    this.rcon = rcon;
+  }
+
+  public RRemoteRserve getRconRemote() {
+    return rconRemote;
+  }
+
+  public void setRconRemote(RRemoteRserve rconRemote) {
+    this.rconRemote = rconRemote;
+  }
+
+  public void ctrlC(String source, String showSource) {
+    this.cp = new CopyObject();
+    cp.source = source;
+    cp.showSource = showSource;
+  }
+
+  public CopyObject getCtrlC() {
+    return cp;
+  }
+
+  public void ctrlX(String source, String showSource) {
+    this.cp = new CopyObject();
+    cp.source = source;
+    cp.showSource = showSource;
+    cp.delete = true;
+  }
+
+  public void escapeCopy() {
+    this.cp = null;
+  }
+
+  /**
+   * Store the open insight
+   *
+   * @param operation
+   * @param rdbmsId
+   * @param insightId
+   */
+  public void addOpenInsight(String engineId, String rdbmsId, String insightId) {
+    if (this.openInsights == null) {
+      this.openInsights = new HashMap<>();
+    }
+    String id = getUid(engineId, rdbmsId);
+    List<String> openInstances = null;
+    if (this.openInsights.containsKey(id)) {
+      openInstances = this.openInsights.get(id);
+    } else {
+      openInstances = new Vector<>();
+      this.openInsights.put(id, openInstances);
+    }
+    openInstances.add(insightId);
+  }
+
+  /**
+   * Remove open insight
+   *
+   * @param engineId
+   * @param rdbmsId
+   * @param insightId
+   */
+  public void removeOpenInsight(String engineId, String rdbmsId, String insightId) {
+    if (this.openInsights == null) {
+      return;
+    }
+    String id = getUid(engineId, rdbmsId);
+    List<String> openInstances = null;
+    if (this.openInsights.containsKey(id)) {
+      openInstances = this.openInsights.get(id);
+      openInstances.remove(insightId);
+    }
+  }
+
+  /**
+   * Grab the open insight ids for a specific saved insight
+   *
+   * @param engineId
+   * @param rdbmsId
+   * @return
+   */
+  public List<String> getOpenInsightInstances(String engineId, String rdbmsId) {
+    String id = getUid(engineId, rdbmsId);
+    return this.openInsights.get(id);
+  }
+
+  private String getUid(String engineId, String rdbmsId) {
+    return engineId + "__" + rdbmsId;
+  }
+
+  /**
+   * Get the user open insights
+   *
+   * @return
+   */
+  public Map<String, List<String>> getOpenInsights() {
+    return openInsights;
+  }
+
+  /**
+   * @param timeZone
+   */
+  public void setZoneId(ZoneId zoneId) {
+    this.zoneId = zoneId;
+  }
+
+  /**
+   * @return
+   */
+  public ZoneId getZoneId() {
+    return zoneId;
+  }
+
+  /////////////////////////////////////////////////////
+
+  /*
+   * Static utility methods
+   */
+
+  public static Map<String, String> getLoginNames(User semossUser) {
+    Map<String, String> retMap = new HashMap<>();
+    if (semossUser == null) {
+      return retMap;
+    }
+    if (semossUser.loggedInProfiles.isEmpty()
+        && AbstractSecurityUtils.anonymousUsersEnabled()
+        && semossUser.isAnonymous()) {
+      retMap.put("ANONYMOUS", "Sign In");
+    } else {
+      for (AuthProvider p : semossUser.loggedInProfiles) {
+        String name = semossUser.getAccessToken(p).getName();
+        if (name == null) {
+          // need to send something
+          name = "";
+        }
+        retMap.put(p.toString().toUpperCase(), name);
+      }
+    }
+
+    return retMap;
+  }
+
+  public static Map<String, Map<String, Object>> getLoginDetails(User semossUser) {
+    Map<String, Map<String, Object>> retMap = new HashMap<>();
+    if (semossUser == null) {
+      return retMap;
+    }
+    if (semossUser.loggedInProfiles.isEmpty()
+        && AbstractSecurityUtils.anonymousUsersEnabled()
+        && semossUser.isAnonymous()) {
+      Map<String, Object> innerMap = new HashMap<>();
+      innerMap.put("id", semossUser.getAnonymousId());
+      innerMap.put("name", "Sign In");
+      retMap.put("ANONYMOUS", innerMap);
+    } else {
+      for (AuthProvider p : semossUser.loggedInProfiles) {
+        AccessToken token = semossUser.getAccessToken(p);
+        String id = token.getId();
+        String name = token.getName();
+        if (name == null) {
+          // need to send something
+          name = "";
+        }
+
+        Map<String, Object> innerMap = new HashMap<>();
+        innerMap.put("id", id);
+        innerMap.put("name", name);
+        Map<String, String> sans = token.getSAN();
+        if (sans != null && sans.size() > 0) {
+          innerMap.put("san", sans);
+        }
+        retMap.put(p.toString(), innerMap);
+      }
+    }
+
+    return retMap;
+  }
+
+  public static String getSingleLogginName(User semossUser) {
+    if (semossUser == null) {
+      return "";
+    }
+
+    if (semossUser.loggedInProfiles.isEmpty()
+        && AbstractSecurityUtils.anonymousUsersEnabled()
+        && semossUser.isAnonymous()) {
+      return "ANONYMOUS " + semossUser.anonymousId;
+    }
+
+    AccessToken token = semossUser.accessTokens.get(semossUser.getPrimaryLogin());
+    return token.getId();
+  }
+
+  public static List<Pair<String, String>> getUserIdAndType(User user) {
+    if (user == null) {
+      throw new IllegalArgumentException("User cannot be null.");
+    }
+
+    if (user.isAnonymous()) {
+      throw new IllegalArgumentException("User cannot be anonymous.");
+    }
+
+    List<Pair<String, String>> creds = new ArrayList<>();
+    if (user.getLogins() != null) {
+      for (AuthProvider login : user.getLogins()) {
+        String userid = user.getAccessToken(login).getId();
+        Pair<String, String> added = Pair.with(userid, login.name());
+        creds.add(added);
+      }
+    }
+
+    if (creds.size() == 0) {
+      throw new IllegalArgumentException("User needs to be logged in.");
+    }
+
+    return creds;
+  }
+
+  public static Pair<String, String> getPrimaryUserIdAndTypePair(User user) {
+    if (user == null) {
+      throw new IllegalArgumentException("User cannot be null.");
+    }
+
+    if (user.isAnonymous()) {
+      throw new IllegalArgumentException("User cannot be anonymous.");
+    }
+
+    AuthProvider login = user.getPrimaryLogin();
+    if (login == null) {
+      throw new IllegalArgumentException("User must have primary login");
+    }
+    String userid = user.getAccessToken(login).getId();
+    return Pair.with(userid, login.getLabel());
+  }
+
+  @Deprecated
+  public static List<Pair<String, String>> getPrimaryUserIdAndType(User user) {
+    if (user == null) {
+      throw new IllegalArgumentException("User cannot be null.");
+    }
+
+    if (user.isAnonymous()) {
+      throw new IllegalArgumentException("User cannot be anonymous.");
+    }
+
+    List<Pair<String, String>> creds = new ArrayList<>();
+
+    AuthProvider login = user.getPrimaryLogin();
+    if (login == null) {
+      throw new IllegalArgumentException("User must have primary login");
+    }
+    String userid = user.getAccessToken(login).getId();
+    creds.add(Pair.with(userid, login.getLabel()));
+
+    if (creds.size() == 0) {
+      throw new IllegalArgumentException("User needs to be logged in.");
+    }
+
+    return creds;
+  }
+
+  /////////////////////////////////////////////////////
+
+  /**
+   * @return
+   */
+  public ClientProcessWrapper getPythonClientProcessWrapper() {
+    return this.pythonCPW;
+  }
+
+  /**
+   * @param create
+   * @return
+   */
+  public SocketClient getPythonSocketClient(boolean create) {
+    return getPythonSocketClient(create, -1, null);
+  }
+
+  /**
+   * @param create
+   * @param venvName
+   * @return
+   */
+  public SocketClient getPythonSocketClient(boolean create, String venvEngineId) {
+    return getPythonSocketClient(create, -1, venvEngineId);
+  }
+
+  /**
+   * @param create
+   * @param port
+   * @return
+   */
+  public SocketClient getPythonSocketClient(boolean create, int port, String venvEngineId) {
+    if (!create) {
+      if (this.pythonCPW == null) {
+        return null;
+      }
+      return this.pythonCPW.getSocketClient();
+    }
+    if (this.pythonCPW == null || this.pythonCPW.getSocketClient() == null) {
+      startPythonSocketServerAndClient(-1, venvEngineId);
+      this.pythonCPW.getSocketClient().setUser(this);
+    } else if (!this.pythonCPW.getSocketClient().isConnected()) {
+      this.pythonCPW.shutdown(false);
+      try {
+        this.pythonCPW.reconnect();
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+        throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
+      }
+    }
+
+    // invalidate the serialization map
+    this.insightSerializedMap.clear();
+
+    return this.pythonCPW.getSocketClient();
+  }
+
+  /**
+   * @return
+   */
+  public SymlinkHelper getUserSymlinkHelper() {
+    if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+      if (symlinkHelper == null) {
+        String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
+        String chrootDir = Utility.getDIHelperProperty("CHROOT_DIR");
+        chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
+        // unique user is just for testing so when i ls on R, I can see it is me and not someone
+        // else
+        symlinkHelper = new SymlinkHelper(chrootPath);
+      }
+      return symlinkHelper;
+    }
+
+    throw new IllegalArgumentException("Chroot is not enabled on this instance");
+  }
+
+  /**
+   * @param port
+   * @param venvEngineId
+   */
+  public void startPythonSocketServerAndClient(int port, String venvEngineId) {
+    if (this.pythonCPW == null) {
+      this.pythonCPW = new ClientProcessWrapper();
+    }
+    if (this.pythonCPW.getSocketClient() == null
+        || !this.pythonCPW.getSocketClient().isConnected()) {
+      boolean nativePyServer = false;
+      // defined in rdf map
+      String nativePyServerStr = Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER);
+      if (nativePyServerStr != null && !(nativePyServerStr = nativePyServerStr.trim()).isEmpty()) {
+        nativePyServer = Boolean.parseBoolean(nativePyServerStr);
+      }
+
+      boolean debug = false;
+      if (port < 0) {
+        String forcePort = Utility.getDIHelperProperty(Settings.FORCE_PORT);
+        // port has not been forced
+        if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+          try {
+            port = Integer.parseInt(forcePort);
+            debug = true;
+          } catch (NumberFormatException e) {
+            // ignore
+            classLogger.warn(
+                "User " + User.getSingleLogginName(this) + " has an invalid FORCE_PORT value");
+          }
+        }
+      }
+
+      String loggerLevel = Utility.getDIHelperProperty(Settings.LOGGER_LEVEL);
+      if (loggerLevel == null || (loggerLevel = loggerLevel.trim()).isEmpty()) {
+        loggerLevel = "WARNING";
+      }
+
+      String customClassPath = Utility.getDIHelperProperty("TCP_WORKER_CP");
+      if (customClassPath == null) {
+        classLogger.info("No custom class path set");
+      }
+
+      Path serverDirectoryPath = null;
+      String serverDirectory = null;
+
+      if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+        // unique user is just for testing so when i ls on R, I can see it is me and not someone
+        // else
+        this.symlinkHelper = getUserSymlinkHelper();
+
+        // we do not define the Server Directory here - because it will dynamically generate in the
+        // chroot location
+        try {
+          // TODO update once venv with chroot is enabled
+          this.pythonCPW.createProcessAndClient(
+              nativePyServer,
+              this.symlinkHelper,
+              port,
+              null,
+              null,
+              customClassPath,
+              debug,
+              "-1",
+              loggerLevel);
+        } catch (Exception e) {
+          classLogger.error(Constants.STACKTRACE, e);
+          throw new IllegalArgumentException("Unable to connect to user server");
+        }
+      } else {
+        if (Utility.getDIHelperProperty("PY_TUPLE_SPACE") != null
+            && !Utility.getDIHelperProperty("PY_TUPLE_SPACE").isEmpty()) {
+          serverDirectory = Utility.getDIHelperProperty("PY_TUPLE_SPACE");
+        } else {
+          serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
+        }
+
+        try {
+          serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "a");
+        } catch (IOException e) {
+          classLogger.error(Constants.STACKTRACE, e);
+          throw new IllegalArgumentException(
+              "Could not create directory to launch project process");
+        }
+
+        classLogger.info(
+            "Starting Non-chroot TCP Server for User = " + User.getSingleLogginName(this));
+        try {
+          String venvPath =
+              venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+          this.pythonCPW.createProcessAndClient(
+              nativePyServer,
+              null,
+              port,
+              venvPath,
+              serverDirectoryPath.toString(),
+              customClassPath,
+              debug,
+              "-1",
+              loggerLevel);
+        } catch (Exception e) {
+          classLogger.error(Constants.STACKTRACE, e);
+          throw new IllegalArgumentException("Unable to connect to user server");
+        }
+      }
+    }
+  }
+
+  public Process getrProcess() {
+    return rProcess;
+  }
+
+  public void setrProcess(Process rProcess) {
+    this.rProcess = rProcess;
+  }
+
+  public Process getPyProcess() {
+    return pyProcess;
+  }
+
+  public void setPyProcess(Process pyProcess) {
+    this.pyProcess = pyProcess;
+  }
+
+  public int getrPort() {
+    return rPort;
+  }
+
+  public void setrPort(int rPport) {
+    this.rPort = rPport;
+  }
+
+  public int getPyPort() {
+    return pyPort;
+  }
+
+  public void setPyPort(int pyPport) {
+    this.pyPort = pyPport;
+  }
+
+  private void addUserMemory() {
+    long memoryInGigs = 0;
+    // check if the user has memory
+    boolean checkMem = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CHECK_MEM) + "");
+    if (checkMem) {
+      long freeMem = MgmtUtil.getFreeMemory();
+      String memProfileSettings = Utility.getDIHelperProperty(Settings.MEM_PROFILE_SETTINGS);
+      if (memProfileSettings.equalsIgnoreCase(Settings.CONSTANT_MEM)) {
+        String memLimitSettings = Utility.getDIHelperProperty(Settings.USER_MEM_LIMIT);
+        memoryInGigs = Integer.parseInt(memLimitSettings);
+      }
+
+      MgmtUtil.addMemory4User(memoryInGigs);
+    }
+  }
+
+  public void removeUserMemory() {
+    long memoryInGigs = 0;
+    // check if the user has memory
+    boolean checkMem = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CHECK_MEM) + "");
+    if (checkMem) {
+      long freeMem = MgmtUtil.getFreeMemory();
+      String memProfileSettings = Utility.getDIHelperProperty(Settings.MEM_PROFILE_SETTINGS);
+
+      if (memProfileSettings.equalsIgnoreCase(Settings.CONSTANT_MEM)) {
+        String memLimitSettings = Utility.getDIHelperProperty(Settings.USER_MEM_LIMIT);
+        memoryInGigs = Integer.parseInt(memLimitSettings);
+      }
+
+      MgmtUtil.removeMemory4User(memoryInGigs);
+    }
+  }
+
+  public String[] getUserCredential(AuthProvider prov) {
+    // just need some specific one the user is using
+    if (prov != null && accessTokens.containsKey(prov)) {
+      String[] creds = getUserEmail(accessTokens.get(prov));
+      if (creds[1] != null) {
+        return creds;
+      }
+    }
+
+    Enumeration<AuthProvider> accessKeys = accessTokens.keys();
+    if (accessKeys.hasMoreElements()) {
+      AuthProvider provider = accessKeys.nextElement();
+      AccessToken tok = accessTokens.get(provider);
+      String[] creds = getUserEmail(tok);
+      if (creds[1] != null) {
+        return creds;
+      }
+    }
+
+    return new String[] {"anonymous", "anonymous@not_logged_in.com"};
+  }
+
+  public void setInsightSerialization(String insightId, Boolean serialize) {
+    insightSerializedMap.put(insightId, serialize);
+  }
+
+  public Boolean getInsightSerialization(String insightId) {
+    return insightSerializedMap.containsKey(insightId) && insightSerializedMap.get(insightId);
+  }
+
+  private String[] getUserEmail(AccessToken token) {
+    String[] userEmail = new String[2];
+    userEmail[0] = token.getUsername();
+    userEmail[1] = token.getEmail();
+
+    return userEmail;
+  }
 }

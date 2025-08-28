@@ -1,9 +1,35 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.export;
 
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
-
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -18,77 +44,85 @@ import prerna.util.Utility;
 
 public class ToTxtReactor extends AbstractExportTxtReactor {
 
-	private static final String CLASS_NAME = ToTxtReactor.class.getName();
-	
-	public ToTxtReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.DELIMITER.getKey(), 
-				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), APPEND_TIMESTAMP};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		User user = this.insight.getUser();
-		// throw error is user doesn't have rights to export data
-		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
-			AbstractReactor.throwUserNotExporterError();
-		}
-		this.logger = getLogger(CLASS_NAME);
-		this.task = getTask();
-		// set to tab separated
-		this.setDelimiter(getDelimiter());
-		// do we append the timestamp to the name
-		this.appendTimestamp = appendTimeStamp();
+  private static final String CLASS_NAME = ToTxtReactor.class.getName();
 
-		String downloadKey = UUID.randomUUID().toString();
-		InsightFile insightFile = new InsightFile();
-		insightFile.setFileKey(downloadKey);
-		
-		// get a random file name
-		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = getExportFileName(user, prefixName, "txt", this.appendTimestamp);
-		
-		// grab file path to write the file
-		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
-		// if the file location is not defined generate a random path and set
-		// location so that the front end will download
-		if (this.fileLocation == null) {
-			String insightFolder = this.insight.getInsightFolder();
-			File f = new File(insightFolder);
-			if(!f.exists()) {
-				f.mkdirs();
-			}
-			this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			insightFile.setDeleteOnInsightClose(true);
-		} else {
-			insightFile.setDeleteOnInsightClose(false);
-			this.fileLocation += DIR_SEPARATOR + exportName;
-		}
-		insightFile.setFilePath(this.fileLocation);
-		buildTask();
+  public ToTxtReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.TASK.getKey(),
+          ReactorKeysEnum.DELIMITER.getKey(),
+          ReactorKeysEnum.FILE_NAME.getKey(),
+          ReactorKeysEnum.FILE_PATH.getKey(),
+          APPEND_TIMESTAMP
+        };
+  }
 
-		// store the insight file 
-		// in the insight so the FE can download it
-		// only from the given insight
-		this.insight.addExportFile(downloadKey, insightFile);
-		
-		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the txt file"));
-		return retNoun;
-	}
-	
-	private String getDelimiter() {
-		GenRowStruct grs = store.getNoun(this.keysToGet[1]);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
-		}
-		
-		List<String> values = this.curRow.getAllStrValues();
-		if(values != null && !values.isEmpty()) {
-			return values.get(0);
-		}
-		
-		throw new IllegalArgumentException("Must define the delimiter");
-	}
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    User user = this.insight.getUser();
+    // throw error is user doesn't have rights to export data
+    if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+      AbstractReactor.throwUserNotExporterError();
+    }
+    this.logger = getLogger(CLASS_NAME);
+    this.task = getTask();
+    // set to tab separated
+    this.setDelimiter(getDelimiter());
+    // do we append the timestamp to the name
+    this.appendTimestamp = appendTimeStamp();
 
+    String downloadKey = UUID.randomUUID().toString();
+    InsightFile insightFile = new InsightFile();
+    insightFile.setFileKey(downloadKey);
+
+    // get a random file name
+    String prefixName =
+        Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
+    String exportName = getExportFileName(user, prefixName, "txt", this.appendTimestamp);
+
+    // grab file path to write the file
+    this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+    // if the file location is not defined generate a random path and set
+    // location so that the front end will download
+    if (this.fileLocation == null) {
+      String insightFolder = this.insight.getInsightFolder();
+      File f = new File(insightFolder);
+      if (!f.exists()) {
+        f.mkdirs();
+      }
+      this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
+      insightFile.setDeleteOnInsightClose(true);
+    } else {
+      insightFile.setDeleteOnInsightClose(false);
+      this.fileLocation += DIR_SEPARATOR + exportName;
+    }
+    insightFile.setFilePath(this.fileLocation);
+    buildTask();
+
+    // store the insight file
+    // in the insight so the FE can download it
+    // only from the given insight
+    this.insight.addExportFile(downloadKey, insightFile);
+
+    NounMetadata retNoun =
+        new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+    retNoun.addAdditionalReturn(
+        NounMetadata.getSuccessNounMessage("Successfully generated the txt file"));
+    return retNoun;
+  }
+
+  private String getDelimiter() {
+    GenRowStruct grs = store.getNoun(this.keysToGet[1]);
+    if (grs != null && !grs.isEmpty()) {
+      return grs.get(0).toString();
+    }
+
+    List<String> values = this.curRow.getAllStrValues();
+    if (values != null && !values.isEmpty()) {
+      return values.get(0);
+    }
+
+    throw new IllegalArgumentException("Must define the delimiter");
+  }
 }

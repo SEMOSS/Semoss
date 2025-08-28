@@ -1,13 +1,31 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.function;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import com.azure.ai.formrecognizer.documentanalysis.DocumentAnalysisClient;
 import com.azure.ai.formrecognizer.documentanalysis.DocumentAnalysisClientBuilder;
@@ -18,7 +36,13 @@ import com.azure.ai.formrecognizer.documentanalysis.models.OperationResult;
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.util.BinaryData;
 import com.azure.core.util.polling.SyncPoller;
-
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -26,112 +50,122 @@ import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.reactor.export.pdf.PDFUtility;
 import prerna.util.Constants;
 
-public class AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine extends AbstractFunctionEngine implements ICustomEmbeddingsFunctionEngine {
+public class AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine extends AbstractFunctionEngine
+    implements ICustomEmbeddingsFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine.class);
+  private static final Logger classLogger =
+      LogManager.getLogger(AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine.class);
 
-	private static final String URL = "URL";
-	private static final String MODEL = "MODEL";
-	
-	private static final String PREBUILT_READ = "prebuilt-read";
-	
-	private String connectionUrl;
-	private String apiKey;
-	private String model;
-	private DocumentAnalysisClient documentAnalysisClient = null;
+  private static final String URL = "URL";
+  private static final String MODEL = "MODEL";
 
-	@Override
-	public void open(Properties smssProp) throws Exception {
-		// preset these - don't need user to define
-		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "Azure Document Intelligence - For Use With Vector Database Engines");
-		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute Azure Document Intelligence");
+  private static final String PREBUILT_READ = "prebuilt-read";
 
-		super.open(smssProp);
+  private String connectionUrl;
+  private String apiKey;
+  private String model;
+  private DocumentAnalysisClient documentAnalysisClient = null;
 
-		this.connectionUrl = smssProp.getProperty(URL);
-		this.apiKey = smssProp.getProperty(Constants.API_KEY);
-		if (this.connectionUrl == null || (this.connectionUrl=this.connectionUrl.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the connection url");
-		}
-		if (this.apiKey == null || (this.apiKey=this.apiKey.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the api key");
-		}
-		String model = smssProp.getProperty(MODEL);
-		if(model != null && !(model=model.trim()).isEmpty()) {
-			this.model = model;
-		} else {
-			this.model = PREBUILT_READ;
-		}
+  @Override
+  public void open(Properties smssProp) throws Exception {
+    // preset these - don't need user to define
+    smssProp.putIfAbsent(
+        IFunctionEngine.NAME_KEY,
+        "Azure Document Intelligence - For Use With Vector Database Engines");
+    smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute Azure Document Intelligence");
 
-		try {
-			this.documentAnalysisClient = new DocumentAnalysisClientBuilder()
-					.credential(new AzureKeyCredential(this.apiKey)).endpoint(this.connectionUrl).buildClient();
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw e;
-		}
-	}
+    super.open(smssProp);
 
-	@Override
-	public Object execute(Map<String, Object> parameterValues) {
-		throw new IllegalArgumentException("This function engine is only intended to be executed for custom vector db embeddings");
-	}
+    this.connectionUrl = smssProp.getProperty(URL);
+    this.apiKey = smssProp.getProperty(Constants.API_KEY);
+    if (this.connectionUrl == null || (this.connectionUrl = this.connectionUrl.trim()).isEmpty()) {
+      throw new IllegalArgumentException("Must pass in the connection url");
+    }
+    if (this.apiKey == null || (this.apiKey = this.apiKey.trim()).isEmpty()) {
+      throw new IllegalArgumentException("Must pass in the api key");
+    }
+    String model = smssProp.getProperty(MODEL);
+    if (model != null && !(model = model.trim()).isEmpty()) {
+      this.model = model;
+    } else {
+      this.model = PREBUILT_READ;
+    }
 
-	@Override
-	public boolean canProcessDocument(File fileToProcess) {
-		boolean pdf = fileToProcess.getName().toLowerCase().endsWith(".pdf");
-		if(pdf) {
-			try {
-				return PDFUtility.pdfContainsImages(fileToProcess.getAbsolutePath());
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
+    try {
+      this.documentAnalysisClient =
+          new DocumentAnalysisClientBuilder()
+              .credential(new AzureKeyCredential(this.apiKey))
+              .endpoint(this.connectionUrl)
+              .buildClient();
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw e;
+    }
+  }
 
-		return false;
-	}
+  @Override
+  public Object execute(Map<String, Object> parameterValues) {
+    throw new IllegalArgumentException(
+        "This function engine is only intended to be executed for custom vector db embeddings");
+  }
 
-	@Override
-	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
-		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
-		try {
-			String source = fileToProcess.getName();
-			classLogger.info("Starting to process : " + source);
-			
-			SyncPoller<OperationResult, AnalyzeResult> analyzeResultPoller = this.documentAnalysisClient
-					.beginAnalyzeDocument(this.model, BinaryData.fromFile(fileToProcess.toPath(), 8092));
-			AnalyzeResult analyzeResult = analyzeResultPoller.getFinalResult();
-			List<DocumentPage> pages = analyzeResult.getPages();
-			
-			int numPages = pages.size();
-			for(int i = 0; i < numPages; i++) {
-				DocumentPage documentPage = pages.get(i);
-				String pageNum = documentPage.getPageNumber()+"";
-				classLogger.info("Processing page " + pageNum + " of " + numPages + " for " + source);
+  @Override
+  public boolean canProcessDocument(File fileToProcess) {
+    boolean pdf = fileToProcess.getName().toLowerCase().endsWith(".pdf");
+    if (pdf) {
+      try {
+        return PDFUtility.pdfContainsImages(fileToProcess.getAbsolutePath());
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
 
-				// aggregate and write the row
-				StringBuffer extractedTextForeachLine = new StringBuffer();
-				if(documentPage.getLines() != null) {
-					for (DocumentLine documentLine : documentPage.getLines()) {
-						extractedTextForeachLine.append(documentLine.getContent()).append(" ");
-					}
-					writer.writeRow(source, pageNum, extractedTextForeachLine.toString());
-				}
-			}
-		} finally {
-			writer.close();
-		}
-		
-		return writer.getRowsInCsv();
-	}
+    return false;
+  }
 
-	@Override
-	public String getCatalogSubType(Properties smssProp) {
-		return FunctionTypeEnum.AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS.name();
-	}
+  @Override
+  public int processDocument(
+      String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
+    VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
+    try {
+      String source = fileToProcess.getName();
+      classLogger.info("Starting to process : " + source);
 
-	@Override
-	public void close() throws IOException {
-		// nothing to do
-	}
+      SyncPoller<OperationResult, AnalyzeResult> analyzeResultPoller =
+          this.documentAnalysisClient.beginAnalyzeDocument(
+              this.model, BinaryData.fromFile(fileToProcess.toPath(), 8092));
+      AnalyzeResult analyzeResult = analyzeResultPoller.getFinalResult();
+      List<DocumentPage> pages = analyzeResult.getPages();
+
+      int numPages = pages.size();
+      for (int i = 0; i < numPages; i++) {
+        DocumentPage documentPage = pages.get(i);
+        String pageNum = documentPage.getPageNumber() + "";
+        classLogger.info("Processing page " + pageNum + " of " + numPages + " for " + source);
+
+        // aggregate and write the row
+        StringBuffer extractedTextForeachLine = new StringBuffer();
+        if (documentPage.getLines() != null) {
+          for (DocumentLine documentLine : documentPage.getLines()) {
+            extractedTextForeachLine.append(documentLine.getContent()).append(" ");
+          }
+          writer.writeRow(source, pageNum, extractedTextForeachLine.toString());
+        }
+      }
+    } finally {
+      writer.close();
+    }
+
+    return writer.getRowsInCsv();
+  }
+
+  @Override
+  public String getCatalogSubType(Properties smssProp) {
+    return FunctionTypeEnum.AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS.name();
+  }
+
+  @Override
+  public void close() throws IOException {
+    // nothing to do
+  }
 }

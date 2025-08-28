@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.ds.rdbms;
 
 import java.io.IOException;
@@ -11,10 +38,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
@@ -33,282 +58,286 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractRdbmsFrame.class);
-	
-	protected Connection conn = null;
-	protected String database = null;
-	protected String schema = null;
-	protected AbstractSqlQueryUtil util = null;
-	protected RdbmsFrameBuilder builder = null;
+  private static final Logger classLogger = LogManager.getLogger(AbstractRdbmsFrame.class);
 
-	public AbstractRdbmsFrame() {
-		this.frameName = "RDBMSFRAME_" + UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
-		try {
-			this.initConnAndBuilder();
-		} catch (Exception e) {
-			throw new IllegalArgumentException("Error generating new sql frame", e);
-		}
-		this.originalName = this.frameName;
-	}
-	
-	public AbstractRdbmsFrame(String tableName) {
-		if(tableName != null && !tableName.isEmpty()) {
-			this.frameName = tableName;
-		} else {
-			this.frameName = "RDBMSFRAME_" + UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
-		}
-		try {
-			this.initConnAndBuilder();
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error generating new sql frame", e);
-		}
-		this.originalName = this.frameName;
-	}
-	
-	public AbstractRdbmsFrame(String[] headers) {
-		this();
+  protected Connection conn = null;
+  protected String database = null;
+  protected String schema = null;
+  protected AbstractSqlQueryUtil util = null;
+  protected RdbmsFrameBuilder builder = null;
 
-		// assume all types are string
-		int numHeaders = headers.length;
-		String[] types = new String[numHeaders];
-		for(int i = 0; i < numHeaders; i++) {
-			types[i] = "STRING";
-		}
+  public AbstractRdbmsFrame() {
+    this.frameName =
+        "RDBMSFRAME_" + UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
+    try {
+      this.initConnAndBuilder();
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Error generating new sql frame", e);
+    }
+    this.originalName = this.frameName;
+  }
 
-		ImportUtility.parseHeadersAndTypeIntoMeta(this, headers, types, this.frameName);
-		this.builder.alterTableNewColumns(this.frameName, headers, types);
-		syncHeaders();
-		this.originalName = this.frameName;
-	}
-	
-	public AbstractRdbmsFrame(String[] headers, String[] types) {
-		this();
-		ImportUtility.parseHeadersAndTypeIntoMeta(this, headers, types, this.frameName);
-		this.builder.alterTableNewColumns(this.frameName, headers, types);
-		syncHeaders();
-		this.originalName = this.frameName;
-	}
-	
-	/**
-	 * This method needs to define the following class variables:
-	 * Connection conn
-	 * String schema
-	 * AbstractSqlQueryUtil util
-	 * RdbmsFrameBuilder builder
-	 * This is necessary for this class and its subclasses to work
-	 * @throws Exception
-	 */
-	protected abstract void initConnAndBuilder() throws Exception;
-	
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	
-	public AbstractSqlQueryUtil getQueryUtil() {
-		return this.util;
-	}
-	
-	public RdbmsFrameBuilder getBuilder() {
-		return this.builder;
-	}
-	
-	public Connection getConn() {
-		return this.conn;
-	}
-	
-	///////////////////////////////////////////////////////////////////////////////////////////////////////
-	
-	/**
-	 * Add iterator data into table
-	 * Assuming this is the base frame table
-	 * @param it
-	 * @param typesMap
-	 */
-	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
-		addRowsViaIterator(it, this.frameName, typesMap);
-	}
-	
-	/**
-	 * Add iterator data into the specified table
-	 * @param it
-	 * @param tableName
-	 * @param typesMap
-	 */
-	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, SemossDataType> typesMap) {
-		this.builder.addRowsViaIterator(it, tableName, typesMap);
-	}
-	
-	@Override
-	public void addRow(Object[] values, String[] columnNames) {
-		String[] types = new String[columnNames.length];
-		for (int i = 0; i < types.length; i++) {
-			types[i] = this.metaData.getHeaderTypeAsString(columnNames[i], this.frameName);
-			if(types[i] == null) {
-				types[i] = "STRING";
-			}
-		}
+  public AbstractRdbmsFrame(String tableName) {
+    if (tableName != null && !tableName.isEmpty()) {
+      this.frameName = tableName;
+    } else {
+      this.frameName =
+          "RDBMSFRAME_" + UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
+    }
+    try {
+      this.initConnAndBuilder();
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw new IllegalArgumentException("Error generating new sql frame", e);
+    }
+    this.originalName = this.frameName;
+  }
 
-		// get table for headers
-		this.addRow(this.frameName, columnNames, values, types);
-	}
+  public AbstractRdbmsFrame(String[] headers) {
+    this();
 
-	/**
-	 * Add a row into a table
-	 * @param tableName
-	 * @param columnNames
-	 * @param values
-	 * @param types
-	 */
-	public void addRow(String tableName, String[] columnNames, Object[] values, String[] types) {
-		this.builder.addRow(tableName, columnNames, values, types);
-	}
-	
-	public void addNewColumn(String[] newHeaders, String[] types, String tableName) {
-		this.builder.alterTableNewColumns(tableName, newHeaders, types);
-		for(int i = 0; i < newHeaders.length; i++) {
-			this.metaData.addProperty(tableName, tableName + "__" + newHeaders[i]);
-			this.metaData.setAliasToProperty(tableName + "__" + newHeaders[i], newHeaders[i]);
-			this.metaData.setDataTypeToProperty(tableName + "__" + newHeaders[i], types[i]);
-		}
-	}
-	
-	@Override
-	public void removeColumn(String columnHeader) {
-		if(this.util.allowDropColumn()) {
-			String dropColumnSql = this.util.alterTableDropColumn(this.frameName, columnHeader);
-			try {
-				this.builder.runQuery(dropColumnSql);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		} else {
-			// TODO: make new table not including this column and insert from table
-			// TODO: make new table not including this column and insert from table
-			// TODO: make new table not including this column and insert from table
-		}
-		
-		this.metaData.dropProperty(this.frameName + "__" + columnHeader, this.frameName);
-		syncHeaders();
-	}
+    // assume all types are string
+    int numHeaders = headers.length;
+    String[] types = new String[numHeaders];
+    for (int i = 0; i < numHeaders; i++) {
+      types[i] = "STRING";
+    }
 
-	public PreparedStatement createUpdatePreparedStatement(String[] columnsToUpdate, String[] whereColumns) {
-		return this.builder.createUpdatePreparedStatement(this.frameName, columnsToUpdate, whereColumns);
-	}
-	
-	public PreparedStatement createInsertPreparedStatement(String[] columns) {
-		return this.builder.createInsertPreparedStatement(this.frameName, columns);
-	}
+    ImportUtility.parseHeadersAndTypeIntoMeta(this, headers, types, this.frameName);
+    this.builder.alterTableNewColumns(this.frameName, headers, types);
+    syncHeaders();
+    this.originalName = this.frameName;
+  }
 
-	@Override
-	public boolean isEmpty() {
-		return this.builder.isEmpty(this.frameName);
-	}
+  public AbstractRdbmsFrame(String[] headers, String[] types) {
+    this();
+    ImportUtility.parseHeadersAndTypeIntoMeta(this, headers, types, this.frameName);
+    this.builder.alterTableNewColumns(this.frameName, headers, types);
+    syncHeaders();
+    this.originalName = this.frameName;
+  }
 
-	@Override
-	public long size(String tableName) {
-		if(isEmpty()) {
-			return 0;
-		}
-		return this.builder.getNumRecords(tableName);
-	}
+  /**
+   * This method needs to define the following class variables: Connection conn String schema
+   * AbstractSqlQueryUtil util RdbmsFrameBuilder builder This is necessary for this class and its
+   * subclasses to work
+   *
+   * @throws Exception
+   */
+  protected abstract void initConnAndBuilder() throws Exception;
 
-	@Override
-	public IRawSelectWrapper query(String query) throws Exception {
-		classLogger.info("Executing query...");
-		long start = System.currentTimeMillis();
-		RawRDBMSSelectWrapper it = RawRDBMSSelectWrapper.directExecutionViaConnection(this.conn, query, false);
-		long end = System.currentTimeMillis();
-		classLogger.info("Time to execute query on frame = " + (end-start) + "ms");
-		return it;
-	}
-	
-	@Override
-	public IRawSelectWrapper query(SelectQueryStruct qs) throws Exception {
-		classLogger.info("Generating SQL query...");
-		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
-		if(!this.frameName.equals(this.originalName)) {
-			Map<String, String> transformation = new HashMap<>();
-			transformation.put(originalName, frameName);
-			qs = QSRenameTableConverter.convertQs(qs, transformation, true);
-		}
-		IQueryInterpreter interp = getQueryInterpreter();
-		interp.setQueryStruct(qs);
-		interp.setLogger(this.classLogger);
-		String iteratorQuery = interp.composeQuery();
-		classLogger.info("Done generating SQL query");
-		return query(iteratorQuery);
-	}
-	
-	@Override
-	public Object querySQL(String query) {
-		Map<String, Object> retMap = new HashMap<>();
-		List <List<Object>> data = new ArrayList<List<Object>>();
-		
-		HardSelectQueryStruct qs = new HardSelectQueryStruct();
-		qs.setQuery(query);
-		IRawSelectWrapper it = null;
-		try {
-			it = query(qs);
-			while(it.hasNext()) {
-				data.add( Arrays.asList(it.next().getValues()) );
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error executing sql: " + query);
-		} finally {
-			if(it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		
-		retMap.put("data", data);
-		retMap.put("types", SemossDataType.convertSemossDataTypeArrToStringArr( it.getTypes()) );
-		retMap.put("columns", it.getHeaders());
-		return retMap;
-	}
-	
-	@Override
-	public void close() {
-		super.close();
-		try {
-			this.conn.close();
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-	
-	@Override
-	public DataFrameTypeEnum getFrameType() {
-		return DataFrameTypeEnum.GRID;
-	}
-	
-	
-	@Override
-	public IQueryInterpreter getQueryInterpreter() {
-		return getQueryUtil().getInterpreter(this);
-	}
+  //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
+  public AbstractSqlQueryUtil getQueryUtil() {
+    return this.util;
+  }
 
-	/*
-	 * Legacy methods... do not require
-	 */
-	
-	@Override
-	public void processDataMakerComponent(DataMakerComponent component) {
-		// TODO Auto-generated method stub
-		
-	}
+  public RdbmsFrameBuilder getBuilder() {
+    return this.builder;
+  }
 
-	@Override
-	public String getDataMakerName() {
-		return null;
-	}
+  public Connection getConn() {
+    return this.conn;
+  }
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * Add iterator data into table Assuming this is the base frame table
+   *
+   * @param it
+   * @param typesMap
+   */
+  public void addRowsViaIterator(
+      Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
+    addRowsViaIterator(it, this.frameName, typesMap);
+  }
+
+  /**
+   * Add iterator data into the specified table
+   *
+   * @param it
+   * @param tableName
+   * @param typesMap
+   */
+  public void addRowsViaIterator(
+      Iterator<IHeadersDataRow> it, String tableName, Map<String, SemossDataType> typesMap) {
+    this.builder.addRowsViaIterator(it, tableName, typesMap);
+  }
+
+  @Override
+  public void addRow(Object[] values, String[] columnNames) {
+    String[] types = new String[columnNames.length];
+    for (int i = 0; i < types.length; i++) {
+      types[i] = this.metaData.getHeaderTypeAsString(columnNames[i], this.frameName);
+      if (types[i] == null) {
+        types[i] = "STRING";
+      }
+    }
+
+    // get table for headers
+    this.addRow(this.frameName, columnNames, values, types);
+  }
+
+  /**
+   * Add a row into a table
+   *
+   * @param tableName
+   * @param columnNames
+   * @param values
+   * @param types
+   */
+  public void addRow(String tableName, String[] columnNames, Object[] values, String[] types) {
+    this.builder.addRow(tableName, columnNames, values, types);
+  }
+
+  public void addNewColumn(String[] newHeaders, String[] types, String tableName) {
+    this.builder.alterTableNewColumns(tableName, newHeaders, types);
+    for (int i = 0; i < newHeaders.length; i++) {
+      this.metaData.addProperty(tableName, tableName + "__" + newHeaders[i]);
+      this.metaData.setAliasToProperty(tableName + "__" + newHeaders[i], newHeaders[i]);
+      this.metaData.setDataTypeToProperty(tableName + "__" + newHeaders[i], types[i]);
+    }
+  }
+
+  @Override
+  public void removeColumn(String columnHeader) {
+    if (this.util.allowDropColumn()) {
+      String dropColumnSql = this.util.alterTableDropColumn(this.frameName, columnHeader);
+      try {
+        this.builder.runQuery(dropColumnSql);
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    } else {
+      // TODO: make new table not including this column and insert from table
+      // TODO: make new table not including this column and insert from table
+      // TODO: make new table not including this column and insert from table
+    }
+
+    this.metaData.dropProperty(this.frameName + "__" + columnHeader, this.frameName);
+    syncHeaders();
+  }
+
+  public PreparedStatement createUpdatePreparedStatement(
+      String[] columnsToUpdate, String[] whereColumns) {
+    return this.builder.createUpdatePreparedStatement(
+        this.frameName, columnsToUpdate, whereColumns);
+  }
+
+  public PreparedStatement createInsertPreparedStatement(String[] columns) {
+    return this.builder.createInsertPreparedStatement(this.frameName, columns);
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return this.builder.isEmpty(this.frameName);
+  }
+
+  @Override
+  public long size(String tableName) {
+    if (isEmpty()) {
+      return 0;
+    }
+    return this.builder.getNumRecords(tableName);
+  }
+
+  @Override
+  public IRawSelectWrapper query(String query) throws Exception {
+    classLogger.info("Executing query...");
+    long start = System.currentTimeMillis();
+    RawRDBMSSelectWrapper it =
+        RawRDBMSSelectWrapper.directExecutionViaConnection(this.conn, query, false);
+    long end = System.currentTimeMillis();
+    classLogger.info("Time to execute query on frame = " + (end - start) + "ms");
+    return it;
+  }
+
+  @Override
+  public IRawSelectWrapper query(SelectQueryStruct qs) throws Exception {
+    classLogger.info("Generating SQL query...");
+    qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
+    if (!this.frameName.equals(this.originalName)) {
+      Map<String, String> transformation = new HashMap<>();
+      transformation.put(originalName, frameName);
+      qs = QSRenameTableConverter.convertQs(qs, transformation, true);
+    }
+    IQueryInterpreter interp = getQueryInterpreter();
+    interp.setQueryStruct(qs);
+    interp.setLogger(this.classLogger);
+    String iteratorQuery = interp.composeQuery();
+    classLogger.info("Done generating SQL query");
+    return query(iteratorQuery);
+  }
+
+  @Override
+  public Object querySQL(String query) {
+    Map<String, Object> retMap = new HashMap<>();
+    List<List<Object>> data = new ArrayList<List<Object>>();
+
+    HardSelectQueryStruct qs = new HardSelectQueryStruct();
+    qs.setQuery(query);
+    IRawSelectWrapper it = null;
+    try {
+      it = query(qs);
+      while (it.hasNext()) {
+        data.add(Arrays.asList(it.next().getValues()));
+      }
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw new IllegalArgumentException("Error executing sql: " + query);
+    } finally {
+      if (it != null) {
+        try {
+          it.close();
+        } catch (IOException e) {
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
+
+    retMap.put("data", data);
+    retMap.put("types", SemossDataType.convertSemossDataTypeArrToStringArr(it.getTypes()));
+    retMap.put("columns", it.getHeaders());
+    return retMap;
+  }
+
+  @Override
+  public void close() {
+    super.close();
+    try {
+      this.conn.close();
+    } catch (SQLException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+  }
+
+  @Override
+  public DataFrameTypeEnum getFrameType() {
+    return DataFrameTypeEnum.GRID;
+  }
+
+  @Override
+  public IQueryInterpreter getQueryInterpreter() {
+    return getQueryUtil().getInterpreter(this);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  /*
+   * Legacy methods... do not require
+   */
+
+  @Override
+  public void processDataMakerComponent(DataMakerComponent component) {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public String getDataMakerName() {
+    return null;
+  }
 }

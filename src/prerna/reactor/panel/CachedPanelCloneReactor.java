@@ -1,9 +1,35 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.panel;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -12,68 +38,67 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class CachedPanelCloneReactor extends AbstractInsightPanelReactor {
-	
-	/**
-	 * This code is the same as the Panel Clone Reactor but doesn't actually do the clone
-	 * It is just to let the FE know that a clone was performed
-	 * 
-	 * It is only intended to be used to simplify the 
-	 * cached insight recipe into a single call to get the panel
-	 * state instead of multiple calls for each portion of the insight
-	 * 
-	 */
-	
-	public CachedPanelCloneReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.CLONE_PANEL_KEY.getKey()};
-	}
 
-	@Override
-	public NounMetadata execute() {
-		// get the insight panel
-		InsightPanel existingPanel = getInsightPanel();
+  /**
+   * This code is the same as the Panel Clone Reactor but doesn't actually do the clone It is just
+   * to let the FE know that a clone was performed
+   *
+   * <p>It is only intended to be used to simplify the cached insight recipe into a single call to
+   * get the panel state instead of multiple calls for each portion of the insight
+   */
+  public CachedPanelCloneReactor() {
+    this.keysToGet =
+        new String[] {ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.CLONE_PANEL_KEY.getKey()};
+  }
 
-		// get the new panel id
-		String cloneId = getClonePanelId();
-		// grab the clone panel
-		InsightPanel clonePanel = this.insight.getInsightPanel(cloneId);
-		if(clonePanel == null) {
-			// actually do the clone logic now
-			// this will be dropped in PixelUtility.getCachedInsightRecipe() method
-			clonePanel = new InsightPanel(cloneId, existingPanel.getSheetId());
-			clonePanel.clone(existingPanel);
-			this.insight.addNewInsightPanel(clonePanel);
-		}
-		Map<String, InsightPanel> cloneMap = new HashMap<String, InsightPanel>();
-		cloneMap.put("original", existingPanel);
-		cloneMap.put("clone", clonePanel);
-		// return the new panel
-		return new NounMetadata(cloneMap, PixelDataType.PANEL_CLONE_MAP, PixelOperationType.CACHED_PANEL_CLONE);
-	}
-	
-	private String getClonePanelId() {
-		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[1]);
-		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
-			return genericReactorGrs.get(0).toString();
-		}
-		
-		// see if it is in the curRow
-		// if it was passed directly in as a variable
-		// try if it is a string, int, or double
-		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_STRING);
-		if(strNouns != null && !strNouns.isEmpty()) {
-			return strNouns.get(0).getValue().toString();
-		}
-		strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
-		if(strNouns != null && !strNouns.isEmpty()) {
-			return strNouns.get(0).getValue().toString();
-		}
-		strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_DECIMAL);
-		if(strNouns != null && !strNouns.isEmpty()) {
-			return strNouns.get(0).getValue().toString();
-		}
-		
-		// well, you are out of luck
-		return null;
-	}
+  @Override
+  public NounMetadata execute() {
+    // get the insight panel
+    InsightPanel existingPanel = getInsightPanel();
+
+    // get the new panel id
+    String cloneId = getClonePanelId();
+    // grab the clone panel
+    InsightPanel clonePanel = this.insight.getInsightPanel(cloneId);
+    if (clonePanel == null) {
+      // actually do the clone logic now
+      // this will be dropped in PixelUtility.getCachedInsightRecipe() method
+      clonePanel = new InsightPanel(cloneId, existingPanel.getSheetId());
+      clonePanel.clone(existingPanel);
+      this.insight.addNewInsightPanel(clonePanel);
+    }
+    Map<String, InsightPanel> cloneMap = new HashMap<String, InsightPanel>();
+    cloneMap.put("original", existingPanel);
+    cloneMap.put("clone", clonePanel);
+    // return the new panel
+    return new NounMetadata(
+        cloneMap, PixelDataType.PANEL_CLONE_MAP, PixelOperationType.CACHED_PANEL_CLONE);
+  }
+
+  private String getClonePanelId() {
+    // see if it was passed directly in with the lower case key ornaments
+    GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[1]);
+    if (genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
+      return genericReactorGrs.get(0).toString();
+    }
+
+    // see if it is in the curRow
+    // if it was passed directly in as a variable
+    // try if it is a string, int, or double
+    List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_STRING);
+    if (strNouns != null && !strNouns.isEmpty()) {
+      return strNouns.get(0).getValue().toString();
+    }
+    strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
+    if (strNouns != null && !strNouns.isEmpty()) {
+      return strNouns.get(0).getValue().toString();
+    }
+    strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_DECIMAL);
+    if (strNouns != null && !strNouns.isEmpty()) {
+      return strNouns.get(0).getValue().toString();
+    }
+
+    // well, you are out of luck
+    return null;
+  }
 }

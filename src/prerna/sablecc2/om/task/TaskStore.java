@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.sablecc2.om.task;
 
 import java.io.IOException;
@@ -6,112 +33,111 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.Constants;
 
 public class TaskStore {
 
-	private static final Logger classLogger = LogManager.getLogger(TaskStore.class);
-	
-	// store for the task
-	private Map<String, ITask> taskMap = new ConcurrentHashMap<String, ITask>(); 
-	// count when we generate unique job ids
-	private AtomicInteger count = new AtomicInteger(0);
+  private static final Logger classLogger = LogManager.getLogger(TaskStore.class);
 
-	public String addTask(String taskId, ITask task) {
-		classLogger.info("Adding new task = " + taskId);
-		this.taskMap.put(taskId, task);
-		return taskId;
-	}
-	
-	public String addTask(ITask newTask) {
-		String newId = generateID();
-		newTask.setId(newId);
-		return addTask(newId, newTask);
-	}
-	
-	public ITask getTask(String taskId) {
-		return this.taskMap.get(taskId);
-	}
+  // store for the task
+  private Map<String, ITask> taskMap = new ConcurrentHashMap<String, ITask>();
+  // count when we generate unique job ids
+  private AtomicInteger count = new AtomicInteger(0);
 
-	public void removeTask(String taskId) {
-		ITask task = this.taskMap.remove(taskId);
-		if(task != null) {
-			try {
-				task.close();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-	}
-	
-	public void renameTask(String taskId) {
-		ITask task = this.taskMap.remove(taskId);
-		addTask(task);
-	}
-	
-	public void clearAllTasks() {
-		for(String taskId : this.taskMap.keySet()) {
-			ITask task = this.taskMap.get(taskId);
-			try {
-				task.close();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		this.taskMap.clear();
-	}
-	
-	public Set<String> getTaskIds() {
-		return this.taskMap.keySet();
-	}
-	
-	private String generateID() {
-		return "task"+ count.incrementAndGet();
-	}
-	
-	public AtomicInteger getCount() {
-		return this.count;
-	}
-	
-	public void setCount(AtomicInteger count) {
-		this.count = count;
-	}
-	
-	/**
-	 * Loop through all the tasks in the store to see where they belong
-	 * @return
-	 */
-	public Map<String, Map<String, String>> getPanelLayerTaskIdMap() {
-		Map<String, Map<String, String>> panleLayerTaskIdMap = new HashMap<>();
-		for(String taskId : this.taskMap.keySet()) {
-			ITask task = this.taskMap.get(taskId);
-			TaskOptions taskOptions = task.getTaskOptions();
-			if(taskOptions != null) {
-				Set<String> panelIds = taskOptions.getPanelIds();
-				for(String panelId : panelIds) {
-					String layer = taskOptions.getPanelLayerId(panelId);
-					// store and override if required
-					if(layer == null) {
-						layer = "0";
-					}
+  public String addTask(String taskId, ITask task) {
+    classLogger.info("Adding new task = " + taskId);
+    this.taskMap.put(taskId, task);
+    return taskId;
+  }
 
-					Map<String, String> layerMap = null;
-					if(panleLayerTaskIdMap.containsKey(panelId)) {
-						layerMap = panleLayerTaskIdMap.get(panelId);
-					} else {
-						layerMap = new HashMap<>();
-						panleLayerTaskIdMap.put(panelId, layerMap);
-					}
-					layerMap.put(layer, taskId);
-				}
-			}
-		}
+  public String addTask(ITask newTask) {
+    String newId = generateID();
+    newTask.setId(newId);
+    return addTask(newId, newTask);
+  }
 
-		return panleLayerTaskIdMap;
-	}
+  public ITask getTask(String taskId) {
+    return this.taskMap.get(taskId);
+  }
+
+  public void removeTask(String taskId) {
+    ITask task = this.taskMap.remove(taskId);
+    if (task != null) {
+      try {
+        task.close();
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
+  }
+
+  public void renameTask(String taskId) {
+    ITask task = this.taskMap.remove(taskId);
+    addTask(task);
+  }
+
+  public void clearAllTasks() {
+    for (String taskId : this.taskMap.keySet()) {
+      ITask task = this.taskMap.get(taskId);
+      try {
+        task.close();
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
+    this.taskMap.clear();
+  }
+
+  public Set<String> getTaskIds() {
+    return this.taskMap.keySet();
+  }
+
+  private String generateID() {
+    return "task" + count.incrementAndGet();
+  }
+
+  public AtomicInteger getCount() {
+    return this.count;
+  }
+
+  public void setCount(AtomicInteger count) {
+    this.count = count;
+  }
+
+  /**
+   * Loop through all the tasks in the store to see where they belong
+   *
+   * @return
+   */
+  public Map<String, Map<String, String>> getPanelLayerTaskIdMap() {
+    Map<String, Map<String, String>> panleLayerTaskIdMap = new HashMap<>();
+    for (String taskId : this.taskMap.keySet()) {
+      ITask task = this.taskMap.get(taskId);
+      TaskOptions taskOptions = task.getTaskOptions();
+      if (taskOptions != null) {
+        Set<String> panelIds = taskOptions.getPanelIds();
+        for (String panelId : panelIds) {
+          String layer = taskOptions.getPanelLayerId(panelId);
+          // store and override if required
+          if (layer == null) {
+            layer = "0";
+          }
+
+          Map<String, String> layerMap = null;
+          if (panleLayerTaskIdMap.containsKey(panelId)) {
+            layerMap = panleLayerTaskIdMap.get(panelId);
+          } else {
+            layerMap = new HashMap<>();
+            panleLayerTaskIdMap.put(panelId, layerMap);
+          }
+          layerMap.put(layer, taskId);
+        }
+      }
+    }
+
+    return panleLayerTaskIdMap;
+  }
 }

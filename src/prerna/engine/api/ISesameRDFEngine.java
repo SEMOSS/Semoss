@@ -30,18 +30,14 @@ package prerna.engine.api;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.repository.RepositoryConnection;
 
-/**
- * An Abstract Engine that sets up the base constructs needed to create an
- * engine.
- */
+/** An Abstract Engine that sets up the base constructs needed to create an engine. */
 public interface ISesameRDFEngine extends IRDFDatabase {
 
-	RepositoryConnection getRc();
+  RepositoryConnection getRc();
 
-	void setRc(RepositoryConnection rc);
-	
-	ValueFactory getVf();
-	
-	void setVf(ValueFactory vf);
+  void setRc(RepositoryConnection rc);
 
+  ValueFactory getVf();
+
+  void setVf(ValueFactory vf);
 }

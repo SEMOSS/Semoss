@@ -1,29 +1,56 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.algorithms.xray;
-//package prerna.sablecc2.reactor.algorithms.xray;
+// package prerna.sablecc2.reactor.algorithms.xray;
 //
-//import java.io.IOException;
-//import java.util.ArrayList;
-//import java.util.HashMap;
-//import java.util.Hashtable;
-//import java.util.List;
-//import java.util.Map;
-//import java.util.Set;
-//import java.util.Vector;
+// import java.io.IOException;
+// import java.util.ArrayList;
+// import java.util.HashMap;
+// import java.util.Hashtable;
+// import java.util.List;
+// import java.util.Map;
+// import java.util.Set;
+// import java.util.Vector;
 //
-//import org.apache.logging.log4j.Logger;
+// import org.apache.logging.log4j.Logger;
 //
-//import com.fasterxml.jackson.databind.ObjectMapper;
+// import com.fasterxml.jackson.databind.ObjectMapper;
 //
-//import prerna.ds.r.RSyntaxHelper;
-//import prerna.nameserver.utility.MasterDatabaseUtility;
-//import prerna.sablecc2.om.GenRowStruct;
-//import prerna.sablecc2.om.PixelDataType;
-//import prerna.sablecc2.om.ReactorKeysEnum;
-//import prerna.sablecc2.om.nounmeta.NounMetadata;
-//import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
-//import prerna.util.Utility;
+// import prerna.ds.r.RSyntaxHelper;
+// import prerna.nameserver.utility.MasterDatabaseUtility;
+// import prerna.sablecc2.om.GenRowStruct;
+// import prerna.sablecc2.om.PixelDataType;
+// import prerna.sablecc2.om.ReactorKeysEnum;
+// import prerna.sablecc2.om.nounmeta.NounMetadata;
+// import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
+// import prerna.util.Utility;
 //
-//public class XrayMetamodelReactor extends AbstractRFrameReactor {
+// public class XrayMetamodelReactor extends AbstractRFrameReactor {
 //	private static final String CLASS_NAME = XrayMetamodelReactor.class.getName();
 //
 //	public XrayMetamodelReactor() {
@@ -59,7 +86,8 @@ package prerna.reactor.algorithms.xray;
 //		Hashtable edgesTable = new Hashtable();
 //		Hashtable conceptsTable = new Hashtable();
 //		for (String db : dbList) {
-//			Boolean existingMetamodel = new Boolean(((Map) config.get("parameters")).get("metamodel").toString());
+//			Boolean existingMetamodel = new Boolean(((Map)
+// config.get("parameters")).get("metamodel").toString());
 //			Map<String, Object> metamodelObject = MasterDatabaseUtility.getXrayExisitingMetamodelRDBMS(db);
 //			Hashtable edgesList1 = (Hashtable) metamodelObject.get("edges");
 //			Hashtable concepts = (Hashtable) metamodelObject.get("nodes");
@@ -103,17 +131,20 @@ package prerna.reactor.algorithms.xray;
 //			rsb.append(tempFrame + "<- " + tempFrame + "[order(" + tempFrame + "$id),];\n");
 //			rsb.append(tempFrame + "<-" + tempFrame + "[!duplicated(" + tempFrame + "$id),];\n");
 //			rsb.append(tempFrame + " <- subset(" + tempFrame
-//					+ ", select=c(Source_Database_Id, Source_Database, Source_Table, Source_Column, Source_Property, Target_Database_Id,Target_Database, "
+//					+ ", select=c(Source_Database_Id, Source_Database, Source_Table, Source_Column,
+// Source_Property, Target_Database_Id,Target_Database, "
 //					+ "Target_Table, Target_Column, Target_Property, Source_Instances, Target_Instances));");
 //
 //			// get instance count for source
 //			rsb.append(tempFrame + "<- merge(" + tempFrame + ", " + countFrame
-//					+ ", by.x=c(\"Source_Database_Id\", \"Source_Table\", \"Source_Column\"), by.y=c(\"engine\", \"table\",\"prop\"));");
+//					+ ", by.x=c(\"Source_Database_Id\", \"Source_Table\", \"Source_Column\"), by.y=c(\"engine\",
+// \"table\",\"prop\"));");
 //			// rename count column for source
 //			rsb.append("names(" + tempFrame + ")[names(" + tempFrame + ") == 'count'] <- 'Source_Count';");
 //			// get instance count for target
 //			rsb.append(tempFrame + " <- merge(" + tempFrame + ", " + countFrame
-//					+ ", by.x=c(\"Target_Database_Id\", \"Target_Table\", \"Target_Column\"), by.y=c(\"engine\", \"table\",\"prop\"));");
+//					+ ", by.x=c(\"Target_Database_Id\", \"Target_Table\", \"Target_Column\"), by.y=c(\"engine\",
+// \"table\",\"prop\"));");
 //			// rename count column for target
 //			rsb.append("names(" + tempFrame + ")[names(" + tempFrame + ") == 'count'] <- 'Target_Count';");
 //			// add PK or FK for source
@@ -123,12 +154,15 @@ package prerna.reactor.algorithms.xray;
 //			rsb.append(tempFrame + "$Target_Key <- apply(" + tempFrame
 //					+ ", 1, function(row) {ifelse(row[10] == row[12], \"PK\",\"FK\")});");
 //			// remove FK source and FK target
-//			rsb.append(tempFrame + "[, c(\"Source_Key\",\"Target_Key\")][" + tempFrame + "$Source_Key == \"FK\" & "
+//			rsb.append(tempFrame + "[, c(\"Source_Key\",\"Target_Key\")][" + tempFrame + "$Source_Key ==
+// \"FK\" & "
 //					+ tempFrame + "$Target_Key == \"FK\"] <- \"\";");
 //			// eliminate extra columns
 //			rsb.append(tempFrame + " <- subset(" + tempFrame
-//					+ ", select=c(Source_Database_Id, Source_Database, Source_Table, Source_Column,Source_Property, Source_Key, "
-//					+ "Target_Database_Id ,Target_Database, Target_Table, Target_Column,Target_Property, Target_Key));");
+//					+ ", select=c(Source_Database_Id, Source_Database, Source_Table,
+// Source_Column,Source_Property, Source_Key, "
+//					+ "Target_Database_Id ,Target_Database, Target_Table, Target_Column,Target_Property,
+// Target_Key));");
 //			// get json
 //			rsb.append(RSyntaxHelper.loadPackages(packages));
 //			rsb.append(jsonR + " <-  toJSON(" + tempFrame + ", byrow = TRUE, colNames = TRUE); ");
@@ -203,4 +237,4 @@ package prerna.reactor.algorithms.xray;
 //		return new NounMetadata(retMap, PixelDataType.MAP);
 //	}
 //
-//}
+// }

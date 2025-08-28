@@ -1,12 +1,37 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.project;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
@@ -19,62 +44,62 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
-
 public class ExecuteAppNotebookReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ExecuteAppNotebookReactor.class);
+  private static final Logger classLogger = LogManager.getLogger(ExecuteAppNotebookReactor.class);
 
-	/*
-	 * This class is used to construct a new project
-	 * This project only contains insights
-	 */
+  /*
+   * This class is used to construct a new project
+   * This project only contains insights
+   */
 
-	public ExecuteAppNotebookReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.MAP.getKey()};
-	}
+  public ExecuteAppNotebookReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.MAP.getKey()};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		this.organizeKeys();
-		
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			// you don't have access
-			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
-		}
-		// grab user inputs
-		Map<String, String> inputValueMap = new HashMap<>();
-		Map<String, String> inputMap = getInputMap();
-		for(String key : inputMap.keySet()) {
-			inputValueMap.put(key, inputMap.get(key));
-			inputValueMap.put(key+".value", inputMap.get(key));
-		}
-		
-		Insight newInsight = new Insight();
-		InsightUtility.registerNestedInsight(this.insight, newInsight, getSessionId());
+  @Override
+  public NounMetadata execute() {
+    this.organizeKeys();
 
-		IProject project = Utility.getProject(projectId);
-		NotebookExecution execution = project.executeNotebooks(newInsight, inputValueMap);
-		
-		Map<String, Object> runnerWraper = new HashMap<String, Object>();
-		runnerWraper.put("runner", execution.getRunner());
-		runnerWraper.put("variableOutput", execution.getVariableOutput());
-		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER);
-		return noun;
-	}
-	
-	private Map<String, String> getInputMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.MAP.getKey());
-		if(mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if(mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, String>) mapInputs.get(0).getValue();
-			}
-		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, String>) mapInputs.get(0).getValue();
-		}
-		return null;
-	}
+    String projectId = this.keyValue.get(this.keysToGet[0]);
+    if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+      // you don't have access
+      throw new IllegalArgumentException(
+          "Project/App does not exist or user does not have access to the project");
+    }
+    // grab user inputs
+    Map<String, String> inputValueMap = new HashMap<>();
+    Map<String, String> inputMap = getInputMap();
+    for (String key : inputMap.keySet()) {
+      inputValueMap.put(key, inputMap.get(key));
+      inputValueMap.put(key + ".value", inputMap.get(key));
+    }
+
+    Insight newInsight = new Insight();
+    InsightUtility.registerNestedInsight(this.insight, newInsight, getSessionId());
+
+    IProject project = Utility.getProject(projectId);
+    NotebookExecution execution = project.executeNotebooks(newInsight, inputValueMap);
+
+    Map<String, Object> runnerWraper = new HashMap<String, Object>();
+    runnerWraper.put("runner", execution.getRunner());
+    runnerWraper.put("variableOutput", execution.getVariableOutput());
+    NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER);
+    return noun;
+  }
+
+  private Map<String, String> getInputMap() {
+    GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.MAP.getKey());
+    if (mapGrs != null && !mapGrs.isEmpty()) {
+      List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+      if (mapInputs != null && !mapInputs.isEmpty()) {
+        return (Map<String, String>) mapInputs.get(0).getValue();
+      }
+    }
+    List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+    if (mapInputs != null && !mapInputs.isEmpty()) {
+      return (Map<String, String>) mapInputs.get(0).getValue();
+    }
+    return null;
+  }
 }

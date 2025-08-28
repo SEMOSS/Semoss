@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.ds.export.gexf;
 
 import java.util.HashMap;
@@ -5,76 +32,77 @@ import java.util.Map;
 
 public abstract class AbstractGexfIterator implements IGexfIterator {
 
-	// string containing the nodes and its properties
-	protected String nodeMap;
-	protected String[] nodeMapSplit;
-	protected int nodeIndex = 0;
-	
-	// string containing the edges and their properties
-	protected String edgeMap;
-	protected String[] edgeMapSplit;
-	protected int edgeIndex = 0;
-	
-	// map containing the alias to apply to nodes
-	protected Map<String, String> aliasMap;
-	
-	/**
-	 * Default constructor for the gexf iterator
-	 * @param selectorMap
-	 * @param edgeMap
-	 * @param aliasMap
-	 */
-	public AbstractGexfIterator(String nodeMap, String edgeMap, Map<String, String> aliasMap) {
-		this.nodeMap = nodeMap;
-		this.edgeMap = edgeMap;
-		this.aliasMap = aliasMap;
-		
-		if(this.nodeMap == null) {
-			this.nodeMap = "";
-		}
-		if(this.edgeMap == null) {
-			this.edgeMap = "";
-		}
-		if(this.aliasMap == null) {
-			this.aliasMap = new HashMap<String, String>();
-		}
-		
-		this.nodeMapSplit = this.nodeMap.split(";");
-		this.edgeMapSplit = this.edgeMap.split(";");
-	}
-	
-	@Override
-	public String getStartString() {
-		return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-				+ "<gexf xmlns=\"http://www.gexf.net/1.2draft\" xmlns:viz=\"http://www.gexf.net/1.1draft/viz\" "
-				+ "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-				+ "xsi:schemaLocation=\"http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd\" "
-				+ "version=\"1.2\">"
-				+ "<graph mode=\"static\" defaultedgetype=\"directed\">";
-	}
-	
-	@Override
-	public String getEndString() {
-		return "</graph></gexf>";
-	}
-	
-	@Override
-	public String getNodeStart() {
-		return "<nodes>";
-	}
-	
-	@Override
-	public String getNodeEnd() {
-		return "</nodes>";
-	}
-	
-	@Override
-	public String getEdgeStart() {
-		return "<edges>";
-	}
-	
-	@Override
-	public String getEdgeEnd() {
-		return "</edges>";
-	}
+  // string containing the nodes and its properties
+  protected String nodeMap;
+  protected String[] nodeMapSplit;
+  protected int nodeIndex = 0;
+
+  // string containing the edges and their properties
+  protected String edgeMap;
+  protected String[] edgeMapSplit;
+  protected int edgeIndex = 0;
+
+  // map containing the alias to apply to nodes
+  protected Map<String, String> aliasMap;
+
+  /**
+   * Default constructor for the gexf iterator
+   *
+   * @param selectorMap
+   * @param edgeMap
+   * @param aliasMap
+   */
+  public AbstractGexfIterator(String nodeMap, String edgeMap, Map<String, String> aliasMap) {
+    this.nodeMap = nodeMap;
+    this.edgeMap = edgeMap;
+    this.aliasMap = aliasMap;
+
+    if (this.nodeMap == null) {
+      this.nodeMap = "";
+    }
+    if (this.edgeMap == null) {
+      this.edgeMap = "";
+    }
+    if (this.aliasMap == null) {
+      this.aliasMap = new HashMap<String, String>();
+    }
+
+    this.nodeMapSplit = this.nodeMap.split(";");
+    this.edgeMapSplit = this.edgeMap.split(";");
+  }
+
+  @Override
+  public String getStartString() {
+    return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+        + "<gexf xmlns=\"http://www.gexf.net/1.2draft\" xmlns:viz=\"http://www.gexf.net/1.1draft/viz\" "
+        + "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+        + "xsi:schemaLocation=\"http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd\" "
+        + "version=\"1.2\">"
+        + "<graph mode=\"static\" defaultedgetype=\"directed\">";
+  }
+
+  @Override
+  public String getEndString() {
+    return "</graph></gexf>";
+  }
+
+  @Override
+  public String getNodeStart() {
+    return "<nodes>";
+  }
+
+  @Override
+  public String getNodeEnd() {
+    return "</nodes>";
+  }
+
+  @Override
+  public String getEdgeStart() {
+    return "<edges>";
+  }
+
+  @Override
+  public String getEdgeEnd() {
+    return "</edges>";
+  }
 }

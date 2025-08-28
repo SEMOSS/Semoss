@@ -1,10 +1,36 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.query.interpreters.sql;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -15,127 +41,127 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DI
 
 public class DatabricksSqlInterpreter extends SqlInterpreter {
 
-	private Map<String, String> qsSelectorToAlias = new HashMap<>();
-	
-	public DatabricksSqlInterpreter() {
+  private Map<String, String> qsSelectorToAlias = new HashMap<>();
 
-	}
+  public DatabricksSqlInterpreter() {}
 
-	public DatabricksSqlInterpreter(IDatabaseEngine engine) {
-		super(engine);
-	}
+  public DatabricksSqlInterpreter(IDatabaseEngine engine) {
+    super(engine);
+  }
 
-	public DatabricksSqlInterpreter(ITableDataFrame frame) {
-		super(frame);
-	}
+  public DatabricksSqlInterpreter(ITableDataFrame frame) {
+    super(frame);
+  }
 
-	@Override
-	public void addSelector(IQuerySelector selector) {
-		String alias = selector.getAlias();
-		String newSelector = processSelector(selector, true) + " AS `" + alias + "`";
-		if(selectors.length() == 0) {
-			selectors = newSelector;
-		} else {
-			selectors += " , " + newSelector;
-		}
-		selectorList.add(newSelector);
-		selectorAliases.add(alias);
-		
-		this.qsSelectorToAlias.put(selector.getQueryStructName(), alias);
-	}
-	
-	@Override
-	protected void addOrderBySelector() {
-		int counter = 0;
-		for(StringBuilder orderBySelector : this.orderBySelectors) {
-			String alias = "o"+counter++;
-			String newSelector = "("+orderBySelector+") AS " + "\""+alias+"\"";
-			if(selectors.length() == 0) {
-				selectors = newSelector;
-			} else {
-				selectors += " , " + newSelector;
-			}
-			selectorList.add(newSelector);
-			selectorAliases.add(alias);
-		}
-	}
+  @Override
+  public void addSelector(IQuerySelector selector) {
+    String alias = selector.getAlias();
+    String newSelector = processSelector(selector, true) + " AS `" + alias + "`";
+    if (selectors.length() == 0) {
+      selectors = newSelector;
+    } else {
+      selectors += " , " + newSelector;
+    }
+    selectorList.add(newSelector);
+    selectorAliases.add(alias);
 
-	@Override
-	public StringBuilder appendOrderBy(StringBuilder query) {
-		//grab the order by and get the corresponding display name for that order by column
-		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getCombinedOrderBy();
-		List<StringBuilder> validOrderBys = new ArrayList<>();
-		for(IQuerySort orderBy : orderByList) {
-			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
-				QueryColumnOrderBySelector orderBySelector = (QueryColumnOrderBySelector) orderBy;
-				String tableConceptualName = orderBySelector.getTable();
-				String columnConceptualName = orderBySelector.getColumn();
-				ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
+    this.qsSelectorToAlias.put(selector.getQueryStructName(), alias);
+  }
 
-				boolean origPrim = false;
-				if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-					origPrim = true;
-					columnConceptualName = getPrimKey4Table(tableConceptualName);
-				} else if(this.customFromAliasName==null || this.customFromAliasName.isEmpty()){
-					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
-				}
+  @Override
+  protected void addOrderBySelector() {
+    int counter = 0;
+    for (StringBuilder orderBySelector : this.orderBySelectors) {
+      String alias = "o" + counter++;
+      String newSelector = "(" + orderBySelector + ") AS " + "\"" + alias + "\"";
+      if (selectors.length() == 0) {
+        selectors = newSelector;
+      } else {
+        selectors += " , " + newSelector;
+      }
+      selectorList.add(newSelector);
+      selectorAliases.add(alias);
+    }
+  }
 
-				StringBuilder thisOrderBy = new StringBuilder();
+  @Override
+  public StringBuilder appendOrderBy(StringBuilder query) {
+    // grab the order by and get the corresponding display name for that order by column
+    List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getCombinedOrderBy();
+    List<StringBuilder> validOrderBys = new ArrayList<>();
+    for (IQuerySort orderBy : orderByList) {
+      if (orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+        QueryColumnOrderBySelector orderBySelector = (QueryColumnOrderBySelector) orderBy;
+        String tableConceptualName = orderBySelector.getTable();
+        String columnConceptualName = orderBySelector.getColumn();
+        ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
 
-				// might want to order by a derived column being returned
-				if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
-					// either instantiate the string builder or add a comma for multi sort
-					if(queryUtil.isSelectorKeyword(tableConceptualName)) {
-						thisOrderBy.append(queryUtil.getEscapeKeyword(tableConceptualName));
-					} else {
-						thisOrderBy.append(queryUtil.escapeReferencedAlias(tableConceptualName));
-					}
-				}
-				// account for custom from + sort is a valid column being returned
-				else if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
-					String orderByTable = this.customFromAliasName;
-					String orderByColumn = queryUtil.escapeReferencedAlias(columnConceptualName);
+        boolean origPrim = false;
+        if (columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+          origPrim = true;
+          columnConceptualName = getPrimKey4Table(tableConceptualName);
+        } else if (this.customFromAliasName == null || this.customFromAliasName.isEmpty()) {
+          columnConceptualName =
+              getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+        }
 
-					if(this.retTableToCols.get(orderByTable).contains(orderByColumn)) {
-						thisOrderBy.append(orderByTable).append(".").append(orderByColumn);
-					} else {
-						continue;
-					}
-				}
-				// account for sort being on table/column being returned
-				else if(this.retTableToCols.containsKey(tableConceptualName) && 
-						this.retTableToCols.get(tableConceptualName).contains(columnConceptualName) &&
-						orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN && 
-						this.qsSelectorToAlias.containsKey( ((QueryColumnOrderBySelector) orderBy).getQueryStructName()) ) 
-				{
-					// we need to find the alias for this column and order by the alias
-					String alias = this.qsSelectorToAlias.get(((QueryColumnOrderBySelector) orderBy).getQueryStructName());
-					thisOrderBy.append("`").append(alias).append("`");
-				}
-				// well, this is not a valid order by to add
-				else {
-					continue;
-				}
+        StringBuilder thisOrderBy = new StringBuilder();
 
-				if(orderByDir == ORDER_BY_DIRECTION.ASC) {
-					thisOrderBy.append(" ASC ");
-				} else {
-					thisOrderBy.append(" DESC ");
-				}
-				validOrderBys.add(thisOrderBy);
-			}
-		}
+        // might want to order by a derived column being returned
+        if (origPrim && this.selectorAliases.contains(tableConceptualName)) {
+          // either instantiate the string builder or add a comma for multi sort
+          if (queryUtil.isSelectorKeyword(tableConceptualName)) {
+            thisOrderBy.append(queryUtil.getEscapeKeyword(tableConceptualName));
+          } else {
+            thisOrderBy.append(queryUtil.escapeReferencedAlias(tableConceptualName));
+          }
+        }
+        // account for custom from + sort is a valid column being returned
+        else if (this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
+          String orderByTable = this.customFromAliasName;
+          String orderByColumn = queryUtil.escapeReferencedAlias(columnConceptualName);
 
-		int size = validOrderBys.size();
-		for(int i = 0; i < size; i++) {
-			if(i == 0) {
-				query.append(" ORDER BY ");
-			} else {
-				query.append(", ");
-			}
-			query.append(validOrderBys.get(i).toString());
-		}
-		return query;
-	}
+          if (this.retTableToCols.get(orderByTable).contains(orderByColumn)) {
+            thisOrderBy.append(orderByTable).append(".").append(orderByColumn);
+          } else {
+            continue;
+          }
+        }
+        // account for sort being on table/column being returned
+        else if (this.retTableToCols.containsKey(tableConceptualName)
+            && this.retTableToCols.get(tableConceptualName).contains(columnConceptualName)
+            && orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN
+            && this.qsSelectorToAlias.containsKey(
+                ((QueryColumnOrderBySelector) orderBy).getQueryStructName())) {
+          // we need to find the alias for this column and order by the alias
+          String alias =
+              this.qsSelectorToAlias.get(
+                  ((QueryColumnOrderBySelector) orderBy).getQueryStructName());
+          thisOrderBy.append("`").append(alias).append("`");
+        }
+        // well, this is not a valid order by to add
+        else {
+          continue;
+        }
 
+        if (orderByDir == ORDER_BY_DIRECTION.ASC) {
+          thisOrderBy.append(" ASC ");
+        } else {
+          thisOrderBy.append(" DESC ");
+        }
+        validOrderBys.add(thisOrderBy);
+      }
+    }
+
+    int size = validOrderBys.size();
+    for (int i = 0; i < size; i++) {
+      if (i == 0) {
+        query.append(" ORDER BY ");
+      } else {
+        query.append(", ");
+      }
+      query.append(validOrderBys.get(i).toString());
+    }
+    return query;
+  }
 }

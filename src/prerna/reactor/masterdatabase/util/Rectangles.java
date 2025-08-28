@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.masterdatabase.util;
 
 import java.awt.Point;
@@ -7,126 +34,134 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Rectangles {
 
-	private static final Logger classLogger = LogManager.getLogger(Rectangles.class);
-	
-    /**The map of rectangles holding x and y coordinates*/
-    private Map<String, Rectangle2D> rectanglesToDraw;
+  private static final Logger classLogger = LogManager.getLogger(Rectangles.class);
 
-    /**
-     * The main algorithm that attempts to declutter the rectangles.
-     * 
-     * @param rectanglesToFix the map of rectangles to declutter
-     */
-    public Map<String, Rectangle2D> fix(Map<String, Rectangle2D> rectanglesToFix) {
-        rectanglesToDraw = new HashMap<>();
+  /** The map of rectangles holding x and y coordinates */
+  private Map<String, Rectangle2D> rectanglesToDraw;
 
-        //make copies to keep original list unaffected
-        rectanglesToFix.forEach((key,rectangle) -> {
-        	Rectangle2D copyRect = new Rectangle2D.Double();
-            copyRect.setRect(rectangle);
-            rectanglesToDraw.put(key,copyRect);
+  /**
+   * The main algorithm that attempts to declutter the rectangles.
+   *
+   * @param rectanglesToFix the map of rectangles to declutter
+   */
+  public Map<String, Rectangle2D> fix(Map<String, Rectangle2D> rectanglesToFix) {
+    rectanglesToDraw = new HashMap<>();
+
+    // make copies to keep original list unaffected
+    rectanglesToFix.forEach(
+        (key, rectangle) -> {
+          Rectangle2D copyRect = new Rectangle2D.Double();
+          copyRect.setRect(rectangle);
+          rectanglesToDraw.put(key, copyRect);
         });
 
-        // Find the center C of the bounding box of your rectangles.
-        Rectangle2D surroundRect = surroundingRect(rectanglesToDraw);
-        Point center = new Point((int) surroundRect.getCenterX(), (int) surroundRect.getCenterY());
-        int numIterations = 0;
-        int movementFactor = 10; //ideally would be 1
-        boolean hasIntersections = true;
+    // Find the center C of the bounding box of your rectangles.
+    Rectangle2D surroundRect = surroundingRect(rectanglesToDraw);
+    Point center = new Point((int) surroundRect.getCenterX(), (int) surroundRect.getCenterY());
+    int numIterations = 0;
+    int movementFactor = 10; // ideally would be 1
+    boolean hasIntersections = true;
 
-        //keep going until there are no intersections present    
-        while (hasIntersections) {
-            //initialize to false within the loop.  
-            hasIntersections = false;
+    // keep going until there are no intersections present
+    while (hasIntersections) {
+      // initialize to false within the loop.
+      hasIntersections = false;
 
-            for(Entry<String, Rectangle2D> rectangles: rectanglesToDraw.entrySet()) {
-            	Rectangle2D rectangle = rectangles.getValue();
-            	// Find all the rectangles R' that overlap R.
-                List<Rectangle2D> intersectingRects = findIntersections(rectangle, rectanglesToDraw);
+      for (Entry<String, Rectangle2D> rectangles : rectanglesToDraw.entrySet()) {
+        Rectangle2D rectangle = rectangles.getValue();
+        // Find all the rectangles R' that overlap R.
+        List<Rectangle2D> intersectingRects = findIntersections(rectangle, rectanglesToDraw);
 
-                if (intersectingRects.size() > 0) {
-                    // Define a movement vector v.
-                    Point movementVector = new Point(0, 0);
-                    Point centerR = new Point((int) rectangle.getCenterX(), (int) rectangle.getCenterY());
+        if (intersectingRects.size() > 0) {
+          // Define a movement vector v.
+          Point movementVector = new Point(0, 0);
+          Point centerR = new Point((int) rectangle.getCenterX(), (int) rectangle.getCenterY());
 
-                    // For each rectangle R that overlaps another.
-                    for (Rectangle2D rPrime : intersectingRects) {
-                        Point centerRPrime = new Point((int) rPrime.getCenterX(), (int) rPrime.getCenterY());
-                        int xTrans = (int) (centerR.getX() - centerRPrime.getX());
-                        int yTrans = (int) (centerR.getY() - centerRPrime.getY());
+          // For each rectangle R that overlaps another.
+          for (Rectangle2D rPrime : intersectingRects) {
+            Point centerRPrime = new Point((int) rPrime.getCenterX(), (int) rPrime.getCenterY());
+            int xTrans = (int) (centerR.getX() - centerRPrime.getX());
+            int yTrans = (int) (centerR.getY() - centerRPrime.getY());
 
-                        // Add a vector to v proportional to the vector between the center of R and R'.
-                        movementVector.translate(xTrans < 0 ? -movementFactor : movementFactor,
-                                yTrans < 0 ? -movementFactor : movementFactor);
-                    }
+            // Add a vector to v proportional to the vector between the center of R and R'.
+            movementVector.translate(
+                xTrans < 0 ? -movementFactor : movementFactor,
+                yTrans < 0 ? -movementFactor : movementFactor);
+          }
 
-                    int xTrans = (int) (centerR.getX() - center.getX());
-                    int yTrans = (int) (centerR.getY() - center.getY());
+          int xTrans = (int) (centerR.getX() - center.getX());
+          int yTrans = (int) (centerR.getY() - center.getY());
 
-                    // Add a vector to v proportional to the vector between C and the center of R.
-                    movementVector.translate(xTrans < 0 ? -movementFactor : movementFactor,
-                            yTrans < 0 ? -movementFactor : movementFactor);
+          // Add a vector to v proportional to the vector between C and the center of R.
+          movementVector.translate(
+              xTrans < 0 ? -movementFactor : movementFactor,
+              yTrans < 0 ? -movementFactor : movementFactor);
 
-                    // Move R by v.
-                    rectangle.setRect(rectangle.getX() + movementVector.getX(), rectangle.getY() + movementVector.getY(),
-                    		rectangle.getWidth(), rectangle.getHeight());
+          // Move R by v.
+          rectangle.setRect(
+              rectangle.getX() + movementVector.getX(),
+              rectangle.getY() + movementVector.getY(),
+              rectangle.getWidth(),
+              rectangle.getHeight());
 
-                    // Repeat until nothing overlaps.
-                    hasIntersections = true;
-                }
-            }
-
-            numIterations++;
+          // Repeat until nothing overlaps.
+          hasIntersections = true;
         }
-        classLogger.info("Decluttering metamodel page took " + numIterations+ " iterations.");
+      }
 
-        return rectanglesToDraw;
+      numIterations++;
     }
-    
-    /**
-     * Given a rectangle, finds the rectangles from the rectMap that intersect with it.
-     * 
-     * @param rect the rectangle to find intersections on
-     * @param rectMap a map of all the rectangles in question
-     */
-    private List<Rectangle2D> findIntersections(Rectangle2D rect, Map<String, Rectangle2D> rectMap) {
-        ArrayList<Rectangle2D> intersections = new ArrayList<Rectangle2D>();
+    classLogger.info("Decluttering metamodel page took " + numIterations + " iterations.");
 
-        rectMap.forEach((key, intersectingRect) -> {
-        	 if (!rect.equals(intersectingRect) && intersectingRect.intersects(rect)) {
-                 intersections.add(intersectingRect);
-             }
+    return rectanglesToDraw;
+  }
+
+  /**
+   * Given a rectangle, finds the rectangles from the rectMap that intersect with it.
+   *
+   * @param rect the rectangle to find intersections on
+   * @param rectMap a map of all the rectangles in question
+   */
+  private List<Rectangle2D> findIntersections(Rectangle2D rect, Map<String, Rectangle2D> rectMap) {
+    ArrayList<Rectangle2D> intersections = new ArrayList<Rectangle2D>();
+
+    rectMap.forEach(
+        (key, intersectingRect) -> {
+          if (!rect.equals(intersectingRect) && intersectingRect.intersects(rect)) {
+            intersections.add(intersectingRect);
+          }
         });
 
-        return intersections;
-    }
+    return intersections;
+  }
 
-    /**
-     * Find the bounding rectangle of the list of rectangles by iterating over all
-     * rectangles and finding the top left and bottom right corners
-     * 
-     * @param rectangles map of rectangle names and x and y coordinates
-     */
-    private Rectangle2D surroundingRect(Map<String, Rectangle2D> rectangles) {
-        Point topLeft = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
-        Point bottomRight = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
+  /**
+   * Find the bounding rectangle of the list of rectangles by iterating over all rectangles and
+   * finding the top left and bottom right corners
+   *
+   * @param rectangles map of rectangle names and x and y coordinates
+   */
+  private Rectangle2D surroundingRect(Map<String, Rectangle2D> rectangles) {
+    Point topLeft = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
+    Point bottomRight = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
 
-        rectangles.forEach((key, rectangle) -> {
-        	topLeft.x = Math.min(topLeft.x, (int) rectangle.getMinX());
-            topLeft.y = Math.min(topLeft.y, (int) rectangle.getMinY());
-            bottomRight.x = Math.max(bottomRight.x, (int) rectangle.getMaxX());
-            bottomRight.y = Math.max(bottomRight.y, (int) rectangle.getMaxY());
+    rectangles.forEach(
+        (key, rectangle) -> {
+          topLeft.x = Math.min(topLeft.x, (int) rectangle.getMinX());
+          topLeft.y = Math.min(topLeft.y, (int) rectangle.getMinY());
+          bottomRight.x = Math.max(bottomRight.x, (int) rectangle.getMaxX());
+          bottomRight.y = Math.max(bottomRight.y, (int) rectangle.getMaxY());
         });
 
-        return new Rectangle2D.Double(topLeft.getX(), 
-                                      topLeft.getY(), 
-                                      bottomRight.getX() - topLeft.getX(),
-                                      bottomRight.getY() - topLeft.getY());
-    }
+    return new Rectangle2D.Double(
+        topLeft.getX(),
+        topLeft.getY(),
+        bottomRight.getX() - topLeft.getX(),
+        bottomRight.getY() - topLeft.getY());
+  }
 }

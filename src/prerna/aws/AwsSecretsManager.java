@@ -1,189 +1,208 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.aws;
 
+import com.google.gson.Gson;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class AwsSecretsManager {
 
-	private static final Logger classLogger = LogManager.getLogger(AwsSecretsManager.class);
+  private static final Logger classLogger = LogManager.getLogger(AwsSecretsManager.class);
 
-	// https://docs.aws.amazon.com/secretsmanager/latest/userguide/endpoints.html
-	private String url;
-	private boolean useApplicationCerts = false;
-	private String keyStore;
-	private String keyStorePass;
-	private String keyPass;
+  // https://docs.aws.amazon.com/secretsmanager/latest/userguide/endpoints.html
+  private String url;
+  private boolean useApplicationCerts = false;
+  private String keyStore;
+  private String keyStorePass;
+  private String keyPass;
 
-	// security
-	private String accessKey;
-	private String secretKey;
-	
-	// inputs
-	private String secretId;
-	private String versionId;
-	private String versionStage;
+  // security
+  private String accessKey;
+  private String secretKey;
 
-	// output 
-	private String responseData;
-	private Map<String, Object> responseJson;
+  // inputs
+  private String secretId;
+  private String versionId;
+  private String versionStage;
 
-	public AwsSecretsManager() {
+  // output
+  private String responseData;
+  private Map<String, Object> responseJson;
 
-	}
+  public AwsSecretsManager() {}
 
-	/**
-	 * Once inputs passed in make the request
-	 */
-	public void makeRequest() {
-		if(this.url == null || (this.url=this.url.trim()).isEmpty()) {
-			throw new NullPointerException("Must define the url");
-		}
-		if(this.secretId == null || (this.secretId=this.secretId.trim()).isEmpty()) {
-			throw new NullPointerException("Must define the ARN of the secret");
-		}
-		
-		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put("SecretId", this.secretId);
-		if(this.versionId != null && !(this.versionId=this.versionId.trim()).isEmpty()) {
-			headersMap.put("VersionId", this.versionId);
-		}
-		if(this.versionStage != null && !(this.versionStage=this.versionStage.trim()).isEmpty()) {
-			headersMap.put("VersionStage", this.versionStage);
-		}
-		if(this.accessKey != null && this.secretKey != null) {
-			String authorization = createAuthorizationHeader(accessKey, secretKey);
-			headersMap.put("Authorization", authorization);
-		}
+  /** Once inputs passed in make the request */
+  public void makeRequest() {
+    if (this.url == null || (this.url = this.url.trim()).isEmpty()) {
+      throw new NullPointerException("Must define the url");
+    }
+    if (this.secretId == null || (this.secretId = this.secretId.trim()).isEmpty()) {
+      throw new NullPointerException("Must define the ARN of the secret");
+    }
 
-		this.responseData = HttpHelperUtility.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
-		this.responseJson = new Gson().fromJson(this.responseData, Map.class);
-	}
+    Map<String, String> headersMap = new HashMap<>();
+    headersMap.put("SecretId", this.secretId);
+    if (this.versionId != null && !(this.versionId = this.versionId.trim()).isEmpty()) {
+      headersMap.put("VersionId", this.versionId);
+    }
+    if (this.versionStage != null && !(this.versionStage = this.versionStage.trim()).isEmpty()) {
+      headersMap.put("VersionStage", this.versionStage);
+    }
+    if (this.accessKey != null && this.secretKey != null) {
+      String authorization = createAuthorizationHeader(accessKey, secretKey);
+      headersMap.put("Authorization", authorization);
+    }
 
-	/**
-	 * 
-	 * @param accessKey
-	 * @param secretKey
-	 * @return
-	 */
-	private static String createAuthorizationHeader(String accessKey, String secretKey) {
-		String credentials = accessKey + ":" + secretKey;
-		String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
-		return "Basic " + encodedCredentials;
-	}
+    this.responseData =
+        HttpHelperUtility.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
+    this.responseJson = new Gson().fromJson(this.responseData, Map.class);
+  }
 
-	//////////////////////////////////
+  /**
+   * @param accessKey
+   * @param secretKey
+   * @return
+   */
+  private static String createAuthorizationHeader(String accessKey, String secretKey) {
+    String credentials = accessKey + ":" + secretKey;
+    String encodedCredentials =
+        Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+    return "Basic " + encodedCredentials;
+  }
 
+  //////////////////////////////////
 
-	public String getUrl() {
-		return url;
-	}
+  public String getUrl() {
+    return url;
+  }
 
-	public void setUrl(String url) {
-		this.url = url;
-	}
-	
-	public String getAccessKey() {
-		return accessKey;
-	}
+  public void setUrl(String url) {
+    this.url = url;
+  }
 
-	public void setAccessKey(String accessKey) {
-		this.accessKey = accessKey;
-	}
+  public String getAccessKey() {
+    return accessKey;
+  }
 
-	public String getSecretKey() {
-		return secretKey;
-	}
+  public void setAccessKey(String accessKey) {
+    this.accessKey = accessKey;
+  }
 
-	public void setSecretKey(String secretKey) {
-		this.secretKey = secretKey;
-	}
+  public String getSecretKey() {
+    return secretKey;
+  }
 
-	public boolean isUseApplicationCerts() {
-		return useApplicationCerts;
-	}
+  public void setSecretKey(String secretKey) {
+    this.secretKey = secretKey;
+  }
 
-	public void setUseApplicationCerts(boolean useApplicationCerts) {
-		this.useApplicationCerts = useApplicationCerts;
-		if(this.useApplicationCerts) {
-			setKeyStore(Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE));
-			setKeyStorePass(Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD));
-			setKeyPass(Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD));
-		}
-	}
+  public boolean isUseApplicationCerts() {
+    return useApplicationCerts;
+  }
 
-	public String getKeyStore() {
-		return keyStore;
-	}
+  public void setUseApplicationCerts(boolean useApplicationCerts) {
+    this.useApplicationCerts = useApplicationCerts;
+    if (this.useApplicationCerts) {
+      setKeyStore(Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE));
+      setKeyStorePass(Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD));
+      setKeyPass(Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD));
+    }
+  }
 
-	public void setKeyStore(String keyStore) {
-		this.keyStore = keyStore;
-	}
+  public String getKeyStore() {
+    return keyStore;
+  }
 
-	public String getKeyStorePass() {
-		return keyStorePass;
-	}
+  public void setKeyStore(String keyStore) {
+    this.keyStore = keyStore;
+  }
 
-	public void setKeyStorePass(String keyStorePass) {
-		this.keyStorePass = keyStorePass;
-	}
+  public String getKeyStorePass() {
+    return keyStorePass;
+  }
 
-	public String getKeyPass() {
-		return keyPass;
-	}
+  public void setKeyStorePass(String keyStorePass) {
+    this.keyStorePass = keyStorePass;
+  }
 
-	public void setKeyPass(String keyPass) {
-		this.keyPass = keyPass;
-	}
+  public String getKeyPass() {
+    return keyPass;
+  }
 
-	public String getSecretId() {
-		return secretId;
-	}
+  public void setKeyPass(String keyPass) {
+    this.keyPass = keyPass;
+  }
 
-	public void setSecretId(String secretId) {
-		this.secretId = secretId;
-	}
+  public String getSecretId() {
+    return secretId;
+  }
 
-	public String getVersionId() {
-		return versionId;
-	}
+  public void setSecretId(String secretId) {
+    this.secretId = secretId;
+  }
 
-	public void setVersionId(String versionId) {
-		this.versionId = versionId;
-	}
+  public String getVersionId() {
+    return versionId;
+  }
 
-	public String getVersionStage() {
-		return versionStage;
-	}
+  public void setVersionId(String versionId) {
+    this.versionId = versionId;
+  }
 
-	public void setVersionStage(String versionStage) {
-		this.versionStage = versionStage;
-	}
+  public String getVersionStage() {
+    return versionStage;
+  }
 
-	public String getResponseData() {
-		return responseData;
-	}
+  public void setVersionStage(String versionStage) {
+    this.versionStage = versionStage;
+  }
 
-	public void setResponseData(String responseData) {
-		this.responseData = responseData;
-	}
+  public String getResponseData() {
+    return responseData;
+  }
 
-	public Map<String, Object> getResponseJson() {
-		return responseJson;
-	}
+  public void setResponseData(String responseData) {
+    this.responseData = responseData;
+  }
 
-	public void setResponseJson(Map<String, Object> responseJson) {
-		this.responseJson = responseJson;
-	}
+  public Map<String, Object> getResponseJson() {
+    return responseJson;
+  }
 
+  public void setResponseJson(Map<String, Object> responseJson) {
+    this.responseJson = responseJson;
+  }
 }

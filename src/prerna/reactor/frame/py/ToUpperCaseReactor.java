@@ -1,8 +1,34 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.py;
 
 import java.util.List;
 import java.util.Vector;
-
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.GenRowStruct;
@@ -15,92 +41,100 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class ToUpperCaseReactor extends AbstractPyFrameReactor {
 
-	/**
-	 * This reactor changes columns to all upper case 
-	 * The inputs to the reactor are: 
-	 * 1) the columns to update
-	 */
-	
-	public ToUpperCaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		// get frame
-		PandasFrame frame = (PandasFrame) getFrame();
-		
-		OwlTemporalEngineMeta metaData = frame.getMetaData();
+  /**
+   * This reactor changes columns to all upper case The inputs to the reactor are: 1) the columns to
+   * update
+   */
+  public ToUpperCaseReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.COLUMNS.getKey()};
+  }
 
-		// get the wrapper name
-		// which is the framename with w in the end
-		String wrapperFrameName = frame.getWrapperName();
+  @Override
+  public NounMetadata execute() {
+    // get frame
+    PandasFrame frame = (PandasFrame) getFrame();
 
-		// get inputs
-		List<String> columns = getColumns();
-		StringBuilder commands = new StringBuilder();
-		
-		for (int i = 0; i < columns.size(); i++)
-		{
-			String col = columns.get(i);
-			if (col.contains("__")) {
-				String[] split = col.split("__");
-				col = split[1];
-//				wrapperFrameName = split[0];
-			}
-		
-			String dataType = metaData.getHeaderTypeAsString(frame.getName() + "__" + col);
-			if (dataType.equalsIgnoreCase("STRING")) {
-				// script will be of the form:
-				// wrapper.toupper(column_name)
-				//insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".upper('" + col + "')");
-				// this should get replaced with pandas pythonic way
-				//wrapperFrameName.cache['data']['col'] = wrapperFrameName.cache['data'].apply(lambda x: x['col'].upper(), axis = 1)
-				commands.append((wrapperFrameName + ".cache['data']['" + col + "'] = " +
-													 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).upper(), axis = 1)\n"));
-				//insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + col + "'] = " +
-				//									 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).upper(), axis = 1)");
-			}
-		}
-		insight.getPyTranslator().runEmptyPy(commands.toString());
-		this.addExecutedCode(commands.toString());
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ToUpper", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-	}
-	
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
+    OwlTemporalEngineMeta metaData = frame.getMetaData();
 
-	private List<String> getColumns() {
-		List<String> columns = new Vector<String>();
+    // get the wrapper name
+    // which is the framename with w in the end
+    String wrapperFrameName = frame.getWrapperName();
 
-		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
-		if (colGrs != null && !colGrs.isEmpty()) {
-			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
-				String column = colGrs.get(selectIndex) + "";
-				columns.add(column);
-			}
-		} else {
-			GenRowStruct inputsGRS = this.getCurRow();
-			// keep track of selectors to change to upper case
-			if (inputsGRS != null && !inputsGRS.isEmpty()) {
-				for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
-					String column = inputsGRS.get(selectIndex) + "";
-					columns.add(column);
-				}
-			}
-		}
+    // get inputs
+    List<String> columns = getColumns();
+    StringBuilder commands = new StringBuilder();
 
-		return columns;
-	}
+    for (int i = 0; i < columns.size(); i++) {
+      String col = columns.get(i);
+      if (col.contains("__")) {
+        String[] split = col.split("__");
+        col = split[1];
+        //				wrapperFrameName = split[0];
+      }
+
+      String dataType = metaData.getHeaderTypeAsString(frame.getName() + "__" + col);
+      if (dataType.equalsIgnoreCase("STRING")) {
+        // script will be of the form:
+        // wrapper.toupper(column_name)
+        // insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".upper('" + col + "')");
+        // this should get replaced with pandas pythonic way
+        // wrapperFrameName.cache['data']['col'] = wrapperFrameName.cache['data'].apply(lambda x:
+        // x['col'].upper(), axis = 1)
+        commands.append(
+            (wrapperFrameName
+                + ".cache['data']['"
+                + col
+                + "'] = "
+                + wrapperFrameName
+                + ".cache['data'].apply(lambda x: str(x['"
+                + col
+                + "']).upper(), axis = 1)\n"));
+        // insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + col + "'] =
+        // " +
+        //									 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col +
+        // "']).upper(), axis = 1)");
+      }
+    }
+    insight.getPyTranslator().runEmptyPy(commands.toString());
+    this.addExecutedCode(commands.toString());
+
+    // NEW TRACKING
+    UserTrackerFactory.getInstance()
+        .trackAnalyticsWidget(
+            this.insight,
+            frame,
+            "ToUpper",
+            AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+
+    return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  ///////////////////////// GET PIXEL INPUT ////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+
+  private List<String> getColumns() {
+    List<String> columns = new Vector<String>();
+
+    GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
+    if (colGrs != null && !colGrs.isEmpty()) {
+      for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
+        String column = colGrs.get(selectIndex) + "";
+        columns.add(column);
+      }
+    } else {
+      GenRowStruct inputsGRS = this.getCurRow();
+      // keep track of selectors to change to upper case
+      if (inputsGRS != null && !inputsGRS.isEmpty()) {
+        for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
+          String column = inputsGRS.get(selectIndex) + "";
+          columns.add(column);
+        }
+      }
+    }
+
+    return columns;
+  }
 }

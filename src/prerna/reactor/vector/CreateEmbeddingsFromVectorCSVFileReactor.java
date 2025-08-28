@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.vector;
 
 import java.io.File;
@@ -10,12 +37,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tika.Tika;
 import org.apache.tika.metadata.Metadata;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.vector.FileEmbeddingStatus;
@@ -33,297 +58,318 @@ import prerna.util.Utility;
 
 public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(CreateEmbeddingsFromVectorCSVFileReactor.class);
+  private static final Logger classLogger =
+      LogManager.getLogger(CreateEmbeddingsFromVectorCSVFileReactor.class);
 
-	private final String PATH_TO_UNZIP_FILES = "zipFileExtractFolder";
-	private final String FILE_PATHS_KEY = "filePaths";
+  private final String PATH_TO_UNZIP_FILES = "zipFileExtractFolder";
+  private final String FILE_PATHS_KEY = "filePaths";
 
-	public CreateEmbeddingsFromVectorCSVFileReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), FILE_PATHS_KEY, 
-				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
-		this.keyRequired = new int[] {1, 1, 0, 0};
-	}
+  public CreateEmbeddingsFromVectorCSVFileReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.ENGINE.getKey(),
+          FILE_PATHS_KEY,
+          ReactorKeysEnum.SPACE.getKey(),
+          ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
+        };
+    this.keyRequired = new int[] {1, 1, 0, 0};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this engine");
-		}
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    String engineId = this.keyValue.get(this.keysToGet[0]);
+    if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+      throw new IllegalArgumentException(
+          "Vector db " + engineId + " does not exist or user does not have access to this engine");
+    }
 
-		IVectorDatabaseEngine vectorDatabase = Utility.getVectorDatabase(engineId);
-		if (vectorDatabase == null) {
-			throw new SemossPixelException("Unable to find engine");
-		}
+    IVectorDatabaseEngine vectorDatabase = Utility.getVectorDatabase(engineId);
+    if (vectorDatabase == null) {
+      throw new SemossPixelException("Unable to find engine");
+    }
 
-		Map<String, Object> paramMap = getMap();
-		if(paramMap == null) {
-			paramMap = new HashMap<String, Object>();
-		}
-		
-		// check user has access to any embedding models as well 
-		// this actually throws an error
-		// but will wrap in if statement just in case
-		if(!vectorDatabase.userCanAccessEmbeddingModels(this.insight.getUser())) {
-			throw new IllegalArgumentException("User does not have access to all the vector database dependent models");
-		}
+    Map<String, Object> paramMap = getMap();
+    if (paramMap == null) {
+      paramMap = new HashMap<String, Object>();
+    }
 
-		// send the insight so it can be used with IModelEngine call
-		paramMap.put(Constants.INSIGHT, this.insight);
+    // check user has access to any embedding models as well
+    // this actually throws an error
+    // but will wrap in if statement just in case
+    if (!vectorDatabase.userCanAccessEmbeddingModels(this.insight.getUser())) {
+      throw new IllegalArgumentException(
+          "User does not have access to all the vector database dependent models");
+    }
 
-		String rootFolder = getRootFolder();
-		// this is coming from an insight so i assume its just the file names
-		List<String> validFiles = new ArrayList<>();
-		List<String> invalidFiles = new ArrayList<>();
-		List<FileEmbeddingStatus> fileStatusList;
-		try {
-			getFiles(rootFolder, validFiles, invalidFiles);
-			if (validFiles.isEmpty()) {
-				throw new IllegalArgumentException("Please provide valid input files using \"filePaths\". This method assumes a valid csv file format");
-			}
+    // send the insight so it can be used with IModelEngine call
+    paramMap.put(Constants.INSIGHT, this.insight);
 
-			for (String filePath: validFiles) {
-				File file = new File(Utility.normalizePath(filePath));
-				// Check if the file exists
-				if (!file.exists()) {
-					throw new IllegalArgumentException("File path for " + file.getName() + " does not exist.");
-				}
-			}
+    String rootFolder = getRootFolder();
+    // this is coming from an insight so i assume its just the file names
+    List<String> validFiles = new ArrayList<>();
+    List<String> invalidFiles = new ArrayList<>();
+    List<FileEmbeddingStatus> fileStatusList;
+    try {
+      getFiles(rootFolder, validFiles, invalidFiles);
+      if (validFiles.isEmpty()) {
+        throw new IllegalArgumentException(
+            "Please provide valid input files using \"filePaths\". This method assumes a valid csv file format");
+      }
 
-			fileStatusList = vectorDatabase.addEmbeddings(validFiles, insight, paramMap);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
-		}
+      for (String filePath : validFiles) {
+        File file = new File(Utility.normalizePath(filePath));
+        // Check if the file exists
+        if (!file.exists()) {
+          throw new IllegalArgumentException(
+              "File path for " + file.getName() + " does not exist.");
+        }
+      }
 
-		NounMetadata noun = new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-		if(!invalidFiles.isEmpty()) {
-			List<String> invalidFileNamesRelative = new ArrayList<>(invalidFiles.size());
-			for(String invalidF : invalidFiles) {
-				invalidFileNamesRelative.add(invalidF.replace(rootFolder, ""));
-			}
-			noun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Unable to upload " + String.join(", ", invalidFileNamesRelative)));
-		}
-		return noun;
-	}
+      fileStatusList = vectorDatabase.addEmbeddings(validFiles, insight, paramMap);
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
+    }
 
-	/**
-	 * Get the map from the paramValues noun store
-	 * @return list of engines to delete
-	 */
-	private Map<String, Object> getMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-		if(mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if(mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
-			}
-		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
-		}
-		
-		return null;
-	}
+    NounMetadata noun =
+        new NounMetadata(
+            fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+    if (!invalidFiles.isEmpty()) {
+      List<String> invalidFileNamesRelative = new ArrayList<>(invalidFiles.size());
+      for (String invalidF : invalidFiles) {
+        invalidFileNamesRelative.add(invalidF.replace(rootFolder, ""));
+      }
+      noun.addAdditionalReturn(
+          NounMetadata.getWarningNounMessage(
+              "Unable to upload " + String.join(", ", invalidFileNamesRelative)));
+    }
+    return noun;
+  }
 
-	/**
-	 * @param insightFolder
-	 * @param validFiles
-	 * @param invalidFiles
-	 * @return
-	 * @throws IOException
-	 */
-	private void getFiles(String insightFolder, List<String> validFiles, List<String> invalidFiles) throws IOException {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++) {
-				String filePath = insightFolder + "/" + grs.get(i).toString();
-				if (isZipFile(filePath)) {
-					String zipFileLocation = filePath.replace('\\', '/');
-					File zipFileExtractFolder = new File(insightFolder, PATH_TO_UNZIP_FILES);
-					unzipAndFilter(zipFileLocation, zipFileExtractFolder.getAbsolutePath(), validFiles, invalidFiles);
-				} else {
-					//String filePath = destDirectory + File.separator + entry.getName();
-					if(isSupportedFileType(filePath)) {
-						validFiles.add(filePath);
-					} else {
-						invalidFiles.add(filePath);
-					}
-				}
-			}
-		}
-	}
+  /**
+   * Get the map from the paramValues noun store
+   *
+   * @return list of engines to delete
+   */
+  private Map<String, Object> getMap() {
+    GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+    if (mapGrs != null && !mapGrs.isEmpty()) {
+      List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+      if (mapInputs != null && !mapInputs.isEmpty()) {
+        return (Map<String, Object>) mapInputs.get(0).getValue();
+      }
+    }
+    List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+    if (mapInputs != null && !mapInputs.isEmpty()) {
+      return (Map<String, Object>) mapInputs.get(0).getValue();
+    }
 
-	/**
-	 * Recursively go through all the zips, directories and files in a zip file and save the paths of 
-	 * valid file types
-	 * 
-	 * @param zipFilePath
-	 * @param destDirectory
-	 * @param validFiles
-	 * @param invalidFiles
-	 * @throws IOException
-	 */
-	private void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles, List<String> invalidFiles) throws IOException {
-		File destDir = new File(Utility.normalizePath(destDirectory));
-		if (!destDir.exists()) {
-			destDir.mkdir();
-		}
+    return null;
+  }
 
-		try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(Utility.normalizePath(zipFilePath)))) {
-			ZipEntry entry = zipIn.getNextEntry();
+  /**
+   * @param insightFolder
+   * @param validFiles
+   * @param invalidFiles
+   * @return
+   * @throws IOException
+   */
+  private void getFiles(String insightFolder, List<String> validFiles, List<String> invalidFiles)
+      throws IOException {
+    GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+    if (grs != null && !grs.isEmpty()) {
+      int size = grs.size();
+      for (int i = 0; i < size; i++) {
+        String filePath = insightFolder + "/" + grs.get(i).toString();
+        if (isZipFile(filePath)) {
+          String zipFileLocation = filePath.replace('\\', '/');
+          File zipFileExtractFolder = new File(insightFolder, PATH_TO_UNZIP_FILES);
+          unzipAndFilter(
+              zipFileLocation, zipFileExtractFolder.getAbsolutePath(), validFiles, invalidFiles);
+        } else {
+          // String filePath = destDirectory + File.separator + entry.getName();
+          if (isSupportedFileType(filePath)) {
+            validFiles.add(filePath);
+          } else {
+            invalidFiles.add(filePath);
+          }
+        }
+      }
+    }
+  }
 
-			while (entry != null) {
-				String filePath = destDirectory + "/" + entry.getName();
-				if (!entry.isDirectory() && isSupportedFileType(filePath)) {
-					if(isSupportedFileType(filePath)) {
-						extractFile(zipIn, filePath);
-						validFiles.add(filePath);
-					} else {
-						invalidFiles.add(filePath);
-					}
-				} else if (entry.isDirectory()) {
-					File dir = new File(Utility.normalizePath(filePath));
-					dir.mkdirs();
-				} else if (isZipFile(filePath)) {
-					// Handle nested zip file
-					this.extractFile(zipIn, filePath);
+  /**
+   * Recursively go through all the zips, directories and files in a zip file and save the paths of
+   * valid file types
+   *
+   * @param zipFilePath
+   * @param destDirectory
+   * @param validFiles
+   * @param invalidFiles
+   * @throws IOException
+   */
+  private void unzipAndFilter(
+      String zipFilePath, String destDirectory, List<String> validFiles, List<String> invalidFiles)
+      throws IOException {
+    File destDir = new File(Utility.normalizePath(destDirectory));
+    if (!destDir.exists()) {
+      destDir.mkdir();
+    }
 
-					// Check if the entry is not in the root directory
-					String parentPath = null;
-					if(filePath.contains("/")) { // ZIP entries use "/" as a separator
-						parentPath = filePath.substring(0, filePath.lastIndexOf('/'));
-					}
+    try (ZipInputStream zipIn =
+        new ZipInputStream(new FileInputStream(Utility.normalizePath(zipFilePath)))) {
+      ZipEntry entry = zipIn.getNextEntry();
 
-					// Extract the last part of the path (file name + extension)
-					String fileNameWithExtension = filePath.contains("/") 
-							? filePath.substring(filePath.lastIndexOf('/') + 1) 
-									: filePath;
+      while (entry != null) {
+        String filePath = destDirectory + "/" + entry.getName();
+        if (!entry.isDirectory() && isSupportedFileType(filePath)) {
+          if (isSupportedFileType(filePath)) {
+            extractFile(zipIn, filePath);
+            validFiles.add(filePath);
+          } else {
+            invalidFiles.add(filePath);
+          }
+        } else if (entry.isDirectory()) {
+          File dir = new File(Utility.normalizePath(filePath));
+          dir.mkdirs();
+        } else if (isZipFile(filePath)) {
+          // Handle nested zip file
+          this.extractFile(zipIn, filePath);
 
-							// Remove the extension
-							String baseName = fileNameWithExtension.contains(".") 
-									? fileNameWithExtension.substring(0, fileNameWithExtension.lastIndexOf('.')) 
-											: fileNameWithExtension;
+          // Check if the entry is not in the root directory
+          String parentPath = null;
+          if (filePath.contains("/")) { // ZIP entries use "/" as a separator
+            parentPath = filePath.substring(0, filePath.lastIndexOf('/'));
+          }
 
-									unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles, invalidFiles);
-				}
+          // Extract the last part of the path (file name + extension)
+          String fileNameWithExtension =
+              filePath.contains("/") ? filePath.substring(filePath.lastIndexOf('/') + 1) : filePath;
 
-				zipIn.closeEntry();
-				entry = zipIn.getNextEntry();
-			}
-		}
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	private String getRootFolder() {
-		String space = null;
-		GenRowStruct spaceGrs = store.getNoun(ReactorKeysEnum.SPACE.getKey());
-		if (spaceGrs != null && !spaceGrs.isEmpty()) {
-			space = spaceGrs.get(0).toString();
-		}
-		
-		return AssetUtility.getRootFolderPath(this.insight, space, false);
-	}
+          // Remove the extension
+          String baseName =
+              fileNameWithExtension.contains(".")
+                  ? fileNameWithExtension.substring(0, fileNameWithExtension.lastIndexOf('.'))
+                  : fileNameWithExtension;
 
-	/**
-	 * 
-	 * @param zipIn
-	 * @param filePath
-	 * @throws IOException
-	 */
-	private void extractFile(ZipInputStream zipIn, String filePath) throws IOException {
-		try (FileOutputStream fos = new FileOutputStream(Utility.normalizePath(filePath))) {
-			byte[] buffer = new byte[1024];
-			int bytesRead;
-			while ((bytesRead = zipIn.read(buffer)) != -1) {
-				fos.write(buffer, 0, bytesRead);
-			}
-		}
-	}
+          unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles, invalidFiles);
+        }
 
-	/**
-	 * 
-	 * @param filePath
-	 * @return
-	 */
-	private boolean isSupportedFileType(String filePath) {
-		// Find the last index of '.'
-		int dotIndex = filePath.lastIndexOf('.');
-		if (dotIndex > 0 && dotIndex < filePath.length() - 1) {
-			String extension = filePath.substring(dotIndex + 1).toLowerCase();
-			return extension.equals("csv");
-		}
-		
-		return false;
-	}
+        zipIn.closeEntry();
+        entry = zipIn.getNextEntry();
+      }
+    }
+  }
 
-	/**
-	 * 
-	 * @param filePath
-	 * @return
-	 */
-	private boolean isZipFile(String filePath) {        
-		// Find the last index of '.'
-		int dotIndex = filePath.lastIndexOf('.');
+  /**
+   * @return
+   */
+  private String getRootFolder() {
+    String space = null;
+    GenRowStruct spaceGrs = store.getNoun(ReactorKeysEnum.SPACE.getKey());
+    if (spaceGrs != null && !spaceGrs.isEmpty()) {
+      space = spaceGrs.get(0).toString();
+    }
 
-		if (dotIndex > 0 && dotIndex < filePath.length() - 1) {
-			// Extract the extension and convert it to lower case
-			String extension = filePath.substring(dotIndex + 1).toLowerCase();
+    return AssetUtility.getRootFolderPath(this.insight, space, false);
+  }
 
-			return extension.equals("zip");
-		} else {
-			// do a mime type check
-			Tika tika = new Tika();
-			File file = new File(Utility.normalizePath(filePath));
-			try (FileInputStream inputstream = new FileInputStream(file)) {
-				String mimeType = tika.detect(inputstream, new Metadata());
+  /**
+   * @param zipIn
+   * @param filePath
+   * @throws IOException
+   */
+  private void extractFile(ZipInputStream zipIn, String filePath) throws IOException {
+    try (FileOutputStream fos = new FileOutputStream(Utility.normalizePath(filePath))) {
+      byte[] buffer = new byte[1024];
+      int bytesRead;
+      while ((bytesRead = zipIn.read(buffer)) != -1) {
+        fos.write(buffer, 0, bytesRead);
+      }
+    }
+  }
 
-				if (mimeType != null) {
-					if (mimeType.equalsIgnoreCase("application/zip")) {
-						return true;
-					}
-				} 
+  /**
+   * @param filePath
+   * @return
+   */
+  private boolean isSupportedFileType(String filePath) {
+    // Find the last index of '.'
+    int dotIndex = filePath.lastIndexOf('.');
+    if (dotIndex > 0 && dotIndex < filePath.length() - 1) {
+      String extension = filePath.substring(dotIndex + 1).toLowerCase();
+      return extension.equals("csv");
+    }
 
-				return false;
-			} catch (IOException e) {
-				classLogger.error(Constants.ERROR_MESSAGE, e);
-				return false;
-			}
-		}
-	}
+    return false;
+  }
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
+  /**
+   * @param filePath
+   * @return
+   */
+  private boolean isZipFile(String filePath) {
+    // Find the last index of '.'
+    int dotIndex = filePath.lastIndexOf('.');
 
-			for (CreateEmbeddingsParamOptions entry : CreateEmbeddingsParamOptions.values()) {
-				finalDescription.append("\n")
-				.append("\t\t\t\t\t")
-				.append(entry.getVectorDbType().getVectorDatabaseName())
-				.append(":");
+    if (dotIndex > 0 && dotIndex < filePath.length() - 1) {
+      // Extract the extension and convert it to lower case
+      String extension = filePath.substring(dotIndex + 1).toLowerCase();
 
-				for (String paramKey : entry.getParamOptionsKeys()) {
-					finalDescription.append("\n")
-					.append("\t\t\t\t\t\t")
-					.append(paramKey)
-					.append("\t")
-					.append("-")
-					.append("\t")
-					.append("(").append(entry.getRequirementStatus(paramKey)).append(")")
-					.append(" ")
-					.append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
-				}
-			}
-			return finalDescription.toString();
-		}
+      return extension.equals("zip");
+    } else {
+      // do a mime type check
+      Tika tika = new Tika();
+      File file = new File(Utility.normalizePath(filePath));
+      try (FileInputStream inputstream = new FileInputStream(file)) {
+        String mimeType = tika.detect(inputstream, new Metadata());
 
-		return super.getDescriptionForKey(key);
-	}
+        if (mimeType != null) {
+          if (mimeType.equalsIgnoreCase("application/zip")) {
+            return true;
+          }
+        }
+
+        return false;
+      } catch (IOException e) {
+        classLogger.error(Constants.ERROR_MESSAGE, e);
+        return false;
+      }
+    }
+  }
+
+  @Override
+  protected String getDescriptionForKey(String key) {
+    if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+      StringBuilder finalDescription =
+          new StringBuilder("Param Options depend on the engine implementation");
+
+      for (CreateEmbeddingsParamOptions entry : CreateEmbeddingsParamOptions.values()) {
+        finalDescription
+            .append("\n")
+            .append("\t\t\t\t\t")
+            .append(entry.getVectorDbType().getVectorDatabaseName())
+            .append(":");
+
+        for (String paramKey : entry.getParamOptionsKeys()) {
+          finalDescription
+              .append("\n")
+              .append("\t\t\t\t\t\t")
+              .append(paramKey)
+              .append("\t")
+              .append("-")
+              .append("\t")
+              .append("(")
+              .append(entry.getRequirementStatus(paramKey))
+              .append(")")
+              .append(" ")
+              .append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
+        }
+      }
+      return finalDescription.toString();
+    }
+
+    return super.getDescriptionForKey(key);
+  }
 }

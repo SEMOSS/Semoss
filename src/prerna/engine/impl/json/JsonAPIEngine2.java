@@ -1,21 +1,45 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.json;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Hashtable;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.NullNode;
-
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
+import java.io.File;
+import java.io.IOException;
+import java.util.Hashtable;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.JsonInterpreter;
@@ -23,226 +47,220 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class JsonAPIEngine2 extends JsonAPIEngine {
-	
-	// another json engine
-	// that uses jmes path instead to aggregate results
-	// evrything remains the same the way you get the output changes
-	
-	private static final Logger classLogger = LogManager.getLogger(JsonAPIEngine2.class);
 
-	ObjectMapper mapper = null;
-	JsonNode input = null;
-	JmesPath<JsonNode> jmespath = new JacksonRuntime();
+  // another json engine
+  // that uses jmes path instead to aggregate results
+  // evrything remains the same the way you get the output changes
 
-	public static final String ROOT = "root";
-	public static final String COUNT = "COUNT";
+  private static final Logger classLogger = LogManager.getLogger(JsonAPIEngine2.class);
 
-	@Override
-	protected void loadDocument() {
-		try {
-			getMapper();
-			if(smssProp.containsKey("input_type") && ((String)smssProp.get("input_type")).equalsIgnoreCase("file"))
-				input = mapper.readTree(new File(baseFolder + "/" + Utility.normalizePath(smssProp.getProperty("input_url"))));
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
-		}
-	}
+  ObjectMapper mapper = null;
+  JsonNode input = null;
+  JmesPath<JsonNode> jmespath = new JacksonRuntime();
 
-	private ObjectMapper getMapper() {
-		if(this.mapper == null) {
-			mapper = new ObjectMapper();
-		}
-		
-		return mapper;
-	}
-	
-	@Override
-	protected Object getDocument(String json) {
-		getMapper();
-		JsonNode retNode = input; // if it is a document return it
-		if (json != null) {
-			try {
-				retNode = mapper.readTree(json);
-			} catch (Exception ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
-			}
-		}
-		return retNode;
-	}
+  public static final String ROOT = "root";
+  public static final String COUNT = "COUNT";
 
-	@Override
-	protected Hashtable getOutput(Object doc, String [] jsonPaths, Hashtable retHash, String repeaterHeader, String repeaterValue)
-	{
-		// the selector is typically of the form
-		// 			Expression<JsonNode> expression = jmespath.compile("foo[].[first, last]");
-		// I will qualify this into 2 things
-		// the root
-		// and the selectors
-		// the jsonpaths are broken into
-		// the first element is the root
-		// the other elements is what we need to select
-		// the only thing to remember is repeater here
-		// the prop should have the root
-		
-		// jackson will create this
-		JsonNode data = null;
-		
-		String root = smssProp.getProperty(ROOT) + "[].";
-		String selects = null;
-		StringBuffer composer = new StringBuffer("[");
-		String [] headers  = null;
-		if(repeaterHeader != null) {
-			headers = new String[jsonPaths.length + 1];
-		} else {
-			headers = new String[jsonPaths.length];
-		}
-		
-		// leave the root out
-		for(int pathIndex = 0; pathIndex < jsonPaths.length; pathIndex++) {
-			// for multi
-			// separate with comma
-			if(pathIndex != 0) {
-				composer.append(",");
-			}
-			
-			// this is the case when we send a custom header
-			// i.e. [custom_distance_name=distance]
-			// we want to pull the data from distance but our header name
-			// is custom_distance so we pass in those values accordingly
-			// the opposite case is that these two are equal since
-			// there is no = sign
-			String jsonHeader = jsonPaths[pathIndex];
-			String queryHeader = jsonHeader;
-			// check aliasMap
-			if(this.smssProp.get(jsonHeader) != null) {
-				queryHeader = (String) this.smssProp.get(jsonHeader);
-			}
-			if(jsonHeader.contains("=")) {
-				String[] split = jsonHeader.split("=");
-				composer.append(split[1]);
-				headers[pathIndex] = split[0];
-			} else {
-				// normal case
-				composer.append(queryHeader);
-				headers[pathIndex] = jsonHeader;
-			}
-		}
-		composer.append("]");
-		selects = composer.toString();
+  @Override
+  protected void loadDocument() {
+    try {
+      getMapper();
+      if (smssProp.containsKey("input_type")
+          && ((String) smssProp.get("input_type")).equalsIgnoreCase("file"))
+        input =
+            mapper.readTree(
+                new File(
+                    baseFolder + "/" + Utility.normalizePath(smssProp.getProperty("input_url"))));
+    } catch (IOException ioe) {
+      classLogger.error(Constants.STACKTRACE, ioe);
+    }
+  }
 
-		// add the last header which is repeater
-		if(repeaterHeader != null) {
-			headers[jsonPaths.length] = repeaterHeader;
-		}
-		
-		// the result is always array node of array node
-		// need to find a way where I can fill this array node
-		int numRows = 0;
-		int totalRows = 0;
+  private ObjectMapper getMapper() {
+    if (this.mapper == null) {
+      mapper = new ObjectMapper();
+    }
 
-		ArrayNode input = null;
-		if(retHash.containsKey("DATA"))
-			input = (ArrayNode)	retHash.get("DATA");
-		
-		if(retHash.containsKey(COUNT))
-			totalRows = (Integer) retHash.get(COUNT);
+    return mapper;
+  }
 
-		// I can get everything I want in a single shot. Which is what I will do
+  @Override
+  protected Object getDocument(String json) {
+    getMapper();
+    JsonNode retNode = input; // if it is a document return it
+    if (json != null) {
+      try {
+        retNode = mapper.readTree(json);
+      } catch (Exception ex) {
+        classLogger.error(Constants.STACKTRACE, ex);
+      }
+    }
+    return retNode;
+  }
 
-		Expression<JsonNode> expression = jmespath.compile(root + selects);
-		data = expression.search((JsonNode)doc);
-		
-		// the data is typically of the form ArrayNode of ArrayNode where each column is an array node within the bigger aray node
-		if(!(data instanceof NullNode))
-		{
-			// I need to find the total length of it
-			numRows = data.size();
-			totalRows = totalRows + numRows;
-			
-			// need to make the repeater
-			if(REPEATER != null)
-			{
-				ArrayNode repeaterNode = mapper.createArrayNode();
-				for(int repeatIndex = 0;repeatIndex < numRows;repeatIndex++)
-					repeaterNode.add(repeaterValue);
-				((ArrayNode)data).add(repeaterNode);
-			}
-			
-			if(input != null)
-			{
-				
-				int colIndex = 0;
-				
-				// now also move all the input into this or other way whichever way
-				// repeater node is also accounted for here
-				for(colIndex = 0;colIndex < data.size();colIndex++)
-				{
-					ArrayNode colNode = (ArrayNode)data.get(colIndex);					
-					((ArrayNode)input.get(colIndex)).addAll(colNode);
-				}
-			}
-		}
-				
-		if(!retHash.containsKey("TYPES"))
-			retHash.put("TYPES", getTypes(data));
+  @Override
+  protected Hashtable getOutput(
+      Object doc,
+      String[] jsonPaths,
+      Hashtable retHash,
+      String repeaterHeader,
+      String repeaterValue) {
+    // the selector is typically of the form
+    // 			Expression<JsonNode> expression = jmespath.compile("foo[].[first, last]");
+    // I will qualify this into 2 things
+    // the root
+    // and the selectors
+    // the jsonpaths are broken into
+    // the first element is the root
+    // the other elements is what we need to select
+    // the only thing to remember is repeater here
+    // the prop should have the root
 
-		retHash.put("HEADERS", headers);
-		if(input == null)
-			retHash.put("DATA", data);
-		else
-			retHash.put("DATA", input);
-			
-		retHash.put("COUNT", totalRows);
+    // jackson will create this
+    JsonNode data = null;
 
-		if(smssProp.containsKey("SEPARATOR"))
-			retHash.put("SEPARATOR", smssProp.get("SEPARATOR"));
+    String root = smssProp.getProperty(ROOT) + "[].";
+    String selects = null;
+    StringBuffer composer = new StringBuffer("[");
+    String[] headers = null;
+    if (repeaterHeader != null) {
+      headers = new String[jsonPaths.length + 1];
+    } else {
+      headers = new String[jsonPaths.length];
+    }
 
-		classLogger.info("Output..  " + Utility.cleanLogString(data.toString()));
+    // leave the root out
+    for (int pathIndex = 0; pathIndex < jsonPaths.length; pathIndex++) {
+      // for multi
+      // separate with comma
+      if (pathIndex != 0) {
+        composer.append(",");
+      }
 
-		return retHash;
-	}
-	
-	@Override
-	protected String [] getTypes(Object data2) {
-		String [] types = new String[1];
-		if( !(data2 instanceof NullNode))
-		{
-			ArrayNode mainData = (ArrayNode)data2;
-			ArrayNode data = null;
-			if(mainData.size() > 0 && mainData.get(0) instanceof ArrayNode)
-			{
-				data = (ArrayNode) mainData.get(0);
-				
-				types = new String[data.size()];
-	
-				for(int dataIndex = 0;dataIndex < data.size();dataIndex++)
-				{
-					
-					JsonNode firstOne = data.get(dataIndex);
-					JsonNodeType nt = firstOne.getNodeType();
-					if(nt == JsonNodeType.NUMBER)
-						//check if it double, 
-						if(firstOne.isDouble()) {
-							types[dataIndex] = "double";
-						} else {
-						types[dataIndex] = "int";
-						}
-					else
-						types[dataIndex] = "String";
-				}
-			}
-		}
-		return types;
-	}
-	
-	@Override
-	public IQueryInterpreter getQueryInterpreter(){
-		return new JsonInterpreter(this);
-	}
-	
-	@Override
-	public DATABASE_TYPE getDatabaseType() {
-		return IDatabaseEngine.DATABASE_TYPE.JSON2;
-	}
+      // this is the case when we send a custom header
+      // i.e. [custom_distance_name=distance]
+      // we want to pull the data from distance but our header name
+      // is custom_distance so we pass in those values accordingly
+      // the opposite case is that these two are equal since
+      // there is no = sign
+      String jsonHeader = jsonPaths[pathIndex];
+      String queryHeader = jsonHeader;
+      // check aliasMap
+      if (this.smssProp.get(jsonHeader) != null) {
+        queryHeader = (String) this.smssProp.get(jsonHeader);
+      }
+      if (jsonHeader.contains("=")) {
+        String[] split = jsonHeader.split("=");
+        composer.append(split[1]);
+        headers[pathIndex] = split[0];
+      } else {
+        // normal case
+        composer.append(queryHeader);
+        headers[pathIndex] = jsonHeader;
+      }
+    }
+    composer.append("]");
+    selects = composer.toString();
 
+    // add the last header which is repeater
+    if (repeaterHeader != null) {
+      headers[jsonPaths.length] = repeaterHeader;
+    }
+
+    // the result is always array node of array node
+    // need to find a way where I can fill this array node
+    int numRows = 0;
+    int totalRows = 0;
+
+    ArrayNode input = null;
+    if (retHash.containsKey("DATA")) input = (ArrayNode) retHash.get("DATA");
+
+    if (retHash.containsKey(COUNT)) totalRows = (Integer) retHash.get(COUNT);
+
+    // I can get everything I want in a single shot. Which is what I will do
+
+    Expression<JsonNode> expression = jmespath.compile(root + selects);
+    data = expression.search((JsonNode) doc);
+
+    // the data is typically of the form ArrayNode of ArrayNode where each column is an array node
+    // within the bigger aray node
+    if (!(data instanceof NullNode)) {
+      // I need to find the total length of it
+      numRows = data.size();
+      totalRows = totalRows + numRows;
+
+      // need to make the repeater
+      if (REPEATER != null) {
+        ArrayNode repeaterNode = mapper.createArrayNode();
+        for (int repeatIndex = 0; repeatIndex < numRows; repeatIndex++)
+          repeaterNode.add(repeaterValue);
+        ((ArrayNode) data).add(repeaterNode);
+      }
+
+      if (input != null) {
+
+        int colIndex = 0;
+
+        // now also move all the input into this or other way whichever way
+        // repeater node is also accounted for here
+        for (colIndex = 0; colIndex < data.size(); colIndex++) {
+          ArrayNode colNode = (ArrayNode) data.get(colIndex);
+          ((ArrayNode) input.get(colIndex)).addAll(colNode);
+        }
+      }
+    }
+
+    if (!retHash.containsKey("TYPES")) retHash.put("TYPES", getTypes(data));
+
+    retHash.put("HEADERS", headers);
+    if (input == null) retHash.put("DATA", data);
+    else retHash.put("DATA", input);
+
+    retHash.put("COUNT", totalRows);
+
+    if (smssProp.containsKey("SEPARATOR")) retHash.put("SEPARATOR", smssProp.get("SEPARATOR"));
+
+    classLogger.info("Output..  " + Utility.cleanLogString(data.toString()));
+
+    return retHash;
+  }
+
+  @Override
+  protected String[] getTypes(Object data2) {
+    String[] types = new String[1];
+    if (!(data2 instanceof NullNode)) {
+      ArrayNode mainData = (ArrayNode) data2;
+      ArrayNode data = null;
+      if (mainData.size() > 0 && mainData.get(0) instanceof ArrayNode) {
+        data = (ArrayNode) mainData.get(0);
+
+        types = new String[data.size()];
+
+        for (int dataIndex = 0; dataIndex < data.size(); dataIndex++) {
+
+          JsonNode firstOne = data.get(dataIndex);
+          JsonNodeType nt = firstOne.getNodeType();
+          if (nt == JsonNodeType.NUMBER)
+            // check if it double,
+            if (firstOne.isDouble()) {
+              types[dataIndex] = "double";
+            } else {
+              types[dataIndex] = "int";
+            }
+          else types[dataIndex] = "String";
+        }
+      }
+    }
+    return types;
+  }
+
+  @Override
+  public IQueryInterpreter getQueryInterpreter() {
+    return new JsonInterpreter(this);
+  }
+
+  @Override
+  public DATABASE_TYPE getDatabaseType() {
+    return IDatabaseEngine.DATABASE_TYPE.JSON2;
+  }
 }

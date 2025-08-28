@@ -1,7 +1,33 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.expression.filter;
 
 import java.util.List;
-
 import prerna.reactor.JavaExecutable;
 import prerna.reactor.expression.OpBasic;
 import prerna.sablecc2.om.PixelDataType;
@@ -9,104 +35,106 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class OpFilter extends OpBasic {
 
-	@Override
-	protected NounMetadata evaluate(Object[] values) {
-		// there are 3 things being passed
-		// index 0 is left term
-		// index 1 is comparator
-		// index 2 is right term
-		Object left = values[0];
-		Object right = values[2];
-		String comparator = values[1].toString().trim();
-		boolean evaluation = false;
-		if(comparator.equals("==")) {
-			if(left instanceof Number && right instanceof Number) {
-				evaluation = ((Number)left).doubleValue() == ((Number)right).doubleValue();
-			} else if(left instanceof String && right instanceof String){
-				evaluation = left.toString().equals(right.toString());
-			} else {
-				evaluation = left == right;
-			}
-		} else if(comparator.equals("!=") || comparator.equals("<>")) {
-			if(left instanceof Number && right instanceof Number) {
-				evaluation = ((Number)left).doubleValue() != ((Number)right).doubleValue();
-			} else if(left instanceof String && right instanceof String){
-				evaluation = !left.toString().equals(right.toString());
-			} else {
-				evaluation = left != right;
-			}
-		}
-		// we have some numerical stuff
-		// everything needs to be a valid number
-		else {
-			// check numerical
-			if(!(left instanceof Number)) {
-				throw new IllegalArgumentException("Value '" + left.toString() + "' is not a numeric value");
-			}
-			if(!(right instanceof Number)) {
-				throw new IllegalArgumentException("Value '" + right.toString() + "' is not a numeric value");
-			}
-			
-			if(comparator.equals(">=")) {
-				evaluation = ((Number)left).doubleValue() >= ((Number)right).doubleValue();
-			} else if(comparator.equals(">")) {
-				evaluation = ((Number)left).doubleValue() > ((Number)right).doubleValue();
-			} else if(comparator.equals("<=")) {
-				evaluation = ((Number)left).doubleValue() <= ((Number)right).doubleValue();
-			} else if(comparator.equals("<")) {
-				evaluation = ((Number)left).doubleValue() < ((Number)right).doubleValue();
-			} else {
-				throw new IllegalArgumentException("Cannot handle comparator " + comparator);
-			}
-		}
-		
-		return new NounMetadata(evaluation, PixelDataType.BOOLEAN);
-	}
-	
-	public String getJavaSignature() {
-		List<NounMetadata> inputs = this.getJavaInputs();
-		
-		NounMetadata leftSide = inputs.get(0);
-		Object leftSideValue = leftSide.getValue();
-		String leftString;
-		String checkType;
-		boolean needCheckType = false;
-		if(leftSideValue instanceof JavaExecutable) {
-			leftString = ((JavaExecutable)leftSideValue).getJavaSignature();
-		} else if(leftSide.getNounType() == PixelDataType.CONST_STRING) {
-			leftString = "\""+leftSideValue.toString()+"\"";
-		} else {
-			leftString = leftSideValue.toString();
-		}
-		
-		String comparator = inputs.get(1).getValue().toString().trim();
-		if(comparator.equals("<>")) {
-			comparator = "!=";
-		}
-		
-		NounMetadata rightSide = inputs.get(2);
-		Object rightSideValue = rightSide.getValue();
-		String rightString;
-		if(rightSideValue instanceof JavaExecutable) {
-			rightString = ((JavaExecutable)rightSideValue).getJavaSignature();
-		} else if(rightSide.getNounType() == PixelDataType.CONST_STRING ) {
-			needCheckType = true;
-			rightString = "\""+rightSideValue.toString()+"\"";
-		} else {
-			rightString = rightSideValue.toString();
-		}
-		
-		if(needCheckType){
-			checkType = "compareString("+leftString+" , \""+comparator+"\" ,"+ rightString+" )";
-			return checkType;
-		}
-		
-		return leftString + " " +comparator + " " + rightString;
+  @Override
+  protected NounMetadata evaluate(Object[] values) {
+    // there are 3 things being passed
+    // index 0 is left term
+    // index 1 is comparator
+    // index 2 is right term
+    Object left = values[0];
+    Object right = values[2];
+    String comparator = values[1].toString().trim();
+    boolean evaluation = false;
+    if (comparator.equals("==")) {
+      if (left instanceof Number && right instanceof Number) {
+        evaluation = ((Number) left).doubleValue() == ((Number) right).doubleValue();
+      } else if (left instanceof String && right instanceof String) {
+        evaluation = left.toString().equals(right.toString());
+      } else {
+        evaluation = left == right;
+      }
+    } else if (comparator.equals("!=") || comparator.equals("<>")) {
+      if (left instanceof Number && right instanceof Number) {
+        evaluation = ((Number) left).doubleValue() != ((Number) right).doubleValue();
+      } else if (left instanceof String && right instanceof String) {
+        evaluation = !left.toString().equals(right.toString());
+      } else {
+        evaluation = left != right;
+      }
+    }
+    // we have some numerical stuff
+    // everything needs to be a valid number
+    else {
+      // check numerical
+      if (!(left instanceof Number)) {
+        throw new IllegalArgumentException(
+            "Value '" + left.toString() + "' is not a numeric value");
+      }
+      if (!(right instanceof Number)) {
+        throw new IllegalArgumentException(
+            "Value '" + right.toString() + "' is not a numeric value");
+      }
 
-	}
+      if (comparator.equals(">=")) {
+        evaluation = ((Number) left).doubleValue() >= ((Number) right).doubleValue();
+      } else if (comparator.equals(">")) {
+        evaluation = ((Number) left).doubleValue() > ((Number) right).doubleValue();
+      } else if (comparator.equals("<=")) {
+        evaluation = ((Number) left).doubleValue() <= ((Number) right).doubleValue();
+      } else if (comparator.equals("<")) {
+        evaluation = ((Number) left).doubleValue() < ((Number) right).doubleValue();
+      } else {
+        throw new IllegalArgumentException("Cannot handle comparator " + comparator);
+      }
+    }
 
-	@Override
-	public String getReturnType() {
-		return "boolean";
-	}
+    return new NounMetadata(evaluation, PixelDataType.BOOLEAN);
+  }
+
+  public String getJavaSignature() {
+    List<NounMetadata> inputs = this.getJavaInputs();
+
+    NounMetadata leftSide = inputs.get(0);
+    Object leftSideValue = leftSide.getValue();
+    String leftString;
+    String checkType;
+    boolean needCheckType = false;
+    if (leftSideValue instanceof JavaExecutable) {
+      leftString = ((JavaExecutable) leftSideValue).getJavaSignature();
+    } else if (leftSide.getNounType() == PixelDataType.CONST_STRING) {
+      leftString = "\"" + leftSideValue.toString() + "\"";
+    } else {
+      leftString = leftSideValue.toString();
+    }
+
+    String comparator = inputs.get(1).getValue().toString().trim();
+    if (comparator.equals("<>")) {
+      comparator = "!=";
+    }
+
+    NounMetadata rightSide = inputs.get(2);
+    Object rightSideValue = rightSide.getValue();
+    String rightString;
+    if (rightSideValue instanceof JavaExecutable) {
+      rightString = ((JavaExecutable) rightSideValue).getJavaSignature();
+    } else if (rightSide.getNounType() == PixelDataType.CONST_STRING) {
+      needCheckType = true;
+      rightString = "\"" + rightSideValue.toString() + "\"";
+    } else {
+      rightString = rightSideValue.toString();
+    }
+
+    if (needCheckType) {
+      checkType =
+          "compareString(" + leftString + " , \"" + comparator + "\" ," + rightString + " )";
+      return checkType;
+    }
+
+    return leftString + " " + comparator + " " + rightString;
+  }
+
+  @Override
+  public String getReturnType() {
+    return "boolean";
+  }
 }

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.function.upload;
 
 import java.io.File;
@@ -5,11 +32,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -34,194 +59,212 @@ import prerna.util.Utility;
 
 public class CreateRestFunctionEngineReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(CreateRestFunctionEngineReactor.class);
+  private static final Logger classLogger =
+      LogManager.getLogger(CreateRestFunctionEngineReactor.class);
 
-	public CreateRestFunctionEngineReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.FUNCTION_DETAILS.getKey(), ReactorKeysEnum.FILE_NAME.getKey()};
-		this.keyRequired = new int [] {1, 1, 0};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create a function engine", PixelDataType.CONST_STRING,
-					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
+  public CreateRestFunctionEngineReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.FUNCTION.getKey(),
+          ReactorKeysEnum.FUNCTION_DETAILS.getKey(),
+          ReactorKeysEnum.FILE_NAME.getKey()
+        };
+    this.keyRequired = new int[] {1, 1, 0};
+  }
 
-		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-			if (this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-		}
+  @Override
+  public NounMetadata execute() {
+    User user = this.insight.getUser();
+    if (user == null) {
+      NounMetadata noun =
+          new NounMetadata(
+              "User must be signed into an account in order to create a function engine",
+              PixelDataType.CONST_STRING,
+              PixelOperationType.ERROR,
+              PixelOperationType.LOGGIN_REQUIRED_ERROR);
+      SemossPixelException err = new SemossPixelException(noun);
+      err.setContinueThreadOfExecution(false);
+      throw err;
+    }
 
-		// throw error is user doesn't have rights to publish new databases
-		if (AbstractSecurityUtils.adminSetPublisher()
-				&& !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
-			throwUserNotPublisherError();
-		}
+    if (AbstractSecurityUtils.anonymousUsersEnabled()) {
+      if (this.insight.getUser().isAnonymous()) {
+        throwAnonymousUserError();
+      }
+    }
 
-		if (AbstractSecurityUtils.adminOnlyFunctionAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-			throwFunctionalityOnlyExposedForAdminsError();
-		}
+    // throw error is user doesn't have rights to publish new databases
+    if (AbstractSecurityUtils.adminSetPublisher()
+        && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
+      throwUserNotPublisherError();
+    }
 
-		organizeKeys();
-		
-		String functionName = getFunctionName();
-		//if function name is not valid, throw error
-		if (!Utility.validateName(functionName)) {
-			//error and redirect to try again
-			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
-		}
+    if (AbstractSecurityUtils.adminOnlyFunctionAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+      throwFunctionalityOnlyExposedForAdminsError();
+    }
 
-		//String functionName = getFunctionName();
-		Map<String, Object> functionDetails = getFunctionDetails();
-		String functionTypeStr = (String) functionDetails.get(IFunctionEngine.FUNCTION_TYPE);
-		if(functionTypeStr == null || (functionTypeStr=functionTypeStr.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must define the function type");
-		}
-		FunctionTypeEnum functionType = null;
-		try {
-			functionType = FunctionTypeEnum.getEnumFromName(functionTypeStr);
-		} catch(Exception e) {
-			throw new IllegalArgumentException("Invalid function type " + functionTypeStr);
-		}
-		
-		String functionId = UUID.randomUUID().toString();
-		File tempSmss = null;
-		File smssFile = null;
-		File specificEngineFolder = null;
-		IFunctionEngine function = null;
-		try {
-			// validate engine
-			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.FUNCTION, user, functionName, functionId);
-			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
-			
-			if (functionType == FunctionTypeEnum.LOCAL_PYTHON) {
-				moveFilesToEngineFolder(specificEngineFolder);
-			}
-			
-			String functionClass = functionType.getFunctionClass();
-			function = (IFunctionEngine) Class.forName(functionClass).newInstance();
-			tempSmss = UploadUtilities.createTemporaryFunctionSmss(functionId, functionName, functionClass, functionDetails);
+    organizeKeys();
 
-			// store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
-			DIHelper.getInstance().setEngineProperty(functionId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-			function.open(tempSmss.getAbsolutePath());			
-			
-			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-			FileUtils.copyFile(tempSmss, smssFile);
-			tempSmss.delete();
-			function.setSmssFilePath(smssFile.getAbsolutePath());
-			UploadUtilities.updateDIHelper(functionId, functionName, function, smssFile);
-			SecurityEngineUtils.addEngine(functionId, false, user);
-			
-			// even if no security, just add user as database owner
-			if (user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addEngineOwner(functionId, user.getAccessToken(ap).getId());
-				}
-			}
-			
-			ClusterUtil.pushEngine(functionId);
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineFolder);
-			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-		}
-		
-		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), functionId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-	}
-	
-	/**
-	 * Delete all the corresponding files that are generated from the upload the failed
-	 */
-	private void cleanUpCreateNewError(IFunctionEngine function, String storageId, File tempSmss, File smssFile, File specificEngineFolder) {
-		try {
-			// close the function so we can delete it
-			if (function != null) {
-				function.close();
-			}
+    String functionName = getFunctionName();
+    // if function name is not valid, throw error
+    if (!Utility.validateName(functionName)) {
+      // error and redirect to try again
+      throw new IllegalArgumentException(
+          "Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+    }
 
-			// delete the .temp file
-			if (tempSmss != null && tempSmss.exists()) {
-				FileUtils.forceDelete(tempSmss);
-			}
-			// delete the .smss file
-			if (smssFile != null && smssFile.exists()) {
-				FileUtils.forceDelete(smssFile);
-			}
-			if (specificEngineFolder != null && specificEngineFolder.exists()) {
-				FileUtils.forceDelete(specificEngineFolder);
-			}
-			
-			UploadUtilities.removeEngineFromDIHelper(storageId);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	private String getFunctionName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			List<String> strValues = grs.getAllStrValues();
-			if(strValues != null && !strValues.isEmpty()) {
-				return strValues.get(0).trim();
-			}
-		}
-		
-		List<String> strValues = this.curRow.getAllStrValues();
-		if(strValues != null && !strValues.isEmpty()) {
-			return strValues.get(0).trim();
-		}
-		
-		throw new NullPointerException("Must define the name of the new function engine");
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	private Map<String, Object> getFunctionDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
-			if(mapNouns != null && !mapNouns.isEmpty()) {
-				return (Map<String, Object>) mapNouns.get(0).getValue();
-			}
-		}
-		
-		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapNouns != null && !mapNouns.isEmpty()) {
-			return (Map<String, Object>) mapNouns.get(0).getValue();
-		}
-		
-		throw new NullPointerException("Must define the properties for the new function engine");
-	}
-	
-	private void moveFilesToEngineFolder(File specificEngineFolder) throws IOException {
-		String insightFolder = this.insight.getInsightFolder();
-	
-		// see if added as key
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FILE_NAME.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++) {
-				File file = new File(insightFolder + File.separator + grs.get(i).toString());
-				if (file.exists()) {
-					FileUtils.moveFileToDirectory(file, specificEngineFolder, false);
-				}
-			}
-		}
-	}
+    // String functionName = getFunctionName();
+    Map<String, Object> functionDetails = getFunctionDetails();
+    String functionTypeStr = (String) functionDetails.get(IFunctionEngine.FUNCTION_TYPE);
+    if (functionTypeStr == null || (functionTypeStr = functionTypeStr.trim()).isEmpty()) {
+      throw new IllegalArgumentException("Must define the function type");
+    }
+    FunctionTypeEnum functionType = null;
+    try {
+      functionType = FunctionTypeEnum.getEnumFromName(functionTypeStr);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Invalid function type " + functionTypeStr);
+    }
+
+    String functionId = UUID.randomUUID().toString();
+    File tempSmss = null;
+    File smssFile = null;
+    File specificEngineFolder = null;
+    IFunctionEngine function = null;
+    try {
+      // validate engine
+      UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.FUNCTION, user, functionName, functionId);
+      specificEngineFolder =
+          UploadUtilities.generateSpecificEngineFolder(
+              IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
+
+      if (functionType == FunctionTypeEnum.LOCAL_PYTHON) {
+        moveFilesToEngineFolder(specificEngineFolder);
+      }
+
+      String functionClass = functionType.getFunctionClass();
+      function = (IFunctionEngine) Class.forName(functionClass).newInstance();
+      tempSmss =
+          UploadUtilities.createTemporaryFunctionSmss(
+              functionId, functionName, functionClass, functionDetails);
+
+      // store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
+      DIHelper.getInstance()
+          .setEngineProperty(functionId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+      function.open(tempSmss.getAbsolutePath());
+
+      smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+      FileUtils.copyFile(tempSmss, smssFile);
+      tempSmss.delete();
+      function.setSmssFilePath(smssFile.getAbsolutePath());
+      UploadUtilities.updateDIHelper(functionId, functionName, function, smssFile);
+      SecurityEngineUtils.addEngine(functionId, false, user);
+
+      // even if no security, just add user as database owner
+      if (user != null) {
+        List<AuthProvider> logins = user.getLogins();
+        for (AuthProvider ap : logins) {
+          SecurityEngineUtils.addEngineOwner(functionId, user.getAccessToken(ap).getId());
+        }
+      }
+
+      ClusterUtil.pushEngine(functionId);
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineFolder);
+      return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+    }
+
+    Map<String, Object> retMap =
+        UploadUtilities.getEngineReturnData(this.insight.getUser(), functionId);
+    return new NounMetadata(
+        retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+  }
+
+  /** Delete all the corresponding files that are generated from the upload the failed */
+  private void cleanUpCreateNewError(
+      IFunctionEngine function,
+      String storageId,
+      File tempSmss,
+      File smssFile,
+      File specificEngineFolder) {
+    try {
+      // close the function so we can delete it
+      if (function != null) {
+        function.close();
+      }
+
+      // delete the .temp file
+      if (tempSmss != null && tempSmss.exists()) {
+        FileUtils.forceDelete(tempSmss);
+      }
+      // delete the .smss file
+      if (smssFile != null && smssFile.exists()) {
+        FileUtils.forceDelete(smssFile);
+      }
+      if (specificEngineFolder != null && specificEngineFolder.exists()) {
+        FileUtils.forceDelete(specificEngineFolder);
+      }
+
+      UploadUtilities.removeEngineFromDIHelper(storageId);
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+  }
+
+  /**
+   * @return
+   */
+  private String getFunctionName() {
+    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
+    if (grs != null && !grs.isEmpty()) {
+      List<String> strValues = grs.getAllStrValues();
+      if (strValues != null && !strValues.isEmpty()) {
+        return strValues.get(0).trim();
+      }
+    }
+
+    List<String> strValues = this.curRow.getAllStrValues();
+    if (strValues != null && !strValues.isEmpty()) {
+      return strValues.get(0).trim();
+    }
+
+    throw new NullPointerException("Must define the name of the new function engine");
+  }
+
+  /**
+   * @return
+   */
+  private Map<String, Object> getFunctionDetails() {
+    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
+    if (grs != null && !grs.isEmpty()) {
+      List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
+      if (mapNouns != null && !mapNouns.isEmpty()) {
+        return (Map<String, Object>) mapNouns.get(0).getValue();
+      }
+    }
+
+    List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
+    if (mapNouns != null && !mapNouns.isEmpty()) {
+      return (Map<String, Object>) mapNouns.get(0).getValue();
+    }
+
+    throw new NullPointerException("Must define the properties for the new function engine");
+  }
+
+  private void moveFilesToEngineFolder(File specificEngineFolder) throws IOException {
+    String insightFolder = this.insight.getInsightFolder();
+
+    // see if added as key
+    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FILE_NAME.getKey());
+    if (grs != null && !grs.isEmpty()) {
+      int size = grs.size();
+      for (int i = 0; i < size; i++) {
+        File file = new File(insightFolder + File.separator + grs.get(i).toString());
+        if (file.exists()) {
+          FileUtils.moveFileToDirectory(file, specificEngineFolder, false);
+        }
+      }
+    }
+  }
 }

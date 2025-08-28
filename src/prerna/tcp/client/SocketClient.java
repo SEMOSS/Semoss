@@ -1,5 +1,38 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.tcp.client;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,17 +50,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
-
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import prerna.auth.User;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
@@ -37,430 +61,415 @@ import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class SocketClient implements Runnable, Closeable {
-	
-	private static final Logger classLogger = LogManager.getLogger(SocketClient.class);
-	
-    String HOST = null;
-    int PORT = -1;
-    boolean SSL = false;
-    
-    Map<String, PayloadStruct> requestMap = new HashMap<>();
-    Map<String, PayloadStruct> responseMap = new HashMap<>();
-    Map<String, Set<String>> insightToEpoc = new HashMap<>();
-    Set<String> cancelledEpocs = new HashSet<>();
-    
-    boolean ready = false;
-    boolean connected = false;
-    AtomicInteger count = new AtomicInteger(0);
-    long averageMillis = 200;
-    boolean killAll = false; // use this if the server is dead or it has crashed
-    User user;
-	
-    Socket clientSocket = null;
-	InputStream is = null;
-	OutputStream os = null;
-	SocketClientHandler sch = new SocketClientHandler();
-	Gson gson = new GsonBuilder()
-			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping()
-			.create();
 
-	/**
-	 * 
-	 * @param HOST
-	 * @param PORT
-	 * @param SSL
-	 */
-    public void connect(final String HOST, final int PORT, final boolean SSL) {
-    	this.HOST = HOST;
-    	this.PORT = PORT;
-    	this.SSL = SSL;
+  private static final Logger classLogger = LogManager.getLogger(SocketClient.class);
+
+  String HOST = null;
+  int PORT = -1;
+  boolean SSL = false;
+
+  Map<String, PayloadStruct> requestMap = new HashMap<>();
+  Map<String, PayloadStruct> responseMap = new HashMap<>();
+  Map<String, Set<String>> insightToEpoc = new HashMap<>();
+  Set<String> cancelledEpocs = new HashSet<>();
+
+  boolean ready = false;
+  boolean connected = false;
+  AtomicInteger count = new AtomicInteger(0);
+  long averageMillis = 200;
+  boolean killAll = false; // use this if the server is dead or it has crashed
+  User user;
+
+  Socket clientSocket = null;
+  InputStream is = null;
+  OutputStream os = null;
+  SocketClientHandler sch = new SocketClientHandler();
+  Gson gson =
+      new GsonBuilder()
+          .setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+          .disableHtmlEscaping()
+          .create();
+
+  /**
+   * @param HOST
+   * @param PORT
+   * @param SSL
+   */
+  public void connect(final String HOST, final int PORT, final boolean SSL) {
+    this.HOST = HOST;
+    this.PORT = PORT;
+    this.SSL = SSL;
+  }
+
+  @Override
+  public void run() {
+    // Configure SSL.git
+    int attempt = 1;
+    int SLEEP_TIME = 800;
+    if (Utility.getDIHelperProperty("SLEEP_TIME") != null) {
+      SLEEP_TIME = Integer.parseInt(Utility.getDIHelperProperty("SLEEP_TIME"));
     }
-    
-    @Override
-    public void run() {
-        // Configure SSL.git
-    	int attempt = 1;
-    	int SLEEP_TIME = 800;
-    	if(Utility.getDIHelperProperty("SLEEP_TIME") != null) {
-    		SLEEP_TIME = Integer.parseInt(Utility.getDIHelperProperty("SLEEP_TIME"));
-    	}
-    	
-    	classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
-    	while(!connected && attempt < 6) // I do an attempt here too hmm.. 
-    	{
-	    	try
-	    	{
-		        final SslContext sslCtx;
-		        if (SSL) {
-		            sslCtx = SslContextBuilder.forClient()
-		                .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-		        } else {
-		            sslCtx = null;
-		        }
-		
-		        // Configure the client.
-				boolean blocking = Utility.getDIHelperProperty(Settings.BLOCKING) != null && Utility.getDIHelperProperty(Settings.BLOCKING).equalsIgnoreCase("true");
-		        	
-	    		clientSocket =  new Socket(this.HOST, this.PORT);
-	    		
-	    		// pick input and output stream and start the threads
-	    		this.is = clientSocket.getInputStream();
-	    		this.os = clientSocket.getOutputStream();
-	    		sch.setClient(this);
-	    		sch.setInputStream(this.is);
-	    		
-	    		// start this thread
-	    		Thread readerThread = new Thread(sch);
-	    		readerThread.start();
-	    		
-	            classLogger.info("CLIENT Connection complete !!!!!!!");
-	            Thread.sleep(100); // sleep some before executing command
-	            // prime it 
-	            //logger.info("First command.. Prime" + executeCommand("2+2"));
-	            connected = true;
-	            ready = true;
-	            killAll = false;
-	            synchronized(this)
-	            {
-	            	this.notifyAll();
-	            }
-	    	} catch(Exception ex) {
-	    		attempt++;
-	    		classLogger.info("Attempting Number " + attempt);
-	    		// see if sleeping helps ?
-	    		try {
-	    			// sleeping only for 1 second here
-	    			// but the py executor sleeps in 2 second increments
-	    			Thread.sleep(attempt*SLEEP_TIME);
-	    		} catch(Exception ex2) {
-	    			// ignored
-	    		}
-	    	}
-    	}
-    	
-    	if(attempt >= 6) {
-            classLogger.info("CLIENT Connection Failed !!!!!!!");
-            killAll = true;
-            connected = false;
-            ready = false;
-            synchronized(this) {
-            	this.notifyAll();
+
+    classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
+    while (!connected && attempt < 6) // I do an attempt here too hmm..
+    {
+      try {
+        final SslContext sslCtx;
+        if (SSL) {
+          sslCtx =
+              SslContextBuilder.forClient()
+                  .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                  .build();
+        } else {
+          sslCtx = null;
+        }
+
+        // Configure the client.
+        boolean blocking =
+            Utility.getDIHelperProperty(Settings.BLOCKING) != null
+                && Utility.getDIHelperProperty(Settings.BLOCKING).equalsIgnoreCase("true");
+
+        clientSocket = new Socket(this.HOST, this.PORT);
+
+        // pick input and output stream and start the threads
+        this.is = clientSocket.getInputStream();
+        this.os = clientSocket.getOutputStream();
+        sch.setClient(this);
+        sch.setInputStream(this.is);
+
+        // start this thread
+        Thread readerThread = new Thread(sch);
+        readerThread.start();
+
+        classLogger.info("CLIENT Connection complete !!!!!!!");
+        Thread.sleep(100); // sleep some before executing command
+        // prime it
+        // logger.info("First command.. Prime" + executeCommand("2+2"));
+        connected = true;
+        ready = true;
+        killAll = false;
+        synchronized (this) {
+          this.notifyAll();
+        }
+      } catch (Exception ex) {
+        attempt++;
+        classLogger.info("Attempting Number " + attempt);
+        // see if sleeping helps ?
+        try {
+          // sleeping only for 1 second here
+          // but the py executor sleeps in 2 second increments
+          Thread.sleep(attempt * SLEEP_TIME);
+        } catch (Exception ex2) {
+          // ignored
+        }
+      }
+    }
+
+    if (attempt >= 6) {
+      classLogger.info("CLIENT Connection Failed !!!!!!!");
+      killAll = true;
+      connected = false;
+      ready = false;
+      synchronized (this) {
+        this.notifyAll();
+      }
+      throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
+    }
+  }
+
+  /**
+   * @param ps
+   * @return
+   */
+  public Object executeCommand(PayloadStruct ps) {
+    if (killAll) {
+      throw new SemossPixelException(
+          "Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+    }
+
+    if (!connected) {
+      throw new SemossPixelException(
+          "Your micro-process is not available. Please logout and try again. !");
+    }
+
+    String id = ps.epoc;
+    if (!ps.response || id == null) {
+      id = "ps" + count.getAndIncrement();
+      ps.epoc = id;
+    }
+    ps.longRunning = true;
+
+    synchronized (ps) // going back to single threaded .. earlier it was ps
+    {
+      // if(ps.hasReturn)
+      // put it into request map
+      if (!ps.response) {
+        requestMap.put(id, ps);
+      }
+      classLogger.info("Outgoing epoc " + ps.epoc);
+      writePayload(ps);
+      // send the message
+
+      // time to wait = average time * 10
+      // if this is a request wait for it
+      if (!ps.response) // this is a response to something the socket has asked
+      {
+        int pollNum = 1; // 1 second
+        while (!responseMap.containsKey(ps.epoc) && (pollNum < 10 || ps.longRunning) && !killAll) {
+          // logger.info("Checking to see if there was a response");
+          try {
+            if (pollNum < 10) {
+              ps.wait(averageMillis);
+            } else { // if(ps.longRunning) // this is to make sure the kill all is being checked
+              ps.wait(); // wait eternally - we dont know how long some of the load operations
+              // would take besides, I am not sure if the null gets us anything
             }
-            throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
-    	}
-    }	
-    
-    /**
-     * 
-     * @param ps
-     * @return
-     */
-    public Object executeCommand(PayloadStruct ps) {
-    	if(killAll) {
-        	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
-    	}
-    	
-    	if(!connected) {
-        	throw new SemossPixelException("Your micro-process is not available. Please logout and try again. !");
-    	}
-    	
-    	String id = ps.epoc;
-    	if(!ps.response || id == null) {
-	    	id = "ps"+ count.getAndIncrement();
-	    	ps.epoc = id;
-    	}
-    	ps.longRunning = true;
-    	    	
-    	synchronized(ps) // going back to single threaded .. earlier it was ps
-    	{	
-    		//if(ps.hasReturn)
-    		// put it into request map
-    		if(!ps.response) {
-    			requestMap.put(id, ps);
-    		}
-    		classLogger.info("Outgoing epoc " + ps.epoc);
-    		writePayload(ps);
-	    	// send the message
-			
-    		// time to wait = average time * 10
-    		// if this is a request wait for it
-    		if(!ps.response) // this is a response to something the socket has asked
-    		{
-				int pollNum = 1; // 1 second
-				while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killAll)
-				{
-					//logger.info("Checking to see if there was a response");
-					try
-					{
-						if(pollNum < 10) {
-							ps.wait(averageMillis);
-						} else { //if(ps.longRunning) // this is to make sure the kill all is being checked
-							ps.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
-						}
-						pollNum++;
-					}catch (InterruptedException e) 
-					{
-						// TODO Auto-generated catch block
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-					/*
-					// trigger after 400 milliseconds
-					if(pollNum == 2 && !ps.longRunning)
-					{
-						logger.info("Writing empty message " + ps.epoc);
-						writeEmptyPayload();
-					}
-					*/
-				}
-				if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
-				{
-					classLogger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
-					
-				}
-    		}
+            pollNum++;
+          } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            classLogger.error(Constants.STACKTRACE, e);
+          }
+          /*
+          // trigger after 400 milliseconds
+          if(pollNum == 2 && !ps.longRunning)
+          {
+          	logger.info("Writing empty message " + ps.epoc);
+          	writeEmptyPayload();
+          }
+          */
+        }
+        if (!responseMap.containsKey(ps.epoc) && ps.hasReturn) {
+          classLogger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
+        }
+      }
 
-			// after 10 seconds give up
-			//printUnprocessed();
-			return responseMap.remove(ps.epoc);
-    	}
+      // after 10 seconds give up
+      // printUnprocessed();
+      return responseMap.remove(ps.epoc);
     }
-    
-    /**
-     * 
-     * @param ps
-     */
-    private void writePayload(PayloadStruct ps)
-    {
-    	byte [] psBytes = FstUtil.packBytes(ps);
-    	try {
-    		os.write(psBytes);
-    	} catch(IOException ex) {
-    		classLogger.error(Constants.STACKTRACE, ex);
-    		crash();
-    	}
+  }
+
+  /**
+   * @param ps
+   */
+  private void writePayload(PayloadStruct ps) {
+    byte[] psBytes = FstUtil.packBytes(ps);
+    try {
+      os.write(psBytes);
+    } catch (IOException ex) {
+      classLogger.error(Constants.STACKTRACE, ex);
+      crash();
     }
-    
-    /**
-     * 
-     */
-    public void writeReleaseAllPayload()
-    {
-    	PayloadStruct ps = new PayloadStruct();
-    	ps.epoc=Utility.getRandomString(8);
-    	ps.methodName = "RELEASE_ALL";
-    	writePayload(ps);
+  }
+
+  /** */
+  public void writeReleaseAllPayload() {
+    PayloadStruct ps = new PayloadStruct();
+    ps.epoc = Utility.getRandomString(8);
+    ps.methodName = "RELEASE_ALL";
+    writePayload(ps);
+  }
+
+  /**
+   * @return
+   */
+  public boolean stopServer() {
+    try {
+      if (isConnected()) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        Callable<Boolean> callableTask =
+            () -> {
+              PayloadStruct ps = new PayloadStruct();
+              ps.methodName = "CLOSE_ALL_LOGOUT<o>";
+              ps.payload = new String[] {"CLOSE_ALL_LOGOUT<o>"};
+              writePayload(ps);
+              return true;
+            };
+
+        Future<Boolean> future = executor.submit(callableTask);
+        try {
+          // wait 1 minute at most
+          boolean result = future.get(60, TimeUnit.SECONDS);
+          classLogger.info("Stop PyServe result = " + result);
+          return result;
+        } catch (TimeoutException e) {
+          classLogger.warn("Not able to release the payload structs within a timely fashion");
+          future.cancel(true);
+          return false;
+        } catch (InterruptedException | ExecutionException e) {
+          classLogger.error(Constants.STACKTRACE, e);
+          return false;
+        } finally {
+          executor.shutdown();
+        }
+      } else {
+        return true;
+      }
+    } finally {
+      // always call close on the IO
+      close();
     }
+  }
 
-    /**
-     * 
-     * @return
-     */
-    public boolean stopServer() {
-		try {
-    		if(isConnected()) {
-    			ExecutorService executor = Executors.newSingleThreadExecutor();
+  /** */
+  public void crash() {
+    // this happens when the client has completely crashed
+    // make the connected to be false
+    // take everything that is waiting on it
+    // go through request map and start pushing
 
-    			Callable<Boolean> callableTask = () -> {
-    				PayloadStruct ps = new PayloadStruct();
-    		    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
-    		    	ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>"};
-    		    	writePayload(ps);
-    				return true;
-    			};
+    // run as executor since it is synchronized
+    // and dont want to get stuck if an issue occurs and the notify never happens
+    // we will close and kill process anyway
+    ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    			Future<Boolean> future = executor.submit(callableTask);
-    			try {
-    				// wait 1 minute at most
-    				boolean result = future.get(60, TimeUnit.SECONDS);
-    				classLogger.info("Stop PyServe result = " + result);
-    				return result;
-    			} catch (TimeoutException e) {
-    				classLogger.warn("Not able to release the payload structs within a timely fashion");
-    				future.cancel(true);
-    				return false;
-    			} catch (InterruptedException | ExecutionException e) {
-    				classLogger.error(Constants.STACKTRACE, e);
-    				return false;
-    			} finally {
-    				executor.shutdown();
-    			}
-    		} else {
-    			return true;
-    		}
-    	} finally {
-    		// always call close on the IO
-    		close();
-    	}
-    }
-
-    /**
-     * 
-     */
-    public void crash() {
-    	// this happens when the client has completely crashed
-    	// make the connected to be false
-    	// take everything that is waiting on it
-    	// go through request map and start pushing
-    	
-    	// run as executor since it is synchronized
-    	// and dont want to get stuck if an issue occurs and the notify never happens
-    	// we will close and kill process anyway
-    	ExecutorService executor = Executors.newSingleThreadExecutor();
-    	
-        Callable<String> callableTask = () -> {
-        	try {
-    	    	for(Object k : this.requestMap.keySet()) {
-    	    		PayloadStruct ps = (PayloadStruct) this.requestMap.get(k);
-    	    		classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
-    	    		ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
-    	    		synchronized(ps) {
-    	    			ps.notifyAll();
-    	    		}
-    	    	}
-        	} catch(Exception e) {
-        		classLogger.error(Constants.STACKTRACE, e);
-        	}
-            return "Successfully released the payload structs";
+    Callable<String> callableTask =
+        () -> {
+          try {
+            for (Object k : this.requestMap.keySet()) {
+              PayloadStruct ps = (PayloadStruct) this.requestMap.get(k);
+              classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
+              ps.ex =
+                  "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
+              synchronized (ps) {
+                ps.notifyAll();
+              }
+            }
+          } catch (Exception e) {
+            classLogger.error(Constants.STACKTRACE, e);
+          }
+          return "Successfully released the payload structs";
         };
 
-        Future<String> future = executor.submit(callableTask);
-        try {
-        	// wait 1 minute at most
-            String result = future.get(60, TimeUnit.SECONDS);
-            classLogger.info(result);
-        } catch (TimeoutException e) {
-        	classLogger.warn("Not able to release the payload structs within a timely fashion");
-            future.cancel(true); 
-        } catch (InterruptedException | ExecutionException e) {
-        	classLogger.error(Constants.STACKTRACE, e);
-        } finally {
-            executor.shutdown();
+    Future<String> future = executor.submit(callableTask);
+    try {
+      // wait 1 minute at most
+      String result = future.get(60, TimeUnit.SECONDS);
+      classLogger.info(result);
+    } catch (TimeoutException e) {
+      classLogger.warn("Not able to release the payload structs within a timely fashion");
+      future.cancel(true);
+    } catch (InterruptedException | ExecutionException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    } finally {
+      executor.shutdown();
+    }
+
+    this.close();
+    throw new SemossPixelException(
+        "Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+  }
+
+  @Override
+  public void close() {
+    if (this.requestMap != null) {
+      this.requestMap.clear();
+    }
+    if (this.responseMap != null) {
+      this.responseMap.clear();
+    }
+    if (this.insightToEpoc != null) {
+      this.insightToEpoc.clear();
+    }
+    closeStream(this.os);
+    closeStream(this.is);
+    closeStream(this.clientSocket);
+    this.connected = false;
+    this.killAll = true;
+  }
+
+  /**
+   * @param insightId
+   * @param epoc
+   */
+  void addEpocForInsight(String insightId, String epoc) {
+    Set<String> epocs = null;
+    if (this.insightToEpoc.containsKey(insightId)) {
+      epocs = this.insightToEpoc.get(insightId);
+    } else {
+      epocs = new HashSet<>();
+      this.insightToEpoc.put(insightId, epocs);
+    }
+    epocs.add(epoc);
+  }
+
+  /**
+   * @param insightId
+   * @param epoc
+   */
+  void removeEpocForInsight(String insightId, String epoc) {
+    Set<String> epocs = this.insightToEpoc.get(insightId);
+    if (epocs != null) {
+      epocs.remove(epoc);
+    }
+  }
+
+  /**
+   * @param jobId
+   */
+  public void interruptInsight(String insightId) {
+    Set<String> epocs = this.insightToEpoc.get(insightId);
+    if (epocs != null) {
+      this.cancelledEpocs.addAll(epocs);
+    }
+    if (epocs != null) {
+      for (String epoc : epocs) {
+        PayloadStruct lock = this.requestMap.remove(epoc);
+        if (lock != null) {
+          synchronized (lock) {
+            lock.notifyAll();
+          }
         }
-    	
-    	this.close();
-    	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+      }
     }
-    
-	@Override
-	public void close() {
-		if(this.requestMap != null) {
-			this.requestMap.clear();
-		}
-		if(this.responseMap != null) {
-			this.responseMap.clear();
-		}
-		if(this.insightToEpoc != null) {
-			this.insightToEpoc.clear();
-		}
-		closeStream(this.os);
-		closeStream(this.is);
-		closeStream(this.clientSocket);
-		this.connected = false;
-		this.killAll = true;
-	}
-	
-	/**
-	 * 
-	 * @param insightId
-	 * @param epoc
-	 */
-	void addEpocForInsight(String insightId, String epoc) {
-		Set<String> epocs = null;
-		if(this.insightToEpoc.containsKey(insightId)) {
-			epocs = this.insightToEpoc.get(insightId);
-		} else {
-			epocs = new HashSet<>();
-			this.insightToEpoc.put(insightId, epocs);
-		}
-		epocs.add(epoc);
-	}
-	
-	/**
-	 * 
-	 * @param insightId
-	 * @param epoc
-	 */
-	void removeEpocForInsight(String insightId, String epoc) {
-		Set<String> epocs = this.insightToEpoc.get(insightId);
-		if(epocs != null) {
-			epocs.remove(epoc);
-		}
-	}
-	
-	/**
-	 * 
-	 * @param jobId
-	 */
-	public void interruptInsight(String insightId) {
-		Set<String> epocs = this.insightToEpoc.get(insightId);
-		if(epocs != null) {
-			this.cancelledEpocs.addAll(epocs);
-		}
-		if(epocs != null) {
-			for(String epoc : epocs) {
-				PayloadStruct lock = this.requestMap.remove(epoc);
-				if(lock != null) {
-					synchronized(lock) {
-						lock.notifyAll();
-					}
-				}
-			}
-		}
-	}
-    
-    /**
-     * 
-     * @param closeThis
-     */
-    void closeStream(Closeable closeThis) {
-    	if(closeThis != null) {
-	    	try {
-				closeThis.close();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-    	}
-    }
-    
-    /**
-     * 
-     * @param user
-     */
-    public void setUser(User user) {
-    	this.user = user;
-    }
+  }
 
-    /**
-     * 
-     * @return
-     */
-    public User getUser() {
-    	return this.user;
+  /**
+   * @param closeThis
+   */
+  void closeStream(Closeable closeThis) {
+    if (closeThis != null) {
+      try {
+        closeThis.close();
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
     }
-    
-	/**
-	 * 
-	 * @return
-	 */
-	public boolean isConnected() {
-		return this.connected;
-	}
+  }
 
-	/**
-	 * 
-	 * @return
-	 */
-	public boolean isKillAll() {
-		return killAll;
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	public boolean isReady() {
-		return this.ready;
-	}
+  /**
+   * @param user
+   */
+  public void setUser(User user) {
+    this.user = user;
+  }
 
+  /**
+   * @return
+   */
+  public User getUser() {
+    return this.user;
+  }
+
+  /**
+   * @return
+   */
+  public boolean isConnected() {
+    return this.connected;
+  }
+
+  /**
+   * @return
+   */
+  public boolean isKillAll() {
+    return killAll;
+  }
+
+  /**
+   * @return
+   */
+  public boolean isReady() {
+    return this.ready;
+  }
 }

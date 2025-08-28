@@ -1,18 +1,42 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.util.usertracking.reactors.recommendations;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -30,210 +54,252 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class VizRecommendationsReactor extends AbstractRFrameReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(VizRecommendationsReactor.class);
-	
-	public static final String MAX_RECOMMENDATIONS = "max";
 
-	/**
-	 * This reactor generates visualization recommendations based on the data in
-	 * the current frame. It runs 2 R functions, both using historical data
-	 * tracked in server database One script recommends based on exact matches
-	 * and semantic matches of columns and the other uses data types, results
-	 * are combined.
-	 */
+  private static final Logger classLogger = LogManager.getLogger(VizRecommendationsReactor.class);
 
-	public VizRecommendationsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TASK.getKey(), MAX_RECOMMENDATIONS };
-	}
+  public static final String MAX_RECOMMENDATIONS = "max";
 
-	@Override
-	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			String message = "Please login to enable recommendation features.";
-			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			SemossPixelException exception = new SemossPixelException(noun);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-		String baseFolder = Utility.getBaseFolder();
-		File desc = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-user-history.rds");
-		if (!desc.exists()) {
-			String message = "Necessary files missing to generate search results. Please run UpdateQueryData().";
-			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			SemossPixelException exception = new SemossPixelException(noun);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-		init();
-		organizeKeys();
+  /**
+   * This reactor generates visualization recommendations based on the data in the current frame. It
+   * runs 2 R functions, both using historical data tracked in server database One script recommends
+   * based on exact matches and semantic matches of columns and the other uses data types, results
+   * are combined.
+   */
+  public VizRecommendationsReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.TASK.getKey(), MAX_RECOMMENDATIONS};
+  }
 
-		// check if packages are installed
-		String[] packages = { "RGoogleAnalytics", "httr", "jsonlite", "plyr", "RJSONIO", "lubridate" };
-		this.rJavaTranslator.checkPackages(packages);
+  @Override
+  public NounMetadata execute() {
+    User user = this.insight.getUser();
+    if (user == null) {
+      String message = "Please login to enable recommendation features.";
+      NounMetadata noun =
+          new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+      SemossPixelException exception = new SemossPixelException(noun);
+      exception.setContinueThreadOfExecution(false);
+      throw exception;
+    }
+    String baseFolder = Utility.getBaseFolder();
+    File desc =
+        new File(
+            baseFolder
+                + DIR_SEPARATOR
+                + "R"
+                + DIR_SEPARATOR
+                + "Recommendations"
+                + DIR_SEPARATOR
+                + "dataitem-user-history.rds");
+    if (!desc.exists()) {
+      String message =
+          "Necessary files missing to generate search results. Please run UpdateQueryData().";
+      NounMetadata noun =
+          new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+      SemossPixelException exception = new SemossPixelException(noun);
+      exception.setContinueThreadOfExecution(false);
+      throw exception;
+    }
+    init();
+    organizeKeys();
 
-		// convert qs to physical names
-		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
-		if (frame == null) {
-			return new NounMetadata(new HashMap(), PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.VIZ_RECOMMENDATION);
-		}
-		String[] qsHeaders = frame.getQsHeaders();
-		OwlTemporalEngineMeta meta = frame.getMetaData();
+    // check if packages are installed
+    String[] packages = {"RGoogleAnalytics", "httr", "jsonlite", "plyr", "RJSONIO", "lubridate"};
+    this.rJavaTranslator.checkPackages(packages);
 
-		// prep script components
-		StringBuilder builder = new StringBuilder();
-		String inputFrame = "inputFrame." + Utility.getRandomString(8);
-		builder.append(inputFrame
-				+ " <- data.frame(reference1 = character(), reference2 = character(), reference3 = integer(), stringsAsFactors = FALSE);");
+    // convert qs to physical names
+    ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+    if (frame == null) {
+      return new NounMetadata(
+          new HashMap(),
+          PixelDataType.CUSTOM_DATA_STRUCTURE,
+          PixelOperationType.VIZ_RECOMMENDATION);
+    }
+    String[] qsHeaders = frame.getQsHeaders();
+    OwlTemporalEngineMeta meta = frame.getMetaData();
 
-		// iterate selectors and update data table builder section of R script
-		Map<String, String> aliasHash = new HashMap<String, String>();
-		int rowCount = 1;
-		for (int i = 0; i < qsHeaders.length; i++) {
-			String name = qsHeaders[i];
-			String alias = name;
-			if (alias.contains("__")) {
-				alias = name.split("__")[1];
-			}
-			List<String[]> dbInfo = meta.getDatabaseInformation(name);
-			int size = dbInfo.size();
-			for (int j = 0; j < size; j++) {
-				String[] engineQs = dbInfo.get(0);
-				if (engineQs.length == 1) {
-					// we do not know the source of this column
-					continue;
-				}
-				String db = engineQs[0];
-				String dbname = SecurityEngineUtils.getEngineAliasForId(db);
-				String conceptProp = engineQs[1];
-				String table = conceptProp;
-				String column = SelectQueryStruct.PRIM_KEY_PLACEHOLDER;
-				if (conceptProp.contains("__")) {
-					String[] conceptPropSplit = conceptProp.split("__");
-					table = conceptPropSplit[0];
-					column = conceptPropSplit[1];
-				}
+    // prep script components
+    StringBuilder builder = new StringBuilder();
+    String inputFrame = "inputFrame." + Utility.getRandomString(8);
+    builder.append(
+        inputFrame
+            + " <- data.frame(reference1 = character(), reference2 = character(), reference3 = integer(), stringsAsFactors = FALSE);");
 
-				// add row to data type R df used for offline recommendations
-				String dataType = meta.getHeaderTypeAsString(name);
+    // iterate selectors and update data table builder section of R script
+    Map<String, String> aliasHash = new HashMap<String, String>();
+    int rowCount = 1;
+    for (int i = 0; i < qsHeaders.length; i++) {
+      String name = qsHeaders[i];
+      String alias = name;
+      if (alias.contains("__")) {
+        alias = name.split("__")[1];
+      }
+      List<String[]> dbInfo = meta.getDatabaseInformation(name);
+      int size = dbInfo.size();
+      for (int j = 0; j < size; j++) {
+        String[] engineQs = dbInfo.get(0);
+        if (engineQs.length == 1) {
+          // we do not know the source of this column
+          continue;
+        }
+        String db = engineQs[0];
+        String dbname = SecurityEngineUtils.getEngineAliasForId(db);
+        String conceptProp = engineQs[1];
+        String table = conceptProp;
+        String column = SelectQueryStruct.PRIM_KEY_PLACEHOLDER;
+        if (conceptProp.contains("__")) {
+          String[] conceptPropSplit = conceptProp.split("__");
+          table = conceptPropSplit[0];
+          column = conceptPropSplit[1];
+        }
 
-				// get unique column values
-				IDatabaseEngine engine = Utility.getDatabase(db);
-				// get unique values for string columns, if it doesnt exist
-				long uniqueValues = 0;
-				String queryCol = column;
-				// prim key placeholder cant be queried in the owl
-				// so we convert it back to the display name of the concept
-				if (column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-					queryCol = table;
-				}
-				String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
-						+ "{ BIND(<http://semoss.org/ontologies/Concept/" + queryCol + "/" + table + "> AS ?concept)"
-						+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
-				IRawSelectWrapper it = null;
-				try {
-					it = engine.getOWLEngineFactory().getReadOWL().query(uniqueValQuery);
-					while (it.hasNext()) {
-						Object[] row = it.next().getValues();
-						uniqueValues = Long.parseLong(row[1].toString());
-					}
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if(it != null) {
-						try {
-							it.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
-				}
+        // add row to data type R df used for offline recommendations
+        String dataType = meta.getHeaderTypeAsString(name);
 
-				builder.append(inputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$").append(dbname).append("$")
-						.append(table).append("$").append(column).append("\"").append(", \"").append(dataType)
-						.append("\" , ").append(uniqueValues).append(");");
+        // get unique column values
+        IDatabaseEngine engine = Utility.getDatabase(db);
+        // get unique values for string columns, if it doesnt exist
+        long uniqueValues = 0;
+        String queryCol = column;
+        // prim key placeholder cant be queried in the owl
+        // so we convert it back to the display name of the concept
+        if (column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+          queryCol = table;
+        }
+        String uniqueValQuery =
+            "SELECT DISTINCT ?concept ?unique WHERE "
+                + "{ BIND(<http://semoss.org/ontologies/Concept/"
+                + queryCol
+                + "/"
+                + table
+                + "> AS ?concept)"
+                + "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
+        IRawSelectWrapper it = null;
+        try {
+          it = engine.getOWLEngineFactory().getReadOWL().query(uniqueValQuery);
+          while (it.hasNext()) {
+            Object[] row = it.next().getValues();
+            uniqueValues = Long.parseLong(row[1].toString());
+          }
+        } catch (Exception e) {
+          classLogger.error(Constants.STACKTRACE, e);
+        } finally {
+          if (it != null) {
+            try {
+              it.close();
+            } catch (IOException e) {
+              classLogger.error(Constants.STACKTRACE, e);
+            }
+          }
+        }
 
-				// add column alias hash so we can look up alias later
-				aliasHash.put(column + "_" + table + "_" + db, alias);
-				rowCount++;
-			}
-		}
+        builder
+            .append(inputFrame)
+            .append("[")
+            .append(rowCount)
+            .append(", ] <- c( \"")
+            .append(db)
+            .append("$")
+            .append(dbname)
+            .append("$")
+            .append(table)
+            .append("$")
+            .append(column)
+            .append("\"")
+            .append(", \"")
+            .append(dataType)
+            .append("\" , ")
+            .append(uniqueValues)
+            .append(");");
 
-		// add the execute predict viz and convert to json piece to script
-		String outputJson = "json_" + Utility.getRandomString(8);
-		String recommend = "rec_" + Utility.getRandomString(8);
-		String historicalDf = "df_" + Utility.getRandomString(8);
-		String maxRecommendations = this.keyValue.get(this.keysToGet[1]);
-		if (maxRecommendations == null) {
-			maxRecommendations = "5";
-		}
-		builder.append("origDir <- getwd();");
-		builder.append("setwd(\"" + baseFolder + "\\R\\Recommendations\");"); 
-		builder.append("source(\"viz_recom.r\") ; "); 
-		builder.append(recommend + "<-viz_recom_mgr(\"dataitem\", " + inputFrame + ", \"Grid\", 5); "); 
-		builder.append("library(jsonlite);");
-		builder.append(outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);");
-		builder.append("setwd(origDir);");
-		String script = builder.toString().replace("\\", "/");
-		this.rJavaTranslator.runR(builder.toString().replace("\\", "/"));
+        // add column alias hash so we can look up alias later
+        aliasHash.put(column + "_" + table + "_" + db, alias);
+        rowCount++;
+      }
+    }
 
-		// receive json string from R
-		String json = this.rJavaTranslator.getString(outputJson + ";");
-		Map recommendations = new HashMap<String, HashMap<String, String>>();
+    // add the execute predict viz and convert to json piece to script
+    String outputJson = "json_" + Utility.getRandomString(8);
+    String recommend = "rec_" + Utility.getRandomString(8);
+    String historicalDf = "df_" + Utility.getRandomString(8);
+    String maxRecommendations = this.keyValue.get(this.keysToGet[1]);
+    if (maxRecommendations == null) {
+      maxRecommendations = "5";
+    }
+    builder.append("origDir <- getwd();");
+    builder.append("setwd(\"" + baseFolder + "\\R\\Recommendations\");");
+    builder.append("source(\"viz_recom.r\") ; ");
+    builder.append(recommend + "<-viz_recom_mgr(\"dataitem\", " + inputFrame + ", \"Grid\", 5); ");
+    builder.append("library(jsonlite);");
+    builder.append(outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);");
+    builder.append("setwd(origDir);");
+    String script = builder.toString().replace("\\", "/");
+    this.rJavaTranslator.runR(builder.toString().replace("\\", "/"));
 
-		// garbage cleanup -- R script might already do this
-		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", "
-				+ "viz_history, viz_recom, get_userdata, get_reference, viz_recom_offline, viz_recom_mgr);";
+    // receive json string from R
+    String json = this.rJavaTranslator.getString(outputJson + ";");
+    Map recommendations = new HashMap<String, HashMap<String, String>>();
 
-		this.rJavaTranslator.runR(gc);
-		// if recommendations fail return empty map
-		if (json == null) {
-			return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.VIZ_RECOMMENDATION);
-		}
+    // garbage cleanup -- R script might already do this
+    String gc =
+        "rm("
+            + outputJson
+            + ", "
+            + recommend
+            + ", "
+            + historicalDf
+            + ", "
+            + "viz_history, viz_recom, get_userdata, get_reference, viz_recom_offline, viz_recom_mgr);";
 
-		// converting physical column names to frame aliases
-		Gson gson = new Gson();
-		ArrayList<Map<String, String>> myList = gson.fromJson(json,
-				new TypeToken<ArrayList<HashMap<String, String>>>() {
-				}.getType());
-		for (int i = 0; i < myList.size(); i++) {
-			// get all values from R json
-			Map map = new HashMap<String, String>();
-			String dbid = myList.get(i).get("dbid");
-			String dbName = myList.get(i).get("dbname");
-			String tblName = myList.get(i).get("tblname");
-			String colName = myList.get(i).get("colname");
-			String component = myList.get(i).get("component");
-			String chart = myList.get(i).get("chart");
-			String weight = myList.get(i).get("weight");
-			String columnAlias = aliasHash.get(colName + "_" + tblName + "_" + dbid);
+    this.rJavaTranslator.runR(gc);
+    // if recommendations fail return empty map
+    if (json == null) {
+      return new NounMetadata(
+          recommendations,
+          PixelDataType.CUSTOM_DATA_STRUCTURE,
+          PixelOperationType.VIZ_RECOMMENDATION);
+    }
 
-			// make sure column is in current frame then add to recommendation map
-			if (columnAlias != null) {
-				if (recommendations.containsKey(chart)) {
-					map = (HashMap) recommendations.get(chart);
-					map.put(columnAlias, component);
-					recommendations.put(chart, map);
-				} else {
-					map.put("weight", weight);
-					map.put(columnAlias, component);
-					recommendations.put(chart, map);
-				}
-			}
-		}
-		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE,
-				PixelOperationType.VIZ_RECOMMENDATION);
-	}
+    // converting physical column names to frame aliases
+    Gson gson = new Gson();
+    ArrayList<Map<String, String>> myList =
+        gson.fromJson(json, new TypeToken<ArrayList<HashMap<String, String>>>() {}.getType());
+    for (int i = 0; i < myList.size(); i++) {
+      // get all values from R json
+      Map map = new HashMap<String, String>();
+      String dbid = myList.get(i).get("dbid");
+      String dbName = myList.get(i).get("dbname");
+      String tblName = myList.get(i).get("tblname");
+      String colName = myList.get(i).get("colname");
+      String component = myList.get(i).get("component");
+      String chart = myList.get(i).get("chart");
+      String weight = myList.get(i).get("weight");
+      String columnAlias = aliasHash.get(colName + "_" + tblName + "_" + dbid);
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(MAX_RECOMMENDATIONS)) {
-			return "The maximum amount of visualization recommendations returned.";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
-	}
+      // make sure column is in current frame then add to recommendation map
+      if (columnAlias != null) {
+        if (recommendations.containsKey(chart)) {
+          map = (HashMap) recommendations.get(chart);
+          map.put(columnAlias, component);
+          recommendations.put(chart, map);
+        } else {
+          map.put("weight", weight);
+          map.put(columnAlias, component);
+          recommendations.put(chart, map);
+        }
+      }
+    }
+    return new NounMetadata(
+        recommendations,
+        PixelDataType.CUSTOM_DATA_STRUCTURE,
+        PixelOperationType.VIZ_RECOMMENDATION);
+  }
+
+  @Override
+  protected String getDescriptionForKey(String key) {
+    if (key.equals(MAX_RECOMMENDATIONS)) {
+      return "The maximum amount of visualization recommendations returned.";
+    } else {
+      return super.getDescriptionForKey(key);
+    }
+  }
 }

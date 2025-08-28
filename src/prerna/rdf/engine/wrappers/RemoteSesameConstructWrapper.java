@@ -30,99 +30,93 @@ package prerna.rdf.engine.wrappers;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Hashtable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.Statement;
-
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-
 public class RemoteSesameConstructWrapper extends AbstractWrapper implements IConstructWrapper {
 
-	private static final Logger classLogger = LogManager.getLogger(RemoteSesameConstructWrapper.class);
+  private static final Logger classLogger =
+      LogManager.getLogger(RemoteSesameConstructWrapper.class);
 
-	transient SesameConstructWrapper remoteWrapperProxy = null;
-	transient IConstructStatement retSt = null;
-	transient ObjectInputStream ris = null;
+  transient SesameConstructWrapper remoteWrapperProxy = null;
+  transient IConstructStatement retSt = null;
+  transient ObjectInputStream ris = null;
 
+  @Override
+  public void execute() throws Exception {
+    remoteWrapperProxy = (SesameConstructWrapper) engine.execQuery(query);
+  }
 
-	@Override
-	public void execute() throws Exception {
-		remoteWrapperProxy = (SesameConstructWrapper)engine.execQuery(query);
-	}
+  @Override
+  public boolean hasNext() {
+    boolean retBool = false;
 
-	@Override
-	public boolean hasNext() {
-		boolean retBool = false;
-		
-		if(retSt != null) // they have not picked it up yet
-			return true;
-		retSt = new ConstructStatement();
-		// I need to pull from remote
-		// this is just so stupid to call its own
-		try {
-		if(ris == null)
-		{
-			Hashtable params = new Hashtable<String,String>();
-			params.put("id", remoteWrapperProxy.getRemoteId());
-			ris = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
-		}					
-			Object myObject = ris.readObject();
-			
-			if(!myObject.toString().equalsIgnoreCase("null"))
-			{
-				Statement stmt = (Statement)myObject;
-				retSt.setSubject(stmt.getSubject()+"");
-				retSt.setObject(stmt.getObject());
-				retSt.setPredicate(stmt.getPredicate() + "");
-				//System.out.println("Abile to get the object appropriately here " + retSt.getSubject());
-				retBool = true;
-			}
-			else
-			{
-				try{
-					if(ris!=null) {
-						ris.close();
-					}
-				} catch(IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+    if (retSt != null) // they have not picked it up yet
+    return true;
+    retSt = new ConstructStatement();
+    // I need to pull from remote
+    // this is just so stupid to call its own
+    try {
+      if (ris == null) {
+        Hashtable params = new Hashtable<String, String>();
+        params.put("id", remoteWrapperProxy.getRemoteId());
+        ris =
+            new ObjectInputStream(
+                Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
+      }
+      Object myObject = ris.readObject();
 
-		} catch (RuntimeException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
-			retSt = null;
-			retBool = false;
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
-			retSt = null;
-			retBool = false;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
-			retSt = null;
-			retBool = false;
-		}
-		return retBool;
-	}
+      if (!myObject.toString().equalsIgnoreCase("null")) {
+        Statement stmt = (Statement) myObject;
+        retSt.setSubject(stmt.getSubject() + "");
+        retSt.setObject(stmt.getObject());
+        retSt.setPredicate(stmt.getPredicate() + "");
+        // System.out.println("Abile to get the object appropriately here " + retSt.getSubject());
+        retBool = true;
+      } else {
+        try {
+          if (ris != null) {
+            ris.close();
+          }
+        } catch (IOException e) {
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+      }
 
-	@Override
-	public IConstructStatement next() {
-		// TODO Auto-generated method stub
-		IConstructStatement thisSt = retSt;
-		retSt = null;
-		return thisSt;
-	}
+    } catch (RuntimeException e) {
+      // TODO Auto-generated catch block
+      classLogger.error(Constants.STACKTRACE, e);
+      retSt = null;
+      retBool = false;
+    } catch (ClassNotFoundException e) {
+      // TODO Auto-generated catch block
+      classLogger.error(Constants.STACKTRACE, e);
+      retSt = null;
+      retBool = false;
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      classLogger.error(Constants.STACKTRACE, e);
+      retSt = null;
+      retBool = false;
+    }
+    return retBool;
+  }
 
-	@Override
-	public void close() throws IOException {
-		remoteWrapperProxy.close();
-	}
+  @Override
+  public IConstructStatement next() {
+    // TODO Auto-generated method stub
+    IConstructStatement thisSt = retSt;
+    retSt = null;
+    return thisSt;
+  }
 
+  @Override
+  public void close() throws IOException {
+    remoteWrapperProxy.close();
+  }
 }

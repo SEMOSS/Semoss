@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.r;
 
 import prerna.algorithm.api.SemossDataType;
@@ -10,103 +37,121 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Separates a column at the specified index creating two new columns on the
- * left and right of the index
+ * Separates a column at the specified index creating two new columns on the left and right of the
+ * index
  */
 public class SeparateColumnReactor extends AbstractRFrameReactor {
-	
-	/**
-	 * R example 
-	 * library(tidyr) 
-	 * df <- data.frame(date = c(201401, 201402, 201403,201412), test=c('a', 'b', 'c', 'd')) 
-	 * df = df %>% separate(date, into = c('year', 'month'), sep = 4, remove=FALSE)
-	 */
-	
-	private static final String LEFT_COLUMN_NAME_INPUT = "lName";
-	private static final String RIGHT_COLUMN_NAME_INPUT = "rName";
 
-	public SeparateColumnReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.INDEX.getKey(), LEFT_COLUMN_NAME_INPUT, RIGHT_COLUMN_NAME_INPUT};
-	}
+  /**
+   * R example library(tidyr) df <- data.frame(date = c(201401, 201402, 201403,201412), test=c('a',
+   * 'b', 'c', 'd')) df = df %>% separate(date, into = c('year', 'month'), sep = 4, remove=FALSE)
+   */
+  private static final String LEFT_COLUMN_NAME_INPUT = "lName";
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		init();
-		String[] packages = new String[] { "tidyr" };
-		this.rJavaTranslator.checkPackages(packages);
-		// get frame
-		RDataTable frame = (RDataTable) getFrame();
-		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
-		String dataFrame = frame.getName();
-		// get inputs
-		String column = this.keyValue.get(this.keysToGet[0]);
-		if (column == null || column.isEmpty()) {
-			throw new IllegalArgumentException("Need to define the column to separate");
-		}
-		String index = this.keyValue.get(this.keysToGet[1]);
-		if (index == null || index.isEmpty()) {
-			throw new IllegalArgumentException("Need to define the index to separate column");
-		}
-		// clean new column names
-		String leftColumnName = this.keyValue.get(LEFT_COLUMN_NAME_INPUT);
-		if (leftColumnName == null || leftColumnName.isEmpty()) {
-			throw new IllegalArgumentException("Need to define the left column name");
-		}
-		leftColumnName = getCleanNewColName(frame, leftColumnName);
-		String rightColumnName = this.keyValue.get(RIGHT_COLUMN_NAME_INPUT);
-		if (rightColumnName == null || rightColumnName.isEmpty()) {
-			throw new IllegalArgumentException("Need to define the right column name");
-		}
-		rightColumnName = getCleanNewColName(frame, rightColumnName);
+  private static final String RIGHT_COLUMN_NAME_INPUT = "rName";
 
-		StringBuilder sb = new StringBuilder();
+  public SeparateColumnReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.COLUMN.getKey(),
+          ReactorKeysEnum.INDEX.getKey(),
+          LEFT_COLUMN_NAME_INPUT,
+          RIGHT_COLUMN_NAME_INPUT
+        };
+  }
 
-		sb.append(dataFrame).append(" = ").append(dataFrame).append(" %>% separate(").append(column)
-				.append(", into = c('").append(leftColumnName).append("', '").append(rightColumnName)
-				.append("'), sep = ").append(index).append(", remove=FALSE)");
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    init();
+    String[] packages = new String[] {"tidyr"};
+    this.rJavaTranslator.checkPackages(packages);
+    // get frame
+    RDataTable frame = (RDataTable) getFrame();
+    OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
+    String dataFrame = frame.getName();
+    // get inputs
+    String column = this.keyValue.get(this.keysToGet[0]);
+    if (column == null || column.isEmpty()) {
+      throw new IllegalArgumentException("Need to define the column to separate");
+    }
+    String index = this.keyValue.get(this.keysToGet[1]);
+    if (index == null || index.isEmpty()) {
+      throw new IllegalArgumentException("Need to define the index to separate column");
+    }
+    // clean new column names
+    String leftColumnName = this.keyValue.get(LEFT_COLUMN_NAME_INPUT);
+    if (leftColumnName == null || leftColumnName.isEmpty()) {
+      throw new IllegalArgumentException("Need to define the left column name");
+    }
+    leftColumnName = getCleanNewColName(frame, leftColumnName);
+    String rightColumnName = this.keyValue.get(RIGHT_COLUMN_NAME_INPUT);
+    if (rightColumnName == null || rightColumnName.isEmpty()) {
+      throw new IllegalArgumentException("Need to define the right column name");
+    }
+    rightColumnName = getCleanNewColName(frame, rightColumnName);
 
-		frame.executeRScript(sb.toString());
-		this.addExecutedCode(sb.toString());
+    StringBuilder sb = new StringBuilder();
 
-		// check if new column exists
-		String colExistsScript = "\"" + leftColumnName + "\" %in% colnames(" + dataFrame + ")";
-		boolean colExists = this.rJavaTranslator.getBoolean(colExistsScript);
-		if (!colExists) {
-			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to separate column");
-			SemossPixelException exception = new SemossPixelException(error);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-		
-		// update meta data
-		metadata.addProperty(dataFrame, dataFrame + "__" + leftColumnName);
-		metadata.setAliasToProperty(dataFrame + "__" + leftColumnName, leftColumnName);
-		metadata.setDataTypeToProperty(dataFrame + "__" + leftColumnName, SemossDataType.STRING.toString());
-		metadata.setDerivedToProperty(dataFrame + "__" + leftColumnName, true);
+    sb.append(dataFrame)
+        .append(" = ")
+        .append(dataFrame)
+        .append(" %>% separate(")
+        .append(column)
+        .append(", into = c('")
+        .append(leftColumnName)
+        .append("', '")
+        .append(rightColumnName)
+        .append("'), sep = ")
+        .append(index)
+        .append(", remove=FALSE)");
 
-		metadata.addProperty(dataFrame, dataFrame + "__" + rightColumnName);
-		metadata.setAliasToProperty(dataFrame + "__" + rightColumnName, rightColumnName);
-		metadata.setDataTypeToProperty(dataFrame + "__" + rightColumnName, SemossDataType.STRING.toString());
-		metadata.setDerivedToProperty(dataFrame + "__" + rightColumnName, true);
-		frame.syncHeaders();
+    frame.executeRScript(sb.toString());
+    this.addExecutedCode(sb.toString());
 
+    // check if new column exists
+    String colExistsScript = "\"" + leftColumnName + "\" %in% colnames(" + dataFrame + ")";
+    boolean colExists = this.rJavaTranslator.getBoolean(colExistsScript);
+    if (!colExists) {
+      NounMetadata error = NounMetadata.getErrorNounMessage("Unable to separate column");
+      SemossPixelException exception = new SemossPixelException(error);
+      exception.setContinueThreadOfExecution(false);
+      throw exception;
+    }
 
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,PixelOperationType.FRAME_DATA_CHANGE);
-		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully separated " + column + " ."));
-		return retNoun;
-	}
-	
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(LEFT_COLUMN_NAME_INPUT)) {
-			return "The new column name for the left side";
-		} else if(key.equals(RIGHT_COLUMN_NAME_INPUT)) {
-			return "The new column name for the right side";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
-	}
+    // update meta data
+    metadata.addProperty(dataFrame, dataFrame + "__" + leftColumnName);
+    metadata.setAliasToProperty(dataFrame + "__" + leftColumnName, leftColumnName);
+    metadata.setDataTypeToProperty(
+        dataFrame + "__" + leftColumnName, SemossDataType.STRING.toString());
+    metadata.setDerivedToProperty(dataFrame + "__" + leftColumnName, true);
 
+    metadata.addProperty(dataFrame, dataFrame + "__" + rightColumnName);
+    metadata.setAliasToProperty(dataFrame + "__" + rightColumnName, rightColumnName);
+    metadata.setDataTypeToProperty(
+        dataFrame + "__" + rightColumnName, SemossDataType.STRING.toString());
+    metadata.setDerivedToProperty(dataFrame + "__" + rightColumnName, true);
+    frame.syncHeaders();
+
+    NounMetadata retNoun =
+        new NounMetadata(
+            frame,
+            PixelDataType.FRAME,
+            PixelOperationType.FRAME_HEADERS_CHANGE,
+            PixelOperationType.FRAME_DATA_CHANGE);
+    retNoun.addAdditionalReturn(
+        NounMetadata.getSuccessNounMessage("Successfully separated " + column + " ."));
+    return retNoun;
+  }
+
+  @Override
+  protected String getDescriptionForKey(String key) {
+    if (key.equals(LEFT_COLUMN_NAME_INPUT)) {
+      return "The new column name for the left side";
+    } else if (key.equals(RIGHT_COLUMN_NAME_INPUT)) {
+      return "The new column name for the right side";
+    } else {
+      return super.getDescriptionForKey(key);
+    }
+  }
 }

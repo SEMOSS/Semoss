@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.storage;
 
 import java.io.IOException;
@@ -9,10 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.sftp.FileAttributes;
 import net.schmizz.sshj.sftp.FileMode;
@@ -23,447 +46,471 @@ import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.FileSystemFile;
 import net.schmizz.sshj.xfer.LocalDestFile;
 import net.schmizz.sshj.xfer.LocalSourceFile;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Constants;
 
 public class SFTPStorageEngine extends AbstractStorageEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(SFTPStorageEngine.class);
+  private static final Logger classLogger = LogManager.getLogger(SFTPStorageEngine.class);
 
-	private static final String KEEP_ALIVE_INTERVAL = "KEEP_ALIVE_INTERVAL";
-	private static final String SSH_TIMEOUT = "SSH_TIMEOUT";
-	private static final String NEW_CONNECTION = "NEW_CONNECTION";
-	
-	private transient SSHClient sshClient = null;
-	private transient SFTPClient sftpClient = null;
+  private static final String KEEP_ALIVE_INTERVAL = "KEEP_ALIVE_INTERVAL";
+  private static final String SSH_TIMEOUT = "SSH_TIMEOUT";
+  private static final String NEW_CONNECTION = "NEW_CONNECTION";
 
-	private String host = null;
-	private String port = "22";
-	private transient String username = null;
-	private transient String password = null;
+  private transient SSHClient sshClient = null;
+  private transient SFTPClient sftpClient = null;
 
-	// this is in seconds
-	private int keepAlive = 60;
-	// this is in millisecond
-	private int sshConnectionTimeout = 300000; // 5min
-	// do we always establish a new connection
-	private boolean newConnection = false;
-	
-	@Override
-	public StorageTypeEnum getStorageType() {
-		return StorageTypeEnum.SFTP;
-	}
+  private String host = null;
+  private String port = "22";
+  private transient String username = null;
+  private transient String password = null;
 
-	@Override
-	public void open(Properties smssProp) throws Exception {
-		super.open(smssProp);
+  // this is in seconds
+  private int keepAlive = 60;
+  // this is in millisecond
+  private int sshConnectionTimeout = 300000; // 5min
+  // do we always establish a new connection
+  private boolean newConnection = false;
 
-		this.host = smssProp.getProperty(Constants.HOSTNAME);
-		this.port = smssProp.getProperty(Constants.PORT);
-		if(this.port == null || this.port.isEmpty()) {
-			this.port = "22"; // default sftp port
-		}
-		this.username = smssProp.getProperty(Constants.USERNAME);
-		this.password = smssProp.getProperty(Constants.PASSWORD);
+  @Override
+  public StorageTypeEnum getStorageType() {
+    return StorageTypeEnum.SFTP;
+  }
 
-		if(this.smssProp.getProperty(KEEP_ALIVE_INTERVAL) != null) {
-			String keepAliveStr = this.smssProp.getProperty(KEEP_ALIVE_INTERVAL);
-			if(!(keepAliveStr=keepAliveStr.trim()).isEmpty()) {
-				try {
-					this.keepAlive = Integer.parseInt(keepAliveStr);
-				} catch(Exception e) {
-					classLogger.warn("Error occurred trying to parse and get the keep alive interval");
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		if(this.smssProp.getProperty(SSH_TIMEOUT) != null) {
-			String sshConnectionTimeoutStr = this.smssProp.getProperty(SSH_TIMEOUT);
-			if(!(sshConnectionTimeoutStr=sshConnectionTimeoutStr.trim()).isEmpty()) {
-				try {
-					this.sshConnectionTimeout = Integer.parseInt(sshConnectionTimeoutStr);
-				} catch(Exception e) {
-					classLogger.warn("Error occurred trying to parse and get the ssh connection timeout");
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		if(this.smssProp.getProperty(NEW_CONNECTION) != null) {
-			String newConnectionStr = this.smssProp.getProperty(NEW_CONNECTION);
-			if(!(newConnectionStr=newConnectionStr.trim()).isEmpty()) {
-				try {
-					this.newConnection = Boolean.parseBoolean(newConnectionStr);
-				} catch(Exception e) {
-					classLogger.warn("Error occurred trying to parse and get the new connection boolean");
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		
-		if(!this.newConnection) {
-			classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
-			this.sshClient = getSSHClient();
-			this.sftpClient = this.sshClient.newSFTPClient();
-			classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
-		}
-	}
-	
-	private SSHClient getSSHClient() throws Exception {
-		SSHClient sshClient = new SSHClient();
-		try {
-			sshClient.loadKnownHosts();
-		} catch(IOException e) {
-			classLogger.warn("Unable to find/load known hosts... ignoring error");
-		}
-		sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-		sshClient.connect(this.host, Integer.parseInt(this.port.trim()));
-		sshClient.setTimeout(this.sshConnectionTimeout); 
-		sshClient.getConnection().getKeepAlive().setKeepAliveInterval(this.keepAlive);
-		sshClient.authPassword(this.username, this.password);
-		return sshClient;
-	}
+  @Override
+  public void open(Properties smssProp) throws Exception {
+    super.open(smssProp);
 
-	@Override
-	public void close() {
-		close(this.sftpClient, this.sshClient);
-	}
-	
-	/**
-	 * 
-	 * @param sftpClient
-	 * @param sshClient
-	 */
-	private void close(SFTPClient sftpClient, SSHClient sshClient) {
-		if(sftpClient != null) {
-			try {
-				sftpClient.close();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		if(sshClient != null) {
-			try {
-				sshClient.disconnect();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-	}
+    this.host = smssProp.getProperty(Constants.HOSTNAME);
+    this.port = smssProp.getProperty(Constants.PORT);
+    if (this.port == null || this.port.isEmpty()) {
+      this.port = "22"; // default sftp port
+    }
+    this.username = smssProp.getProperty(Constants.USERNAME);
+    this.password = smssProp.getProperty(Constants.PASSWORD);
 
-	@Override
-	public List<String> list(String path) throws Exception {
-		SSHClient sshClient = null;
-		SFTPClient sftpClient = null;
-		try {
-			if(this.newConnection) {
-				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
-				sshClient = getSSHClient();
-				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
-			} else {
-				sftpClient = this.sftpClient;
-			}
-			List<RemoteResourceInfo> info = sftpClient.ls(path);
-			List<String> names = new ArrayList<>(info.size());
-			for(RemoteResourceInfo remoteInfo : info) {
-				String name = remoteInfo.getName();
-				Type fType = remoteInfo.getAttributes().getType();
-				if(fType == Type.DIRECTORY) {
-					names.add(name+"/");
-				} else {
-					names.add(name);	
-				}
-			}
-			return names;
-		} finally {
-			if(this.newConnection) {
-				close(sftpClient, sshClient);
-			}
-		}
-	}
+    if (this.smssProp.getProperty(KEEP_ALIVE_INTERVAL) != null) {
+      String keepAliveStr = this.smssProp.getProperty(KEEP_ALIVE_INTERVAL);
+      if (!(keepAliveStr = keepAliveStr.trim()).isEmpty()) {
+        try {
+          this.keepAlive = Integer.parseInt(keepAliveStr);
+        } catch (Exception e) {
+          classLogger.warn("Error occurred trying to parse and get the keep alive interval");
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
+    if (this.smssProp.getProperty(SSH_TIMEOUT) != null) {
+      String sshConnectionTimeoutStr = this.smssProp.getProperty(SSH_TIMEOUT);
+      if (!(sshConnectionTimeoutStr = sshConnectionTimeoutStr.trim()).isEmpty()) {
+        try {
+          this.sshConnectionTimeout = Integer.parseInt(sshConnectionTimeoutStr);
+        } catch (Exception e) {
+          classLogger.warn("Error occurred trying to parse and get the ssh connection timeout");
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
+    if (this.smssProp.getProperty(NEW_CONNECTION) != null) {
+      String newConnectionStr = this.smssProp.getProperty(NEW_CONNECTION);
+      if (!(newConnectionStr = newConnectionStr.trim()).isEmpty()) {
+        try {
+          this.newConnection = Boolean.parseBoolean(newConnectionStr);
+        } catch (Exception e) {
+          classLogger.warn("Error occurred trying to parse and get the new connection boolean");
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
 
-	@Override
-	public List<Map<String, Object>> listDetails(String path) throws Exception {
-		// making these match the rclone names
-		// [
-		// {Path=Uber Eats July 17.pdf, Name=Uber Eats July 17.pdf, Size=51049.0, MimeType=application/pdf, ModTime=2023-07-17T20:54:33.767000000Z, IsDir=false, Tier=STANDARD}, 
-		// {Path=college.csv, Name=college.csv, Size=1698156.0, MimeType=text/csv, ModTime=2023-07-15T17:30:38.574000000Z, IsDir=false, Tier=STANDARD}, 
-		// {Path=testFolder, Name=testFolder, Size=0.0, MimeType=inode/directory, ModTime=2023-07-18T17:46:11.358608500-04:00, IsDir=true}
-		// ]
+    if (!this.newConnection) {
+      classLogger.info(
+          "Attempting to establishing connection to " + this.host + " on port " + this.port);
+      this.sshClient = getSSHClient();
+      this.sftpClient = this.sshClient.newSFTPClient();
+      classLogger.info(
+          "Successfully establishing connection to " + this.host + " on port " + this.port);
+    }
+  }
 
-		SSHClient sshClient = null;
-		SFTPClient sftpClient = null;
-		try {
-			if(this.newConnection) {
-				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
-				sshClient = getSSHClient();
-				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
-			} else {
-				sftpClient = this.sftpClient;
-			}
-		
-			List<RemoteResourceInfo> info = sftpClient.ls(path);
-			List<Map<String, Object>> names = new ArrayList<>(info.size());
-			for(RemoteResourceInfo remoteInfo : info) {
-				Map<String, Object> item = new HashMap<>();
-				item.put("Name", remoteInfo.getName());
-				item.put("Path", remoteInfo.getPath());
-				FileAttributes attributes = remoteInfo.getAttributes();
-				item.put("Size", attributes.getSize());
-				item.put("IsDir", attributes.getType() == Type.DIRECTORY);
-				item.put("ModTime", ZonedDateTime.ofInstant(
-						Instant.ofEpochMilli(attributes.getMtime()*1000L), TimeZone.getDefault().toZoneId())
-						);
-				names.add(item);
-			}
-			return names;
-		} finally {
-			if(this.newConnection) {
-				close(sftpClient, sshClient);
-			}
-		}
-	}
-	
-	@Override
-	public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata) throws Exception {
-		// TODO Auto-generated method stub
-		
-	}
+  private SSHClient getSSHClient() throws Exception {
+    SSHClient sshClient = new SSHClient();
+    try {
+      sshClient.loadKnownHosts();
+    } catch (IOException e) {
+      classLogger.warn("Unable to find/load known hosts... ignoring error");
+    }
+    sshClient.addHostKeyVerifier(new PromiscuousVerifier());
+    sshClient.connect(this.host, Integer.parseInt(this.port.trim()));
+    sshClient.setTimeout(this.sshConnectionTimeout);
+    sshClient.getConnection().getKeepAlive().setKeepAliveInterval(this.keepAlive);
+    sshClient.authPassword(this.username, this.password);
+    return sshClient;
+  }
 
-	@Override
-	public void syncStorageToLocal(String storagePath, String localPath) throws Exception {
-		// TODO Auto-generated method stub
-		
-	}
+  @Override
+  public void close() {
+    close(this.sftpClient, this.sshClient);
+  }
 
-	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws Exception {
-		SSHClient sshClient = null;
-		SFTPClient sftpClient = null;
-		try {
-			if(this.newConnection) {
-				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
-				sshClient = getSSHClient();
-				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
-			} else {
-				sftpClient = this.sftpClient;
-			}
-			if(localFilePath == null || localFilePath.isEmpty()) {
-				throw new NullPointerException("Must define the local location of the file to push");
-			}
-			if(storageFolderPath == null || storageFolderPath.isEmpty()) {
-				throw new NullPointerException("Must define the location of the storage folder to move to");
-			}
-	
-			storageFolderPath = storageFolderPath.replace("\\", "/");
-			localFilePath = localFilePath.replace("\\", "/");
-	
-			if(!storageFolderPath.startsWith("/")) {
-				storageFolderPath = "/"+storageFolderPath;
-			}
-			
-			LocalSourceFile lsf = new FileSystemFile(localFilePath);
-			sftpClient.put(lsf, storageFolderPath);
-		} finally {
-			if(this.newConnection) {
-				close(sftpClient, sshClient);
-			}
-		}
-	}
+  /**
+   * @param sftpClient
+   * @param sshClient
+   */
+  private void close(SFTPClient sftpClient, SSHClient sshClient) {
+    if (sftpClient != null) {
+      try {
+        sftpClient.close();
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
+    if (sshClient != null) {
+      try {
+        sshClient.disconnect();
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
+  }
 
-	@Override
-	public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
-		SSHClient sshClient = null;
-		SFTPClient sftpClient = null;
-		try {
-			if(this.newConnection) {
-				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
-				sshClient = getSSHClient();
-				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
-			} else {
-				sftpClient = this.sftpClient;
-			}
-			if(storageFilePath == null || storageFilePath.isEmpty()) {
-				throw new NullPointerException("Must define the storage location of the file to download");
-			}
-			if(localFolderPath == null || localFolderPath.isEmpty()) {
-				throw new NullPointerException("Must define the location of the local folder to move to");
-			}
-			
-			storageFilePath = storageFilePath.replace("\\", "/");
-			localFolderPath = localFolderPath.replace("\\", "/");
-	
-			if(!storageFilePath.startsWith("/")) {
-				storageFilePath = "/"+storageFilePath;
-			}
-			
-			LocalDestFile ldf = new FileSystemFile(localFolderPath);
-			sftpClient.get(storageFilePath, ldf);
-		} finally {
-			if(this.newConnection) {
-				close(sftpClient, sshClient);
-			}
-		}
-	}
+  @Override
+  public List<String> list(String path) throws Exception {
+    SSHClient sshClient = null;
+    SFTPClient sftpClient = null;
+    try {
+      if (this.newConnection) {
+        classLogger.info(
+            "Attempting to establishing connection to " + this.host + " on port " + this.port);
+        sshClient = getSSHClient();
+        sftpClient = sshClient.newSFTPClient();
+        classLogger.info(
+            "Successfully establishing connection to " + this.host + " on port " + this.port);
+      } else {
+        sftpClient = this.sftpClient;
+      }
+      List<RemoteResourceInfo> info = sftpClient.ls(path);
+      List<String> names = new ArrayList<>(info.size());
+      for (RemoteResourceInfo remoteInfo : info) {
+        String name = remoteInfo.getName();
+        Type fType = remoteInfo.getAttributes().getType();
+        if (fType == Type.DIRECTORY) {
+          names.add(name + "/");
+        } else {
+          names.add(name);
+        }
+      }
+      return names;
+    } finally {
+      if (this.newConnection) {
+        close(sftpClient, sshClient);
+      }
+    }
+  }
 
-	@Override
-	public void deleteFromStorage(String storagePath) throws Exception {
-		deleteFromStorage(storagePath, false);
-	}
+  @Override
+  public List<Map<String, Object>> listDetails(String path) throws Exception {
+    // making these match the rclone names
+    // [
+    // {Path=Uber Eats July 17.pdf, Name=Uber Eats July 17.pdf, Size=51049.0,
+    // MimeType=application/pdf, ModTime=2023-07-17T20:54:33.767000000Z, IsDir=false,
+    // Tier=STANDARD},
+    // {Path=college.csv, Name=college.csv, Size=1698156.0, MimeType=text/csv,
+    // ModTime=2023-07-15T17:30:38.574000000Z, IsDir=false, Tier=STANDARD},
+    // {Path=testFolder, Name=testFolder, Size=0.0, MimeType=inode/directory,
+    // ModTime=2023-07-18T17:46:11.358608500-04:00, IsDir=true}
+    // ]
 
-	@Override
-	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
-		SSHClient sshClient = null;
-		SFTPClient sftpClient = null;
-		try {
-			if(this.newConnection) {
-				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
-				sshClient = getSSHClient();
-				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
-			} else {
-				sftpClient = this.sftpClient;
-			}
-			if(storagePath == null || storagePath.isEmpty()) {
-				throw new NullPointerException("Must define the storage location of the file to delete");
-			}
-			storagePath = storagePath.replace("\\", "/");
-	
-			if(!storagePath.startsWith("/")) {
-				storagePath = "/"+storagePath;
-			}
-			
-			FileAttributes attributes = sftpClient.statExistence(storagePath);
-			if(attributes == null) {
-				throw new IllegalArgumentException("Storage file/folder " + storagePath + " does not exist");
-			}
-			
-			if(attributes.getType() == FileMode.Type.DIRECTORY) {
-				if(leaveFolderStructure) {
-					recursivelyDeleteFiles(sftpClient, storagePath);
-				} else {
-					sftpClient.rmdir(storagePath);
-				}
-			} else {
-				sftpClient.rm(storagePath);
-			}
-		} finally {
-			if(this.newConnection) {
-				close(sftpClient, sshClient);
-			}
-		}
-	}
-	
-	@Override
-	public void deleteFolderFromStorage(String storageFolderPath) throws Exception {
-		SSHClient sshClient = null;
-		SFTPClient sftpClient = null;
-		try {
-			if(this.newConnection) {
-				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
-				sshClient = getSSHClient();
-				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
-			} else {
-				sftpClient = this.sftpClient;
-			}
-			if(storageFolderPath == null || storageFolderPath.isEmpty()) {
-				throw new NullPointerException("Must define the storage location of the folder to delete");
-			}
-			storageFolderPath = storageFolderPath.replace("\\", "/");
-	
-			if(!storageFolderPath.startsWith("/")) {
-				storageFolderPath = "/"+storageFolderPath;
-			}
-			
-			FileAttributes attributes = sftpClient.statExistence(storageFolderPath);
-			if(attributes == null) {
-				throw new IllegalArgumentException("Storage folder " + storageFolderPath + " does not exist");
-			}
-			
-			if(attributes.getType() != FileMode.Type.DIRECTORY) {
-				throw new IllegalArgumentException("Storage path " + storageFolderPath + " is not a directory");
-			}
-	
-			sftpClient.rmdir(storageFolderPath);
-		} finally {
-			if(this.newConnection) {
-				close(sftpClient, sshClient);
-			}
-		}
-	}
+    SSHClient sshClient = null;
+    SFTPClient sftpClient = null;
+    try {
+      if (this.newConnection) {
+        classLogger.info(
+            "Attempting to establishing connection to " + this.host + " on port " + this.port);
+        sshClient = getSSHClient();
+        sftpClient = sshClient.newSFTPClient();
+        classLogger.info(
+            "Successfully establishing connection to " + this.host + " on port " + this.port);
+      } else {
+        sftpClient = this.sftpClient;
+      }
 
-	/**
-	 * 
-	 * @param sftpClient
-	 * @param storageDirectory
-	 * @throws IOException
-	 */
-	private void recursivelyDeleteFiles(SFTPClient sftpClient, String storageDirectory) throws IOException {
-		List<RemoteResourceInfo> ls = sftpClient.ls(storageDirectory);
-		for(RemoteResourceInfo f : ls) {
-			if(f.getAttributes().getType() == FileMode.Type.DIRECTORY) {
-				recursivelyDeleteFiles(sftpClient, f.getPath());
-			} else {
-				sftpClient.rm(f.getPath());
-			}
-		}
-	}
+      List<RemoteResourceInfo> info = sftpClient.ls(path);
+      List<Map<String, Object>> names = new ArrayList<>(info.size());
+      for (RemoteResourceInfo remoteInfo : info) {
+        Map<String, Object> item = new HashMap<>();
+        item.put("Name", remoteInfo.getName());
+        item.put("Path", remoteInfo.getPath());
+        FileAttributes attributes = remoteInfo.getAttributes();
+        item.put("Size", attributes.getSize());
+        item.put("IsDir", attributes.getType() == Type.DIRECTORY);
+        item.put(
+            "ModTime",
+            ZonedDateTime.ofInstant(
+                Instant.ofEpochMilli(attributes.getMtime() * 1000L),
+                TimeZone.getDefault().toZoneId()));
+        names.add(item);
+      }
+      return names;
+    } finally {
+      if (this.newConnection) {
+        close(sftpClient, sshClient);
+      }
+    }
+  }
 
-	
+  @Override
+  public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
+      throws Exception {
+    // TODO Auto-generated method stub
 
-	////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////
+  }
 
-//	public static void main(String[] args) throws Exception {
-//		/**
-//		 * 
-//		 	version: '3.1'
-//			services:
-//			    sftp:
-//			        image: atmoz/sftp
-//			        volumes:
-//			            - C:\Users\mahkhalil\Documents\sftp\mount:/home/foo/upload
-//			        ports:
-//			            - "2222:22"
-//			        command: foo:pass:1001
-//		 */
-//
-//		// these are not real/import access/secret - only for local docker
-//		Properties mockSmss = new Properties();
-//		mockSmss.put(Constants.HOSTNAME, "localhost");
-//		mockSmss.put(Constants.PORT, "2222");
-//		mockSmss.put(Constants.USERNAME, "foo");
-//		mockSmss.put(Constants.PASSWORD, "pass");
-//
-//		SFTPStorageEngine engine = new SFTPStorageEngine();
-//		engine.connect(mockSmss);
-//
-//		{
-//			List<String> list = engine.list("/");
-//			System.out.println(list);
-//		}
-//		{
-//			List<Map<String, Object>> list = engine.listDetails("/upload/");
-//			System.out.println(list);
-//		}
-//		{
-//			engine.copyToStorage("C:\\Users\\mahkhalil\\Downloads\\MooseAI Logo.png", "upload/test1");
-//		}
-//		{
-//			engine.copyToLocal("upload/MooseAI Logo.png", "C:\\Users\\mahkhalil");
-//		}
-//		{
-//			engine.deleteFromStorage("upload/test1/MooseAI Logo.png");
-//		}
-//		
-//		engine.disconnect();
-//	}
+  @Override
+  public void syncStorageToLocal(String storagePath, String localPath) throws Exception {
+    // TODO Auto-generated method stub
 
+  }
+
+  @Override
+  public void copyToStorage(
+      String localFilePath, String storageFolderPath, Map<String, Object> metadata)
+      throws Exception {
+    SSHClient sshClient = null;
+    SFTPClient sftpClient = null;
+    try {
+      if (this.newConnection) {
+        classLogger.info(
+            "Attempting to establishing connection to " + this.host + " on port " + this.port);
+        sshClient = getSSHClient();
+        sftpClient = sshClient.newSFTPClient();
+        classLogger.info(
+            "Successfully establishing connection to " + this.host + " on port " + this.port);
+      } else {
+        sftpClient = this.sftpClient;
+      }
+      if (localFilePath == null || localFilePath.isEmpty()) {
+        throw new NullPointerException("Must define the local location of the file to push");
+      }
+      if (storageFolderPath == null || storageFolderPath.isEmpty()) {
+        throw new NullPointerException("Must define the location of the storage folder to move to");
+      }
+
+      storageFolderPath = storageFolderPath.replace("\\", "/");
+      localFilePath = localFilePath.replace("\\", "/");
+
+      if (!storageFolderPath.startsWith("/")) {
+        storageFolderPath = "/" + storageFolderPath;
+      }
+
+      LocalSourceFile lsf = new FileSystemFile(localFilePath);
+      sftpClient.put(lsf, storageFolderPath);
+    } finally {
+      if (this.newConnection) {
+        close(sftpClient, sshClient);
+      }
+    }
+  }
+
+  @Override
+  public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
+    SSHClient sshClient = null;
+    SFTPClient sftpClient = null;
+    try {
+      if (this.newConnection) {
+        classLogger.info(
+            "Attempting to establishing connection to " + this.host + " on port " + this.port);
+        sshClient = getSSHClient();
+        sftpClient = sshClient.newSFTPClient();
+        classLogger.info(
+            "Successfully establishing connection to " + this.host + " on port " + this.port);
+      } else {
+        sftpClient = this.sftpClient;
+      }
+      if (storageFilePath == null || storageFilePath.isEmpty()) {
+        throw new NullPointerException("Must define the storage location of the file to download");
+      }
+      if (localFolderPath == null || localFolderPath.isEmpty()) {
+        throw new NullPointerException("Must define the location of the local folder to move to");
+      }
+
+      storageFilePath = storageFilePath.replace("\\", "/");
+      localFolderPath = localFolderPath.replace("\\", "/");
+
+      if (!storageFilePath.startsWith("/")) {
+        storageFilePath = "/" + storageFilePath;
+      }
+
+      LocalDestFile ldf = new FileSystemFile(localFolderPath);
+      sftpClient.get(storageFilePath, ldf);
+    } finally {
+      if (this.newConnection) {
+        close(sftpClient, sshClient);
+      }
+    }
+  }
+
+  @Override
+  public void deleteFromStorage(String storagePath) throws Exception {
+    deleteFromStorage(storagePath, false);
+  }
+
+  @Override
+  public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
+    SSHClient sshClient = null;
+    SFTPClient sftpClient = null;
+    try {
+      if (this.newConnection) {
+        classLogger.info(
+            "Attempting to establishing connection to " + this.host + " on port " + this.port);
+        sshClient = getSSHClient();
+        sftpClient = sshClient.newSFTPClient();
+        classLogger.info(
+            "Successfully establishing connection to " + this.host + " on port " + this.port);
+      } else {
+        sftpClient = this.sftpClient;
+      }
+      if (storagePath == null || storagePath.isEmpty()) {
+        throw new NullPointerException("Must define the storage location of the file to delete");
+      }
+      storagePath = storagePath.replace("\\", "/");
+
+      if (!storagePath.startsWith("/")) {
+        storagePath = "/" + storagePath;
+      }
+
+      FileAttributes attributes = sftpClient.statExistence(storagePath);
+      if (attributes == null) {
+        throw new IllegalArgumentException(
+            "Storage file/folder " + storagePath + " does not exist");
+      }
+
+      if (attributes.getType() == FileMode.Type.DIRECTORY) {
+        if (leaveFolderStructure) {
+          recursivelyDeleteFiles(sftpClient, storagePath);
+        } else {
+          sftpClient.rmdir(storagePath);
+        }
+      } else {
+        sftpClient.rm(storagePath);
+      }
+    } finally {
+      if (this.newConnection) {
+        close(sftpClient, sshClient);
+      }
+    }
+  }
+
+  @Override
+  public void deleteFolderFromStorage(String storageFolderPath) throws Exception {
+    SSHClient sshClient = null;
+    SFTPClient sftpClient = null;
+    try {
+      if (this.newConnection) {
+        classLogger.info(
+            "Attempting to establishing connection to " + this.host + " on port " + this.port);
+        sshClient = getSSHClient();
+        sftpClient = sshClient.newSFTPClient();
+        classLogger.info(
+            "Successfully establishing connection to " + this.host + " on port " + this.port);
+      } else {
+        sftpClient = this.sftpClient;
+      }
+      if (storageFolderPath == null || storageFolderPath.isEmpty()) {
+        throw new NullPointerException("Must define the storage location of the folder to delete");
+      }
+      storageFolderPath = storageFolderPath.replace("\\", "/");
+
+      if (!storageFolderPath.startsWith("/")) {
+        storageFolderPath = "/" + storageFolderPath;
+      }
+
+      FileAttributes attributes = sftpClient.statExistence(storageFolderPath);
+      if (attributes == null) {
+        throw new IllegalArgumentException(
+            "Storage folder " + storageFolderPath + " does not exist");
+      }
+
+      if (attributes.getType() != FileMode.Type.DIRECTORY) {
+        throw new IllegalArgumentException(
+            "Storage path " + storageFolderPath + " is not a directory");
+      }
+
+      sftpClient.rmdir(storageFolderPath);
+    } finally {
+      if (this.newConnection) {
+        close(sftpClient, sshClient);
+      }
+    }
+  }
+
+  /**
+   * @param sftpClient
+   * @param storageDirectory
+   * @throws IOException
+   */
+  private void recursivelyDeleteFiles(SFTPClient sftpClient, String storageDirectory)
+      throws IOException {
+    List<RemoteResourceInfo> ls = sftpClient.ls(storageDirectory);
+    for (RemoteResourceInfo f : ls) {
+      if (f.getAttributes().getType() == FileMode.Type.DIRECTORY) {
+        recursivelyDeleteFiles(sftpClient, f.getPath());
+      } else {
+        sftpClient.rm(f.getPath());
+      }
+    }
+  }
+
+  ////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////
+
+  //	public static void main(String[] args) throws Exception {
+  //		/**
+  //		 *
+  //		 	version: '3.1'
+  //			services:
+  //			    sftp:
+  //			        image: atmoz/sftp
+  //			        volumes:
+  //			            - C:\Users\mahkhalil\Documents\sftp\mount:/home/foo/upload
+  //			        ports:
+  //			            - "2222:22"
+  //			        command: foo:pass:1001
+  //		 */
+  //
+  //		// these are not real/import access/secret - only for local docker
+  //		Properties mockSmss = new Properties();
+  //		mockSmss.put(Constants.HOSTNAME, "localhost");
+  //		mockSmss.put(Constants.PORT, "2222");
+  //		mockSmss.put(Constants.USERNAME, "foo");
+  //		mockSmss.put(Constants.PASSWORD, "pass");
+  //
+  //		SFTPStorageEngine engine = new SFTPStorageEngine();
+  //		engine.connect(mockSmss);
+  //
+  //		{
+  //			List<String> list = engine.list("/");
+  //			System.out.println(list);
+  //		}
+  //		{
+  //			List<Map<String, Object>> list = engine.listDetails("/upload/");
+  //			System.out.println(list);
+  //		}
+  //		{
+  //			engine.copyToStorage("C:\\Users\\mahkhalil\\Downloads\\MooseAI Logo.png", "upload/test1");
+  //		}
+  //		{
+  //			engine.copyToLocal("upload/MooseAI Logo.png", "C:\\Users\\mahkhalil");
+  //		}
+  //		{
+  //			engine.deleteFromStorage("upload/test1/MooseAI Logo.png");
+  //		}
+  //
+  //		engine.disconnect();
+  //	}
 
 }

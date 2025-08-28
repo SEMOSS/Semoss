@@ -26,6 +26,7 @@
  * 	GNU General Public License for more details.
  *******************************************************************************/
 package prerna.rdf.util;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,58 +36,64 @@ import java.util.Set;
 
 public abstract class AbstractQueryParser {
 
-	protected boolean hasColumnAggregatorFunction = false;
-	protected Set<String> returnVariables = new HashSet<String>();
-	protected Hashtable<String,Hashtable<String,String>> typePropVariables = new Hashtable<String, Hashtable<String,String>>();
-	protected Hashtable<String,Hashtable<String,String>> typeReturnVariables = new Hashtable<String, Hashtable<String,String>>();
+  protected boolean hasColumnAggregatorFunction = false;
+  protected Set<String> returnVariables = new HashSet<String>();
+  protected Hashtable<String, Hashtable<String, String>> typePropVariables =
+      new Hashtable<String, Hashtable<String, String>>();
+  protected Hashtable<String, Hashtable<String, String>> typeReturnVariables =
+      new Hashtable<String, Hashtable<String, String>>();
 
-	protected Hashtable <String, String> types = new Hashtable<String, String>();
-	protected Hashtable <String, String> props = new Hashtable<String, String>();
-	protected String query;
-	protected List<String[]> triplesData = new ArrayList<String[]>();
-	protected HashMap<String,String> aliasTableMap = new HashMap<String, String>();
+  protected Hashtable<String, String> types = new Hashtable<String, String>();
+  protected Hashtable<String, String> props = new Hashtable<String, String>();
+  protected String query;
+  protected List<String[]> triplesData = new ArrayList<String[]>();
+  protected HashMap<String, String> aliasTableMap = new HashMap<String, String>();
 
-	public AbstractQueryParser(){
-		this.query = "";
-	}
-	
-	public AbstractQueryParser(String query){
-		this.query = query;
-	}
-	
-	public abstract void parseQuery();
-	public abstract List<String[]> getTriplesData();
-	
-	public void setQuery(String query){
-		this.query = query;
-	}
-	
-	public Hashtable<String, String> getNodesFromQuery(){
-		return types;
-	}
-	
-	public Hashtable<String, Hashtable<String,String>> getPropertiesFromQuery(){
-		return typePropVariables;
-	}
-	
-	public Hashtable<String, Hashtable<String,String>> getReturnVariables(){
-		return typeReturnVariables;
-	}
-	
-	protected void addToVariablesMap(Hashtable<String, Hashtable<String, String>> mappingObj, String tableName, String columnAlias, String columnName){
-		if(mappingObj.get(tableName)!=null){
-			Hashtable<String,String> returnVariablesForCurrentTable = mappingObj.get(tableName);
-			returnVariablesForCurrentTable.put(columnAlias, columnName);
-			mappingObj.put(tableName, returnVariablesForCurrentTable);
-		} else {
-			Hashtable<String,String> returnVariablesForCurrentTable = new Hashtable<String,String>();
-			returnVariablesForCurrentTable.put(columnAlias, columnName);
-			mappingObj.put(tableName, returnVariablesForCurrentTable);
-		}
-	}
-	
-	public boolean hasAggregateFunction(){
-		return hasColumnAggregatorFunction;
-	}
+  public AbstractQueryParser() {
+    this.query = "";
+  }
 
+  public AbstractQueryParser(String query) {
+    this.query = query;
+  }
+
+  public abstract void parseQuery();
+
+  public abstract List<String[]> getTriplesData();
+
+  public void setQuery(String query) {
+    this.query = query;
+  }
+
+  public Hashtable<String, String> getNodesFromQuery() {
+    return types;
+  }
+
+  public Hashtable<String, Hashtable<String, String>> getPropertiesFromQuery() {
+    return typePropVariables;
+  }
+
+  public Hashtable<String, Hashtable<String, String>> getReturnVariables() {
+    return typeReturnVariables;
+  }
+
+  protected void addToVariablesMap(
+      Hashtable<String, Hashtable<String, String>> mappingObj,
+      String tableName,
+      String columnAlias,
+      String columnName) {
+    if (mappingObj.get(tableName) != null) {
+      Hashtable<String, String> returnVariablesForCurrentTable = mappingObj.get(tableName);
+      returnVariablesForCurrentTable.put(columnAlias, columnName);
+      mappingObj.put(tableName, returnVariablesForCurrentTable);
+    } else {
+      Hashtable<String, String> returnVariablesForCurrentTable = new Hashtable<String, String>();
+      returnVariablesForCurrentTable.put(columnAlias, columnName);
+      mappingObj.put(tableName, returnVariablesForCurrentTable);
+    }
+  }
+
+  public boolean hasAggregateFunction() {
+    return hasColumnAggregatorFunction;
+  }
 }

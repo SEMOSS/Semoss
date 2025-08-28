@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
 import java.util.ArrayList;
@@ -7,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermissionEnum;
@@ -16,7 +42,6 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.engine.impl.model.inferencetracking.reactors.workspaces.EditWorkspaceReactor;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -35,7 +60,17 @@ public class EditWorkspaceReactor extends AbstractReactor {
   public static final String IS_ACTIVE = "isActive";
 
   public EditWorkspaceReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT, SHARING_ENABLED, IS_ACTIVE, ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey()};
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.WORKSPACE_ID.getKey(),
+          NAME,
+          DESCRIPTION,
+          SYSTEM_PROMPT,
+          SHARING_ENABLED,
+          IS_ACTIVE,
+          ReactorKeysEnum.VECTORDB.getKey(),
+          ReactorKeysEnum.FUNCTION.getKey()
+        };
     this.keyRequired = new int[] {1, 1, 0, 0, 0, 0, 0, 0};
   }
 
@@ -60,26 +95,26 @@ public class EditWorkspaceReactor extends AbstractReactor {
 
     Object currentlySharingEnabled = current.get("sharing_enabled");
     Boolean currentlyShared = (Boolean) currentlySharingEnabled;
-    
+
     Object currentlyIsActive = current.get("is_active");
     Boolean currentlyActive = (Boolean) currentlyIsActive;
-    
+
     List<Map<String, String>> workspaceResources = new ArrayList<>();
     Set<String> vectorDbs = getVectorDbs();
-    for(String vectorDb : vectorDbs) {
-    	if(!SecurityEngineUtils.userCanViewEngine(user, vectorDb)) {
-    		return getError("User lacks permission to one of the given vector dbs: " + vectorDb);
-    	}
-    	workspaceResources.add(makeResourceEntryMap(workspaceId, vectorDb));
+    for (String vectorDb : vectorDbs) {
+      if (!SecurityEngineUtils.userCanViewEngine(user, vectorDb)) {
+        return getError("User lacks permission to one of the given vector dbs: " + vectorDb);
+      }
+      workspaceResources.add(makeResourceEntryMap(workspaceId, vectorDb));
     }
     Set<String> tools = getTools();
-    for(String tool : tools) {
-    	if(!SecurityEngineUtils.userCanViewEngine(user, tool)) {
-    		return getError("User lacks permission to one of the given functions: " + tool);
-    	}
-    	workspaceResources.add(makeResourceEntryMap(workspaceId, tool));
+    for (String tool : tools) {
+      if (!SecurityEngineUtils.userCanViewEngine(user, tool)) {
+        return getError("User lacks permission to one of the given functions: " + tool);
+      }
+      workspaceResources.add(makeResourceEntryMap(workspaceId, tool));
     }
-    
+
     boolean hasOwnerPermission = false;
     if (currentOwner != null) {
       for (AuthProvider provider : user.getLogins()) {
@@ -107,10 +142,16 @@ public class EditWorkspaceReactor extends AbstractReactor {
     if (permissionLevel > neededPermissionLevel) {
       throw new IllegalArgumentException("User unauthorized to perform this operation");
     }
-    
+
     try {
       ModelInferenceLogsUtils.updateWorkspaceEntry(
-          workspaceId, workspaceName, workspaceDescription, workspaceSystemPrompt, sharingEnabled, isActive, workspaceResources);
+          workspaceId,
+          workspaceName,
+          workspaceDescription,
+          workspaceSystemPrompt,
+          sharingEnabled,
+          isActive,
+          workspaceResources);
       if (!currentlyShared && sharingEnabled) {
         if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
           ModelInferenceLogsUtils.enableWorkspaceProject(user, workspaceId);
@@ -129,35 +170,35 @@ public class EditWorkspaceReactor extends AbstractReactor {
     }
     return new NounMetadata(true, PixelDataType.BOOLEAN);
   }
-  
+
   private Map<String, String> makeResourceEntryMap(String workspaceId, String engine) {
-		Map<String, String> resource = new HashMap<>();
-		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engine);
-		resource.put("workspace_resource_id", UUID.randomUUID().toString());
-		resource.put("workspace_id", workspaceId);
-		resource.put("resource_id", engine);
-		resource.put("resource_type", typeAndSubtype[0].toString());
-		resource.put("resource_subtype", typeAndSubtype[1].toString());
-		return resource;
-	}
+    Map<String, String> resource = new HashMap<>();
+    Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engine);
+    resource.put("workspace_resource_id", UUID.randomUUID().toString());
+    resource.put("workspace_id", workspaceId);
+    resource.put("resource_id", engine);
+    resource.put("resource_type", typeAndSubtype[0].toString());
+    resource.put("resource_subtype", typeAndSubtype[1].toString());
+    return resource;
+  }
 
-	  private Set<String> getVectorDbs() {
-	      Set<String> inputStrings = new HashSet<>();
-	      GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
-	      if (grs != null && !grs.isEmpty()) {
-	          int size = grs.size();
-	          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-	      }
-	      return inputStrings;
-	  }
+  private Set<String> getVectorDbs() {
+    Set<String> inputStrings = new HashSet<>();
+    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
+    if (grs != null && !grs.isEmpty()) {
+      int size = grs.size();
+      for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+    }
+    return inputStrings;
+  }
 
-	  private Set<String> getTools() {
-	      Set<String> inputStrings = new HashSet<>();
-	      GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
-	      if (grs != null && !grs.isEmpty()) {
-	          int size = grs.size();
-	          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-	      }
-	      return inputStrings;
-	  }
+  private Set<String> getTools() {
+    Set<String> inputStrings = new HashSet<>();
+    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
+    if (grs != null && !grs.isEmpty()) {
+      int size = grs.size();
+      for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+    }
+    return inputStrings;
+  }
 }

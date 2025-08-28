@@ -1,11 +1,36 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.database.metaeditor.concepts;
 
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.owl.AbstractOWLEngine;
@@ -21,96 +46,128 @@ import prerna.util.Utility;
 
 public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(EditOwlConceptConceptualNameReactor.class);
+  private static final Logger classLogger =
+      LogManager.getLogger(EditOwlConceptConceptualNameReactor.class);
 
-	public EditOwlConceptConceptualNameReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), CONCEPTUAL_NAME };
-	}
+  public EditOwlConceptConceptualNameReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), CONCEPTUAL_NAME
+        };
+  }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
 
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		// perform translation if alias is passed
-		// and perform security check
-		databaseId = testDatabaseId(databaseId, true);
+    String databaseId = this.keyValue.get(this.keysToGet[0]);
+    // perform translation if alias is passed
+    // and perform security check
+    databaseId = testDatabaseId(databaseId, true);
 
-		String concept = this.keyValue.get(this.keysToGet[1]);
-		if (concept == null || concept.isEmpty()) {
-			throw new IllegalArgumentException("Must define the concept being modified in the database metadata");
-		}
+    String concept = this.keyValue.get(this.keysToGet[1]);
+    if (concept == null || concept.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Must define the concept being modified in the database metadata");
+    }
 
-		String newPixelName = this.keyValue.get(this.keysToGet[2]);
-		if (newPixelName == null || newPixelName.isEmpty()) {
-			throw new IllegalArgumentException("Must define the new conceptual name");
-		}
-		// make sure it conforms
-		newPixelName = newPixelName.trim();
-		if (!newPixelName.matches("^[a-zA-Z0-9-_]+$")) {
-			throw new IllegalArgumentException("Conceptual name must contain only letters, numbers, and underscores");
-		}
-		newPixelName = newPixelName.replaceAll("_{2,}", "_");
+    String newPixelName = this.keyValue.get(this.keysToGet[2]);
+    if (newPixelName == null || newPixelName.isEmpty()) {
+      throw new IllegalArgumentException("Must define the new conceptual name");
+    }
+    // make sure it conforms
+    newPixelName = newPixelName.trim();
+    if (!newPixelName.matches("^[a-zA-Z0-9-_]+$")) {
+      throw new IllegalArgumentException(
+          "Conceptual name must contain only letters, numbers, and underscores");
+    }
+    newPixelName = newPixelName.replaceAll("_{2,}", "_");
 
-		String newPixelURI = "http://semoss.org/ontologies/Concept/" + newPixelName;
+    String newPixelURI = "http://semoss.org/ontologies/Concept/" + newPixelName;
 
-		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
-			ClusterUtil.pullOwl(databaseId, owlEngine);
+    IDatabaseEngine database = Utility.getDatabase(databaseId);
+    try (WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+      ClusterUtil.pullOwl(databaseId, owlEngine);
 
-			// make sure this name isn't currently present in the engine
-			if ( owlEngine.getPhysicalUriFromPixelSelector(newPixelName) != null ) {
-				throw new IllegalArgumentException("This conceptual name already exists");
-			}
-	
-			String existingPixelURI = "http://semoss.org/ontologies/Concept/" + concept;
-			String conceptPhysicalURI =  owlEngine.getPhysicalUriFromPixelSelector(concept);
-			if (conceptPhysicalURI == null) {
-				throw new IllegalArgumentException("Could not find the concept. Please define the concept first before modifying the conceptual name");
-			}
-	
-			// okay, not only do i need to change this concept
-			// but i have to change all the properties conceptual
-			List<String> properties = database.getPropertyUris4PhysicalUri(conceptPhysicalURI);
-			for (String propertyPhysicalUri : properties) {
-				String propertyPixelUri = database.getPropertyPixelUriFromPhysicalUri(conceptPhysicalURI, propertyPhysicalUri);
-				String propPixelName = Utility.getClassName(propertyPixelUri);
-				String newPropertyPixelUri = "http://semoss.org/ontologies/Relation/Contains/" + propPixelName + "/" + newPixelName;
-	
-				// remove the current relationship
-				owlEngine.removeFromBaseEngine(new Object[] { propertyPhysicalUri, AbstractOWLEngine.PIXEL_RELATION_URI, propertyPixelUri, true });
-				// add the new relationship
-				owlEngine.addToBaseEngine(new Object[] { propertyPhysicalUri, AbstractOWLEngine.PIXEL_RELATION_URI, newPropertyPixelUri, true });
-			}
-	
-			// now update the actual concept
-			// remove the current relationship
-			owlEngine.removeFromBaseEngine(new Object[] { conceptPhysicalURI, AbstractOWLEngine.PIXEL_RELATION_URI, existingPixelURI, true });
-			// add the new relationship
-			owlEngine.addToBaseEngine(new Object[] { conceptPhysicalURI, AbstractOWLEngine.PIXEL_RELATION_URI, newPixelURI, true });
-	
-			try {
-				owlEngine.export();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to commit modifications", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-				return noun;
-			}
-			
-			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId, owlEngine);
-			
-		} catch (IOException | InterruptedException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
-			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to modify the OWL", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			return noun;
-		}
+      // make sure this name isn't currently present in the engine
+      if (owlEngine.getPhysicalUriFromPixelSelector(newPixelName) != null) {
+        throw new IllegalArgumentException("This conceptual name already exists");
+      }
 
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully edited concept name from " + concept + " to " + newPixelName, PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
-		return noun;
-	}
+      String existingPixelURI = "http://semoss.org/ontologies/Concept/" + concept;
+      String conceptPhysicalURI = owlEngine.getPhysicalUriFromPixelSelector(concept);
+      if (conceptPhysicalURI == null) {
+        throw new IllegalArgumentException(
+            "Could not find the concept. Please define the concept first before modifying the conceptual name");
+      }
 
+      // okay, not only do i need to change this concept
+      // but i have to change all the properties conceptual
+      List<String> properties = database.getPropertyUris4PhysicalUri(conceptPhysicalURI);
+      for (String propertyPhysicalUri : properties) {
+        String propertyPixelUri =
+            database.getPropertyPixelUriFromPhysicalUri(conceptPhysicalURI, propertyPhysicalUri);
+        String propPixelName = Utility.getClassName(propertyPixelUri);
+        String newPropertyPixelUri =
+            "http://semoss.org/ontologies/Relation/Contains/" + propPixelName + "/" + newPixelName;
+
+        // remove the current relationship
+        owlEngine.removeFromBaseEngine(
+            new Object[] {
+              propertyPhysicalUri, AbstractOWLEngine.PIXEL_RELATION_URI, propertyPixelUri, true
+            });
+        // add the new relationship
+        owlEngine.addToBaseEngine(
+            new Object[] {
+              propertyPhysicalUri, AbstractOWLEngine.PIXEL_RELATION_URI, newPropertyPixelUri, true
+            });
+      }
+
+      // now update the actual concept
+      // remove the current relationship
+      owlEngine.removeFromBaseEngine(
+          new Object[] {
+            conceptPhysicalURI, AbstractOWLEngine.PIXEL_RELATION_URI, existingPixelURI, true
+          });
+      // add the new relationship
+      owlEngine.addToBaseEngine(
+          new Object[] {
+            conceptPhysicalURI, AbstractOWLEngine.PIXEL_RELATION_URI, newPixelURI, true
+          });
+
+      try {
+        owlEngine.export();
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+        NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+        noun.addAdditionalReturn(
+            new NounMetadata(
+                "An error occurred attempting to commit modifications",
+                PixelDataType.CONST_STRING,
+                PixelOperationType.ERROR));
+        return noun;
+      }
+
+      EngineSyncUtility.clearEngineCache(databaseId);
+      ClusterUtil.pushOwl(databaseId, owlEngine);
+
+    } catch (IOException | InterruptedException e1) {
+      classLogger.error(Constants.STACKTRACE, e1);
+      NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+      noun.addAdditionalReturn(
+          new NounMetadata(
+              "An error occurred attempting to modify the OWL",
+              PixelDataType.CONST_STRING,
+              PixelOperationType.ERROR));
+      return noun;
+    }
+
+    NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+    noun.addAdditionalReturn(
+        new NounMetadata(
+            "Successfully edited concept name from " + concept + " to " + newPixelName,
+            PixelDataType.CONST_STRING,
+            PixelOperationType.SUCCESS));
+    return noun;
+  }
 }

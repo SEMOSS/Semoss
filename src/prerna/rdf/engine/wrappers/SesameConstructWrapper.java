@@ -28,68 +28,64 @@
 package prerna.rdf.engine.wrappers;
 
 import java.io.IOException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.Statement;
 import org.openrdf.query.GraphQueryResult;
 import org.openrdf.query.QueryEvaluationException;
-
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.util.Constants;
 
-
 public class SesameConstructWrapper extends AbstractWrapper implements IConstructWrapper {
 
-	private static final Logger LOGGER = LogManager.getLogger(SesameConstructWrapper.class.getName());
-	
-	public transient GraphQueryResult gqr = null;
-	
-	@Override
-	public IConstructStatement next() {
-		IConstructStatement thisSt = new ConstructStatement();
-		try {
-			LOGGER.debug("Adding a sesame statement ");
-			Statement stmt = gqr.next();
-			thisSt.setSubject(stmt.getSubject()+"");
-			thisSt.setObject(stmt.getObject());
-			thisSt.setPredicate(stmt.getPredicate() + "");
-		} catch (QueryEvaluationException e) {
-			// TODO Auto-generated catch block
-			LOGGER.error(Constants.STACKTRACE, e);
-		}
-		return thisSt;
-	}
+  private static final Logger LOGGER = LogManager.getLogger(SesameConstructWrapper.class.getName());
 
-	@Override
-	public void execute() throws Exception {
-		gqr = (GraphQueryResult)engine.execQuery(this.query);
-	}
+  public transient GraphQueryResult gqr = null;
 
-	@Override
-	public boolean hasNext() {
-		boolean retBool = false;
-		
-		try {
-			retBool = gqr.hasNext();
-			if(!retBool)
-				gqr.close();
-		} catch (QueryEvaluationException e) {
-			// TODO Auto-generated catch block
-			LOGGER.error(Constants.STACKTRACE, e);
-		}
-		
-		return retBool;
-	}
+  @Override
+  public IConstructStatement next() {
+    IConstructStatement thisSt = new ConstructStatement();
+    try {
+      LOGGER.debug("Adding a sesame statement ");
+      Statement stmt = gqr.next();
+      thisSt.setSubject(stmt.getSubject() + "");
+      thisSt.setObject(stmt.getObject());
+      thisSt.setPredicate(stmt.getPredicate() + "");
+    } catch (QueryEvaluationException e) {
+      // TODO Auto-generated catch block
+      LOGGER.error(Constants.STACKTRACE, e);
+    }
+    return thisSt;
+  }
 
-	@Override
-	public void close() throws IOException {
-		try {
-			gqr.close();
-		} catch (QueryEvaluationException e) {
-			LOGGER.error(Constants.STACKTRACE, e);
-			throw new IOException(e);
-		}
-	}
+  @Override
+  public void execute() throws Exception {
+    gqr = (GraphQueryResult) engine.execQuery(this.query);
+  }
+
+  @Override
+  public boolean hasNext() {
+    boolean retBool = false;
+
+    try {
+      retBool = gqr.hasNext();
+      if (!retBool) gqr.close();
+    } catch (QueryEvaluationException e) {
+      // TODO Auto-generated catch block
+      LOGGER.error(Constants.STACKTRACE, e);
+    }
+
+    return retBool;
+  }
+
+  @Override
+  public void close() throws IOException {
+    try {
+      gqr.close();
+    } catch (QueryEvaluationException e) {
+      LOGGER.error(Constants.STACKTRACE, e);
+      throw new IOException(e);
+    }
+  }
 }

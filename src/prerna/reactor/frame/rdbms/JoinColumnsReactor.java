@@ -1,10 +1,35 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.rdbms;
 
 import java.util.Arrays;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
@@ -16,75 +41,73 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class JoinColumnsReactor extends AbstractFrameReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(JoinColumnsReactor.class);
 
-	@Override
-	public NounMetadata execute() {
-		// JoinColumns("newColumnName", "separator", Col1, Col2...);
-		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
-		GenRowStruct inputsGRS = this.getCurRow();
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			// get new column name
-			NounMetadata colNameNoun = inputsGRS.getNoun(0);
-			String colName = colNameNoun.getValue() + "";
+  private static final Logger classLogger = LogManager.getLogger(JoinColumnsReactor.class);
 
-			// make sql data type
-			String dataType = frame.getQueryUtil().cleanType(SemossDataType.STRING.toString());
-			String table = frame.getName();
+  @Override
+  public NounMetadata execute() {
+    // JoinColumns("newColumnName", "separator", Col1, Col2...);
+    AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
+    GenRowStruct inputsGRS = this.getCurRow();
+    if (inputsGRS != null && !inputsGRS.isEmpty()) {
+      // get new column name
+      NounMetadata colNameNoun = inputsGRS.getNoun(0);
+      String colName = colNameNoun.getValue() + "";
 
-			// validate new column name
-			colName = getCleanNewColName(frame, colName);
+      // make sql data type
+      String dataType = frame.getQueryUtil().cleanType(SemossDataType.STRING.toString());
+      String table = frame.getName();
 
-			// create sql statement to add new column
-			String addColumn = "ALTER TABLE " + table + " ADD " + colName + " " + dataType + ";";
+      // validate new column name
+      colName = getCleanNewColName(frame, colName);
 
-			// prepare separator for sql
-			String separator = String.valueOf(inputsGRS.getNoun(1).getValue());
-			if (separator.contains("'")) {
-				separator = separator.replaceAll("'", "''");
-			}
-			separator = "'" + separator + "'";
+      // create sql statement to add new column
+      String addColumn = "ALTER TABLE " + table + " ADD " + colName + " " + dataType + ";";
 
-			// update new column with concatenated values col1 + separator  col2 ...
-			String updateColumn = "UPDATE " + table + " SET " + colName + " = CONCAT (";
-			for (int i = 2; i < inputsGRS.size(); i++) {
-				String column = inputsGRS.getNoun(i).getValue() + "";
-				// Clean column
-				if (column.contains("__")) {
-					String[] split = column.split("__");
-					column = split[1];
-				}
-				// if only one column
-				if (inputsGRS.size() == 3) {
-					updateColumn += column + " , " + separator;
-				} else if (i == inputsGRS.size() - 1) {
-					updateColumn += column;
-				} else {
-					updateColumn += column + " , " + separator + " , ";
-				}
-				// does the column exist?
-				String[] existCols = getColNames(frame);
-				if (Arrays.asList(existCols).contains(column) != true) {
-					throw new IllegalArgumentException("Column: " + column + " doesn't exist.");
-				}
+      // prepare separator for sql
+      String separator = String.valueOf(inputsGRS.getNoun(1).getValue());
+      if (separator.contains("'")) {
+        separator = separator.replaceAll("'", "''");
+      }
+      separator = "'" + separator + "'";
 
-			}
-			updateColumn += ");";
+      // update new column with concatenated values col1 + separator  col2 ...
+      String updateColumn = "UPDATE " + table + " SET " + colName + " = CONCAT (";
+      for (int i = 2; i < inputsGRS.size(); i++) {
+        String column = inputsGRS.getNoun(i).getValue() + "";
+        // Clean column
+        if (column.contains("__")) {
+          String[] split = column.split("__");
+          column = split[1];
+        }
+        // if only one column
+        if (inputsGRS.size() == 3) {
+          updateColumn += column + " , " + separator;
+        } else if (i == inputsGRS.size() - 1) {
+          updateColumn += column;
+        } else {
+          updateColumn += column + " , " + separator + " , ";
+        }
+        // does the column exist?
+        String[] existCols = getColNames(frame);
+        if (Arrays.asList(existCols).contains(column) != true) {
+          throw new IllegalArgumentException("Column: " + column + " doesn't exist.");
+        }
+      }
+      updateColumn += ");";
 
-			try {
-				frame.getBuilder().runQuery(addColumn + updateColumn);
-				// set metadata for new column
-				OwlTemporalEngineMeta metaData = frame.getMetaData();
-				metaData.addProperty(table, table + "__" + colName);
-				metaData.setAliasToProperty(table + "__" + colName, colName);
-				metaData.setDataTypeToProperty(table + "__" + colName, dataType);
-				frame.syncHeaders();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-	}
-
+      try {
+        frame.getBuilder().runQuery(addColumn + updateColumn);
+        // set metadata for new column
+        OwlTemporalEngineMeta metaData = frame.getMetaData();
+        metaData.addProperty(table, table + "__" + colName);
+        metaData.setAliasToProperty(table + "__" + colName, colName);
+        metaData.setDataTypeToProperty(table + "__" + colName, dataType);
+        frame.syncHeaders();
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
+    return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+  }
 }

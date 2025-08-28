@@ -1,10 +1,36 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.panel;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
 import prerna.om.InsightPanel;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -16,75 +42,77 @@ import prerna.util.insight.InsightUtility;
 
 public class RefreshPanelViewReactor extends AbstractReactor {
 
-	public RefreshPanelViewReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PANEL.getKey()};
-	}
+  public RefreshPanelViewReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.PANEL.getKey()};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		// get the filters if any
-		List<String> panelIds = getIds();
+  @Override
+  public NounMetadata execute() {
+    // get the filters if any
+    List<String> panelIds = getIds();
 
-		List<NounMetadata> nounList = new Vector<>();
-		
-		Map<String, InsightPanel> insightPanelsMap = this.insight.getInsightPanels();
-		for(String panelId : insightPanelsMap.keySet()) {
-			if(panelIds == null || panelIds.contains(panelId)) {
-				InsightPanel insightPanel = insightPanelsMap.get(panelId);
-				if(!insightPanel.getPanelView().equalsIgnoreCase("text-editor")) {
-					continue;
-				}
-				
-				Map<String, String> returnMap = new HashMap<String, String>();
-				returnMap.put("panelId", insightPanel.getPanelId());
-				returnMap.put("view", insightPanel.getPanelView());
-				// grab the options for this view
-				returnMap.put("options", insightPanel.getPanelActiveViewOptions());
-				String renderedViewOptions = InsightUtility.recalculateHtmlViews(this.insight, insightPanel);
-				returnMap.put("renderedOptions", renderedViewOptions);
-				
-				NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_VIEW);
-				nounList.add(noun);
-			}
-		}
+    List<NounMetadata> nounList = new Vector<>();
 
-		return new NounMetadata(nounList, PixelDataType.VECTOR);
-	}
-	
-	private List<String> getIds() {
-		List<String> panelIds = null;
-		// try the key
-		GenRowStruct panelGrs = store.getNoun(keysToGet[0]);
-		if(panelGrs != null && !panelGrs.isEmpty()) {
-			int size = panelGrs.size();
-			panelIds = new Vector<String>(size);
-			for(int i = 0; i < size; i++) {
-				NounMetadata noun = panelGrs.getNoun(i);
-				if(noun.getNounType() == PixelDataType.PANEL) {
-					panelIds.add( ((InsightPanel) noun.getValue()).getPanelId() ); 
-				} else {
-					panelIds.add(noun.getValue().toString());
-				}
-			}
-			return panelIds;
-		}
+    Map<String, InsightPanel> insightPanelsMap = this.insight.getInsightPanels();
+    for (String panelId : insightPanelsMap.keySet()) {
+      if (panelIds == null || panelIds.contains(panelId)) {
+        InsightPanel insightPanel = insightPanelsMap.get(panelId);
+        if (!insightPanel.getPanelView().equalsIgnoreCase("text-editor")) {
+          continue;
+        }
 
-		// direct values
-		if(!this.curRow.isEmpty()) {
-			int size = curRow.size();
-			panelIds = new Vector<String>(size);
-			for(int i = 0; i < size; i++) {
-				NounMetadata noun = curRow.getNoun(i);
-				if(noun.getNounType() == PixelDataType.PANEL) {
-					panelIds.add( ((InsightPanel) noun.getValue()).getPanelId() ); 
-				} else {
-					panelIds.add(noun.getValue().toString());
-				}
-			}
-			return panelIds;
-		}
-		
-		return null;
-	}
+        Map<String, String> returnMap = new HashMap<String, String>();
+        returnMap.put("panelId", insightPanel.getPanelId());
+        returnMap.put("view", insightPanel.getPanelView());
+        // grab the options for this view
+        returnMap.put("options", insightPanel.getPanelActiveViewOptions());
+        String renderedViewOptions =
+            InsightUtility.recalculateHtmlViews(this.insight, insightPanel);
+        returnMap.put("renderedOptions", renderedViewOptions);
 
+        NounMetadata noun =
+            new NounMetadata(
+                returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_VIEW);
+        nounList.add(noun);
+      }
+    }
+
+    return new NounMetadata(nounList, PixelDataType.VECTOR);
+  }
+
+  private List<String> getIds() {
+    List<String> panelIds = null;
+    // try the key
+    GenRowStruct panelGrs = store.getNoun(keysToGet[0]);
+    if (panelGrs != null && !panelGrs.isEmpty()) {
+      int size = panelGrs.size();
+      panelIds = new Vector<String>(size);
+      for (int i = 0; i < size; i++) {
+        NounMetadata noun = panelGrs.getNoun(i);
+        if (noun.getNounType() == PixelDataType.PANEL) {
+          panelIds.add(((InsightPanel) noun.getValue()).getPanelId());
+        } else {
+          panelIds.add(noun.getValue().toString());
+        }
+      }
+      return panelIds;
+    }
+
+    // direct values
+    if (!this.curRow.isEmpty()) {
+      int size = curRow.size();
+      panelIds = new Vector<String>(size);
+      for (int i = 0; i < size; i++) {
+        NounMetadata noun = curRow.getNoun(i);
+        if (noun.getNounType() == PixelDataType.PANEL) {
+          panelIds.add(((InsightPanel) noun.getValue()).getPanelId());
+        } else {
+          panelIds.add(noun.getValue().toString());
+        }
+      }
+      return panelIds;
+    }
+
+    return null;
+  }
 }

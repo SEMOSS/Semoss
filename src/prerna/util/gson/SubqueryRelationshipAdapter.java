@@ -1,114 +1,139 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.util.gson;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.joins.SubqueryRelationship;
 
-public class SubqueryRelationshipAdapter extends AbstractSemossTypeAdapter<SubqueryRelationship> implements IRelationAdapterHelper {
+public class SubqueryRelationshipAdapter extends AbstractSemossTypeAdapter<SubqueryRelationship>
+    implements IRelationAdapterHelper {
 
-	@Override
-	public SubqueryRelationship read(JsonReader in) throws IOException {
-		if (in.peek() == JsonToken.NULL) {
-			in.nextNull();
-			return null;
-		}
-		
-		// remove the beginning objects
-		in.beginObject();
-		in.nextName();
-		in.nextString();
-		in.nextName();
-		
-		// now we read the actual content
-		SubqueryRelationship value = readContent(in);
-		in.endObject();
-		return value;
-	}
-	
-	@Override
-	public SubqueryRelationship readContent(JsonReader in) throws IOException {
-		String queryAlias = null;
-		String joinType = null;
-		SelectQueryStruct qs = null;
-		List<String[]> joinOnDetails = new ArrayList<>();
-		
-		in.beginObject();
-		while(in.hasNext()) {
-			String name = in.nextName();
-			if(in.peek() == JsonToken.NULL) {
-				in.nextNull();
-				continue;
-			}
-			if(name.equals("queryAlias")) {
-				queryAlias = in.nextString();
-			} else if(name.equals("joinType")) {
-				joinType = in.nextString();
-			} else if(name.equals("qs")) {
-				SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
-				qs = adapter.read(in);
-			} else if(name.equals("joinOnDetails")) {
-				in.beginArray();
-				while(in.hasNext()) {
-					List<String> joinOn = new ArrayList<>();
-					in.beginArray();
-					while(in.hasNext()) {
-						if(in.peek() == null) {
-							joinOn.add(null);
-							in.nextNull();
-						} else {
-							joinOn.add(in.nextString());
-						}
-					}
-					in.endArray();
-					// store the joinOn
-					joinOnDetails.add(joinOn.toArray(new String[] {}));
-				}
-			}
-		}
-		in.endObject();
-		
-		return new SubqueryRelationship(qs, queryAlias, joinType, joinOnDetails);
-	}
+  @Override
+  public SubqueryRelationship read(JsonReader in) throws IOException {
+    if (in.peek() == JsonToken.NULL) {
+      in.nextNull();
+      return null;
+    }
 
-	@Override
-	public void write(JsonWriter out, SubqueryRelationship value) throws IOException {
-		if (value == null) {
-			out.nullValue();
-			return;
-		}
-		
-		out.beginObject();
-		out.name("type").value(IRelation.RELATION_TYPE.BASIC.toString());
-		out.name("content");
-			// content object
-			out.beginObject();
-				out.name("queryAlias").value(value.getQueryAlias());
-				out.name("joinType").value(value.getJoinType());
-				out.name("qs");
-				SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
-				adapter.write(out, value.getQs());
-				List<String[]> joinOnDetails = value.getJoinOnDetails();
-				out.name("joinOnDetails");
-				out.beginArray();
-				for(int i = 0; i < joinOnDetails.size(); i++) {
-					String[] joinOn = joinOnDetails.get(i);
-					out.beginArray();
-					for(int j = 0; j < joinOn.length; j++) {
-						out.value(joinOn[j]);
-					}
-					out.endArray();
-				}
-				out.endArray();
-			out.endObject();
-		out.endObject();
-	}
+    // remove the beginning objects
+    in.beginObject();
+    in.nextName();
+    in.nextString();
+    in.nextName();
 
+    // now we read the actual content
+    SubqueryRelationship value = readContent(in);
+    in.endObject();
+    return value;
+  }
+
+  @Override
+  public SubqueryRelationship readContent(JsonReader in) throws IOException {
+    String queryAlias = null;
+    String joinType = null;
+    SelectQueryStruct qs = null;
+    List<String[]> joinOnDetails = new ArrayList<>();
+
+    in.beginObject();
+    while (in.hasNext()) {
+      String name = in.nextName();
+      if (in.peek() == JsonToken.NULL) {
+        in.nextNull();
+        continue;
+      }
+      if (name.equals("queryAlias")) {
+        queryAlias = in.nextString();
+      } else if (name.equals("joinType")) {
+        joinType = in.nextString();
+      } else if (name.equals("qs")) {
+        SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
+        qs = adapter.read(in);
+      } else if (name.equals("joinOnDetails")) {
+        in.beginArray();
+        while (in.hasNext()) {
+          List<String> joinOn = new ArrayList<>();
+          in.beginArray();
+          while (in.hasNext()) {
+            if (in.peek() == null) {
+              joinOn.add(null);
+              in.nextNull();
+            } else {
+              joinOn.add(in.nextString());
+            }
+          }
+          in.endArray();
+          // store the joinOn
+          joinOnDetails.add(joinOn.toArray(new String[] {}));
+        }
+      }
+    }
+    in.endObject();
+
+    return new SubqueryRelationship(qs, queryAlias, joinType, joinOnDetails);
+  }
+
+  @Override
+  public void write(JsonWriter out, SubqueryRelationship value) throws IOException {
+    if (value == null) {
+      out.nullValue();
+      return;
+    }
+
+    out.beginObject();
+    out.name("type").value(IRelation.RELATION_TYPE.BASIC.toString());
+    out.name("content");
+    // content object
+    out.beginObject();
+    out.name("queryAlias").value(value.getQueryAlias());
+    out.name("joinType").value(value.getJoinType());
+    out.name("qs");
+    SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
+    adapter.write(out, value.getQs());
+    List<String[]> joinOnDetails = value.getJoinOnDetails();
+    out.name("joinOnDetails");
+    out.beginArray();
+    for (int i = 0; i < joinOnDetails.size(); i++) {
+      String[] joinOn = joinOnDetails.get(i);
+      out.beginArray();
+      for (int j = 0; j < joinOn.length; j++) {
+        out.value(joinOn[j]);
+      }
+      out.endArray();
+    }
+    out.endArray();
+    out.endObject();
+    out.endObject();
+  }
 }

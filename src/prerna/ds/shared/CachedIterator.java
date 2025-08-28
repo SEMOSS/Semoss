@@ -1,119 +1,145 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.ds.shared;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 
 public class CachedIterator implements Iterator<IHeadersDataRow> {
 
-	private transient ITableDataFrame frame = null;
+  private transient ITableDataFrame frame = null;
 
-	// I will also set the query here
-	// so it can be cached for future
-	private String query = null;
-	
-	private String[] headers = null;
-	private SemossDataType[] colTypes = null;
+  // I will also set the query here
+  // so it can be cached for future
+  private String query = null;
 
-	// Current implementation.. pulls the data into the memory.. we will change it after
-	private List<IHeadersDataRow> values = new ArrayList<IHeadersDataRow>();
-	
-	private int initSize = 0;
-	private int counter = 0;
-	private int jcounter = 0;
-	private int finalSize = 0;
-	private int jsonSize = 0;
-	private boolean first = true;
-	
-	private StringBuilder allJson = new StringBuilder();
-	private List<String> jsonList = new ArrayList<String>();
-	
-	@Override
-	public boolean hasNext() {
-		return counter < finalSize && jcounter < jsonSize;
-	}
+  private String[] headers = null;
+  private SemossDataType[] colTypes = null;
 
-	@Override
-	public IHeadersDataRow next() {
-		IHeadersDataRow retRow = values.get(counter);
-		counter++;
-		return retRow;
-	}
-	
-	public void setHeaders(String [] headers) {
-		this.headers = headers;
-	}
-	
-	public String[] getHeaders() {
-		return headers;
-	}
-	
-	public void setColTypes(SemossDataType [] colTypes) {
-		this.colTypes = colTypes;
-	}
-	
-	public SemossDataType [] getColTypes() {
-		return this.colTypes;
-	}
-	
-	public int getInitSize() {
-		return initSize;
-	}
-	
-	// sets the query
-	public void setQuery(String query) {
-		this.query = query;
-	}
-	
-	public String getQuery() {
-		return this.query;
-	}
-	
-	public void addNext(IHeadersDataRow row) {
-		values.add(row);
-	}
-	
-	public void setFrame(ITableDataFrame frame) {
-		this.frame = frame;
-	}
-	
-	public void addJson(String json) {
-		this.jsonList.add(json);
-		if(this.allJson.length() > 0) {
-			this.allJson.append(",");
-		}
-		this.allJson.append(json);
-	}
-	
-	public String getNextJson() {
-		String json = this.jsonList.get(this.jcounter);
-		this.jcounter++;
-		return json;
-	}
-	
-	public boolean getFirst() {
-		return this.first;
-	}
-	
-	public String getAllJson() {
-		return this.allJson.toString();
-	}
-	
-	public ITableDataFrame getFrame() {
-		return this.frame;
-	}
-	
-	public void processCache() {
-		// I need to reset some stuff here ?
-		this.finalSize = this.values.size();
-		this.jsonSize = this.jsonList.size();
-		this.counter = 0;
-		this.jcounter = 0;
-		this.first = false;
-		this.frame.cacheQuery(this);
-	}
+  // Current implementation.. pulls the data into the memory.. we will change it after
+  private List<IHeadersDataRow> values = new ArrayList<IHeadersDataRow>();
+
+  private int initSize = 0;
+  private int counter = 0;
+  private int jcounter = 0;
+  private int finalSize = 0;
+  private int jsonSize = 0;
+  private boolean first = true;
+
+  private StringBuilder allJson = new StringBuilder();
+  private List<String> jsonList = new ArrayList<String>();
+
+  @Override
+  public boolean hasNext() {
+    return counter < finalSize && jcounter < jsonSize;
+  }
+
+  @Override
+  public IHeadersDataRow next() {
+    IHeadersDataRow retRow = values.get(counter);
+    counter++;
+    return retRow;
+  }
+
+  public void setHeaders(String[] headers) {
+    this.headers = headers;
+  }
+
+  public String[] getHeaders() {
+    return headers;
+  }
+
+  public void setColTypes(SemossDataType[] colTypes) {
+    this.colTypes = colTypes;
+  }
+
+  public SemossDataType[] getColTypes() {
+    return this.colTypes;
+  }
+
+  public int getInitSize() {
+    return initSize;
+  }
+
+  // sets the query
+  public void setQuery(String query) {
+    this.query = query;
+  }
+
+  public String getQuery() {
+    return this.query;
+  }
+
+  public void addNext(IHeadersDataRow row) {
+    values.add(row);
+  }
+
+  public void setFrame(ITableDataFrame frame) {
+    this.frame = frame;
+  }
+
+  public void addJson(String json) {
+    this.jsonList.add(json);
+    if (this.allJson.length() > 0) {
+      this.allJson.append(",");
+    }
+    this.allJson.append(json);
+  }
+
+  public String getNextJson() {
+    String json = this.jsonList.get(this.jcounter);
+    this.jcounter++;
+    return json;
+  }
+
+  public boolean getFirst() {
+    return this.first;
+  }
+
+  public String getAllJson() {
+    return this.allJson.toString();
+  }
+
+  public ITableDataFrame getFrame() {
+    return this.frame;
+  }
+
+  public void processCache() {
+    // I need to reset some stuff here ?
+    this.finalSize = this.values.size();
+    this.jsonSize = this.jsonList.size();
+    this.counter = 0;
+    this.jcounter = 0;
+    this.first = false;
+    this.frame.cacheQuery(this);
+  }
 }

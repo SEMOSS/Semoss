@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.database.metaeditor.relationships;
 
 import java.io.File;
@@ -6,10 +33,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -36,200 +61,211 @@ import prerna.util.Utility;
 
 public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(UploadBulkOwlRelationshipsReactor.class);
+  private static final Logger classLogger =
+      LogManager.getLogger(UploadBulkOwlRelationshipsReactor.class);
 
-	private static final String CLASS_NAME = UploadBulkOwlRelationshipsReactor.class.getName();
-	private static final String SYNC_WITH_LOCALMASTER = "sync";
+  private static final String CLASS_NAME = UploadBulkOwlRelationshipsReactor.class.getName();
+  private static final String SYNC_WITH_LOCALMASTER = "sync";
 
-	static final String START_TABLE = "START_TABLE";
-	static final String START_COLUMN = "START_COLUMN";
-	static final String TARGET_TABLE = "TARGET_TABLE";
-	static final String TARGET_COLUMN = "TARGET_COLUMN";
-	
-	/*
-	 * This class assumes that the start table, start column, end table, and end column have already been defined
-	 */
-	
-	private Logger logger = null;
-	
-	public UploadBulkOwlRelationshipsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), 
-				ReactorKeysEnum.SPACE.getKey(), SYNC_WITH_LOCALMASTER};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		logger = getLogger(CLASS_NAME);
+  static final String START_TABLE = "START_TABLE";
+  static final String START_COLUMN = "START_COLUMN";
+  static final String TARGET_TABLE = "TARGET_TABLE";
+  static final String TARGET_COLUMN = "TARGET_COLUMN";
 
-		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		databaseId = testDatabaseId(databaseId, true);
-		boolean sync = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
-		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
-		File uploadFile = new File(filePath);
-		if(!uploadFile.exists() || !uploadFile.isFile()) {
-			throw new IllegalArgumentException("Could not find the specified file");
-		}
-		
-		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		long start = System.currentTimeMillis();
-		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
-			ClusterUtil.pullOwl(databaseId, owlEngine);
+  /*
+   * This class assumes that the start table, start column, end table, and end column have already been defined
+   */
 
-			ExcelSheetFileIterator it = null;
-			try {
-				it = getExcelIterator(filePath);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
-			} finally {
-				if(it != null) {
-					try {
-						it.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-			
-			String[] excelHeaders = it.getHeaders();
-			List<String> excelHeadersList = Arrays.asList(excelHeaders);
-	
-			int idxStartT = excelHeadersList.indexOf(START_TABLE);
-			int idxStartC = excelHeadersList.indexOf(START_COLUMN);
-			int idxTargetT = excelHeadersList.indexOf(TARGET_TABLE);
-			int idxTargetC = excelHeadersList.indexOf(TARGET_COLUMN);
-	
-			if(idxStartT < 0 
-					|| idxStartC < 0
-					|| idxTargetT < 0
-					|| idxTargetC < 0
-					) {
-				throw new IllegalArgumentException("One or more headers are missing from the excel");
-			}
-			
-			int counter = 0;
-			logger.info("Retrieving values to insert");
-			try {
-				while(it.hasNext()) {
-					if(counter % 100 == 0) {
-						logger.info("Adding relationship : #" + (counter+1));
-					}
-					IHeadersDataRow row = it.next();
-					Object[] values = row.getValues();
-					
-					String startT = values[idxStartT].toString();
-					String startC = values[idxStartC].toString();
-					String endT = values[idxTargetT].toString();
-					String endC = values[idxTargetC].toString();
-					
-					// generate the relationship
-					String rel = startT + "." + startC + "." + endT + "." + endC;
-					
-					// add the relationship
-					owlEngine.addRelation(startT, endT, rel);
-					counter++;
-				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(it != null) {
-					try {
-						it.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-			
-			try {
-				owlEngine.commit();
-				owlEngine.export();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the relationships", 
-						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-				return noun;
-			}
-			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId, owlEngine);
-		
-		} catch (IOException | InterruptedException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
-			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to modify the OWL", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			return noun;
-		}
-			
-		if(sync) {
-			logger.info("Starting to remove exisitng metadata");
-			DeleteFromMasterDB remover = new DeleteFromMasterDB();
-			remover.deleteEngineRDBMS(databaseId);
-			logger.info("Finished removing exisitng metadata");
+  private Logger logger = null;
 
-			logger.info("Starting to add metadata");
-			String smssFile = (String) DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE);
-			Properties prop = Utility.loadProperties(smssFile);
-			AddToMasterDB adder = new AddToMasterDB();
-			adder.registerEngineLocal(smssFile, prop);
-			logger.info("Done adding new metadata");
+  public UploadBulkOwlRelationshipsReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.DATABASE.getKey(),
+          ReactorKeysEnum.FILE_PATH.getKey(),
+          ReactorKeysEnum.SPACE.getKey(),
+          SYNC_WITH_LOCALMASTER
+        };
+  }
 
-			logger.info("Synchronization complete");
-		}
-		
-		long end = System.currentTimeMillis();
-		
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Time to finish = " + (end - start) + "ms", 
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
-		return noun;
-	}
+  @Override
+  public NounMetadata execute() {
+    logger = getLogger(CLASS_NAME);
 
-	////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////
+    organizeKeys();
+    String databaseId = this.keyValue.get(this.keysToGet[0]);
+    databaseId = testDatabaseId(databaseId, true);
+    boolean sync = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
+    String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+    File uploadFile = new File(filePath);
+    if (!uploadFile.exists() || !uploadFile.isFile()) {
+      throw new IllegalArgumentException("Could not find the specified file");
+    }
 
+    IDatabaseEngine database = Utility.getDatabase(databaseId);
+    long start = System.currentTimeMillis();
+    try (WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+      ClusterUtil.pullOwl(databaseId, owlEngine);
 
-	private ExcelSheetFileIterator getExcelIterator(String fileLocation) {
-		// get range
-		ExcelWorkbookFilePreProcessor processor = new ExcelWorkbookFilePreProcessor();
-		processor.parse(fileLocation);
-		processor.determineTableRanges();
-		Map<String, ExcelSheetPreProcessor> sheetProcessors = processor.getSheetProcessors();
-		// get sheetName and headers
-		String sheetName = processor.getSheetNames().get(0);
-		String range = null;
-		ExcelSheetPreProcessor sProcessor = sheetProcessors.get(sheetName);
-		{
-			List<ExcelBlock> blocks = sProcessor.getAllBlocks();
-			// for(int i = 0; i < blocks.size(); i++) {
-			ExcelBlock block = blocks.get(0);
-			List<ExcelRange> blockRanges = block.getRanges();
-			for (int j = 0; j < 1; j++) {
-				ExcelRange r = blockRanges.get(j);
-				logger.info("Found range = " + r.getRangeSyntax());
-				range = r.getRangeSyntax();
-			}
-		}
-		processor.clear();
-		
-		ExcelQueryStruct qs = new ExcelQueryStruct();
-		qs.setSheetName(sheetName);
-		qs.setSheetRange(range);
-		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-		helper.parse(fileLocation);
-		ExcelSheetFileIterator it = helper.getSheetIterator(qs);
-		
-		return it;
-	}
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(SYNC_WITH_LOCALMASTER)) {
-			return "Synchronize the OWL changes with the local master database";
-		}
-		return super.getDescriptionForKey(key);
-	}
+      ExcelSheetFileIterator it = null;
+      try {
+        it = getExcelIterator(filePath);
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+        throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
+      } finally {
+        if (it != null) {
+          try {
+            it.close();
+          } catch (IOException e) {
+            classLogger.error(Constants.STACKTRACE, e);
+          }
+        }
+      }
 
+      String[] excelHeaders = it.getHeaders();
+      List<String> excelHeadersList = Arrays.asList(excelHeaders);
+
+      int idxStartT = excelHeadersList.indexOf(START_TABLE);
+      int idxStartC = excelHeadersList.indexOf(START_COLUMN);
+      int idxTargetT = excelHeadersList.indexOf(TARGET_TABLE);
+      int idxTargetC = excelHeadersList.indexOf(TARGET_COLUMN);
+
+      if (idxStartT < 0 || idxStartC < 0 || idxTargetT < 0 || idxTargetC < 0) {
+        throw new IllegalArgumentException("One or more headers are missing from the excel");
+      }
+
+      int counter = 0;
+      logger.info("Retrieving values to insert");
+      try {
+        while (it.hasNext()) {
+          if (counter % 100 == 0) {
+            logger.info("Adding relationship : #" + (counter + 1));
+          }
+          IHeadersDataRow row = it.next();
+          Object[] values = row.getValues();
+
+          String startT = values[idxStartT].toString();
+          String startC = values[idxStartC].toString();
+          String endT = values[idxTargetT].toString();
+          String endC = values[idxTargetC].toString();
+
+          // generate the relationship
+          String rel = startT + "." + startC + "." + endT + "." + endC;
+
+          // add the relationship
+          owlEngine.addRelation(startT, endT, rel);
+          counter++;
+        }
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      } finally {
+        if (it != null) {
+          try {
+            it.close();
+          } catch (IOException e) {
+            classLogger.error(Constants.STACKTRACE, e);
+          }
+        }
+      }
+
+      try {
+        owlEngine.commit();
+        owlEngine.export();
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+        NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+        noun.addAdditionalReturn(
+            new NounMetadata(
+                "An error occurred attempting to add the relationships",
+                PixelDataType.CONST_STRING,
+                PixelOperationType.ERROR));
+        return noun;
+      }
+      EngineSyncUtility.clearEngineCache(databaseId);
+      ClusterUtil.pushOwl(databaseId, owlEngine);
+
+    } catch (IOException | InterruptedException e1) {
+      classLogger.error(Constants.STACKTRACE, e1);
+      NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+      noun.addAdditionalReturn(
+          new NounMetadata(
+              "An error occurred attempting to modify the OWL",
+              PixelDataType.CONST_STRING,
+              PixelOperationType.ERROR));
+      return noun;
+    }
+
+    if (sync) {
+      logger.info("Starting to remove exisitng metadata");
+      DeleteFromMasterDB remover = new DeleteFromMasterDB();
+      remover.deleteEngineRDBMS(databaseId);
+      logger.info("Finished removing exisitng metadata");
+
+      logger.info("Starting to add metadata");
+      String smssFile =
+          (String) DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE);
+      Properties prop = Utility.loadProperties(smssFile);
+      AddToMasterDB adder = new AddToMasterDB();
+      adder.registerEngineLocal(smssFile, prop);
+      logger.info("Done adding new metadata");
+
+      logger.info("Synchronization complete");
+    }
+
+    long end = System.currentTimeMillis();
+
+    NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+    noun.addAdditionalReturn(
+        new NounMetadata(
+            "Time to finish = " + (end - start) + "ms",
+            PixelDataType.CONST_STRING,
+            PixelOperationType.SUCCESS));
+    return noun;
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
+
+  private ExcelSheetFileIterator getExcelIterator(String fileLocation) {
+    // get range
+    ExcelWorkbookFilePreProcessor processor = new ExcelWorkbookFilePreProcessor();
+    processor.parse(fileLocation);
+    processor.determineTableRanges();
+    Map<String, ExcelSheetPreProcessor> sheetProcessors = processor.getSheetProcessors();
+    // get sheetName and headers
+    String sheetName = processor.getSheetNames().get(0);
+    String range = null;
+    ExcelSheetPreProcessor sProcessor = sheetProcessors.get(sheetName);
+    {
+      List<ExcelBlock> blocks = sProcessor.getAllBlocks();
+      // for(int i = 0; i < blocks.size(); i++) {
+      ExcelBlock block = blocks.get(0);
+      List<ExcelRange> blockRanges = block.getRanges();
+      for (int j = 0; j < 1; j++) {
+        ExcelRange r = blockRanges.get(j);
+        logger.info("Found range = " + r.getRangeSyntax());
+        range = r.getRangeSyntax();
+      }
+    }
+    processor.clear();
+
+    ExcelQueryStruct qs = new ExcelQueryStruct();
+    qs.setSheetName(sheetName);
+    qs.setSheetRange(range);
+    ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+    helper.parse(fileLocation);
+    ExcelSheetFileIterator it = helper.getSheetIterator(qs);
+
+    return it;
+  }
+
+  @Override
+  protected String getDescriptionForKey(String key) {
+    if (key.equals(SYNC_WITH_LOCALMASTER)) {
+      return "Synchronize the OWL changes with the local master database";
+    }
+    return super.getDescriptionForKey(key);
+  }
 }

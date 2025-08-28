@@ -29,26 +29,25 @@ package prerna.engine.api;
 
 import java.util.Map;
 
-public interface ISelectStatement extends IHeadersDataRow{
+public interface ISelectStatement extends IHeadersDataRow {
 
-	public Object getVar(Object var);
+  public Object getVar(Object var);
 
-	public void setVar(Object key, Object value);
+  public void setVar(Object key, Object value);
 
-	public void setRawVar(Object key, Object value);
-	
-	public Object getRawVar(Object var);
-	
-	public void setPropHash(Map propHash);
-	
-	public void setRPropHash(Map rawPropHash);
-	
-	public Map getPropHash();
+  public void setRawVar(Object key, Object value);
 
-	public Map getRPropHash();
-	
-	public boolean equals(Object other);
-	
-	public int hashCode();
+  public Object getRawVar(Object var);
 
+  public void setPropHash(Map propHash);
+
+  public void setRPropHash(Map rawPropHash);
+
+  public Map getPropHash();
+
+  public Map getRPropHash();
+
+  public boolean equals(Object other);
+
+  public int hashCode();
 }

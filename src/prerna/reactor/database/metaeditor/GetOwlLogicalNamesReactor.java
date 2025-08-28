@@ -1,7 +1,33 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.database.metaeditor;
 
 import java.util.Set;
-
 import prerna.engine.api.IDatabaseEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -12,71 +38,77 @@ import prerna.util.Utility;
 
 public class GetOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
-	public GetOwlLogicalNamesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey()};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		String databaseId = getDatabaseId();
-		// we may have an alias
-		databaseId = testDatabaseId(databaseId, true);
-		
-		String concept = getConcept();
-		String prop = getProperty();
-		
-		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		String physicalUri = null;
-		if(prop == null || prop.isEmpty()) {
-			physicalUri = database.getPhysicalUriFromPixelSelector(concept);
-		} else {
-			physicalUri = database.getPhysicalUriFromPixelSelector(concept + "__" + prop);
-		}
-		
-		Set<String> logicalNames = database.getLogicalNames(physicalUri);
-		
-		NounMetadata noun = new NounMetadata(logicalNames, PixelDataType.CONST_STRING, PixelOperationType.ENTITY_LOGICAL_NAMES);
-		return noun;
-	}
+  public GetOwlLogicalNamesReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.DATABASE.getKey(),
+          ReactorKeysEnum.CONCEPT.getKey(),
+          ReactorKeysEnum.COLUMN.getKey()
+        };
+  }
 
-	
-	///////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////
-	///////////// GRAB INPUTS FROM PIXEL REACTOR //////////////
-	///////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////
+  @Override
+  public NounMetadata execute() {
+    String databaseId = getDatabaseId();
+    // we may have an alias
+    databaseId = testDatabaseId(databaseId, true);
 
-	private String getDatabaseId() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
-		if (grs != null && !grs.isEmpty()) {
-			String id = (String) grs.get(0);
-			if (id != null && !id.isEmpty()) {
-				return id;
-			}
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[0]);
-	}
+    String concept = getConcept();
+    String prop = getProperty();
 
-	private String getConcept() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[1]);
-		if (grs != null && !grs.isEmpty()) {
-			String concept = (String) grs.get(0);
-			if (concept != null && !concept.isEmpty()) {
-				return concept;
-			}
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[1]);
-	}
-	
-	private String getProperty() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[2]);
-		if (grs != null && !grs.isEmpty()) {
-			String prop = (String) grs.get(0);
-			if (prop != null && !prop.isEmpty()) {
-				return prop;
-			}
-		}
+    IDatabaseEngine database = Utility.getDatabase(databaseId);
+    String physicalUri = null;
+    if (prop == null || prop.isEmpty()) {
+      physicalUri = database.getPhysicalUriFromPixelSelector(concept);
+    } else {
+      physicalUri = database.getPhysicalUriFromPixelSelector(concept + "__" + prop);
+    }
 
-		return "";
-	}
+    Set<String> logicalNames = database.getLogicalNames(physicalUri);
+
+    NounMetadata noun =
+        new NounMetadata(
+            logicalNames, PixelDataType.CONST_STRING, PixelOperationType.ENTITY_LOGICAL_NAMES);
+    return noun;
+  }
+
+  ///////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////
+  ///////////// GRAB INPUTS FROM PIXEL REACTOR //////////////
+  ///////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////
+
+  private String getDatabaseId() {
+    GenRowStruct grs = this.store.getNoun(keysToGet[0]);
+    if (grs != null && !grs.isEmpty()) {
+      String id = (String) grs.get(0);
+      if (id != null && !id.isEmpty()) {
+        return id;
+      }
+    }
+    throw new IllegalArgumentException("Need to define " + keysToGet[0]);
+  }
+
+  private String getConcept() {
+    GenRowStruct grs = this.store.getNoun(keysToGet[1]);
+    if (grs != null && !grs.isEmpty()) {
+      String concept = (String) grs.get(0);
+      if (concept != null && !concept.isEmpty()) {
+        return concept;
+      }
+    }
+    throw new IllegalArgumentException("Need to define " + keysToGet[1]);
+  }
+
+  private String getProperty() {
+    GenRowStruct grs = this.store.getNoun(keysToGet[2]);
+    if (grs != null && !grs.isEmpty()) {
+      String prop = (String) grs.get(0);
+      if (prop != null && !prop.isEmpty()) {
+        return prop;
+      }
+    }
+
+    return "";
+  }
 }

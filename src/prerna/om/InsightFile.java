@@ -29,54 +29,51 @@ package prerna.om;
 
 public class InsightFile {
 
-	private String fileKey = null;
-	private String filePath = null;
-	private boolean deleteOnInsightClose = true;
-	private boolean isFrameUpload = false;
-	private boolean isExport = false;
-	
-	public InsightFile() {
-		
-	}
+  private String fileKey = null;
+  private String filePath = null;
+  private boolean deleteOnInsightClose = true;
+  private boolean isFrameUpload = false;
+  private boolean isExport = false;
 
-	public String getFileKey() {
-		return fileKey;
-	}
+  public InsightFile() {}
 
-	public void setFileKey(String fileKey) {
-		this.fileKey = fileKey;
-	}
+  public String getFileKey() {
+    return fileKey;
+  }
 
-	public String getFilePath() {
-		return filePath;
-	}
+  public void setFileKey(String fileKey) {
+    this.fileKey = fileKey;
+  }
 
-	public void setFilePath(String filePath) {
-		this.filePath = filePath;
-	}
+  public String getFilePath() {
+    return filePath;
+  }
 
-	public boolean isDeleteOnInsightClose() {
-		return deleteOnInsightClose;
-	}
+  public void setFilePath(String filePath) {
+    this.filePath = filePath;
+  }
 
-	public void setDeleteOnInsightClose(boolean deleteOnInsightClose) {
-		this.deleteOnInsightClose = deleteOnInsightClose;
-	}
+  public boolean isDeleteOnInsightClose() {
+    return deleteOnInsightClose;
+  }
 
-	public boolean isFrameUpload() {
-		return isFrameUpload;
-	}
+  public void setDeleteOnInsightClose(boolean deleteOnInsightClose) {
+    this.deleteOnInsightClose = deleteOnInsightClose;
+  }
 
-	public void setFrameUpload(boolean isFrameUpload) {
-		this.isFrameUpload = isFrameUpload;
-	}
+  public boolean isFrameUpload() {
+    return isFrameUpload;
+  }
 
-	public boolean isExport() {
-		return isExport;
-	}
+  public void setFrameUpload(boolean isFrameUpload) {
+    this.isFrameUpload = isFrameUpload;
+  }
 
-	public void setExport(boolean isExport) {
-		this.isExport = isExport;
-	}
-	
+  public boolean isExport() {
+    return isExport;
+  }
+
+  public void setExport(boolean isExport) {
+    this.isExport = isExport;
+  }
 }

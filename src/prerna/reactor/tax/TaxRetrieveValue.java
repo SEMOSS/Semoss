@@ -1,36 +1,63 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.tax;
-//package prerna.sablecc2.reactor.storage;
+// package prerna.sablecc2.reactor.storage;
 //
-//import java.util.ArrayList;
-//import java.util.List;
-//import java.util.Set;
-//import java.util.Vector;
+// import java.util.ArrayList;
+// import java.util.List;
+// import java.util.Set;
+// import java.util.Vector;
 //
-//import org.apache.log4j.LogManager;
-//import org.apache.log4j.Logger;
+// import org.apache.log4j.LogManager;
+// import org.apache.log4j.Logger;
 //
-//import prerna.sablecc2.om.GenRowStruct;
-//import prerna.sablecc2.om.InMemStore;
-//import prerna.sablecc2.om.NounMetadata;
-//import prerna.sablecc2.om.PkslDataTypes;
-//import prerna.sablecc2.om.TaxMapStore;
-//import prerna.sablecc2.reactor.AbstractReactor;
-//import prerna.sablecc2.reactor.PKSLPlanner;
+// import prerna.sablecc2.om.GenRowStruct;
+// import prerna.sablecc2.om.InMemStore;
+// import prerna.sablecc2.om.NounMetadata;
+// import prerna.sablecc2.om.PkslDataTypes;
+// import prerna.sablecc2.om.TaxMapStore;
+// import prerna.sablecc2.reactor.AbstractReactor;
+// import prerna.sablecc2.reactor.PKSLPlanner;
 //
-//public class TaxRetrieveValue extends AbstractReactor {
+// public class TaxRetrieveValue extends AbstractReactor {
 //
 //	private static final Logger LOGGER = LogManager.getLogger(TaxRetrieveValue.class.getName());
 //
 //	//TODO: find a common place to put these
 //	private static final String STORE_NOUN = "store";
 //	private static final String KEY_NOUN = "key";
-//	
+//
 //	/**
 //	 * This reactor takes in 2 nouns
 //	 * store -> this points to the store name
 //	 * 			this will automatically be replaced with
 //	 * 			the NounMetadata that is in the pkslplanner
-//	 * 
+//	 *
 //	 * key ->	the key that the value is stored under
 //	 */
 //	@Override
@@ -39,7 +66,7 @@ package prerna.reactor.tax;
 //		InMemStore storeVariable = getStore();
 //		List<PKSLPlanner> planners = getPlanners();
 //		Set<String> scenarioKeys = storeVariable.getKeys();
-//		
+//
 //		// need to make a new InMemStore
 //		// that will contain a reference to each scenario
 //		// and another store of its values
@@ -49,11 +76,11 @@ package prerna.reactor.tax;
 //		} catch (InstantiationException | IllegalAccessException e) {
 //			classLogger.error(Constants.STACKTRACE, e);
 //		}
-//		
+//
 //		for(PKSLPlanner planner : planners) {
-//			
+//
 //			String scenarioName = planner.getVariable("$SCENARIO").getValue().toString();
-//			
+//
 //			// need to make a new InMemStore
 //			// for each scenario to hold the subportion
 //			// of data to send back
@@ -63,7 +90,7 @@ package prerna.reactor.tax;
 //			} catch (InstantiationException | IllegalAccessException e) {
 //				classLogger.error(Constants.STACKTRACE, e);
 //			}
-//			
+//
 //			GenRowStruct grs = this.store.getNoun(KEY_NOUN);
 //			int numGrs = grs.size();
 //
@@ -76,43 +103,44 @@ package prerna.reactor.tax;
 //						newScenarioStore.put(key, noun);
 //					}
 //				} catch(Exception e) {
-//					
+//
 //				}
 //			}
-//			
-//			retStoreVar.put(scenarioName.toString(), new NounMetadata(newScenarioStore, PkslDataTypes.IN_MEM_STORE));
+//
+//			retStoreVar.put(scenarioName.toString(), new NounMetadata(newScenarioStore,
+// PkslDataTypes.IN_MEM_STORE));
 //		}
-//			
+//
 //		return new NounMetadata(retStoreVar, PkslDataTypes.IN_MEM_STORE);
 //	}
-//	
+//
 //	private InMemStore getStore() {
 //		// could be passed directly in the method -> as store
 //		GenRowStruct storeGrs = this.store.getNoun(STORE_NOUN);
 //		if(storeGrs != null) {
 //			return (InMemStore) storeGrs.get(0);
 //		}
-//		
+//
 //		// could be passed as a $RESULT -> as STORE
 //		storeGrs = this.store.getNoun(PkslDataTypes.IN_MEM_STORE.toString());
 //		if(storeGrs != null) {
 //			return (InMemStore) storeGrs.get(0);
 //		}
-//		
+//
 //		// see if there is anything in curRow with store
 //		List<NounMetadata> passedResults = this.curRow.getNounsOfType(PkslDataTypes.IN_MEM_STORE);
 //		if(passedResults != null && !passedResults.isEmpty()) {
 //			return (InMemStore) passedResults.get(0).getValue();
 //		}
-//		
+//
 //		else return new TaxMapStore();
 //	}
-//	
+//
 //	private List<PKSLPlanner> getPlanners() {
 //		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
 //		List<PKSLPlanner> planners = new ArrayList<>(allNouns.size());
 //		if(allNouns != null) {
-//			
+//
 //			for(int i = 0; i < allNouns.size(); i++) {
 //				Object nextNoun = allNouns.get(i);
 //				if(nextNoun instanceof List) {
@@ -124,10 +152,10 @@ package prerna.reactor.tax;
 //					planners.add((PKSLPlanner)nextNoun);
 //				}
 //			}
-//		}	
+//		}
 //		return planners;
 //	}
-//	
+//
 //	@Override
 //	public List<NounMetadata> getOutputs() {
 //		// output is the signature
@@ -136,4 +164,4 @@ package prerna.reactor.tax;
 //		outputs.add(output);
 //		return outputs;
 //	}
-//}
+// }

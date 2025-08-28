@@ -1,10 +1,35 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.algorithms;
 
 import java.util.List;
 import java.util.Vector;
-
 import org.apache.logging.log4j.Logger;
-
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -18,175 +43,200 @@ import prerna.util.Utility;
 
 public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 
-	private static final String CLASS_NAME = RunGPT2DescriptionReactor.class.getName();
-	private static final String DESCRIPTION_TYPE = "descriptionType";
-	private static final String NUMBER_DESCRIPTIONS = "numDescriptions";
+  private static final String CLASS_NAME = RunGPT2DescriptionReactor.class.getName();
+  private static final String DESCRIPTION_TYPE = "descriptionType";
+  private static final String NUMBER_DESCRIPTIONS = "numDescriptions";
 
-	public RunGPT2DescriptionReactor() {
-		this.keysToGet = new String[] { DESCRIPTION_TYPE, ReactorKeysEnum.DATABASE.getKey(),
-				ReactorKeysEnum.TABLE.getKey() , NUMBER_DESCRIPTIONS };
-	}
+  public RunGPT2DescriptionReactor() {
+    this.keysToGet =
+        new String[] {
+          DESCRIPTION_TYPE,
+          ReactorKeysEnum.DATABASE.getKey(),
+          ReactorKeysEnum.TABLE.getKey(),
+          NUMBER_DESCRIPTIONS
+        };
+  }
 
-	@Override
-	public NounMetadata execute() {
-		// set up the class
-		init();
-		organizeKeys();
-		Logger logger = this.getLogger(CLASS_NAME);
-		StringBuilder rsb = new StringBuilder();
+  @Override
+  public NounMetadata execute() {
+    // set up the class
+    init();
+    organizeKeys();
+    Logger logger = this.getLogger(CLASS_NAME);
+    StringBuilder rsb = new StringBuilder();
 
-		String[] packages = new String[] { "gpt2" };
-		this.rJavaTranslator.checkPackages(packages);
-		
-		// get inputs
-		String descType = getInputString(DESCRIPTION_TYPE);
-		String databaseId = getInputString(ReactorKeysEnum.DATABASE.getKey());
-		String tableName = getInputString(ReactorKeysEnum.TABLE.getKey());
-		int numDescriptions = getInputInt(NUMBER_DESCRIPTIONS);
+    String[] packages = new String[] {"gpt2"};
+    this.rJavaTranslator.checkPackages(packages);
 
-		// source the files
-		String baseFolder = getBaseFolder();
-		String source = "source(\"" + baseFolder + "\\R\\AnalyticsRoutineScripts\\proceed.R\");";
-		rsb.append(source.replace("\\", "/"));
-		
-		// get the db table
-		String dbTable = getDbTable(databaseId,tableName);
-		
-		// run the function on either table or database
-		String result = "result" + Utility.getRandomString(6);
-		String inputVar = "inputVar" + Utility.getRandomString(6);
-		if(descType.equals("Table")) {
-			rsb.append(inputVar + " <-" + dbTable + "[" + dbTable + "$Table==\"" + databaseId + "._." + tableName + "\",]$Column;");
-			rsb.append(result + " <- infer_tbl_desc(" + inputVar + ", qty=" + numDescriptions + ");");
-		} else if(descType.equals("App")) {
-			rsb.append(inputVar + " <-" + dbTable + "[" + dbTable + "$AppID==\"" + databaseId + "\",];");
-			rsb.append(result + " <- infer_db_desc(" + inputVar + ", qty=" + numDescriptions + ");");
-		} 
-		
-		// get the result as a string
-		this.rJavaTranslator.runR(rsb.toString());
-		String[] resultStrings = this.rJavaTranslator.getStringArray(result);
-		
-		// gc
-		this.rJavaTranslator.executeEmptyR("rm( " + result + "," + inputVar + "," + dbTable + "); gc();");
-		
-		// return data to the front end as string array
-		return new NounMetadata(resultStrings, PixelDataType.CUSTOM_DATA_STRUCTURE);
-	}
+    // get inputs
+    String descType = getInputString(DESCRIPTION_TYPE);
+    String databaseId = getInputString(ReactorKeysEnum.DATABASE.getKey());
+    String tableName = getInputString(ReactorKeysEnum.TABLE.getKey());
+    int numDescriptions = getInputInt(NUMBER_DESCRIPTIONS);
 
-	private String getDbTable(String databaseId, String tableName) {
-		StringBuilder sessionTableBuilder = new StringBuilder();
+    // source the files
+    String baseFolder = getBaseFolder();
+    String source = "source(\"" + baseFolder + "\\R\\AnalyticsRoutineScripts\\proceed.R\");";
+    rsb.append(source.replace("\\", "/"));
 
-		// first get the total number of cols
-		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(databaseId);
-		int totalColCount = allTableCols.size();
+    // get the db table
+    String dbTable = getDbTable(databaseId, tableName);
 
-		// start building script
-		String rAppIds = "c(";
-		String rTableNames = "c(";
-		String rColNames = "c(";
-		String rColTypes = "c(";
-		String rPrimKey = "c(";
+    // run the function on either table or database
+    String result = "result" + Utility.getRandomString(6);
+    String inputVar = "inputVar" + Utility.getRandomString(6);
+    if (descType.equals("Table")) {
+      rsb.append(
+          inputVar
+              + " <-"
+              + dbTable
+              + "["
+              + dbTable
+              + "$Table==\""
+              + databaseId
+              + "._."
+              + tableName
+              + "\",]$Column;");
+      rsb.append(result + " <- infer_tbl_desc(" + inputVar + ", qty=" + numDescriptions + ");");
+    } else if (descType.equals("App")) {
+      rsb.append(inputVar + " <-" + dbTable + "[" + dbTable + "$AppID==\"" + databaseId + "\",];");
+      rsb.append(result + " <- infer_db_desc(" + inputVar + ", qty=" + numDescriptions + ");");
+    }
 
-		// create R vector of appid, tables, and columns
-		for (int i = 0; i < totalColCount; i++) {
-			Object[] entry = allTableCols.get(i);
-			String table = entry[0].toString();
-			
-			// if they specified table, make sure it matches
-			if (tableName == null || tableName.isEmpty() || table.equals(tableName)) {
-				if (entry[0] != null && entry[1] != null && entry[2] != null && entry[3] != null) {
-					String column = entry[1].toString();
-					String dataType = entry[2].toString();
-					String pk = entry[3].toString().toUpperCase();
-					if (i == 0) {
-						rAppIds += "'" + databaseId + "'";
-						rTableNames += "'" + databaseId + "._." + table + "'";
-						rColNames += "'" + column + "'";
-						rColTypes += "'" + dataType + "'";
-						rPrimKey += "'" + pk + "'";
-					} else {
-						rAppIds += ",'" + databaseId + "'";
-						rTableNames += ",'" + databaseId + "._." + table + "'";
-						rColNames += ",'" + column + "'";
-						rColTypes += ",'" + dataType + "'";
-						rPrimKey += ",'" + pk + "'";
-					}
-				}
-			}
-		}
+    // get the result as a string
+    this.rJavaTranslator.runR(rsb.toString());
+    String[] resultStrings = this.rJavaTranslator.getStringArray(result);
 
-		// close all the arrays created
-		rAppIds += ")";
-		rTableNames += ")";
-		rColNames += ")";
-		rColTypes += ")";
-		rPrimKey += ")";
-		
-		// create the session tables
-		String db = "dbtable" + Utility.getRandomString(5);
-		sessionTableBuilder.append(
-				db + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rAppIds
-						+ ", Datatype = " + rColTypes + ", Key = " + rPrimKey + ", stringsAsFactors = FALSE);");
-		
-		this.rJavaTranslator.runR(sessionTableBuilder.toString());
-		
-		return db;
+    // gc
+    this.rJavaTranslator.executeEmptyR(
+        "rm( " + result + "," + inputVar + "," + dbTable + "); gc();");
 
-	}
+    // return data to the front end as string array
+    return new NounMetadata(resultStrings, PixelDataType.CUSTOM_DATA_STRUCTURE);
+  }
 
-	///////////////////// UTILITY /////////////////////////////////////
-	private String getInputString(String inputName) {
-		GenRowStruct grs = this.store.getNoun(inputName);
-		String value = "";
-		NounMetadata noun;
-		if (grs != null && grs.size() > 0) {
-			noun = grs.getNoun(0);
-			value = noun.getValue().toString();
-		}
-		return value;
-	}
+  private String getDbTable(String databaseId, String tableName) {
+    StringBuilder sessionTableBuilder = new StringBuilder();
 
-	private List<String> getInputList(String input) {
-		List<String> retList = new Vector<>();
-		GenRowStruct engineGrs = this.store.getNoun(input);
-		for (int i = 0; i < engineGrs.size(); i++) {
-			retList.add(engineGrs.get(i).toString());
-		}
+    // first get the total number of cols
+    List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(databaseId);
+    int totalColCount = allTableCols.size();
 
-		return retList;
-	}
+    // start building script
+    String rAppIds = "c(";
+    String rTableNames = "c(";
+    String rColNames = "c(";
+    String rColTypes = "c(";
+    String rPrimKey = "c(";
 
-	private int getInputInt(String inputName) {
-		GenRowStruct grs = this.store.getNoun(inputName);
-		int value = -1;
-		NounMetadata noun;
-		if (grs != null) {
-			noun = grs.getNoun(0);
-			value = ((Number) noun.getValue()).intValue();
-		}
-		return value;
-	}
+    // create R vector of appid, tables, and columns
+    for (int i = 0; i < totalColCount; i++) {
+      Object[] entry = allTableCols.get(i);
+      String table = entry[0].toString();
 
-	private String getPanelId() {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
-		}
-		return null;
-	}
+      // if they specified table, make sure it matches
+      if (tableName == null || tableName.isEmpty() || table.equals(tableName)) {
+        if (entry[0] != null && entry[1] != null && entry[2] != null && entry[3] != null) {
+          String column = entry[1].toString();
+          String dataType = entry[2].toString();
+          String pk = entry[3].toString().toUpperCase();
+          if (i == 0) {
+            rAppIds += "'" + databaseId + "'";
+            rTableNames += "'" + databaseId + "._." + table + "'";
+            rColNames += "'" + column + "'";
+            rColTypes += "'" + dataType + "'";
+            rPrimKey += "'" + pk + "'";
+          } else {
+            rAppIds += ",'" + databaseId + "'";
+            rTableNames += ",'" + databaseId + "._." + table + "'";
+            rColNames += ",'" + column + "'";
+            rColTypes += ",'" + dataType + "'";
+            rPrimKey += ",'" + pk + "'";
+          }
+        }
+      }
+    }
 
-	///////////////////////// KEYS /////////////////////////////////////
+    // close all the arrays created
+    rAppIds += ")";
+    rTableNames += ")";
+    rColNames += ")";
+    rColTypes += ")";
+    rPrimKey += ")";
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(DESCRIPTION_TYPE)) {
-			return "Indicate whether you would like to generate a description for one table or an entire database";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
-	}
+    // create the session tables
+    String db = "dbtable" + Utility.getRandomString(5);
+    sessionTableBuilder.append(
+        db
+            + " <- data.frame(Column = "
+            + rColNames
+            + " , Table = "
+            + rTableNames
+            + " , AppID = "
+            + rAppIds
+            + ", Datatype = "
+            + rColTypes
+            + ", Key = "
+            + rPrimKey
+            + ", stringsAsFactors = FALSE);");
+
+    this.rJavaTranslator.runR(sessionTableBuilder.toString());
+
+    return db;
+  }
+
+  ///////////////////// UTILITY /////////////////////////////////////
+  private String getInputString(String inputName) {
+    GenRowStruct grs = this.store.getNoun(inputName);
+    String value = "";
+    NounMetadata noun;
+    if (grs != null && grs.size() > 0) {
+      noun = grs.getNoun(0);
+      value = noun.getValue().toString();
+    }
+    return value;
+  }
+
+  private List<String> getInputList(String input) {
+    List<String> retList = new Vector<>();
+    GenRowStruct engineGrs = this.store.getNoun(input);
+    for (int i = 0; i < engineGrs.size(); i++) {
+      retList.add(engineGrs.get(i).toString());
+    }
+
+    return retList;
+  }
+
+  private int getInputInt(String inputName) {
+    GenRowStruct grs = this.store.getNoun(inputName);
+    int value = -1;
+    NounMetadata noun;
+    if (grs != null) {
+      noun = grs.getNoun(0);
+      value = ((Number) noun.getValue()).intValue();
+    }
+    return value;
+  }
+
+  private String getPanelId() {
+    // see if defined as individual key
+    GenRowStruct columnGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+    if (columnGrs != null) {
+      if (columnGrs.size() > 0) {
+        return columnGrs.get(0).toString();
+      }
+    }
+    return null;
+  }
+
+  ///////////////////////// KEYS /////////////////////////////////////
+
+  @Override
+  protected String getDescriptionForKey(String key) {
+    if (key.equals(DESCRIPTION_TYPE)) {
+      return "Indicate whether you would like to generate a description for one table or an entire database";
+    } else {
+      return super.getDescriptionForKey(key);
+    }
+  }
 }

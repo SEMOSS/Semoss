@@ -28,7 +28,7 @@
 package prerna.rdf.engine.wrappers;
 
 import java.io.IOException;
-
+import org.apache.jena.rdf.model.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
@@ -36,61 +36,52 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import  org.apache.jena.rdf.model.*;
-
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.util.Utility;
 
 public class JenaConstructWrapper extends AbstractWrapper implements IConstructWrapper {
-	
-	private static final Logger LOGGER = LogManager.getLogger(JenaConstructWrapper.class.getName());
-	
-	transient Model model = null;
-	transient StmtIterator si = null;
 
-	@Override
-	public IConstructStatement next() {
-		IConstructStatement thisSt = new ConstructStatement();
+  private static final Logger LOGGER = LogManager.getLogger(JenaConstructWrapper.class.getName());
 
-		org.apache.jena.rdf.model.Statement stmt = si.next();
-		LOGGER.debug("Adding a JENA statement ");
-		Resource sub = stmt.getSubject();
-		Property pred = stmt.getPredicate();
-		RDFNode node = stmt.getObject();
-		if(node.isAnon())
-			thisSt.setPredicate(Utility.getNextID());
-		else 	
-			thisSt.setPredicate(stmt.getPredicate() + "");
+  transient Model model = null;
+  transient StmtIterator si = null;
 
-		if(sub.isAnon())
-			thisSt.setSubject(Utility.getNextID());
-		else
-			thisSt.setSubject(stmt.getSubject()+"");
-		
-		if(node.isAnon())
-			thisSt.setObject(Utility.getNextID());
-		else
-			thisSt.setObject(stmt.getObject());
-		
-		return thisSt;
-	}
+  @Override
+  public IConstructStatement next() {
+    IConstructStatement thisSt = new ConstructStatement();
 
-	@Override
-	public void execute() throws Exception {
-		model = (Model) engine.execQuery(query);
-		si = model.listStatements();
-	}
+    org.apache.jena.rdf.model.Statement stmt = si.next();
+    LOGGER.debug("Adding a JENA statement ");
+    Resource sub = stmt.getSubject();
+    Property pred = stmt.getPredicate();
+    RDFNode node = stmt.getObject();
+    if (node.isAnon()) thisSt.setPredicate(Utility.getNextID());
+    else thisSt.setPredicate(stmt.getPredicate() + "");
 
-	@Override
-	public boolean hasNext() {
-		// TODO Auto-generated method stub
-		return si.hasNext();
-	}
-	
-	@Override
-	public void close() throws IOException {
-		si.close();
-	}
+    if (sub.isAnon()) thisSt.setSubject(Utility.getNextID());
+    else thisSt.setSubject(stmt.getSubject() + "");
 
+    if (node.isAnon()) thisSt.setObject(Utility.getNextID());
+    else thisSt.setObject(stmt.getObject());
+
+    return thisSt;
+  }
+
+  @Override
+  public void execute() throws Exception {
+    model = (Model) engine.execQuery(query);
+    si = model.listStatements();
+  }
+
+  @Override
+  public boolean hasNext() {
+    // TODO Auto-generated method stub
+    return si.hasNext();
+  }
+
+  @Override
+  public void close() throws IOException {
+    si.close();
+  }
 }

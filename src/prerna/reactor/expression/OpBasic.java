@@ -1,79 +1,105 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.expression;
 
 import java.util.List;
 import java.util.Map;
-
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public abstract class OpBasic extends OpReactor {
 
-	protected String operation;
-	protected boolean allIntValue = true;
-	protected NounMetadata[] nouns;
-	/*
-	 * This class is to be extended for basic math operations
-	 * To deal with string inputs that need to be evaluated
-	 * on the frame
-	 * 
-	 * TODO: stop casting everything to h2frame
-	 * 		make generic expression class that uses
-	 * 		existing classes
-	 */
-	
-	@Override
-	public NounMetadata execute() {
-		this.nouns = getValues();
-		Object[] values = evaluateNouns(this.nouns);
-		NounMetadata result = evaluate(values);
-		return result;
-	}
-	
-	protected abstract NounMetadata evaluate(Object[] values);
-	
-	protected Object[] evaluateNouns(NounMetadata[] nouns) {
-		Object[] evaluatedNouns = new Object[nouns.length];
-		for(int i = 0; i < nouns.length; i++) {
-			NounMetadata val = nouns[i];
-			evaluatedNouns[i] = evaluateNoun(val);
-		}
-		return evaluatedNouns;
-	}
-	
-	protected Object evaluateNoun(NounMetadata val) {
-		Object obj = null;
-		PixelDataType valType = val.getNounType();
-		if(valType == PixelDataType.CONST_DECIMAL) {
-			this.allIntValue = false;
-			obj = ((Number) val.getValue()).doubleValue();
-		} else if(valType == PixelDataType.CONST_INT) {
-			obj = ((Number) val.getValue()).intValue(); 
-		} else if(valType == PixelDataType.VECTOR) {
-			List<NounMetadata> nouns = (List<NounMetadata>) val.getValue();
-			Object[] objArray = new Object[nouns.size()];
-			for(int i = 0; i < nouns.size(); i++) {
-				objArray[i] = evaluateNoun(nouns.get(i));
-			}
-			obj = objArray;
-		} 
-		// sometimes this can still be an iterator which is fine
-		else if(valType == PixelDataType.FORMATTED_DATA_SET
-				&& val.getValue() instanceof Map) {
-			Map<String, Object> taskMap = (Map<String, Object>) val.getValue();
-			Map<String, Object> dataMap = (Map<String, Object>) taskMap.get("data");
-			List<Object[]> values = (List<Object[]>) dataMap.get("values");
-			if(values.size() != 1) {
-				throw new IllegalArgumentException("Dataset must be a single value");
-			}
-			Object[] row = values.get(0);
-			if(row.length != 1) {
-				throw new IllegalArgumentException("Dataset must be a single value");
-			}
-			obj = row[0];
-		} else {
-			obj = val.getValue();
-		}
-		
-		return obj;
-	}
+  protected String operation;
+  protected boolean allIntValue = true;
+  protected NounMetadata[] nouns;
+
+  /*
+   * This class is to be extended for basic math operations
+   * To deal with string inputs that need to be evaluated
+   * on the frame
+   *
+   * TODO: stop casting everything to h2frame
+   * 		make generic expression class that uses
+   * 		existing classes
+   */
+
+  @Override
+  public NounMetadata execute() {
+    this.nouns = getValues();
+    Object[] values = evaluateNouns(this.nouns);
+    NounMetadata result = evaluate(values);
+    return result;
+  }
+
+  protected abstract NounMetadata evaluate(Object[] values);
+
+  protected Object[] evaluateNouns(NounMetadata[] nouns) {
+    Object[] evaluatedNouns = new Object[nouns.length];
+    for (int i = 0; i < nouns.length; i++) {
+      NounMetadata val = nouns[i];
+      evaluatedNouns[i] = evaluateNoun(val);
+    }
+    return evaluatedNouns;
+  }
+
+  protected Object evaluateNoun(NounMetadata val) {
+    Object obj = null;
+    PixelDataType valType = val.getNounType();
+    if (valType == PixelDataType.CONST_DECIMAL) {
+      this.allIntValue = false;
+      obj = ((Number) val.getValue()).doubleValue();
+    } else if (valType == PixelDataType.CONST_INT) {
+      obj = ((Number) val.getValue()).intValue();
+    } else if (valType == PixelDataType.VECTOR) {
+      List<NounMetadata> nouns = (List<NounMetadata>) val.getValue();
+      Object[] objArray = new Object[nouns.size()];
+      for (int i = 0; i < nouns.size(); i++) {
+        objArray[i] = evaluateNoun(nouns.get(i));
+      }
+      obj = objArray;
+    }
+    // sometimes this can still be an iterator which is fine
+    else if (valType == PixelDataType.FORMATTED_DATA_SET && val.getValue() instanceof Map) {
+      Map<String, Object> taskMap = (Map<String, Object>) val.getValue();
+      Map<String, Object> dataMap = (Map<String, Object>) taskMap.get("data");
+      List<Object[]> values = (List<Object[]>) dataMap.get("values");
+      if (values.size() != 1) {
+        throw new IllegalArgumentException("Dataset must be a single value");
+      }
+      Object[] row = values.get(0);
+      if (row.length != 1) {
+        throw new IllegalArgumentException("Dataset must be a single value");
+      }
+      obj = row[0];
+    } else {
+      obj = val.getValue();
+    }
+
+    return obj;
+  }
 }

@@ -1,24 +1,52 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.masterdatabase;
-//package prerna.sablecc2.reactor.masterdatabase;
+// package prerna.sablecc2.reactor.masterdatabase;
 //
-//import java.util.List;
-//import java.util.Vector;
+// import java.util.List;
+// import java.util.Vector;
 //
-//import prerna.auth.utils.AbstractSecurityUtils;
-//import prerna.auth.utils.SecurityAppUtils;
-//import prerna.auth.utils.SecurityQueryUtils;
-//import prerna.nameserver.utility.MasterDatabaseUtility;
-//import prerna.sablecc2.om.GenRowStruct;
-//import prerna.sablecc2.om.PixelDataType;
-//import prerna.sablecc2.om.PixelOperationType;
-//import prerna.sablecc2.om.ReactorKeysEnum;
-//import prerna.sablecc2.om.nounmeta.NounMetadata;
-//import prerna.sablecc2.reactor.AbstractReactor;
+// import prerna.auth.utils.AbstractSecurityUtils;
+// import prerna.auth.utils.SecurityAppUtils;
+// import prerna.auth.utils.SecurityQueryUtils;
+// import prerna.nameserver.utility.MasterDatabaseUtility;
+// import prerna.sablecc2.om.GenRowStruct;
+// import prerna.sablecc2.om.PixelDataType;
+// import prerna.sablecc2.om.PixelOperationType;
+// import prerna.sablecc2.om.ReactorKeysEnum;
+// import prerna.sablecc2.om.nounmeta.NounMetadata;
+// import prerna.sablecc2.reactor.AbstractReactor;
 //
-//public class RemoveLogicalNamesReactor extends AbstractReactor {
-//	
+// public class RemoveLogicalNamesReactor extends AbstractReactor {
+//
 //	public RemoveLogicalNamesReactor() {
-//		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};
+//		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(),
+// ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};
 //	}
 //
 //	@Override
@@ -28,16 +56,17 @@ package prerna.reactor.masterdatabase;
 //		if(AbstractSecurityUtils.securityEnabled()) {
 //			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 //			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
-//				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
+//				throw new IllegalArgumentException("App does not exist or user does not have access to edit
+// database");
 //			}
 //		} else {
 //			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 //		}
-//		
+//
 //		if(!SecurityQueryUtils.getEngineIds().contains(engineId)) {
 //			throw new IllegalArgumentException("App id does not exist");
 //		}
-//		
+//
 //		String concept = getConcept();
 //		List<String> logicalNames = getLogicalNames();
 //		boolean success = false;
@@ -46,7 +75,7 @@ package prerna.reactor.masterdatabase;
 //		}
 //		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 //	}
-//	
+//
 //	///////////////////////////////////////////////////////////
 //	///////////////////////////////////////////////////////////
 //	///////////// GRAB INPUTS FROM PIXEL REACTOR //////////////
@@ -89,4 +118,4 @@ package prerna.reactor.masterdatabase;
 //		return logicalNames;
 //	}
 //
-//}
+// }

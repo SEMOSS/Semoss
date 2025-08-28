@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.om;
 
 import java.io.File;
@@ -11,11 +38,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
-
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
@@ -25,377 +50,410 @@ import prerna.util.Utility;
 
 public class ClientProcessWrapper {
 
-	private static final Logger classLogger = LogManager.getLogger(ClientProcessWrapper.class);
+  private static final Logger classLogger = LogManager.getLogger(ClientProcessWrapper.class);
 
-	private final Object lockCreate = new Object();
-    private final Object lockDestroy = new Object();
-	
-	private SocketClient socketClient;
-	private Process process;
-	private String prefix;
-	private int port;
-	private String venvPath;
-	private String serverDirectory;
-	
-	private boolean nativePyServer;
-	private SymlinkHelper chrootSymlinkHelper;
-	private String classPath;
-	private boolean debug;
-	private String timeout;
-	private String loggerLevel;
-	
-	/**
-	 * 
-	 * @param nativePyServer
-	 * @param chrootMountHelper
-	 * @param port
-	 * @param venvPath
-	 * @param serverDirectory
-	 * @param classPath
-	 * @param debug
-	 * @throws Exception
-	 */
-	public void createProcessAndClient(boolean nativePyServer,
-			SymlinkHelper chrootSymlinkHelper,
-			int port,
-			String venvPath,
-			String serverDirectory, 
-			String classPath,
-			boolean debug,
-			String timeout,
-			String loggerLevel) throws Exception 
-	{
-		synchronized(lockCreate) {
-			this.nativePyServer = nativePyServer;
-			this.chrootSymlinkHelper = chrootSymlinkHelper;
-			this.classPath = classPath;
-			this.port = calculatePort(port);
-			this.venvPath = venvPath;
-			this.serverDirectory = serverDirectory;
-			this.debug = debug;
-			this.loggerLevel = loggerLevel;
-			this.timeout = timeout;
-			if(this.timeout == null) {
-				this.timeout = "-1";
-			}
-			boolean serverRunning = debug && port > 0;
-			if(!serverRunning) {
-				if(nativePyServer) {
-					if(this.chrootSymlinkHelper != null) {
-						// for a user process - this will be something like /opt/user_id_randomid/
-						Path chrootPath = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder());
-						// we will be creating a fake semoss home in the chrooted directory
-						// so grabbing the current base folder to mock the same pattern
-						String baseFolderPath = Utility.getBaseFolder();
-						// this is the fake semoss home in the chroot 
-						Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
-						// create a temp folder where we will start the process for the server
-						Path serverDirectoryPath = Files.createTempDirectory(chrootBaseFolderPath, "a");
-						this.serverDirectory = serverDirectoryPath.toString();
-						// we need to have a relative path to replace the log4j file as it is started 
-						// in the chroot world and not the base OS world
-						// .. technically since i'm hard coding above the base folder from rdf_map, could replace but w/e
-						String relative = chrootPath.relativize(serverDirectoryPath).toString();
-						if(!relative.startsWith("/")) {
-							relative ="/"+relative;
-						}
-						Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
-						
-						Object[] ret = Utility.startTCPServerNativePyChroot(this.chrootSymlinkHelper.getUserChrootFolder(), relative, this.port+"", this.timeout, this.loggerLevel);
-						this.process = (Process) ret[0];
-						this.prefix = (String) ret[1];
-					} else {
-						// write the log4j file in the server directory
-						Utility.writeLogConfigurationFile(this.serverDirectory);
-											
-						Object[] ret = Utility.startTCPServerNativePy(this.serverDirectory, this.port+"", this.venvPath, this.timeout, this.loggerLevel);
-						this.process = (Process) ret[0];
-						this.prefix = (String) ret[1];
-					}
-				} else {
-					if(chrootSymlinkHelper != null) {
-						// for a user process - this will be something like /opt/user_id_randomid/
-						Path chrootPath = Paths.get(chrootSymlinkHelper.getUserChrootFolder());
-						// we will be creating a fake semoss home in the chrooted directory
-						// so grabbing the current base folder to mock the same pattern
-						String baseFolderPath = Utility.getBaseFolder();
-						// this is the fake semoss home in the chroot 
-						Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
-						// create a temp folder where we will start the process for the server
-						Path serverDirectoryPath = Files.createTempDirectory(chrootBaseFolderPath, "a");
-						this.serverDirectory = serverDirectoryPath.toString();
-						// we need to have a relative path to replace the log4j file as it is started 
-						// in the chroot world and not the base OS world
-						// .. technically since i'm hard coding above the base folder from rdf_map, could replace but w/e
-						String relative = chrootPath.relativize(serverDirectoryPath).toString();
-						if(!relative.startsWith("/")) {
-							relative ="/"+relative;
-						}
-						Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
-						
-						this.process = Utility.startTCPServerChroot(classPath, this.chrootSymlinkHelper.getUserChrootFolder(), relative, this.port+"");
-					} else {
-						// write the log4j file in the server directory
-						Utility.writeLogConfigurationFile(this.serverDirectory);
-						this.process = Utility.startTCPServer(classPath, this.serverDirectory, this.port+"");
-					}
-				}
-			}
-			
-			try {
-				if(this.nativePyServer) {
-					this.socketClient = new NativePySocketClient();
-				} else {
-					this.socketClient = new SocketClient();
-				}
-				this.socketClient.connect("127.0.0.1", this.port, false);
-				Thread t = new Thread(socketClient);
-				t.start();
-				while(!socketClient.isReady()) {
-					// since this is in a while loop
-					// the socket client might have notified us
-					// however, the isReady is false
-					// because the socket couldn't connect
-					// so we also set the killAll
-					// and break out of this loop
-					// since the loop is also in a sync block
-					// it causes an infinite wait and the reconnect server logic doesn't work
-					if(socketClient.isKillAll()) {
-						throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
-					}
-					synchronized(socketClient) {
-						try {
-							socketClient.wait();
-						} catch (InterruptedException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
-				}
-				classLogger.info("Setting the socket client ");
-			} catch(Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw e;
-			}
-		}
-	}
-	
-	/**
-	 * 
-	 */
-	public void shutdown(boolean cleanUpFolder) {
-		synchronized(lockDestroy) {
-			if(this.socketClient != null && this.socketClient.isConnected()) {
-		        ExecutorService executor = Executors.newSingleThreadExecutor();
-		
-		        Callable<Boolean> callableTask = () -> {
-		        	boolean result = false;
-		        	if(cleanUpFolder) {
-		        		this.socketClient.stopServer();
-		        		classLogger.info("Sucessfully stopped the process");
-		        		int attempt = 0;
-		        		File serverDir = new File(this.serverDirectory);
-		        		while(!result && attempt < 3) {
-		        			try {
-		        				if(serverDir.exists()) {
-			        				FileUtils.deleteDirectory(this.serverDirectory);
-					        		classLogger.info("Sucessfully cleaned up the directory");
-		        				} else {
-		        					classLogger.info("Server directory does not exist");
-		        				}
-	        					result = true;
-		        			} catch (Exception ignored) {
-		        				classLogger.info("Failed attempt # " + attempt + " to delete the folder " + this.serverDirectory);
-		        				attempt++;
-		        				try {
-		        					Thread.sleep(attempt * 1000);
-		        				} catch (InterruptedException e1) {
-		        					classLogger.error(Constants.STACKTRACE, e1);
-		        				}
-		        			}
-		        		}
-		        	} else {
-		        		this.socketClient.stopServer();
-		        		classLogger.info("Sucessfully stopped the process");
-		        		result = true;
-		        	}
-		            return result;
-		        };
-		
-		        Future<Boolean> future = executor.submit(callableTask);
-		        try {
-		        	// dont have the user wait forever...
-		            Boolean result = future.get(50, TimeUnit.SECONDS);
-		            if(result) {
-		            	classLogger.info("Successfully shutdown the process");
-		            } else {
-		            	classLogger.warn("FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-		            	classLogger.warn("FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-		            	classLogger.warn("FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-		            	classLogger.warn("FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-		            	classLogger.warn("FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-		            	classLogger.warn("Assigning new port...");
-		            	this.port = calculatePort(-1);
-		            }
-		        } catch (TimeoutException e) {
-		        	classLogger.warn("Task did not finish within the timeout. Forcibly closing the process");
-		        	try {
-		        		// still call the close to shut down the io streams
-		        		this.socketClient.close();
-		    			this.process.destroy();
-		    		} catch(Exception e2) {
-		            	classLogger.error(Constants.STACKTRACE, e2);
-		    		}
-		            future.cancel(true); 
-		        } catch (InterruptedException | ExecutionException e) {
-		        	classLogger.error(Constants.STACKTRACE, e);
-		        } finally {
-		            executor.shutdown();
-		            
-		            // reset the venv path
-		            this.venvPath = null;
-		        }
-			}
-	//		// no socket but have a process? try to kill it
-	//		else if(this.process != null){
-	//			try {
-	//    			this.process.destroy();
-	//    		} catch(Exception e) {
-	//            	classLogger.error(Constants.STACKTRACE, e);
-	//    		}
-	//		}
-			// you know what, always try this...
-			if(this.process != null){
-				try {
-	    			this.process.destroy();
-	    		} catch(Exception e) {
-	            	classLogger.error(Constants.STACKTRACE, e);
-	    		}
-			}
-		}
-		// always assign a new port
-		this.port = -1;
-//		if(this.port > 0) {
-//			if(!PortAllocator.isPortAvailable(this.port)) {
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("Assigning new port...");
-//				this.port = -1;
-//			}
-//		}
-	}
-	
-	/**
-	 * 
-	 * @throws Exception
-	 */
-	public void reconnect() throws Exception {
-		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug, timeout, loggerLevel);
-	}
-	
-	/**
-	 * 
-	 * @param venvEngineId
-	 * @throws Exception
-	 */
-	public void reconnect(String venvEngineId) throws Exception {
-		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug, timeout, loggerLevel);
-	}
-	
-	/**
-	 * 
-	 * @param port
-	 * @return
-	 */
-	private int calculatePort(int port) {
-		if(port < 0) {
-			port = PortAllocator.getInstance().getNextAvailablePort();
-		}
-		
-		return port;
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	public SocketClient getSocketClient() {
-		return socketClient;
-	}
+  private final Object lockCreate = new Object();
+  private final Object lockDestroy = new Object();
 
-	/**
-	 * 
-	 * @param socketClient
-	 */
-	public void setSocketClient(SocketClient socketClient) {
-		this.socketClient = socketClient;
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	public String getPrefix() {
-		return prefix;
-	}
-	
-	/**
-	 * 
-	 * @param prefix
-	 */
-	public void setPrefix(String prefix) {
-		this.prefix = prefix;
-	}
+  private SocketClient socketClient;
+  private Process process;
+  private String prefix;
+  private int port;
+  private String venvPath;
+  private String serverDirectory;
 
-	/**
-	 * 
-	 * @return
-	 */
-	public Process getProcess() {
-		return process;
-	}
-	
-	/**
-	 * 
-	 * @param process
-	 */
-	public void setProcess(Process process) {
-		this.process = process;
-	}
+  private boolean nativePyServer;
+  private SymlinkHelper chrootSymlinkHelper;
+  private String classPath;
+  private boolean debug;
+  private String timeout;
+  private String loggerLevel;
 
-	/**
-	 * 
-	 * @return
-	 */
-	public int getPort() {
-		return port;
-	}
+  /**
+   * @param nativePyServer
+   * @param chrootMountHelper
+   * @param port
+   * @param venvPath
+   * @param serverDirectory
+   * @param classPath
+   * @param debug
+   * @throws Exception
+   */
+  public void createProcessAndClient(
+      boolean nativePyServer,
+      SymlinkHelper chrootSymlinkHelper,
+      int port,
+      String venvPath,
+      String serverDirectory,
+      String classPath,
+      boolean debug,
+      String timeout,
+      String loggerLevel)
+      throws Exception {
+    synchronized (lockCreate) {
+      this.nativePyServer = nativePyServer;
+      this.chrootSymlinkHelper = chrootSymlinkHelper;
+      this.classPath = classPath;
+      this.port = calculatePort(port);
+      this.venvPath = venvPath;
+      this.serverDirectory = serverDirectory;
+      this.debug = debug;
+      this.loggerLevel = loggerLevel;
+      this.timeout = timeout;
+      if (this.timeout == null) {
+        this.timeout = "-1";
+      }
+      boolean serverRunning = debug && port > 0;
+      if (!serverRunning) {
+        if (nativePyServer) {
+          if (this.chrootSymlinkHelper != null) {
+            // for a user process - this will be something like /opt/user_id_randomid/
+            Path chrootPath = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder());
+            // we will be creating a fake semoss home in the chrooted directory
+            // so grabbing the current base folder to mock the same pattern
+            String baseFolderPath = Utility.getBaseFolder();
+            // this is the fake semoss home in the chroot
+            Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
+            // create a temp folder where we will start the process for the server
+            Path serverDirectoryPath = Files.createTempDirectory(chrootBaseFolderPath, "a");
+            this.serverDirectory = serverDirectoryPath.toString();
+            // we need to have a relative path to replace the log4j file as it is started
+            // in the chroot world and not the base OS world
+            // .. technically since i'm hard coding above the base folder from rdf_map, could
+            // replace but w/e
+            String relative = chrootPath.relativize(serverDirectoryPath).toString();
+            if (!relative.startsWith("/")) {
+              relative = "/" + relative;
+            }
+            Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
 
-	/**
-	 * 
-	 * @param port
-	 */
-	public void setPort(int port) {
-		this.port = port;
-	}
+            Object[] ret =
+                Utility.startTCPServerNativePyChroot(
+                    this.chrootSymlinkHelper.getUserChrootFolder(),
+                    relative,
+                    this.port + "",
+                    this.timeout,
+                    this.loggerLevel);
+            this.process = (Process) ret[0];
+            this.prefix = (String) ret[1];
+          } else {
+            // write the log4j file in the server directory
+            Utility.writeLogConfigurationFile(this.serverDirectory);
 
-	/**
-	 * 
-	 * @return
-	 */
-	public String getServerDirectory() {
-		return serverDirectory;
-	}
+            Object[] ret =
+                Utility.startTCPServerNativePy(
+                    this.serverDirectory,
+                    this.port + "",
+                    this.venvPath,
+                    this.timeout,
+                    this.loggerLevel);
+            this.process = (Process) ret[0];
+            this.prefix = (String) ret[1];
+          }
+        } else {
+          if (chrootSymlinkHelper != null) {
+            // for a user process - this will be something like /opt/user_id_randomid/
+            Path chrootPath = Paths.get(chrootSymlinkHelper.getUserChrootFolder());
+            // we will be creating a fake semoss home in the chrooted directory
+            // so grabbing the current base folder to mock the same pattern
+            String baseFolderPath = Utility.getBaseFolder();
+            // this is the fake semoss home in the chroot
+            Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
+            // create a temp folder where we will start the process for the server
+            Path serverDirectoryPath = Files.createTempDirectory(chrootBaseFolderPath, "a");
+            this.serverDirectory = serverDirectoryPath.toString();
+            // we need to have a relative path to replace the log4j file as it is started
+            // in the chroot world and not the base OS world
+            // .. technically since i'm hard coding above the base folder from rdf_map, could
+            // replace but w/e
+            String relative = chrootPath.relativize(serverDirectoryPath).toString();
+            if (!relative.startsWith("/")) {
+              relative = "/" + relative;
+            }
+            Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
 
-	/**
-	 * 
-	 * @param serverDirectory
-	 */
-	public void setServerDirectory(String serverDirectory) {
-		this.serverDirectory = serverDirectory;
-	}
-	
+            this.process =
+                Utility.startTCPServerChroot(
+                    classPath,
+                    this.chrootSymlinkHelper.getUserChrootFolder(),
+                    relative,
+                    this.port + "");
+          } else {
+            // write the log4j file in the server directory
+            Utility.writeLogConfigurationFile(this.serverDirectory);
+            this.process = Utility.startTCPServer(classPath, this.serverDirectory, this.port + "");
+          }
+        }
+      }
+
+      try {
+        if (this.nativePyServer) {
+          this.socketClient = new NativePySocketClient();
+        } else {
+          this.socketClient = new SocketClient();
+        }
+        this.socketClient.connect("127.0.0.1", this.port, false);
+        Thread t = new Thread(socketClient);
+        t.start();
+        while (!socketClient.isReady()) {
+          // since this is in a while loop
+          // the socket client might have notified us
+          // however, the isReady is false
+          // because the socket couldn't connect
+          // so we also set the killAll
+          // and break out of this loop
+          // since the loop is also in a sync block
+          // it causes an infinite wait and the reconnect server logic doesn't work
+          if (socketClient.isKillAll()) {
+            throw new IllegalArgumentException(
+                "Failed to connect to your isolated analytics engine");
+          }
+          synchronized (socketClient) {
+            try {
+              socketClient.wait();
+            } catch (InterruptedException e) {
+              classLogger.error(Constants.STACKTRACE, e);
+            }
+          }
+        }
+        classLogger.info("Setting the socket client ");
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+        throw e;
+      }
+    }
+  }
+
+  /** */
+  public void shutdown(boolean cleanUpFolder) {
+    synchronized (lockDestroy) {
+      if (this.socketClient != null && this.socketClient.isConnected()) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        Callable<Boolean> callableTask =
+            () -> {
+              boolean result = false;
+              if (cleanUpFolder) {
+                this.socketClient.stopServer();
+                classLogger.info("Sucessfully stopped the process");
+                int attempt = 0;
+                File serverDir = new File(this.serverDirectory);
+                while (!result && attempt < 3) {
+                  try {
+                    if (serverDir.exists()) {
+                      FileUtils.deleteDirectory(this.serverDirectory);
+                      classLogger.info("Sucessfully cleaned up the directory");
+                    } else {
+                      classLogger.info("Server directory does not exist");
+                    }
+                    result = true;
+                  } catch (Exception ignored) {
+                    classLogger.info(
+                        "Failed attempt # "
+                            + attempt
+                            + " to delete the folder "
+                            + this.serverDirectory);
+                    attempt++;
+                    try {
+                      Thread.sleep(attempt * 1000);
+                    } catch (InterruptedException e1) {
+                      classLogger.error(Constants.STACKTRACE, e1);
+                    }
+                  }
+                }
+              } else {
+                this.socketClient.stopServer();
+                classLogger.info("Sucessfully stopped the process");
+                result = true;
+              }
+              return result;
+            };
+
+        Future<Boolean> future = executor.submit(callableTask);
+        try {
+          // dont have the user wait forever...
+          Boolean result = future.get(50, TimeUnit.SECONDS);
+          if (result) {
+            classLogger.info("Successfully shutdown the process");
+          } else {
+            classLogger.warn(
+                "FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
+            classLogger.warn(
+                "FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
+            classLogger.warn(
+                "FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
+            classLogger.warn(
+                "FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
+            classLogger.warn(
+                "FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
+            classLogger.warn("Assigning new port...");
+            this.port = calculatePort(-1);
+          }
+        } catch (TimeoutException e) {
+          classLogger.warn("Task did not finish within the timeout. Forcibly closing the process");
+          try {
+            // still call the close to shut down the io streams
+            this.socketClient.close();
+            this.process.destroy();
+          } catch (Exception e2) {
+            classLogger.error(Constants.STACKTRACE, e2);
+          }
+          future.cancel(true);
+        } catch (InterruptedException | ExecutionException e) {
+          classLogger.error(Constants.STACKTRACE, e);
+        } finally {
+          executor.shutdown();
+
+          // reset the venv path
+          this.venvPath = null;
+        }
+      }
+      //		// no socket but have a process? try to kill it
+      //		else if(this.process != null){
+      //			try {
+      //    			this.process.destroy();
+      //    		} catch(Exception e) {
+      //            	classLogger.error(Constants.STACKTRACE, e);
+      //    		}
+      //		}
+      // you know what, always try this...
+      if (this.process != null) {
+        try {
+          this.process.destroy();
+        } catch (Exception e) {
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
+    // always assign a new port
+    this.port = -1;
+    //		if(this.port > 0) {
+    //			if(!PortAllocator.isPortAvailable(this.port)) {
+    //            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+    //            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+    //            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+    //            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+    //            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+    //            	classLogger.warn("Assigning new port...");
+    //				this.port = -1;
+    //			}
+    //		}
+  }
+
+  /**
+   * @throws Exception
+   */
+  public void reconnect() throws Exception {
+    createProcessAndClient(
+        nativePyServer,
+        chrootSymlinkHelper,
+        port,
+        venvPath,
+        serverDirectory,
+        classPath,
+        debug,
+        timeout,
+        loggerLevel);
+  }
+
+  /**
+   * @param venvEngineId
+   * @throws Exception
+   */
+  public void reconnect(String venvEngineId) throws Exception {
+    String venvPath =
+        venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+    createProcessAndClient(
+        nativePyServer,
+        chrootSymlinkHelper,
+        port,
+        venvPath,
+        serverDirectory,
+        classPath,
+        debug,
+        timeout,
+        loggerLevel);
+  }
+
+  /**
+   * @param port
+   * @return
+   */
+  private int calculatePort(int port) {
+    if (port < 0) {
+      port = PortAllocator.getInstance().getNextAvailablePort();
+    }
+
+    return port;
+  }
+
+  /**
+   * @return
+   */
+  public SocketClient getSocketClient() {
+    return socketClient;
+  }
+
+  /**
+   * @param socketClient
+   */
+  public void setSocketClient(SocketClient socketClient) {
+    this.socketClient = socketClient;
+  }
+
+  /**
+   * @return
+   */
+  public String getPrefix() {
+    return prefix;
+  }
+
+  /**
+   * @param prefix
+   */
+  public void setPrefix(String prefix) {
+    this.prefix = prefix;
+  }
+
+  /**
+   * @return
+   */
+  public Process getProcess() {
+    return process;
+  }
+
+  /**
+   * @param process
+   */
+  public void setProcess(Process process) {
+    this.process = process;
+  }
+
+  /**
+   * @return
+   */
+  public int getPort() {
+    return port;
+  }
+
+  /**
+   * @param port
+   */
+  public void setPort(int port) {
+    this.port = port;
+  }
+
+  /**
+   * @return
+   */
+  public String getServerDirectory() {
+    return serverDirectory;
+  }
+
+  /**
+   * @param serverDirectory
+   */
+  public void setServerDirectory(String serverDirectory) {
+    this.serverDirectory = serverDirectory;
+  }
 }

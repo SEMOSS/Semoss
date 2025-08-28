@@ -1,8 +1,34 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.wikidata;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.wikidata.wdtk.datamodel.interfaces.EntityDocument;
@@ -11,68 +37,69 @@ import org.wikidata.wdtk.datamodel.interfaces.MonolingualTextValue;
 import org.wikidata.wdtk.wikibaseapi.WbSearchEntitiesResult;
 import org.wikidata.wdtk.wikibaseapi.WikibaseDataFetcher;
 
-public class WikiDescriptionCallable implements Callable<String>  {
+public class WikiDescriptionCallable implements Callable<String> {
 
-	public static final Logger LOGGER = LogManager.getLogger(WikiDescriptionCallable.class.getName());
-	private Logger logger;
-	
-	WbSearchEntitiesResult res;
-	WikibaseDataFetcher wbdf;
-	
-	public WikiDescriptionCallable(WikibaseDataFetcher wbdf, WbSearchEntitiesResult res) {
-		this.wbdf = wbdf;
-		this.res = res;
-	}
+  public static final Logger LOGGER = LogManager.getLogger(WikiDescriptionCallable.class.getName());
+  private Logger logger;
 
-	@Override
-	public String call() throws Exception {
-		return getDescription();
-	}
-	
-	private String getDescription() throws Exception {
-		Logger logger = getLogger();
-		String description = null;
-		
-		String entityId = res.getEntityId();
-		EntityDocument entity = wbdf.getEntityDocument(entityId);
-		if(entity instanceof ItemDocument) {
-			ItemDocument document = (ItemDocument) entity;
-			
-			String label = null;
-			// for logging
-			{
-				Map<String, MonolingualTextValue> labels = document.getLabels();
-				if(labels.get("en") != null) {
-					label = labels.get("en").getText();
-					logger.info("Processing document = " + label);
-				}
-			}
-			
-			Map<String, MonolingualTextValue> descMap = document.getDescriptions();
-			if(descMap.get("en") != null) {
-//				if(label != null) {
-//					description = label + " = " + descMap.get("en").getText();
-//				} else {
-					description = descMap.get("en").getText();
-//				}
-			}
-		}
-		
-		return description;
-	}
+  WbSearchEntitiesResult res;
+  WikibaseDataFetcher wbdf;
 
-	public void setLogger(Logger logger) {
-		this.logger = logger;
-	}
-	
-	/**
-	 * Get the correct logger
-	 * @return
-	 */
-	private Logger getLogger() {
-		if(this.logger == null) {
-			return LOGGER;
-		}
-		return this.logger;
-	}
+  public WikiDescriptionCallable(WikibaseDataFetcher wbdf, WbSearchEntitiesResult res) {
+    this.wbdf = wbdf;
+    this.res = res;
+  }
+
+  @Override
+  public String call() throws Exception {
+    return getDescription();
+  }
+
+  private String getDescription() throws Exception {
+    Logger logger = getLogger();
+    String description = null;
+
+    String entityId = res.getEntityId();
+    EntityDocument entity = wbdf.getEntityDocument(entityId);
+    if (entity instanceof ItemDocument) {
+      ItemDocument document = (ItemDocument) entity;
+
+      String label = null;
+      // for logging
+      {
+        Map<String, MonolingualTextValue> labels = document.getLabels();
+        if (labels.get("en") != null) {
+          label = labels.get("en").getText();
+          logger.info("Processing document = " + label);
+        }
+      }
+
+      Map<String, MonolingualTextValue> descMap = document.getDescriptions();
+      if (descMap.get("en") != null) {
+        //				if(label != null) {
+        //					description = label + " = " + descMap.get("en").getText();
+        //				} else {
+        description = descMap.get("en").getText();
+        //				}
+      }
+    }
+
+    return description;
+  }
+
+  public void setLogger(Logger logger) {
+    this.logger = logger;
+  }
+
+  /**
+   * Get the correct logger
+   *
+   * @return
+   */
+  private Logger getLogger() {
+    if (this.logger == null) {
+      return LOGGER;
+    }
+    return this.logger;
+  }
 }

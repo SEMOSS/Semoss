@@ -1,7 +1,33 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.blocks;
 
 import java.sql.SQLException;
-
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.reactor.AbstractReactor;
@@ -15,39 +41,38 @@ import prerna.theme.ThemeDbTable;
 
 public class GetClientBlocksReactor extends AbstractReactor {
 
-	public GetClientBlocksReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILTERS.getKey() };
-		this.keyRequired = new int[] { 0 };
-	}
+  public GetClientBlocksReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.FILTERS.getKey()};
+    this.keyRequired = new int[] {0};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		String userId = this.insight.getUserId();
-		if (userId == null || userId.isEmpty()) {
-			throw new IllegalArgumentException("User is not properly logged in.");
-		}
+  @Override
+  public NounMetadata execute() {
+    String userId = this.insight.getUserId();
+    if (userId == null || userId.isEmpty()) {
+      throw new IllegalArgumentException("User is not properly logged in.");
+    }
 
-		this.organizeKeys();
-		String tableName = ThemeDbTable.BLOCKS_TABLE.toString();
-		GenRowFilters filters = getFilters();
-		Object blocks;
-		try {
-			blocks = BlocksThemeUtils.getClientBlocks(tableName, filters);
-		} catch (SQLException e) {
-			throw new SemossPixelException(e);
-		}
-		return new NounMetadata(blocks, PixelDataType.MAP);
-	}
+    this.organizeKeys();
+    String tableName = ThemeDbTable.BLOCKS_TABLE.toString();
+    GenRowFilters filters = getFilters();
+    Object blocks;
+    try {
+      blocks = BlocksThemeUtils.getClientBlocks(tableName, filters);
+    } catch (SQLException e) {
+      throw new SemossPixelException(e);
+    }
+    return new NounMetadata(blocks, PixelDataType.MAP);
+  }
 
-	protected GenRowFilters getFilters() {
-		GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.FILTERS.getKey());
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			NounMetadata filterNoun = inputsGRS.getNoun(0);
-			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
-			GenRowFilters filters = qs.getCombinedFilters();
-			return filters;
-		}
-		return null;
-	}
-
+  protected GenRowFilters getFilters() {
+    GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.FILTERS.getKey());
+    if (inputsGRS != null && !inputsGRS.isEmpty()) {
+      NounMetadata filterNoun = inputsGRS.getNoun(0);
+      SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
+      GenRowFilters filters = qs.getCombinedFilters();
+      return filters;
+    }
+    return null;
+  }
 }

@@ -1,55 +1,75 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.project.impl.notebook;
 
-import java.util.Map;
-
 import com.google.gson.JsonElement;
-
+import java.util.Map;
 import prerna.engine.api.IModelEngine;
 import prerna.om.Insight;
 import prerna.sablecc2.NotebookExecution;
 
 public interface INotebookHelper {
 
-	String UNDEFINED_VALUE = "undefined";
-	
-	/**
-	 * 
-	 * @return
-	 */
-	JsonElement getBlocksFileJson();
+  String UNDEFINED_VALUE = "undefined";
 
-	/**
-	 * 
-	 * @param blocksFileJson
-	 */
-	void setBlocksFileJson(JsonElement blocksFileJson);
+  /**
+   * @return
+   */
+  JsonElement getBlocksFileJson();
 
-	/**
-	 * 
-	 * @param insight
-	 * @param inputReplacements
-	 * @return
-	 */
-	NotebookExecution executeNotebook(Insight insight, Map<String, String> inputReplacements);
-	
-	/**
-	 * Gets only engine deps listed in the blocks.json file in the project
-	 * @return	Map of the variable name to the engine id
-	 */
-	Map<String, String> getBlocksEngineDependencies();
+  /**
+   * @param blocksFileJson
+   */
+  void setBlocksFileJson(JsonElement blocksFileJson);
 
-	/**
-	 * 
-	 * @return
-	 */
-	Map<String, String> getNotebookVariables();
+  /**
+   * @param insight
+   * @param inputReplacements
+   * @return
+   */
+  NotebookExecution executeNotebook(Insight insight, Map<String, String> inputReplacements);
 
-	/**
-	 * 
-	 * @param filePath
-	 * @param model
-	 * @param insight
-	 */
-	void createMcpJson(String filePath, IModelEngine model, Insight insight);
-	
+  /**
+   * Gets only engine deps listed in the blocks.json file in the project
+   *
+   * @return Map of the variable name to the engine id
+   */
+  Map<String, String> getBlocksEngineDependencies();
+
+  /**
+   * @return
+   */
+  Map<String, String> getNotebookVariables();
+
+  /**
+   * @param filePath
+   * @param model
+   * @param insight
+   */
+  void createMcpJson(String filePath, IModelEngine model, Insight insight);
 }

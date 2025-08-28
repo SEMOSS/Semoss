@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.export;
 
 import java.awt.Rectangle;
@@ -10,7 +37,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -21,7 +47,6 @@ import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFPictureData;
 import org.apache.poi.xslf.usermodel.XSLFPictureShape;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
-
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -38,158 +63,168 @@ import prerna.util.Utility;
 
 public class ToPPTReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(ToPPTReactor.class);
+  private static final Logger logger = LogManager.getLogger(ToPPTReactor.class);
 
-	private static final String CLASS_NAME = ToPPTReactor.class.getName();
+  private static final String CLASS_NAME = ToPPTReactor.class.getName();
 
-	public ToPPTReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.BASE_URL.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.IMAGE_WAIT_TIME.getKey() };
-	}
+  public ToPPTReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.BASE_URL.getKey(),
+          ReactorKeysEnum.URL.getKey(),
+          ReactorKeysEnum.FILE_NAME.getKey(),
+          ReactorKeysEnum.FILE_PATH.getKey(),
+          ReactorKeysEnum.IMAGE_WAIT_TIME.getKey()
+        };
+  }
 
-	@Override
-	public NounMetadata execute() {
-		Logger logger = getLogger(CLASS_NAME);
-		organizeKeys();
-		User user = this.insight.getUser();
-		// throw error is user doesn't have rights to export data
-		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
-			AbstractReactor.throwUserNotExporterError();
-		}
-		String insightFolder = this.insight.getInsightFolder();
-		String baseUrl = this.keyValue.get(this.keysToGet[0]);
-		Integer waitTime = null;
-		String waitTimeStr = this.keyValue.get(this.keysToGet[4]);
-		if(waitTimeStr != null && (waitTimeStr=waitTimeStr.trim()).isEmpty()) {
-			try {
-				waitTime = Integer.parseInt(waitTimeStr);
-			} catch(NumberFormatException e) {
-				throw new IllegalArgumentException("Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
-			}
-		}
-		
-		List<String> urls = getUrls();
+  @Override
+  public NounMetadata execute() {
+    Logger logger = getLogger(CLASS_NAME);
+    organizeKeys();
+    User user = this.insight.getUser();
+    // throw error is user doesn't have rights to export data
+    if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+      AbstractReactor.throwUserNotExporterError();
+    }
+    String insightFolder = this.insight.getInsightFolder();
+    String baseUrl = this.keyValue.get(this.keysToGet[0]);
+    Integer waitTime = null;
+    String waitTimeStr = this.keyValue.get(this.keysToGet[4]);
+    if (waitTimeStr != null && (waitTimeStr = waitTimeStr.trim()).isEmpty()) {
+      try {
+        waitTime = Integer.parseInt(waitTimeStr);
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException(
+            "Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
+      }
+    }
 
-		String sessionId = ThreadStore.getSessionId();
-		// keep list of paths to clean up and delete once the pdf is created
-		List<String> tempPaths = new ArrayList<>();
-		// Process all urls
-		int imageNum = 1;
-		for (String url : urls) {
-			// Run headless chrome with semossTagUrl
-			String imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
-			logger.info("Generating image for PPT...");
-			this.insight.getChromeDriver().captureImage(baseUrl, url, imagePath, sessionId, waitTime);
-			tempPaths.add(imagePath);
-			logger.info("Done generating image for PPT...");
-			imageNum += 1;
-		}
+    List<String> urls = getUrls();
 
-		String downloadKey = UUID.randomUUID().toString();
-		InsightFile insightFile = new InsightFile();
-		insightFile.setFileKey(downloadKey);
-		
-		// get a random file name
-		// grab file path to write the file
-		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "pptx");
-		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
-		// if the file location is not defined generate a random path and set
-		// location so that the front end will download
-		if (fileLocation == null) {
-			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			insightFile.setDeleteOnInsightClose(true);
-		} else {
-			fileLocation += DIR_SEPARATOR + exportName;
-			insightFile.setDeleteOnInsightClose(false);
-		}
-		insightFile.setFilePath(fileLocation);
+    String sessionId = ThreadStore.getSessionId();
+    // keep list of paths to clean up and delete once the pdf is created
+    List<String> tempPaths = new ArrayList<>();
+    // Process all urls
+    int imageNum = 1;
+    for (String url : urls) {
+      // Run headless chrome with semossTagUrl
+      String imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
+      logger.info("Generating image for PPT...");
+      this.insight.getChromeDriver().captureImage(baseUrl, url, imagePath, sessionId, waitTime);
+      tempPaths.add(imagePath);
+      logger.info("Done generating image for PPT...");
+      imageNum += 1;
+    }
 
-		// Insert images into powerpoint
-		XMLSlideShow slideshow = new XMLSlideShow();
-		for (String path : tempPaths) {
-			byte[] pic = null;
-			try {
-				pic = IOUtils.toByteArray(new FileInputStream(Utility.normalizePath(path)));
-			} catch (FileNotFoundException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} catch (IOException ioe) {
-				logger.error(Constants.STACKTRACE, ioe);
-			}
-			XSLFPictureData picData = slideshow.addPicture(pic, PictureType.PNG);
-			Rectangle picBounds = createStandardPowerPointImageBounds();
+    String downloadKey = UUID.randomUUID().toString();
+    InsightFile insightFile = new InsightFile();
+    insightFile.setFileKey(downloadKey);
 
-			XSLFSlide slide = slideshow.createSlide();
-			XSLFPictureShape pictureShape = slide.createPicture(picData);
-			pictureShape.setAnchor(picBounds);
-		}
+    // get a random file name
+    // grab file path to write the file
+    String prefixName =
+        Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
+    String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "pptx");
+    String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+    // if the file location is not defined generate a random path and set
+    // location so that the front end will download
+    if (fileLocation == null) {
+      fileLocation = insightFolder + DIR_SEPARATOR + exportName;
+      insightFile.setDeleteOnInsightClose(true);
+    } else {
+      fileLocation += DIR_SEPARATOR + exportName;
+      insightFile.setDeleteOnInsightClose(false);
+    }
+    insightFile.setFilePath(fileLocation);
 
-		// Delete temp files
-		for (String path : tempPaths) {
-			try {
-				File f = new File(Utility.normalizePath(path));
-				if (f.exists()) {
-					FileUtils.forceDelete(f);
-				}
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
-		writeToFile(slideshow, fileLocation);
+    // Insert images into powerpoint
+    XMLSlideShow slideshow = new XMLSlideShow();
+    for (String path : tempPaths) {
+      byte[] pic = null;
+      try {
+        pic = IOUtils.toByteArray(new FileInputStream(Utility.normalizePath(path)));
+      } catch (FileNotFoundException e) {
+        logger.error(Constants.STACKTRACE, e);
+      } catch (IOException ioe) {
+        logger.error(Constants.STACKTRACE, ioe);
+      }
+      XSLFPictureData picData = slideshow.addPicture(pic, PictureType.PNG);
+      Rectangle picBounds = createStandardPowerPointImageBounds();
 
-		// store the insight file 
-		// in the insight so the FE can download it
-		// only from the given insight
-		this.insight.addExportFile(downloadKey, insightFile);
-		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-	}
+      XSLFSlide slide = slideshow.createSlide();
+      XSLFPictureShape pictureShape = slide.createPicture(picData);
+      pictureShape.setAnchor(picBounds);
+    }
 
-	private List<String> getUrls() {
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[1]);
-		int size = colGrs.size();
-		List<String> columns = new ArrayList<>();
-		for (int i = 0; i < size; i++) {
-			columns.add(colGrs.get(i).toString());
-		}
-		return columns;
-	}
+    // Delete temp files
+    for (String path : tempPaths) {
+      try {
+        File f = new File(Utility.normalizePath(path));
+        if (f.exists()) {
+          FileUtils.forceDelete(f);
+        }
+      } catch (IOException e) {
+        logger.error(Constants.STACKTRACE, e);
+      }
+    }
+    writeToFile(slideshow, fileLocation);
 
-	private Rectangle createStandardPowerPointImageBounds() {
-		// Point DPI = 72 = 1 inch
-		// Maintain 1920 x 1080 aspect ratio - let's fit to the width of the
-		// slide
-		double dpiPerInch = (double) Units.POINT_DPI;
-		double slideWidth = 10;
-		double slideHeight = 7.5;
-		double widthOffsetInches = 0.1;
-		double widthOffsetDPI = widthOffsetInches * dpiPerInch;
-		double heightWidthAspectRatio = 1080.0 / 1920.0;
+    // store the insight file
+    // in the insight so the FE can download it
+    // only from the given insight
+    this.insight.addExportFile(downloadKey, insightFile);
+    return new NounMetadata(
+        downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+  }
 
-		double imageWidthDPI = ((slideWidth * dpiPerInch) - (2 * widthOffsetDPI));
-		double imageHeightDPI = (imageWidthDPI * heightWidthAspectRatio);
+  private List<String> getUrls() {
+    GenRowStruct colGrs = this.store.getNoun(keysToGet[1]);
+    int size = colGrs.size();
+    List<String> columns = new ArrayList<>();
+    for (int i = 0; i < size; i++) {
+      columns.add(colGrs.get(i).toString());
+    }
+    return columns;
+  }
 
-		// Figure out height offset so that the image is in the middle of the
-		// slide
-		double slideHeightDPI = slideHeight * dpiPerInch;
-		double heightOffsetDPI = ((slideHeightDPI - imageHeightDPI) / 2);
+  private Rectangle createStandardPowerPointImageBounds() {
+    // Point DPI = 72 = 1 inch
+    // Maintain 1920 x 1080 aspect ratio - let's fit to the width of the
+    // slide
+    double dpiPerInch = (double) Units.POINT_DPI;
+    double slideWidth = 10;
+    double slideHeight = 7.5;
+    double widthOffsetInches = 0.1;
+    double widthOffsetDPI = widthOffsetInches * dpiPerInch;
+    double heightWidthAspectRatio = 1080.0 / 1920.0;
 
-		// Cast coordinates to int so that they can be ingested by Rectangle
-		int widthOffsetDPIInt = (int) widthOffsetDPI;
-		int heightOffsetDPIInt = (int) heightOffsetDPI;
-		int imageWidthDPIInt = (int) imageWidthDPI;
-		int imageHeightDPIInt = (int) imageHeightDPI;
+    double imageWidthDPI = ((slideWidth * dpiPerInch) - (2 * widthOffsetDPI));
+    double imageHeightDPI = (imageWidthDPI * heightWidthAspectRatio);
 
-		return new java.awt.Rectangle(widthOffsetDPIInt, heightOffsetDPIInt, imageWidthDPIInt, imageHeightDPIInt);
-	}
+    // Figure out height offset so that the image is in the middle of the
+    // slide
+    double slideHeightDPI = slideHeight * dpiPerInch;
+    double heightOffsetDPI = ((slideHeightDPI - imageHeightDPI) / 2);
 
-	private void writeToFile(XMLSlideShow slideshow, String path) {
-		try {
-			OutputStream out = new FileOutputStream(path);
-			slideshow.write(out);
-		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
-		}
-	}
+    // Cast coordinates to int so that they can be ingested by Rectangle
+    int widthOffsetDPIInt = (int) widthOffsetDPI;
+    int heightOffsetDPIInt = (int) heightOffsetDPI;
+    int imageWidthDPIInt = (int) imageWidthDPI;
+    int imageHeightDPIInt = (int) imageHeightDPI;
+
+    return new java.awt.Rectangle(
+        widthOffsetDPIInt, heightOffsetDPIInt, imageWidthDPIInt, imageHeightDPIInt);
+  }
+
+  private void writeToFile(XMLSlideShow slideshow, String path) {
+    try {
+      OutputStream out = new FileOutputStream(path);
+      slideshow.write(out);
+    } catch (FileNotFoundException e) {
+      logger.error(Constants.STACKTRACE, e);
+    } catch (IOException ioe) {
+      logger.error(Constants.STACKTRACE, ioe);
+    }
+  }
 }

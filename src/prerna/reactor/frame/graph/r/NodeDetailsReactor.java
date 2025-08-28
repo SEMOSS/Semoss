@@ -1,15 +1,40 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.graph.r;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.engine.impl.tinker.iGraphUtilities;
@@ -24,122 +49,139 @@ import prerna.sablecc2.om.task.ConstantDataTask;
 
 public class NodeDetailsReactor extends AbstractRFrameReactor {
 
-	private static final String CLASS_NAME = NodeDetailsReactor.class.getName();
+  private static final String CLASS_NAME = NodeDetailsReactor.class.getName();
 
-	public NodeDetailsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.PANEL.getKey()};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		init();
-		organizeKeys();
-		String[] packages = new String[] { "igraph" };
-		this.rJavaTranslator.checkPackages(packages);
-		this.rJavaTranslator.executeEmptyR("library(igraph)");
-		Logger logger = getLogger(CLASS_NAME);
+  public NodeDetailsReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.FRAME.getKey(),
+          ReactorKeysEnum.COLUMN.getKey(),
+          ReactorKeysEnum.VALUE.getKey(),
+          ReactorKeysEnum.PANEL.getKey()
+        };
+  }
 
-		ITableDataFrame frame = getFrame();
-		if(!(frame instanceof TinkerFrame)) {
-			throw new IllegalArgumentException("Frame must be a graph frame type");
-		}
-		TinkerFrame graph = (TinkerFrame) frame;
-		if(!graph.isIGraphSynched()) {
-			AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(CLASS_NAME);
-			String wd = this.insight.getInsightFolder();
-			iGraphUtilities.synchronizeGraphToR(graph, rJavaTranslator, graph.getName(), wd, logger);
-		}
-		String graphName = graph.getName();
-		
-		String type = this.keyValue.get(this.keysToGet[1]);
-		String instance = this.keyValue.get(this.keysToGet[2]);
-		String panelId = this.keyValue.get(this.keysToGet[3]);
-		if(panelId == null) {
-			panelId = "Temp";
-		}
-		String uniqueNodeId = type + ":" + instance;
-		
-		GraphTraversal<Vertex, Vertex> it = graph.g.traversal().V().has(TinkerFrame.TINKER_ID, uniqueNodeId);
-		Vertex v = null;
-		if(it.hasNext()) {
-			v = it.next();
-		}
-		
-		if(v == null) {
-			throw new IllegalArgumentException("Could not find vertex of type = " + type + " and value = " + instance);
-		}
-		
-		List<Object[]> gridData = new ArrayList<Object[]>();
-		
-		long inE = 0;
-		long outE = 0;
-		long degree = 0;
-		boolean isOrphan = false;
-		long eigen = 0;
-		
-		logger.info("Calculating out edges");
-		// count out E
-		{
-			Iterator<Edge> subIt = v.edges(Direction.OUT);
-			while(subIt.hasNext()) {
-				subIt.next();
-				outE++;
-			}
-		}
-		logger.info("Calculating in edges");
-		// count in E
-		{
-			Iterator<Edge> subIt = v.edges(Direction.IN);
-			while(subIt.hasNext()) {
-				subIt.next();
-				inE++;
-			}
-		}
-		logger.info("Calculating degree");
-		// get total degree
-		degree = inE + outE;
-		// determine if orphan
-		if(degree == 0) {
-			isOrphan = true;
-		}
-		logger.info("Calculating eigen value");
-		// get eigen value
-		eigen = graph.eigen(type, instance);
-		
-		// store these values
-		gridData.add(new Object[]{"# in E", inE});
-		gridData.add(new Object[]{"# out E", outE});
-		gridData.add(new Object[]{"Degree", degree});
-		gridData.add(new Object[]{"Is Orphan", isOrphan});
-		gridData.add(new Object[]{"Eigen Value", eigen});
+  @Override
+  public NounMetadata execute() {
+    init();
+    organizeKeys();
+    String[] packages = new String[] {"igraph"};
+    this.rJavaTranslator.checkPackages(packages);
+    this.rJavaTranslator.executeEmptyR("library(igraph)");
+    Logger logger = getLogger(CLASS_NAME);
 
-		if(graphName != null) {
-			logger.info("Calculating articulation points");
-			// get the articulation points
-			boolean found = false;
-			int [] vertices = this.rJavaTranslator.getIntArray("articulation.points(" + graphName + ")");
-			for(int vertIndex = 0;vertIndex < vertices.length;  vertIndex++) {
-				String thisNodeId = this.rJavaTranslator.getString("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\", " + vertices[vertIndex] + ")");
-				if(thisNodeId.equals(uniqueNodeId)) {
-					found = true;
-					gridData.add(new Object[]{"Is Articulation Node", true});
-					break;
-				}
-			}
-			
-			if(!found) {
-				gridData.add(new Object[]{"Is Articulation Node", false});
-			}
-		}
+    ITableDataFrame frame = getFrame();
+    if (!(frame instanceof TinkerFrame)) {
+      throw new IllegalArgumentException("Frame must be a graph frame type");
+    }
+    TinkerFrame graph = (TinkerFrame) frame;
+    if (!graph.isIGraphSynched()) {
+      AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(CLASS_NAME);
+      String wd = this.insight.getInsightFolder();
+      iGraphUtilities.synchronizeGraphToR(graph, rJavaTranslator, graph.getName(), wd, logger);
+    }
+    String graphName = graph.getName();
 
-		ConstantDataTask taskData = ConstantTaskCreationHelper.getGridData(panelId, new String[]{"Metric", "Value"}, gridData);
-		// store it in the insight
-		if(!panelId.equals("temp")) {
-			this.insight.getTaskStore().addTask(taskData);
-		}
-		
-		// return the data
-		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-	}
+    String type = this.keyValue.get(this.keysToGet[1]);
+    String instance = this.keyValue.get(this.keysToGet[2]);
+    String panelId = this.keyValue.get(this.keysToGet[3]);
+    if (panelId == null) {
+      panelId = "Temp";
+    }
+    String uniqueNodeId = type + ":" + instance;
 
+    GraphTraversal<Vertex, Vertex> it =
+        graph.g.traversal().V().has(TinkerFrame.TINKER_ID, uniqueNodeId);
+    Vertex v = null;
+    if (it.hasNext()) {
+      v = it.next();
+    }
+
+    if (v == null) {
+      throw new IllegalArgumentException(
+          "Could not find vertex of type = " + type + " and value = " + instance);
+    }
+
+    List<Object[]> gridData = new ArrayList<Object[]>();
+
+    long inE = 0;
+    long outE = 0;
+    long degree = 0;
+    boolean isOrphan = false;
+    long eigen = 0;
+
+    logger.info("Calculating out edges");
+    // count out E
+    {
+      Iterator<Edge> subIt = v.edges(Direction.OUT);
+      while (subIt.hasNext()) {
+        subIt.next();
+        outE++;
+      }
+    }
+    logger.info("Calculating in edges");
+    // count in E
+    {
+      Iterator<Edge> subIt = v.edges(Direction.IN);
+      while (subIt.hasNext()) {
+        subIt.next();
+        inE++;
+      }
+    }
+    logger.info("Calculating degree");
+    // get total degree
+    degree = inE + outE;
+    // determine if orphan
+    if (degree == 0) {
+      isOrphan = true;
+    }
+    logger.info("Calculating eigen value");
+    // get eigen value
+    eigen = graph.eigen(type, instance);
+
+    // store these values
+    gridData.add(new Object[] {"# in E", inE});
+    gridData.add(new Object[] {"# out E", outE});
+    gridData.add(new Object[] {"Degree", degree});
+    gridData.add(new Object[] {"Is Orphan", isOrphan});
+    gridData.add(new Object[] {"Eigen Value", eigen});
+
+    if (graphName != null) {
+      logger.info("Calculating articulation points");
+      // get the articulation points
+      boolean found = false;
+      int[] vertices = this.rJavaTranslator.getIntArray("articulation.points(" + graphName + ")");
+      for (int vertIndex = 0; vertIndex < vertices.length; vertIndex++) {
+        String thisNodeId =
+            this.rJavaTranslator.getString(
+                "vertex_attr("
+                    + graphName
+                    + ", \""
+                    + TinkerFrame.TINKER_ID
+                    + "\", "
+                    + vertices[vertIndex]
+                    + ")");
+        if (thisNodeId.equals(uniqueNodeId)) {
+          found = true;
+          gridData.add(new Object[] {"Is Articulation Node", true});
+          break;
+        }
+      }
+
+      if (!found) {
+        gridData.add(new Object[] {"Is Articulation Node", false});
+      }
+    }
+
+    ConstantDataTask taskData =
+        ConstantTaskCreationHelper.getGridData(panelId, new String[] {"Metric", "Value"}, gridData);
+    // store it in the insight
+    if (!panelId.equals("temp")) {
+      this.insight.getTaskStore().addTask(taskData);
+    }
+
+    // return the data
+    return new NounMetadata(
+        taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+  }
 }

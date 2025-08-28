@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.graph;
 
 import java.util.ArrayList;
@@ -7,11 +34,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import prerna.ds.TinkerFrame;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -25,159 +50,174 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class FindPathsConnectingNodesReactor extends AbstractFrameReactor {
 
-	private static final String DEGREE_SEPERATION = "deg"; 
-	private static final String REFRESH_FITLERS = "refresh"; 
+  private static final String DEGREE_SEPERATION = "deg";
+  private static final String REFRESH_FITLERS = "refresh";
 
-	public FindPathsConnectingNodesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(), 
-				ReactorKeysEnum.VALUES.getKey(), DEGREE_SEPERATION, REFRESH_FITLERS};
-	}
+  public FindPathsConnectingNodesReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.FRAME.getKey(),
+          ReactorKeysEnum.COLUMN.getKey(),
+          ReactorKeysEnum.VALUES.getKey(),
+          DEGREE_SEPERATION,
+          REFRESH_FITLERS
+        };
+  }
 
-	@Override
-	public NounMetadata execute() {
-		TinkerFrame tinker = (TinkerFrame) getFrame();
-		
-		String nodeType = getColumn();
-		List<String> nodeValues = getValues();
-		int seperation = getDegreeSep();
-		findSharedVertices(tinker, nodeType, nodeValues, seperation);
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.FRAME_FILTER);
-	}
+  @Override
+  public NounMetadata execute() {
+    TinkerFrame tinker = (TinkerFrame) getFrame();
 
-	public static void findSharedVertices(TinkerFrame tf, String columnType, List<String> instances, int numTraversals) {
-		// get the correct physical name
-		String nodeType = tf.getMetaData().getPhysicalName(columnType);
-		
-		// keep set of all vertices to keep
-		Set<Vertex> instancesToKeep = new HashSet<Vertex>();
-		
-		int numInstances = instances.size();
-		for(int index = 0; index < numInstances-1; index++) {
-			String instance = instances.get(index);
-			// find set of end positions
-			List<String> instancesToBind = new Vector<String>(instances.subList(index+1, numInstances));
+    String nodeType = getColumn();
+    List<String> nodeValues = getValues();
+    int seperation = getDegreeSep();
+    findSharedVertices(tinker, nodeType, nodeValues, seperation);
+    return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.FRAME_FILTER);
+  }
 
-			GraphTraversal t1 = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, nodeType).has(TinkerFrame.TINKER_NAME, instance).as("start");
-			for(int i = 0; i < numTraversals; i++) {
-				if(i == 0) {
-					t1 = t1.both().as( "0deg");
-				} else if(i == 1) {
-					t1 = t1.both().as( "1deg").where( "1deg", P.neq("start"));
-				} else {
-					t1 = t1.both().as( i + "deg").where( i + "deg", P.neq( (i-2) + "deg") );
-				}
-			}
-			t1 = t1.has(TinkerFrame.TINKER_NAME, P.within(instancesToBind));
-			
-			if(numTraversals == 1) {
-				t1 = t1.select("start", "0deg");
-			} else if(numTraversals >= 2) {
-				String[] degreesToSelect = new String[numTraversals - 1];
-				for(int degreeCount = 1; degreeCount < numTraversals; degreeCount++) {
-					degreesToSelect[degreeCount-1] = degreeCount + "deg";
-				}
-				t1 = t1.select("start", "0deg", degreesToSelect);
-			}
+  public static void findSharedVertices(
+      TinkerFrame tf, String columnType, List<String> instances, int numTraversals) {
+    // get the correct physical name
+    String nodeType = tf.getMetaData().getPhysicalName(columnType);
 
-			while(t1.hasNext()) {
-//				StringBuilder linkage = new StringBuilder();
-				Object data = t1.next();
-				if(data instanceof Map) {
-					Vertex start = (Vertex) ((Map) data).get("start");
-					instancesToKeep.add(start);
-//					linkage.append(start.value(TinkerFrame.TINKER_NAME) + "").append(" ->");
-					for(int i = 0; i < numTraversals; i++) {
-						Vertex v = (Vertex) ((Map) data).get( i + "deg");
-						instancesToKeep.add(v);
-//						linkage.append(v.value(TinkerFrame.TINKER_NAME) + "").append(" ->");
-					}
-				} else {
-					System.err.println("Ughhh.... shouldn't get here");
-				}
+    // keep set of all vertices to keep
+    Set<Vertex> instancesToKeep = new HashSet<Vertex>();
 
-//				System.out.println(linkage.toString());
-			}
-		}
+    int numInstances = instances.size();
+    for (int index = 0; index < numInstances - 1; index++) {
+      String instance = instances.get(index);
+      // find set of end positions
+      List<String> instancesToBind = new Vector<String>(instances.subList(index + 1, numInstances));
 
-		int size = instancesToKeep.size();
-		if(size == 0) {
-			throw new IllegalStateException("Cannot find any path given the instances and the degrees of separation");
-		}
-		
-		// remove the current frame filters
-		tf.getFrameFilters().removeAllFilters();
-		
-		Map<String, List<Object>> colToValues = new HashMap<String, List<Object>>();
-		for(Vertex v : instancesToKeep) {
-			String type = v.value(TinkerFrame.TINKER_TYPE);
-			String value = v.value(TinkerFrame.TINKER_NAME);
-			
-			List<Object> values = null;
-			if(colToValues.containsKey(type)) {
-				values = colToValues.get(type);
-			} else {
-				values = new ArrayList<>();
-				colToValues.put(type, values);
-			}
-			
-			values.add(value);
-		}
-		
-		// need to add the filters to the graph
-		for(String type : colToValues.keySet()) {
-			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(type), PixelDataType.COLUMN);
-			NounMetadata rComparison = new NounMetadata(colToValues.get(type), PixelDataType.CONST_STRING);
-			IQueryFilter newFilter = new SimpleQueryFilter(lComparison, "==", rComparison);
-			tf.getFrameFilters().addFilters(newFilter);
-		}
-	}
+      GraphTraversal t1 =
+          tf.g
+              .traversal()
+              .V()
+              .has(TinkerFrame.TINKER_TYPE, nodeType)
+              .has(TinkerFrame.TINKER_NAME, instance)
+              .as("start");
+      for (int i = 0; i < numTraversals; i++) {
+        if (i == 0) {
+          t1 = t1.both().as("0deg");
+        } else if (i == 1) {
+          t1 = t1.both().as("1deg").where("1deg", P.neq("start"));
+        } else {
+          t1 = t1.both().as(i + "deg").where(i + "deg", P.neq((i - 2) + "deg"));
+        }
+      }
+      t1 = t1.has(TinkerFrame.TINKER_NAME, P.within(instancesToBind));
 
+      if (numTraversals == 1) {
+        t1 = t1.select("start", "0deg");
+      } else if (numTraversals >= 2) {
+        String[] degreesToSelect = new String[numTraversals - 1];
+        for (int degreeCount = 1; degreeCount < numTraversals; degreeCount++) {
+          degreesToSelect[degreeCount - 1] = degreeCount + "deg";
+        }
+        t1 = t1.select("start", "0deg", degreesToSelect);
+      }
 
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
+      while (t1.hasNext()) {
+        //				StringBuilder linkage = new StringBuilder();
+        Object data = t1.next();
+        if (data instanceof Map) {
+          Vertex start = (Vertex) ((Map) data).get("start");
+          instancesToKeep.add(start);
+          //					linkage.append(start.value(TinkerFrame.TINKER_NAME) + "").append(" ->");
+          for (int i = 0; i < numTraversals; i++) {
+            Vertex v = (Vertex) ((Map) data).get(i + "deg");
+            instancesToKeep.add(v);
+            //						linkage.append(v.value(TinkerFrame.TINKER_NAME) + "").append(" ->");
+          }
+        } else {
+          System.err.println("Ughhh.... shouldn't get here");
+        }
 
-	private String getColumn() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
-		if(grs != null) {
-			return (String) grs.get(0);
-		}
+        //				System.out.println(linkage.toString());
+      }
+    }
 
-		List<String> vals = this.curRow.getAllStrValues();
-		if(!vals.isEmpty()) {
-			return vals.get(0);
-		}
+    int size = instancesToKeep.size();
+    if (size == 0) {
+      throw new IllegalStateException(
+          "Cannot find any path given the instances and the degrees of separation");
+    }
 
-		throw new IllegalArgumentException("Must define the node type");
-	}
+    // remove the current frame filters
+    tf.getFrameFilters().removeAllFilters();
 
-	private List<String> getValues() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
-		if(grs != null && !grs.isEmpty()) {
-			return grs.getAllStrValues();
-		}
+    Map<String, List<Object>> colToValues = new HashMap<String, List<Object>>();
+    for (Vertex v : instancesToKeep) {
+      String type = v.value(TinkerFrame.TINKER_TYPE);
+      String value = v.value(TinkerFrame.TINKER_NAME);
 
-		List<String> vals = this.curRow.getAllStrValues();
-		if(vals.size() > 3) {
-			// index 0 is the column
-			vals.remove(0);
-			return vals;
-		}
+      List<Object> values = null;
+      if (colToValues.containsKey(type)) {
+        values = colToValues.get(type);
+      } else {
+        values = new ArrayList<>();
+        colToValues.put(type, values);
+      }
 
-		throw new IllegalArgumentException("Must define at least 2 nodes to find connections between");
-	}
-	
-	private int getDegreeSep() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[3]);
-		if(grs != null && !grs.isEmpty()) {
-			return ((Number) grs.get(0)).intValue();
-		}
+      values.add(value);
+    }
 
-		List<Object> vals = this.curRow.getAllNumericColumns();
-		if(!vals.isEmpty()) {
-			return ((Number) vals).intValue();
-		}
-		
-		throw new IllegalArgumentException("Must define a value for the degrees of seperation");
-	}
+    // need to add the filters to the graph
+    for (String type : colToValues.keySet()) {
+      NounMetadata lComparison =
+          new NounMetadata(new QueryColumnSelector(type), PixelDataType.COLUMN);
+      NounMetadata rComparison =
+          new NounMetadata(colToValues.get(type), PixelDataType.CONST_STRING);
+      IQueryFilter newFilter = new SimpleQueryFilter(lComparison, "==", rComparison);
+      tf.getFrameFilters().addFilters(newFilter);
+    }
+  }
+
+  ////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////
+
+  private String getColumn() {
+    GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+    if (grs != null) {
+      return (String) grs.get(0);
+    }
+
+    List<String> vals = this.curRow.getAllStrValues();
+    if (!vals.isEmpty()) {
+      return vals.get(0);
+    }
+
+    throw new IllegalArgumentException("Must define the node type");
+  }
+
+  private List<String> getValues() {
+    GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
+    if (grs != null && !grs.isEmpty()) {
+      return grs.getAllStrValues();
+    }
+
+    List<String> vals = this.curRow.getAllStrValues();
+    if (vals.size() > 3) {
+      // index 0 is the column
+      vals.remove(0);
+      return vals;
+    }
+
+    throw new IllegalArgumentException("Must define at least 2 nodes to find connections between");
+  }
+
+  private int getDegreeSep() {
+    GenRowStruct grs = this.store.getNoun(this.keysToGet[3]);
+    if (grs != null && !grs.isEmpty()) {
+      return ((Number) grs.get(0)).intValue();
+    }
+
+    List<Object> vals = this.curRow.getAllNumericColumns();
+    if (!vals.isEmpty()) {
+      return ((Number) vals).intValue();
+    }
+
+    throw new IllegalArgumentException("Must define a value for the degrees of seperation");
+  }
 }

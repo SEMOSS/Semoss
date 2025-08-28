@@ -36,51 +36,52 @@ import org.openrdf.query.algebra.Sample;
 import org.openrdf.query.algebra.Sum;
 import org.openrdf.query.algebra.helpers.QueryModelVisitorBase;
 
-
 class FunctionCallCollector extends QueryModelVisitorBase<Exception> {
-	public Object value;
+  public Object value;
 
-	public Object getValue(){
-		return value;
-	}
-	
-	@Override
-	public void meet(Avg node) {
-		System.out.println("Value Avg is  " + node.getArg().getParentNode());
-		value = node.getArg().getParentNode();
-	}
-	@Override
-	public void meet(Count node) {
-		System.out.println("Value Count is  " + node.getArg().getParentNode());
-		value = node.getArg().getParentNode();
-	}
-	@Override
-	public void meet(GroupConcat node) {
-		System.out.println("GroupConcat is  " + node.getArg().getParentNode());
-		value = node.getArg().getParentNode();
-	}
-	@Override
-	public void meet(Max node) {
-		System.out.println("Max is  " + node.getArg().getParentNode());
-		value = node.getArg().getParentNode();
-	}
-	@Override
-	public void meet(Min node) {
-		System.out.println("Min is  " + node.getArg().getParentNode());
-		value = node.getArg().getParentNode();
-	}
-	@Override
-	public void meet(Sample node) {
-		System.out.println("Sample is  " + node.getArg().getParentNode());
-		value = node.getArg().getParentNode();
-	}
-	@Override
-	public void meet(Sum node) {
-		System.out.println("Sum is  " + node.getArg().getParentNode());
-		value = node.getArg().getParentNode();
-	}
-	
-	
+  public Object getValue() {
+    return value;
+  }
 
+  @Override
+  public void meet(Avg node) {
+    System.out.println("Value Avg is  " + node.getArg().getParentNode());
+    value = node.getArg().getParentNode();
+  }
 
+  @Override
+  public void meet(Count node) {
+    System.out.println("Value Count is  " + node.getArg().getParentNode());
+    value = node.getArg().getParentNode();
+  }
+
+  @Override
+  public void meet(GroupConcat node) {
+    System.out.println("GroupConcat is  " + node.getArg().getParentNode());
+    value = node.getArg().getParentNode();
+  }
+
+  @Override
+  public void meet(Max node) {
+    System.out.println("Max is  " + node.getArg().getParentNode());
+    value = node.getArg().getParentNode();
+  }
+
+  @Override
+  public void meet(Min node) {
+    System.out.println("Min is  " + node.getArg().getParentNode());
+    value = node.getArg().getParentNode();
+  }
+
+  @Override
+  public void meet(Sample node) {
+    System.out.println("Sample is  " + node.getArg().getParentNode());
+    value = node.getArg().getParentNode();
+  }
+
+  @Override
+  public void meet(Sum node) {
+    System.out.println("Sum is  " + node.getArg().getParentNode());
+    value = node.getArg().getParentNode();
+  }
 }

@@ -1,19 +1,43 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.function;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -21,234 +45,239 @@ import prerna.engine.impl.AbstractEngine;
 
 public abstract class AbstractFunctionEngine extends AbstractEngine implements IFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractFunctionEngine.class);
+  private static final Logger classLogger = LogManager.getLogger(AbstractFunctionEngine.class);
 
-	protected String functionName;
-	protected String functionDescription;
-	protected List<FunctionParameter> parameters;
-	protected List<String> requiredParameters;
+  protected String functionName;
+  protected String functionDescription;
+  protected List<FunctionParameter> parameters;
+  protected List<String> requiredParameters;
 
-	@Override
-	public void open(Properties smssProp) throws Exception {
-		super.open(smssProp);
+  @Override
+  public void open(Properties smssProp) throws Exception {
+    super.open(smssProp);
 
-		if(!smssProp.containsKey(IFunctionEngine.NAME_KEY)) {
-			throw new IllegalArgumentException("Must have key " + IFunctionEngine.NAME_KEY + " in SMSS");
-		}
-		if(!smssProp.containsKey(IFunctionEngine.DESCRIPTION_KEY)) {
-			throw new IllegalArgumentException("Must have key " + IFunctionEngine.DESCRIPTION_KEY + " in SMSS");
-		}
+    if (!smssProp.containsKey(IFunctionEngine.NAME_KEY)) {
+      throw new IllegalArgumentException("Must have key " + IFunctionEngine.NAME_KEY + " in SMSS");
+    }
+    if (!smssProp.containsKey(IFunctionEngine.DESCRIPTION_KEY)) {
+      throw new IllegalArgumentException(
+          "Must have key " + IFunctionEngine.DESCRIPTION_KEY + " in SMSS");
+    }
 
-		this.functionName = smssProp.getProperty(IFunctionEngine.NAME_KEY);
-		this.functionDescription = smssProp.getProperty(IFunctionEngine.DESCRIPTION_KEY);
+    this.functionName = smssProp.getProperty(IFunctionEngine.NAME_KEY);
+    this.functionDescription = smssProp.getProperty(IFunctionEngine.DESCRIPTION_KEY);
 
-		if(smssProp.containsKey(IFunctionEngine.PARAMETER_KEY)) {
-			this.parameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.PARAMETER_KEY), new TypeToken<List<FunctionParameter>>() {}.getType());
-		}
+    if (smssProp.containsKey(IFunctionEngine.PARAMETER_KEY)) {
+      this.parameters =
+          new Gson()
+              .fromJson(
+                  smssProp.getProperty(IFunctionEngine.PARAMETER_KEY),
+                  new TypeToken<List<FunctionParameter>>() {}.getType());
+    }
 
-		if(smssProp.containsKey(IFunctionEngine.REQUIRED_PARAMETER_KEY)) {
-			this.requiredParameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.REQUIRED_PARAMETER_KEY), new TypeToken<List<String>>() {}.getType());
-		}
-	}
+    if (smssProp.containsKey(IFunctionEngine.REQUIRED_PARAMETER_KEY)) {
+      this.requiredParameters =
+          new Gson()
+              .fromJson(
+                  smssProp.getProperty(IFunctionEngine.REQUIRED_PARAMETER_KEY),
+                  new TypeToken<List<String>>() {}.getType());
+    }
+  }
 
-	@Override
-	public JSONObject getFunctionDefintionJson() {
-		JSONObject json = new JSONObject();
-		json.put("name", this.functionName);
-		json.put("description", this.functionDescription);
+  @Override
+  public JSONObject getFunctionDefintionJson() {
+    JSONObject json = new JSONObject();
+    json.put("name", this.functionName);
+    json.put("description", this.functionDescription);
 
-		JSONObject parameterJSON = new JSONObject();
-		if(this.parameters != null && !this.parameters.isEmpty()) {
-			parameterJSON.put("type", "object");
-			JSONObject propertiesJSON = new JSONObject();
-			for(FunctionParameter fParam : this.parameters) {
-				JSONObject thisPropJSON = new JSONObject();
-				thisPropJSON.put("type", fParam.getParameterType());
-				thisPropJSON.put("description", fParam.getParameterDescription());
-				propertiesJSON.put(fParam.getParameterName(), thisPropJSON);
-			}
-			parameterJSON.put("properties", propertiesJSON);
-		}
-		json.put("parameters", parameterJSON);
+    JSONObject parameterJSON = new JSONObject();
+    if (this.parameters != null && !this.parameters.isEmpty()) {
+      parameterJSON.put("type", "object");
+      JSONObject propertiesJSON = new JSONObject();
+      for (FunctionParameter fParam : this.parameters) {
+        JSONObject thisPropJSON = new JSONObject();
+        thisPropJSON.put("type", fParam.getParameterType());
+        thisPropJSON.put("description", fParam.getParameterDescription());
+        propertiesJSON.put(fParam.getParameterName(), thisPropJSON);
+      }
+      parameterJSON.put("properties", propertiesJSON);
+    }
+    json.put("parameters", parameterJSON);
 
-		JSONArray requiredJSON = new JSONArray();
-		if(this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
-			requiredJSON.put(this.requiredParameters);
-		}
-		json.put("required", requiredJSON);
+    JSONArray requiredJSON = new JSONArray();
+    if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
+      requiredJSON.put(this.requiredParameters);
+    }
+    json.put("required", requiredJSON);
 
-		return json;
-	}
-	
-	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		// Fetch metadata for the engine
-		Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(
-				this.getEngineId(),
-				Arrays.asList("description"),
-				true
-				);
+    return json;
+  }
 
-		// Extract the description from metadata
-		String description = (String) metadata.get("description");
-		if (description == null) {
-			description = "No description available.";
-		}
+  @Override
+  public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
+    // Fetch metadata for the engine
+    Map<String, Object> metadata =
+        SecurityEngineUtils.getAggregateEngineMetadata(
+            this.getEngineId(), Arrays.asList("description"), true);
 
-		// Create the main map
-		Map<String, Object> toolMap = new HashMap<>();
-		toolMap.put("type", "function");
+    // Extract the description from metadata
+    String description = (String) metadata.get("description");
+    if (description == null) {
+      description = "No description available.";
+    }
 
-		// Create the function map
-		Map<String, Object> functionMap = new HashMap<>();
-		functionMap.put("name", "function_engine");
-		functionMap.put("description", description);
+    // Create the main map
+    Map<String, Object> toolMap = new HashMap<>();
+    toolMap.put("type", "function");
 
-		// Create the parameters map
-		Map<String, Object> parametersMap = new HashMap<>();
-		parametersMap.put("type", "object");
+    // Create the function map
+    Map<String, Object> functionMap = new HashMap<>();
+    functionMap.put("name", "function_engine");
+    functionMap.put("description", description);
 
-		// Create the properties map
-		Map<String, Object> propertiesMap = new HashMap<>();
+    // Create the parameters map
+    Map<String, Object> parametersMap = new HashMap<>();
+    parametersMap.put("type", "object");
 
-		// Add the id property
-		Map<String, Object> idMap = new HashMap<>();
-		idMap.put("type", "string");
-		idMap.put("description", "The unique identifier for this function_engine used to call this specific engine");
-		idMap.put("enum", Arrays.asList(this.getEngineId()));
-		propertiesMap.put("id", idMap);
+    // Create the properties map
+    Map<String, Object> propertiesMap = new HashMap<>();
 
-		// Add the map property
-		Map<String, Object> mapMap = new HashMap<>();
-		mapMap.put("type", "object");
+    // Add the id property
+    Map<String, Object> idMap = new HashMap<>();
+    idMap.put("type", "string");
+    idMap.put(
+        "description",
+        "The unique identifier for this function_engine used to call this specific engine");
+    idMap.put("enum", Arrays.asList(this.getEngineId()));
+    propertiesMap.put("id", idMap);
 
-		// Create the map properties map
-		Map<String, Object> mapPropertiesMap = new HashMap<>();
-		for (FunctionParameter param : this.getParameters()) {
-			Map<String, Object> paramMap = new HashMap<>();
-			paramMap.put("type", param.getParameterType().toLowerCase());
-			paramMap.put("description", param.getParameterDescription());
-			mapPropertiesMap.put(param.getParameterName(), paramMap);
-		}
-		mapMap.put("properties", mapPropertiesMap);
-		mapMap.put("required", this.getRequiredParameters());
-		mapMap.put("description", "A map containing the parameters to pass into the function_engine call.");
+    // Add the map property
+    Map<String, Object> mapMap = new HashMap<>();
+    mapMap.put("type", "object");
 
-		propertiesMap.put("map", mapMap);
+    // Create the map properties map
+    Map<String, Object> mapPropertiesMap = new HashMap<>();
+    for (FunctionParameter param : this.getParameters()) {
+      Map<String, Object> paramMap = new HashMap<>();
+      paramMap.put("type", param.getParameterType().toLowerCase());
+      paramMap.put("description", param.getParameterDescription());
+      mapPropertiesMap.put(param.getParameterName(), paramMap);
+    }
+    mapMap.put("properties", mapPropertiesMap);
+    mapMap.put("required", this.getRequiredParameters());
+    mapMap.put(
+        "description", "A map containing the parameters to pass into the function_engine call.");
 
-		// Finalize parameters map
-		parametersMap.put("properties", propertiesMap);
-		parametersMap.put("required", Arrays.asList("id", "map"));
+    propertiesMap.put("map", mapMap);
 
-		// Add parameters to function map
-		functionMap.put("parameters", parametersMap);
+    // Finalize parameters map
+    parametersMap.put("properties", propertiesMap);
+    parametersMap.put("required", Arrays.asList("id", "map"));
 
-		// Add function map to main map
-		toolMap.put("function", functionMap);
+    // Add parameters to function map
+    functionMap.put("parameters", parametersMap);
 
-		return toolMap;
-	}
-	
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-	    // Fetch metadata/description
-	    Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(
-	        this.getEngineId(),
-	        Arrays.asList("description"),
-	        true
-	    );
-	    String description = (String) metadata.get("description");
-	    if (description == null) {
-	        description = "No description available.";
-	    }
+    // Add function map to main map
+    toolMap.put("function", functionMap);
 
-	    // Build properties for schema
-	    Map<String, Object> propertiesMap = new HashMap<>();
-	    for (FunctionParameter param : this.getParameters()) {
-	        Map<String, Object> property = new HashMap<>();
-	        property.put("type", param.getParameterType().toLowerCase());
-	        property.put("description", param.getParameterDescription());
-	        propertiesMap.put(param.getParameterName(), property);
-	    }
+    return toolMap;
+  }
 
-	    // Build inputSchema.json
-	    Map<String, Object> inputSchemaJson = new HashMap<>();
-	    inputSchemaJson.put("type", "object");
-	    inputSchemaJson.put("properties", propertiesMap);
-	    inputSchemaJson.put("required", this.getRequiredParameters());
+  @Override
+  public Map<String, Object> buildBedrockToolSpec() {
+    // Fetch metadata/description
+    Map<String, Object> metadata =
+        SecurityEngineUtils.getAggregateEngineMetadata(
+            this.getEngineId(), Arrays.asList("description"), true);
+    String description = (String) metadata.get("description");
+    if (description == null) {
+      description = "No description available.";
+    }
 
-	    Map<String, Object> inputSchema = new HashMap<>();
-	    inputSchema.put("json", inputSchemaJson);
+    // Build properties for schema
+    Map<String, Object> propertiesMap = new HashMap<>();
+    for (FunctionParameter param : this.getParameters()) {
+      Map<String, Object> property = new HashMap<>();
+      property.put("type", param.getParameterType().toLowerCase());
+      property.put("description", param.getParameterDescription());
+      propertiesMap.put(param.getParameterName(), property);
+    }
 
-	    // toolSpec map (this is what you want to return)
-	    Map<String, Object> toolSpecMap = new HashMap<>();
-	    toolSpecMap.put("name", this.getEngineId()); // or assign function/tool name you want
-	    toolSpecMap.put("description", description);
-	    toolSpecMap.put("inputSchema", inputSchema);
+    // Build inputSchema.json
+    Map<String, Object> inputSchemaJson = new HashMap<>();
+    inputSchemaJson.put("type", "object");
+    inputSchemaJson.put("properties", propertiesMap);
+    inputSchemaJson.put("required", this.getRequiredParameters());
 
-	    // Wrap as {"toolSpec": ...}
-	    Map<String, Object> wrapper = new HashMap<>();
-	    wrapper.put("toolSpec", toolSpecMap);
+    Map<String, Object> inputSchema = new HashMap<>();
+    inputSchema.put("json", inputSchemaJson);
 
-	    return wrapper;
-	}
+    // toolSpec map (this is what you want to return)
+    Map<String, Object> toolSpecMap = new HashMap<>();
+    toolSpecMap.put("name", this.getEngineId()); // or assign function/tool name you want
+    toolSpecMap.put("description", description);
+    toolSpecMap.put("inputSchema", inputSchema);
 
-	@Override
-	public String getFunctionName() {
-		return functionName;
-	}
+    // Wrap as {"toolSpec": ...}
+    Map<String, Object> wrapper = new HashMap<>();
+    wrapper.put("toolSpec", toolSpecMap);
 
-	@Override
-	public void setFunctionName(String functionName) {
-		this.functionName = functionName;
-	}
+    return wrapper;
+  }
 
-	@Override
-	public String getFunctionDescription() {
-		return functionDescription;
-	}
+  @Override
+  public String getFunctionName() {
+    return functionName;
+  }
 
-	@Override
-	public void setFunctionDescription(String functionDescription) {
-		this.functionDescription = functionDescription;
-	}
+  @Override
+  public void setFunctionName(String functionName) {
+    this.functionName = functionName;
+  }
 
-	@Override
-	public List<FunctionParameter> getParameters() {
-		return parameters;
-	}
+  @Override
+  public String getFunctionDescription() {
+    return functionDescription;
+  }
 
-	@Override
-	public void setParameters(List<FunctionParameter> parameters) {
-		this.parameters = parameters;
-	}
+  @Override
+  public void setFunctionDescription(String functionDescription) {
+    this.functionDescription = functionDescription;
+  }
 
-	@Override
-	public List<String> getRequiredParameters() {
-		return this.requiredParameters;
-	}
+  @Override
+  public List<FunctionParameter> getParameters() {
+    return parameters;
+  }
 
-	@Override
-	public void setRequiredParameters(List<String> requiredParameters) {
-		this.requiredParameters = requiredParameters;
-	}
+  @Override
+  public void setParameters(List<FunctionParameter> parameters) {
+    this.parameters = parameters;
+  }
 
-	@Override
-	public CATALOG_TYPE getCatalogType() {
-		return IEngine.CATALOG_TYPE.FUNCTION;
-	}
+  @Override
+  public List<String> getRequiredParameters() {
+    return this.requiredParameters;
+  }
 
-	@Override
-	public boolean holdsFileLocks() {
-		return false;
-	}
+  @Override
+  public void setRequiredParameters(List<String> requiredParameters) {
+    this.requiredParameters = requiredParameters;
+  }
 
-	@Deprecated
-	/**
-	 * Will be deleted for buildOpenAIFunctionEngineToolMap
-	 */
-	public Map<String, Object> buildFunctionEngineToolMap() {
-		return buildOpenAIFunctionEngineToolMap();
-	}
+  @Override
+  public CATALOG_TYPE getCatalogType() {
+    return IEngine.CATALOG_TYPE.FUNCTION;
+  }
 
+  @Override
+  public boolean holdsFileLocks() {
+    return false;
+  }
+
+  @Deprecated
+  /** Will be deleted for buildOpenAIFunctionEngineToolMap */
+  public Map<String, Object> buildFunctionEngineToolMap() {
+    return buildOpenAIFunctionEngineToolMap();
+  }
 }

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.export;
 
 import java.io.BufferedWriter;
@@ -7,10 +34,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -27,219 +52,231 @@ import prerna.util.Utility;
 
 public class ToXmlReactor extends AbstractExportTxtReactor {
 
-	private static final Logger logger = LogManager.getLogger(ToXmlReactor.class);
+  private static final Logger logger = LogManager.getLogger(ToXmlReactor.class);
 
-	public ToXmlReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(),
-				ReactorKeysEnum.FILE_PATH.getKey(), APPEND_TIMESTAMP };
-	}
+  public ToXmlReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.TASK.getKey(),
+          ReactorKeysEnum.FILE_NAME.getKey(),
+          ReactorKeysEnum.FILE_PATH.getKey(),
+          APPEND_TIMESTAMP
+        };
+  }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		User user = this.insight.getUser();
-		// throw error is user doesn't have rights to export data
-		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
-			AbstractReactor.throwUserNotExporterError();
-		}
-		this.task = getTask();
-		this.appendTimestamp = appendTimeStamp();
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    User user = this.insight.getUser();
+    // throw error is user doesn't have rights to export data
+    if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+      AbstractReactor.throwUserNotExporterError();
+    }
+    this.task = getTask();
+    this.appendTimestamp = appendTimeStamp();
 
-		String downloadKey = UUID.randomUUID().toString();
-		InsightFile insightFile = new InsightFile();
-		insightFile.setFileKey(downloadKey);
+    String downloadKey = UUID.randomUUID().toString();
+    InsightFile insightFile = new InsightFile();
+    insightFile.setFileKey(downloadKey);
 
-		// get a random file name
-		String prefixName = Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = getExportFileName(user, prefixName, "xml", this.appendTimestamp);
+    // get a random file name
+    String prefixName =
+        Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
+    String exportName = getExportFileName(user, prefixName, "xml", this.appendTimestamp);
 
-		// grab file path to write the file
-		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
-		// if the file location is not defined generate a random path and set
-		// location so that the front end will download
-		if (this.fileLocation == null) {
-			String insightFolder = this.insight.getInsightFolder();
-			File f = new File(insightFolder);
-			if (!f.exists()) {
-				f.mkdirs();
-			}
-			this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			insightFile.setDeleteOnInsightClose(true);
-		} else {
-			this.fileLocation += DIR_SEPARATOR + exportName;
-			insightFile.setDeleteOnInsightClose(false);
-		}
+    // grab file path to write the file
+    this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+    // if the file location is not defined generate a random path and set
+    // location so that the front end will download
+    if (this.fileLocation == null) {
+      String insightFolder = this.insight.getInsightFolder();
+      File f = new File(insightFolder);
+      if (!f.exists()) {
+        f.mkdirs();
+      }
+      this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
+      insightFile.setDeleteOnInsightClose(true);
+    } else {
+      this.fileLocation += DIR_SEPARATOR + exportName;
+      insightFile.setDeleteOnInsightClose(false);
+    }
 
-		insightFile.setFilePath(this.fileLocation);
-		buildTask();
+    insightFile.setFilePath(this.fileLocation);
+    buildTask();
 
-		// store the insight file
-		// in the insight so the FE can download it
-		// only from the given insight
-		this.insight.addExportFile(downloadKey, insightFile);
+    // store the insight file
+    // in the insight so the FE can download it
+    // only from the given insight
+    this.insight.addExportFile(downloadKey, insightFile);
 
-		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
-				PixelOperationType.FILE_DOWNLOAD);
-		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the xml file"));
-		return retNoun;
-	}
+    NounMetadata retNoun =
+        new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+    retNoun.addAdditionalReturn(
+        NounMetadata.getSuccessNounMessage("Successfully generated the xml file"));
+    return retNoun;
+  }
 
-	@Override
-	protected void buildTask() {
-		// TODO Auto-generated method stub
-		// TODO: consolidate with Utility writeResultToFile?
-		// TODO: consolidate with Utility writeResultToFile?
-		// TODO: consolidate with Utility writeResultToFile?
-		// TODO: consolidate with Utility writeResultToFile?
-		// TODO: consolidate with Utility writeResultToFile?
-		// TODO: consolidate with Utility writeResultToFile?
-		// TODO: consolidate with Utility writeResultToFile?
+  @Override
+  protected void buildTask() {
+    // TODO Auto-generated method stub
+    // TODO: consolidate with Utility writeResultToFile?
+    // TODO: consolidate with Utility writeResultToFile?
+    // TODO: consolidate with Utility writeResultToFile?
+    // TODO: consolidate with Utility writeResultToFile?
+    // TODO: consolidate with Utility writeResultToFile?
+    // TODO: consolidate with Utility writeResultToFile?
+    // TODO: consolidate with Utility writeResultToFile?
 
-		File f = new File(this.fileLocation);
-		try {
-			// optimize the query so that it matches the general results on FE
-			try {
-				this.task.optimizeQuery(-1);
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Error occurred generating the query to write to the file");
-			}
+    File f = new File(this.fileLocation);
+    try {
+      // optimize the query so that it matches the general results on FE
+      try {
+        this.task.optimizeQuery(-1);
+      } catch (Exception e) {
+        logger.error(Constants.STACKTRACE, e);
+        throw new IllegalArgumentException(
+            "Error occurred generating the query to write to the file");
+      }
 
-			long start = System.currentTimeMillis();
+      long start = System.currentTimeMillis();
 
-			try {
-				f.createNewFile();
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
+      try {
+        f.createNewFile();
+      } catch (IOException e) {
+        logger.error(Constants.STACKTRACE, e);
+      }
 
-			FileWriter writer = null;
-			BufferedWriter bufferedWriter = null;
+      FileWriter writer = null;
+      BufferedWriter bufferedWriter = null;
 
-			try {
-				writer = new FileWriter(f);
-				bufferedWriter = new BufferedWriter(writer);
+      try {
+        writer = new FileWriter(f);
+        bufferedWriter = new BufferedWriter(writer);
 
-				// store some variables and just reset
-				// should be faster than creating new ones each time
-				int i = 0;
-				int size = 0;
-				StringBuilder builder = new StringBuilder();
-				// create typesArr as an array for faster searching
-				String[] headers = null;
-				SemossDataType[] typesArr = null;
+        // store some variables and just reset
+        // should be faster than creating new ones each time
+        int i = 0;
+        int size = 0;
+        StringBuilder builder = new StringBuilder();
+        // create typesArr as an array for faster searching
+        String[] headers = null;
+        SemossDataType[] typesArr = null;
 
-				int counter = 1;
-				// now loop through all the data
-				while (this.task.hasNext()) {
-					IHeadersDataRow row = this.task.next();
-					builder = new StringBuilder();
-					List<Map<String, Object>> headerInfo = this.task.getHeaderInfo();
-					if (counter == 1) {
-						builder.append("<DataTable>").append("\n");
+        int counter = 1;
+        // now loop through all the data
+        while (this.task.hasNext()) {
+          IHeadersDataRow row = this.task.next();
+          builder = new StringBuilder();
+          List<Map<String, Object>> headerInfo = this.task.getHeaderInfo();
+          if (counter == 1) {
+            builder.append("<DataTable>").append("\n");
 
-						i = 0;
-						headers = row.getHeaders();
-						size = headers.length;
-						typesArr = new SemossDataType[size];
-						for (; i < size; i++) {
-							if (headerInfo.get(i).containsKey("dataType")) {
-								typesArr[i] = SemossDataType
-										.convertStringToDataType(headerInfo.get(i).get("dataType").toString());
-							} else if (headerInfo.get(i).containsKey("type")) {
-								typesArr[i] = SemossDataType
-										.convertStringToDataType(headerInfo.get(i).get("type").toString());
-							} else {
-								typesArr[i] = SemossDataType.STRING;
-							}
-						}
-					}
-					
-					// generate the data row
-					Object[] dataRow = row.getValues();
-					i = 0;
-					String tab = null;
-					String col = null;
-					String currTable = null;
-					for (; i < size; i++) {
-						String[] rowHeaderInfo = headerInfo.get(i).get("header").toString().split("__");
-						if (rowHeaderInfo.length > 1) {
-							tab = rowHeaderInfo[0];
-							col = rowHeaderInfo[1];
-						} else {
-							col = rowHeaderInfo[0];
-						}
-						//test case where you join another table and you toXML the resulting
-						if (tab != null && !tab.equals(currTable)) {
-							if (currTable != null) {
-								builder.append("</").append(currTable).append(">");
-							}
-							currTable = tab;
-							builder.append("<").append(tab).append(">");
-						}
-						builder.append("<").append(col).append(">");
+            i = 0;
+            headers = row.getHeaders();
+            size = headers.length;
+            typesArr = new SemossDataType[size];
+            for (; i < size; i++) {
+              if (headerInfo.get(i).containsKey("dataType")) {
+                typesArr[i] =
+                    SemossDataType.convertStringToDataType(
+                        headerInfo.get(i).get("dataType").toString());
+              } else if (headerInfo.get(i).containsKey("type")) {
+                typesArr[i] =
+                    SemossDataType.convertStringToDataType(
+                        headerInfo.get(i).get("type").toString());
+              } else {
+                typesArr[i] = SemossDataType.STRING;
+              }
+            }
+          }
 
-						if (Utility.isNullValue(dataRow[i])) {
-							builder.append("null");
-						} else {
-							if (typesArr[i] == SemossDataType.STRING) {
-								builder.append("\"").append(dataRow[i].toString().replace("\"", "\"\"")).append("\"");
-							} else {
-								builder.append(dataRow[i]);
-							}
-						}
-						builder.append("</").append(col).append(">");
-						currTable = tab;
-					}
+          // generate the data row
+          Object[] dataRow = row.getValues();
+          i = 0;
+          String tab = null;
+          String col = null;
+          String currTable = null;
+          for (; i < size; i++) {
+            String[] rowHeaderInfo = headerInfo.get(i).get("header").toString().split("__");
+            if (rowHeaderInfo.length > 1) {
+              tab = rowHeaderInfo[0];
+              col = rowHeaderInfo[1];
+            } else {
+              col = rowHeaderInfo[0];
+            }
+            // test case where you join another table and you toXML the resulting
+            if (tab != null && !tab.equals(currTable)) {
+              if (currTable != null) {
+                builder.append("</").append(currTable).append(">");
+              }
+              currTable = tab;
+              builder.append("<").append(tab).append(">");
+            }
+            builder.append("<").append(col).append(">");
 
-					if (currTable!= null){
-						builder.append("</").append(currTable).append(">");
-					}
+            if (Utility.isNullValue(dataRow[i])) {
+              builder.append("null");
+            } else {
+              if (typesArr[i] == SemossDataType.STRING) {
+                builder
+                    .append("\"")
+                    .append(dataRow[i].toString().replace("\"", "\"\""))
+                    .append("\"");
+              } else {
+                builder.append(dataRow[i]);
+              }
+            }
+            builder.append("</").append(col).append(">");
+            currTable = tab;
+          }
 
-					builder.append("\n");
+          if (currTable != null) {
+            builder.append("</").append(currTable).append(">");
+          }
 
-					// write row to file
-					bufferedWriter.write(builder.toString());
+          builder.append("\n");
 
-					if (counter % 10_000 == 0) {
-						logger.info("Finished writing line " + counter);
-					}
-					counter++;
-				}
-				builder = new StringBuilder();
-				builder.append("</DataTable>");
-				bufferedWriter.write(builder.toString());
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				try {
-					if (bufferedWriter != null) {
-						bufferedWriter.close();
-					}
-					if (writer != null) {
-						writer.close();
-					}
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+          // write row to file
+          bufferedWriter.write(builder.toString());
 
-			long end = System.currentTimeMillis();
-			logger.info("Time to output file = " + (end - start) + " ms");
-		} catch (Exception e) {
-			if (f.exists()) {
-				f.delete();
-			}
-			throw new IllegalArgumentException(e.getMessage(), e);
-		} finally {
-			if (this.task != null) {
-				try {
-					this.task.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-	}
+          if (counter % 10_000 == 0) {
+            logger.info("Finished writing line " + counter);
+          }
+          counter++;
+        }
+        builder = new StringBuilder();
+        builder.append("</DataTable>");
+        bufferedWriter.write(builder.toString());
+      } catch (IOException e) {
+        logger.error(Constants.STACKTRACE, e);
+      } finally {
+        try {
+          if (bufferedWriter != null) {
+            bufferedWriter.close();
+          }
+          if (writer != null) {
+            writer.close();
+          }
+        } catch (IOException e) {
+          logger.error(Constants.STACKTRACE, e);
+        }
+      }
 
+      long end = System.currentTimeMillis();
+      logger.info("Time to output file = " + (end - start) + " ms");
+    } catch (Exception e) {
+      if (f.exists()) {
+        f.delete();
+      }
+      throw new IllegalArgumentException(e.getMessage(), e);
+    } finally {
+      if (this.task != null) {
+        try {
+          this.task.close();
+        } catch (IOException e) {
+          logger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
+  }
 }

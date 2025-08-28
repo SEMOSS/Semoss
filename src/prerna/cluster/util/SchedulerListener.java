@@ -1,98 +1,120 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.cluster.util;
 
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooKeeper;
-
 import prerna.util.Utility;
 
-public class SchedulerListener implements IZKListener { 
+public class SchedulerListener implements IZKListener {
 
-	private static SchedulerListener schedulerListener = null;
-	public static final String LEADER_ELECTION_ROOT_NODE = "/election";
-	private static final String PROCESS_NODE_PREFIX = "/p_";
+  private static SchedulerListener schedulerListener = null;
+  public static final String LEADER_ELECTION_ROOT_NODE = "/election";
+  private static final String PROCESS_NODE_PREFIX = "/p_";
 
-	private static final Logger logger = LogManager.getLogger(SchedulerListener.class);
+  private static final Logger logger = LogManager.getLogger(SchedulerListener.class);
 
-	private String watchedNodePath;
-	private String processNodePath;
-	private String id;
-	
-	public static boolean schedulerLeader = false;
+  private String watchedNodePath;
+  private String processNodePath;
+  private String id;
 
+  public static boolean schedulerLeader = false;
 
-	public static SchedulerListener getListener()
-	{
-		if(schedulerListener == null) {
-			schedulerListener = new SchedulerListener();
-		schedulerListener.init();
-		}
-		return schedulerListener;
-	}
+  public static SchedulerListener getListener() {
+    if (schedulerListener == null) {
+      schedulerListener = new SchedulerListener();
+      schedulerListener.init();
+    }
+    return schedulerListener;
+  }
 
+  private void init() {
+    logger.info("ZK: Registering Schleduler node");
+    id = Utility.getRandomString(8);
+    logger.info("Process with id: " + id + " has started!");
+    String rootNodePath =
+        ZKClient.getInstance().createSchedulerNode(LEADER_ELECTION_ROOT_NODE, false, false);
+    if (rootNodePath == null) {
+      throw new IllegalStateException(
+          "Unable to create/access leader election root node with path: "
+              + LEADER_ELECTION_ROOT_NODE);
+    }
+    processNodePath =
+        ZKClient.getInstance().createSchedulerNode(rootNodePath + PROCESS_NODE_PREFIX, false, true);
+    if (processNodePath == null) {
+      throw new IllegalStateException(
+          "Unable to create/access process node with path: " + LEADER_ELECTION_ROOT_NODE);
+    }
+    logger.info("[Process: " + id + "] Process node created with path: " + processNodePath);
+    attemptForLeaderPosition();
+  }
 
+  @Override
+  public void process(String path, ZooKeeper zk) {
+    logger.info("[Process event at path: " + path);
+    if (path.equalsIgnoreCase(watchedNodePath)) {
+      attemptForLeaderPosition();
+    }
+  }
 
-	private void init() {
-		logger.info("ZK: Registering Schleduler node");
-		id = Utility.getRandomString(8);
-		logger.info("Process with id: " + id + " has started!");
-		String rootNodePath = ZKClient.getInstance().createSchedulerNode(LEADER_ELECTION_ROOT_NODE, false, false);
-		if(rootNodePath == null) {
-			throw new IllegalStateException("Unable to create/access leader election root node with path: " + LEADER_ELECTION_ROOT_NODE);
-		}
-		processNodePath = ZKClient.getInstance().createSchedulerNode(rootNodePath + PROCESS_NODE_PREFIX, false, true);
-		if(processNodePath == null) {
-			throw new IllegalStateException("Unable to create/access process node with path: " + LEADER_ELECTION_ROOT_NODE);
-		}
-		logger.info("[Process: " + id + "] Process node created with path: " + processNodePath);
-		attemptForLeaderPosition();
+  public boolean isZKLeader() {
+    SchedulerListener.getListener();
+    return SchedulerListener.schedulerLeader;
+  }
 
-	}
+  private void attemptForLeaderPosition() {
 
+    final List<String> childNodePaths =
+        ZKClient.getInstance().getChildren(LEADER_ELECTION_ROOT_NODE, false);
 
+    Collections.sort(childNodePaths);
 
-	@Override
-	public void process(String path, ZooKeeper zk) {
-		logger.info("[Process event at path: " + path);			
-		if(path.equalsIgnoreCase(watchedNodePath)) {
-			attemptForLeaderPosition();
-		}
+    int index =
+        childNodePaths.indexOf(processNodePath.substring(processNodePath.lastIndexOf('/') + 1));
+    if (index == 0) {
+      logger.info("[Process: " + id + "] I am the new Scheduler leader!");
+      schedulerLeader = true;
 
+    } else {
+      final String watchedNodeShortPath = childNodePaths.get(index - 1);
 
-	}
-	
-	public boolean isZKLeader() {
-		SchedulerListener.getListener();
-		return 	SchedulerListener.schedulerLeader;
-	}
+      watchedNodePath = LEADER_ELECTION_ROOT_NODE + "/" + watchedNodeShortPath;
 
-	private void attemptForLeaderPosition() {
+      logger.info("[Process: " + id + "] - Setting watch on node with path: " + watchedNodePath);
 
-		final List<String> childNodePaths = ZKClient.getInstance().getChildren(LEADER_ELECTION_ROOT_NODE, false);
+      ZKClient.getInstance()
+          .watchEvent(watchedNodePath, EventType.NodeDeleted, getListener(), false);
 
-		Collections.sort(childNodePaths);
-
-		int index = childNodePaths.indexOf(processNodePath.substring(processNodePath.lastIndexOf('/') + 1));
-		if(index == 0) {
-			logger.info("[Process: " + id  + "] I am the new Scheduler leader!");
-			schedulerLeader=true;
-
-		} else {
-			final String watchedNodeShortPath = childNodePaths.get(index - 1);
-
-			watchedNodePath = LEADER_ELECTION_ROOT_NODE + "/" + watchedNodeShortPath;
-
-			logger.info("[Process: " + id + "] - Setting watch on node with path: " + watchedNodePath);
-
-			ZKClient.getInstance().watchEvent(watchedNodePath, EventType.NodeDeleted, getListener(), false);
-
-			//ZKClient.getInstance().watchSchedulerNode(watchedNodePath, true);
-		}
-	}
-
-
+      // ZKClient.getInstance().watchSchedulerNode(watchedNodePath, true);
+    }
+  }
 }

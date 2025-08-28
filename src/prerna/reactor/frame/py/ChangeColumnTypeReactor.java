@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.py;
 
 import prerna.algorithm.api.SemossDataType;
@@ -12,102 +39,122 @@ import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 /**
- * This reactor changes the data type of an existing column The inputs to the
- * reactor are: 
- * 1) the column to update 
- * 2) the desired column type
+ * This reactor changes the data type of an existing column The inputs to the reactor are: 1) the
+ * column to update 2) the desired column type
  */
-
 public class ChangeColumnTypeReactor extends AbstractPyFrameReactor {
-	
-	public ChangeColumnTypeReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };
-	}
 
-	@Override
-	public NounMetadata execute() {
-		
-		// if it is string super easy
-		// if it is int need to see if this is a string if so run regex
-		// if it is a int and the current is a float need to run regex
-		// if it is float and current is int need to do as type
-		// if it datetime - let python handle it
-		// if it is datetime - may be can ask what format and go from there ?
-		// if it is datetime - 
-		
-		organizeKeys();
-		// get frame
-		PandasFrame frame = (PandasFrame) getFrame();
-		// get table name
-		String table = frame.getName();
-		// get inputs
-		String column = this.keyValue.get(this.keysToGet[0]);
-		
-		if (column == null) {
-			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.COLUMN.getKey());
-		}
-		if (column.contains("__")) {
-			String[] split = column.split("__");
-			column = split[1];
-		}
-		
-		String newType = this.keyValue.get(this.keysToGet[1]);
-		if (newType == null) {
-			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.DATA_TYPE.getKey());
-		}
-		
-		String additionalDataType = this.keyValue.get(this.keysToGet[2]);
-		
-		newType = SemossDataType.convertStringToDataType(newType).toString();
-		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
-		String curType = metadata.getHeaderTypeAsString(table + "__" + column);
-		
-		//check if there is a new dataType
-		if (!curType.equals(newType)) {
-			if (Utility.isStringType(newType)) {
-				// df$column <- as.character(df$column);
-				// create temp table without scientific format for numeric
-				// columns
-				//if ((boolean)frame.runScript(table + "w.is_numeric('" + column + "')")) 
-				//{
-				String script = table + "['" + column + "'] = " + table + "['" + column + "'].astype('str')";
-				frame.runScript(script);
-				this.addExecutedCode(script);
-				//} 
-			} else if (newType.equalsIgnoreCase("factor")) {
-				// df$column <- as.factor(df$column);
-				String script = table + "['" + column + "'] = " + table + "['" + column + "'].astype('object')";
-				frame.runScript(script);
-				this.addExecutedCode(script);
-			} else if (Utility.isDoubleType(newType)) {
-				// r script syntax cleaning characters with regex
-				//mv['RottenTomatoesCritics'].astype('str').str.replace('[^-\\\\.0-9]', 'dflasd', regex=True).astype('float64', errors='ignore')
-				String script = table + "['" + column + "']" + " = " + table + "['" + column + "'].astype('str').str.replace('[^-\\\\.0-9]', '', regex=True).astype('float64', errors='ignore')";
-				frame.runScript(script);
-				this.addExecutedCode(script);
-			} else if (Utility.isDateType(newType)) {
-				// we have a different script to run if it is a str to date
-				// conversion
-				// define date format
-				String script = table + "['" + column + "'] = pd.to_datetime(" + table + "['" + column + "'])";
-				frame.runScript(script);
-				this.addExecutedCode(script);
-			}
-			// update the metadata
-			metadata.modifyDataTypeToProperty(table + "__" + column, table, newType);
-		}
-		
-		if(additionalDataType != null && !additionalDataType.isEmpty()) {
-			metadata.modifyAdditionalDataTypeToProperty(table + "__" + column, table, newType);
-		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ChangeColumnType", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
-	}
+  public ChangeColumnTypeReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.COLUMN.getKey(),
+          ReactorKeysEnum.DATA_TYPE.getKey(),
+          ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey()
+        };
+  }
+
+  @Override
+  public NounMetadata execute() {
+
+    // if it is string super easy
+    // if it is int need to see if this is a string if so run regex
+    // if it is a int and the current is a float need to run regex
+    // if it is float and current is int need to do as type
+    // if it datetime - let python handle it
+    // if it is datetime - may be can ask what format and go from there ?
+    // if it is datetime -
+
+    organizeKeys();
+    // get frame
+    PandasFrame frame = (PandasFrame) getFrame();
+    // get table name
+    String table = frame.getName();
+    // get inputs
+    String column = this.keyValue.get(this.keysToGet[0]);
+
+    if (column == null) {
+      throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.COLUMN.getKey());
+    }
+    if (column.contains("__")) {
+      String[] split = column.split("__");
+      column = split[1];
+    }
+
+    String newType = this.keyValue.get(this.keysToGet[1]);
+    if (newType == null) {
+      throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.DATA_TYPE.getKey());
+    }
+
+    String additionalDataType = this.keyValue.get(this.keysToGet[2]);
+
+    newType = SemossDataType.convertStringToDataType(newType).toString();
+    OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
+    String curType = metadata.getHeaderTypeAsString(table + "__" + column);
+
+    // check if there is a new dataType
+    if (!curType.equals(newType)) {
+      if (Utility.isStringType(newType)) {
+        // df$column <- as.character(df$column);
+        // create temp table without scientific format for numeric
+        // columns
+        // if ((boolean)frame.runScript(table + "w.is_numeric('" + column + "')"))
+        // {
+        String script =
+            table + "['" + column + "'] = " + table + "['" + column + "'].astype('str')";
+        frame.runScript(script);
+        this.addExecutedCode(script);
+        // }
+      } else if (newType.equalsIgnoreCase("factor")) {
+        // df$column <- as.factor(df$column);
+        String script =
+            table + "['" + column + "'] = " + table + "['" + column + "'].astype('object')";
+        frame.runScript(script);
+        this.addExecutedCode(script);
+      } else if (Utility.isDoubleType(newType)) {
+        // r script syntax cleaning characters with regex
+        // mv['RottenTomatoesCritics'].astype('str').str.replace('[^-\\\\.0-9]', 'dflasd',
+        // regex=True).astype('float64', errors='ignore')
+        String script =
+            table
+                + "['"
+                + column
+                + "']"
+                + " = "
+                + table
+                + "['"
+                + column
+                + "'].astype('str').str.replace('[^-\\\\.0-9]', '', regex=True).astype('float64', errors='ignore')";
+        frame.runScript(script);
+        this.addExecutedCode(script);
+      } else if (Utility.isDateType(newType)) {
+        // we have a different script to run if it is a str to date
+        // conversion
+        // define date format
+        String script =
+            table + "['" + column + "'] = pd.to_datetime(" + table + "['" + column + "'])";
+        frame.runScript(script);
+        this.addExecutedCode(script);
+      }
+      // update the metadata
+      metadata.modifyDataTypeToProperty(table + "__" + column, table, newType);
+    }
+
+    if (additionalDataType != null && !additionalDataType.isEmpty()) {
+      metadata.modifyAdditionalDataTypeToProperty(table + "__" + column, table, newType);
+    }
+
+    // NEW TRACKING
+    UserTrackerFactory.getInstance()
+        .trackAnalyticsWidget(
+            this.insight,
+            frame,
+            "ChangeColumnType",
+            AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+
+    return new NounMetadata(
+        frame,
+        PixelDataType.FRAME,
+        PixelOperationType.FRAME_DATA_CHANGE,
+        PixelOperationType.FRAME_HEADERS_CHANGE);
+  }
 }

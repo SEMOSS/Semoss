@@ -1,10 +1,36 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.engine;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -12,51 +38,56 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetUsageStatisticsReactor extends AbstractReactor {
-	
-	private static final String AGENT_ID = "agentId";
-	
-	public GetUsageStatisticsReactor() {
-		this.keysToGet = new String[] { AGENT_ID, ReactorKeysEnum.START_DATE.getKey(),
-				ReactorKeysEnum.END_DATE.getKey(), ReactorKeysEnum.TYPE.getKey() };
-	}
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
+  private static final String AGENT_ID = "agentId";
 
-		String agentId = this.keyValue.get(AGENT_ID);
-		String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
-		String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
-		String type = this.keyValue.get(ReactorKeysEnum.TYPE.getKey());
+  public GetUsageStatisticsReactor() {
+    this.keysToGet =
+        new String[] {
+          AGENT_ID,
+          ReactorKeysEnum.START_DATE.getKey(),
+          ReactorKeysEnum.END_DATE.getKey(),
+          ReactorKeysEnum.TYPE.getKey()
+        };
+  }
 
-		List<Map<String, Object>> report = new ArrayList<>();
-		Map<String, Object> resultMap = new HashMap<>();
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
 
-		if ("App".equalsIgnoreCase(type)) {
-			report = ModelInferenceLogsUtils.getModelInferenceAppReport(agentId, startDate, endDate);
-			resultMap.put("appReport", report);
-		} else if ("User".equalsIgnoreCase(type)) {
-			report = ModelInferenceLogsUtils.getModelInferenceUserReport(agentId, startDate, endDate);
-			resultMap.put("userReport", report);
-		} else {
-			resultMap.put("error", "Invalid type. Use 'App' or 'User'");
-		}
+    String agentId = this.keyValue.get(AGENT_ID);
+    String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
+    String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
+    String type = this.keyValue.get(ReactorKeysEnum.TYPE.getKey());
 
-		NounMetadata retNoun = new NounMetadata(resultMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		return retNoun;
-	}
+    List<Map<String, Object>> report = new ArrayList<>();
+    Map<String, Object> resultMap = new HashMap<>();
 
-	@Override
-	public String getReactorDescription() {
-		return """
+    if ("App".equalsIgnoreCase(type)) {
+      report = ModelInferenceLogsUtils.getModelInferenceAppReport(agentId, startDate, endDate);
+      resultMap.put("appReport", report);
+    } else if ("User".equalsIgnoreCase(type)) {
+      report = ModelInferenceLogsUtils.getModelInferenceUserReport(agentId, startDate, endDate);
+      resultMap.put("userReport", report);
+    } else {
+      resultMap.put("error", "Invalid type. Use 'App' or 'User'");
+    }
+
+    NounMetadata retNoun = new NounMetadata(resultMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
+    return retNoun;
+  }
+
+  @Override
+  public String getReactorDescription() {
+    return """
 			This reactor generates usage reports for a specific engine (model/agent), based on the provided parameters.
-	
+
 			Required parameters:
 			  • agentId     – engineId string identifying the model (e.g., "e4449559-bcff-4941-ae72-0e3f18e06660")
 			  • startDate   – inclusive start timestamp (format: yyyy-MM-dd HH:mm:ss.SSS)
 			  • endDate     – inclusive end timestamp (format: yyyy-MM-dd HH:mm:ss.SSS)
 			  • type        – determines the report granularity; must be either "User" or "App"
-	
+
 			When type = "User":
 			  Returns a map containing key "userReport" mapped to a list of records.
 			  Each record includes:
@@ -66,7 +97,7 @@ public class GetUsageStatisticsReactor extends AbstractReactor {
 			    • tokens          – total tokens consumed by the user
 			    • avg_tokens      – average tokens per message
 			    • last_utilized_date – timestamp of the last usage by the user
-	
+
 			When type = "App":
 			  Returns a map containing key "appReport" mapped to a list of records.
 			  Each record includes:
@@ -76,28 +107,27 @@ public class GetUsageStatisticsReactor extends AbstractReactor {
 			    • tokens          – total tokens consumed by the app
 			    • avg_tokens      – average tokens per message
 			    • last_utilized_date – timestamp of the last usage by the app
-	
+
 			When type is neither "User" nor "App":
 			  Returns a map containing key "error" with the message "Invalid type. Use 'App' or 'User'".
-	
+
 			Use case examples:
 			  GetUsageStatistics(agentId="…", startDate="2025-08-01 00:00:00.000", endDate="2025-08-04 23:59:59.999", type="User");
 			  GetUsageStatistics(agentId="…", startDate="2025-08-01 00:00:00.000", endDate="2025-08-04 23:59:59.999", type="App");
 			""";
-	}
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(AGENT_ID)) {
-			return "The ID of the agent (model) whose usage report is requested.";
-		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
-			return "The start date for filtering the usage data (format: yyyy-MM-dd HH:mm:ss).";
-		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
-			return "The end date for filtering the usage data (format: yyyy-MM-dd HH:mm:ss).";
-		} else if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
-			return "The type of report to generate: either 'App' or 'User'.";
-		}
-		return super.getDescriptionForKey(key);
-	}
+  }
 
+  @Override
+  protected String getDescriptionForKey(String key) {
+    if (key.equals(AGENT_ID)) {
+      return "The ID of the agent (model) whose usage report is requested.";
+    } else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
+      return "The start date for filtering the usage data (format: yyyy-MM-dd HH:mm:ss).";
+    } else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
+      return "The end date for filtering the usage data (format: yyyy-MM-dd HH:mm:ss).";
+    } else if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
+      return "The type of report to generate: either 'App' or 'User'.";
+    }
+    return super.getDescriptionForKey(key);
+  }
 }

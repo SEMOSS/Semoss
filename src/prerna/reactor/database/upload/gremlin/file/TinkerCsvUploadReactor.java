@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.database.upload.gremlin.file;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -40,12 +42,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;

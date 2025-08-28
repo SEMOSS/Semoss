@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.testing.query.querystruct;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -5,9 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.junit.jupiter.api.Test;
-
 import prerna.om.Insight;
 import prerna.om.PixelList;
 import prerna.query.querystruct.SetParamsReactor;
@@ -23,54 +48,58 @@ import prerna.testing.ApiSemossTestUtils;
 import prerna.testing.PixelChain;
 
 public class SetParamsReactorApiTests extends AbstractBaseSemossApiTests {
-	
-	/**
-	 * 
-	 * NOTE: unable to test this class. Could not find a way to set the Insight var store to contain
-	 * a var map with the ImportParamOptionsReactor.PARAM_OPTIONS key anywhere in the code base. I looked 
-	 * for a little but determined it wasn't worth the time. Unit tests will suffice for now but will comment
-	 * out the work in case we come back to this in the future and need to explain what I was trying to do.
-	 * 
-	 */
 
-	@Test
-	void executeOnColumn() {
-		String engine = ApiSemossTestEngineUtils.createBasicEngine();
+  /**
+   * NOTE: unable to test this class. Could not find a way to set the Insight var store to contain a
+   * var map with the ImportParamOptionsReactor.PARAM_OPTIONS key anywhere in the code base. I
+   * looked for a little but determined it wasn't worth the time. Unit tests will suffice for now
+   * but will comment out the work in case we come back to this in the future and need to explain
+   * what I was trying to do.
+   */
+  @Test
+  void executeOnColumn() {
+    String engine = ApiSemossTestEngineUtils.createBasicEngine();
 
-		PixelRunner pr = new PixelRunner();
-		PixelChain db = new PixelChain(DatabaseReactor.class, ReactorKeysEnum.DATABASE.getKey(), engine);
-		PixelChain select = new PixelChain("Select(TEST__cone).as([cone])");
-		PixelChain distinct = new PixelChain("Distinct(false)");
-		PixelChain importChain = new PixelChain(
-				"Import(frame = [ CreateFrame(frameType=[GRID], override = [true]).as([\"test_FRAME000001\"])])");
+    PixelRunner pr = new PixelRunner();
+    PixelChain db =
+        new PixelChain(DatabaseReactor.class, ReactorKeysEnum.DATABASE.getKey(), engine);
+    PixelChain select = new PixelChain("Select(TEST__cone).as([cone])");
+    PixelChain distinct = new PixelChain("Distinct(false)");
+    PixelChain importChain =
+        new PixelChain(
+            "Import(frame = [ CreateFrame(frameType=[GRID], override = [true]).as([\"test_FRAME000001\"])])");
 
-		String pixel = ApiSemossTestUtils.buildPixelChain(db, select, distinct, importChain);
-		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel, pr);
+    String pixel = ApiSemossTestUtils.buildPixelChain(db, select, distinct, importChain);
+    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel, pr);
 
-				PixelList pl = ApiSemossTestInsightUtils.getInsight().getPixelList();
-		String pixelId = pl.get(0).getId();
-		
-		Insight i = ApiSemossTestInsightUtils.getInsight();
-		Map<String, Object> param = new HashMap<>();
-		Map<String, Object> paramMap = new HashMap<>();
-		Map<String, Object> tableMap = new HashMap<>();
-		paramMap.put("cone", tableMap);
-		param.put(pixelId, paramMap);
-		
-		NounMetadata paramMapNM = new NounMetadata(param, PixelDataType.PARAM_VALUES_MAP);
-		i.getVarStore().put("PARAM_OPTIONS", paramMapNM);
-		
-		String pixel2 = ApiSemossTestUtils.buildPixelCall(SetParamsReactor.class, ReactorKeysEnum.PIXEL_ID.getKey(),
-				pixelId, ReactorKeysEnum.VALUE.getKey(), false, ReactorKeysEnum.COLUMN.getKey(), "cone");
+    PixelList pl = ApiSemossTestInsightUtils.getInsight().getPixelList();
+    String pixelId = pl.get(0).getId();
 
-		NounMetadata nm2 = ApiSemossTestUtils.processPixel(pixel2);
+    Insight i = ApiSemossTestInsightUtils.getInsight();
+    Map<String, Object> param = new HashMap<>();
+    Map<String, Object> paramMap = new HashMap<>();
+    Map<String, Object> tableMap = new HashMap<>();
+    paramMap.put("cone", tableMap);
+    param.put(pixelId, paramMap);
 
-		Object reactorValue = nm2.getValue();
-		assertNotNull(reactorValue);
-		assertEquals("Parameters set ", reactorValue.toString());
-		assertEquals(PixelDataType.CONST_STRING, nm2.getNounType());
+    NounMetadata paramMapNM = new NounMetadata(param, PixelDataType.PARAM_VALUES_MAP);
+    i.getVarStore().put("PARAM_OPTIONS", paramMapNM);
 
-	}
+    String pixel2 =
+        ApiSemossTestUtils.buildPixelCall(
+            SetParamsReactor.class,
+            ReactorKeysEnum.PIXEL_ID.getKey(),
+            pixelId,
+            ReactorKeysEnum.VALUE.getKey(),
+            false,
+            ReactorKeysEnum.COLUMN.getKey(),
+            "cone");
 
-	
+    NounMetadata nm2 = ApiSemossTestUtils.processPixel(pixel2);
+
+    Object reactorValue = nm2.getValue();
+    assertNotNull(reactorValue);
+    assertEquals("Parameters set ", reactorValue.toString());
+    assertEquals(PixelDataType.CONST_STRING, nm2.getNounType());
+  }
 }
