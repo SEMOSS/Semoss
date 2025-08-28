@@ -1486,7 +1486,7 @@ public class ModelInferenceLogsUtils {
 	public static void setRoomContext(String roomId, String userId, String context) {
 		try {
 			PreparedStatement ps = modelInferenceLogsDb
-					.getPreparedStatement("UPDATE ROOM SET CONTEXT=? WHERE USER_ID=? AND ROOM_ID=?");
+					.getPreparedStatement("UPDATE ROOM SET ROOM_CONTEXT=? WHERE USER_ID=? AND ROOM_ID=?");
 			if (ps == null) {
 				throw new IllegalArgumentException("Error generating prepared statement to set room context");
 			}
