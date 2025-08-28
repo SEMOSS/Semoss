@@ -1,143 +1,230 @@
 package prerna.playground.reactors;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.vector.VectorDatabaseCSVTable;
+import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class AskCOTRoomReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(Room.class);
 
-	private static final Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
+	
+    private static final Gson GSON = new GsonBuilder()
+            .setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+            .disableHtmlEscaping()
+            .create();
 
-		//TODO: fields?
-	
-	public AskCOTRoomReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.ENGINE.getKey(),
-				ReactorKeysEnum.VECTORDB.getKey(),
-				ReactorKeysEnum.ROOM_ID.getKey(),
-				ReactorKeysEnum.COMMAND.getKey(),
-				ReactorKeysEnum.CONTEXT.getKey(),
-				ReactorKeysEnum.IMAGE.getKey(),
-				ReactorKeysEnum.URL.getKey(),
-				"mcpToolID",
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-		};
-		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0 };
-	}
-	
-	
-	@Override
-	public NounMetadata execute() {
-		
-		String vectorDbId = this.keyValue.get(this.keysToGet[1]);
-		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), vectorDbId)) {
-			throw new IllegalArgumentException("Vector db " + vectorDbId + " does not exist or user does not have access to it.");
+    public AskCOTRoomReactor() {
+        this.keysToGet = new String[]{
+            ReactorKeysEnum.ENGINE.getKey(),      // 0, required
+            ReactorKeysEnum.VECTORDB.getKey(),    // 1, optional (can be null)
+            ReactorKeysEnum.ROOM_ID.getKey(),     // 2, optional (not required, will use insight)
+            ReactorKeysEnum.COMMAND.getKey(),     // 3, required (actual user query)
+            ReactorKeysEnum.CONTEXT.getKey(),     // 4, tbd on how it is used
+            ReactorKeysEnum.IMAGE.getKey(),       // 5, optional, TODO: add in support
+            ReactorKeysEnum.URL.getKey(),         // 6, optional, TODO: add in support
+            ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 7, optional
+        };
+
+        this.keyRequired = new int[]{1, 0, 0, 1, 0, 0, 0, 0};
+    }
+
+    @Override
+    public NounMetadata execute() {
+        organizeKeys();
+        
+        // Required
+        String modelId = this.keyValue.get(this.keysToGet[0]);
+        String userQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[3]));
+        // Optional
+        String vectorDbId = this.keyValue.get(this.keysToGet[1]);
+        String roomId = this.keyValue.get(this.keysToGet[2]);
+        // context, images, URLs: future - see keysToGet map
+
+        // Security
+        User user = this.insight.getUser();
+        if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
+            throw new IllegalArgumentException("Model " + modelId + " does not exist or user does not have access to this model");
+        }
+        boolean hasVecDB = (vectorDbId != null && vectorDbId.trim().length() > 0);
+        IVectorDatabaseEngine vectorDbEng = hasVecDB ? Utility.getVectorDatabase(vectorDbId) : null;
+
+        // Room and Engine
+        IModelEngine modelEngine = Utility.getModel(modelId);
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userQuery);
+
+	    // ==== Step 1. Grab RAG context if vectorDB present ====
+	    String joinedChunks = "";
+	    if (hasVecDB && vectorDbEng != null) {
+	        int chunkLimit = 3; // TODO: configurable
+	        List<Map<String, Object>> output = vectorDbEng.nearestNeighbor(this.insight, userQuery, chunkLimit, null);
+	        List<String> chunkList = new LinkedList<>();
+	        for (Map<String, Object> chunk : output) {
+	            chunkList.add((String) chunk.get(VectorDatabaseCSVTable.CONTENT));
+	        }
+	        joinedChunks = String.join("\n", chunkList);
+	    }
+     
+
+        // ==== Step 2. Gather Tool Descriptions from the room ====
+        List<String> toolIDs = getToolIdsForRoom(room);
+        String toolsDescription = assembleToolsDescription(toolIDs);
+
+        
+        // ==== Step 3. Build Prompts ====
+        String cotSchema = PlaygroundUtils.COT_JSON_SCHEMA.replaceAll("\\s+", " ");
+        String userPrompt = String.format(
+            PlaygroundUtils.COT_PROMPT_TEMPLATE,
+            toolsDescription,
+            joinedChunks,
+            userQuery,
+            cotSchema
+        );
+
+        Map<String, Object> paramMap = getParamMap();
+        if (paramMap == null) paramMap = new HashMap<>();
+        paramMap.put("schema", PlaygroundUtils.COT_JSON_SCHEMA);
+
+        InputMessage inputMsg = InputMessage.builder(room)
+            .withInputUIPrompt(userQuery)
+            .withInputPrompt(userPrompt)
+            .withModelType(modelEngine.getModelType())
+            .withParamMap(paramMap)
+            .build(); // 
+
+        // ==== Step 4. Run LLM ====
+        ResponseMessage response = room.ask(inputMsg, PlaygroundUtils.COT_SYSTEM_PROMPT, modelEngine);
+
+        
+     // ==== Step 5. Try to parse as COT JSON ====
+        Map<String, Object> cotJson = null;
+        boolean isValidJson = false;
+        try {
+            cotJson = jsonToMap(response.getContent());
+            isValidJson = (cotJson != null && cotJson.containsKey("steps"));
+        } catch (Exception ex) {
+        	classLogger.info("Could not parse response from model into a COT json");
+        }
+
+        if (isValidJson) {
+            response.setMessageType(MessageType.RESPONSE_COT); // 
+        }
+        
+		// ---- Return both messages as a Map
+		Map<String, Object> pixelReturn = new LinkedHashMap<>();
+
+		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(inputMsg)));
+		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
+
+		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
+
+    }
+    
+    // ====== UTILITIES ======
+
+    /**
+     * 
+     * @return
+     */
+	private Map<String, Object> getParamMap() {
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if(mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if(mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
 		}
-		
-        IVectorDatabaseEngine vectorDbEng = Utility.getVectorDatabase(vectorDbId);
-        if (vectorDbEng == null) {
-            throw new RuntimeException("Unable to find engine");
-        }
-        
-        //TODO: 
-        //1. move into new method/class potentially, process the searchStatement rather
-        //   than use raw user query
-        //2. do not hardcode limit
-        //3. configure paramMap (for now its fine?)
-       
-        String searchStatement = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[3]));
-        int limit = 3;
-        Map<String, Object> paramMap = null;
-        
-        //TODO: verify, do we want to directly work with output? which is a map of the
-        //		json response from the vectorDB. or is there some universal handler? etc
-        //		so we can get shared datatypes, like chunks, pulled out.
-        
-        //CLARIFICATION: wait, I found this is the actual output
-        
-        
-		/**
-		JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
-		thisMatch.put(VectorDatabaseCSVTable.SOURCE, sourceDetails.get(VectorDatabaseCSVTable.SOURCE).getAsString());
-		thisMatch.put(VectorDatabaseCSVTable.MODALITY, sourceDetails.get(VectorDatabaseCSVTable.MODALITY).getAsString());
-		thisMatch.put(VectorDatabaseCSVTable.DIVIDER, sourceDetails.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
-		thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
-		thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
-		thisMatch.put(VectorDatabaseCSVTable.CONTENT, sourceDetails.get(VectorDatabaseCSVTable.CONTENT).getAsString());
-	}
-	return vectorSearchResults;
-	**/
-        
-        
-        List<Map<String, Object>> output = vectorDbEng.nearestNeighbor(this.insight, searchStatement, limit, paramMap);
-		//Grab from 0 to end, eaach VectorDatabaseCSVTable.CONTENT
-        //put that into the message
-        //use that to build teh inputMessage
-        
-        List<String> chunkList = new LinkedList<String>();
-        for (Map<String, Object> chunk: output) {
-        	chunkList.add((String) chunk.get(VectorDatabaseCSVTable.CONTENT));
-        }
-        
-        String template = "A RAG context delimited by triple backticks is provided below. \n"
-        		+ "                \\`\\`\\` %s \\`\\`\\`\\\\n\r\n"
-        		+ "User Query: %s";
-        String joinedResults = String.join("\n", chunkList);
-        String command = String.format(template, joinedResults, searchStatement);
-        
-        
-        //TODO: insert JSON schema somehow? may not be implemented yet
-		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room)
-				.withInputUIPrompt(question)
-				.withInputPrompt(question)
-				.withModelType(modelEngine.getModelType())
-				.withParamMap(paramMap)
-				.withImages(copiedImages, room)
-				.withImageUrls(inputImageURLs)
-				.withTools(tools)
-				.build();
-
-		// ---- Actually run LLM call
-		ResponseMessage response = room.ask(msg, context, modelEngine);
-
-		//TODO: determine if response is JSON
-		
-		//TODO: if not JSON, just return, if is JSON, we need to break down the steps? and store them?
-	
-		//TODO: return step objects (COT) and other components to front end in map?
-		
-		//TODO: we potentially store steps/response in the chat history as well. (room?)
-		
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if(mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
 		return null;
 	}
-	
+
     /**
-     * Converts a JSON object string to a Map<String, Object>
-     * @param json The JSON string (must be a JSON object: { ... })
-     * @return The parsed Map
+     * Get list of tool IDs from room options (no lookup or map building).
      */
+    private List<String> getToolIdsForRoom(Room room) {
+        if (room != null && room.getOptionsMap() != null && room.getOptionsMap().containsKey("tools")) {
+            Object toolsObj = room.getOptionsMap().get("tools");
+            if (toolsObj instanceof List<?>) {
+                List<?> toolsList = (List<?>) toolsObj;
+                List<String> result = new LinkedList<>();
+                for (Object t : toolsList) {
+                    if (t instanceof String) {
+                        result.add((String) t);
+                    }
+                }
+                return result;
+            }
+        }
+        return new LinkedList<>();
+    }
+
+    private String assembleToolsDescription(List<String> toolId) {
+        if (toolId == null || toolId.isEmpty()) return "No tools.";
+        // TO DO
+        return "some tool";
+    }
+
+    /** Converts a JSON object string to a Map<String, Object>. */
     public static Map<String, Object> jsonToMap(String json) {
         if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
             throw new IllegalArgumentException("Input must be a valid JSON object string.");
         }
-        return gson.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
+        return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
     }
-	
-	}
+
+    @Override
+    public String getReactorDescription() {
+        return """
+        Takes a user's query and returns a chain-of-thought JSON plan by combining tool descriptions,
+        RAG context (if vector db is provided), and the original query according to a strict JSON schema.
+        If the output matches the schema, the type is 'COT'. Otherwise, returns as simple chat (type 'CHAT').
+        """;
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+            return "The engine id of the model used for the message.";
+        } else if(key.equals(ReactorKeysEnum.VECTORDB.getKey())) {
+            return "The vector db for knowledge search for this room/query (optional).";
+        } else if(key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
+            return "The room id corresponding to message history (optional, used for context/history/tools if provided).";
+        } else if(key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+            return "The raw user query.";
+        }
+        return super.getDescriptionForKey(key);
+    }
+}
