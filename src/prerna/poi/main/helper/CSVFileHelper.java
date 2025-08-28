@@ -50,7 +50,6 @@ public class CSVFileHelper {
 	// this will literally be [0,1,2,3,...,n] where n = number of columns - 1
 	private Integer [] headerIntegerArray = null;
 
-
 	// keep track of the current headers being used
 	private String [] currHeaders = null;
 

@@ -38,31 +38,36 @@ import prerna.util.Utility;
 
 public class AskPlaygroundReactor extends AbstractReactor {
 
-	private static final Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
+	private static final Gson GSON = new GsonBuilder()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping()
+			.create();
 
-	public AskPlaygroundReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.ENGINE.getKey(),
-				ReactorKeysEnum.ROOM_ID.getKey(),
-				ReactorKeysEnum.COMMAND.getKey(),
-				ReactorKeysEnum.CONTEXT.getKey(),
-				ReactorKeysEnum.IMAGE.getKey(),
-				ReactorKeysEnum.URL.getKey(),
-				"mcpToolID",
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-		};
-		this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0, 0, 0 };
-	}
-
-	@Override
-	public NounMetadata execute() {
-		////// SET UP //////////
-		organizeKeys();
-		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
-		User user = this.insight.getUser();
-		if (user == null) throw new IllegalArgumentException("You are not properly logged in");
-		String userId = user.getPrimaryLoginToken().getId();
+    public AskPlaygroundReactor() {
+        this.keysToGet = new String[] {
+            ReactorKeysEnum.ENGINE.getKey(),
+            ReactorKeysEnum.ROOM_ID.getKey(),
+            ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(),
+            ReactorKeysEnum.COMMAND.getKey(),
+            ReactorKeysEnum.CONTEXT.getKey(),
+            ReactorKeysEnum.IMAGE.getKey(),
+            ReactorKeysEnum.URL.getKey(),
+            "mcpToolID",
+            ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+        };
+        this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0, 0 };
+    }
+    
+    @Override
+    public NounMetadata execute() {
+        ////// SET UP //////////
+        organizeKeys();
+        String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+        String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+        String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
+        User user = this.insight.getUser();
+        if (user == null) throw new IllegalArgumentException("You are not properly logged in");
+        String userId = user.getPrimaryLoginToken().getId();
 
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
@@ -78,7 +83,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		List<String> inputImages = getImages();
 		List<String> inputImageURLs = getImageURLs();
 		List<String> mcpToolIDs = getMCPToolIDs();
-		List<Map<String, Object>> tools = new ArrayList<Map<String, Object>>();
+		List<Map<String, Object>> tools = new ArrayList<>();
 		if(mcpToolIDs != null && !mcpToolIDs.isEmpty()) {
 			for (String appId : mcpToolIDs) {
 				List<Map<String, Object>> toolJsons = getToolJson(appId);
@@ -104,8 +109,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 				.withTools(tools)
 				.build();
 
-		// ---- Actually run LLM call
-		ResponseMessage response = room.ask(msg, context, modelEngine);
+        // ---- Actually run LLM call
+        ResponseMessage response = room.ask(msg, context, modelEngine, parentMessageId);
 
 		// parse the response for code blocks
 		if(response.getMessageType() == MessageType.RESPONSE_TEXT) {
@@ -113,46 +118,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
 					room.getMessagesAsString());
 		} else if(response.getMessageType() == MessageType.RESPONSE_TOOL) {
-			Map<String, JSONObject> mcpToolsJsonCache = new HashMap<>();
-			List<Map<String, Object>> toolResponses = response.getToolResponses();
-			for(int toolResponseIndex = 0; toolResponseIndex < toolResponses.size(); toolResponseIndex++) {
-				Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
-				String responseToolFunctionName = (String) responseToolMap.get("name");
-				Map<String, Object> responseToolArguments = (Map<String, Object>) responseToolMap.get("arguments");
-				// we appended a SMSS_PROJECT_ID tool key
-				String projectId = (String) responseToolArguments.remove(MCPUtility.SMSS_PROJECT_ID);
-				
-				// now that we have the projectId
-				// lets append some of the mcp metadata back into the response
-				
-				JSONObject mcpToolsJson = mcpToolsJsonCache.get(projectId);
-				if(mcpToolsJson == null) {
-					IProject project = Utility.getProject(projectId);
-					mcpToolsJson = MCPUtility.getAggregatedTools(project);
-					mcpToolsJsonCache.put(projectId, mcpToolsJson);
-				}
-				
-				if(mcpToolsJson != null) {
-					JSONArray mcpToolsArray = mcpToolsJson.getJSONArray("tools");
-					JSONObject mcpTool = null;
-					PROJECT_MCP_LOOP : for(int toolIndex = 0; toolIndex < mcpToolsArray.length(); toolIndex++) {
-						JSONObject _tool = mcpToolsArray.getJSONObject(toolIndex);
-						if(_tool.has("name") && _tool.getString("name").equals(responseToolFunctionName)) {
-							mcpTool = _tool;
-							break PROJECT_MCP_LOOP;
-						}
-					}
-					
-					// add back the title from mcp structure
-					if(mcpTool != null && mcpTool.has("title")) {
-						responseToolMap.put("title", mcpTool.getString("title"));
-					}
-					
-					if(mcpToolsJson.has("_meta")) {
-						responseToolMap.put("_meta", mcpToolsJson.get("_meta"));
-					}
-				}
-			}
+			MessageUtils.updateToolResponseWithProjectMeta(response);
 		}
 
 		// ---- Return both messages as a Map
@@ -172,7 +138,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	private List<Map<String, Object>> getToolJson(String appId) {
 		IProject project = Utility.getProject(appId);
 		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTools(appId, toolMap);
+		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTooslMethodName(appId, toolMap);
 		if(updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
@@ -189,9 +155,13 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	}
 
 	// ------- image/file helpers, paramMap etc. ---------------
+	/**
+	 * 
+	 * @return
+	 */
 	public List<String> getImages() {
 		List<String> inputStrings = new ArrayList<>();
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.IMAGE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
@@ -202,32 +172,44 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		return inputStrings;
 	}
 
-	public List<String> getImageURLs() {
-		List<String> inputStrings = new ArrayList<>();
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-			return inputStrings;
-		}
-		int size = this.curRow.size();
-		for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
-		return inputStrings;
-	}
+	/**
+	 * 
+	 * @return
+	 */
+    public List<String> getImageURLs() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.URL.getKey());
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
+    
+    /**
+     * 
+     * @return
+     */
+    public List<String> getMCPToolIDs() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun("mcpToolID");
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
 
-	public List<String> getMCPToolIDs() {
-		List<String> inputStrings = new ArrayList<>();
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[6]);
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-			return inputStrings;
-		}
-		int size = this.curRow.size();
-		for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
-		return inputStrings;
-	}
-
+    /**
+     * 
+     * @return
+     */
 	private Map<String, Object> getParamMap() {
 		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
@@ -275,7 +257,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
 			throw new IllegalArgumentException("Input must be a valid JSON object string.");
 		}
-		return gson.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
+		return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
 	}
 
 }

@@ -366,7 +366,7 @@ public class AbstractDatabaseEngineUnitTests {
             mockedStatics = new ArrayList<>();
 
             mockUtility = Mockito.mockStatic(Utility.class);
-            mockUtility.when(() -> Utility.loadProperties(any())).thenCallRealMethod();
+            mockUtility.when(() -> Utility.loadProperties(any(String.class))).thenCallRealMethod();
             mockUtility.when(() -> Utility.normalizePath(any())).thenCallRealMethod();
             mockUtility.when(() -> Utility.getDIHelperProperty(any())).thenCallRealMethod();
             mockedStatics.add(mockUtility);
