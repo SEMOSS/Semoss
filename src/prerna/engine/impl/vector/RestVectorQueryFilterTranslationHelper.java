@@ -248,18 +248,35 @@ public final class RestVectorQueryFilterTranslationHelper {
 				{
 					JsonObject column = new JsonObject();
 					{
-						if (thisComparator.equals("<")) {							
-							column.addProperty("lt", new BigDecimal(rightComp.getValue().toString()));
+						String rightStringValue = rightComp.getValue().toString();
+						try {
+							BigDecimal rightNumberValue = new BigDecimal(rightStringValue);
+							if (thisComparator.equals("<")) {
+								column.addProperty("lt", rightNumberValue);
+							}
+							if (thisComparator.equals(">")) {
+								column.addProperty("gt", rightNumberValue);
+							}
+							if (thisComparator.equals(">=")) {
+								column.addProperty("gte", rightNumberValue);
+							}
+							if (thisComparator.equals("<=")) {
+								column.addProperty("lte", rightNumberValue);
+							}
+						} catch(Exception e) {
+							if (thisComparator.equals("<")) {
+								column.addProperty("lt", rightStringValue);
+							}
+							if (thisComparator.equals(">")) {
+								column.addProperty("gt", rightStringValue);
+							}
+							if (thisComparator.equals(">=")) {
+								column.addProperty("gte", rightStringValue);
+							}
+							if (thisComparator.equals("<=")) {
+								column.addProperty("lte", rightStringValue);
+							}
 						}
-						if (thisComparator.equals(">")) {							
-							column.addProperty("gt", new BigDecimal(rightComp.getValue().toString()));
-						}
-						if (thisComparator.equals(">=")) {							
-							column.addProperty("gte", new BigDecimal(rightComp.getValue().toString()));
-						}
-						if (thisComparator.equals("<=")) {							
-							column.addProperty("lte", new BigDecimal(rightComp.getValue().toString()));
-						}			
 					}
 					range.add(leftComp.getValue().toString(), column);
 				}
