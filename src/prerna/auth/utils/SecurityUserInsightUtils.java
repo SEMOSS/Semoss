@@ -24,9 +24,9 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
-import prerna.util.ConnectionUtils;
 
 class SecurityUserInsightUtils extends AbstractSecurityUtils {
 
@@ -391,20 +391,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
 				} finally {
-					if(ps != null) {
-						try {
-							ps.close();
-						} catch (SQLException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-						if(securityDb.isConnectionPooling()) {
-							try {
-								ps.getConnection().close();
-							} catch (SQLException e) {
-								classLogger.error(Constants.STACKTRACE, e);
-							}
-						}
-					}
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		} catch (Exception e) {
