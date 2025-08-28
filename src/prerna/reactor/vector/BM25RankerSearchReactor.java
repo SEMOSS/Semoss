@@ -114,17 +114,25 @@ public class BM25RankerSearchReactor extends AbstractReactor {
     
     @Override
     public String getReactorDescription() {
-        StringBuilder headerBuilder = new StringBuilder();
-        headerBuilder.append("'Query', ")
-            .append("'Top N', ")
-            .append("'Document ID', ")
-            .append("'Score', ")
-            .append("'Content', ")
-            .append("'Index Path', ")
-            .append("'Index Method'");
+        return "Searches for documents in the BM25 vector index using a query string. " +
+               "Returns the top matching documents with fields: Query, Top N, Document ID, Score, Content, Index Path, and Index Method.";
+    }
 
-        return "Search for documents in the BM25 vector index using a query string. "
-            + "Returns the top matching documents with the following fields: "
-            + headerBuilder.toString();
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if ("QUERY".equals(key)) {
+            return "Required: Query string to search for relevant documents in the BM25 index.";
+        } else if ("TOP_N".equals(key)) {
+            return "Optional: Number of top results to return. Defaults to 3 if not provided.";
+        } else if (INDEX_OVERRIDE_KEY.equals(key)) {
+            return "Optional: File path to override the default BM25 index directory.";
+        } else if (INDEX_METHOD_KEY.equals(key)) {
+            return "Optional: Method for accessing the index ('DISK', 'S3', or 'MEMORY').";
+        } else if (S3_BUCKET_KEY.equals(key)) {
+            return "Required for S3 method: Name of the S3 bucket containing the index.";
+        } else if (S3_KEY_KEY.equals(key)) {
+            return "Required for S3 method: S3 key (path) to the index file.";
+        }
+        return super.getDescriptionForKey(key);
     }
 }

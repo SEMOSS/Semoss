@@ -108,14 +108,27 @@ public class BM25RankerInsertReactor extends AbstractReactor {
     
     @Override
     public String getReactorDescription() {
-        StringBuilder headerBuilder = new StringBuilder();
-        headerBuilder.append("'Document ID', ")
-            .append("'Content', ")
-            .append("'Index Path', ")
-            .append("'Index Method'");
+        return "Inserts a batch of documents into the BM25 vector index. " +
+               "Supports multiple storage methods (DISK, S3, MEMORY). " +
+               "Requires document contents and their IDs. " +
+               "Returns summary information including number of inserted documents and index file location.";
+    }
 
-        return "Insert a batch of documents into the BM25 vector index. "
-            + "This operation will add new documents and their IDs to the index and return summary fields: "
-            + headerBuilder.toString();
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (ReactorKeysEnum.CORPUS_KEY.getKey().equals(key)) {
+            return "Required: List of document contents to insert into the BM25 index.";
+        } else if (ReactorKeysEnum.CORPUS_IDS_KEY.getKey().equals(key)) {
+            return "Required: List of document IDs corresponding to the corpus entries.";
+        } else if (INDEX_OVERRIDE_KEY.equals(key)) {
+            return "Optional: File path to override the default BM25 index directory.";
+        } else if (INDEX_METHOD_KEY.equals(key)) {
+            return "Optional: Method for storing the index ('DISK', 'S3', or 'MEMORY').";
+        } else if (S3_BUCKET_KEY.equals(key)) {
+            return "Required for S3 method: Name of the S3 bucket containing the index.";
+        } else if (S3_KEY_KEY.equals(key)) {
+            return "Required for S3 method: S3 key (path) to the index file.";
+        }
+        return super.getDescriptionForKey(key);
     }
 }

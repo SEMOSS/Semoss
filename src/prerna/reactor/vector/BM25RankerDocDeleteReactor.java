@@ -80,6 +80,18 @@ public class BM25RankerDocDeleteReactor extends AbstractReactor {
 
     @Override
     public String getReactorDescription() {
-        return "Delete documents from the BM25 vector index by their IDs.";
+        return "Deletes specified documents from the BM25 vector index using their document IDs. Supports optional index path and method overrides.";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (DOC_IDS_KEY.equals(key)) {
+            return "Required: List of document IDs to delete from the BM25 index.";
+        } else if (INDEX_OVERRIDE_KEY.equals(key)) {
+            return "Optional: File path to override the default BM25 index directory.";
+        } else if (INDEX_METHOD_KEY.equals(key)) {
+            return "Optional: Method for accessing the index (e.g., 'DISK' for disk-based index).";
+        }
+        return super.getDescriptionForKey(key);
     }
 }

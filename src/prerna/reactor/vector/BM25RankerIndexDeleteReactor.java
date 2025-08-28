@@ -57,6 +57,16 @@ public class BM25RankerIndexDeleteReactor extends AbstractReactor {
 
     @Override
     public String getReactorDescription() {
-        return "Delete the entire BM25 vector index.";
+        return "Deletes the entire BM25 vector index. Useful for resetting or removing all indexed data.";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (INDEX_OVERRIDE_KEY.equals(key)) {
+            return "Optional: File path to override the default BM25 index directory.";
+        } else if (INDEX_METHOD_KEY.equals(key)) {
+            return "Optional: Method for accessing the index (e.g., 'DISK' for disk-based index).";
+        }
+        return super.getDescriptionForKey(key);
     }
 }
