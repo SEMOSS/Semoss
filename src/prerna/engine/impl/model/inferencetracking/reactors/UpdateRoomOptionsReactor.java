@@ -1,7 +1,5 @@
 package prerna.engine.impl.model.inferencetracking.reactors;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,47 +33,33 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 		}
 
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
-		Map<String, Object> options = null;
-		
-		List<String> vectorDbs = getVectorDbs();
-		List<String> tools = getTools();
-		if (!tools.isEmpty() || !vectorDbs.isEmpty()) {
-			options = new HashMap<>();
-			if (!tools.isEmpty()) {
-				options.put("tools", tools);
-			}
-			if (!vectorDbs.isEmpty()) {
-				options.put("vectorDbs", vectorDbs);
-			}
-		}
+		Map<String, Object> roomOptions = getRoomOptionsMap();
 
-		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), options);
-		return new NounMetadata(options, PixelDataType.MAP);
+		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
+		
+		// updating part of the room object, so clear the cache
+		this.insight.getUser().roomHash.remove(roomId);
+		
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	private List<String> getVectorDbs() {
-        List<String> inputStrings = new ArrayList<>();
-        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
-        if (grs != null && !grs.isEmpty()) {
-            int size = grs.size();
-            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-            return inputStrings;
-        }
-        int size = this.curRow.size();
-        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
-        return inputStrings;
-    }
-	
-	private List<String> getTools() {
-        List<String> inputStrings = new ArrayList<>();
-        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
-        if (grs != null && !grs.isEmpty()) {
-            int size = grs.size();
-            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-            return inputStrings;
-        }
-        int size = this.curRow.size();
-        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
-        return inputStrings;
-    }
+	/**
+	 * 
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> getRoomOptionsMap() {
+		GenRowStruct mapGrs = this.store.getNoun(keysToGet[1]);
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
 }
