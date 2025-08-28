@@ -1,4 +1,5 @@
 import ast
+import sys
 from typing import List, Optional, Dict, Any, Tuple
 import json
 from pydantic import BaseModel
@@ -107,7 +108,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         # Handling new history format through message_json
         if self.ask_settings.semoss_messages:
-            msg_history = self._handle_semoss_msgs()
+            return self._handle_semoss_msgs(prefix=prefix)
 
         # Handling full prompt from Elsa...
         elif self.ask_settings.full_prompt:
@@ -144,7 +145,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             messageType="CHAT",
         )
 
-    def _handle_semoss_msgs(self):
+    def _handle_semoss_msgs(self, prefix):
         """Handle SEMOSS messages through AnthropicMessageBuilder"""
         try:
             msg_history, param_map = AnthropicMessageBuilder().build_messages(
@@ -162,7 +163,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
         if self.ask_settings.streaming:
-            response = self._handle_streaming(prefix="", msg_history=msg_history)
+            response = self._handle_streaming(prefix=prefix, msg_history=msg_history)
             response_text = response.text
             usage = response.usage
         else:
