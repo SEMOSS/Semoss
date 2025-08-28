@@ -4,29 +4,46 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
+/**
+ * Utility functions for fusing and ranking search results from BM25 and semantic vector models.
+ */
 public class VectorRankingUtils {
 
+    /**
+     * Reciprocal Rank Fusion (RRF) combines two ranked lists (BM25 and vector results)
+     * into a single ranked list using the RRF formula.
+     *
+     * @param bm25Results   List of BM25 search result maps (each must have "content")
+     * @param vectorResults List of vector search result maps (each must have "content")
+     * @param topN          Number of top results to return
+     * @return Fused and ranked list of result maps, each with an added "rrf_score"
+     */
     public static List<Map<String, Object>> rrfFuse(
             List<Map<String, Object>> bm25Results,
             List<Map<String, Object>> vectorResults,
             int topN) {
 
+        // Map to accumulate RRF scores for each unique content
         Map<String, Double> rrfScores = new HashMap<>();
-        int k = 30; // RRF constant
+        int k = 30; // RRF constant (controls score decay)
 
+        // Accumulate RRF scores for each result list
         BiConsumer<List<Map<String, Object>>, Integer> accumulate = (results, offset) -> {
             for (int i = 0; i < results.size(); i++) {
                 String content = (String) results.get(i).get("content");
                 if (content == null) continue;
+                // RRF score: 1 / (k + rank)
                 double score = 1.0 / (k + i + offset);
                 double prevScore = rrfScores.getOrDefault(content, 0.0);
                 rrfScores.put(content, prevScore + score);
             }
         };
 
+        // Apply RRF scoring to both BM25 and vector results
         accumulate.accept(bm25Results, 0);
         accumulate.accept(vectorResults, 0);
 
+        // Build a map from content to its result map (preserving all fields)
         Map<String, Map<String, Object>> contentMap = new HashMap<>();
         for (Map<String, Object> result : bm25Results) {
             String content = (String) result.get("content");
@@ -39,10 +56,12 @@ public class VectorRankingUtils {
             }
         }
 
+        // Sort contents by RRF score descending
         List<Map.Entry<String, Double>> sorted = rrfScores.entrySet().stream()
                 .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
                 .collect(Collectors.toList());
 
+        // Build fused result list with top N entries, adding "rrf_score"
         List<Map<String, Object>> fused = new ArrayList<>();
         for (int i = 0; i < Math.min(topN, sorted.size()); i++) {
             Map.Entry<String, Double> entry = sorted.get(i);
@@ -54,14 +73,26 @@ public class VectorRankingUtils {
         return fused;
     }
 
+    /**
+     * Hybrid fusion combines BM25 and vector results using weighted normalized scores.
+     * Each result's score is normalized and then combined: final_score = alpha * bm25_norm + beta * vector_norm
+     *
+     * @param bm25Results   List of BM25 result maps (must have "content" and "score")
+     * @param vectorResults List of vector result maps (must have "Content" and "Score")
+     * @param topN          Number of top results to return
+     * @param alpha         Weight for BM25 normalized score
+     * @param beta          Weight for vector normalized score
+     * @return Fused and ranked list of result maps, each with an added "hybrid_score"
+     */
     public static List<Map<String, Object>> hybridFuse(
             List<Map<String, Object>> bm25Results,
             List<Map<String, Object>> vectorResults,
             int topN,
             double alpha,  // weight for BM25 score
-            double beta  // weight for semantic score
+            double beta    // weight for semantic score
     ) {
 
+        // Collect all unique contents from both result sets
         Set<String> allContents = new HashSet<>();
         for (Map<String, Object> r : bm25Results) allContents.add((String) r.get("content"));
         for (Map<String, Object> r : vectorResults) {
@@ -69,6 +100,7 @@ public class VectorRankingUtils {
             if (contentObj != null) allContents.add(contentObj.toString());
         }
 
+        // Build BM25 rank and score maps, and track min/max for normalization
         Map<String, Integer> bm25Ranks = new HashMap<>();
         Map<String, Float> bm25Scores = new HashMap<>();
         float bm25Min = Float.MAX_VALUE, bm25Max = Float.MIN_VALUE;
@@ -87,6 +119,7 @@ public class VectorRankingUtils {
             }
         }
 
+        // Build vector rank and score maps, and track min/max for normalization
         Map<String, Integer> vectorRanks = new HashMap<>();
         Map<String, Float> vectorScores = new HashMap<>();
         float vectorMin = Float.MAX_VALUE, vectorMax = Float.MIN_VALUE;
@@ -105,22 +138,27 @@ public class VectorRankingUtils {
             vectorMax = Math.max(vectorMax, score);
         }
 
+        // Compute hybrid scores for all contents using normalized BM25 and vector scores
         Map<String, Double> hybridScores = new HashMap<>();
         for (String content : allContents) {
+            // Normalize BM25 score to [0,1]
             double bm25Norm = 0.0;
             if (bm25Scores.containsKey(content) && bm25Max > bm25Min) {
                 bm25Norm = (bm25Scores.get(content) - bm25Min) / (bm25Max - bm25Min);
             }
 
+            // Normalize vector score to [0,1]
             double vectorNorm = 0.0;
             if (vectorScores.containsKey(content) && vectorMax > vectorMin) {
                 vectorNorm = (vectorScores.get(content) - vectorMin) / (vectorMax - vectorMin);
             }
 
+            // Weighted sum of normalized scores
             double finalScore = alpha * bm25Norm + beta * vectorNorm;
             hybridScores.put(content, finalScore);
         }
 
+        // Build a map from content to its result map (preserving all fields)
         Map<String, Map<String, Object>> contentMap = new HashMap<>();
         for (Map<String, Object> result : bm25Results) {
             String content = (String) result.get("content");
@@ -134,10 +172,12 @@ public class VectorRankingUtils {
             }
         }
 
+        // Sort contents by hybrid score descending
         List<Map.Entry<String, Double>> sorted = hybridScores.entrySet().stream()
                 .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
                 .collect(Collectors.toList());
 
+        // Build fused result list with top N entries, adding "hybrid_score"
         List<Map<String, Object>> fused = new ArrayList<>();
         for (int i = 0; i < Math.min(topN, sorted.size()); i++) {
             Map.Entry<String, Double> entry = sorted.get(i);
