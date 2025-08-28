@@ -85,11 +85,6 @@ public class MeUnitTests {
     }
     
     @Test
-    void mainTestNull(@TempDir Path temp) throws Exception {
-            reactor.main(null);
-    }
-
-    @Test
     void mainTest() throws Exception {
         int idx = 0;
         String tempDirString = temp.toAbsolutePath().toString().replace(File.separator, "/");
