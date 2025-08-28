@@ -81,7 +81,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         # Handling new history format through message_json
         if self.ask_settings.semoss_messages:
             return self._handle_semoss_messages(
-                semoss_messages=self.ask_settings.semoss_messages,
+                semoss_messages=self.ask_settings.semoss_messages, prefix=prefix
             )
 
         # Handling full prompt
@@ -129,7 +129,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         return model_engine_response
 
-    def _handle_semoss_messages(self, semoss_messages: List[Dict]):
+    def _handle_semoss_messages(self, semoss_messages: List[Dict], prefix):
         try:
             response = GoogleGenAIMessageBuilder().build_messages(semoss_messages)
             google_messages = response["messages"]
@@ -140,7 +140,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         if stream or self.ask_settings.streaming:
             model_response = self._handle_streaming(
-                prefix="",
+                prefix=prefix,
                 contents=google_messages,
                 config=provider_config,
             )

@@ -197,8 +197,6 @@ public class Insight implements Serializable {
 	// pragamp for all the pragmas like cache / raw / parquet etc. 
 	private Map pragmap = new HashMap();
 	
-	public transient SocketClient nc = null;
-	
 	// base URL
 	private String baseURL = null;
 	
@@ -219,7 +217,7 @@ public class Insight implements Serializable {
 	int idCount = 0;
 	
 	// Playwright Browser Util
-	private PlaywrightBrowserUtil playwrightUtil = null;
+	private transient PlaywrightBrowserUtil playwrightUtil = null;
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -1478,41 +1476,44 @@ public class Insight implements Serializable {
 	//TODO: on tomcat side, when context changes needs to be told
 	//TODO: on tomcat side, when context changes needs to be told
 	//TODO: on tomcat side, when context changes needs to be told
-	public boolean setContext(String projectId) 
-	{
+	public boolean setContext(String projectId) {
 		// sets the context space for the user
 		// also set the cmd context right here
 		if(this.contextProjectId != null && this.contextProjectId.equals(projectId)) {
 			return true;
 		}
-		if(this.user != null) {
-			if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-				return false;
-			}
-			this.contextProjectId = projectId;
-			this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-			this.user.setContext(contextProjectId, contextProjectName);
-				
-			this.contextReinitialized = true;
-			return true;
+		if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			return false;
 		}
-		// should we allow this if no one is logged in?
-		else {
-			String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-			String mountDir = AssetUtility.getProjectVersionFolder(projectName, projectId);
-	
-			this.cmdUtil = new CmdExecUtil(projectName, mountDir, this.user.getPythonSocketClient(false));
-			this.contextProjectId = projectId;
-			return true;
+		this.contextProjectId = projectId;
+		this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+		if(getUser() != null) {
+			String appRootFolder = AssetUtility.getProjectAssetsFolder(this.contextProjectName, this.contextProjectId);
+			this.getCmdUtil().setWorkingDir(appRootFolder);
 		}
+		
+		this.contextReinitialized = true;
+		return true;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public CmdExecUtil getCmdUtil() {
-		if(this.user != null) {
-			return this.user.getCmdUtil();
-		} else {
-			return this.cmdUtil;
+		if(getUser() == null) {
+			throw new NullPointerException("No user defined within the insight to get the shell utilities");
 		}
+		if(this.cmdUtil == null) {
+			// if first time, set the working directory if we have it
+			if(this.contextProjectId != null) {
+				String appRootFolder = AssetUtility.getProjectAssetsFolder(this.contextProjectName, this.contextProjectId);
+				this.cmdUtil = new CmdExecUtil(this.user, this.insightId, appRootFolder);
+			} else if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				this.cmdUtil = new CmdExecUtil(this.user, this.insightId, "/");
+			}
+		}
+		return this.cmdUtil;
 	}
 	
 	public ITableDataFrame getFrame(String frameName) {
@@ -1580,7 +1581,9 @@ public class Insight implements Serializable {
 	 * @return
 	 */
 	public PyTranslator getPyTranslator() {
-		if(this.pyTranslator == null) {
+		if(this.pyTranslator == null 
+				|| this.pyTranslator.getSocketClient() == null
+				|| !this.pyTranslator.getSocketClient().isConnected()) {
 			SocketClient sc = user.getPythonSocketClient(true);
 			this.pyTranslator = new PyTranslator(sc, this);
 		}
