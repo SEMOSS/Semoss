@@ -674,7 +674,7 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		
 		if(nullMessage.length() != 0) {
-			nullMessage.append("Cannot be empty").insert(0, "Fields  ");
+			nullMessage.append("cannot be empty").insert(0, "Fields ");
 			throw new IllegalArgumentException(nullMessage.toString());
 		}
 	}
