@@ -45,282 +45,295 @@ import prerna.util.Utility;
 
 public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AWSTranscribeFunctionEngine.class);
+  private static final Logger classLogger = LogManager.getLogger(AWSTranscribeFunctionEngine.class);
 
-	private static final String DIR_SEPARATOR = "/";
+  private static final String DIR_SEPARATOR = "/";
 
-	public static final String OUTPUTBUCKET = "aws-service-repos";
-	public static final String SUB_FOLDER = "transcribe/";
-	public static final String JSON_EXT = ".json";
+  public static final String OUTPUTBUCKET = "aws-service-repos";
+  public static final String SUB_FOLDER = "transcribe/";
+  public static final String JSON_EXT = ".json";
 
-	public static final String ACCESS_KEY = "ACCESS_KEY";
-	public static final String SECRET_KEY = "SECRET_KEY";
-	public static final String REGION = "REGION";
-	public static final String BUCKETENGINEID = "S3BUCKETENGINEID";
-	public static final String VECTOR_DB_PROCESSOR = "VECTOR_DB_PROCESSOR";
-	public static final String VECTOR_DB_PROCESSOR_ID = "VECTOR_DB_PROCESSOR_ID";
-	public static final String OUTPUTFOLDER = "aws-service-repos";
+  public static final String ACCESS_KEY = "ACCESS_KEY";
+  public static final String SECRET_KEY = "SECRET_KEY";
+  public static final String REGION = "REGION";
+  public static final String BUCKETENGINEID = "S3BUCKETENGINEID";
+  public static final String VECTOR_DB_PROCESSOR = "VECTOR_DB_PROCESSOR";
+  public static final String VECTOR_DB_PROCESSOR_ID = "VECTOR_DB_PROCESSOR_ID";
+  public static final String OUTPUTFOLDER = "aws-service-repos";
 
-	public static final String ACCESS_KEY_ERRMSG = "Must pass in an access key";
-	public static final String SECRET_KEY_ERRMSG = "Must pass in a secret key";
-	public static final String BUCKETENGINEID_ERRMSG = "Must pass in a S3BucketEngineId";
-	public static final String REQUIREDPARM_ERRMSG = "Must define the requiredParameters";
-	public static final String REGION_ERRMSG = "Must pass in a region";
-	public static final String VECTOR_DB_ID_ERRMSG = "Must pass in a vector Db Id";
-	public static final String VAILD_PATH_ERRMSG = "Must provide the valid path";
-	public static final String INSIGHT_FILE_ERRMSG = "File is not in the Insight";
+  public static final String ACCESS_KEY_ERRMSG = "Must pass in an access key";
+  public static final String SECRET_KEY_ERRMSG = "Must pass in a secret key";
+  public static final String BUCKETENGINEID_ERRMSG = "Must pass in a S3BucketEngineId";
+  public static final String REQUIREDPARM_ERRMSG = "Must define the requiredParameters";
+  public static final String REGION_ERRMSG = "Must pass in a region";
+  public static final String VECTOR_DB_ID_ERRMSG = "Must pass in a vector Db Id";
+  public static final String VAILD_PATH_ERRMSG = "Must provide the valid path";
+  public static final String INSIGHT_FILE_ERRMSG = "File is not in the Insight";
 
-	private String accessKey;
-	private String secretKey;
-	private String region;
-	private String bucketEngineId;
-	private boolean vectorDbProcessor = false;
-	private String vectorDbProcessorId;
-	private AmazonTranscribe transcribeClient = null;
-	private AmazonS3 s3Client = null;
-	private IVectorDatabaseEngine vectorDatabase = null;
+  private String accessKey;
+  private String secretKey;
+  private String region;
+  private String bucketEngineId;
+  private boolean vectorDbProcessor = false;
+  private String vectorDbProcessorId;
+  private AmazonTranscribe transcribeClient = null;
+  private AmazonS3 s3Client = null;
+  private IVectorDatabaseEngine vectorDatabase = null;
 
-	@Override
-	public void open(Properties smssProp) throws Exception {
-		// preset these - don't need user to define
-		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "AWS Transcribe - For Use With Vector Database Engines");
-		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute AWS Transcribe");
-		
-		super.open(smssProp);
+  @Override
+  public void open(Properties smssProp) throws Exception {
+    // preset these - don't need user to define
+    smssProp.putIfAbsent(
+        IFunctionEngine.NAME_KEY, "AWS Transcribe - For Use With Vector Database Engines");
+    smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute AWS Transcribe");
 
-		this.accessKey = smssProp.getProperty(ACCESS_KEY);
-		this.secretKey = smssProp.getProperty(SECRET_KEY);
-		this.region = smssProp.getProperty(REGION);
-		this.bucketEngineId = smssProp.getProperty(BUCKETENGINEID);
+    super.open(smssProp);
 
-		this.vectorDbProcessorId = this.smssProp.getProperty(VECTOR_DB_PROCESSOR_ID);
+    this.accessKey = smssProp.getProperty(ACCESS_KEY);
+    this.secretKey = smssProp.getProperty(SECRET_KEY);
+    this.region = smssProp.getProperty(REGION);
+    this.bucketEngineId = smssProp.getProperty(BUCKETENGINEID);
 
-		if (this.vectorDbProcessorId == null || (this.vectorDbProcessorId.isEmpty())) {
-			throw new RuntimeException(VECTOR_DB_ID_ERRMSG);
-		} else {
-			this.vectorDbProcessor = true;
-		}
+    this.vectorDbProcessorId = this.smssProp.getProperty(VECTOR_DB_PROCESSOR_ID);
 
-		if (this.requiredParameters == null || (this.requiredParameters.isEmpty())) {
-			throw new RuntimeException(REQUIREDPARM_ERRMSG);
-		}
-		if (this.accessKey == null || this.accessKey.isEmpty()) {
-			throw new RuntimeException(ACCESS_KEY_ERRMSG);
-		}
-		if (this.secretKey == null || this.secretKey.isEmpty()) {
-			throw new RuntimeException(SECRET_KEY_ERRMSG);
-		}
-		if (this.region == null || this.region.isEmpty()) {
-			throw new RuntimeException("Must pass in a region");
-		}
-		if (this.bucketEngineId == null || this.bucketEngineId.isEmpty()) {
-			throw new RuntimeException(BUCKETENGINEID_ERRMSG);
-		}
-		try {
-			BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
-			this.transcribeClient = AmazonTranscribeClientBuilder.standard()
-					.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).withRegion(region).build();
-			this.s3Client = AmazonS3ClientBuilder.standard().withRegion(this.region)
-					.withCredentials(
-							new AWSStaticCredentialsProvider(new BasicAWSCredentials(this.accessKey, this.secretKey)))
-					.build();
-			this.vectorDatabase = Utility.getVectorDatabase(this.vectorDbProcessorId);
-			if (this.vectorDatabase == null) {
-				throw new SemossPixelException("Unable to find engine");
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw e;
-		}
-	}
+    if (this.vectorDbProcessorId == null || (this.vectorDbProcessorId.isEmpty())) {
+      throw new RuntimeException(VECTOR_DB_ID_ERRMSG);
+    } else {
+      this.vectorDbProcessor = true;
+    }
 
-	@Override
-	public Object execute(Map<String, Object> parameterValues) {
-		String audioFileName = null;
-		Object output = null;
-		Object convertedText = null;
-		File filedir = null;
-		File filePathDir = null;
-		String folderPath = null;
+    if (this.requiredParameters == null || (this.requiredParameters.isEmpty())) {
+      throw new RuntimeException(REQUIREDPARM_ERRMSG);
+    }
+    if (this.accessKey == null || this.accessKey.isEmpty()) {
+      throw new RuntimeException(ACCESS_KEY_ERRMSG);
+    }
+    if (this.secretKey == null || this.secretKey.isEmpty()) {
+      throw new RuntimeException(SECRET_KEY_ERRMSG);
+    }
+    if (this.region == null || this.region.isEmpty()) {
+      throw new RuntimeException("Must pass in a region");
+    }
+    if (this.bucketEngineId == null || this.bucketEngineId.isEmpty()) {
+      throw new RuntimeException(BUCKETENGINEID_ERRMSG);
+    }
+    try {
+      BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
+      this.transcribeClient =
+          AmazonTranscribeClientBuilder.standard()
+              .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
+              .withRegion(region)
+              .build();
+      this.s3Client =
+          AmazonS3ClientBuilder.standard()
+              .withRegion(this.region)
+              .withCredentials(
+                  new AWSStaticCredentialsProvider(
+                      new BasicAWSCredentials(this.accessKey, this.secretKey)))
+              .build();
+      this.vectorDatabase = Utility.getVectorDatabase(this.vectorDbProcessorId);
+      if (this.vectorDatabase == null) {
+        throw new SemossPixelException("Unable to find engine");
+      }
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw e;
+    }
+  }
 
-		if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
-			Set<String> missingPs = new HashSet<>();
-			for (String requiredP : this.requiredParameters) {
-				if (!parameterValues.containsKey(requiredP)) {
-					missingPs.add(requiredP);
-				}
-			}
-			if (!missingPs.isEmpty()) {
-				throw new IllegalArgumentException("Must define required keys = " + missingPs);
-			}
-		}
-		try {
-			for (String key : parameterValues.keySet()) {
-				filePathDir = new File(parameterValues.get(key).toString());
-				audioFileName = filePathDir.getName();
-			}
+  @Override
+  public Object execute(Map<String, Object> parameterValues) {
+    String audioFileName = null;
+    Object output = null;
+    Object convertedText = null;
+    File filedir = null;
+    File filePathDir = null;
+    String folderPath = null;
 
-			Insight insight = getInsight(parameterValues.get("INSIGHT"));
-			String insightId = insight.getInsightId();
-			Insight in = InsightStore.getInstance().get(insightId);
-			File instanceDir = new File(Utility.normalizePath(in.getInsightFolder()));
+    if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
+      Set<String> missingPs = new HashSet<>();
+      for (String requiredP : this.requiredParameters) {
+        if (!parameterValues.containsKey(requiredP)) {
+          missingPs.add(requiredP);
+        }
+      }
+      if (!missingPs.isEmpty()) {
+        throw new IllegalArgumentException("Must define required keys = " + missingPs);
+      }
+    }
+    try {
+      for (String key : parameterValues.keySet()) {
+        filePathDir = new File(parameterValues.get(key).toString());
+        audioFileName = filePathDir.getName();
+      }
 
-			File[] files = instanceDir.listFiles();
-			if (files != null && files.length != 0) {
-				for (File file : files) {
-					if (filePathDir.getName().equalsIgnoreCase(file.getName())) {
-						filedir = new File(instanceDir + DIR_SEPARATOR + filePathDir.getName());
-					}
-				}
-			} else {
-				throw new IllegalArgumentException(INSIGHT_FILE_ERRMSG);
-			}
+      Insight insight = getInsight(parameterValues.get("INSIGHT"));
+      String insightId = insight.getInsightId();
+      Insight in = InsightStore.getInstance().get(insightId);
+      File instanceDir = new File(Utility.normalizePath(in.getInsightFolder()));
 
-			folderPath = SUB_FOLDER + audioFileName;
-			IStorageEngine storage = Utility.getStorage(this.bucketEngineId);
-			Map<String, Object> metadata = new HashMap<>();
-			metadata.put("functionalityUsed", audioFileName + "-Transcribe_functionality");
+      File[] files = instanceDir.listFiles();
+      if (files != null && files.length != 0) {
+        for (File file : files) {
+          if (filePathDir.getName().equalsIgnoreCase(file.getName())) {
+            filedir = new File(instanceDir + DIR_SEPARATOR + filePathDir.getName());
+          }
+        }
+      } else {
+        throw new IllegalArgumentException(INSIGHT_FILE_ERRMSG);
+      }
 
-			storage.copyToStorage(filedir.toString(), OUTPUTBUCKET + DIR_SEPARATOR +
-			 SUB_FOLDER, metadata);
+      folderPath = SUB_FOLDER + audioFileName;
+      IStorageEngine storage = Utility.getStorage(this.bucketEngineId);
+      Map<String, Object> metadata = new HashMap<>();
+      metadata.put("functionalityUsed", audioFileName + "-Transcribe_functionality");
 
-			if (this.vectorDbProcessor) {
+      storage.copyToStorage(
+          filedir.toString(), OUTPUTBUCKET + DIR_SEPARATOR + SUB_FOLDER, metadata);
 
-				convertedText = transcriptionTextFromAudio(folderPath, OUTPUTBUCKET);
+      if (this.vectorDbProcessor) {
 
-				if (!instanceDir.exists()) {
-					throw new IllegalArgumentException(INSIGHT_FILE_ERRMSG + instanceDir);
-				}
+        convertedText = transcriptionTextFromAudio(folderPath, OUTPUTBUCKET);
 
-				String textFileName = audioFileName.substring(0, audioFileName.lastIndexOf("."));
-				textFileName = textFileName + ".txt";
+        if (!instanceDir.exists()) {
+          throw new IllegalArgumentException(INSIGHT_FILE_ERRMSG + instanceDir);
+        }
 
-				File txtFile = new File(instanceDir, textFileName);
+        String textFileName = audioFileName.substring(0, audioFileName.lastIndexOf("."));
+        textFileName = textFileName + ".txt";
 
-				try (FileWriter writer = new FileWriter(txtFile)) {
-					writer.write(convertedText.toString());
-					writer.flush();
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw e;
-				}
+        File txtFile = new File(instanceDir, textFileName);
 
-				if (!this.vectorDatabase.userCanAccessEmbeddingModels(insight.getUser())) {
-					throw new IllegalArgumentException(
-							"User does not have access to all the vector database dependent models");
-				}
+        try (FileWriter writer = new FileWriter(txtFile)) {
+          writer.write(convertedText.toString());
+          writer.flush();
+        } catch (Exception e) {
+          classLogger.error(Constants.STACKTRACE, e);
+          throw e;
+        }
 
-				File file1 = new File(instanceDir, textFileName);
-				if (!file1.exists() && !file1.isFile()) {
-					throw new IllegalArgumentException(
-							"The file- " + instanceDir + "does not exists in the insight folder");
-				}
-				Map<String, Object> paramMap = new HashMap<String, Object>();
-				paramMap.put(Constants.INSIGHT, insight);
+        if (!this.vectorDatabase.userCanAccessEmbeddingModels(insight.getUser())) {
+          throw new IllegalArgumentException(
+              "User does not have access to all the vector database dependent models");
+        }
 
-				List<String> validFiles = new ArrayList<>();
-				validFiles.add(file1.toString());
+        File file1 = new File(instanceDir, textFileName);
+        if (!file1.exists() && !file1.isFile()) {
+          throw new IllegalArgumentException(
+              "The file- " + instanceDir + "does not exists in the insight folder");
+        }
+        Map<String, Object> paramMap = new HashMap<String, Object>();
+        paramMap.put(Constants.INSIGHT, insight);
 
-				output = this.vectorDatabase.addDocument(validFiles, paramMap);
-			} else {
-				output = transcriptionTextFromAudio(folderPath, OUTPUTBUCKET);
-			}
+        List<String> validFiles = new ArrayList<>();
+        validFiles.add(file1.toString());
 
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		return output;
-	}
+        output = this.vectorDatabase.addDocument(validFiles, paramMap);
+      } else {
+        output = transcriptionTextFromAudio(folderPath, OUTPUTBUCKET);
+      }
 
-	public Object transcriptionTextFromAudio(String audioFilePath, String bucketName) throws Exception {
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+    return output;
+  }
 
-		Object transcriptionText = null;
-		String jobName = null;
-		try {
+  public Object transcriptionTextFromAudio(String audioFilePath, String bucketName)
+      throws Exception {
 
-			LocalDateTime now = LocalDateTime.now();
-			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
-			String formattedTimestamp = now.format(formatter);
-			jobName = "jobName_" + formattedTimestamp;
+    Object transcriptionText = null;
+    String jobName = null;
+    try {
 
-			String mediaFileUri = "https://s3-" + this.region + ".amazonaws.com/" + bucketName + "/" + audioFilePath;
+      LocalDateTime now = LocalDateTime.now();
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+      String formattedTimestamp = now.format(formatter);
+      jobName = "jobName_" + formattedTimestamp;
 
-			StartTranscriptionJobRequest request = new StartTranscriptionJobRequest().withTranscriptionJobName(jobName)
-					.withLanguageCode("en-US").withMedia(new Media().withMediaFileUri(mediaFileUri))
-					.withOutputBucketName(OUTPUTBUCKET).withOutputKey(SUB_FOLDER);
+      String mediaFileUri =
+          "https://s3-" + this.region + ".amazonaws.com/" + bucketName + "/" + audioFilePath;
 
-			this.transcribeClient.startTranscriptionJob(request);
+      StartTranscriptionJobRequest request =
+          new StartTranscriptionJobRequest()
+              .withTranscriptionJobName(jobName)
+              .withLanguageCode("en-US")
+              .withMedia(new Media().withMediaFileUri(mediaFileUri))
+              .withOutputBucketName(OUTPUTBUCKET)
+              .withOutputKey(SUB_FOLDER);
 
-			// Poll for the job status
-			while (true) {
-				GetTranscriptionJobRequest getJobRequest = new GetTranscriptionJobRequest()
-						.withTranscriptionJobName(jobName);
+      this.transcribeClient.startTranscriptionJob(request);
 
-				GetTranscriptionJobResult response = this.transcribeClient.getTranscriptionJob(getJobRequest);
-				String status = response.getTranscriptionJob().getTranscriptionJobStatus();
+      // Poll for the job status
+      while (true) {
+        GetTranscriptionJobRequest getJobRequest =
+            new GetTranscriptionJobRequest().withTranscriptionJobName(jobName);
 
-				if ("COMPLETED".equals(status)) {
-					transcriptionText = getTranscriptionTextFromS3(jobName, OUTPUTBUCKET);
-					break;
-				} else if ("FAILED".equals(status)) {
-					classLogger.error(Constants.STACKTRACE, "Transcription job failed.");
-					throw new IllegalArgumentException("Transcription job failed.");
-				}
+        GetTranscriptionJobResult response =
+            this.transcribeClient.getTranscriptionJob(getJobRequest);
+        String status = response.getTranscriptionJob().getTranscriptionJobStatus();
 
-				Thread.sleep(5000);
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw e;
-		}
-		return transcriptionText;
-	}
+        if ("COMPLETED".equals(status)) {
+          transcriptionText = getTranscriptionTextFromS3(jobName, OUTPUTBUCKET);
+          break;
+        } else if ("FAILED".equals(status)) {
+          classLogger.error(Constants.STACKTRACE, "Transcription job failed.");
+          throw new IllegalArgumentException("Transcription job failed.");
+        }
 
-	public String getTranscriptionTextFromS3(String jobName, String bucketName) throws Exception {
+        Thread.sleep(5000);
+      }
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw e;
+    }
+    return transcriptionText;
+  }
 
-		String transcriptionText = null;
-		try {
-			S3Object s3Object = this.s3Client.getObject(bucketName, SUB_FOLDER + jobName + JSON_EXT);
-			S3ObjectInputStream inputStream = s3Object.getObjectContent();
+  public String getTranscriptionTextFromS3(String jobName, String bucketName) throws Exception {
 
-			StringBuilder stringBuilder = new StringBuilder();
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-				String line;
-				while ((line = reader.readLine()) != null) {
-					stringBuilder.append(line);
-				}
-				JSONObject jsonobj = new JSONObject(stringBuilder.toString());
-				JSONObject result = jsonobj.getJSONObject("results");
-				JSONArray transcripts = result.getJSONArray("transcripts");
-				transcriptionText = transcripts.getJSONObject(0).getString("transcript");
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw e;
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw e;
-		}
-		return transcriptionText;
-	}
+    String transcriptionText = null;
+    try {
+      S3Object s3Object = this.s3Client.getObject(bucketName, SUB_FOLDER + jobName + JSON_EXT);
+      S3ObjectInputStream inputStream = s3Object.getObjectContent();
 
-	public static Insight getInsight(Object insightObj) {
-		if (insightObj instanceof String) {
-			return InsightStore.getInstance().get((String) insightObj);
-		} else {
-			return (Insight) insightObj;
-		}
-	}
+      StringBuilder stringBuilder = new StringBuilder();
+      try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          stringBuilder.append(line);
+        }
+        JSONObject jsonobj = new JSONObject(stringBuilder.toString());
+        JSONObject result = jsonobj.getJSONObject("results");
+        JSONArray transcripts = result.getJSONArray("transcripts");
+        transcriptionText = transcripts.getJSONObject(0).getString("transcript");
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+        throw e;
+      }
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw e;
+    }
+    return transcriptionText;
+  }
 
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
+  public static Insight getInsight(Object insightObj) {
+    if (insightObj instanceof String) {
+      return InsightStore.getInstance().get(insightObj);
+    } else {
+      return (Insight) insightObj;
+    }
+  }
 
-	}
+  @Override
+  public void close() throws IOException {
+    // TODO Auto-generated method stub
 
-	@Override
-	public String getCatalogSubType(Properties smssProp) {
-		return FunctionTypeEnum.AWS_TRANSCRIBE.name();
-	}
+  }
 
+  @Override
+  public String getCatalogSubType(Properties smssProp) {
+    return FunctionTypeEnum.AWS_TRANSCRIBE.name();
+  }
 }
