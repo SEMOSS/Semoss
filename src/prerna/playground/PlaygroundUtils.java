@@ -19,8 +19,33 @@ public class PlaygroundUtils {
         User query:
         %s
 
-        Produce your chain of thought steps as a JSON object according to this schema:
-        %s
+		Produce your chain of thought steps as a JSON object. 
+		Follow the structure below, where each key is explained.
+		
+		{
+		  "plan_id": "string (A unique identifier for the plan)",
+		  "user_prompt": "string (The original prompt from the user)",
+		  "steps": [
+		    {
+		      "step_number": "integer (Sequential order of the step, e.g., 1)",
+		      "description": "string (A human-readable summary of the step's goal)",
+		      "type": "string (Enum: 'tool_call' or 'llm_action')",
+		      "details": {
+		        // if type is 'tool_call'
+		        "tool_name": "string (The name of the tool to execute, e.g., 'run_shell_command')",
+		        "parameters": "object (A key-value map of parameters for the tool)",
+		        "rationale": "string (Why this specific tool is needed for this step)",
+		        // if type is 'llm_action'
+		        "action": "string (The internal action the LLM is taking, e.g., 'reasoning', 'summarization', 'response_generation')",
+		        "input": "string (Description of the data the LLM is processing, e.g., 'Content from step 1')",
+		        "output": "string (Description of the expected outcome)",
+		        "rationale": "string (Why this internal step is necessary, e.g., 'To formulate a response to the user')"
+		      },
+		      "status": "string (Enum: 'pending', 'in_progress', 'completed', 'failed')",
+		      "result": "object (The output or result of the step, optional)"
+		    }
+		  ]
+		}
 
         Remember:
         - Each step must be type "tool_call" or "llm_action" with appropriate details.

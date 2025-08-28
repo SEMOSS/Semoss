@@ -1,5 +1,6 @@
 package prerna.playground.reactors;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -67,35 +68,43 @@ public class AskCOTRoomReactor extends AbstractReactor {
         String modelId = this.keyValue.get(this.keysToGet[0]);
         String userQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[3]));
         // Optional
-        String vectorDbId = this.keyValue.get(this.keysToGet[1]);
+        List<String> vectorDbIds = getVectorDbIds();
         String roomId = this.keyValue.get(this.keysToGet[2]);
         // context, images, URLs: future - see keysToGet map
-
-        // Security
+        
         User user = this.insight.getUser();
         if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
             throw new IllegalArgumentException("Model " + modelId + " does not exist or user does not have access to this model");
         }
-        boolean hasVecDB = (vectorDbId != null && vectorDbId.trim().length() > 0);
-        IVectorDatabaseEngine vectorDbEng = hasVecDB ? Utility.getVectorDatabase(vectorDbId) : null;
-
+        
         // Room and Engine
         IModelEngine modelEngine = Utility.getModel(modelId);
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userQuery);
 
-	    // ==== Step 1. Grab RAG context if vectorDB present ====
-	    String joinedChunks = "";
-	    if (hasVecDB && vectorDbEng != null) {
-	        int chunkLimit = 3; // TODO: configurable
-	        List<Map<String, Object>> output = vectorDbEng.nearestNeighbor(this.insight, userQuery, chunkLimit, null);
-	        List<String> chunkList = new LinkedList<>();
-	        for (Map<String, Object> chunk : output) {
-	            chunkList.add((String) chunk.get(VectorDatabaseCSVTable.CONTENT));
-	        }
-	        joinedChunks = String.join("\n", chunkList);
-	    }
-     
+	    // ==== Step 1. Grab RAG context if vectorDB present ==== 
+		StringBuilder joinedContextBuilder = new StringBuilder();
 
+		if (vectorDbIds != null && !vectorDbIds.isEmpty()) {
+		    int chunkLimit = 3; // TODO: configurable
+		    for (String vectorDbId : vectorDbIds) {
+		        if (vectorDbId == null || vectorDbId.trim().isEmpty()) continue;
+		        if (!SecurityEngineUtils.userCanViewEngine(user, vectorDbId)) {
+		        	classLogger.info("User does not have access to vector db : " + vectorDbId);
+		            continue;
+		        }
+		        IVectorDatabaseEngine vectorDbEng = Utility.getVectorDatabase(vectorDbId);
+		        if (vectorDbEng == null) continue; // Or log as missing/bad engine.
+
+		        List<Map<String, Object>> output = vectorDbEng.nearestNeighbor(this.insight, userQuery, chunkLimit, null);
+		        for (Map<String, Object> chunk : output) {
+		            String content = (String) chunk.get(VectorDatabaseCSVTable.CONTENT);
+		            if (content != null && !content.isEmpty()) {
+		                joinedContextBuilder.append(content).append("\n");
+		            }
+		        }
+		    }
+		}
+		String joinedChunks = joinedContextBuilder.toString();
         // ==== Step 2. Gather Tool Descriptions from the room ====
         List<String> toolIDs = getToolIdsForRoom(room);
         String toolsDescription = assembleToolsDescription(toolIDs);
@@ -152,6 +161,22 @@ public class AskCOTRoomReactor extends AbstractReactor {
     
     // ====== UTILITIES ======
 
+	/**
+	 * 
+	 * @return
+	 */
+	public List<String> getVectorDbIds() {
+		List<String> inputStrings = new ArrayList<>();
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+			return inputStrings;
+		}
+		int size = this.curRow.size();
+		for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+		return inputStrings;
+	}
     /**
      * 
      * @return
