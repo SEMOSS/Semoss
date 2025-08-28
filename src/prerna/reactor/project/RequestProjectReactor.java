@@ -80,7 +80,7 @@ public class RequestProjectReactor extends AbstractReactor {
 			String userType = token.getProvider().toString();
 			SecurityProjectUtils.setUserAccessRequest(userId, userType, projectId, requestComment, requestPermission, user);
 			sendEmail(user, projectId, permission, requestComment);
-			// notificaton:
+			// notificaton: calling addNotification
 			String notificationType = "USER_REQUEST";
 			String priority = "MEDIUM";
 			SecurityProjectUtils.addProjectNotification(user, userId, projectId, notificationType, priority, null, permission);

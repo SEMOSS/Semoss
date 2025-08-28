@@ -1,10 +1,13 @@
 package prerna.reactor.project.notification;
 
+import java.sql.Timestamp;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class UpdateReadNotificationsReactor extends AbstractReactor {
 	// TODO: CAN ADD LOGGER
@@ -22,8 +25,8 @@ public class UpdateReadNotificationsReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 		}
-     
-		SecurityProjectUtils.updateReadNotificationForUser(notificationId);
+		Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
+		SecurityProjectUtils.updateReadNotificationForUser(notificationId, readAt);
 		
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
