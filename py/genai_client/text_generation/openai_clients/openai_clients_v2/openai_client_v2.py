@@ -59,14 +59,15 @@ class OpenAIClientV2(AbstractOpenAiClient):
             input_tokens = response.usage.input_tokens
 
         # Returning a diff type of AskModelEngineResponse if there are tool calls
-        tool_calls = response.tools
+        if not request.get("stream", False):
+            tool_calls = response.tools
 
-        if tool_calls:
-            return self._parse_tools_call_response(
-                response=response,
-                response_tokens=response_tokens,
-                prompt_tokens=input_tokens,
-            )
+            if tool_calls:
+                return self._parse_tools_call_response(
+                    response=response,
+                    response_tokens=response_tokens,
+                    prompt_tokens=input_tokens,
+                )
 
         model_engine_response = AskModelEngineResponse(
             response=final_query,
@@ -103,13 +104,14 @@ class OpenAIClientV2(AbstractOpenAiClient):
             prompt_tokens = response.usage.prompt_tokens
 
         # Returning a diff type of AskModelEngineResponse if there are tool calls
-        tool_calls = response.choices[0].message.tool_calls
-        if tool_calls:
-            return self._parse_tools_call_response(
-                response=response,
-                response_tokens=response_tokens,
-                prompt_tokens=prompt_tokens,
-            )
+        if not request.get("stream", False):
+            tool_calls = response.choices[0].message.tool_calls
+            if tool_calls:
+                return self._parse_tools_call_response(
+                    response=response,
+                    response_tokens=response_tokens,
+                    prompt_tokens=prompt_tokens,
+                )
 
         model_engine_response = AskModelEngineResponse(
             response=final_query,
