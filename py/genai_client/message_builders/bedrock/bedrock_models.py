@@ -1,31 +1,27 @@
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Any, Union, Literal
 from pydantic import BaseModel
-from ...utils import StringEnum
+from enum import Enum
 
 
-class BedrockRoles(StringEnum):
+class BedrockRoles(Enum):
     USER = "user"
     ASSISTANT = "assistant"
 
+    class Config:
+        use_enum_values = True
 
-class BedrockImageFormat(StringEnum):
+
+class BedrockImageFormat(Enum):
     PNG = "png"
-    jpeg = "jpeg"
+    JPEG = "jpeg"
     WEBP = "webp"
     GIF = "gif"
 
-
-class BedrockImageSource(BaseModel):
-    url: Optional[str] = None
-    bytes: Optional[str] = None
+    class Config:
+        use_enum_values = True
 
 
-class BedrockImageBlock(BaseModel):
-    source: BedrockImageSource
-    format: BedrockImageFormat
-
-
-class BedrockDocumentFormat(StringEnum):
+class BedrockDocumentFormat(Enum):
     PDF = "pdf"
     CSV = "csv"
     DOC = "doc"
@@ -35,6 +31,25 @@ class BedrockDocumentFormat(StringEnum):
     HTML = "html"
     TXT = "txt"
     MD = "md"
+
+    class Config:
+        use_enum_values = True
+
+
+BYTE_TYPE = bytes
+
+
+class BedrockImageSource(BaseModel):
+    url: Optional[str] = None
+    bytes: Optional[Union[str, BYTE_TYPE]] = None
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+class BedrockImageBlock(BaseModel):
+    source: BedrockImageSource
+    format: Literal["png", "jpeg", "webp", "gif"]
 
 
 class BedrockDocumentSource(BaseModel):
@@ -64,21 +79,38 @@ class BedrockToolResultBlock(BaseModel):
     tool_result: Dict[str, Any]
 
 
+class BedrockTextContentBlock(BaseModel):
+    text: str
+
+
+class BedrockImageContentBlock(BaseModel):
+    image: BedrockImageBlock
+
+
+class BedrockDocumentContentBlock(BaseModel):
+    document: BedrockDocumentBlock
+
+
+class BedrockToolUseContentBlock(BaseModel):
+    toolUse: Dict[str, Any]
+
+
+class BedrockToolResultContentBlock(BaseModel):
+    toolResult: Dict[str, Any]
+
+
 BedrockContentBlock = Union[
-    BedrockTextBlock,
-    BedrockImageBlock,
-    BedrockDocumentBlock,
-    BedrockToolUseBlock,
-    BedrockToolResultBlock,
+    BedrockTextContentBlock,
+    BedrockImageContentBlock,
+    BedrockDocumentContentBlock,
+    BedrockToolUseContentBlock,
+    BedrockToolResultContentBlock,
 ]
 
 
 class BedrockMessage(BaseModel):
     role: str
     content: List[BedrockContentBlock]
-
-
-## MODEL PARAMETERS -----------------------------------
 
 
 class BedrockSystemBlock(BaseModel):
@@ -94,7 +126,7 @@ class BedrockInferenceConfig(BaseModel):
 
 class BedrockRequest(BaseModel):
     messages: List[BedrockMessage]
-    system: Optional[BedrockSystemBlock] = None
+    system: Optional[List[BedrockSystemBlock]] = None
     inferenceConfig: Optional[BedrockInferenceConfig] = None
     additionalModelRequestFields: Optional[Dict[str, Any]] = None
     toolConfig: Optional[Any] = None

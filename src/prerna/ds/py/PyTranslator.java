@@ -39,8 +39,16 @@ public class PyTranslator {
 		this.globalStoreInsight = globalStoreInsight;
 	}
 	
+	public SocketClient getSocketClient() {
+		return this.sc;
+	}
+	
 	public Insight getGlobalStoreInsight() {
 		return this.globalStoreInsight;
+	}
+	
+	public void setSocketClient(SocketClient sc) {
+		this.sc = sc;
 	}
 	
 	public SemossDataType convertDataType(String pDataType) {

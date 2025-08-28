@@ -72,9 +72,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	private static final Logger classLogger = LogManager.getLogger(PGVectorDatabaseEngine.class);
 	
-	private static final String DIR_SEPARATOR = "/";
-	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	
 	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
 	public static final String PGVECTOR_METADATA_TABLE_NAME = "PGVECTOR_METADATA_TABLE_NAME";
 
@@ -177,8 +174,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
         }
         
 		// highest directory (first layer inside vector db base folder)
-		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
-		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
+		String engineDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
+		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + "/py/"));
 		
 		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
 		this.schemaFolder = new File(engineDir, "schema");
@@ -295,35 +292,39 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 	
 	@Override
-	public void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		for(String vectorCsvFile : vectorCsvFiles) {
 			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
-			addEmbeddings(vectorCsvTable, insight, parameters);
+			fileStatusList = addEmbeddings(vectorCsvTable, insight, parameters);
 		}
+		return fileStatusList;
 	}
 	
 	@Override
-	public void addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
-		addEmbeddings(vectorCsvTable, insight, parameters);
+		return addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override
-	public void addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		for(File vectorCsvFile : vectorCsvFiles) {
 			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-			addEmbeddings(vectorCsvTable, insight, parameters);
+			fileStatusList = addEmbeddings(vectorCsvTable, insight, parameters);
 		}
+		return fileStatusList;
 	}
 	
 	@Override
-	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-		addEmbeddings(vectorCsvTable, insight, parameters);
+		return addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -346,6 +347,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				+ this.vectorTableName 
 				+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT) "
 				+ "VALUES (?,?,?,?,?,?,?)";
+		
+		// Track insert status per file
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
+		Map<String, Integer> fileInsertedCountMap = new HashMap<>();
 		
 		Connection conn = null;
 		PreparedStatement ps = null;
@@ -371,26 +376,19 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				ps.setString(index++, row.getContent());
 				ps.addBatch();
 				
+				fileRecordCountMap.put(row.getSource(), fileRecordCountMap.getOrDefault(row.getSource(), 0) + 1);
 				// batch commit based on size
 				if (++count % batchSize == 0) {
 					classLogger.info("Executing embeddings batch .... row num = " + count);
 					int[] results = ps.executeBatch();
-					for(int j=0; j<results.length; j++) {
-						if(results[j] == PreparedStatement.EXECUTE_FAILED) {
-							throw new SQLException("Error inserting data for row " + j);
-						}
-					}
+					updateInsertCounts(results, vectorCsvTable, fileInsertedCountMap);
 				}
-			}
+			} 
 			
 			// well, we are done looping through now
 			classLogger.info("Executing final embeddings batch .... row num = " + count);
 			int[] results = ps.executeBatch();
-            for(int j=0; j<results.length; j++) {
-                if(results[j] == PreparedStatement.EXECUTE_FAILED) {
-                    throw new SQLException("Error inserting embeddings data for row " + j);
-                }
-            }
+			updateInsertCounts(results, vectorCsvTable, fileInsertedCountMap);
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -413,6 +411,38 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
 				}
+			}
+		}
+		// Generate file-wise embedding status
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+			String file = entry.getKey();
+			int total = entry.getValue();
+			int inserted = fileInsertedCountMap.getOrDefault(file, 0);
+			int failed = total - inserted;
+
+			String status = inserted == total ? "SUCCESS" :
+			                inserted == 0 ? "FAILED" : "PARTIAL";
+
+			fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, total));
+		}
+
+		return fileStatusList;
+	}
+	
+	/**
+	 * Method to update file-inserted counts 
+	 * @param results
+	 * @param table
+	 * @param fileInsertedCountMap
+	 */
+	private void updateInsertCounts(int[] results, VectorDatabaseCSVTable table, Map<String, Integer> fileInsertedCountMap) {
+		List<VectorDatabaseCSVRow> rows = table.getRows();
+		for (int i = 0; i < results.length; i++) {
+			VectorDatabaseCSVRow row = rows.get(i);
+			String source = row.getSource();
+			if (results[i] != PreparedStatement.EXECUTE_FAILED) {
+				fileInsertedCountMap.put(source, fileInsertedCountMap.getOrDefault(source, 0) + 1);
 			}
 		}
 	}
@@ -476,7 +506,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
     	}
 		
-		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + "/" + indexClass + "/" + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		
 		String deleteQuery = "DELETE FROM "+this.vectorTableName+" WHERE SOURCE=?";
@@ -711,7 +741,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + "/" + indexClass + "/" + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 		if(documentsDir.exists() && documentsDir.isDirectory()) {
 			for(Map<String, Object> fileInPostgresDb : sourcesInPostgresDb) {
 				String fileName = (String) fileInPostgresDb.get("fileName");
@@ -904,7 +934,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 	
 	@Override
-	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -947,7 +978,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		
-		File indexFilesFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, AbstractVectorDatabaseEngine.INDEXED_FOLDER_NAME);
+		File indexFilesFolder = new File(this.schemaFolder + "/" + indexClass, AbstractVectorDatabaseEngine.INDEXED_FOLDER_NAME);
 		// store the actual files we are extracting from
 		// since we move this into the vector folder
 		// we need to delete them if they fail
@@ -1008,8 +1039,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
 				String documentName = FilenameUtils.getBaseName(document.getName());
-				File extractedFile = new File(indexFilesFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
-				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
+				File extractedFile = new File(indexFilesFolder.getAbsolutePath() + "/" + documentName + ".csv");
+				String extractedFileName = extractedFile.getAbsolutePath().replace("\\", "/");
 				try {
 					if (extractedFile.exists()) {
 						FileUtils.forceDelete(extractedFile);
@@ -1083,7 +1114,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
 			
 			if (extractedFiles.size() > 0) {
-				addEmbeddingFiles(extractedFiles, insight, parameters);
+				fileStatusList = addEmbeddingFiles(extractedFiles, insight, parameters);
 				
 				if (ClusterUtil.IS_CLUSTER) {
 					// push the actual documents over to the cloud
@@ -1101,6 +1132,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		} finally {
 			cleanUpAddDocument(indexFilesFolder);
 		}
+		return fileStatusList;
 	}
 	
 	@Override
@@ -1173,7 +1205,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if (!this.indexClasses.contains(indexClass)) {
 			throw new IllegalArgumentException("Unable to retieve document csv from a directory that does not exist");
 		}
-		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + "/" + indexClass + "/" + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 	}
 	
 	@Override

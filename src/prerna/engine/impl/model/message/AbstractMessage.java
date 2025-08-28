@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
 import prerna.date.SemossDate;
@@ -71,18 +70,10 @@ public abstract class AbstractMessage {
 	
 	public void setModelType(ModelTypeEnum modelType) {
 		this.modelType = modelType;
-	};
+	}
 
 	public ModelTypeEnum getModelType() {
 		return this.modelType;
-	};
-
-	public String toJson() {
-		Gson gson = new Gson();
-		// This will use Gson's defaults for fields; if you want to control the exact
-		// keys/structure,
-		// See the "Custom Map" below.
-		return gson.toJson(this);
 	}
 
 	public String getParentMessageId() {
@@ -135,6 +126,7 @@ public abstract class AbstractMessage {
         if (ornaments == null) ornaments = new HashMap<>();
         ornaments.put(key, value);
     }
+    
     public Object getOrnament(String key) {
         return ornaments != null ? ornaments.get(key) : null;
     }
