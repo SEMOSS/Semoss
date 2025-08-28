@@ -225,15 +225,17 @@ public class Room {
 	/**
 	 * 
 	 * @param toolCallId
-	 * @param tool_name
-	 * @param tool_execution_response
+	 * @param toolName
+	 * @param toolExecutionResponse
+	 * @param toolParameterValues
 	 * @param parentMessageId
 	 * @param modelEngine
 	 * @param insight
 	 * @return
 	 */
-	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String tool_name,
-			String tool_execution_response, String parentMessageId, IModelEngine modelEngine, Insight insight) {
+	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
+			String toolExecutionResponse, Map<String, Object> toolParameterValues,
+			String parentMessageId, IModelEngine modelEngine, Insight insight) {
 		if (messages.isEmpty()) {
 			throw new IllegalStateException("No messages to match tool call context");
 		}
@@ -289,8 +291,8 @@ public class Room {
 		}
 
 		// 3. Add tool execution message
-		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, tool_name,
-				tool_execution_response);
+		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName,
+				toolExecutionResponse, toolParameterValues);
 		toolExecution.setParentMessageId(toolResponse.getMessageId());
 		toolExecution.setModel(modelEngine);
 		messages.add(toolExecution);

@@ -122,7 +122,36 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		
 		return null;
 	}
-
+	
+	@Override
+	public String getReactorDescription() {
+		return """
+				Add a tool execution input message to the message history. 
+				If all the tools have been executed from the previous tool response message, this will return the LLM response. 
+				Otherwise, a default string message that more tools responses are needed
+				""";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The engine id of the model used for the message. If all the tools are added for the tool_resposne message, this model is used to invoke for the response.";
+		} else if(key.equals("roomId")) {
+			return "The room id corresponding to the message history";
+		} else if(key.equals("toolId")) {
+			return "The id of the tool that was executed - must match the tool id of tool_response message";
+		} else if(key.equals("toolName")) {
+			return "The name of the tool that was executed - must match the tool name of tool_response message";
+		} else if(key.equals("toolExecutionResponse")) {
+			return "The raw string output of the tool output";
+		} else if(key.equals("toolParameterValues")) {
+			return "Map object with the string parameterName to object value for the tool execution";
+		} else if(key.equals(tool_execution_response)) {
+			return "Deprecated parameter. Please switch to toolExecutionResponse";
+		}
+		return super.getDescriptionForKey(key);
+	}
+	
 	/**
 	 * Converts a JSON object string to a Map<String, Object>
 	 * 
