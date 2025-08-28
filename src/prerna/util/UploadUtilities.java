@@ -49,8 +49,6 @@ import prerna.om.MosfetFile;
 import prerna.poi.main.FormUtility;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
-import prerna.poi.main.helper.ImportOptions;
-import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
 import prerna.util.gson.GsonUtility;
@@ -415,7 +413,7 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryTinkerSmss(String databaseId, String databaseName, File owlFile, TINKER_DRIVER tinkerDriverType) throws IOException {
+	public static File generateTemporaryTinkerSmss(String databaseId, String databaseName, File owlFile, TinkerEngine.TINKER_DRIVER tinkerDriverType) throws IOException {
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -443,7 +441,7 @@ public final class UploadUtilities {
 			}
 			
 			// if neo4j, point to the folder
-			if (tinkerDriverType == TINKER_DRIVER.NEO4J) {
+			if (tinkerDriverType == TinkerEngine.TINKER_DRIVER.NEO4J) {
 				bufferedWriter.write(Constants.TINKER_FILE + tinkerFilePath + "\n");
 			} else {
 				// basefolder/db/engine/engine.driverTypeExtension
@@ -615,7 +613,7 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryExternalTinkerSmss(String databaseId, String databaseName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType, boolean useLabel) throws IOException {
+	public static File generateTemporaryExternalTinkerSmss(String databaseId, String databaseName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TinkerEngine.TINKER_DRIVER tinkerDriverType, boolean useLabel) throws IOException {
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -637,7 +635,7 @@ public final class UploadUtilities {
 			// tinker file location
 			// we will want to parameterize this
 			// if it is not a Neo4j as we do not move this onto the server yet
-			if(tinkerDriverType != ImportOptions.TINKER_DRIVER.NEO4J) {
+			if(tinkerDriverType != TinkerEngine.TINKER_DRIVER.NEO4J) {
 				File f = new File(tinkerFilePath);
 				String fileBasePath = f.getParent();
 				tinkerFilePath = tinkerFilePath.replace(
