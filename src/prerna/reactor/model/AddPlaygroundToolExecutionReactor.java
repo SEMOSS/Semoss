@@ -19,6 +19,7 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -27,7 +28,7 @@ import prerna.util.Utility;
 
 /**
  * AddToolExecutionReactor: Input: roomId, toolId, toolName,
- * tool_execution_response
+ * tool_execution_response, tool_
  */
 public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 
@@ -36,15 +37,21 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			.disableHtmlEscaping()
 			.create();
 	
+	@Deprecated
+	private final String tool_execution_response = "tool_execution_response";
+	
 	public AddPlaygroundToolExecutionReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0
 				"roomId", // 1
 				"toolId", // 2
 				"toolName", // 3
-				"tool_execution_response", // 4
-				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey() // 5
+				"toolExecutionResponse", // 4
+				"toolParameterValues", // 5
+				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), // 6
+				tool_execution_response
 		};
-		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 0 };
+		//TODO: once we remove the legacy tool_execution_response, we will make toolExecutionResponse mandatory field
+		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -55,7 +62,14 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		String toolId = this.keyValue.get(this.keysToGet[2]);
 		String toolName = this.keyValue.get(this.keysToGet[3]);
 		String toolResponseRaw = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[4]));
-		String parentMessageId = this.keyValue.get(this.keysToGet[5]);
+		if(toolResponseRaw == null) {
+			toolResponseRaw = Utility.decodeURIComponent(this.keyValue.get(tool_execution_response));
+		}
+		if(toolResponseRaw == null) {
+			throw new IllegalArgumentException("Field " + this.keysToGet[4] + " cannot be empty");
+		}
+		Map<String, Object> toolParamterValues = getToolParamterValues();
+		String parentMessageId = this.keyValue.get(this.keysToGet[6]);
 
 		User user = this.insight.getUser();
 		String userId = user.getPrimaryLoginToken().getId();
@@ -77,7 +91,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
 		}
 
-		AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
+		AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw, toolParamterValues,
 				parentMessageId, modelEngine, insight);
 
 		Map<String, Object> pixelReturn = new HashMap<>();
@@ -89,6 +103,24 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(room.getMessages().getLast())));
 			return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 		}
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	private Map<String, Object> getToolParamterValues() {
+		GenRowStruct toolParamValuesGrs = this.store.getNoun(this.keysToGet[5]);
+		if(toolParamValuesGrs != null) {
+			Object toolParamValuesObj = toolParamValuesGrs.get(0);
+			if(toolParamValuesObj instanceof Map) {
+				return (Map<String, Object>) toolParamValuesObj;
+			} else {
+				throw new IllegalArgumentException("Expected " + this.keysToGet[5] + " to be a Map object");
+			}
+		}
+		
+		return null;
 	}
 
 	/**
