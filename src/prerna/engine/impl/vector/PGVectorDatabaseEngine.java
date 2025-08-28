@@ -432,7 +432,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	    }
 
 	    if (bm25ServiceForCall != null) {
-	        System.out.println("[INFO] STARTING BM25 indexing");
+	        classLogger.info("STARTING BM25 indexing");
 	        List<String> contents = new ArrayList<>();
 	        List<String> ids = new ArrayList<>();
 	        for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
@@ -689,8 +689,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
 	public List<Map<String, Object>> nearestNeighborCall(
 	        Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
-
-	    System.out.println("[INFO] STARTING NN CALL");
 	    if (insight == null) {
 	        throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 	    }
@@ -766,7 +764,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	private List<Map<String, Object>> runVectorSearch(
 	        Insight insight, String searchStatement, int topN, Map<String, Object> parameters) throws Exception {
-		System.out.println("[INFO] TRYING VECTOR SEARCH");
 		List<IQueryFilter> filters = null;
 	    List<IQueryFilter> metaFilters = null;
 	    if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
