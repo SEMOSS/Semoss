@@ -1,10 +1,23 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.testing.utility;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
-
 import prerna.project.api.IProject;
 import prerna.reactor.project.CreateProjectReactor;
 import prerna.reactor.security.SetProjectMetadataReactor;
@@ -15,22 +28,39 @@ import prerna.testing.ApiSemossTestUtils;
 
 public class TestProjectUtils {
 
-	@SuppressWarnings("unchecked")
-	public static String createBasicProject(String name) {
-		String pixel = ApiSemossTestUtils.buildPixelCall(CreateProjectReactor.class, ReactorKeysEnum.PROJECT.getKey(),
-				name, ReactorKeysEnum.PROJECT_TYPE.getKey(), IProject.PROJECT_TYPE.INSIGHTS,
-				ReactorKeysEnum.GLOBAL.getKey(), true, ReactorKeysEnum.PORTAL.getKey(), false);
-		
-		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-		assertEquals(PixelDataType.UPLOAD_RETURN_MAP, nm.getNounType());
-		Map<String, Object> retMap = (Map<String, Object>) nm.getValue();
-		return retMap.get("project_id").toString();
-	}
-	
-	public static void setProjectMetadata(String projectId, Map<String, Object> metaMap) {
-		String addMetaPixel = ApiSemossTestUtils.buildPixelCall(SetProjectMetadataReactor.class, ReactorKeysEnum.PROJECT.getKey(),
-				projectId, "meta", metaMap, ReactorKeysEnum.ENCODED.getKey(), false, ReactorKeysEnum.JSON_CLEANUP.getKey(), false);
-		NounMetadata metaPixelCall = ApiSemossTestUtils.processPixel(addMetaPixel);
-		assertTrue(Boolean.valueOf(metaPixelCall.getValue().toString()));
-	}
+  @SuppressWarnings("unchecked")
+  public static String createBasicProject(String name) {
+    String pixel =
+        ApiSemossTestUtils.buildPixelCall(
+            CreateProjectReactor.class,
+            ReactorKeysEnum.PROJECT.getKey(),
+            name,
+            ReactorKeysEnum.PROJECT_TYPE.getKey(),
+            IProject.PROJECT_TYPE.INSIGHTS,
+            ReactorKeysEnum.GLOBAL.getKey(),
+            true,
+            ReactorKeysEnum.PORTAL.getKey(),
+            false);
+
+    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+    assertEquals(PixelDataType.UPLOAD_RETURN_MAP, nm.getNounType());
+    Map<String, Object> retMap = (Map<String, Object>) nm.getValue();
+    return retMap.get("project_id").toString();
+  }
+
+  public static void setProjectMetadata(String projectId, Map<String, Object> metaMap) {
+    String addMetaPixel =
+        ApiSemossTestUtils.buildPixelCall(
+            SetProjectMetadataReactor.class,
+            ReactorKeysEnum.PROJECT.getKey(),
+            projectId,
+            "meta",
+            metaMap,
+            ReactorKeysEnum.ENCODED.getKey(),
+            false,
+            ReactorKeysEnum.JSON_CLEANUP.getKey(),
+            false);
+    NounMetadata metaPixelCall = ApiSemossTestUtils.processPixel(addMetaPixel);
+    assertTrue(Boolean.valueOf(metaPixelCall.getValue().toString()));
+  }
 }

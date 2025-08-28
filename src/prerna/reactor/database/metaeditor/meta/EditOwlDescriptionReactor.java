@@ -1,10 +1,22 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.database.metaeditor.meta;
 
 import java.io.IOException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
@@ -19,59 +31,77 @@ import prerna.util.Utility;
 
 public class EditOwlDescriptionReactor extends AbstractMetaEditorReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(EditOwlDescriptionReactor.class);
+  private static final Logger classLogger = LogManager.getLogger(EditOwlDescriptionReactor.class);
 
-	public EditOwlDescriptionReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DESCRIPTION.getKey()};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		// we may have an alias
-		databaseId = testDatabaseId(databaseId, true);
+  public EditOwlDescriptionReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.DATABASE.getKey(),
+          ReactorKeysEnum.CONCEPT.getKey(),
+          ReactorKeysEnum.COLUMN.getKey(),
+          ReactorKeysEnum.DESCRIPTION.getKey()
+        };
+  }
 
-		String concept = this.keyValue.get(this.keysToGet[1]);
-		String prop = this.keyValue.get(this.keysToGet[2]);
-		String description = this.keyValue.get(this.keysToGet[3]);
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    String databaseId = this.keyValue.get(this.keysToGet[0]);
+    // we may have an alias
+    databaseId = testDatabaseId(databaseId, true);
 
-		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
-			ClusterUtil.pullOwl(databaseId, owlEngine);
+    String concept = this.keyValue.get(this.keysToGet[1]);
+    String prop = this.keyValue.get(this.keysToGet[2]);
+    String description = this.keyValue.get(this.keysToGet[3]);
 
-			String physicalUri = null;
-			if (prop == null || prop.isEmpty()) {
-				physicalUri = owlEngine.getPhysicalUriFromPixelSelector(concept);
-			} else {
-				physicalUri = owlEngine.getPhysicalUriFromPixelSelector(concept + "__" + prop);
-			}
-	
-			// get the existing value if present
-			String existingDescription = database.getDescription(physicalUri);
-			
-			owlEngine.deleteDescription(physicalUri, existingDescription);
-			owlEngine.addDescription(physicalUri, description);
-			try {
-				owlEngine.export();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add description", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-				return noun;
-			}
-			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId, owlEngine);
+    IDatabaseEngine database = Utility.getDatabase(databaseId);
+    try (WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+      ClusterUtil.pullOwl(databaseId, owlEngine);
 
-		} catch (IOException | InterruptedException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
-			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to modify the OWL", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			return noun;
-		}
+      String physicalUri = null;
+      if (prop == null || prop.isEmpty()) {
+        physicalUri = owlEngine.getPhysicalUriFromPixelSelector(concept);
+      } else {
+        physicalUri = owlEngine.getPhysicalUriFromPixelSelector(concept + "__" + prop);
+      }
 
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully added descriptions", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
-		return noun;
-	}
+      // get the existing value if present
+      String existingDescription = database.getDescription(physicalUri);
+
+      owlEngine.deleteDescription(physicalUri, existingDescription);
+      owlEngine.addDescription(physicalUri, description);
+      try {
+        owlEngine.export();
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+        NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+        noun.addAdditionalReturn(
+            new NounMetadata(
+                "An error occurred attempting to add description",
+                PixelDataType.CONST_STRING,
+                PixelOperationType.ERROR));
+        return noun;
+      }
+      EngineSyncUtility.clearEngineCache(databaseId);
+      ClusterUtil.pushOwl(databaseId, owlEngine);
+
+    } catch (IOException | InterruptedException e1) {
+      classLogger.error(Constants.STACKTRACE, e1);
+      NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+      noun.addAdditionalReturn(
+          new NounMetadata(
+              "An error occurred attempting to modify the OWL",
+              PixelDataType.CONST_STRING,
+              PixelOperationType.ERROR));
+      return noun;
+    }
+
+    NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+    noun.addAdditionalReturn(
+        new NounMetadata(
+            "Successfully added descriptions",
+            PixelDataType.CONST_STRING,
+            PixelOperationType.SUCCESS));
+    return noun;
+  }
 }

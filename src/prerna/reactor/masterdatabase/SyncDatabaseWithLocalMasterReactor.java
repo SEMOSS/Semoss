@@ -1,9 +1,21 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.masterdatabase;
 
 import java.util.Properties;
-
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.AddToMasterDB;
@@ -20,41 +32,48 @@ import prerna.util.Utility;
 
 public class SyncDatabaseWithLocalMasterReactor extends AbstractReactor {
 
-	public static final String CLASS_NAME = SyncDatabaseWithLocalMasterReactor.class.getName();
-	
-	public SyncDatabaseWithLocalMasterReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		// we may have the alias
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-			throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to app");
-		}
-				
-		Logger logger = getLogger(CLASS_NAME);
-		logger.info("Starting to synchronize metadata");
-		
-		logger.info("Starting to remove existing metadata");
-		DeleteFromMasterDB remover = new DeleteFromMasterDB();
-		remover.deleteEngineRDBMS(databaseId);
-		logger.info("Finished removing existing metadata");
+  public static final String CLASS_NAME = SyncDatabaseWithLocalMasterReactor.class.getName();
 
-		logger.info("Starting to add metadata");
-		String smssFile = (String) DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE);
-		Properties prop = Utility.loadProperties(smssFile);
-		AddToMasterDB adder = new AddToMasterDB();
-		adder.registerEngineLocal(smssFile, prop);
-		logger.info("Done adding new metadata");
+  public SyncDatabaseWithLocalMasterReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
+  }
 
-		logger.info("Synchronization complete");
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully synchronized " + MasterDatabaseUtility.getDatabaseAliasForId(databaseId) + "'s metadata", 
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
-		return noun;
-	}
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    String databaseId = this.keyValue.get(this.keysToGet[0]);
+    // we may have the alias
+    databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+    if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+      throw new IllegalArgumentException(
+          "Database " + databaseId + " does not exist or user does not have access to app");
+    }
+
+    Logger logger = getLogger(CLASS_NAME);
+    logger.info("Starting to synchronize metadata");
+
+    logger.info("Starting to remove existing metadata");
+    DeleteFromMasterDB remover = new DeleteFromMasterDB();
+    remover.deleteEngineRDBMS(databaseId);
+    logger.info("Finished removing existing metadata");
+
+    logger.info("Starting to add metadata");
+    String smssFile =
+        (String) DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE);
+    Properties prop = Utility.loadProperties(smssFile);
+    AddToMasterDB adder = new AddToMasterDB();
+    adder.registerEngineLocal(smssFile, prop);
+    logger.info("Done adding new metadata");
+
+    logger.info("Synchronization complete");
+    NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+    noun.addAdditionalReturn(
+        new NounMetadata(
+            "Successfully synchronized "
+                + MasterDatabaseUtility.getDatabaseAliasForId(databaseId)
+                + "'s metadata",
+            PixelDataType.CONST_STRING,
+            PixelOperationType.SUCCESS));
+    return noun;
+  }
 }

@@ -1,10 +1,22 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.planner.graph;
 
 import java.util.HashMap;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.PixelPlanner;
@@ -15,71 +27,74 @@ import prerna.util.Constants;
 
 public class LoadClientReactor extends AbstractLoadClient {
 
-	private static final Logger LOGGER = LogManager.getLogger(LoadClientReactor.class.getName());
+  private static final Logger LOGGER = LogManager.getLogger(LoadClientReactor.class.getName());
 
-	protected PixelPlanner createPlanner() {
-		long start = System.currentTimeMillis();
+  protected PixelPlanner createPlanner() {
+    long start = System.currentTimeMillis();
 
-		// generate our lazy translation
-		// which only ingests the routines
-		// without executing
+    // generate our lazy translation
+    // which only ingests the routines
+    // without executing
 
-		LazyTranslation plannerT = new LazyTranslation();
-		// get the iterator we are loading
-		IRawSelectWrapper iterator;
-		try {
-			iterator = (IRawSelectWrapper) getIterator();
-			String[] headers = iterator.getHeaders();
-			int[] assignmentIndices = getAssignmentIndices(headers);
-			int valIndex = getValueIndex(headers);
-			int typeIndex = getTypeIndex(headers);
-			int returnTypeIndex = getReturnTypeIndex(headers);
-			String separator = getSeparator();
-			if(!plannerT.getPlanner().hasProperty("MAIN_MAP", "MAIN_MAP")){
-				HashMap<String, String> map = new HashMap<String, String>();
-				plannerT.getPlanner().addProperty("MAIN_MAP", "MAIN_MAP", map);
-			}
-			HashMap<String, String> mainMap = (HashMap<String, String> )plannerT.getPlanner().getProperty("MAIN_MAP", "MAIN_MAP");
-			int count = 0;
-			while(iterator.hasNext()) {
-				//			System.out.println(count);
-				//			count++;
-				IHeadersDataRow nextData = iterator.next();
-				Object[] values = nextData.getValues();
+    LazyTranslation plannerT = new LazyTranslation();
+    // get the iterator we are loading
+    IRawSelectWrapper iterator;
+    try {
+      iterator = (IRawSelectWrapper) getIterator();
+      String[] headers = iterator.getHeaders();
+      int[] assignmentIndices = getAssignmentIndices(headers);
+      int valIndex = getValueIndex(headers);
+      int typeIndex = getTypeIndex(headers);
+      int returnTypeIndex = getReturnTypeIndex(headers);
+      String separator = getSeparator();
+      if (!plannerT.getPlanner().hasProperty("MAIN_MAP", "MAIN_MAP")) {
+        HashMap<String, String> map = new HashMap<String, String>();
+        plannerT.getPlanner().addProperty("MAIN_MAP", "MAIN_MAP", map);
+      }
+      HashMap<String, String> mainMap =
+          (HashMap<String, String>) plannerT.getPlanner().getProperty("MAIN_MAP", "MAIN_MAP");
+      int count = 0;
+      while (iterator.hasNext()) {
+        //			System.out.println(count);
+        //			count++;
+        IHeadersDataRow nextData = iterator.next();
+        Object[] values = nextData.getValues();
 
-				//grab the assignment variable, or the alias
-				String assignment = getAssignment(values, assignmentIndices, separator);
+        // grab the assignment variable, or the alias
+        String assignment = getAssignment(values, assignmentIndices, separator);
 
-				//grab the value we are assigning to that variable/alias
-				String value = getValue(values, valIndex);	
-				String returnType = getReturnType(values, returnTypeIndex);
-				mainMap.put(assignment, returnType);
-				//if the value is a formula add to the pksl planner
-				if(isFormula(values, typeIndex)) {
-					String pkslString = generatePKSLString(assignment, value);
-					// skip adding self reflection pksls
-					// i.e. x = (x);
-					if(!AbstractPlannerReactor.isSimpleAssignment(pkslString)) {
-						PixelUtility.addPixelToTranslation(plannerT, pkslString);
-					}
-				}
-				//else we just want to add the value of the constant/decimal directly to the planner
-				else{
-					addVariable(plannerT.getPlanner(), assignment, value);
-				}
-			}
-		} catch (Exception e) {
-			LOGGER.error(Constants.STACKTRACE, e);
-		}
+        // grab the value we are assigning to that variable/alias
+        String value = getValue(values, valIndex);
+        String returnType = getReturnType(values, returnTypeIndex);
+        mainMap.put(assignment, returnType);
+        // if the value is a formula add to the pksl planner
+        if (isFormula(values, typeIndex)) {
+          String pkslString = generatePKSLString(assignment, value);
+          // skip adding self reflection pksls
+          // i.e. x = (x);
+          if (!AbstractPlannerReactor.isSimpleAssignment(pkslString)) {
+            PixelUtility.addPixelToTranslation(plannerT, pkslString);
+          }
+        }
+        // else we just want to add the value of the constant/decimal directly to the planner
+        else {
+          addVariable(plannerT.getPlanner(), assignment, value);
+        }
+      }
+    } catch (Exception e) {
+      LOGGER.error(Constants.STACKTRACE, e);
+    }
 
-		// grab the planner from the new translation
-		//		LOGGER.info("****************    "+total+"      *************************");
-		//		LOGGER.info("****************    "+error+"      *************************");
+    // grab the planner from the new translation
+    //		LOGGER.info("****************    "+total+"      *************************");
+    //		LOGGER.info("****************    "+error+"      *************************");
 
-		long end = System.currentTimeMillis();
-		LOGGER.info("****************    END LOAD CLIENT "+(end - start)+"ms      *************************");
+    long end = System.currentTimeMillis();
+    LOGGER.info(
+        "****************    END LOAD CLIENT "
+            + (end - start)
+            + "ms      *************************");
 
-		return plannerT.getPlanner();
-	}
-
+    return plannerT.getPlanner();
+  }
 }

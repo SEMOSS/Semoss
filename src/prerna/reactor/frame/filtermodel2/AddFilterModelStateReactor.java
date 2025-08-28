@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.filtermodel2;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -12,37 +26,43 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AddFilterModelStateReactor extends AbstractFilterReactor {
 
-	public AddFilterModelStateReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.FILTERS.getKey() };
-	}
+  public AddFilterModelStateReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.PANEL.getKey(),
+          ReactorKeysEnum.FRAME.getKey(),
+          ReactorKeysEnum.FILTERS.getKey()
+        };
+  }
 
-	@Override
-	public NounMetadata execute() {
-		InsightPanel panel = getInsightPanel();
-		if(panel == null) {
-			throw new NullPointerException("Cannot find the input panel for add panel filter");
-		}
-		
-		// get the filters to add
-		GenRowFilters newFiltersToAdd = getFilters();
-		if (newFiltersToAdd.isEmpty()) {
-			throw new IllegalArgumentException("No filter found to add to panel");
-		}
-		
-		// get the frame (or default frame)
-		ITableDataFrame frame = getFrame();
+  @Override
+  public NounMetadata execute() {
+    InsightPanel panel = getInsightPanel();
+    if (panel == null) {
+      throw new NullPointerException("Cannot find the input panel for add panel filter");
+    }
 
-		// get existing filters
-		GenRowFilters existingFilters = panel.getTempFilterModelGrf();
-		// add the new filters by merging into the existing state
-		mergeFilters(newFiltersToAdd, existingFilters);
-		
-		panel.setTempFitlerModelFrame(frame);
-		BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
-		pFilterVal.setName(panel.getPanelId());
-		pFilterVal.setFilterVal(true);
-		NounMetadata noun = new NounMetadata(pFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_FILTER_CHANGE);
-		return noun;
-	}
-	
+    // get the filters to add
+    GenRowFilters newFiltersToAdd = getFilters();
+    if (newFiltersToAdd.isEmpty()) {
+      throw new IllegalArgumentException("No filter found to add to panel");
+    }
+
+    // get the frame (or default frame)
+    ITableDataFrame frame = getFrame();
+
+    // get existing filters
+    GenRowFilters existingFilters = panel.getTempFilterModelGrf();
+    // add the new filters by merging into the existing state
+    mergeFilters(newFiltersToAdd, existingFilters);
+
+    panel.setTempFitlerModelFrame(frame);
+    BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
+    pFilterVal.setName(panel.getPanelId());
+    pFilterVal.setFilterVal(true);
+    NounMetadata noun =
+        new NounMetadata(
+            pFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_FILTER_CHANGE);
+    return noun;
+  }
 }

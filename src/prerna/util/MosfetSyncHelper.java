@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.util;
 
 import java.io.File;
@@ -6,9 +20,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
@@ -18,393 +30,510 @@ import prerna.project.api.IProject;
 
 public class MosfetSyncHelper {
 
-	// get the directory separator
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+  // get the directory separator
+  private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	// ADDED
-	public static final String ADD = "ADD";
-	// MODIFIED
-	public static final String MOD = "MOD";
-	// DELETE
-	public static final String DEL = "DEL";
-	// RENAMED
-	public static final String REN = "REN";
+  // ADDED
+  public static final String ADD = "ADD";
+  // MODIFIED
+  public static final String MOD = "MOD";
+  // DELETE
+  public static final String DEL = "DEL";
+  // RENAMED
+  public static final String REN = "REN";
 
-//	public static final String ENGINE_ID_KEY = "engineId";
-//	public static final String RDBMS_ID_KEY = "rdbmsId";
-//	public static final String INSIGHT_NAME_KEY = "insightName";
-//	public static final String LAYOUT_KEY = "layout";
-//	public static final String RECIPE_KEY = "recipe";
-//	public static final String HIDDEN_KEY = "hidden";
+  //	public static final String ENGINE_ID_KEY = "engineId";
+  //	public static final String RDBMS_ID_KEY = "rdbmsId";
+  //	public static final String INSIGHT_NAME_KEY = "insightName";
+  //	public static final String LAYOUT_KEY = "layout";
+  //	public static final String RECIPE_KEY = "recipe";
+  //	public static final String HIDDEN_KEY = "hidden";
 
-	private MosfetSyncHelper() {
+  private MosfetSyncHelper() {}
 
-	}
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////
 
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////////////
+  /**
+   * Get the folder location that has the mosfet file
+   *
+   * @param projectId
+   * @param projectName
+   * @param rdbmsId
+   * @return
+   */
+  public static String getMosfetFolderLocation(
+      String projectId, String projectName, String rdbmsId) {
+    return Utility.getBaseFolder()
+        + DIR_SEPARATOR
+        + Constants.PROJECT_FOLDER
+        + DIR_SEPARATOR
+        + SmssUtilities.getUniqueName(projectName, projectId)
+        + DIR_SEPARATOR
+        + "app_root"
+        + DIR_SEPARATOR
+        + "version"
+        + DIR_SEPARATOR
+        + rdbmsId;
+  }
 
-	/**
-	 * Get the folder location that has the mosfet file 
-	 * @param projectId
-	 * @param projectName
-	 * @param rdbmsId
-	 * @return
-	 */
-	public static String getMosfetFolderLocation(String projectId, String projectName, String rdbmsId) {
-		return Utility.getBaseFolder()
-				+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
-				+ DIR_SEPARATOR + "app_root" 
-				+ DIR_SEPARATOR + "version" 
-				+ DIR_SEPARATOR + rdbmsId;
-	}
-	
-	/**
-	 * Get the mosfet file path
-	 * @param projectId
-	 * @param projectName
-	 * @param rdbmsId
-	 * @return
-	 */
-	public static String getMosfetFileLocation(String projectId, String projectName, String rdbmsId) {
-		return getMosfetFolderLocation(projectId, projectName, rdbmsId) + DIR_SEPARATOR + MosfetFile.RECIPE_FILE;
-	}
-	
-	/*
-	 * This section for synchronizing files
-	 */
+  /**
+   * Get the mosfet file path
+   *
+   * @param projectId
+   * @param projectName
+   * @param rdbmsId
+   * @return
+   */
+  public static String getMosfetFileLocation(String projectId, String projectName, String rdbmsId) {
+    return getMosfetFolderLocation(projectId, projectName, rdbmsId)
+        + DIR_SEPARATOR
+        + MosfetFile.RECIPE_FILE;
+  }
 
-	public static void synchronizeInsightChanges(Map<String, List<String>> filesChanged, Logger logger) {
-		// process add
-		if(filesChanged.containsKey(ADD)) {
-			processAddedFiles(filesChanged.get(ADD), logger);
-		}
+  /*
+   * This section for synchronizing files
+   */
 
-		// process mod
-		if(filesChanged.containsKey(MOD)) {
-			processModifiedFiles(filesChanged.get(MOD), logger);
-		}
+  public static void synchronizeInsightChanges(
+      Map<String, List<String>> filesChanged, Logger logger) {
+    // process add
+    if (filesChanged.containsKey(ADD)) {
+      processAddedFiles(filesChanged.get(ADD), logger);
+    }
 
-		// process delete
-		if(filesChanged.containsKey(DEL)) {
-			processDelete(filesChanged.get(DEL), logger);
-		}
-	}
+    // process mod
+    if (filesChanged.containsKey(MOD)) {
+      processModifiedFiles(filesChanged.get(MOD), logger);
+    }
 
-	private static void processAddedFiles(List<String> list, Logger logger) {
-		for(String fileLocation : list) {
-			File file = new File(Utility.normalizePath(fileLocation));
-			MosfetFile mosfetFile;
-			try {
-				mosfetFile = MosfetFile.generateFromFile(file);
-			} catch (IOException e) {
-				outputError(logger, "MOSFET file is not in valid JSON format");
-				logger.error(Constants.STACKTRACE, e);
-				continue;
-			}
-			processAddedFile(mosfetFile, logger);
-		}
-	}
+    // process delete
+    if (filesChanged.containsKey(DEL)) {
+      processDelete(filesChanged.get(DEL), logger);
+    }
+  }
 
-	private static void processAddedFile(MosfetFile mosfet, Logger logger) {
-		String projectId = mosfet.getProjectId();
-		String id = mosfet.getRdbmsId();
+  private static void processAddedFiles(List<String> list, Logger logger) {
+    for (String fileLocation : list) {
+      File file = new File(Utility.normalizePath(fileLocation));
+      MosfetFile mosfetFile;
+      try {
+        mosfetFile = MosfetFile.generateFromFile(file);
+      } catch (IOException e) {
+        outputError(logger, "MOSFET file is not in valid JSON format");
+        logger.error(Constants.STACKTRACE, e);
+        continue;
+      }
+      processAddedFile(mosfetFile, logger);
+    }
+  }
 
-		// need to add the insight in the rdbms engine
-		IProject project = Utility.getProject(projectId);
-		// we want to make sure the file isn't added because we made the insight
-		// and is in fact a new one made by another collaborator
-		Vector<Insight> ins = project.getInsight(id);
-		if(ins == null || ins.isEmpty() || (ins.size() == 1 && ins.get(0) == null) ) {
-			logger.info("Start processing new mosfet file");
-			addInsightToEngineRdbms(project, mosfet);
-			logger.info("Done processing mosfet file");
-		}
-	}
+  private static void processAddedFile(MosfetFile mosfet, Logger logger) {
+    String projectId = mosfet.getProjectId();
+    String id = mosfet.getRdbmsId();
 
-	private static void processModifiedFiles(List<String> list, Logger logger) {
-		for(String fileLocation : list) {
-			File file = new File(Utility.normalizePath(fileLocation));
-			MosfetFile mosfetFile;
-			try {
-				mosfetFile = MosfetFile.generateFromFile(file);
-			} catch (IOException e) {
-				outputError(logger, "MOSFET file is not in valid JSON format");
-				logger.error(Constants.STACKTRACE, e);
-				continue;
-			}
-			processModifiedFiles(mosfetFile, logger);
-		}
-	}
+    // need to add the insight in the rdbms engine
+    IProject project = Utility.getProject(projectId);
+    // we want to make sure the file isn't added because we made the insight
+    // and is in fact a new one made by another collaborator
+    Vector<Insight> ins = project.getInsight(id);
+    if (ins == null || ins.isEmpty() || (ins.size() == 1 && ins.get(0) == null)) {
+      logger.info("Start processing new mosfet file");
+      addInsightToEngineRdbms(project, mosfet);
+      logger.info("Done processing mosfet file");
+    }
+  }
 
-	private static void processModifiedFiles(MosfetFile mosfet, Logger logger) {
-		logger.info("Start editing existing mosfet file");
-		updateInsightInEngineRdbms(mosfet);
-		logger.info("Done processing mosfet file");
-	}
+  private static void processModifiedFiles(List<String> list, Logger logger) {
+    for (String fileLocation : list) {
+      File file = new File(Utility.normalizePath(fileLocation));
+      MosfetFile mosfetFile;
+      try {
+        mosfetFile = MosfetFile.generateFromFile(file);
+      } catch (IOException e) {
+        outputError(logger, "MOSFET file is not in valid JSON format");
+        logger.error(Constants.STACKTRACE, e);
+        continue;
+      }
+      processModifiedFiles(mosfetFile, logger);
+    }
+  }
 
-	private static void processDelete(List<String> list, Logger logger) {
-		for(String fileLocation : list) {
-			File file = new File(Utility.normalizePath(fileLocation));
-			MosfetFile mosfetFile;
-			try {
-				mosfetFile = MosfetFile.generateFromFile(file);
-			} catch (IOException e) {
-				outputError(logger, "MOSFET file is not in valid JSON format");
-				logger.error(Constants.STACKTRACE, e);
-				continue;
-			}
-			logger.info("Start deleting mosfet file");
-			deleteInsightFromEngineRdbms(mosfetFile);
-			logger.info("Done deleting mosfet file");
-		}
-	}
+  private static void processModifiedFiles(MosfetFile mosfet, Logger logger) {
+    logger.info("Start editing existing mosfet file");
+    updateInsightInEngineRdbms(mosfet);
+    logger.info("Done processing mosfet file");
+  }
 
-	public static void addInsightToEngineRdbms(IProject project, MosfetFile mosfet) {
-		String projectId = mosfet.getProjectId();
-		String id = mosfet.getRdbmsId();
-		String insightName = mosfet.getInsightName();
-		String layout = mosfet.getLayout();
-		List<String> recipe = mosfet.getRecipe();
-		boolean global = mosfet.isGlobal();
-		boolean cacheable = mosfet.isCacheable();
-		int cacheMinutes = mosfet.getCacheMinutes();
-		String cacheCron = mosfet.getCacheCron();
-		ZonedDateTime cachedOn = mosfet.getCachedOn();
-		boolean cacheEncrypt = mosfet.isCacheEncrypt();
-		String schemaName = mosfet.getSchemaName();
+  private static void processDelete(List<String> list, Logger logger) {
+    for (String fileLocation : list) {
+      File file = new File(Utility.normalizePath(fileLocation));
+      MosfetFile mosfetFile;
+      try {
+        mosfetFile = MosfetFile.generateFromFile(file);
+      } catch (IOException e) {
+        outputError(logger, "MOSFET file is not in valid JSON format");
+        logger.error(Constants.STACKTRACE, e);
+        continue;
+      }
+      logger.info("Start deleting mosfet file");
+      deleteInsightFromEngineRdbms(mosfetFile);
+      logger.info("Done deleting mosfet file");
+    }
+  }
 
-		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
-		// just put the recipe into an array
-		admin.addInsight(id, insightName, layout, recipe, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
-		SecurityInsightUtils.addInsight(projectId, id, insightName, global, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
+  public static void addInsightToEngineRdbms(IProject project, MosfetFile mosfet) {
+    String projectId = mosfet.getProjectId();
+    String id = mosfet.getRdbmsId();
+    String insightName = mosfet.getInsightName();
+    String layout = mosfet.getLayout();
+    List<String> recipe = mosfet.getRecipe();
+    boolean global = mosfet.isGlobal();
+    boolean cacheable = mosfet.isCacheable();
+    int cacheMinutes = mosfet.getCacheMinutes();
+    String cacheCron = mosfet.getCacheCron();
+    ZonedDateTime cachedOn = mosfet.getCachedOn();
+    boolean cacheEncrypt = mosfet.isCacheEncrypt();
+    String schemaName = mosfet.getSchemaName();
 
-		// also sync the metadata
-		String description = mosfet.getDescription();
-		if(description != null) {
-			admin.updateInsightDescription(id, description);
-			SecurityInsightUtils.updateInsightDescription(projectId, id, description);
-		}
-		String[] tags = mosfet.getTags();
-		if(tags != null && tags.length > 0) {
-			admin.updateInsightTags(id, tags);
-			SecurityInsightUtils.updateInsightTags(id, id, tags);
-		}
-	}
+    InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
+    // just put the recipe into an array
+    admin.addInsight(
+        id,
+        insightName,
+        layout,
+        recipe,
+        global,
+        cacheable,
+        cacheMinutes,
+        cacheCron,
+        cachedOn,
+        cacheEncrypt,
+        schemaName);
+    SecurityInsightUtils.addInsight(
+        projectId,
+        id,
+        insightName,
+        global,
+        layout,
+        cacheable,
+        cacheMinutes,
+        cacheCron,
+        cachedOn,
+        cacheEncrypt,
+        recipe,
+        schemaName);
 
-	public static void updateInsightInEngineRdbms(MosfetFile mosfet) {
-		String projectId = mosfet.getProjectId();
-		String id = mosfet.getRdbmsId();
-		String insightName = mosfet.getInsightName();
-		String layout = mosfet.getLayout();
-		List<String> recipe = mosfet.getRecipe();
-		boolean global = mosfet.isGlobal();
-		boolean cacheable = mosfet.isCacheable();
-		int cacheMinutes = mosfet.getCacheMinutes();
-		String cacheCron = mosfet.getCacheCron();
-		ZonedDateTime cachedOn = mosfet.getCachedOn();
-		boolean cacheEncrypt = mosfet.isCacheEncrypt();
-		String schemaName = mosfet.getSchemaName();
-		
-		IProject project = Utility.getProject(projectId);
+    // also sync the metadata
+    String description = mosfet.getDescription();
+    if (description != null) {
+      admin.updateInsightDescription(id, description);
+      SecurityInsightUtils.updateInsightDescription(projectId, id, description);
+    }
+    String[] tags = mosfet.getTags();
+    if (tags != null && tags.length > 0) {
+      admin.updateInsightTags(id, tags);
+      SecurityInsightUtils.updateInsightTags(id, id, tags);
+    }
+  }
 
-		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
-		// just put the recipe into an array
-		admin.updateInsight(id, insightName, layout, recipe, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
-		SecurityInsightUtils.updateInsight(projectId, id, insightName, global, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
+  public static void updateInsightInEngineRdbms(MosfetFile mosfet) {
+    String projectId = mosfet.getProjectId();
+    String id = mosfet.getRdbmsId();
+    String insightName = mosfet.getInsightName();
+    String layout = mosfet.getLayout();
+    List<String> recipe = mosfet.getRecipe();
+    boolean global = mosfet.isGlobal();
+    boolean cacheable = mosfet.isCacheable();
+    int cacheMinutes = mosfet.getCacheMinutes();
+    String cacheCron = mosfet.getCacheCron();
+    ZonedDateTime cachedOn = mosfet.getCachedOn();
+    boolean cacheEncrypt = mosfet.isCacheEncrypt();
+    String schemaName = mosfet.getSchemaName();
 
-		// also sync the metadata
-		String description = mosfet.getDescription();
-		if(description != null) {
-			admin.updateInsightDescription(id, description);
-			SecurityInsightUtils.updateInsightDescription(projectId, id, description);
-		}
-		String[] tags = mosfet.getTags();
-		if(tags != null && tags.length > 0) {
-			admin.updateInsightTags(id, tags);
-			SecurityInsightUtils.updateInsightTags(id, id, tags);
-		}
-	}
+    IProject project = Utility.getProject(projectId);
 
-	public static void deleteInsightFromEngineRdbms(MosfetFile mosfet) {
-		String projectId = mosfet.getProjectId();
-		String id = mosfet.getRdbmsId();
+    InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
+    // just put the recipe into an array
+    admin.updateInsight(
+        id,
+        insightName,
+        layout,
+        recipe,
+        global,
+        cacheable,
+        cacheMinutes,
+        cacheCron,
+        cachedOn,
+        cacheEncrypt,
+        schemaName);
+    SecurityInsightUtils.updateInsight(
+        projectId,
+        id,
+        insightName,
+        global,
+        layout,
+        cacheable,
+        cacheMinutes,
+        cacheCron,
+        cachedOn,
+        cacheEncrypt,
+        recipe,
+        schemaName);
 
-		IProject project = Utility.getProject(projectId);
-		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
-		admin.dropInsight(id);
+    // also sync the metadata
+    String description = mosfet.getDescription();
+    if (description != null) {
+      admin.updateInsightDescription(id, description);
+      SecurityInsightUtils.updateInsightDescription(projectId, id, description);
+    }
+    String[] tags = mosfet.getTags();
+    if (tags != null && tags.length > 0) {
+      admin.updateInsightTags(id, tags);
+      SecurityInsightUtils.updateInsightTags(id, id, tags);
+    }
+  }
 
-		SecurityInsightUtils.deleteInsight(projectId, id);
-	}
+  public static void deleteInsightFromEngineRdbms(MosfetFile mosfet) {
+    String projectId = mosfet.getProjectId();
+    String id = mosfet.getRdbmsId();
 
-	private static void outputError(Logger logger, String errorMessage) {
-		if(logger != null) {
-			logger.info("ERROR!!! " + errorMessage);
-		}
-	}
+    IProject project = Utility.getProject(projectId);
+    InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
+    admin.dropInsight(id);
 
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////////////
+    SecurityInsightUtils.deleteInsight(projectId, id);
+  }
 
-	/*
-	 * These methods only update the mosfet file itself and not the metadata (security db or insights db)
-	 */
+  private static void outputError(Logger logger, String errorMessage) {
+    if (logger != null) {
+      logger.info("ERROR!!! " + errorMessage);
+    }
+  }
 
-	/**
-	 * Get the insight name for the input mosfet file
-	 * @param mosfetFile
-	 * @return
-	 * @throws IOException 
-	 */
-	public static String getInsightName(File mosfetFile) throws IOException {
-		MosfetFile mosfet = MosfetFile.generateFromFile(mosfetFile);
-		return mosfet.getInsightName();
-	}
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Only generate the mosfet file
-	 * @param projectId
-	 * @param projectName
-	 * @param rdbmsId
-	 * @param insightName
-	 * @param layout
-	 * @param recipe
-	 * @param hidden
-	 * @param cacheable
-	 * @param cacheMinutes
-	 * @param cacheEncrypt
-	 * @param description
-	 * @param tags
-	 * @return
-	 * @throws IOException
-	 */
-	public static File makeMosfitFile(String projectId, String projectName, String rdbmsId, String insightName, 
-			String layout, List<String> recipe, boolean hidden, 
-			boolean cacheable, int cacheMinutes, String cacheCron, ZonedDateTime cachedOn, boolean cacheEncrypt,
-			String description, List<String> tags, String schemaName) throws IOException {
-		return makeMosfitFile(projectId, projectName, rdbmsId, insightName, layout, recipe, hidden, 
-				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
-				description, tags, schemaName, false);
-	}
-	
-	/**
-	 * Only generate the mosfet file
-	 * @param projectId
-	 * @param projectName
-	 * @param rdbmsId
-	 * @param insightName
-	 * @param layout
-	 * @param recipe
-	 * @param hidden
-	 * @param description
-	 * @param tags
-	 * @param forceDelete
-	 * @return
-	 * @throws IOException 
-	 */
-	public static File makeMosfitFile(String projectId, String projectName, String rdbmsId, String insightName, 
-			String layout, List<String> recipe, boolean hidden, 
-			boolean cacheable, int cacheMinutes, String cacheCron, ZonedDateTime cachedOn, boolean cacheEncrypt,
-			String description, List<String> tags, String schemaName, boolean forceDelete) throws IOException {
-		MosfetFile mosfet = new MosfetFile();
-		mosfet.setProjectId(projectId);
-		mosfet.setRdbmsId(rdbmsId);
-		mosfet.setInsightName(insightName);
-		mosfet.setLayout(layout);
-		mosfet.setRecipe(recipe);
-		mosfet.setGlobal(hidden);
-		mosfet.setCacheable(cacheable);
-		mosfet.setCacheMinutes(cacheMinutes);
-		mosfet.setCacheCron(cacheCron);
-		mosfet.setCachedOn(cachedOn);
-		mosfet.setCacheEncrypt(cacheEncrypt);
-		if(description != null) {
-			mosfet.setDescription(description);
-		}
-		if(tags != null && !tags.isEmpty()) {
-			mosfet.setTags(tags.toArray(new String[tags.size()]));
-		}
-		mosfet.setSchemaName(schemaName);
+  /*
+   * These methods only update the mosfet file itself and not the metadata (security db or insights db)
+   */
 
-		String mosfetPath = getMosfetFolderLocation(projectId, projectName, rdbmsId);
+  /**
+   * Get the insight name for the input mosfet file
+   *
+   * @param mosfetFile
+   * @return
+   * @throws IOException
+   */
+  public static String getInsightName(File mosfetFile) throws IOException {
+    MosfetFile mosfet = MosfetFile.generateFromFile(mosfetFile);
+    return mosfet.getInsightName();
+  }
 
-		mosfet.write(mosfetPath, forceDelete);
-		return new File(mosfetPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
-	}
+  /**
+   * Only generate the mosfet file
+   *
+   * @param projectId
+   * @param projectName
+   * @param rdbmsId
+   * @param insightName
+   * @param layout
+   * @param recipe
+   * @param hidden
+   * @param cacheable
+   * @param cacheMinutes
+   * @param cacheEncrypt
+   * @param description
+   * @param tags
+   * @return
+   * @throws IOException
+   */
+  public static File makeMosfitFile(
+      String projectId,
+      String projectName,
+      String rdbmsId,
+      String insightName,
+      String layout,
+      List<String> recipe,
+      boolean hidden,
+      boolean cacheable,
+      int cacheMinutes,
+      String cacheCron,
+      ZonedDateTime cachedOn,
+      boolean cacheEncrypt,
+      String description,
+      List<String> tags,
+      String schemaName)
+      throws IOException {
+    return makeMosfitFile(
+        projectId,
+        projectName,
+        rdbmsId,
+        insightName,
+        layout,
+        recipe,
+        hidden,
+        cacheable,
+        cacheMinutes,
+        cacheCron,
+        cachedOn,
+        cacheEncrypt,
+        description,
+        tags,
+        schemaName,
+        false);
+  }
 
-	/**
-	 * Only update the mosfet file
-	 * @param mosfetFile
-	 * @param projectId
-	 * @param projectName
-	 * @param rdbmsId
-	 * @param insightName
-	 * @param layout
-	 * @param imageFileName
-	 * @param recipe
-	 * @param hidden
-	 * @param description
-	 * @param tags
-	 * @return
-	 * @throws IOException 
-	 */
-	public static File updateMosfitFile(File mosfetFile, String projectId, String projectName, String rdbmsId, String insightName,
-			String layout, String imageFileName, List<String> recipe, boolean hidden, 
-			boolean cacheable, int cacheMinutes, String cacheCron, ZonedDateTime cachedOn, boolean cacheEncrypt,
-			String description, List<String> tags) throws IOException {
-		MosfetFile mosfet = new MosfetFile();
-		mosfet.setProjectId(projectId);
-		mosfet.setRdbmsId(rdbmsId);
-		mosfet.setInsightName(insightName);
-		mosfet.setLayout(layout);
-		mosfet.setRecipe(recipe);
-		mosfet.setGlobal(hidden);
-		mosfet.setCacheable(cacheable);
-		mosfet.setCacheMinutes(cacheMinutes);
-		mosfet.setCacheCron(cacheCron);
-		mosfet.setCachedOn(cachedOn);
-		mosfet.setCacheEncrypt(cacheEncrypt);
-		if(description != null) {
-			mosfet.setDescription(description);
-		}
-		if(tags != null && !tags.isEmpty()) {
-			mosfet.setTags(tags.toArray(new String[tags.size()]));
-		}
+  /**
+   * Only generate the mosfet file
+   *
+   * @param projectId
+   * @param projectName
+   * @param rdbmsId
+   * @param insightName
+   * @param layout
+   * @param recipe
+   * @param hidden
+   * @param description
+   * @param tags
+   * @param forceDelete
+   * @return
+   * @throws IOException
+   */
+  public static File makeMosfitFile(
+      String projectId,
+      String projectName,
+      String rdbmsId,
+      String insightName,
+      String layout,
+      List<String> recipe,
+      boolean hidden,
+      boolean cacheable,
+      int cacheMinutes,
+      String cacheCron,
+      ZonedDateTime cachedOn,
+      boolean cacheEncrypt,
+      String description,
+      List<String> tags,
+      String schemaName,
+      boolean forceDelete)
+      throws IOException {
+    MosfetFile mosfet = new MosfetFile();
+    mosfet.setProjectId(projectId);
+    mosfet.setRdbmsId(rdbmsId);
+    mosfet.setInsightName(insightName);
+    mosfet.setLayout(layout);
+    mosfet.setRecipe(recipe);
+    mosfet.setGlobal(hidden);
+    mosfet.setCacheable(cacheable);
+    mosfet.setCacheMinutes(cacheMinutes);
+    mosfet.setCacheCron(cacheCron);
+    mosfet.setCachedOn(cachedOn);
+    mosfet.setCacheEncrypt(cacheEncrypt);
+    if (description != null) {
+      mosfet.setDescription(description);
+    }
+    if (tags != null && !tags.isEmpty()) {
+      mosfet.setTags(tags.toArray(new String[tags.size()]));
+    }
+    mosfet.setSchemaName(schemaName);
 
-		mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);
-		return mosfetFile;
-	}
+    String mosfetPath = getMosfetFolderLocation(projectId, projectName, rdbmsId);
 
-	/**
-	 * Only update the mosfet file insight name
-	 * @param mosfetFile
-	 * @param newInsightName
-	 * @return
-	 * @throws IOException
-	 */
-	public static File updateMosfitFileInsightName(File mosfetFile, String newInsightName) throws IOException {
-		MosfetFile mosfet = MosfetFile.generateFromFile(mosfetFile);
-		mosfet.setInsightName(newInsightName);
-		mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);
-		return mosfetFile;
-	}
-	
-	/**
-	 * Only update the mosfet file cached on
-	 * @param mosfetFile
-	 * @param cachedOn
-	 * @return
-	 * @throws IOException
-	 */
-	public static File updateMosfitFileCachedOn(File mosfetFile, ZonedDateTime cachedOn) throws IOException {
-		MosfetFile mosfet = MosfetFile.generateFromFile(mosfetFile);
-		mosfet.setCachedOn(cachedOn);
-		mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);
-		return mosfetFile;
-	}
+    mosfet.write(mosfetPath, forceDelete);
+    return new File(mosfetPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
+  }
 
+  /**
+   * Only update the mosfet file
+   *
+   * @param mosfetFile
+   * @param projectId
+   * @param projectName
+   * @param rdbmsId
+   * @param insightName
+   * @param layout
+   * @param imageFileName
+   * @param recipe
+   * @param hidden
+   * @param description
+   * @param tags
+   * @return
+   * @throws IOException
+   */
+  public static File updateMosfitFile(
+      File mosfetFile,
+      String projectId,
+      String projectName,
+      String rdbmsId,
+      String insightName,
+      String layout,
+      String imageFileName,
+      List<String> recipe,
+      boolean hidden,
+      boolean cacheable,
+      int cacheMinutes,
+      String cacheCron,
+      ZonedDateTime cachedOn,
+      boolean cacheEncrypt,
+      String description,
+      List<String> tags)
+      throws IOException {
+    MosfetFile mosfet = new MosfetFile();
+    mosfet.setProjectId(projectId);
+    mosfet.setRdbmsId(rdbmsId);
+    mosfet.setInsightName(insightName);
+    mosfet.setLayout(layout);
+    mosfet.setRecipe(recipe);
+    mosfet.setGlobal(hidden);
+    mosfet.setCacheable(cacheable);
+    mosfet.setCacheMinutes(cacheMinutes);
+    mosfet.setCacheCron(cacheCron);
+    mosfet.setCachedOn(cachedOn);
+    mosfet.setCacheEncrypt(cacheEncrypt);
+    if (description != null) {
+      mosfet.setDescription(description);
+    }
+    if (tags != null && !tags.isEmpty()) {
+      mosfet.setTags(tags.toArray(new String[tags.size()]));
+    }
+
+    mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);
+    return mosfetFile;
+  }
+
+  /**
+   * Only update the mosfet file insight name
+   *
+   * @param mosfetFile
+   * @param newInsightName
+   * @return
+   * @throws IOException
+   */
+  public static File updateMosfitFileInsightName(File mosfetFile, String newInsightName)
+      throws IOException {
+    MosfetFile mosfet = MosfetFile.generateFromFile(mosfetFile);
+    mosfet.setInsightName(newInsightName);
+    mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);
+    return mosfetFile;
+  }
+
+  /**
+   * Only update the mosfet file cached on
+   *
+   * @param mosfetFile
+   * @param cachedOn
+   * @return
+   * @throws IOException
+   */
+  public static File updateMosfitFileCachedOn(File mosfetFile, ZonedDateTime cachedOn)
+      throws IOException {
+    MosfetFile mosfet = MosfetFile.generateFromFile(mosfetFile);
+    mosfet.setCachedOn(cachedOn);
+    mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);
+    return mosfetFile;
+  }
 }

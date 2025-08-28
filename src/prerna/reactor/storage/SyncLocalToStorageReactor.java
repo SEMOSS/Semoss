@@ -1,12 +1,24 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.storage;
 
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.AbstractReactor;
@@ -20,64 +32,71 @@ import prerna.util.Utility;
 
 public class SyncLocalToStorageReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(SyncLocalToStorageReactor.class);
-	
-	public SyncLocalToStorageReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
-				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.METADATA.getKey()};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		IStorageEngine storage = getStorage();
-		// check that the user can edit the engine
-		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), storage.getEngineId())) {
-			throw new IllegalArgumentException("User does not have permission to push into the remote storage");
-		}
-		String storageFolderPath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
-		String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
-		if(!new File(fileLocation).exists()) {
-			throw new IllegalArgumentException("Unable to locate file");
-		}
-		
-		Map<String, Object> metadata = getMetadata();
-		try {
-			storage.syncLocalToStorage(fileLocation, storageFolderPath, metadata);
-			return new NounMetadata(true, PixelDataType.BOOLEAN);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred uploading local file to storage");
-		}
-	}
-	
-	private IStorageEngine getStorage() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			return (IStorageEngine) grs.get(0);
-		}
-		
-		List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
-		if(storageInputs != null && !storageInputs.isEmpty()) {
-			return (IStorageEngine) storageInputs.get(0).getValue();
-		}
-		
-		throw new NullPointerException("No storage engine defined");
-	}
-	
-	private Map<String, Object> getMetadata() {
-        GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.METADATA.getKey());
-        if(mapGrs != null && !mapGrs.isEmpty()) {
-            List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-            if(mapInputs != null && !mapInputs.isEmpty()) {
-                return (Map<String, Object>) mapInputs.get(0).getValue();
-            }
-        }
-        List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-        if(mapInputs != null && !mapInputs.isEmpty()) {
-            return (Map<String, Object>) mapInputs.get(0).getValue();
-        }
-        return null;
+  private static final Logger classLogger = LogManager.getLogger(SyncLocalToStorageReactor.class);
+
+  public SyncLocalToStorageReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.STORAGE.getKey(),
+          ReactorKeysEnum.STORAGE_PATH.getKey(),
+          ReactorKeysEnum.SPACE.getKey(),
+          ReactorKeysEnum.FILE_PATH.getKey(),
+          ReactorKeysEnum.METADATA.getKey()
+        };
+  }
+
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    IStorageEngine storage = getStorage();
+    // check that the user can edit the engine
+    if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), storage.getEngineId())) {
+      throw new IllegalArgumentException(
+          "User does not have permission to push into the remote storage");
+    }
+    String storageFolderPath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+    String fileLocation =
+        Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+    if (!new File(fileLocation).exists()) {
+      throw new IllegalArgumentException("Unable to locate file");
     }
 
+    Map<String, Object> metadata = getMetadata();
+    try {
+      storage.syncLocalToStorage(fileLocation, storageFolderPath, metadata);
+      return new NounMetadata(true, PixelDataType.BOOLEAN);
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw new IllegalArgumentException("Error occurred uploading local file to storage");
+    }
+  }
+
+  private IStorageEngine getStorage() {
+    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
+    if (grs != null && !grs.isEmpty()) {
+      return (IStorageEngine) grs.get(0);
+    }
+
+    List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
+    if (storageInputs != null && !storageInputs.isEmpty()) {
+      return (IStorageEngine) storageInputs.get(0).getValue();
+    }
+
+    throw new NullPointerException("No storage engine defined");
+  }
+
+  private Map<String, Object> getMetadata() {
+    GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.METADATA.getKey());
+    if (mapGrs != null && !mapGrs.isEmpty()) {
+      List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+      if (mapInputs != null && !mapInputs.isEmpty()) {
+        return (Map<String, Object>) mapInputs.get(0).getValue();
+      }
+    }
+    List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+    if (mapInputs != null && !mapInputs.isEmpty()) {
+      return (Map<String, Object>) mapInputs.get(0).getValue();
+    }
+    return null;
+  }
 }

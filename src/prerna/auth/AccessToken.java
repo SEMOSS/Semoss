@@ -1,276 +1,286 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.auth;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import prerna.date.SemossDate;
 
 public class AccessToken implements Serializable {
 
-	AuthProvider provider = null;
-	
-	// this will store all the groups that the user has
-	// will be provided to us when the user logs in 
-	// from an IDP
-	Collection<String> userGroups = null;
-	String userGroupType = null;
-	
-	String id = null;
-	String username = null;
-	String access_token = null;
-	int expires_in = 0; // this is in seconds
-	String token_type = "Bearer";
-	long startTime = -1;
-	
-	String email = null;
-	String name = null;
-	String profile = null;
-	String gender = null;
-	String locale = null;
-	String phone = null;
-	String phoneExtension = null;
-	String countryCode = null;
-	
-	int modelMaxTokens = 0;
-	double modelMaxResponseTime = 0.0;
-	String modelUsageFrequency = null;
-	String modelUsageRestriction = null;
-	
-	Map<String, String> sans = null;
-	
-	Map<String, Collection<String>> meta = null;
-	
-	boolean locked = false;
-	SemossDate lastLogin = null;
-	SemossDate lastPasswordReset = null;
-	
-	public AccessToken() {
-		this.userGroups = new HashSet<>();
-		this.sans = new HashMap<>();
-	}
-	
-	public void init() {
-		startTime = System.currentTimeMillis();
-	}
-	
-	public void setAccess_token(String accessToken) {
-		this.access_token = accessToken;
-	}
+  AuthProvider provider = null;
 
-	public String getAccess_token() {
-		return this.access_token;
-	}
+  // this will store all the groups that the user has
+  // will be provided to us when the user logs in
+  // from an IDP
+  Collection<String> userGroups = null;
+  String userGroupType = null;
 
-	public AuthProvider getProvider() {
-		return provider;
-	}
+  String id = null;
+  String username = null;
+  String access_token = null;
+  int expires_in = 0; // this is in seconds
+  String token_type = "Bearer";
+  long startTime = -1;
 
-	public void setProvider(AuthProvider provider) {
-		this.provider = provider;
-	}
-	
-	public Collection<String> getUserGroups() {
-		return userGroups;
-	}
+  String email = null;
+  String name = null;
+  String profile = null;
+  String gender = null;
+  String locale = null;
+  String phone = null;
+  String phoneExtension = null;
+  String countryCode = null;
 
-	public void setUserGroups(Set<String> userGroups) {
-		this.userGroups = userGroups;
-	}
+  int modelMaxTokens = 0;
+  double modelMaxResponseTime = 0.0;
+  String modelUsageFrequency = null;
+  String modelUsageRestriction = null;
 
-	public String getUserGroupType() {
-		return userGroupType;
-	}
+  Map<String, String> sans = null;
 
-	public void setUserGroupType(String userGroupType) {
-		this.userGroupType = userGroupType;
-	}
+  Map<String, Collection<String>> meta = null;
 
-	public void setExpires_in(int expires_in) {
-		this.expires_in = expires_in;
-	}
-	
-	public void setToken_type(String token_type) {
-		this.token_type = token_type;
-	}
-	
-	public long getStartTime() {
-		return startTime;
-	}
+  boolean locked = false;
+  SemossDate lastLogin = null;
+  SemossDate lastPasswordReset = null;
 
-	public void setStartTime(long startTime) {
-		this.startTime = startTime;
-	}
+  public AccessToken() {
+    this.userGroups = new HashSet<>();
+    this.sans = new HashMap<>();
+  }
 
-	public int getExpires_in() {
-		return expires_in;
-	}
+  public void init() {
+    startTime = System.currentTimeMillis();
+  }
 
-	public String getToken_type() {
-		return token_type;
-	}
+  public void setAccess_token(String accessToken) {
+    this.access_token = accessToken;
+  }
 
-	public String getEmail() {
-		return email;
-	}
+  public String getAccess_token() {
+    return this.access_token;
+  }
 
-	public void setEmail(String email) {
-		this.email = email;
-	}
+  public AuthProvider getProvider() {
+    return provider;
+  }
 
-	public String getName() {
-		if(this.name == null) {
-			return this.username;
-		}
-		return name;
-	}
+  public void setProvider(AuthProvider provider) {
+    this.provider = provider;
+  }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+  public Collection<String> getUserGroups() {
+    return userGroups;
+  }
 
-	public String getProfile() {
-		return profile;
-	}
+  public void setUserGroups(Set<String> userGroups) {
+    this.userGroups = userGroups;
+  }
 
-	public void setProfile(String profile) {
-		this.profile = profile;
-	}
+  public String getUserGroupType() {
+    return userGroupType;
+  }
 
-	public String getGender() {
-		return gender;
-	}
+  public void setUserGroupType(String userGroupType) {
+    this.userGroupType = userGroupType;
+  }
 
-	public void setGender(String gender) {
-		this.gender = gender;
-	}
+  public void setExpires_in(int expires_in) {
+    this.expires_in = expires_in;
+  }
 
-	public String getLocale() {
-		return locale;
-	}
+  public void setToken_type(String token_type) {
+    this.token_type = token_type;
+  }
 
-	public void setLocale(String local) {
-		this.locale = local;
-	}
+  public long getStartTime() {
+    return startTime;
+  }
 
-	public String getId() {
-		if(id == null) {
-			return email;
-		}
-		return id;
-	}
+  public void setStartTime(long startTime) {
+    this.startTime = startTime;
+  }
 
-	public void setId(String id) {
-		this.id = id.trim();
-	}
+  public int getExpires_in() {
+    return expires_in;
+  }
 
-	public String getUsername() {
-		return username;
-	}
+  public String getToken_type() {
+    return token_type;
+  }
 
-	public void setUsername(String username) {
-		this.username = username;
-	}
-	
-	public String getPhone() {
-		return phone;
-	}
+  public String getEmail() {
+    return email;
+  }
 
-	public void setPhone(String phone) {
-		this.phone = phone;
-	}
+  public void setEmail(String email) {
+    this.email = email;
+  }
 
-	public String getPhoneExtension() {
-		return phoneExtension;
-	}
+  public String getName() {
+    if (this.name == null) {
+      return this.username;
+    }
+    return name;
+  }
 
-	public void setPhoneExtension(String phoneExtension) {
-		this.phoneExtension = phoneExtension;
-	}
+  public void setName(String name) {
+    this.name = name;
+  }
 
-	public String getCountryCode() {
-		return countryCode;
-	}
+  public String getProfile() {
+    return profile;
+  }
 
-	public void setCountryCode(String countryCode) {
-		this.countryCode = countryCode;
-	}
+  public void setProfile(String profile) {
+    this.profile = profile;
+  }
 
-	public Map<String, String> getSAN() {
-		return this.sans;
-	}
+  public String getGender() {
+    return gender;
+  }
 
-	public void setSAN(String sanName, String sanValue) {
-		this.sans.put(sanName, sanValue);
-	}
-	
-	public Map<String, Collection<String>> getMeta() {
-		return this.meta;
-	}
+  public void setGender(String gender) {
+    this.gender = gender;
+  }
 
-	public void setMeta(Map<String, Collection<String>> meta) {
-		this.meta = meta;
-	}
+  public String getLocale() {
+    return locale;
+  }
 
-	public boolean isLocked() {
-		return locked;
-	}
+  public void setLocale(String local) {
+    this.locale = local;
+  }
 
-	public void setLocked(Boolean locked) {
-		this.locked = locked;
-	}
+  public String getId() {
+    if (id == null) {
+      return email;
+    }
+    return id;
+  }
 
-	public SemossDate getLastLogin() {
-		return lastLogin;
-	}
+  public void setId(String id) {
+    this.id = id.trim();
+  }
 
-	public void setLastLogin(SemossDate lastLogin) {
-		this.lastLogin = lastLogin;
-	}
+  public String getUsername() {
+    return username;
+  }
 
-	public SemossDate getLastPasswordReset() {
-		return lastPasswordReset;
-	}
+  public void setUsername(String username) {
+    this.username = username;
+  }
 
-	public void setLastPasswordReset(SemossDate lastPasswordReset) {
-		this.lastPasswordReset = lastPasswordReset;
-	}
+  public String getPhone() {
+    return phone;
+  }
 
-	public int getModelMaxTokens() {
-		return modelMaxTokens;
-	}
+  public void setPhone(String phone) {
+    this.phone = phone;
+  }
 
-	public void setModelMaxTokens(int modelMaxTokens) {
-		this.modelMaxTokens = modelMaxTokens;
-	}
+  public String getPhoneExtension() {
+    return phoneExtension;
+  }
 
-	public double getModelMaxResponseTime() {
-		return modelMaxResponseTime;
-	}
+  public void setPhoneExtension(String phoneExtension) {
+    this.phoneExtension = phoneExtension;
+  }
 
-	public void setModelMaxResponseTime(double modelMaxResponseTime) {
-		this.modelMaxResponseTime = modelMaxResponseTime;
-	}
+  public String getCountryCode() {
+    return countryCode;
+  }
 
-	public String getModelUsageFrequency() {
-		return modelUsageFrequency;
-	}
+  public void setCountryCode(String countryCode) {
+    this.countryCode = countryCode;
+  }
 
-	public void setModelUsageFrequency(String modelUsageFrequency) {
-		this.modelUsageFrequency = modelUsageFrequency;
-	}
+  public Map<String, String> getSAN() {
+    return this.sans;
+  }
 
-	public String getModelUsageRestriction() {
-		return modelUsageRestriction;
-	}
+  public void setSAN(String sanName, String sanValue) {
+    this.sans.put(sanName, sanValue);
+  }
 
-	public void setModelUsageRestriction(String modelUsageRestriction) {
-		this.modelUsageRestriction = modelUsageRestriction;
-	}
+  public Map<String, Collection<String>> getMeta() {
+    return this.meta;
+  }
 
-	
+  public void setMeta(Map<String, Collection<String>> meta) {
+    this.meta = meta;
+  }
+
+  public boolean isLocked() {
+    return locked;
+  }
+
+  public void setLocked(Boolean locked) {
+    this.locked = locked;
+  }
+
+  public SemossDate getLastLogin() {
+    return lastLogin;
+  }
+
+  public void setLastLogin(SemossDate lastLogin) {
+    this.lastLogin = lastLogin;
+  }
+
+  public SemossDate getLastPasswordReset() {
+    return lastPasswordReset;
+  }
+
+  public void setLastPasswordReset(SemossDate lastPasswordReset) {
+    this.lastPasswordReset = lastPasswordReset;
+  }
+
+  public int getModelMaxTokens() {
+    return modelMaxTokens;
+  }
+
+  public void setModelMaxTokens(int modelMaxTokens) {
+    this.modelMaxTokens = modelMaxTokens;
+  }
+
+  public double getModelMaxResponseTime() {
+    return modelMaxResponseTime;
+  }
+
+  public void setModelMaxResponseTime(double modelMaxResponseTime) {
+    this.modelMaxResponseTime = modelMaxResponseTime;
+  }
+
+  public String getModelUsageFrequency() {
+    return modelUsageFrequency;
+  }
+
+  public void setModelUsageFrequency(String modelUsageFrequency) {
+    this.modelUsageFrequency = modelUsageFrequency;
+  }
+
+  public String getModelUsageRestriction() {
+    return modelUsageRestriction;
+  }
+
+  public void setModelUsageRestriction(String modelUsageRestriction) {
+    this.modelUsageRestriction = modelUsageRestriction;
+  }
 }

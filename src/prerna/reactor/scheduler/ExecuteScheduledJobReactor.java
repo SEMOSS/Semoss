@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.scheduler;
 
 import org.apache.logging.log4j.LogManager;
@@ -5,7 +19,6 @@ import org.apache.logging.log4j.Logger;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -18,45 +31,47 @@ import prerna.util.Utility;
 
 public class ExecuteScheduledJobReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(ExecuteScheduledJobReactor.class);
+  private static final Logger logger = LogManager.getLogger(ExecuteScheduledJobReactor.class);
 
-	public ExecuteScheduledJobReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		if(Utility.schedulerForceDisable()) {
-			throw new IllegalArgumentException("Scheduler is not enabled");
-		}
-		
-		organizeKeys();
+  public ExecuteScheduledJobReactor() {
+    this.keysToGet =
+        new String[] {ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey()};
+  }
 
-		// Get inputs
-		String jobId= this.keyValue.get(this.keysToGet[0]);
-		String jobGroup = this.keyValue.get(this.keysToGet[1]);
-		
-		// the job group is the app the user is in
-		// user must be an admin or editor of the app
-		// to add a scheduled job
-		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
-			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
-		}
-		
-		JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
-		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
-		try {
-			if (scheduler.checkExists(jobKey)) {
-				scheduler.triggerJob(jobKey);
-			} else {
-				throw new IllegalArgumentException("Could not find job with name = " + jobId+ " and group = " + jobGroup);
-			}
-		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
-		}
-		
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
-	}
+  @Override
+  public NounMetadata execute() {
+    if (Utility.schedulerForceDisable()) {
+      throw new IllegalArgumentException("Scheduler is not enabled");
+    }
 
+    organizeKeys();
+
+    // Get inputs
+    String jobId = this.keyValue.get(this.keysToGet[0]);
+    String jobGroup = this.keyValue.get(this.keysToGet[1]);
+
+    // the job group is the app the user is in
+    // user must be an admin or editor of the app
+    // to add a scheduled job
+    User user = this.insight.getUser();
+    if (!SecurityAdminUtils.userIsAdmin(user)
+        && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+      throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
+    }
+
+    JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
+    Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+    try {
+      if (scheduler.checkExists(jobKey)) {
+        scheduler.triggerJob(jobKey);
+      } else {
+        throw new IllegalArgumentException(
+            "Could not find job with name = " + jobId + " and group = " + jobGroup);
+      }
+    } catch (SchedulerException se) {
+      logger.error(Constants.STACKTRACE, se);
+    }
+
+    return new NounMetadata(true, PixelDataType.BOOLEAN);
+  }
 }

@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.filtermodel;
 
 import java.io.IOException;
@@ -7,10 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IRawSelectWrapper;
@@ -35,303 +47,321 @@ import prerna.util.Constants;
 @Deprecated
 public class FrameFilterModelReactor extends AbstractFilterReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(FrameFilterModelReactor.class);
+  private static final Logger classLogger = LogManager.getLogger(FrameFilterModelReactor.class);
 
-	/*
-	 * This reactor has many inputs
-	 * 
-	 * 1) columnName <- required
-	 * 2) filterWord <- optional
-	 * 3) limit <- optional
-	 * 4) offset <- optional
-	 * 5) panel <- optional
-	 */
-	
-	public FrameFilterModelReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PANEL.getKey() };
-	}
+  /*
+   * This reactor has many inputs
+   *
+   * 1) columnName <- required
+   * 2) filterWord <- optional
+   * 3) limit <- optional
+   * 4) offset <- optional
+   * 5) panel <- optional
+   */
 
-	@Override
-	public NounMetadata execute() {
-		ITableDataFrame dataframe = getFrame();
+  public FrameFilterModelReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.COLUMN.getKey(),
+          ReactorKeysEnum.FILTER_WORD.getKey(),
+          ReactorKeysEnum.LIMIT.getKey(),
+          ReactorKeysEnum.OFFSET.getKey(),
+          ReactorKeysEnum.PANEL.getKey()
+        };
+  }
 
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
-		if (colGrs == null || colGrs.isEmpty()) {
-			throw new IllegalArgumentException("Need to set the column for the filter model");
-		}
-		String tableCol = colGrs.get(0).toString();
+  @Override
+  public NounMetadata execute() {
+    ITableDataFrame dataframe = getFrame();
 
-		String filterWord = null;
-		GenRowStruct filterWordGrs = this.store.getNoun(keysToGet[1]);
-		if (filterWordGrs != null && !filterWordGrs.isEmpty()) {
-			filterWord = filterWordGrs.get(0).toString();
-		}
+    GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
+    if (colGrs == null || colGrs.isEmpty()) {
+      throw new IllegalArgumentException("Need to set the column for the filter model");
+    }
+    String tableCol = colGrs.get(0).toString();
 
-		int limit = -1;
-		GenRowStruct limitGrs = this.store.getNoun(keysToGet[2]);
-		if (limitGrs != null && !limitGrs.isEmpty()) {
-			limit = ((Number) limitGrs.get(0)).intValue();
-		}
+    String filterWord = null;
+    GenRowStruct filterWordGrs = this.store.getNoun(keysToGet[1]);
+    if (filterWordGrs != null && !filterWordGrs.isEmpty()) {
+      filterWord = filterWordGrs.get(0).toString();
+    }
 
-		int offset = -1;
-		GenRowStruct offsetGrs = this.store.getNoun(keysToGet[3]);
-		if (offsetGrs != null && !offsetGrs.isEmpty()) {
-			offset = ((Number) offsetGrs.get(0)).intValue();
-		}
+    int limit = -1;
+    GenRowStruct limitGrs = this.store.getNoun(keysToGet[2]);
+    if (limitGrs != null && !limitGrs.isEmpty()) {
+      limit = ((Number) limitGrs.get(0)).intValue();
+    }
 
-		InsightPanel panel = null;
-		GenRowStruct panelGrs = this.store.getNoun(keysToGet[4]);
-		if (panelGrs != null && !panelGrs.isEmpty()) {
-			panel = (InsightPanel) panelGrs.get(0);
-		}
+    int offset = -1;
+    GenRowStruct offsetGrs = this.store.getNoun(keysToGet[3]);
+    if (offsetGrs != null && !offsetGrs.isEmpty()) {
+      offset = ((Number) offsetGrs.get(0)).intValue();
+    }
 
-		return getFilterModel(dataframe, tableCol, filterWord, limit, offset, panel);
-	}
+    InsightPanel panel = null;
+    GenRowStruct panelGrs = this.store.getNoun(keysToGet[4]);
+    if (panelGrs != null && !panelGrs.isEmpty()) {
+      panel = (InsightPanel) panelGrs.get(0);
+    }
 
-	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit, int offset, InsightPanel panel) {
-		// store results in this map
-		Map<String, Object> retMap = new HashMap<String, Object>();
-		// first just return the info that was passed in
-		retMap.put("column", tableCol);
-		retMap.put("limit", limit);
-		retMap.put("offset", offset);
-		retMap.put("filterWord", filterWord);
+    return getFilterModel(dataframe, tableCol, filterWord, limit, offset, panel);
+  }
 
-		// set the base info in the query struct
-		SelectQueryStruct qs = new SelectQueryStruct();
-		QueryColumnSelector selector = new QueryColumnSelector(tableCol);
-		qs.addSelector(selector);
-		qs.setLimit(limit);
-		qs.setOffSet(offset);
-		qs.addOrderBy(new QueryColumnOrderBySelector(tableCol));
+  public NounMetadata getFilterModel(
+      ITableDataFrame dataframe,
+      String tableCol,
+      String filterWord,
+      int limit,
+      int offset,
+      InsightPanel panel) {
+    // store results in this map
+    Map<String, Object> retMap = new HashMap<String, Object>();
+    // first just return the info that was passed in
+    retMap.put("column", tableCol);
+    retMap.put("limit", limit);
+    retMap.put("offset", offset);
+    retMap.put("filterWord", filterWord);
 
-		// get the base filters that are being applied that we are concerned about
-		GenRowFilters baseFilters = dataframe.getFrameFilters().copy();
-		if (panel != null) {
-			baseFilters.merge(panel.getPanelFilters().copy());
-		}
-		// add the filter word as a like filter
-		if (filterWord != null && !filterWord.trim().isEmpty()) {
-			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
-			String comparator = "?like";
-			NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
-			SimpleQueryFilter wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
-			baseFilters.addFilters(wFilter);
-		}
-		
-		// filter values are the values that the user has filtered
-		// i.e. these are the values that are unchecked in the drop selection
-		
-		// unfilter values are the values that are currently visible
-		// i.e. these are the values that have a checkmark in the drop selection
-		
-		// figure out the visible values
-		List<Object> unFilterValues = new ArrayList<Object>();
-		// this is just the values of the column given the current filters
-		qs.setExplicitFilters(baseFilters);
-		// now run and flush out the values
-		IRawSelectWrapper unFilterValuesIt = null;
-		try {
-			unFilterValuesIt = dataframe.query(qs);
-			while (unFilterValuesIt.hasNext()) {
-				unFilterValues.add(unFilterValuesIt.next().getValues()[0]);
-			}
-		} catch (Exception e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
-		} finally {
-			if(unFilterValuesIt != null) {
-				try {
-					unFilterValuesIt.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		
-		retMap.put("unfilterValues", unFilterValues);
-		
-		// if the current filters doesn't use the column
-		// there is no values that are unchecked to select
-		// i.e. nothing is done that is filtered that the user can undo for this column
-		List<Object> filterValues = new ArrayList<Object>();
-		if (columnFiltered(baseFilters, tableCol)) {
+    // set the base info in the query struct
+    SelectQueryStruct qs = new SelectQueryStruct();
+    QueryColumnSelector selector = new QueryColumnSelector(tableCol);
+    qs.addSelector(selector);
+    qs.setLimit(limit);
+    qs.setOffSet(offset);
+    qs.addOrderBy(new QueryColumnOrderBySelector(tableCol));
 
-			boolean validExistingFilters = true;
-			// if we did add a word filter, we only want to execute if there is another filter present
-			if (filterWord != null && !filterWord.trim().isEmpty()) {
-				if (baseFilters.size() == 1) {
-					validExistingFilters = false;
-				}
-			}
+    // get the base filters that are being applied that we are concerned about
+    GenRowFilters baseFilters = dataframe.getFrameFilters().copy();
+    if (panel != null) {
+      baseFilters.merge(panel.getPanelFilters().copy());
+    }
+    // add the filter word as a like filter
+    if (filterWord != null && !filterWord.trim().isEmpty()) {
+      NounMetadata lComparison =
+          new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
+      String comparator = "?like";
+      NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
+      SimpleQueryFilter wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
+      baseFilters.addFilters(wFilter);
+    }
 
-			if(validExistingFilters) {
-				// to get the values that the user has filtered out
-				// we need create the inverse of the filters
-				// if they touch the column we care about
-				GenRowFilters inverseFilters = new GenRowFilters();
-				List<IQueryFilter> baseFiltersList = baseFilters.getFilters();
-				for (IQueryFilter filter : baseFiltersList) {
-					// check if it is a simple or complex filter
-					if (filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-						if (filter.containsColumn(tableCol)) {
-							// reverse the comparator
-							SimpleQueryFilter fCopy = (SimpleQueryFilter) filter.copy();
-							fCopy.reverseComparator();
+    // filter values are the values that the user has filtered
+    // i.e. these are the values that are unchecked in the drop selection
 
-							if(IQueryFilter.comparatorIsNotEquals(fCopy.getComparator()) && !SimpleQueryFilter.colValuesContainsNull(fCopy)) {
-								// include a show of null
-								// so we need to add this fCopy with a null find
-								NounMetadata nullLComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
-								List<Object> nullList = new Vector<Object>();
-								nullList.add(null);
-								NounMetadata nullRComparison = new NounMetadata(nullList, PixelDataType.CONST_STRING);
-								SimpleQueryFilter nullFilter = new SimpleQueryFilter(nullLComparison, "==", nullRComparison);
-								
-								OrQueryFilter orFilter = new OrQueryFilter(fCopy, nullFilter);
-								inverseFilters.addFilters(orFilter);
-							} else {
-								inverseFilters.addFilters(fCopy);
-							}
-						} else {
-							// just add it to the filters
-							inverseFilters.addFilters(filter.copy());
-						}
-					}
-					// okay, this is hard to figure out if it is not simple
-					// so just add it
-					else {
-						inverseFilters.addFilters(filter.copy());
-					}
-				}
+    // unfilter values are the values that are currently visible
+    // i.e. these are the values that have a checkmark in the drop selection
 
-				// to get the filtered values
-				// run with the inverse filters of the current column
-				qs.setExplicitFilters(inverseFilters);
-				
-				// flush out the values
-				IRawSelectWrapper filterValuesIt = null;
-				try {
-					filterValuesIt = dataframe.query(qs);
-					while (filterValuesIt.hasNext()) {
-						filterValues.add(filterValuesIt.next().getValues()[0]);
-					}
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if(filterValuesIt != null) {
-						try {
-							filterValuesIt.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
-				}
-			}
-		}
-		retMap.put("filterValues", filterValues);
+    // figure out the visible values
+    List<Object> unFilterValues = new ArrayList<Object>();
+    // this is just the values of the column given the current filters
+    qs.setExplicitFilters(baseFilters);
+    // now run and flush out the values
+    IRawSelectWrapper unFilterValuesIt = null;
+    try {
+      unFilterValuesIt = dataframe.query(qs);
+      while (unFilterValuesIt.hasNext()) {
+        unFilterValues.add(unFilterValuesIt.next().getValues()[0]);
+      }
+    } catch (Exception e1) {
+      classLogger.error(Constants.STACKTRACE, e1);
+    } finally {
+      if (unFilterValuesIt != null) {
+        try {
+          unFilterValuesIt.close();
+        } catch (IOException e) {
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
 
-		// for numerical, also add the min/max
-		String alias = selector.getAlias();
-		String metaName = dataframe.getMetaData().getUniqueNameFromAlias(alias);
-		if (metaName == null) {
-			metaName = alias;
-		}
-		SemossDataType columnType = dataframe.getMetaData().getHeaderTypeAsEnum(metaName);
-		if (SemossDataType.INT == columnType || SemossDataType.DOUBLE == columnType) {
-			QueryColumnSelector innerSelector = new QueryColumnSelector(tableCol);
+    retMap.put("unfilterValues", unFilterValues);
 
-			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
-			mathSelector.addInnerSelector(innerSelector);
-			mathSelector.setFunction(QueryFunctionHelper.MIN);
-			
-			SelectQueryStruct mathQS = new SelectQueryStruct();
-			mathQS.addSelector(mathSelector);
+    // if the current filters doesn't use the column
+    // there is no values that are unchecked to select
+    // i.e. nothing is done that is filtered that the user can undo for this column
+    List<Object> filterValues = new ArrayList<Object>();
+    if (columnFiltered(baseFilters, tableCol)) {
 
-			// get the absolute min when no filters are present
-			Map<String, Object> minMaxMap = new HashMap<String, Object>();
-			IRawSelectWrapper it = null;
-			try {
-				it = dataframe.query(mathQS);
-				minMaxMap.put("absMin", it.next().getValues()[0]);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(it != null) {
-					try {
-						it.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-			// get the abs max when no filters are present
-			mathSelector.setFunction(QueryFunctionHelper.MAX);
-			try {
-				it = dataframe.query(mathQS);
-				minMaxMap.put("absMax", it.next().getValues()[0]);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(it != null) {
-					try {
-						it.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+      boolean validExistingFilters = true;
+      // if we did add a word filter, we only want to execute if there is another filter present
+      if (filterWord != null && !filterWord.trim().isEmpty()) {
+        if (baseFilters.size() == 1) {
+          validExistingFilters = false;
+        }
+      }
 
-			// add in the filters now and repeat
-			mathQS.setExplicitFilters(baseFilters);
-			// run for actual max
-			try {
-				it = dataframe.query(mathQS);
-				minMaxMap.put("max", it.next().getValues()[0]);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(it != null) {
-					try {
-						it.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-			// run for actual min
-			mathSelector.setFunction(QueryFunctionHelper.MIN);
-			try {
-				it = dataframe.query(mathQS);
-				minMaxMap.put("min", it.next().getValues()[0]);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(it != null) {
-					try {
-						it.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+      if (validExistingFilters) {
+        // to get the values that the user has filtered out
+        // we need create the inverse of the filters
+        // if they touch the column we care about
+        GenRowFilters inverseFilters = new GenRowFilters();
+        List<IQueryFilter> baseFiltersList = baseFilters.getFilters();
+        for (IQueryFilter filter : baseFiltersList) {
+          // check if it is a simple or complex filter
+          if (filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+            if (filter.containsColumn(tableCol)) {
+              // reverse the comparator
+              SimpleQueryFilter fCopy = (SimpleQueryFilter) filter.copy();
+              fCopy.reverseComparator();
 
-			retMap.put("minMax", minMaxMap);
-		}
+              if (IQueryFilter.comparatorIsNotEquals(fCopy.getComparator())
+                  && !SimpleQueryFilter.colValuesContainsNull(fCopy)) {
+                // include a show of null
+                // so we need to add this fCopy with a null find
+                NounMetadata nullLComparison =
+                    new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
+                List<Object> nullList = new Vector<Object>();
+                nullList.add(null);
+                NounMetadata nullRComparison =
+                    new NounMetadata(nullList, PixelDataType.CONST_STRING);
+                SimpleQueryFilter nullFilter =
+                    new SimpleQueryFilter(nullLComparison, "==", nullRComparison);
 
-		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);
-	}
+                OrQueryFilter orFilter = new OrQueryFilter(fCopy, nullFilter);
+                inverseFilters.addFilters(orFilter);
+              } else {
+                inverseFilters.addFilters(fCopy);
+              }
+            } else {
+              // just add it to the filters
+              inverseFilters.addFilters(filter.copy());
+            }
+          }
+          // okay, this is hard to figure out if it is not simple
+          // so just add it
+          else {
+            inverseFilters.addFilters(filter.copy());
+          }
+        }
 
-	private boolean columnFiltered(GenRowFilters filters, String columnName) {
-		Set<String> filteredCols = filters.getAllFilteredColumns();
-		if (filteredCols.contains(columnName)) {
-			return true;
-		}
-		if (columnName.contains("__")) {
-			if (filteredCols.contains(columnName.split("__")[1])) {
-				return true;
-			}
-		}
-		return false;
-	}
+        // to get the filtered values
+        // run with the inverse filters of the current column
+        qs.setExplicitFilters(inverseFilters);
+
+        // flush out the values
+        IRawSelectWrapper filterValuesIt = null;
+        try {
+          filterValuesIt = dataframe.query(qs);
+          while (filterValuesIt.hasNext()) {
+            filterValues.add(filterValuesIt.next().getValues()[0]);
+          }
+        } catch (Exception e) {
+          classLogger.error(Constants.STACKTRACE, e);
+        } finally {
+          if (filterValuesIt != null) {
+            try {
+              filterValuesIt.close();
+            } catch (IOException e) {
+              classLogger.error(Constants.STACKTRACE, e);
+            }
+          }
+        }
+      }
+    }
+    retMap.put("filterValues", filterValues);
+
+    // for numerical, also add the min/max
+    String alias = selector.getAlias();
+    String metaName = dataframe.getMetaData().getUniqueNameFromAlias(alias);
+    if (metaName == null) {
+      metaName = alias;
+    }
+    SemossDataType columnType = dataframe.getMetaData().getHeaderTypeAsEnum(metaName);
+    if (SemossDataType.INT == columnType || SemossDataType.DOUBLE == columnType) {
+      QueryColumnSelector innerSelector = new QueryColumnSelector(tableCol);
+
+      QueryFunctionSelector mathSelector = new QueryFunctionSelector();
+      mathSelector.addInnerSelector(innerSelector);
+      mathSelector.setFunction(QueryFunctionHelper.MIN);
+
+      SelectQueryStruct mathQS = new SelectQueryStruct();
+      mathQS.addSelector(mathSelector);
+
+      // get the absolute min when no filters are present
+      Map<String, Object> minMaxMap = new HashMap<String, Object>();
+      IRawSelectWrapper it = null;
+      try {
+        it = dataframe.query(mathQS);
+        minMaxMap.put("absMin", it.next().getValues()[0]);
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      } finally {
+        if (it != null) {
+          try {
+            it.close();
+          } catch (IOException e) {
+            classLogger.error(Constants.STACKTRACE, e);
+          }
+        }
+      }
+      // get the abs max when no filters are present
+      mathSelector.setFunction(QueryFunctionHelper.MAX);
+      try {
+        it = dataframe.query(mathQS);
+        minMaxMap.put("absMax", it.next().getValues()[0]);
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      } finally {
+        if (it != null) {
+          try {
+            it.close();
+          } catch (IOException e) {
+            classLogger.error(Constants.STACKTRACE, e);
+          }
+        }
+      }
+
+      // add in the filters now and repeat
+      mathQS.setExplicitFilters(baseFilters);
+      // run for actual max
+      try {
+        it = dataframe.query(mathQS);
+        minMaxMap.put("max", it.next().getValues()[0]);
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      } finally {
+        if (it != null) {
+          try {
+            it.close();
+          } catch (IOException e) {
+            classLogger.error(Constants.STACKTRACE, e);
+          }
+        }
+      }
+      // run for actual min
+      mathSelector.setFunction(QueryFunctionHelper.MIN);
+      try {
+        it = dataframe.query(mathQS);
+        minMaxMap.put("min", it.next().getValues()[0]);
+      } catch (Exception e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      } finally {
+        if (it != null) {
+          try {
+            it.close();
+          } catch (IOException e) {
+            classLogger.error(Constants.STACKTRACE, e);
+          }
+        }
+      }
+
+      retMap.put("minMax", minMaxMap);
+    }
+
+    return new NounMetadata(
+        retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);
+  }
+
+  private boolean columnFiltered(GenRowFilters filters, String columnName) {
+    Set<String> filteredCols = filters.getAllFilteredColumns();
+    if (filteredCols.contains(columnName)) {
+      return true;
+    }
+    if (columnName.contains("__")) {
+      if (filteredCols.contains(columnName.split("__")[1])) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

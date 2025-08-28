@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.r;
 
 import prerna.ds.OwlTemporalEngineMeta;
@@ -16,75 +30,77 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class DropRowsReactor extends AbstractRFrameReactor {
 
-	/**
-	 * This reactor drops rows based on a comparison The inputs to the reactor
-	 * are: 1) the filter comparison for dropping rows
-	 */
+  /**
+   * This reactor drops rows based on a comparison The inputs to the reactor are: 1) the filter
+   * comparison for dropping rows
+   */
+  public DropRowsReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.QUERY_STRUCT.getKey()};
+  }
 
-	public DropRowsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey() };
-	}
+  @Override
+  public NounMetadata execute() {
+    init();
+    // get frame
+    RDataTable frame = (RDataTable) getFrame();
+    String table = frame.getName();
 
-	@Override
-	public NounMetadata execute() {
-		init();
-		// get frame
-		RDataTable frame = (RDataTable) getFrame();
-		String table = frame.getName();
+    // the first noun will be a query struct - the filter
+    SelectQueryStruct qs = getQueryStruct();
+    // get the filters from the query struct
+    // and iterate through each filtered column
+    GenRowFilters grf = qs.getExplicitFilters();
 
-		// the first noun will be a query struct - the filter
-		SelectQueryStruct qs = getQueryStruct();
-		// get the filters from the query struct
-		// and iterate through each filtered column
-		GenRowFilters grf = qs.getExplicitFilters();
+    // use RInterpreter to create filter syntax
+    OwlTemporalEngineMeta frameMetadata = frame.getMetaData();
+    try {
+      grf = QSAliasToPhysicalConverter.convertGenRowFilters(grf, frameMetadata, null);
+    } catch (Exception ex) {
+      return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+    }
+    StringBuilder rFilterBuilder = new StringBuilder();
+    RInterpreter ri = new RInterpreter();
+    ri.setColDataTypes(frameMetadata.getHeaderToTypeMap());
+    ri.addFilters(grf.getFilters(), table, rFilterBuilder, true, true);
 
-		// use RInterpreter to create filter syntax
-		OwlTemporalEngineMeta frameMetadata = frame.getMetaData();
-		try {
-			grf = QSAliasToPhysicalConverter.convertGenRowFilters(grf, frameMetadata, null);
-		} catch(Exception ex) {
-			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
-		}
-		StringBuilder rFilterBuilder = new StringBuilder();
-		RInterpreter ri = new RInterpreter();
-		ri.setColDataTypes(frameMetadata.getHeaderToTypeMap());
-		ri.addFilters(grf.getFilters(), table, rFilterBuilder, true, true);
+    // execute the r script
+    // FRAME <- FRAME[!( FRAME$Director == "value"),]
+    String newScript = table + "<- " + table + "[!(" + rFilterBuilder.toString() + "),]";
+    frame.executeRScript(newScript);
+    this.addExecutedCode(newScript);
 
-		// execute the r script
-		// FRAME <- FRAME[!( FRAME$Director == "value"),]
-		String newScript = table + "<- " + table + "[!(" + rFilterBuilder.toString() + "),]";
-		frame.executeRScript(newScript);
-		this.addExecutedCode(newScript);
+    // NEW TRACKING
+    UserTrackerFactory.getInstance()
+        .trackAnalyticsWidget(
+            this.insight,
+            frame,
+            "DropRows",
+            AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "DropRows",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+    return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+  }
 
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-	}
+  private SelectQueryStruct getQueryStruct() {
+    GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[0]);
+    if (inputsGRS != null) {
+      NounMetadata filterNoun = inputsGRS.getNoun(0);
+      // filter is query struct pksl type
+      // the qs is the value of the filterNoun
+      SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
+      if (qs == null) {
+        throw new IllegalArgumentException("Need to define filter condition");
+      }
+      return qs;
+    }
 
-	private SelectQueryStruct getQueryStruct() {
-		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[0]);
-		if (inputsGRS != null) {
-			NounMetadata filterNoun = inputsGRS.getNoun(0);
-			// filter is query struct pksl type
-			// the qs is the value of the filterNoun
-			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
-			if (qs == null) {
-				throw new IllegalArgumentException("Need to define filter condition");
-			}
-			return qs;
-		}
-
-		inputsGRS = this.getCurRow();
-		NounMetadata filterNoun = inputsGRS.getNoun(0);
-		// filter is query struct pksl type
-		// the qs is the value of the filterNoun
-		SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
-		if (qs == null) {
-			throw new IllegalArgumentException("Need to define filter condition");
-		}
-		return qs;
-	}
-
+    inputsGRS = this.getCurRow();
+    NounMetadata filterNoun = inputsGRS.getNoun(0);
+    // filter is query struct pksl type
+    // the qs is the value of the filterNoun
+    SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
+    if (qs == null) {
+      throw new IllegalArgumentException("Need to define filter condition");
+    }
+    return qs;
+  }
 }

@@ -1,9 +1,22 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.py;
 
 import java.util.List;
 import java.util.Vector;
 import java.util.regex.Pattern;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.ds.py.PandasFrame;
@@ -16,155 +29,219 @@ import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class ReplaceColumnValueReactor extends AbstractPyFrameReactor {
-	
-	/**
-	 * This reactor updates row values to a new value based on the existing value
-	 * The inputs to the reactor are: 
-	 * 1) the column to update
-	 * 2) the old value
-	 * 3) the new value
-	 */
-	private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
 
-	public ReplaceColumnValueReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.NEW_VALUE.getKey() };
-	}
+  /**
+   * This reactor updates row values to a new value based on the existing value The inputs to the
+   * reactor are: 1) the column to update 2) the old value 3) the new value
+   */
+  private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		// get frame
-		PandasFrame frame = (PandasFrame) getFrame();
+  public ReplaceColumnValueReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.COLUMN.getKey(),
+          ReactorKeysEnum.VALUE.getKey(),
+          ReactorKeysEnum.NEW_VALUE.getKey()
+        };
+  }
 
-		// get wrapper name
-		String wrapperFrameName = frame.getWrapperName();
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    // get frame
+    PandasFrame frame = (PandasFrame) getFrame();
 
-		// get inputs
-		// first input is the column that we are updating
-		List<String> columnNames = getColumns();
+    // get wrapper name
+    String wrapperFrameName = frame.getWrapperName();
 
-		// second input is the old value
-		String oldValue = this.keyValue.get(this.keysToGet[1]);
+    // get inputs
+    // first input is the column that we are updating
+    List<String> columnNames = getColumns();
 
-		// third input is the new value
-		String newValue = this.keyValue.get(this.keysToGet[2]);
-		
-		int numColumns = columnNames.size();
-		String[] scripts = new String[columnNames.size()];
-		
-		// iterate through all passed columns
-		for(int i = 0; i < numColumns; i++) {
-			String column = columnNames.get(i);
-			SemossDataType columnDataType = SemossDataType.convertStringToDataType(getColumnType(frame, column));
+    // second input is the old value
+    String oldValue = this.keyValue.get(this.keysToGet[1]);
 
-			if (columnDataType == SemossDataType.INT || columnDataType == SemossDataType.DOUBLE) {
-				if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
-					newValue = "NaN";
-				} else if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
-					throw new IllegalArgumentException("Cannot update a numeric field with string value = " + newValue);
-				}
-				// Account for nulls, na, nan
-				if (oldValue.isEmpty() || oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("na") || oldValue.equalsIgnoreCase("nan")) {
-					scripts[i] = frame.getName() + "['" + column+ "'].fillna(" + newValue + ",inplace=True)";
-				} else {
-					scripts[i] = wrapperFrameName + ".replace_val('" + column + "'," + oldValue + " , " + newValue + ")";
-				}
-			} else if (columnDataType == SemossDataType.DATE) {
-				if(oldValue.isEmpty() || oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("na") || oldValue.equalsIgnoreCase("nan") || oldValue.equalsIgnoreCase("nat")) {
-					SemossDate newD = SemossDate.genDateObj(newValue);
-					if(newD == null) {
-						throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
-					}
-					scripts[i] = frame.getName() + "['" + column + "'].fillna(value=pd.to_datetime('" + newD + "'),inplace=True)";
-				} else {
-					SemossDate oldD = SemossDate.genDateObj(oldValue);
-					SemossDate newD = SemossDate.genDateObj(newValue);
-					String error = "";
-					if(oldD == null) {
-						error = "Unable to parse old date value = " + oldValue;
-					}
-					if(newD == null) {
-						error += ". Unable to parse new date value = " + newValue;
-					}
-					if(!error.isEmpty()) {
-						throw new IllegalArgumentException(error);
-					}
-					scripts[i] = wrapperFrameName + ".replace_val('" + column + "', pd.to_datetime('" + oldD + "') , "
-						+ "pd.to_datetime('" + newD + "') )";
-				}
-			} else if (columnDataType == SemossDataType.TIMESTAMP) {
-				if(oldValue.isEmpty() || oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("na") || oldValue.equalsIgnoreCase("nan") || oldValue.equalsIgnoreCase("nat")) {
-					SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
-					if(newD == null) {
-						// try to cast to date object
-						newD = SemossDate.genDateObj(newValue);
-						if (newD == null) {
-							throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
-						}
-					}
-					scripts[i] = frame.getName() + "['" + column + "'].fillna(value=pd.to_datetime('" + newD + "'),inplace=True)";
-				} else {
-					SemossDate oldD = SemossDate.genTimeStampDateObj(oldValue);
-					SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
-					if (newD == null) {
-						// try to cast to date object
-						newD = SemossDate.genDateObj(newValue);
-					}
-					String error = "";
-					if(oldD == null) {
-						error = "Unable to parse old date value = " + oldValue;
-					}
-					if(newD == null) {
-						error += ". Unable to parse new date value = " + newValue;
-					}
-					if(!error.isEmpty()) {
-						throw new IllegalArgumentException(error);
-					}
-					scripts[i] = wrapperFrameName + ".replace_val('" + column + "', pd.to_datetime('" + oldD + "') , "
-						+ "pd.to_datetime('" + newD + "') )";
-				}
-			} else if (columnDataType == SemossDataType.STRING) {
-				if (oldValue.equalsIgnoreCase("null")) {
-					String escapedNewValue = newValue.replace("\"", "\\\"");
-					scripts[i] = frame.getName() + "['" + column+ "'].fillna(" + escapedNewValue + ", inplace=True)";
-				} else {
-					scripts[i] = wrapperFrameName + ".replace_val('" + column + "', \"" + oldValue + "\", \"" + newValue + "\"" + ", False)";
-				}
-			}
-		}
-		
-		// execute all of the routines after we have done our validation
-		insight.getPyTranslator().runEmptyPy(scripts);
-		for(String script : scripts) {
-			this.addExecutedCode(script);
-		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ReplaceColumnValue", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-			
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-	}
-	
-	private List<String> getColumns() {
-		List<String> cols = new Vector<String>();
+    // third input is the new value
+    String newValue = this.keyValue.get(this.keysToGet[2]);
 
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
-		if(grs != null && !grs.isEmpty()) {
-			for(int i = 0; i < grs.size(); i++) {
-				String column =grs.get(i).toString();
-				if (column.contains("__")) {
-					column = column.split("__")[1];
-				}
-				cols.add(column);
-			}
-			return cols;
-		}
-		
-		return cols;
-	}
-	
+    int numColumns = columnNames.size();
+    String[] scripts = new String[columnNames.size()];
+
+    // iterate through all passed columns
+    for (int i = 0; i < numColumns; i++) {
+      String column = columnNames.get(i);
+      SemossDataType columnDataType =
+          SemossDataType.convertStringToDataType(getColumnType(frame, column));
+
+      if (columnDataType == SemossDataType.INT || columnDataType == SemossDataType.DOUBLE) {
+        if (newValue.isEmpty()
+            || newValue.equalsIgnoreCase("null")
+            || newValue.equalsIgnoreCase("na")
+            || newValue.equalsIgnoreCase("nan")) {
+          newValue = "NaN";
+        } else if (!NUMERIC_PATTERN.matcher(newValue).matches()) {
+          throw new IllegalArgumentException(
+              "Cannot update a numeric field with string value = " + newValue);
+        }
+        // Account for nulls, na, nan
+        if (oldValue.isEmpty()
+            || oldValue.equalsIgnoreCase("null")
+            || oldValue.equalsIgnoreCase("na")
+            || oldValue.equalsIgnoreCase("nan")) {
+          scripts[i] = frame.getName() + "['" + column + "'].fillna(" + newValue + ",inplace=True)";
+        } else {
+          scripts[i] =
+              wrapperFrameName
+                  + ".replace_val('"
+                  + column
+                  + "',"
+                  + oldValue
+                  + " , "
+                  + newValue
+                  + ")";
+        }
+      } else if (columnDataType == SemossDataType.DATE) {
+        if (oldValue.isEmpty()
+            || oldValue.equalsIgnoreCase("null")
+            || oldValue.equalsIgnoreCase("na")
+            || oldValue.equalsIgnoreCase("nan")
+            || oldValue.equalsIgnoreCase("nat")) {
+          SemossDate newD = SemossDate.genDateObj(newValue);
+          if (newD == null) {
+            throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+          }
+          scripts[i] =
+              frame.getName()
+                  + "['"
+                  + column
+                  + "'].fillna(value=pd.to_datetime('"
+                  + newD
+                  + "'),inplace=True)";
+        } else {
+          SemossDate oldD = SemossDate.genDateObj(oldValue);
+          SemossDate newD = SemossDate.genDateObj(newValue);
+          String error = "";
+          if (oldD == null) {
+            error = "Unable to parse old date value = " + oldValue;
+          }
+          if (newD == null) {
+            error += ". Unable to parse new date value = " + newValue;
+          }
+          if (!error.isEmpty()) {
+            throw new IllegalArgumentException(error);
+          }
+          scripts[i] =
+              wrapperFrameName
+                  + ".replace_val('"
+                  + column
+                  + "', pd.to_datetime('"
+                  + oldD
+                  + "') , "
+                  + "pd.to_datetime('"
+                  + newD
+                  + "') )";
+        }
+      } else if (columnDataType == SemossDataType.TIMESTAMP) {
+        if (oldValue.isEmpty()
+            || oldValue.equalsIgnoreCase("null")
+            || oldValue.equalsIgnoreCase("na")
+            || oldValue.equalsIgnoreCase("nan")
+            || oldValue.equalsIgnoreCase("nat")) {
+          SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
+          if (newD == null) {
+            // try to cast to date object
+            newD = SemossDate.genDateObj(newValue);
+            if (newD == null) {
+              throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+            }
+          }
+          scripts[i] =
+              frame.getName()
+                  + "['"
+                  + column
+                  + "'].fillna(value=pd.to_datetime('"
+                  + newD
+                  + "'),inplace=True)";
+        } else {
+          SemossDate oldD = SemossDate.genTimeStampDateObj(oldValue);
+          SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
+          if (newD == null) {
+            // try to cast to date object
+            newD = SemossDate.genDateObj(newValue);
+          }
+          String error = "";
+          if (oldD == null) {
+            error = "Unable to parse old date value = " + oldValue;
+          }
+          if (newD == null) {
+            error += ". Unable to parse new date value = " + newValue;
+          }
+          if (!error.isEmpty()) {
+            throw new IllegalArgumentException(error);
+          }
+          scripts[i] =
+              wrapperFrameName
+                  + ".replace_val('"
+                  + column
+                  + "', pd.to_datetime('"
+                  + oldD
+                  + "') , "
+                  + "pd.to_datetime('"
+                  + newD
+                  + "') )";
+        }
+      } else if (columnDataType == SemossDataType.STRING) {
+        if (oldValue.equalsIgnoreCase("null")) {
+          String escapedNewValue = newValue.replace("\"", "\\\"");
+          scripts[i] =
+              frame.getName() + "['" + column + "'].fillna(" + escapedNewValue + ", inplace=True)";
+        } else {
+          scripts[i] =
+              wrapperFrameName
+                  + ".replace_val('"
+                  + column
+                  + "', \""
+                  + oldValue
+                  + "\", \""
+                  + newValue
+                  + "\""
+                  + ", False)";
+        }
+      }
+    }
+
+    // execute all of the routines after we have done our validation
+    insight.getPyTranslator().runEmptyPy(scripts);
+    for (String script : scripts) {
+      this.addExecutedCode(script);
+    }
+
+    // NEW TRACKING
+    UserTrackerFactory.getInstance()
+        .trackAnalyticsWidget(
+            this.insight,
+            frame,
+            "ReplaceColumnValue",
+            AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+
+    return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+  }
+
+  private List<String> getColumns() {
+    List<String> cols = new Vector<String>();
+
+    GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+    if (grs != null && !grs.isEmpty()) {
+      for (int i = 0; i < grs.size(); i++) {
+        String column = grs.get(i).toString();
+        if (column.contains("__")) {
+          column = column.split("__")[1];
+        }
+        cols.add(column);
+      }
+      return cols;
+    }
+
+    return cols;
+  }
 }

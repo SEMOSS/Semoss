@@ -1,13 +1,25 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.utils;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -33,129 +45,135 @@ import prerna.util.Utility;
 
 public class DeleteEngineReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(DeleteEngineReactor.class);
+  private static final Logger classLogger = LogManager.getLogger(DeleteEngineReactor.class);
 
-	public DeleteEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
-	}
+  public DeleteEngineReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey()};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		List<String> engineIds = getEngineIds();
-		// first validate all the inputs
-		User user = this.insight.getUser();
-		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if(!isAdmin) {
-			for (String engineId : engineIds) {
-				if(AbstractSecurityUtils.adminOnlyEngineDelete(engineId)) {
-					throwFunctionalityOnlyExposedForAdminsError();
-				}
-				
-				if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
-					throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
-				}
-				// we may have the alias
-				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-				boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
-				if(!isOwner) {
-					throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
-				}
-			} 
-		}
-		
-		// once all are good, we can delete
-		for (String engineId : engineIds) {
-			// we may have the alias
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			IEngine engine = Utility.getEngine(engineId, false);
-			String engineName = null;
-			IEngine.CATALOG_TYPE engineType = null;
-			if(engine != null) {
-				engineName = engine.getEngineName();
-				engineType = engine.getCatalogType();
-			} else {
-				engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
-				Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
-				engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
-			}
-			
-			deleteEngines(engine, engineId, engineName, engineType);
-			EngineSyncUtility.clearEngineCache(engineId);
-			UserTrackingUtils.deleteEngine(engineId);
-			// Run the delete thread in the background for removing from cloud storage
-			if (ClusterUtil.IS_CLUSTER) {
-				Thread deleteAppThread = new Thread(new DeleteEngineRunner(engineId, engineType));
-				deleteAppThread.start();
-			}
-		}
-		
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_ENGINE);
-	}
+  @Override
+  public NounMetadata execute() {
+    List<String> engineIds = getEngineIds();
+    // first validate all the inputs
+    User user = this.insight.getUser();
+    boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+    if (!isAdmin) {
+      for (String engineId : engineIds) {
+        if (AbstractSecurityUtils.adminOnlyEngineDelete(engineId)) {
+          throwFunctionalityOnlyExposedForAdminsError();
+        }
 
-	/**
-	 * 
-	 * @param engine
-	 * @return
-	 */
-	private boolean deleteEngines(IEngine engine, String engineId, String engineName, IEngine.CATALOG_TYPE engineType) {
-		UploadUtilities.removeEngineFromDIHelper(engineId);
-		// remove from local master if database
-		if(IEngine.CATALOG_TYPE.DATABASE == engineType) {
-			DeleteFromMasterDB remover = new DeleteFromMasterDB();
-			remover.deleteEngineRDBMS(engineId);
-		}
-		// remove from security
-		SecurityEngineUtils.deleteEngine(engineId);
-		// remove from user tracking
-		UserTrackingUtils.deleteEngine(engineId);
-		
-		// now try to actually remove from disk
-		if(engine != null) {
-			try {
-				engine.delete();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		} else {
-			// try to delete based on the name of the folder and smss file
-			// which we expect to be based on enginename__engineid
-			String thisEngineFolder = EngineUtility.getSpecificEngineVersionFolder(engineType, engineId, engineName);
-			File thisEngineF = new File(thisEngineFolder);
-			if(thisEngineF.exists() && thisEngineF.isDirectory()) {
-				thisEngineF.delete();
-			}
-			String smssFile = thisEngineFolder+".smss";
-			File thisSmssF = new File(smssFile);
-			if(thisSmssF.exists() && thisSmssF.isFile()) {
-				thisSmssF.delete();
-			}
-		}
-		
-		return true;
-	}
+        if (WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
+          throw new IllegalArgumentException(
+              "Users are not allowed to delete your workspace or asset database.");
+        }
+        // we may have the alias
+        engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+        boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
+        if (!isOwner) {
+          throw new IllegalArgumentException(
+              "Engine "
+                  + engineId
+                  + " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
+        }
+      }
+    }
 
-	/**
-	 * Get inputs
-	 * @return list of engines to delete
-	 */
-	public List<String> getEngineIds() {
-		List<String> engineIds = new ArrayList<>();
+    // once all are good, we can delete
+    for (String engineId : engineIds) {
+      // we may have the alias
+      engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+      IEngine engine = Utility.getEngine(engineId, false);
+      String engineName = null;
+      IEngine.CATALOG_TYPE engineType = null;
+      if (engine != null) {
+        engineName = engine.getEngineName();
+        engineType = engine.getCatalogType();
+      } else {
+        engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+        Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
+        engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
+      }
 
-		// see if added as key
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++) {
-				engineIds.add(grs.get(i).toString());
-			}
-			return engineIds;
-		}
+      deleteEngines(engine, engineId, engineName, engineType);
+      EngineSyncUtility.clearEngineCache(engineId);
+      UserTrackingUtils.deleteEngine(engineId);
+      // Run the delete thread in the background for removing from cloud storage
+      if (ClusterUtil.IS_CLUSTER) {
+        Thread deleteAppThread = new Thread(new DeleteEngineRunner(engineId, engineType));
+        deleteAppThread.start();
+      }
+    }
 
-		// no key is added, grab all inputs
-		int size = this.curRow.size();
-		for (int i = 0; i < size; i++) {
-			engineIds.add(this.curRow.get(i).toString());
-		}
-		return engineIds;
-	}
+    return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_ENGINE);
+  }
+
+  /**
+   * @param engine
+   * @return
+   */
+  private boolean deleteEngines(
+      IEngine engine, String engineId, String engineName, IEngine.CATALOG_TYPE engineType) {
+    UploadUtilities.removeEngineFromDIHelper(engineId);
+    // remove from local master if database
+    if (IEngine.CATALOG_TYPE.DATABASE == engineType) {
+      DeleteFromMasterDB remover = new DeleteFromMasterDB();
+      remover.deleteEngineRDBMS(engineId);
+    }
+    // remove from security
+    SecurityEngineUtils.deleteEngine(engineId);
+    // remove from user tracking
+    UserTrackingUtils.deleteEngine(engineId);
+
+    // now try to actually remove from disk
+    if (engine != null) {
+      try {
+        engine.delete();
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    } else {
+      // try to delete based on the name of the folder and smss file
+      // which we expect to be based on enginename__engineid
+      String thisEngineFolder =
+          EngineUtility.getSpecificEngineVersionFolder(engineType, engineId, engineName);
+      File thisEngineF = new File(thisEngineFolder);
+      if (thisEngineF.exists() && thisEngineF.isDirectory()) {
+        thisEngineF.delete();
+      }
+      String smssFile = thisEngineFolder + ".smss";
+      File thisSmssF = new File(smssFile);
+      if (thisSmssF.exists() && thisSmssF.isFile()) {
+        thisSmssF.delete();
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Get inputs
+   *
+   * @return list of engines to delete
+   */
+  public List<String> getEngineIds() {
+    List<String> engineIds = new ArrayList<>();
+
+    // see if added as key
+    GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+    if (grs != null && !grs.isEmpty()) {
+      int size = grs.size();
+      for (int i = 0; i < size; i++) {
+        engineIds.add(grs.get(i).toString());
+      }
+      return engineIds;
+    }
+
+    // no key is added, grab all inputs
+    int size = this.curRow.size();
+    for (int i = 0; i < size; i++) {
+      engineIds.add(this.curRow.get(i).toString());
+    }
+    return engineIds;
+  }
 }

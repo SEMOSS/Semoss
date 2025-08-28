@@ -1,17 +1,28 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.insights.themes;
 
+import com.google.gson.Gson;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.insights.AbstractInsightReactor;
@@ -24,46 +35,45 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SetInsightThemeReactor extends AbstractInsightReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(SetInsightThemeReactor.class);
 
-	@Override
-	public NounMetadata execute() {
-		String versionFilePath = AssetUtility.getRootFolderPath(this.insight, null, true);
-		String insightThemeFilePath = versionFilePath + DIR_SEPARATOR + IMAGE_THEME_FILE;
-		File insightThemeFile = new File(insightThemeFilePath);
-		if(insightThemeFile.exists() && insightThemeFile.isFile()) {
-			// delete the current one
-			insightThemeFile.delete();
-		} else {
-			// if the file exists and we delete it, we know the folder is there
-			// we dont know for unsaved insights if it exists
-			File parentF = insightThemeFile.getParentFile();
-			if(!parentF.exists() || !parentF.isDirectory()) {
-				parentF.mkdirs();
-			}
-		}
-		
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapInputs.isEmpty()) {
-			throw new SemossPixelException("No insight theme json was passed to save");
-		}
-		
-		Map<String, Object> value = (Map<String, Object>) mapInputs.get(0).getValue();
-		try(Writer writer = new FileWriter(insightThemeFile)) {
-			Gson gson = new Gson();
-			gson.toJson(value, writer);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("An error occurred trying to save the insight theme");
-		}
-		
-		if(this.insight.isSavedInsight()) {
-			IProject project = Utility.getProject(insight.getProjectId());
-			ClusterUtil.pushProjectFolder(project, versionFilePath);
-		}
-		
-		return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.INSIGHT_THEME);
-	}
+  private static final Logger classLogger = LogManager.getLogger(SetInsightThemeReactor.class);
 
+  @Override
+  public NounMetadata execute() {
+    String versionFilePath = AssetUtility.getRootFolderPath(this.insight, null, true);
+    String insightThemeFilePath = versionFilePath + DIR_SEPARATOR + IMAGE_THEME_FILE;
+    File insightThemeFile = new File(insightThemeFilePath);
+    if (insightThemeFile.exists() && insightThemeFile.isFile()) {
+      // delete the current one
+      insightThemeFile.delete();
+    } else {
+      // if the file exists and we delete it, we know the folder is there
+      // we dont know for unsaved insights if it exists
+      File parentF = insightThemeFile.getParentFile();
+      if (!parentF.exists() || !parentF.isDirectory()) {
+        parentF.mkdirs();
+      }
+    }
+
+    List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+    if (mapInputs.isEmpty()) {
+      throw new SemossPixelException("No insight theme json was passed to save");
+    }
+
+    Map<String, Object> value = (Map<String, Object>) mapInputs.get(0).getValue();
+    try (Writer writer = new FileWriter(insightThemeFile)) {
+      Gson gson = new Gson();
+      gson.toJson(value, writer);
+    } catch (IOException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw new SemossPixelException("An error occurred trying to save the insight theme");
+    }
+
+    if (this.insight.isSavedInsight()) {
+      IProject project = Utility.getProject(insight.getProjectId());
+      ClusterUtil.pushProjectFolder(project, versionFilePath);
+    }
+
+    return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.INSIGHT_THEME);
+  }
 }

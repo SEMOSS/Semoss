@@ -1,8 +1,21 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.utils;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.om.PixelDataType;
@@ -11,57 +24,57 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class ValidateRReactor extends AbstractReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(ValidateRReactor.class);
-	
-	public ValidateRReactor() {
-		this.keysToGet = new String[]{"script"};
-		this.keyRequired = new int[]{1};
-	}
 
-	@Override
-	public NounMetadata execute() {
+  private static final Logger classLogger = LogManager.getLogger(ValidateRReactor.class);
 
-		organizeKeys();
+  public ValidateRReactor() {
+    this.keysToGet = new String[] {"script"};
+    this.keyRequired = new int[] {1};
+  }
 
-		String result = "";
-		
-		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(getLogger(this.getClass() + ""));
-		rJavaTranslator.startR();
-		
-        String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-        String rFolder = baseFolder + "/R/util/smssutil.r";
-        rFolder = rFolder.replaceAll("\\\\", "/");
-		
-        rJavaTranslator.runR("source('" + rFolder + "');" );
+  @Override
+  public NounMetadata execute() {
 
-		try {
-				String rScript = insight.getInsightFolder() + "/" +keyValue.get(keysToGet[0]);
-				rScript = rScript.replaceAll("\\\\", "/");
-				Object outObject = rJavaTranslator.executeR("canLoad('" + rScript + "')");
-				
-				String output = "";
-				if(outObject instanceof org.rosuda.REngine.REXPString)
-					output = ((org.rosuda.REngine.REXPString)outObject).asString();
-				
-				else if(outObject instanceof org.rosuda.JRI.REXP)
-					output = ((org.rosuda.JRI.REXP)outObject).asString();
+    organizeKeys();
 
-				output = output.replaceAll("\\\"", "");
-					
-				if(output.length() == 0)
-					result = keyValue.get(keysToGet[0]) + " : All Libraries available";
-				
-				
-				else
-				{
-					StringBuilder library = new StringBuilder(keyValue.get(keysToGet[0])).append(":  Missing Libraries [").append(output).append("]");
-					result = library.toString();					
-				}			
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		return new NounMetadata(result, PixelDataType.CONST_STRING);
-	}
+    String result = "";
+
+    AbstractRJavaTranslator rJavaTranslator =
+        this.insight.getRJavaTranslator(getLogger(this.getClass() + ""));
+    rJavaTranslator.startR();
+
+    String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+    String rFolder = baseFolder + "/R/util/smssutil.r";
+    rFolder = rFolder.replaceAll("\\\\", "/");
+
+    rJavaTranslator.runR("source('" + rFolder + "');");
+
+    try {
+      String rScript = insight.getInsightFolder() + "/" + keyValue.get(keysToGet[0]);
+      rScript = rScript.replaceAll("\\\\", "/");
+      Object outObject = rJavaTranslator.executeR("canLoad('" + rScript + "')");
+
+      String output = "";
+      if (outObject instanceof org.rosuda.REngine.REXPString)
+        output = ((org.rosuda.REngine.REXPString) outObject).asString();
+      else if (outObject instanceof org.rosuda.JRI.REXP)
+        output = ((org.rosuda.JRI.REXP) outObject).asString();
+
+      output = output.replaceAll("\\\"", "");
+
+      if (output.length() == 0) result = keyValue.get(keysToGet[0]) + " : All Libraries available";
+      else {
+        StringBuilder library =
+            new StringBuilder(keyValue.get(keysToGet[0]))
+                .append(":  Missing Libraries [")
+                .append(output)
+                .append("]");
+        result = library.toString();
+      }
+    } catch (Exception e) {
+      // TODO Auto-generated catch block
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+    return new NounMetadata(result, PixelDataType.CONST_STRING);
+  }
 }

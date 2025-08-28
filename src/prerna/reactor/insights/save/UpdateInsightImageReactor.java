@@ -1,7 +1,20 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.insights.save;
 
 import org.apache.logging.log4j.Logger;
-
 import prerna.om.ThreadStore;
 import prerna.reactor.insights.AbstractInsightReactor;
 import prerna.reactor.utils.ImageCaptureReactor;
@@ -11,41 +24,47 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UpdateInsightImageReactor extends AbstractInsightReactor {
 
-	private static final String CLASS_NAME = UpdateInsightImageReactor.class.getName();
-	
-	public UpdateInsightImageReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), 
-				ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.IMAGE_WAIT_TIME.getKey() };
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		Logger logger = getLogger(CLASS_NAME);
-		logger.info("Starting image capture...");
-		logger.info("Operation can take up to 10 seconds to complete");
-		
-		String projectId = getProject();
-		String rdbmsId = getRdbmsId();
-		String feUrl = getUrl();
-		String sessionId = ThreadStore.getSessionId();
-		Object params = getExecutionParams();
-		
-		Integer waitTime = null;
-		String waitTimeStr = this.keyValue.get(this.keysToGet[3]);
-		if(waitTimeStr != null && (waitTimeStr=waitTimeStr.trim()).isEmpty()) {
-			try {
-				waitTime = Integer.parseInt(waitTimeStr);
-			} catch(NumberFormatException e) {
-				throw new IllegalArgumentException("Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
-			}
-		}
-		
-		if(params == null) {
-			ImageCaptureReactor.runImageCapture(feUrl, projectId, rdbmsId, null, sessionId, waitTime);
-		} else {
-			ImageCaptureReactor.runImageCapture(feUrl, projectId, rdbmsId, params.toString(), sessionId, waitTime);
-		}
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
-	}
+  private static final String CLASS_NAME = UpdateInsightImageReactor.class.getName();
 
+  public UpdateInsightImageReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.PROJECT.getKey(),
+          ReactorKeysEnum.ID.getKey(),
+          ReactorKeysEnum.URL.getKey(),
+          ReactorKeysEnum.IMAGE_WAIT_TIME.getKey()
+        };
+  }
+
+  @Override
+  public NounMetadata execute() {
+    Logger logger = getLogger(CLASS_NAME);
+    logger.info("Starting image capture...");
+    logger.info("Operation can take up to 10 seconds to complete");
+
+    String projectId = getProject();
+    String rdbmsId = getRdbmsId();
+    String feUrl = getUrl();
+    String sessionId = ThreadStore.getSessionId();
+    Object params = getExecutionParams();
+
+    Integer waitTime = null;
+    String waitTimeStr = this.keyValue.get(this.keysToGet[3]);
+    if (waitTimeStr != null && (waitTimeStr = waitTimeStr.trim()).isEmpty()) {
+      try {
+        waitTime = Integer.parseInt(waitTimeStr);
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException(
+            "Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
+      }
+    }
+
+    if (params == null) {
+      ImageCaptureReactor.runImageCapture(feUrl, projectId, rdbmsId, null, sessionId, waitTime);
+    } else {
+      ImageCaptureReactor.runImageCapture(
+          feUrl, projectId, rdbmsId, params.toString(), sessionId, waitTime);
+    }
+    return new NounMetadata(true, PixelDataType.BOOLEAN);
+  }
 }

@@ -1,11 +1,23 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.database.upload.gremlin.external;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.tinker.JanusEngine;
 import prerna.reactor.database.upload.gremlin.AbstractCreateExternalGraphReactor;
@@ -19,53 +31,70 @@ import prerna.util.UploadUtilities;
 
 public class CreateJanusGraphDatabaseReactor extends AbstractCreateExternalGraphReactor {
 
-	private File file;
-	private String filePath;
+  private File file;
+  private String filePath;
 
-	public CreateJanusGraphDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(),
-				ReactorKeysEnum.GRAPH_METAMODEL.getKey(), ReactorKeysEnum.USE_LABEL.getKey() };
-	}
+  public CreateJanusGraphDatabaseReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.DATABASE.getKey(),
+          ReactorKeysEnum.FILE_PATH.getKey(),
+          ReactorKeysEnum.GRAPH_TYPE_ID.getKey(),
+          ReactorKeysEnum.GRAPH_NAME_ID.getKey(),
+          ReactorKeysEnum.GRAPH_METAMODEL.getKey(),
+          ReactorKeysEnum.USE_LABEL.getKey()
+        };
+  }
 
-	@Override
-	protected void validateUserInput() throws IOException {
-		this.filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+  @Override
+  protected void validateUserInput() throws IOException {
+    this.filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 
-		if (!(this.file = new File(this.filePath)).exists()) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("Could not find file to save.",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
+    if (!(this.file = new File(this.filePath)).exists()) {
+      SemossPixelException exception =
+          new SemossPixelException(
+              new NounMetadata(
+                  "Could not find file to save.",
+                  PixelDataType.CONST_STRING,
+                  PixelOperationType.ERROR));
+      exception.setContinueThreadOfExecution(false);
+      throw exception;
+    }
 
-		// move the file over to the correct location
-		// and then update the host value
-		String newLocation = this.databaseFolder.getAbsolutePath() + DIR_SEPARATOR + FilenameUtils.getName(this.file.getAbsolutePath());
-		File updatedFileLoc = new File(newLocation);
-		try {
-			FileUtils.copyFile(this.file, updatedFileLoc);
-			this.file = updatedFileLoc;
-		} catch (IOException e) {
-			throw new IOException("Unable to relocate uploaded file to correct database folder");
-		}
+    // move the file over to the correct location
+    // and then update the host value
+    String newLocation =
+        this.databaseFolder.getAbsolutePath()
+            + DIR_SEPARATOR
+            + FilenameUtils.getName(this.file.getAbsolutePath());
+    File updatedFileLoc = new File(newLocation);
+    try {
+      FileUtils.copyFile(this.file, updatedFileLoc);
+      this.file = updatedFileLoc;
+    } catch (IOException e) {
+      throw new IOException("Unable to relocate uploaded file to correct database folder");
+    }
+  }
 
-	}
+  @Override
+  protected File generateTempSmss(File owlFile) throws IOException {
+    // the file path will become parameterized inside
+    return UploadUtilities.generateTemporaryJanusGraphSmss(
+        this.newDatabaseId,
+        this.newDatabaseName,
+        owlFile,
+        this.filePath,
+        this.typeMap,
+        this.nameMap,
+        useLabel());
+  }
 
-	@Override
-	protected File generateTempSmss(File owlFile) throws IOException {
-		// the file path will become parameterized inside
-		return UploadUtilities.generateTemporaryJanusGraphSmss(this.newDatabaseId, this.newDatabaseName, owlFile, this.filePath,
-				this.typeMap, this.nameMap, useLabel());
-	}
-
-	@Override
-	protected IDatabaseEngine generateEngine() throws Exception {
-		JanusEngine janusEngine = new JanusEngine();
-		janusEngine.setEngineId(this.newDatabaseId);
-		janusEngine.setEngineName(this.newDatabaseName);
-		janusEngine.open(this.smssFile.getAbsolutePath());
-		return janusEngine;
-	}
-
+  @Override
+  protected IDatabaseEngine generateEngine() throws Exception {
+    JanusEngine janusEngine = new JanusEngine();
+    janusEngine.setEngineId(this.newDatabaseId);
+    janusEngine.setEngineName(this.newDatabaseName);
+    janusEngine.open(this.smssFile.getAbsolutePath());
+    return janusEngine;
+  }
 }

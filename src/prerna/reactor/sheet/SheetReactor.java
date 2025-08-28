@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.sheet;
 
 import prerna.om.InsightSheet;
@@ -8,21 +22,22 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SheetReactor extends AbstractReactor {
-	
-	public SheetReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.SHEET.getKey()};
-	}
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		// first input is the name of the panel
-		String sheetId = this.keyValue.get(this.keysToGet[0]);
-		InsightSheet insightSheet = this.insight.getInsightSheet(sheetId);
-		if(insightSheet == null) {
-			throw new NullPointerException("Sheet Id " + sheetId + " does not exist");
-		}
-		NounMetadata noun = new NounMetadata(insightSheet, PixelDataType.SHEET, PixelOperationType.SHEET);
-		return noun;
-	}
+  public SheetReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.SHEET.getKey()};
+  }
+
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    // first input is the name of the panel
+    String sheetId = this.keyValue.get(this.keysToGet[0]);
+    InsightSheet insightSheet = this.insight.getInsightSheet(sheetId);
+    if (insightSheet == null) {
+      throw new NullPointerException("Sheet Id " + sheetId + " does not exist");
+    }
+    NounMetadata noun =
+        new NounMetadata(insightSheet, PixelDataType.SHEET, PixelOperationType.SHEET);
+    return noun;
+  }
 }

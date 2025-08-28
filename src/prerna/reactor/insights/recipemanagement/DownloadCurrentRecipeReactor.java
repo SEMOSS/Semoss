@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.insights.recipemanagement;
 
 import java.io.File;
@@ -8,10 +22,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.UUID;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.om.InsightFile;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
@@ -24,65 +36,72 @@ import prerna.util.Utility;
 
 public class DownloadCurrentRecipeReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(DownloadCurrentRecipeReactor.class);
-	
-	@Override
-	public NounMetadata execute() {
-		PixelList pixelList = this.insight.getPixelList();
+  private static final Logger logger = LogManager.getLogger(DownloadCurrentRecipeReactor.class);
 
-		// get a random file name
-		Date date = new Date();
-		SimpleDateFormat formatter = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS");
-		formatter.setTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		String modifiedDate = formatter.format(date);
-		String fileLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + Utility.normalizePath("insight_recipe_" + modifiedDate) + ".txt";
-		File recipeFile = new File(fileLocation);
-		recipeFile.getParentFile().mkdirs();
-		try {
-			recipeFile.createNewFile();
-		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred creating new file with message: " + e.getMessage());
-		}
-		
-		String downloadKey = UUID.randomUUID().toString();
-		InsightFile insightFile = new InsightFile();
-		insightFile.setFileKey(downloadKey);
-		insightFile.setFilePath(fileLocation);
-		insightFile.setDeleteOnInsightClose(true);
+  @Override
+  public NounMetadata execute() {
+    PixelList pixelList = this.insight.getPixelList();
 
-		FileWriter fw = null;
-		PrintWriter pw = null;
-		try {
-			fw = new FileWriter(recipeFile);
-			pw = new PrintWriter(fw);
-			for(Pixel pixel : pixelList) {
-				pw.println(pixel.getPixelString());
-			}
-		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred writing the recipe to file with message: " + e.getMessage());
-		} finally {
-			if(pw != null) {
-				pw.close();
-			}
-			if(fw != null) {
-				try {
-					fw.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
+    // get a random file name
+    Date date = new Date();
+    SimpleDateFormat formatter = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS");
+    formatter.setTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+    String modifiedDate = formatter.format(date);
+    String fileLocation =
+        this.insight.getInsightFolder()
+            + DIR_SEPARATOR
+            + Utility.normalizePath("insight_recipe_" + modifiedDate)
+            + ".txt";
+    File recipeFile = new File(fileLocation);
+    recipeFile.getParentFile().mkdirs();
+    try {
+      recipeFile.createNewFile();
+    } catch (IOException e) {
+      logger.error(Constants.STACKTRACE, e);
+      throw new IllegalArgumentException(
+          "Error occurred creating new file with message: " + e.getMessage());
+    }
 
-		// store the insight file 
-		// in the insight so the FE can download it
-		// only from the given insight
-		this.insight.addExportFile(downloadKey, insightFile);
+    String downloadKey = UUID.randomUUID().toString();
+    InsightFile insightFile = new InsightFile();
+    insightFile.setFileKey(downloadKey);
+    insightFile.setFilePath(fileLocation);
+    insightFile.setDeleteOnInsightClose(true);
 
-		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the csv file"));
-		return retNoun;
-	}
+    FileWriter fw = null;
+    PrintWriter pw = null;
+    try {
+      fw = new FileWriter(recipeFile);
+      pw = new PrintWriter(fw);
+      for (Pixel pixel : pixelList) {
+        pw.println(pixel.getPixelString());
+      }
+    } catch (Exception e) {
+      logger.error(Constants.STACKTRACE, e);
+      throw new IllegalArgumentException(
+          "Error occurred writing the recipe to file with message: " + e.getMessage());
+    } finally {
+      if (pw != null) {
+        pw.close();
+      }
+      if (fw != null) {
+        try {
+          fw.close();
+        } catch (IOException e) {
+          logger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
 
+    // store the insight file
+    // in the insight so the FE can download it
+    // only from the given insight
+    this.insight.addExportFile(downloadKey, insightFile);
+
+    NounMetadata retNoun =
+        new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+    retNoun.addAdditionalReturn(
+        NounMetadata.getSuccessNounMessage("Successfully generated the csv file"));
+    return retNoun;
+  }
 }

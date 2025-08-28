@@ -1,9 +1,21 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.usertracking.reactors;
 
 import java.util.List;
-
 import org.javatuples.Pair;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.reactor.AbstractReactor;
@@ -17,39 +29,40 @@ import prerna.util.Utility;
 @Deprecated
 public class VoteDatabaseReactor extends AbstractReactor {
 
-	public VoteDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.VOTE.getKey() };
-	}
+  public VoteDatabaseReactor() {
+    this.keysToGet =
+        new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.VOTE.getKey()};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		
-		if (Utility.isUserTrackingDisabled()) {
-			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
-		}
-		
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		if (databaseId == null) {
-			throw new IllegalArgumentException("Database Id is null");
-		}
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
 
-		Integer vote = Integer.valueOf(this.keyValue.get(this.keysToGet[1]));
-		if (vote == null) {
-			throw new IllegalArgumentException("Vote is null");
-		}
+    if (Utility.isUserTrackingDisabled()) {
+      return new NounMetadata(
+          false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
+    }
 
-		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-			throw new IllegalArgumentException("Database cannot be viewed by user.");
-		}
+    String databaseId = this.keyValue.get(this.keysToGet[0]);
+    if (databaseId == null) {
+      throw new IllegalArgumentException("Database Id is null");
+    }
 
-		List<Pair<String, String>> creds = User.getUserIdAndType(this.insight.getUser());
-		
-		UserCatalogVoteUtils.vote(creds, databaseId, vote);
+    Integer vote = Integer.valueOf(this.keyValue.get(this.keysToGet[1]));
+    if (vote == null) {
+      throw new IllegalArgumentException("Vote is null");
+    }
 
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully voted for catalog"));
-		return noun;
-	}
+    if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+      throw new IllegalArgumentException("Database cannot be viewed by user.");
+    }
 
+    List<Pair<String, String>> creds = User.getUserIdAndType(this.insight.getUser());
+
+    UserCatalogVoteUtils.vote(creds, databaseId, vote);
+
+    NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+    noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully voted for catalog"));
+    return noun;
+  }
 }

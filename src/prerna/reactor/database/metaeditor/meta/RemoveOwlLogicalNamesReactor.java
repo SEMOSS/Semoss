@@ -1,11 +1,23 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.database.metaeditor.meta;
 
 import java.io.IOException;
 import java.util.Arrays;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
@@ -21,112 +33,131 @@ import prerna.util.Utility;
 
 public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(RemoveOwlLogicalNamesReactor.class);
-	
-	public RemoveOwlLogicalNamesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		String databaseId = getDatabaseId();
-		// we may have an alias
-		databaseId = testDatabaseId(databaseId, true);
-		
-		String concept = getConcept();
-		String prop = getProperty();
-		String[] logicalNames = getLogicalNames();
-		
-		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
-			ClusterUtil.pullOwl(databaseId, owlEngine);
+  private static final Logger classLogger =
+      LogManager.getLogger(RemoveOwlLogicalNamesReactor.class);
 
-			String physicalUri = null;
-			if(prop == null || prop.isEmpty()) {
-				physicalUri = database.getPhysicalUriFromPixelSelector(concept);
-			} else {
-				physicalUri = database.getPhysicalUriFromPixelSelector(concept + "__" + prop);
-			}
-			
-			owlEngine.deleteLogicalNames(physicalUri, logicalNames);
-			
-			try {
-				owlEngine.commit();
-				owlEngine.export();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove logical names : " + Arrays.toString(logicalNames), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-				return noun;
-			}
-			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId, owlEngine);
-		
-		} catch (IOException | InterruptedException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
-			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to modify the OWL", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			return noun;
-		}
-		
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully removed logical names : " + Arrays.toString(logicalNames), PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
-		return noun;
-	}
+  public RemoveOwlLogicalNamesReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.DATABASE.getKey(),
+          ReactorKeysEnum.CONCEPT.getKey(),
+          ReactorKeysEnum.COLUMN.getKey(),
+          ReactorKeysEnum.LOGICAL_NAME.getKey()
+        };
+  }
 
-	
-	///////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////
-	///////////// GRAB INPUTS FROM PIXEL REACTOR //////////////
-	///////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////
+  @Override
+  public NounMetadata execute() {
+    String databaseId = getDatabaseId();
+    // we may have an alias
+    databaseId = testDatabaseId(databaseId, true);
 
-	private String getDatabaseId() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
-		if (grs != null && !grs.isEmpty()) {
-			String appId = (String) grs.get(0);
-			if (appId != null && !appId.isEmpty()) {
-				return appId;
-			}
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[0]);
-	}
+    String concept = getConcept();
+    String prop = getProperty();
+    String[] logicalNames = getLogicalNames();
 
-	private String getConcept() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[1]);
-		if (grs != null && !grs.isEmpty()) {
-			String concept = (String) grs.get(0);
-			if (concept != null && !concept.isEmpty()) {
-				return concept;
-			}
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[1]);
-	}
-	
-	private String getProperty() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[2]);
-		if (grs != null && !grs.isEmpty()) {
-			String prop = (String) grs.get(0);
-			if (prop != null && !prop.isEmpty()) {
-				return prop;
-			}
-		}
+    IDatabaseEngine database = Utility.getDatabase(databaseId);
+    try (WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+      ClusterUtil.pullOwl(databaseId, owlEngine);
 
-		return "";
-	}
+      String physicalUri = null;
+      if (prop == null || prop.isEmpty()) {
+        physicalUri = database.getPhysicalUriFromPixelSelector(concept);
+      } else {
+        physicalUri = database.getPhysicalUriFromPixelSelector(concept + "__" + prop);
+      }
 
-	private String[] getLogicalNames() {
-		String[] logicalNames = null;
-		GenRowStruct grs = this.store.getNoun(keysToGet[3]);
-		if (grs != null && !grs.isEmpty()) {
-			logicalNames = new String[grs.size()];
-			for (int i = 0; i < grs.size(); i++) {
-				String name = (String) grs.get(i);
-				if (name != null && !name.isEmpty()) {
-					logicalNames[i] = name;
-				}
-			}
-		}
-		return logicalNames;
-	}
+      owlEngine.deleteLogicalNames(physicalUri, logicalNames);
+
+      try {
+        owlEngine.commit();
+        owlEngine.export();
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+        NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+        noun.addAdditionalReturn(
+            new NounMetadata(
+                "An error occurred attempting to remove logical names : "
+                    + Arrays.toString(logicalNames),
+                PixelDataType.CONST_STRING,
+                PixelOperationType.ERROR));
+        return noun;
+      }
+      EngineSyncUtility.clearEngineCache(databaseId);
+      ClusterUtil.pushOwl(databaseId, owlEngine);
+
+    } catch (IOException | InterruptedException e1) {
+      classLogger.error(Constants.STACKTRACE, e1);
+      NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+      noun.addAdditionalReturn(
+          new NounMetadata(
+              "An error occurred attempting to modify the OWL",
+              PixelDataType.CONST_STRING,
+              PixelOperationType.ERROR));
+      return noun;
+    }
+
+    NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+    noun.addAdditionalReturn(
+        new NounMetadata(
+            "Successfully removed logical names : " + Arrays.toString(logicalNames),
+            PixelDataType.CONST_STRING,
+            PixelOperationType.SUCCESS));
+    return noun;
+  }
+
+  ///////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////
+  ///////////// GRAB INPUTS FROM PIXEL REACTOR //////////////
+  ///////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////
+
+  private String getDatabaseId() {
+    GenRowStruct grs = this.store.getNoun(keysToGet[0]);
+    if (grs != null && !grs.isEmpty()) {
+      String appId = (String) grs.get(0);
+      if (appId != null && !appId.isEmpty()) {
+        return appId;
+      }
+    }
+    throw new IllegalArgumentException("Need to define " + keysToGet[0]);
+  }
+
+  private String getConcept() {
+    GenRowStruct grs = this.store.getNoun(keysToGet[1]);
+    if (grs != null && !grs.isEmpty()) {
+      String concept = (String) grs.get(0);
+      if (concept != null && !concept.isEmpty()) {
+        return concept;
+      }
+    }
+    throw new IllegalArgumentException("Need to define " + keysToGet[1]);
+  }
+
+  private String getProperty() {
+    GenRowStruct grs = this.store.getNoun(keysToGet[2]);
+    if (grs != null && !grs.isEmpty()) {
+      String prop = (String) grs.get(0);
+      if (prop != null && !prop.isEmpty()) {
+        return prop;
+      }
+    }
+
+    return "";
+  }
+
+  private String[] getLogicalNames() {
+    String[] logicalNames = null;
+    GenRowStruct grs = this.store.getNoun(keysToGet[3]);
+    if (grs != null && !grs.isEmpty()) {
+      logicalNames = new String[grs.size()];
+      for (int i = 0; i < grs.size(); i++) {
+        String name = (String) grs.get(i);
+        if (name != null && !name.isEmpty()) {
+          logicalNames[i] = name;
+        }
+      }
+    }
+    return logicalNames;
+  }
 }

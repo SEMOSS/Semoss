@@ -1,79 +1,59 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.testing.auth.utils.reactors.admin;
 
-import org.junit.Before;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.testing.AbstractBaseSemossApiTests;
-import prerna.testing.ApiSemossTestEngineUtils;
-import prerna.testing.ApiSemossTestUtils;
-import prerna.testing.utility.TestEngineUtilities;
 
-import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
+public class AdminExportUserDatabasePermissionsReactorApiTests extends AbstractBaseSemossApiTests {
 
-import org.junit.jupiter.api.BeforeEach;
+  /*private FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
+  /* private FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
 
-import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.reactors.admin.AdminExportUserDatabasePermissionsReactor;
-import prerna.om.Insight;
-
-import prerna.sablecc2.om.NounStore;
+  	private AdminExportUserDatabasePermissionsReactor reactor;
+  	private Insight insight;
+  	private User user;
+  	private NounStore ns;
+  	private Path testFilePath;
+  	private String engine;
 
 
-public class AdminExportUserDatabasePermissionsReactorApiTests  extends AbstractBaseSemossApiTests {
+  	@BeforeEach
+  	void setup() throws IOException {
+  		reactor = new AdminExportUserDatabasePermissionsReactor();
+  		reactor.setFileSystem(fs);
+  		insight = mock(Insight.class);
+  		user = mock(User.class);
+  		reactor.setInsight(insight);
+  		when(insight.getUser()).thenReturn(user);
 
-	/*private FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
-/* private FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
+  		ns = mock(NounStore.class);
+  		reactor.setNounStore(ns);
 
-	private AdminExportUserDatabasePermissionsReactor reactor;
-	private Insight insight;
-	private User user;
-	private NounStore ns;
-	private Path testFilePath;
-	private String engine;
+  		Path p = fs.getPath("work", "insight1");
+  		Files.createDirectories(p);
 
- 
-	@BeforeEach
-	void setup() throws IOException {
-		reactor = new AdminExportUserDatabasePermissionsReactor();
-		reactor.setFileSystem(fs);
-		insight = mock(Insight.class);
-		user = mock(User.class);
-		reactor.setInsight(insight);
-		when(insight.getUser()).thenReturn(user);
+  	}
 
-		ns = mock(NounStore.class);
-		reactor.setNounStore(ns); 
+      @Test
+      public void testAdminUtilsNullThrowsException() {
 
-		Path p = fs.getPath("work", "insight1");
-		Files.createDirectories(p);
+      	//testFilePath = Files.createTempFile("test-file", ".txt");
+      	String engine = ApiSemossTestEngineUtils.createBasicEngine();
+          when(SecurityAdminUtils.getInstance(user)).thenReturn(null); // Simulate adminUtils being null
+          String pixel = ApiSemossTestUtils.buildPixelCall(AdminExportUserDatabasePermissionsReactor.class, ReactorKeysEnum.ENGINE.getKey(), engine);
+  		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+      } */
 
-	}
-
-    @Test
-    public void testAdminUtilsNullThrowsException() {
- 
-    	//testFilePath = Files.createTempFile("test-file", ".txt");
-    	String engine = ApiSemossTestEngineUtils.createBasicEngine();
-        when(SecurityAdminUtils.getInstance(user)).thenReturn(null); // Simulate adminUtils being null
-        String pixel = ApiSemossTestUtils.buildPixelCall(AdminExportUserDatabasePermissionsReactor.class, ReactorKeysEnum.ENGINE.getKey(), engine);
-		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-    } */
-    
-    
-   }
+}

@@ -1,46 +1,60 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.algorithms.xray;
-//package prerna.sablecc2.reactor.algorithms.xray;
+// package prerna.sablecc2.reactor.algorithms.xray;
 //
-//import java.io.File;
-//import java.io.FileNotFoundException;
-//import java.io.FileReader;
-//import java.io.IOException;
-//import java.sql.Connection;
-//import java.sql.PreparedStatement;
-//import java.sql.ResultSet;
-//import java.sql.SQLException;
-//import java.util.ArrayList;
-//import java.util.Arrays;
-//import java.util.HashMap;
-//import java.util.HashSet;
-//import java.util.List;
-//import java.util.Map;
-//import java.util.Set;
-//import java.util.Vector;
+// import java.io.File;
+// import java.io.FileNotFoundException;
+// import java.io.FileReader;
+// import java.io.IOException;
+// import java.sql.Connection;
+// import java.sql.PreparedStatement;
+// import java.sql.ResultSet;
+// import java.sql.SQLException;
+// import java.util.ArrayList;
+// import java.util.Arrays;
+// import java.util.HashMap;
+// import java.util.HashSet;
+// import java.util.List;
+// import java.util.Map;
+// import java.util.Set;
+// import java.util.Vector;
 //
-//import org.apache.commons.io.FileUtils;
-//import org.apache.commons.io.FilenameUtils;
-//import org.apache.logging.log4j.Logger;
+// import org.apache.commons.io.FileUtils;
+// import org.apache.commons.io.FilenameUtils;
+// import org.apache.logging.log4j.Logger;
 //
-//import au.com.bytecode.opencsv.CSVReader;
-//import prerna.ds.r.RSyntaxHelper;
-//import prerna.ds.util.RdbmsQueryBuilder;
-//import prerna.engine.api.IEngine;
-//import prerna.engine.api.IRawSelectWrapper;
-//import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
-//import prerna.nameserver.utility.MasterDatabaseUtility;
-//import prerna.poi.main.helper.XLFileHelper;
-//import prerna.query.querystruct.AbstractQueryStruct;
-//import prerna.query.querystruct.SelectQueryStruct;
-//import prerna.query.querystruct.selectors.QueryColumnSelector;
-//import prerna.query.querystruct.selectors.QueryFunctionHelper;
-//import prerna.query.querystruct.selectors.QueryFunctionSelector;
-//import prerna.rdf.engine.wrappers.WrapperManager;
-//import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-//import prerna.util.Constants;
-//import prerna.util.Utility;
+// import au.com.bytecode.opencsv.CSVReader;
+// import prerna.ds.r.RSyntaxHelper;
+// import prerna.ds.util.RdbmsQueryBuilder;
+// import prerna.engine.api.IEngine;
+// import prerna.engine.api.IRawSelectWrapper;
+// import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+// import prerna.nameserver.utility.MasterDatabaseUtility;
+// import prerna.poi.main.helper.XLFileHelper;
+// import prerna.query.querystruct.AbstractQueryStruct;
+// import prerna.query.querystruct.SelectQueryStruct;
+// import prerna.query.querystruct.selectors.QueryColumnSelector;
+// import prerna.query.querystruct.selectors.QueryFunctionHelper;
+// import prerna.query.querystruct.selectors.QueryFunctionSelector;
+// import prerna.rdf.engine.wrappers.WrapperManager;
+// import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+// import prerna.util.Constants;
+// import prerna.util.Utility;
 //
-//public class Xray {
+// public class Xray {
 //
 //	private static final String STACKTRACE = "StackTrace: ";
 //	public static final String ENGINE_CONCEPT_PROPERTY_DELIMETER = ";";
@@ -67,7 +81,8 @@ package prerna.reactor.algorithms.xray;
 //	public String run(Map config) {
 //		logger.info("Checking if required R packages are installed to run X-ray...");
 //		// packages to compare corpus
-//		String[] packages = new String[] { "textreuse", "RcppProgress", "withr", "NLP", "tidyr", "devtools", "memoise", "digest", "tidyselect", "purrr"};
+//		String[] packages = new String[] { "textreuse", "RcppProgress", "withr", "NLP", "tidyr",
+// "devtools", "memoise", "digest", "tidyselect", "purrr"};
 //		this.rJavaTranslator.checkPackages(packages);
 //		// packages to write corpus files
 //		String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite"};
@@ -113,21 +128,24 @@ package prerna.reactor.algorithms.xray;
 //				String id = connectorData.get("engineId") + "";
 //				engineNameLookup.put(id, MasterDatabaseUtility.getDatabaseAliasForId(id));
 //			} else if (connectorType.equalsIgnoreCase("EXTERNAL")) {
-//				writeExternalToFile(connectorData, dataSelection, dataMode, dataFolder, semanticMode, semanticFolder);
+//				writeExternalToFile(connectorData, dataSelection, dataMode, dataFolder, semanticMode,
+// semanticFolder);
 //			} else if (connectorType.equalsIgnoreCase("FILE")) {
 //				// process csv file reading
 //				String sourceFile = (String) connectorData.get("filePath");
 //				String extension = FilenameUtils.getExtension(sourceFile);
 //				if (extension.equals("csv") || extension.equals("txt")) {
-//					writeCsvToFile(sourceFile, dataSelection, dataMode, dataFolder, semanticMode, semanticFolder);
+//					writeCsvToFile(sourceFile, dataSelection, dataMode, dataFolder, semanticMode,
+// semanticFolder);
 //				} else if (extension.equals("xls") || extension.equals("xlsx")) {
-//					writeExcelToFile(sourceFile, dataSelection, connectorData, dataMode, dataFolder, semanticMode,
+//					writeExcelToFile(sourceFile, dataSelection, connectorData, dataMode, dataFolder,
+// semanticMode,
 //							semanticFolder);
 //				}
 //			}
 //		}
 //		// build instance count data frame to join results
-//		if(this.genCountFrame) { 
+//		if(this.genCountFrame) {
 //			if (!this.engineColumn.isEmpty()) {
 //				this.countDF = "countDF" + Utility.getRandomString(8);
 //				StringBuilder countBuilder = new StringBuilder();
@@ -205,20 +223,27 @@ package prerna.reactor.algorithms.xray;
 //		// Run locality sensitive hashing to generate matches
 //		String lookupFrame = "lookup"+ Utility.getRandomString(8);
 //		// create a lookup table for engineId to engineAlias
-//		rsb.append(lookupFrame + " <- data.frame(engineId = character(), engineName = character(), stringsAsFactors=FALSE);");
+//		rsb.append(lookupFrame + " <- data.frame(engineId = character(), engineName = character(),
+// stringsAsFactors=FALSE);");
 //		int row = 1;
 //		for(String key: engineNameLookup.keySet()){
-//			rsb.append(lookupFrame + "[" + row + ", ]<-c(\"" + key + "\",\"" + engineNameLookup.get(key) + "\");");
+//			rsb.append(lookupFrame + "[" + row + ", ]<-c(\"" + key + "\",\"" + engineNameLookup.get(key) +
+// "\");");
 //			row++;
 //		}
 //		if (dataMode) {
-//			rsb.append(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + dataFolder + "\", " + nMinhash
+//			rsb.append(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + dataFolder + "\", " +
+// nMinhash
 //					+ ", " + nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
 //					+ ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchSameDB.toString().toUpperCase()
 //					+ ", \"" + outputXrayDataFolder + "\");");
 //
-//			rsb.append(rFrameName + " <-merge(" + rFrameName + "," + lookupFrame + ", by.x=\"Source_Database_Id\", by.y=\"engineId\");colnames(" + rFrameName + ")[13] <- \"Source_Database\";");
-//			rsb.append(rFrameName + " <-merge(" + rFrameName + "," + lookupFrame +", by.x=\"Target_Database_Id\", by.y=\"engineId\");colnames(" + rFrameName + ")[14] <- \"Target_Database\";");
+//			rsb.append(rFrameName + " <-merge(" + rFrameName + "," + lookupFrame + ",
+// by.x=\"Source_Database_Id\", by.y=\"engineId\");colnames(" + rFrameName + ")[13] <-
+// \"Source_Database\";");
+//			rsb.append(rFrameName + " <-merge(" + rFrameName + "," + lookupFrame +",
+// by.x=\"Target_Database_Id\", by.y=\"engineId\");colnames(" + rFrameName + ")[14] <-
+// \"Target_Database\";");
 //		}
 //		this.logger.info("Comparing data from datasources for X-ray data mode...");
 //		this.rJavaTranslator.runR(rsb.toString());
@@ -233,23 +258,30 @@ package prerna.reactor.algorithms.xray;
 //			rsb.append(semanticComparisonFrame + " <- data.frame();");
 //			String semanticOutputFolder = baseMatchingFolder + "\\Temp\\semantic";
 //			semanticOutputFolder = semanticOutputFolder.replace("\\", "/");
-//			rsb.append(semanticComparisonFrame + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + semanticFolder + "\", "
+//			rsb.append(semanticComparisonFrame + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" +
+// semanticFolder + "\", "
 //					+ nMinhash + ", " + nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
 //					+ ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchSameDB.toString().toUpperCase()
 //					+ ", \"" + semanticOutputFolder + "\");");
-//			rsb.append(semanticComparisonFrame + " <-merge(" + semanticComparisonFrame + "," + lookupFrame + ", by.x=\"Source_Database_Id\", by.y=\"engineId\");colnames(" + semanticComparisonFrame + ")[13] <- \"Source_Database\";");
-//			rsb.append(semanticComparisonFrame + " <-merge(" + semanticComparisonFrame + "," + lookupFrame +", by.x=\"Target_Database_Id\", by.y=\"engineId\");colnames(" + semanticComparisonFrame + ")[14] <- \"Target_Database\";");
+//			rsb.append(semanticComparisonFrame + " <-merge(" + semanticComparisonFrame + "," + lookupFrame
+// + ", by.x=\"Source_Database_Id\", by.y=\"engineId\");colnames(" + semanticComparisonFrame +
+// ")[13] <- \"Source_Database\";");
+//			rsb.append(semanticComparisonFrame + " <-merge(" + semanticComparisonFrame + "," + lookupFrame
+// +", by.x=\"Target_Database_Id\", by.y=\"engineId\");colnames(" + semanticComparisonFrame + ")[14]
+// <- \"Target_Database\";");
 //			// join data xray df with semantic xray df if dataComparison frame
 //			// was created
 //			if (dataMode) {
 //				String mergeRScriptPath = baseMatchingFolder + "\\merge.r";
 //				mergeRScriptPath = mergeRScriptPath.replace("\\", "/");
 //				rsb.append("source(\"" + mergeRScriptPath + "\");");
-//				rsb.append(rFrameName + " <- xray_merge(" + rFrameName + ", " + semanticComparisonFrame + ");");
+//				rsb.append(rFrameName + " <- xray_merge(" + rFrameName + ", " + semanticComparisonFrame +
+// ");");
 //			} else {
 //				rsb.append(rFrameName + " <-" + semanticComparisonFrame + ";");
 //				// if it is only semantic score renmae score header to semnatic score
-//				rsb.append("names(" + rFrameName + ")[names(" + rFrameName + ") == 'Score'] <- 'Semantic_Score';");
+//				rsb.append("names(" + rFrameName + ")[names(" + rFrameName + ") == 'Score'] <-
+// 'Semantic_Score';");
 //
 //			}
 //			this.logger.info("Comparing data from datasources for X-ray semantic mode...");
@@ -279,7 +311,7 @@ package prerna.reactor.algorithms.xray;
 //	/**
 //	 * Encrypts data from an excel file to files named sheetName;column.txt for
 //	 * the selected columns
-//	 * 
+//	 *
 //	 * @param excelFile
 //	 *            the location of the excelFile
 //	 * @param dataSelection
@@ -295,7 +327,8 @@ package prerna.reactor.algorithms.xray;
 //	 *            the location where data from semantic mode is written to
 //	 */
 //	private void writeExcelToFile(String excelFile, Map<String, Object> dataSelection,
-//			Map<String, Object> connectorData, boolean dataComparison, String dataFolder, boolean semanticMode,
+//			Map<String, Object> connectorData, boolean dataComparison, String dataFolder, boolean
+// semanticMode,
 //			String semanticFolder) {
 //		// parse the excel file
 //		XLFileHelper xl = new XLFileHelper();
@@ -335,7 +368,8 @@ package prerna.reactor.algorithms.xray;
 //				}
 //				String filePath = dataFolder + "\\" + sheetName + ";" + col + ".txt";
 //				filePath = filePath.replace("\\", "/");
-//				this.logger.info("Getting " + Utility.cleanLogString(col) + " from excel sheet: " + sheetName + " for X-ray comparison...");
+//				this.logger.info("Getting " + Utility.cleanLogString(col) + " from excel sheet: " + sheetName
+// + " for X-ray comparison...");
 //				// encode and write to file
 //				encodeInstances(instances, dataComparison, filePath, semanticMode, semanticFolder);
 //			}
@@ -345,7 +379,7 @@ package prerna.reactor.algorithms.xray;
 //	/**
 //	 * Encrypts data from a csv to files named fileName;column.txt for the
 //	 * selected columns
-//	 * 
+//	 *
 //	 * @param csvFile
 //	 *            the location of the csv file
 //	 * @param dataSelection
@@ -360,7 +394,8 @@ package prerna.reactor.algorithms.xray;
 //	 * @param semanticFolder
 //	 *            the location where data from semantic mode is written to
 //	 */
-//	private void writeCsvToFile(String csvFile, Map<String, Object> dataSelection, boolean dataMode, String dataFolder,
+//	private void writeCsvToFile(String csvFile, Map<String, Object> dataSelection, boolean dataMode,
+// String dataFolder,
 //			boolean semanticMode, String semanticFolder) {
 //		String[] csvFileNameArray = csvFile.split("\\\\");
 //		String csvName = csvFileNameArray[csvFileNameArray.length - 1].replace(".csv", "");
@@ -437,7 +472,8 @@ package prerna.reactor.algorithms.xray;
 //					String fileName = dataFolder + "\\" + csvName + ";" + col + ".txt";
 //					fileName = fileName.replace("\\", "/");
 //					// encode data to fileName
-//					this.logger.info("Getting " + Utility.cleanLogString(col) + " from " + csvName + " csv to run xray comparison... ");
+//					this.logger.info("Getting " + Utility.cleanLogString(col) + " from " + csvName + " csv to run
+// xray comparison... ");
 //					encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 //				}
 //			}
@@ -455,7 +491,7 @@ package prerna.reactor.algorithms.xray;
 //	/**
 //	 * Encrypts data from an external engine to files named
 //	 * database;table;column.txt
-//	 * 
+//	 *
 //	 * @param connectorData
 //	 *            used to get the information to connect to the external db from
 //	 *            the xray config File
@@ -471,7 +507,8 @@ package prerna.reactor.algorithms.xray;
 //	 * @param semanticFolder
 //	 *            the location where data from semantic mode is written to
 //	 */
-//	private void writeExternalToFile(Map<String, Object> connectorData, Map<String, Object> dataSelection,
+//	private void writeExternalToFile(Map<String, Object> connectorData, Map<String, Object>
+// dataSelection,
 //			boolean dataMode, String dataFolder, boolean semanticMode, String semanticFolder) {
 //		// get external database connection information
 //		String connectionUrl = (String) connectorData.get("connectionString");
@@ -484,11 +521,13 @@ package prerna.reactor.algorithms.xray;
 //		String type = (String) connectorData.get("type");
 //		Connection con = null;
 //		try {
-//			con = RdbmsConnectionHelper.buildConnection(type, host, port, username, password, schema, null);
+//			con = RdbmsConnectionHelper.buildConnection(type, host, port, username, password, schema,
+// null);
 //		} catch (SQLException e1) {
 //			throw new IllegalArgumentException("Invalid connection");
 //		}
-//		this.logger.info("Querying data from external database " + newDBName + " for X-ray comparison...");
+//		this.logger.info("Querying data from external database " + newDBName + " for X-ray
+// comparison...");
 //		// loop through tables within a database
 //		for (String table : dataSelection.keySet()) {
 //			Map<String, Object> allColumns = (Map<String, Object>) dataSelection.get(table);
@@ -525,7 +564,8 @@ package prerna.reactor.algorithms.xray;
 //							logger.error(STACKTRACE, e);
 //						}
 //						// encode and write to file
-//						this.logger.info("Querying " + column + " from " + Utility.cleanLogString(table) + " in " + newDBName + " for X-ray comparison...");
+//						this.logger.info("Querying " + column + " from " + Utility.cleanLogString(table) + " in " +
+// newDBName + " for X-ray comparison...");
 //						encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 //					} catch (SQLException e) {
 //						logger.error(STACKTRACE, e);
@@ -543,7 +583,7 @@ package prerna.reactor.algorithms.xray;
 //	/**
 //	 * Encrypts data from a local engine to files named
 //	 * database;table;column.txt for the selected columns
-//	 * 
+//	 *
 //	 * @param connectorData
 //	 *            used to get the engineName to connect to the local db from the
 //	 *            xray config File
@@ -559,7 +599,8 @@ package prerna.reactor.algorithms.xray;
 //	 * @param semanticFolder
 //	 *            the location where data from semantic mode is written to
 //	 */
-//	private void writeLocalEngineToFile(Map<String, Object> connectorData, Map<String, Object> dataSelection,
+//	private void writeLocalEngineToFile(Map<String, Object> connectorData, Map<String, Object>
+// dataSelection,
 //			boolean dataMode, String dataFolder, boolean semanticMode, String semanticFolder) {
 //		String engineID = (String) connectorData.get("engineId");
 //		IEngine engine = Utility.getEngine(engineID);
@@ -606,7 +647,8 @@ package prerna.reactor.algorithms.xray;
 //									iterator.cleanUp();
 //								}
 //							}
-//							this.logger.info("Querying table " + Utility.cleanLogString(table) + " from " + engineName + " for X-ray comparison");
+//							this.logger.info("Querying table " + Utility.cleanLogString(table) + " from " + engineName
+// + " for X-ray comparison");
 //							// encode and write to file
 //							encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 //						}
@@ -626,7 +668,7 @@ package prerna.reactor.algorithms.xray;
 //							sqs.addSelector(table, column);
 //							sqs.setDistinct(true);
 //
-//							List<Object> instances = new ArrayList<>(); 
+//							List<Object> instances = new ArrayList<>();
 //							IRawSelectWrapper iterator = null;
 //							try {
 //								iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
@@ -640,7 +682,8 @@ package prerna.reactor.algorithms.xray;
 //									iterator.cleanUp();
 //								}
 //							}
-//							this.logger.info("Querying " + column + " from " + Utility.cleanLogString(table) + " in " + engineName + " for X-ray comparison");
+//							this.logger.info("Querying " + column + " from " + Utility.cleanLogString(table) + " in " +
+// engineName + " for X-ray comparison");
 //							// encode and write to file
 //							encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 //						}
@@ -652,7 +695,7 @@ package prerna.reactor.algorithms.xray;
 //
 //	/**
 //	 * Write out instance data to file path specified
-//	 * 
+//	 *
 //	 * @param instances
 //	 *            data from source
 //	 * @param dataMode
@@ -664,16 +707,19 @@ package prerna.reactor.algorithms.xray;
 //	 * @param semanticFolder
 //	 *            output location of wiki header data to compare
 //	 */
-//	private void encodeInstances(List<Object> instances, boolean dataMode, String filePath, boolean semanticMode,
+//	private void encodeInstances(List<Object> instances, boolean dataMode, String filePath, boolean
+// semanticMode,
 //			String semanticFolder) {
 //		if (instances.size() > 1) {
-//			String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite", "textreuse"};
+//			String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite",
+// "textreuse"};
 //
 //			// get script to encode instances
 //			String minHashFilePath = this.baseFolder + "\\R\\AnalyticsRoutineScripts\\encode_instances.R";
 //			minHashFilePath = minHashFilePath.replace("\\", "/");
 //			// script used to get semantic data
-//			String predictColumnFilePath = this.baseFolder + "\\R\\AnalyticsRoutineScripts\\master_concept.R";
+//			String predictColumnFilePath = this.baseFolder +
+// "\\R\\AnalyticsRoutineScripts\\master_concept.R";
 //			predictColumnFilePath = predictColumnFilePath.replace("\\", "/");
 //			// load r library and scripts
 //			StringBuilder rsb = new StringBuilder();
@@ -704,12 +750,15 @@ package prerna.reactor.algorithms.xray;
 //				int numDisplay = 3;
 //				int randomVals = 20;
 //
-//				rsb.append(semanticResults + "<- concept_xray(" + dfName + "," + colSelectString + "," + numDisplay
+//				rsb.append(semanticResults + "<- concept_xray(" + dfName + "," + colSelectString + "," +
+// numDisplay
 //						+ "," + randomVals + ");");
 //				String fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
 //				String fileCon = Utility.getRandomString(8);
-//				writeSemanticResultsToFile.append(fileCon +" <- file(\"" + semanticFolder + "/" + fileName + "\");");
-//				writeSemanticResultsToFile.append("writeLines(" + semanticResults + "$Predicted_Concept, "+fileCon+");");
+//				writeSemanticResultsToFile.append(fileCon +" <- file(\"" + semanticFolder + "/" + fileName +
+// "\");");
+//				writeSemanticResultsToFile.append("writeLines(" + semanticResults + "$Predicted_Concept,
+// "+fileCon+");");
 //				writeSemanticResultsToFile.append("close("+fileCon+");");
 //				writeSemanticResultsToFile.append("rm("+fileCon+");");
 //			}
@@ -719,7 +768,8 @@ package prerna.reactor.algorithms.xray;
 //				rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
 //			}
 //			// clean up r temp variables
-//			rsb.append("rm(" + dfName + ",concept_mgr, concept_xray, encode_instances, get_claims, get_concept, get_wiki_ids, is.letter, most_frequent_concept, span);");
+//			rsb.append("rm(" + dfName + ",concept_mgr, concept_xray, encode_instances, get_claims,
+// get_concept, get_wiki_ids, is.letter, most_frequent_concept, span);");
 //			if (semanticMode) {
 //				rsb.append("rm(" + semanticResults + ");");
 //			}
@@ -730,7 +780,7 @@ package prerna.reactor.algorithms.xray;
 //
 //	/**
 //	 * Used to encode instances from csv or excel file
-//	 * 
+//	 *
 //	 * @param instances
 //	 *            data from source
 //	 * @param dataMode
@@ -742,10 +792,12 @@ package prerna.reactor.algorithms.xray;
 //	 * @param semanticFolder
 //	 *            output location of wiki header data to compare
 //	 */
-//	private void encodeInstances(HashSet<Object> instances, boolean dataMode, String filePath, boolean semanticMode,
+//	private void encodeInstances(HashSet<Object> instances, boolean dataMode, String filePath,
+// boolean semanticMode,
 //			String semanticFolder) {
 //		if (instances.size() > 1) {
-//			String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite", "textreuse"};
+//			String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite",
+// "textreuse"};
 //
 //			String minHashFilePath = this.baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\"
 //					+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.R";
@@ -781,12 +833,15 @@ package prerna.reactor.algorithms.xray;
 //				int numDisplay = 3;
 //				int randomVals = 20;
 //
-//				rsb.append(semanticResults + "<- concept_xray(" + dfName + "," + colSelectString + "," + numDisplay
+//				rsb.append(semanticResults + "<- concept_xray(" + dfName + "," + colSelectString + "," +
+// numDisplay
 //						+ "," + randomVals + ");");
 //				String fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
 //				String fileCon = Utility.getRandomString(8);
-//				writeFrameResultsToFile.append(fileCon + " <- file(\"" + semanticFolder + "/" + fileName + "\");");
-//				writeFrameResultsToFile.append("writeLines(" + semanticResults + "$Predicted_Concept, " + fileCon + ");");
+//				writeFrameResultsToFile.append(fileCon + " <- file(\"" + semanticFolder + "/" + fileName +
+// "\");");
+//				writeFrameResultsToFile.append("writeLines(" + semanticResults + "$Predicted_Concept, " +
+// fileCon + ");");
 //				writeFrameResultsToFile.append("close(" + fileCon + ");");
 //				writeFrameResultsToFile.append("rm(" + fileCon + ")");
 //			}
@@ -795,7 +850,8 @@ package prerna.reactor.algorithms.xray;
 //				rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
 //			}
 //			// clean up r temp variables
-//			rsb.append("rm(" + dfName + ",concept_mgr, concept_xray, encode_instances, get_claims, get_concept, get_wiki_ids, is.letter, most_frequent_concept, span);");
+//			rsb.append("rm(" + dfName + ",concept_mgr, concept_xray, encode_instances, get_claims,
+// get_concept, get_wiki_ids, is.letter, most_frequent_concept, span);");
 //			this.rJavaTranslator.runR(rsb.toString());
 //
 //		}
@@ -803,7 +859,7 @@ package prerna.reactor.algorithms.xray;
 //
 //	/**
 //	 * Get xray param to set data mode
-//	 * 
+//	 *
 //	 * @param parameters
 //	 * @return
 //	 */
@@ -818,7 +874,7 @@ package prerna.reactor.algorithms.xray;
 //
 //	/**
 //	 * Get xray param to set semantic mode
-//	 * 
+//	 *
 //	 * @param parameters
 //	 * @return
 //	 */
@@ -833,7 +889,7 @@ package prerna.reactor.algorithms.xray;
 //
 //	/**
 //	 * Get xray param to match a database to itself
-//	 * 
+//	 *
 //	 * @param parameters
 //	 * @return matchSameDB
 //	 */
@@ -847,7 +903,7 @@ package prerna.reactor.algorithms.xray;
 //
 //	/**
 //	 * Get xray param to set the candidate threshold to match data
-//	 * 
+//	 *
 //	 * @param parameters
 //	 * @return candidateThreshold
 //	 */
@@ -871,7 +927,7 @@ package prerna.reactor.algorithms.xray;
 //
 //	/**
 //	 * Get xray param to get similarity threshold
-//	 * 
+//	 *
 //	 * @param parameters
 //	 * @return
 //	 */
@@ -896,7 +952,7 @@ package prerna.reactor.algorithms.xray;
 //	/**
 //	 * Get Local engine instance and save to lists to write to R dataframe if
 //	 * xray generateCountFrame is enabled
-//	 * 
+//	 *
 //	 * @param engine
 //	 * @param concept
 //	 * @param prop
@@ -904,7 +960,8 @@ package prerna.reactor.algorithms.xray;
 //	 * @param distinct
 //	 * @return
 //	 */
-//	private void getLocalEngineInstanceCount(IEngine engine, String concept, String prop, String functionName, boolean distinct) {
+//	private void getLocalEngineInstanceCount(IEngine engine, String concept, String prop, String
+// functionName, boolean distinct) {
 //		if (this.genCountFrame) {
 //			SelectQueryStruct qs2 = new SelectQueryStruct();
 //			{
@@ -961,4 +1018,4 @@ package prerna.reactor.algorithms.xray;
 //	public Set<String> getEngineList() {
 //		return this.engineList;
 //	}
-//}
+// }

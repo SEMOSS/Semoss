@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.ds.r.igraph;
 
 import java.io.BufferedWriter;
@@ -8,9 +22,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.crypto.Cipher;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.cache.ICache;
@@ -21,365 +35,412 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.util.Utility;
 import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import prerna.util.Utility;
 
 public class RiGraph extends AbstractTableDataFrame {
 
-	private static final Logger classLogger = LogManager.getLogger(RiGraph.class);
+  private static final Logger classLogger = LogManager.getLogger(RiGraph.class);
 
-	public static final String DATA_MAKER_NAME = "RiGraph";
-	
-	private String graphName = "";
-	private transient AbstractRJavaTranslator rJavaTranslator;
+  public static final String DATA_MAKER_NAME = "RiGraph";
 
-	public RiGraph() {
-		// create a random var name
-		this(Utility.getRandomString(8));
-	}
-	
-	public RiGraph(String varName) {
-		this.graphName = varName;
-	}
-	
-	public RiGraph(String varName, AbstractRJavaTranslator rJavaTranslator) {
-		this.graphName = varName;
-		setRJavaTranslator(rJavaTranslator);
-	}
-	
-	public void setRJavaTranslator(AbstractRJavaTranslator rJavaTranslator) {
-		this.rJavaTranslator = rJavaTranslator;
-		this.rJavaTranslator.startR();
-		this.rJavaTranslator.executeEmptyR("library(igraph)");
-		this.rJavaTranslator.executeEmptyR(this.graphName + "<- make_empty_graph()");
-	}
-	
-	@Override
-	public boolean isEmpty() {
-		return isEmpty(this.graphName);
-	}
-	
-	private boolean isEmpty(String script) {
-		int size = rJavaTranslator.getInt("length(as_ids(" + script + "))");
-		if(size == 0) {
-			return true;
-		}
-		return false;
-	}
+  private String graphName = "";
+  private transient AbstractRJavaTranslator rJavaTranslator;
 
-	private void addRelationship(Iterator<IHeadersDataRow> it, Map<Integer, Set<Integer>> cardinality) {
-		boolean hasRel = false;
+  public RiGraph() {
+    // create a random var name
+    this(Utility.getRandomString(8));
+  }
 
-		// we want to add everything in one go
-		// so we will make a file with the script
-		// and execute a single command to execute
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
+  public RiGraph(String varName) {
+    this.graphName = varName;
+  }
 
-		String insightCacheDir = Utility.getInsightCacheDir();
-		String csvCache = Utility.getCsvInsightCacheDir();
-		String path = insightCacheDir + "/" + csvCache + "/" + Utility.getRandomString(10) + ".r";
-		boolean isError = false;
-		try {
-			writer = new FileWriter(path);
-			bufferedWriter = new BufferedWriter(writer);
-		} catch (IOException ex) {
-			isError = true;
-			throw new IllegalArgumentException("Unable to write to file to import igraph");
-		} finally {
-			if(isError) {
-				cleanUpWriters(writer, bufferedWriter);
-			}
-		}
+  public RiGraph(String varName, AbstractRJavaTranslator rJavaTranslator) {
+    this.graphName = varName;
+    setRJavaTranslator(rJavaTranslator);
+  }
 
-		try {
-			while(it.hasNext()) {
-				StringBuilder rScriptBuilder = new StringBuilder();
+  public void setRJavaTranslator(AbstractRJavaTranslator rJavaTranslator) {
+    this.rJavaTranslator = rJavaTranslator;
+    this.rJavaTranslator.startR();
+    this.rJavaTranslator.executeEmptyR("library(igraph)");
+    this.rJavaTranslator.executeEmptyR(this.graphName + "<- make_empty_graph()");
+  }
 
-				IHeadersDataRow nextRow = it.next();
-				String[] headers = nextRow.getHeaders();
-				Object[] values = nextRow.getValues();
-				for(Integer startIndex : cardinality.keySet()) {
-					Set<Integer> endIndices = cardinality.get(startIndex);
-					if(endIndices==null) continue;
+  @Override
+  public boolean isEmpty() {
+    return isEmpty(this.graphName);
+  }
 
-					for(Integer endIndex : endIndices) {
-						hasRel = true;
+  private boolean isEmpty(String script) {
+    int size = rJavaTranslator.getInt("length(as_ids(" + script + "))");
+    if (size == 0) {
+      return true;
+    }
+    return false;
+  }
 
-						//get from vertex
-						String startNode = headers[startIndex];
-						Object startNodeValue = values[startIndex];
-						String startUniqueId = startNode + ":" + startNodeValue;
-						rScriptBuilder.append(upsertVertexSyntax(startUniqueId, startNode, startNodeValue));
+  private void addRelationship(
+      Iterator<IHeadersDataRow> it, Map<Integer, Set<Integer>> cardinality) {
+    boolean hasRel = false;
 
-						//get to vertex	
-						String endNode = headers[endIndex];
-						Object endNodeValue = values[endIndex];
-						String endUniqueId = endNode + ":" + endNodeValue;
-						rScriptBuilder.append(upsertVertexSyntax(endUniqueId, endNode, endNodeValue));
+    // we want to add everything in one go
+    // so we will make a file with the script
+    // and execute a single command to execute
+    FileWriter writer = null;
+    BufferedWriter bufferedWriter = null;
 
-						rScriptBuilder.append(upsertEdgeSyntax(startUniqueId, endUniqueId));
-					}
-				}
+    String insightCacheDir = Utility.getInsightCacheDir();
+    String csvCache = Utility.getCsvInsightCacheDir();
+    String path = insightCacheDir + "/" + csvCache + "/" + Utility.getRandomString(10) + ".r";
+    boolean isError = false;
+    try {
+      writer = new FileWriter(path);
+      bufferedWriter = new BufferedWriter(writer);
+    } catch (IOException ex) {
+      isError = true;
+      throw new IllegalArgumentException("Unable to write to file to import igraph");
+    } finally {
+      if (isError) {
+        cleanUpWriters(writer, bufferedWriter);
+      }
+    }
 
-				// this is to replace the addRow method which needs to be called on the first iteration
-				// since edges do not exist yet
-				if(!hasRel) {
-					String node = headers[0];
-					Object nodeValue = values[0];
-					String nodeId = node + ":" + nodeValue;
-					rScriptBuilder.append(upsertVertexSyntax(nodeId, node, nodeValue));
-				}
+    try {
+      while (it.hasNext()) {
+        StringBuilder rScriptBuilder = new StringBuilder();
 
-				bufferedWriter.write(rScriptBuilder.toString());
-				bufferedWriter.write("\n");
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			cleanUpWriters(writer, bufferedWriter);
-		}
+        IHeadersDataRow nextRow = it.next();
+        String[] headers = nextRow.getHeaders();
+        Object[] values = nextRow.getValues();
+        for (Integer startIndex : cardinality.keySet()) {
+          Set<Integer> endIndices = cardinality.get(startIndex);
+          if (endIndices == null) continue;
 
-		// execute the script which has all the insertions
-		String script = "source(\"" + path.replace("\\", "/") + "\")";
-		this.rJavaTranslator.executeEmptyR(script);
-		ICache.deleteFile(new File(path));
-	}
-	
-	/**
-	 * Adding this cause this seems to be used a lot
-	 * @param writer
-	 * @param bufferedWriter
-	 */
-	private void cleanUpWriters(FileWriter writer, BufferedWriter bufferedWriter) {
-		try {
-			if(bufferedWriter != null) {
-				bufferedWriter.close();
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		try {
-			if(writer != null) {
-				writer.close();
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
+          for (Integer endIndex : endIndices) {
+            hasRel = true;
 
-	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality) {
-		boolean hasRel = false;
-		
-		// we want to add everything in one go
-		StringBuilder rScriptBuilder = new StringBuilder();
-		for(Integer startIndex : cardinality.keySet()) {
-			Set<Integer> endIndices = cardinality.get(startIndex);
-			if(endIndices==null) continue;
-			
-			for(Integer endIndex : endIndices) {
-				hasRel = true;
-				
-				// get from vertex
-				String startNode = headers[startIndex];
-				Object startNodeValue = values[startIndex];
-				String startUniqueId = startNode + ":" + startNodeValue;
-				rScriptBuilder.append(upsertVertexSyntax(startUniqueId, startNode, startNodeValue));
-				
-				// get to vertex	
-				String endNode = headers[endIndex];
-				Object endNodeValue = values[endIndex];
-				String endUniqueId = endNode + ":" + endNodeValue;
-				rScriptBuilder.append(upsertVertexSyntax(endUniqueId, endNode, endNodeValue));
-				
-				// add the edge between the nodes
-				rScriptBuilder.append(upsertEdgeSyntax(startUniqueId, endUniqueId));
-			}
-		}
-		
-		// if we have a relationship, execute the r script
-		// else we just need to insert a single node
-		if(hasRel) {
-			this.rJavaTranslator.executeEmptyR(rScriptBuilder.toString());
-		} else {
-			String node = headers[0];
-			Object nodeValue = values[0];
-			String nodeId = node + ":" + nodeValue;
-			this.rJavaTranslator.executeEmptyR(upsertVertexSyntax(nodeId, node, nodeValue));
-		}
-	}
-	
-	/**
-	 * Get the conditional string syntax to insert a vertex
-	 * @param uniqueId
-	 * @param nodeType
-	 * @param nodeValue
-	 * @return
-	 */
-	private String upsertVertexSyntax(String uniqueId, String nodeType, Object nodeValue) {
-		String addScript = this.graphName + " <- add_vertices(" + this.graphName + ", 1, "
-				+ "name=\"" + uniqueId + "\", "
-				+ "value=\"" + nodeValue + "\", "
-				+ "type=\"" + nodeType + "\")";
-		
-		// script includes an if statement so we do not add the same vertex multiple times
-		return "if(length(as_ids(V(" + this.graphName + ")[vertex_attr(" + this.graphName + ", \"name\") == \"" + uniqueId+ "\"])) == 0) "
-				+ "{" + addScript + "};";
-	}
-	
-	/**
-	 * Get the conditional string syntax to add an edge
-	 * @param fromVertex
-	 * @param toVertex
-	 * @return
-	 */
-	private String upsertEdgeSyntax(String fromVertex, String toVertex) {
-		String uniqueId = fromVertex + ":" + toVertex;
-		String addScript = this.graphName + " <- add_edges(" + this.graphName + ", "
-				+ "c(\"" + fromVertex + "\", \"" + toVertex + "\"), "
-				+ "name=\"" + uniqueId + "\")";
-		
-		// script includes an if statement so we do not add the same edge multiple times
-		return "if(length(as_ids(E(" + this.graphName + ")[edge_attr(" + this.graphName + ", \"name\") == \"" + uniqueId+ "\"])) == 0)"
-				+ "{" + addScript + "};";
-	}
+            // get from vertex
+            String startNode = headers[startIndex];
+            Object startNodeValue = values[startIndex];
+            String startUniqueId = startNode + ":" + startNodeValue;
+            rScriptBuilder.append(upsertVertexSyntax(startUniqueId, startNode, startNodeValue));
 
-	@Override
-	public void removeColumn(String columnHeader) {
-		String deleteColScript = this.graphName + " <- delete_vertices(" + this.graphName + ", V(" + this.graphName + ")[vertex_attr("
-			+ this.graphName + ", \"type\") == \"" + columnHeader + "\"])";
-		this.rJavaTranslator.executeEmptyR(deleteColScript);
-	}
-	
-	@Override
-	public long size(String tableName) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	@Override
-	public DataFrameTypeEnum getFrameType() {
-		return DataFrameTypeEnum.IGRAPH;
-	}
-	
-	@Override
-	public String getDataMakerName() {
-		return DATA_MAKER_NAME;
-	}
-	
-	/*
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadDIHelper();
-		String engineProp = "C:\\workspace2\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-		coreEngine.open(engineProp);
-		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
-		
-		engineProp = "C:\\workspace2\\Semoss_Dev\\db\\Movie_RDBMS.smss";
-		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineId("Movie_RDBMS");
-		coreEngine.open(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
-		
-		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(coreEngine, "Select Title, Movie_Budget from Title");
-		
-		
-		Insight in = new Insight();
-		AbstractRJavaTranslator translator = RJavaTranslatorFactory.getRJavaTranslator(in, LogManager.getLogger(RiGraph.class.getName()));
-		RiGraph g = new RiGraph("g", translator);
-		
-		Map<Integer, Set<Integer>> cardinality = new Hashtable<Integer, Set<Integer>>();
-		Set<Integer> s = new HashSet<Integer>();
-		s.add(1);
-		cardinality.put(0, s);
-		
-		long start = System.currentTimeMillis();
-		g.addRelationship(it, cardinality);
-		long end = System.currentTimeMillis();
-		System.out.println("Time to insert = " + (end-start) + "ms");
-		
-		Object o = translator.executeR("V(g)");
-		System.out.println(o);
-		o = translator.executeR("E(g)");
-		System.out.println(o);
-	}
-	*/
-	 
-	@Override
-	public Double getMax(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+            // get to vertex
+            String endNode = headers[endIndex];
+            Object endNodeValue = values[endIndex];
+            String endUniqueId = endNode + ":" + endNodeValue;
+            rScriptBuilder.append(upsertVertexSyntax(endUniqueId, endNode, endNodeValue));
 
-	@Override
-	public Double getMin(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+            rScriptBuilder.append(upsertEdgeSyntax(startUniqueId, endUniqueId));
+          }
+        }
 
-	@Override
-	public IRawSelectWrapper query(String query) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+        // this is to replace the addRow method which needs to be called on the first iteration
+        // since edges do not exist yet
+        if (!hasRel) {
+          String node = headers[0];
+          Object nodeValue = values[0];
+          String nodeId = node + ":" + nodeValue;
+          rScriptBuilder.append(upsertVertexSyntax(nodeId, node, nodeValue));
+        }
 
-	@Override
-	public IRawSelectWrapper query(SelectQueryStruct qs) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IQueryInterpreter getQueryInterpreter() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public CachePropFileFrameObject save(String fileName, Cipher cipher) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public void open(CachePropFileFrameObject cf, Cipher cipher) {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
-	public void close() {
-		// TODO Auto-generated method stub
-		
-	}
+        bufferedWriter.write(rScriptBuilder.toString());
+        bufferedWriter.write("\n");
+      }
+    } catch (IOException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    } finally {
+      cleanUpWriters(writer, bufferedWriter);
+    }
 
-	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String uniqueHeaderName, List<String> attributeUniqueHeaderName) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    // execute the script which has all the insertions
+    String script = "source(\"" + path.replace("\\", "/") + "\")";
+    this.rJavaTranslator.executeEmptyR(script);
+    ICache.deleteFile(new File(path));
+  }
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
+  /**
+   * Adding this cause this seems to be used a lot
+   *
+   * @param writer
+   * @param bufferedWriter
+   */
+  private void cleanUpWriters(FileWriter writer, BufferedWriter bufferedWriter) {
+    try {
+      if (bufferedWriter != null) {
+        bufferedWriter.close();
+      }
+    } catch (IOException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+    try {
+      if (writer != null) {
+        writer.close();
+      }
+    } catch (IOException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+  }
 
-	/*
-	 * Deprecated DataMakerComponent stuff
-	 */	
-	
-	@Override
-	@Deprecated
-	public void processDataMakerComponent(DataMakerComponent component) {
-		// TODO Auto-generated method stub
-	}
-	
-	@Override
-	@Deprecated
-	public void addRow(Object[] cleanCells, String[] headers) {
-		// TODO Auto-generated method stub
-	}
+  public void addRelationship(
+      String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality) {
+    boolean hasRel = false;
 
+    // we want to add everything in one go
+    StringBuilder rScriptBuilder = new StringBuilder();
+    for (Integer startIndex : cardinality.keySet()) {
+      Set<Integer> endIndices = cardinality.get(startIndex);
+      if (endIndices == null) continue;
+
+      for (Integer endIndex : endIndices) {
+        hasRel = true;
+
+        // get from vertex
+        String startNode = headers[startIndex];
+        Object startNodeValue = values[startIndex];
+        String startUniqueId = startNode + ":" + startNodeValue;
+        rScriptBuilder.append(upsertVertexSyntax(startUniqueId, startNode, startNodeValue));
+
+        // get to vertex
+        String endNode = headers[endIndex];
+        Object endNodeValue = values[endIndex];
+        String endUniqueId = endNode + ":" + endNodeValue;
+        rScriptBuilder.append(upsertVertexSyntax(endUniqueId, endNode, endNodeValue));
+
+        // add the edge between the nodes
+        rScriptBuilder.append(upsertEdgeSyntax(startUniqueId, endUniqueId));
+      }
+    }
+
+    // if we have a relationship, execute the r script
+    // else we just need to insert a single node
+    if (hasRel) {
+      this.rJavaTranslator.executeEmptyR(rScriptBuilder.toString());
+    } else {
+      String node = headers[0];
+      Object nodeValue = values[0];
+      String nodeId = node + ":" + nodeValue;
+      this.rJavaTranslator.executeEmptyR(upsertVertexSyntax(nodeId, node, nodeValue));
+    }
+  }
+
+  /**
+   * Get the conditional string syntax to insert a vertex
+   *
+   * @param uniqueId
+   * @param nodeType
+   * @param nodeValue
+   * @return
+   */
+  private String upsertVertexSyntax(String uniqueId, String nodeType, Object nodeValue) {
+    String addScript =
+        this.graphName
+            + " <- add_vertices("
+            + this.graphName
+            + ", 1, "
+            + "name=\""
+            + uniqueId
+            + "\", "
+            + "value=\""
+            + nodeValue
+            + "\", "
+            + "type=\""
+            + nodeType
+            + "\")";
+
+    // script includes an if statement so we do not add the same vertex multiple times
+    return "if(length(as_ids(V("
+        + this.graphName
+        + ")[vertex_attr("
+        + this.graphName
+        + ", \"name\") == \""
+        + uniqueId
+        + "\"])) == 0) "
+        + "{"
+        + addScript
+        + "};";
+  }
+
+  /**
+   * Get the conditional string syntax to add an edge
+   *
+   * @param fromVertex
+   * @param toVertex
+   * @return
+   */
+  private String upsertEdgeSyntax(String fromVertex, String toVertex) {
+    String uniqueId = fromVertex + ":" + toVertex;
+    String addScript =
+        this.graphName
+            + " <- add_edges("
+            + this.graphName
+            + ", "
+            + "c(\""
+            + fromVertex
+            + "\", \""
+            + toVertex
+            + "\"), "
+            + "name=\""
+            + uniqueId
+            + "\")";
+
+    // script includes an if statement so we do not add the same edge multiple times
+    return "if(length(as_ids(E("
+        + this.graphName
+        + ")[edge_attr("
+        + this.graphName
+        + ", \"name\") == \""
+        + uniqueId
+        + "\"])) == 0)"
+        + "{"
+        + addScript
+        + "};";
+  }
+
+  @Override
+  public void removeColumn(String columnHeader) {
+    String deleteColScript =
+        this.graphName
+            + " <- delete_vertices("
+            + this.graphName
+            + ", V("
+            + this.graphName
+            + ")[vertex_attr("
+            + this.graphName
+            + ", \"type\") == \""
+            + columnHeader
+            + "\"])";
+    this.rJavaTranslator.executeEmptyR(deleteColScript);
+  }
+
+  @Override
+  public long size(String tableName) {
+    // TODO Auto-generated method stub
+    return 0;
+  }
+
+  @Override
+  public DataFrameTypeEnum getFrameType() {
+    return DataFrameTypeEnum.IGRAPH;
+  }
+
+  @Override
+  public String getDataMakerName() {
+    return DATA_MAKER_NAME;
+  }
+
+  /*
+  public static void main(String[] args) throws Exception {
+  	TestUtilityMethods.loadDIHelper();
+  	String engineProp = "C:\\workspace2\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+  	IEngine coreEngine = new RDBMSNativeEngine();
+  	coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
+  	coreEngine.open(engineProp);
+  	DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
+
+  	engineProp = "C:\\workspace2\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+  	coreEngine = new RDBMSNativeEngine();
+  	coreEngine.setEngineId("Movie_RDBMS");
+  	coreEngine.open(engineProp);
+  	DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+
+  	Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(coreEngine, "Select Title, Movie_Budget from Title");
+
+
+  	Insight in = new Insight();
+  	AbstractRJavaTranslator translator = RJavaTranslatorFactory.getRJavaTranslator(in, LogManager.getLogger(RiGraph.class.getName()));
+  	RiGraph g = new RiGraph("g", translator);
+
+  	Map<Integer, Set<Integer>> cardinality = new Hashtable<Integer, Set<Integer>>();
+  	Set<Integer> s = new HashSet<Integer>();
+  	s.add(1);
+  	cardinality.put(0, s);
+
+  	long start = System.currentTimeMillis();
+  	g.addRelationship(it, cardinality);
+  	long end = System.currentTimeMillis();
+  	System.out.println("Time to insert = " + (end-start) + "ms");
+
+  	Object o = translator.executeR("V(g)");
+  	System.out.println(o);
+  	o = translator.executeR("E(g)");
+  	System.out.println(o);
+  }
+  */
+
+  @Override
+  public Double getMax(String columnHeader) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Double getMin(String columnHeader) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public IRawSelectWrapper query(String query) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public IRawSelectWrapper query(SelectQueryStruct qs) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public IQueryInterpreter getQueryInterpreter() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public CachePropFileFrameObject save(String fileName, Cipher cipher) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public void open(CachePropFileFrameObject cf, Cipher cipher) {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void close() {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public Iterator<List<Object[]>> scaledUniqueIterator(
+      String uniqueHeaderName, List<String> attributeUniqueHeaderName) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  /*
+   * Deprecated DataMakerComponent stuff
+   */
+
+  @Override
+  @Deprecated
+  public void processDataMakerComponent(DataMakerComponent component) {
+    // TODO Auto-generated method stub
+  }
+
+  @Override
+  @Deprecated
+  public void addRow(Object[] cleanCells, String[] headers) {
+    // TODO Auto-generated method stub
+  }
 }

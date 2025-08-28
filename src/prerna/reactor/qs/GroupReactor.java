@@ -1,8 +1,21 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.qs;
 
 import java.util.List;
 import java.util.Vector;
-
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -16,88 +29,91 @@ import prerna.sablecc2.om.task.TaskUtility;
 
 public class GroupReactor extends AbstractQueryStructReactor {
 
-	public GroupReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
-	}
+  public GroupReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.COLUMNS.getKey()};
+  }
 
-	protected AbstractQueryStruct createQueryStruct() {
-		GenRowStruct qsInputs = this.getCurRow();
-		SelectQueryStruct selectQueryStruct = null;
-		if(qsInputs != null && !qsInputs.isEmpty()) {
-			List<IQuerySelector> groupBySelectors = new Vector<>();
-			for(int selectIndex = 0;selectIndex < qsInputs.size();selectIndex++) {
-				NounMetadata input = qsInputs.getNoun(selectIndex);
-				IQuerySelector selector = getSelector(input);
-				if(selector != null) {
-					groupBySelectors.add(selector);
-				}
-			}
+  protected AbstractQueryStruct createQueryStruct() {
+    GenRowStruct qsInputs = this.getCurRow();
+    SelectQueryStruct selectQueryStruct = null;
+    if (qsInputs != null && !qsInputs.isEmpty()) {
+      List<IQuerySelector> groupBySelectors = new Vector<>();
+      for (int selectIndex = 0; selectIndex < qsInputs.size(); selectIndex++) {
+        NounMetadata input = qsInputs.getNoun(selectIndex);
+        IQuerySelector selector = getSelector(input);
+        if (selector != null) {
+          groupBySelectors.add(selector);
+        }
+      }
 
-			selectQueryStruct = (SelectQueryStruct) qs;
-			selectQueryStruct.mergeGroupBy(groupBySelectors);
-		}
+      selectQueryStruct = (SelectQueryStruct) qs;
+      selectQueryStruct.mergeGroupBy(groupBySelectors);
+    }
 
-		return selectQueryStruct;
-	}
+    return selectQueryStruct;
+  }
 
-	protected IQuerySelector getSelector(NounMetadata input) {
-		PixelDataType nounType = input.getNounType();
-		if(nounType == PixelDataType.QUERY_STRUCT) {
-			// remember, if it is an embedded selector
-			// we return a full QueryStruct even if it has just one selector
-			// inside of it
-			SelectQueryStruct qs = (SelectQueryStruct) input.getValue();
-			List<IQuerySelector> selectors = qs.getSelectors();
-			if(selectors.isEmpty()) {
-				// umm... merge the other QS stuff
-				qs.merge(qs);
-				return null;
-			}
+  protected IQuerySelector getSelector(NounMetadata input) {
+    PixelDataType nounType = input.getNounType();
+    if (nounType == PixelDataType.QUERY_STRUCT) {
+      // remember, if it is an embedded selector
+      // we return a full QueryStruct even if it has just one selector
+      // inside of it
+      SelectQueryStruct qs = (SelectQueryStruct) input.getValue();
+      List<IQuerySelector> selectors = qs.getSelectors();
+      if (selectors.isEmpty()) {
+        // umm... merge the other QS stuff
+        qs.merge(qs);
+        return null;
+      }
 
-			return selectors.get(0);
-		} else if(nounType == PixelDataType.COLUMN) {
-			return (IQuerySelector) input.getValue();
-		} else if(nounType == PixelDataType.FORMATTED_DATA_SET || nounType == PixelDataType.TASK) {
-			Object value = input.getValue();
-			NounMetadata formatData = TaskUtility.getTaskDataScalarElement(value);
-			if(formatData == null) {
-				throw new IllegalArgumentException("Can only handle query data that is a scalar input");
-			} else {
-				Object newValue = formatData.getValue();
-				QueryConstantSelector cSelect = new QueryConstantSelector();
-				cSelect.setConstant(newValue);
-				return cSelect;
-			}
-		}
-		else {
-			// we have a constant...
-			QueryConstantSelector cSelect = new QueryConstantSelector();
-			cSelect.setConstant(input.getValue());
-			return cSelect;
-		}
-	}
+      return selectors.get(0);
+    } else if (nounType == PixelDataType.COLUMN) {
+      return (IQuerySelector) input.getValue();
+    } else if (nounType == PixelDataType.FORMATTED_DATA_SET || nounType == PixelDataType.TASK) {
+      Object value = input.getValue();
+      NounMetadata formatData = TaskUtility.getTaskDataScalarElement(value);
+      if (formatData == null) {
+        throw new IllegalArgumentException("Can only handle query data that is a scalar input");
+      } else {
+        Object newValue = formatData.getValue();
+        QueryConstantSelector cSelect = new QueryConstantSelector();
+        cSelect.setConstant(newValue);
+        return cSelect;
+      }
+    } else {
+      // we have a constant...
+      QueryConstantSelector cSelect = new QueryConstantSelector();
+      cSelect.setConstant(input.getValue());
+      return cSelect;
+    }
+  }
 
-	protected QueryFunctionSelector genFunctionSelector(String functionName, IQuerySelector innerSelector) {
-		return genFunctionSelector(functionName, innerSelector, false);
-	}
+  protected QueryFunctionSelector genFunctionSelector(
+      String functionName, IQuerySelector innerSelector) {
+    return genFunctionSelector(functionName, innerSelector, false);
+  }
 
-	protected QueryFunctionSelector genFunctionSelector(String functionName, IQuerySelector innerSelector, boolean isDistinct) {
-		QueryFunctionSelector newSelector = new QueryFunctionSelector();
-		newSelector.addInnerSelector(innerSelector);
-		newSelector.setFunction(functionName);
-		newSelector.setDistinct(isDistinct);
-		return newSelector;
-	}
+  protected QueryFunctionSelector genFunctionSelector(
+      String functionName, IQuerySelector innerSelector, boolean isDistinct) {
+    QueryFunctionSelector newSelector = new QueryFunctionSelector();
+    newSelector.addInnerSelector(innerSelector);
+    newSelector.setFunction(functionName);
+    newSelector.setDistinct(isDistinct);
+    return newSelector;
+  }
 
-	protected QueryFunctionSelector genFunctionSelector(String functionName, List<IQuerySelector> innerSelectors) {
-		return genFunctionSelector(functionName, innerSelectors, false);
-	}
+  protected QueryFunctionSelector genFunctionSelector(
+      String functionName, List<IQuerySelector> innerSelectors) {
+    return genFunctionSelector(functionName, innerSelectors, false);
+  }
 
-	protected QueryFunctionSelector genFunctionSelector(String functionName, List<IQuerySelector> innerSelectors, boolean isDistinct) {
-		QueryFunctionSelector newSelector = new QueryFunctionSelector();
-		newSelector.setInnerSelector(innerSelectors);
-		newSelector.setFunction(functionName);
-		newSelector.setDistinct(isDistinct);
-		return newSelector;
-	}
+  protected QueryFunctionSelector genFunctionSelector(
+      String functionName, List<IQuerySelector> innerSelectors, boolean isDistinct) {
+    QueryFunctionSelector newSelector = new QueryFunctionSelector();
+    newSelector.setInnerSelector(innerSelectors);
+    newSelector.setFunction(functionName);
+    newSelector.setDistinct(isDistinct);
+    return newSelector;
+  }
 }

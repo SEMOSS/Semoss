@@ -1,8 +1,21 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.panel;
 
 import java.util.Random;
 import java.util.Set;
-
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
@@ -13,41 +26,41 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AddPanelReactor extends AbstractReactor {
-	
-	private static Random rand = new Random();
-	
-	public AddPanelReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.SHEET.getKey()};
-	}
 
-	@Override
-	public NounMetadata execute() {
-		// first input is the name of the panel
-		String panelId = null;
-		organizeKeys();
-		if(this.keyValue.isEmpty()) {
-			// need to make sure the panel doesn't already exist
-			panelId = rand.nextInt(5000) + "";
-			Set<String> existingPanelIds = this.insight.getInsightPanels().keySet();
-			while(existingPanelIds.contains(panelId)) {
-				panelId = rand.nextInt(5000) + "";
-			}
-		} else {
-			panelId = this.keyValue.get(this.keysToGet[0]);
-		}
-		String sheetId = this.keyValue.get(this.keysToGet[1]);
-		if(sheetId == null) {
-			sheetId = Insight.DEFAULT_SHEET_ID;
-		}
-		if(this.insight.getInsightSheet(sheetId) == null) {
-			// need to ad a new insight sheet
-			InsightSheet newSheet = new InsightSheet(sheetId);
-			this.insight.addNewInsightSheet(newSheet);
-		}
-		InsightPanel newPanel = new InsightPanel(panelId, sheetId);
-		this.insight.addNewInsightPanel(newPanel);
-		NounMetadata noun = new NounMetadata(newPanel, PixelDataType.PANEL, PixelOperationType.PANEL_OPEN);
-		return noun;
-	}
+  private static Random rand = new Random();
 
+  public AddPanelReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.SHEET.getKey()};
+  }
+
+  @Override
+  public NounMetadata execute() {
+    // first input is the name of the panel
+    String panelId = null;
+    organizeKeys();
+    if (this.keyValue.isEmpty()) {
+      // need to make sure the panel doesn't already exist
+      panelId = rand.nextInt(5000) + "";
+      Set<String> existingPanelIds = this.insight.getInsightPanels().keySet();
+      while (existingPanelIds.contains(panelId)) {
+        panelId = rand.nextInt(5000) + "";
+      }
+    } else {
+      panelId = this.keyValue.get(this.keysToGet[0]);
+    }
+    String sheetId = this.keyValue.get(this.keysToGet[1]);
+    if (sheetId == null) {
+      sheetId = Insight.DEFAULT_SHEET_ID;
+    }
+    if (this.insight.getInsightSheet(sheetId) == null) {
+      // need to ad a new insight sheet
+      InsightSheet newSheet = new InsightSheet(sheetId);
+      this.insight.addNewInsightSheet(newSheet);
+    }
+    InsightPanel newPanel = new InsightPanel(panelId, sheetId);
+    this.insight.addNewInsightPanel(newPanel);
+    NounMetadata noun =
+        new NounMetadata(newPanel, PixelDataType.PANEL, PixelOperationType.PANEL_OPEN);
+    return noun;
+  }
 }

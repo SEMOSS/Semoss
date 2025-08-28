@@ -1,5 +1,18 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.test;
-
 
 import prerna.ds.r.RDataTable;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
@@ -11,88 +24,95 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class LSASpaceColumnLearnedReactor extends AbstractRFrameReactor {
 
-	/**
-	 * This reactor creates an LSI space based on a column selected from the frame
-	 * The inputs to the reactor are: 
-	 * 1) the column to create the LSI Space
-	 */
-	
-	public LSASpaceColumnLearnedReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.COLUMN.getKey()};
-	}
+  /**
+   * This reactor creates an LSI space based on a column selected from the frame The inputs to the
+   * reactor are: 1) the column to create the LSI Space
+   */
+  public LSASpaceColumnLearnedReactor() {
+    this.keysToGet =
+        new String[] {ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.COLUMN.getKey()};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		// initialize the rJavaTranslator
-		init();
-		String[] packages = new String[] { "LSAfun", "text2vec"};
-		this.rJavaTranslator.checkPackages(packages);
-		// get frame
-		RDataTable frame = (RDataTable) getFrame();
+  @Override
+  public NounMetadata execute() {
+    // initialize the rJavaTranslator
+    init();
+    String[] packages = new String[] {"LSAfun", "text2vec"};
+    this.rJavaTranslator.checkPackages(packages);
+    // get frame
+    RDataTable frame = (RDataTable) getFrame();
 
-		// get frame name
-		String table = frame.getName();
-		
-		// create a string builder to keep track of the scripts to execute
-		StringBuilder sb = new StringBuilder();
-		String rScriptPath = getBaseFolder() + "\\R\\UserScripts\\lsi_lookup_learned.r"; 
-		rScriptPath = rScriptPath.replace("\\", "/");
-		sb.append("library(lsa);");
+    // get frame name
+    String table = frame.getName();
 
-		sb.append("source(\"" + rScriptPath + "\");");
+    // create a string builder to keep track of the scripts to execute
+    StringBuilder sb = new StringBuilder();
+    String rScriptPath = getBaseFolder() + "\\R\\UserScripts\\lsi_lookup_learned.r";
+    rScriptPath = rScriptPath.replace("\\", "/");
+    sb.append("library(lsa);");
 
-		// get inputs
-		String lsaCol = getLSAColumn();
-		String categoryCol = getCategoryColumn();
-		// separate the column name from the frame name
-		if (lsaCol.contains("__")) {
-			lsaCol = lsaCol.split("__")[1];
-		} 
-		 
-		String createLSA = "lookup_tbl<-data.frame((gsub(\"_\",\" \"," + table + "[," + lsaCol + "])),(gsub(\"_\",\" \"," + table + "[," + categoryCol + "])));";
-		
-		sb.append(createLSA);
-		sb.append("lsi_mgr(lookup_tbl,0.8,\"lsalearned\");");
-	sb.append("LSAspace <- readRDS(\"lsalearned.rds\");");
-		//execute the r scripts
-		if (sb.length() > 0) {
-			this.rJavaTranslator.runR(sb.toString());
-		}
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-	}
-	
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	
-	private String getLSAColumn() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			// first noun will be the column to generate LSA
-			NounMetadata noun1 = inputsGRS.getNoun(0);
-			String fullLSAColumn = noun1.getValue() + "";
-			if (fullLSAColumn.length() == 0) {
-				throw new IllegalArgumentException("Need to define column to create an LSA Space");
-			}
-			return fullLSAColumn;
-		}
-		throw new IllegalArgumentException("Need to define column to create an LSA Space");
-	}
-	
-	private String getCategoryColumn() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			// first noun will be the column to generate LSA
-			NounMetadata noun1 = inputsGRS.getNoun(1);
-			String fullCategoryColumn = noun1.getValue() + "";
-			if (fullCategoryColumn.length() == 0) {
-				throw new IllegalArgumentException("Need to define category column to create an LSA Space");
-			}
-			return fullCategoryColumn;
-		}
-		throw new IllegalArgumentException("Need to define category column to create an LSA Space");
-	}
+    sb.append("source(\"" + rScriptPath + "\");");
 
+    // get inputs
+    String lsaCol = getLSAColumn();
+    String categoryCol = getCategoryColumn();
+    // separate the column name from the frame name
+    if (lsaCol.contains("__")) {
+      lsaCol = lsaCol.split("__")[1];
+    }
+
+    String createLSA =
+        "lookup_tbl<-data.frame((gsub(\"_\",\" \","
+            + table
+            + "[,"
+            + lsaCol
+            + "])),(gsub(\"_\",\" \","
+            + table
+            + "[,"
+            + categoryCol
+            + "])));";
+
+    sb.append(createLSA);
+    sb.append("lsi_mgr(lookup_tbl,0.8,\"lsalearned\");");
+    sb.append("LSAspace <- readRDS(\"lsalearned.rds\");");
+    // execute the r scripts
+    if (sb.length() > 0) {
+      this.rJavaTranslator.runR(sb.toString());
+    }
+    return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  ///////////////////////// GET PIXEL INPUT ////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+
+  private String getLSAColumn() {
+    GenRowStruct inputsGRS = this.getCurRow();
+    if (inputsGRS != null && !inputsGRS.isEmpty()) {
+      // first noun will be the column to generate LSA
+      NounMetadata noun1 = inputsGRS.getNoun(0);
+      String fullLSAColumn = noun1.getValue() + "";
+      if (fullLSAColumn.length() == 0) {
+        throw new IllegalArgumentException("Need to define column to create an LSA Space");
+      }
+      return fullLSAColumn;
+    }
+    throw new IllegalArgumentException("Need to define column to create an LSA Space");
+  }
+
+  private String getCategoryColumn() {
+    GenRowStruct inputsGRS = this.getCurRow();
+    if (inputsGRS != null && !inputsGRS.isEmpty()) {
+      // first noun will be the column to generate LSA
+      NounMetadata noun1 = inputsGRS.getNoun(1);
+      String fullCategoryColumn = noun1.getValue() + "";
+      if (fullCategoryColumn.length() == 0) {
+        throw new IllegalArgumentException("Need to define category column to create an LSA Space");
+      }
+      return fullCategoryColumn;
+    }
+    throw new IllegalArgumentException("Need to define category column to create an LSA Space");
+  }
 }

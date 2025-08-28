@@ -1,13 +1,25 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.utils;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -17,69 +29,70 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class BQReactor extends AbstractReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(BQReactor.class);
-	
-	public BQReactor() {
-		this.keysToGet = new String[]{"fancy"};
-	}
 
-	@Override
-	public NounMetadata execute() {
+  private static final Logger classLogger = LogManager.getLogger(BQReactor.class);
 
-		organizeKeys();
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
-		Connection conn = null;
-		try {
-			conn = engine.makeConnection();
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not make connection to engine.");
-		}
-		
-		String embed = "";
-		Statement stmt = null;
-		try {
-			// check to see if such a fancy name exists
-			stmt = conn.createStatement();
-			String query = "SELECT embed from bitly where fancy='" + this.keyValue.get("fancy") + "'";
-			ResultSet rs = stmt.executeQuery(query);
-			// if there is a has next not sure what
-			
-			if(rs.next())	{
-				embed = Utility.decodeURIComponent(rs.getString(1));
-			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					// TODO Auto-generated catch block
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(engine.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		
-		if(!embed.isEmpty()) {
-			return new NounMetadata(embed, PixelDataType.CONST_STRING);
-		} else {
-			return new NounMetadata("No URL Found for " + this.keyValue.get("fancy"), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-		}
-	}
-	
-	public String getName()
-	{
-		return "bq";
-	}
+  public BQReactor() {
+    this.keysToGet = new String[] {"fancy"};
+  }
 
+  @Override
+  public NounMetadata execute() {
+
+    organizeKeys();
+    RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+    Connection conn = null;
+    try {
+      conn = engine.makeConnection();
+    } catch (SQLException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw new IllegalArgumentException("Could not make connection to engine.");
+    }
+
+    String embed = "";
+    Statement stmt = null;
+    try {
+      // check to see if such a fancy name exists
+      stmt = conn.createStatement();
+      String query = "SELECT embed from bitly where fancy='" + this.keyValue.get("fancy") + "'";
+      ResultSet rs = stmt.executeQuery(query);
+      // if there is a has next not sure what
+
+      if (rs.next()) {
+        embed = Utility.decodeURIComponent(rs.getString(1));
+      }
+    } catch (SQLException e) {
+      // TODO Auto-generated catch block
+      classLogger.error(Constants.STACKTRACE, e);
+    } finally {
+      if (stmt != null) {
+        try {
+          stmt.close();
+        } catch (SQLException e) {
+          // TODO Auto-generated catch block
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+      }
+      if (engine.isConnectionPooling() && conn != null) {
+        try {
+          conn.close();
+        } catch (SQLException e) {
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
+
+    if (!embed.isEmpty()) {
+      return new NounMetadata(embed, PixelDataType.CONST_STRING);
+    } else {
+      return new NounMetadata(
+          "No URL Found for " + this.keyValue.get("fancy"),
+          PixelDataType.CONST_STRING,
+          PixelOperationType.ERROR);
+    }
+  }
+
+  public String getName() {
+    return "bq";
+  }
 }

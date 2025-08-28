@@ -1,105 +1,125 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.scheduler.legacy;
 
 import com.google.gson.annotations.SerializedName;
 
 @Deprecated
 public class OldJobs {
-	@SerializedName("-jobName")
-	private String jobName;
-	@SerializedName("-jobGroup")
-	private String jobGroup;
-	@SerializedName("-jobCronExpression")
-	private String jobCronExpression;
-	@SerializedName("-jobClass")
-	private String jobClass;
-	@SerializedName("-active")
-	private String active;
-	@SerializedName("-userAccess")
-	private String userAccess;
-	@SerializedName("-jobTriggerOnLoad")
-	private String jobTriggerOnLoad;
-	
-	private String pixel;
-	private String parameters;
-	private String hidden;
+  @SerializedName("-jobName")
+  private String jobName;
 
-	public String getJobTriggerOnLoad() {
-		return jobTriggerOnLoad;
-	}
+  @SerializedName("-jobGroup")
+  private String jobGroup;
 
-	public void setJobTriggerOnLoad(String jobTriggerOnLoad) {
-		this.jobTriggerOnLoad = jobTriggerOnLoad;
-	}
+  @SerializedName("-jobCronExpression")
+  private String jobCronExpression;
 
-	public String getParameters() {
-		return parameters;
-	}
+  @SerializedName("-jobClass")
+  private String jobClass;
 
-	public void setParameters(String parameters) {
-		this.parameters = parameters;
-	}
+  @SerializedName("-active")
+  private String active;
 
-	public String getJobName() {
-		return jobName;
-	}
+  @SerializedName("-userAccess")
+  private String userAccess;
 
-	public void setJobName(String jobName) {
-		this.jobName = jobName;
-	}
+  @SerializedName("-jobTriggerOnLoad")
+  private String jobTriggerOnLoad;
 
-	public String getJobGroup() {
-		return jobGroup;
-	}
+  private String pixel;
+  private String parameters;
+  private String hidden;
 
-	public void setJobGroup(String jobGroup) {
-		this.jobGroup = jobGroup;
-	}
+  public String getJobTriggerOnLoad() {
+    return jobTriggerOnLoad;
+  }
 
-	public String getJobCronExpression() {
-		return jobCronExpression;
-	}
+  public void setJobTriggerOnLoad(String jobTriggerOnLoad) {
+    this.jobTriggerOnLoad = jobTriggerOnLoad;
+  }
 
-	public void setJobCronExpression(String jobCronExpression) {
-		this.jobCronExpression = jobCronExpression;
-	}
+  public String getParameters() {
+    return parameters;
+  }
 
-	public String getJobClass() {
-		return jobClass;
-	}
+  public void setParameters(String parameters) {
+    this.parameters = parameters;
+  }
 
-	public void setJobClass(String jobClass) {
-		this.jobClass = jobClass;
-	}
+  public String getJobName() {
+    return jobName;
+  }
 
-	public String getPixel() {
-		return pixel;
-	}
+  public void setJobName(String jobName) {
+    this.jobName = jobName;
+  }
 
-	public void setPixel(String pixel) {
-		this.pixel = pixel;
-	}
+  public String getJobGroup() {
+    return jobGroup;
+  }
 
-	public String getActive() {
-		return active;
-	}
+  public void setJobGroup(String jobGroup) {
+    this.jobGroup = jobGroup;
+  }
 
-	public void setActive(String active) {
-		this.active = active;
-	}
+  public String getJobCronExpression() {
+    return jobCronExpression;
+  }
 
-	public String getUserAccess() {
-		return userAccess;
-	}
+  public void setJobCronExpression(String jobCronExpression) {
+    this.jobCronExpression = jobCronExpression;
+  }
 
-	public void setUserAccess(String userAccess) {
-		this.userAccess = userAccess;
-	}
+  public String getJobClass() {
+    return jobClass;
+  }
 
-	public String getHidden() {
-		return hidden;
-	}
+  public void setJobClass(String jobClass) {
+    this.jobClass = jobClass;
+  }
 
-	public void setHidden(String hidden) {
-		this.hidden = hidden;
-	}
+  public String getPixel() {
+    return pixel;
+  }
+
+  public void setPixel(String pixel) {
+    this.pixel = pixel;
+  }
+
+  public String getActive() {
+    return active;
+  }
+
+  public void setActive(String active) {
+    this.active = active;
+  }
+
+  public String getUserAccess() {
+    return userAccess;
+  }
+
+  public void setUserAccess(String userAccess) {
+    this.userAccess = userAccess;
+  }
+
+  public String getHidden() {
+    return hidden;
+  }
+
+  public void setHidden(String hidden) {
+    this.hidden = hidden;
+  }
 }

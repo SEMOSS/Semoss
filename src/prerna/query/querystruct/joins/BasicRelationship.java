@@ -1,97 +1,113 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.query.querystruct.joins;
 
 public class BasicRelationship implements IRelation {
 
-	private String fromConcept;
-	private String joinType;
-	private String toConcept;
-	private String comparator;
-	private String relationName;
-	
-	public BasicRelationship() {
-		
-	}
-	
-	// fromConcept, joinType, toConcept, comparator, relName
-	public BasicRelationship(String[] joinDetails) {
-		this.fromConcept = joinDetails[0];
-		this.joinType = joinDetails[1];
-		this.toConcept = joinDetails[2];
-		if(joinDetails.length > 3) {
-			this.comparator = joinDetails[3];
-		}
-		if(joinDetails.length > 4) {
-			this.relationName = joinDetails[4];
-		}
-	}
-	
-	public BasicRelationship(String fromConcept, String joinType, String toConcept, String comparator, String relationName) {
-		this.fromConcept = fromConcept;
-		this.joinType = joinType;
-		this.toConcept = toConcept;
-		this.comparator = comparator;
-		this.relationName = relationName;
-	}
+  private String fromConcept;
+  private String joinType;
+  private String toConcept;
+  private String comparator;
+  private String relationName;
 
-	public String getFromConcept() {
-		return fromConcept;
-	}
+  public BasicRelationship() {}
 
-	public void setFromConcept(String fromConcept) {
-		this.fromConcept = fromConcept;
-	}
+  // fromConcept, joinType, toConcept, comparator, relName
+  public BasicRelationship(String[] joinDetails) {
+    this.fromConcept = joinDetails[0];
+    this.joinType = joinDetails[1];
+    this.toConcept = joinDetails[2];
+    if (joinDetails.length > 3) {
+      this.comparator = joinDetails[3];
+    }
+    if (joinDetails.length > 4) {
+      this.relationName = joinDetails[4];
+    }
+  }
 
-	public String getJoinType() {
-		return joinType;
-	}
+  public BasicRelationship(
+      String fromConcept,
+      String joinType,
+      String toConcept,
+      String comparator,
+      String relationName) {
+    this.fromConcept = fromConcept;
+    this.joinType = joinType;
+    this.toConcept = toConcept;
+    this.comparator = comparator;
+    this.relationName = relationName;
+  }
 
-	public void setJoinType(String joinType) {
-		this.joinType = joinType;
-	}
+  public String getFromConcept() {
+    return fromConcept;
+  }
 
-	public String getToConcept() {
-		return toConcept;
-	}
+  public void setFromConcept(String fromConcept) {
+    this.fromConcept = fromConcept;
+  }
 
-	public void setToConcept(String toConcept) {
-		this.toConcept = toConcept;
-	}
+  public String getJoinType() {
+    return joinType;
+  }
 
-	public String getRelationName() {
-		return relationName;
-	}
+  public void setJoinType(String joinType) {
+    this.joinType = joinType;
+  }
 
-	public void setRelationName(String relationName) {
-		this.relationName = relationName;
-	}
-	
-	public String getComparator() {
-		return comparator;
-	}
+  public String getToConcept() {
+    return toConcept;
+  }
 
-	public void setComparator(String comparator) {
-		this.comparator = comparator;
-	}
+  public void setToConcept(String toConcept) {
+    this.toConcept = toConcept;
+  }
 
-	@Override
-	public RELATION_TYPE getRelationType() {
-		return RELATION_TYPE.BASIC;
-	}
-	
-	@Override
-	public boolean equals(Object obj) {
-		if(obj == null) {
-			return false;
-		}
-		if(obj instanceof BasicRelationship) {
-			BasicRelationship otherRel = (BasicRelationship) obj;
-			if(this.fromConcept.equals(otherRel.fromConcept)
-					&& this.joinType.equals(otherRel.joinType)
-					&& this.toConcept.equals(otherRel.toConcept)
-					) {
-				return true;
-			}
-		}
-		return false;
-	}
+  public String getRelationName() {
+    return relationName;
+  }
+
+  public void setRelationName(String relationName) {
+    this.relationName = relationName;
+  }
+
+  public String getComparator() {
+    return comparator;
+  }
+
+  public void setComparator(String comparator) {
+    this.comparator = comparator;
+  }
+
+  @Override
+  public RELATION_TYPE getRelationType() {
+    return RELATION_TYPE.BASIC;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null) {
+      return false;
+    }
+    if (obj instanceof BasicRelationship) {
+      BasicRelationship otherRel = (BasicRelationship) obj;
+      if (this.fromConcept.equals(otherRel.fromConcept)
+          && this.joinType.equals(otherRel.joinType)
+          && this.toConcept.equals(otherRel.toConcept)) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

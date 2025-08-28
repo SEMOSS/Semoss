@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.engine.api;
 
 import java.io.Closeable;
@@ -7,144 +21,157 @@ import java.util.Properties;
 
 public interface IEngine extends Closeable {
 
-	String METADATA_FILE_SUFFIX = "_metadata.json";
-	
-	String PIPELINE = "PIPELINE";
-	
-	enum CATALOG_TYPE {
-		DATABASE,
-		STORAGE,
-		MODEL,
-		VECTOR,
-		FUNCTION,
-		GUARDRAIL,
-		// not really used anymore
-		VENV,
-		// special kind for IProject
-		PROJECT,
-	};
-	
-	/**
-	 * Sets the unique id for the engine 
-	 * @param engineId - id to set the engine 
-	 */
-	void setEngineId(String engineId);
-	
-	/**
-	 * Gets the engine name for this engine	
-	 * @return Name of the engine
-	 */
-	String getEngineId();
+  String METADATA_FILE_SUFFIX = "_metadata.json";
 
-	/**
-	 * Sets the name of the engine. This may be a lot of times the same as the Repository Name
-	 * @param engineName - Name of the engine that this is being set to 
-	 */
-	void setEngineName(String engineName);
-	
-	/**
-	 * Gets the engine name for this engine	
-	 * @return Name of the engine
-	 */
-	String getEngineName();
-	
-	/**
-	 * Opens an engine as defined by its properties file.  
-	 * What is included in the properties file is dependent on the type of engine that is being initiated.  
-	 * It also includes the ENGINE and ENGINE_ALIAS which coincide with the engineId and engineName
-	 * This is the function that first initializes the connection to the engine or at least defines how to connect if done in lazy fashion.
-	 * 
-	 * @param smssFilePath 			The file path to the smss file containing the engine connection details 
-	 */
-	void open(String smssFilePath) throws Exception;
-	
-	/**
-	 * Opens an engine as defined by its properties file.  
-	 * What is included in the properties file is dependent on the type of engine that is being initiated.  
-	 * It also includes the ENGINE and ENGINE_ALIAS which coincide with the engineId and engineName
-	 * This is the function that first initializes the connection to the engine or at least defines how to connect if done in lazy fashion.
+  String PIPELINE = "PIPELINE";
 
-	 * @param smssProp				The properties object loaded from the smss file containing the engine connection details
-	 */
-	void open(Properties smssProp) throws Exception;
-	
-	/**
-	 * 
-	 * @param smssFilePath
-	 */
-	void setSmssFilePath(String smssFilePath);
-	
-	/**
-	 * 
-	 * @return
-	 */
-	String getSmssFilePath();
-	
-	/**
-	 * Sets the properties object
-	 * @param prop
-	 */
-	void setSmssProp(Properties smssProp);
+  enum CATALOG_TYPE {
+    DATABASE,
+    STORAGE,
+    MODEL,
+    VECTOR,
+    FUNCTION,
+    GUARDRAIL,
+    // not really used anymore
+    VENV,
+    // special kind for IProject
+    PROJECT,
+  };
 
-	/**
-	 * Return the prop file
-	 * @return
-	 */
-	Properties getSmssProp();
+  /**
+   * Sets the unique id for the engine
+   *
+   * @param engineId - id to set the engine
+   */
+  void setEngineId(String engineId);
 
-	/**
-	 * Get the original prop file content - w/o additional alterations during opening 
-	 * (change primarily happens in H2 Server DB where we alter the connection URL to tcp with dynamic open port)
-	 * @return
-	 */
-	Properties getOrigSmssProp();
-	
-	/**
-	 * 
-	 * @return
-	 */
-	CATALOG_TYPE getCatalogType();
-	
-	/**
-	 * 
-	 * @return
-	 */
-	String getCatalogSubType(Properties smssProp);
-	
-	/**
-	 * Deletes the engine and any stored configuration
-	 * @throws IOException 
-	 */
-	void delete() throws IOException;
-	
-	/**
-	 * Does this engine hold any file locks that would require a close to export/perform other operations
-	 * @return
-	 */
-	boolean holdsFileLocks();
-	
-	/**
-	 * Return a Map for the open ai tool for execution of the engine
-	 * @return
-	 */
-	Map<String, Object> buildOpenAIFunctionEngineToolMap();
-	
-	/**
-	 * Return a Map for the bedrock tool for execution of the engine
-	 * @return
-	 */
-	Map<String, Object> buildBedrockToolSpec();
+  /**
+   * Gets the engine name for this engine
+   *
+   * @return Name of the engine
+   */
+  String getEngineId();
 
-	/**
-	 * True when engine should not have assets
-	 * @return
-	 */
-	boolean isBasic();
+  /**
+   * Sets the name of the engine. This may be a lot of times the same as the Repository Name
+   *
+   * @param engineName - Name of the engine that this is being set to
+   */
+  void setEngineName(String engineName);
 
-	/**
-	 * True when engine should not have assets
-	 * @param isBasic
-	 */
-	void setBasic(boolean isBasic);
-	
+  /**
+   * Gets the engine name for this engine
+   *
+   * @return Name of the engine
+   */
+  String getEngineName();
+
+  /**
+   * Opens an engine as defined by its properties file. What is included in the properties file is
+   * dependent on the type of engine that is being initiated. It also includes the ENGINE and
+   * ENGINE_ALIAS which coincide with the engineId and engineName This is the function that first
+   * initializes the connection to the engine or at least defines how to connect if done in lazy
+   * fashion.
+   *
+   * @param smssFilePath The file path to the smss file containing the engine connection details
+   */
+  void open(String smssFilePath) throws Exception;
+
+  /**
+   * Opens an engine as defined by its properties file. What is included in the properties file is
+   * dependent on the type of engine that is being initiated. It also includes the ENGINE and
+   * ENGINE_ALIAS which coincide with the engineId and engineName This is the function that first
+   * initializes the connection to the engine or at least defines how to connect if done in lazy
+   * fashion.
+   *
+   * @param smssProp The properties object loaded from the smss file containing the engine
+   *     connection details
+   */
+  void open(Properties smssProp) throws Exception;
+
+  /**
+   * @param smssFilePath
+   */
+  void setSmssFilePath(String smssFilePath);
+
+  /**
+   * @return
+   */
+  String getSmssFilePath();
+
+  /**
+   * Sets the properties object
+   *
+   * @param prop
+   */
+  void setSmssProp(Properties smssProp);
+
+  /**
+   * Return the prop file
+   *
+   * @return
+   */
+  Properties getSmssProp();
+
+  /**
+   * Get the original prop file content - w/o additional alterations during opening (change
+   * primarily happens in H2 Server DB where we alter the connection URL to tcp with dynamic open
+   * port)
+   *
+   * @return
+   */
+  Properties getOrigSmssProp();
+
+  /**
+   * @return
+   */
+  CATALOG_TYPE getCatalogType();
+
+  /**
+   * @return
+   */
+  String getCatalogSubType(Properties smssProp);
+
+  /**
+   * Deletes the engine and any stored configuration
+   *
+   * @throws IOException
+   */
+  void delete() throws IOException;
+
+  /**
+   * Does this engine hold any file locks that would require a close to export/perform other
+   * operations
+   *
+   * @return
+   */
+  boolean holdsFileLocks();
+
+  /**
+   * Return a Map for the open ai tool for execution of the engine
+   *
+   * @return
+   */
+  Map<String, Object> buildOpenAIFunctionEngineToolMap();
+
+  /**
+   * Return a Map for the bedrock tool for execution of the engine
+   *
+   * @return
+   */
+  Map<String, Object> buildBedrockToolSpec();
+
+  /**
+   * True when engine should not have assets
+   *
+   * @return
+   */
+  boolean isBasic();
+
+  /**
+   * True when engine should not have assets
+   *
+   * @param isBasic
+   */
+  void setBasic(boolean isBasic);
 }

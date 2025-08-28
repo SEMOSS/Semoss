@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.ds.util;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,26 +24,23 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import prerna.ds.util.IFileIterator;
-
 public class IFileIteratorUnitTests {
 
-    @Mock
-    private IFileIterator fileIterator;
+  @Mock private IFileIterator fileIterator;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
+  @BeforeEach
+  void setUp() {
+    MockitoAnnotations.openMocks(this);
+  }
 
-    @Test
-    void testGetNumRecordsOverSizeTrue() {
-        long limitSize = 1000L;
-        when(fileIterator.getNumRecordsOverSize(limitSize)).thenReturn(true);
+  @Test
+  void testGetNumRecordsOverSizeTrue() {
+    long limitSize = 1000L;
+    when(fileIterator.getNumRecordsOverSize(limitSize)).thenReturn(true);
 
-        boolean result = fileIterator.getNumRecordsOverSize(limitSize);
+    boolean result = fileIterator.getNumRecordsOverSize(limitSize);
 
-        assertTrue(result, "Expected getNumRecordsOverSize to return true");
-        verify(fileIterator, times(1)).getNumRecordsOverSize(limitSize);
-    }
+    assertTrue(result, "Expected getNumRecordsOverSize to return true");
+    verify(fileIterator, times(1)).getNumRecordsOverSize(limitSize);
+  }
 }

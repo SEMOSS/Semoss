@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.project;
 
 import java.io.File;
@@ -5,11 +19,9 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -27,89 +39,96 @@ import prerna.util.git.GitRepoUtils;
 
 public class NewAppAssetsDirectoryReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(NewAppAssetsDirectoryReactor.class);
+  private static final Logger classLogger =
+      LogManager.getLogger(NewAppAssetsDirectoryReactor.class);
 
-	public NewAppAssetsDirectoryReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), 
-				ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] {1,1,0};
-	}
+  public NewAppAssetsDirectoryReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.PROJECT.getKey(),
+          ReactorKeysEnum.FILE_PATH.getKey(),
+          ReactorKeysEnum.COMMENT_KEY.getKey()
+        };
+    this.keyRequired = new int[] {1, 1, 0};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
 
-		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+    User user = this.insight.getUser();
+    // check if user is logged in
+    if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+      throwAnonymousUserError();
+    }
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
-		}
-		IProject project = Utility.getProject(projectId);
+    String projectId = this.keyValue.get(this.keysToGet[0]);
+    if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+      throw new IllegalArgumentException(
+          "Project " + projectId + " does not exist or user does not have access to edit assets.");
+    }
+    IProject project = Utility.getProject(projectId);
 
-		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+    String versionGitFolder =
+        AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
+    String assetFolder =
+        AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 
-		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
-		if(filePath == null || filePath.isEmpty()) {
-			throw new IllegalArgumentException("Must provide a valid filePath");
-		}
-		String comment = this.keyValue.get(this.keysToGet[2]);
-		if(comment == null) {
-			comment = "add: creating new directory";
-		}
+    String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
+    if (filePath == null || filePath.isEmpty()) {
+      throw new IllegalArgumentException("Must provide a valid filePath");
+    }
+    String comment = this.keyValue.get(this.keysToGet[2]);
+    if (comment == null) {
+      comment = "add: creating new directory";
+    }
 
-		File directory = new File(assetFolder + "/" + filePath);
-		try {
-			directory.mkdirs();
-			File placeholder = new File(directory.getAbsolutePath(), "placeholder.txt");
-			FileUtils.writeStringToFile(placeholder, "placeholder", Charset.forName("UTF-8"));
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to create directory: " + filePath);
-			SemossPixelException exception = new SemossPixelException(error);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
+    File directory = new File(assetFolder + "/" + filePath);
+    try {
+      directory.mkdirs();
+      File placeholder = new File(directory.getAbsolutePath(), "placeholder.txt");
+      FileUtils.writeStringToFile(placeholder, "placeholder", Charset.forName("UTF-8"));
+    } catch (IOException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      NounMetadata error =
+          NounMetadata.getErrorNounMessage("Unable to create directory: " + filePath);
+      SemossPixelException exception = new SemossPixelException(error);
+      exception.setContinueThreadOfExecution(false);
+      throw exception;
+    }
 
-		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + filePath);
-		
-		// Get the user's email
-		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		String email = accessToken.getEmail();
-		String author = accessToken.getUsername();
+    List<String> gitRelativeFilePaths = new ArrayList<>();
+    gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + filePath);
 
-		GitRepoUtils.addSpecificFiles(versionGitFolder, gitRelativeFilePaths);
-		// commit it
-		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
-		// handle synchronization to the cloud
-		ClusterUtil.pushProjectFolder(project, assetFolder);
-				
-		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
-		return retNoun;
-	}
+    // Get the user's email
+    AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+    String email = accessToken.getEmail();
+    String author = accessToken.getUsername();
 
-	@Override
-	public String getReactorDescription() {
-		return "Create a new empty directory in the projects assets folder";
-	}
+    GitRepoUtils.addSpecificFiles(versionGitFolder, gitRelativeFilePaths);
+    // commit it
+    GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
+    // handle synchronization to the cloud
+    ClusterUtil.pushProjectFolder(project, assetFolder);
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
-		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file to create. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while creating and saving the new file within the git repository for the project";
-		} 
-		return super.getDescriptionForKey(key);
-	}
+    NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
+    return retNoun;
+  }
 
+  @Override
+  public String getReactorDescription() {
+    return "Create a new empty directory in the projects assets folder";
+  }
+
+  @Override
+  protected String getDescriptionForKey(String key) {
+    if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+      return "The unique id for the project/app";
+    } else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+      return "Names of the file to create. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
+    } else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+      return "Comment to add while creating and saving the new file within the git repository for the project";
+    }
+    return super.getDescriptionForKey(key);
+  }
 }

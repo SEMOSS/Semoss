@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.export;
 
 import java.io.BufferedWriter;
@@ -8,9 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -25,186 +37,191 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class DropBoxUploaderReactor extends TaskBuilderReactor {
-	public DropBoxUploaderReactor() {
-		this.keysToGet = new String[] { "filename" };
-	}
+  public DropBoxUploaderReactor() {
+    this.keysToGet = new String[] {"filename"};
+  }
 
-	private static final String CLASS_NAME = DropBoxUploaderReactor.class.getName();
-	private static final String STACKTRACE = "StackTrace: ";
-	private String fileLocation = null;
-	private Logger logger;
+  private static final String CLASS_NAME = DropBoxUploaderReactor.class.getName();
+  private static final String STACKTRACE = "StackTrace: ";
+  private String fileLocation = null;
+  private Logger logger;
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String fileName = this.curRow.get(0).toString();
-		if (fileName == null || fileName.length() <= 0) {
-			throw new IllegalArgumentException("Need to specify file name");
-		}
-		
-		//get access token
-				String accessToken = null;
-				User user = this.insight.getUser();
-				try{
-				if(user==null){
-					Map<String, Object> retMap = new HashMap<>();
-					retMap.put("type", "dropbox");
-					retMap.put("message", "Please login to your DropBox account");
-					throwLoginError(retMap);
-				}
-				else if (user != null) {
-						AccessToken msToken = user.getAccessToken(AuthProvider.DROPBOX);
-						accessToken=msToken.getAccess_token();
-					}
-				}
-				catch (Exception e) {
-					Map<String, Object> retMap = new HashMap<>();
-					retMap.put("type", "dropbox");
-					retMap.put("message", "Please login to your DropBox account");
-					throwLoginError(retMap);
-				}
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    String fileName = this.curRow.get(0).toString();
+    if (fileName == null || fileName.length() <= 0) {
+      throw new IllegalArgumentException("Need to specify file name");
+    }
 
-		logger = getLogger(CLASS_NAME);
-		this.task = getTask();
+    // get access token
+    String accessToken = null;
+    User user = this.insight.getUser();
+    try {
+      if (user == null) {
+        Map<String, Object> retMap = new HashMap<>();
+        retMap.put("type", "dropbox");
+        retMap.put("message", "Please login to your DropBox account");
+        throwLoginError(retMap);
+      } else if (user != null) {
+        AccessToken msToken = user.getAccessToken(AuthProvider.DROPBOX);
+        accessToken = msToken.getAccess_token();
+      }
+    } catch (Exception e) {
+      Map<String, Object> retMap = new HashMap<>();
+      retMap.put("type", "dropbox");
+      retMap.put("message", "Please login to your DropBox account");
+      throwLoginError(retMap);
+    }
 
-		// get a random file name
-		String randomKey = UUID.randomUUID().toString();
-		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + randomKey + ".csv";
-		//make file
-		buildTask();
+    logger = getLogger(CLASS_NAME);
+    this.task = getTask();
 
-		//make call to dropbox to upload
-		String url_str = "https://content.dropboxapi.com/2/files/upload";
-		String output = HttpHelperUtility.makeBinaryFilePostCall(url_str, accessToken, fileName, this.fileLocation.toString());
+    // get a random file name
+    String randomKey = UUID.randomUUID().toString();
+    this.fileLocation =
+        DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+            + DIR_SEPARATOR
+            + randomKey
+            + ".csv";
+    // make file
+    buildTask();
 
-		return new NounMetadata(randomKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-	}
+    // make call to dropbox to upload
+    String url_str = "https://content.dropboxapi.com/2/files/upload";
+    String output =
+        HttpHelperUtility.makeBinaryFilePostCall(
+            url_str, accessToken, fileName, this.fileLocation.toString());
 
-	@Override
-	protected void buildTask() {
-		File f = new File(this.fileLocation);
+    return new NounMetadata(
+        randomKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+  }
 
-		try {
-			long start = System.currentTimeMillis();
+  @Override
+  protected void buildTask() {
+    File f = new File(this.fileLocation);
 
-			try {
-				f.createNewFile();
-			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
-			}
+    try {
+      long start = System.currentTimeMillis();
 
-			FileWriter writer = null;
-			BufferedWriter bufferedWriter = null;
+      try {
+        f.createNewFile();
+      } catch (IOException e) {
+        logger.error(STACKTRACE, e);
+      }
 
-			try {
-				writer = new FileWriter(f);
-				bufferedWriter = new BufferedWriter(writer);
+      FileWriter writer = null;
+      BufferedWriter bufferedWriter = null;
 
-				// store some variables and just reset
-				// should be faster than creating new ones each time
-				int i = 0;
-				int size = 0;
-				StringBuilder builder = null;
-				// create typesArr as an array for faster searching
-				String[] headers = null;
-				SemossDataType[] typesArr = null;
+      try {
+        writer = new FileWriter(f);
+        bufferedWriter = new BufferedWriter(writer);
 
-				// we need to iterate and write the headers during the first time
-				if(this.task.hasNext()) {
-					IHeadersDataRow row = this.task.next();
-					List<Map<String, Object>> headerInfo = this.task.getHeaderInfo();
+        // store some variables and just reset
+        // should be faster than creating new ones each time
+        int i = 0;
+        int size = 0;
+        StringBuilder builder = null;
+        // create typesArr as an array for faster searching
+        String[] headers = null;
+        SemossDataType[] typesArr = null;
 
-					// generate the header row
-					// and define constants used throughout like size, and types
-					i = 0;
-					headers = row.getHeaders();
-					size = headers.length;
-					typesArr = new SemossDataType[size];
-					builder = new StringBuilder();
-					for(; i < size; i++) {
-						builder.append("\"").append(headers[i]).append("\"");
-						if( (i+1) != size) {
-							builder.append(",");
-						}
+        // we need to iterate and write the headers during the first time
+        if (this.task.hasNext()) {
+          IHeadersDataRow row = this.task.next();
+          List<Map<String, Object>> headerInfo = this.task.getHeaderInfo();
 
-						if(headerInfo.get(i).containsKey("type")) {
-							typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type").toString());
-						} else {
-							typesArr[i] = SemossDataType.STRING;
-						}
-					}
-					// write the header to the file
-					bufferedWriter.write(builder.append("\n").toString());
+          // generate the header row
+          // and define constants used throughout like size, and types
+          i = 0;
+          headers = row.getHeaders();
+          size = headers.length;
+          typesArr = new SemossDataType[size];
+          builder = new StringBuilder();
+          for (; i < size; i++) {
+            builder.append("\"").append(headers[i]).append("\"");
+            if ((i + 1) != size) {
+              builder.append(",");
+            }
 
-					// generate the data row
-					Object[] dataRow = row.getValues();
-					builder = new StringBuilder();
-					i = 0;
-					for(; i < size; i ++) {
-						if(typesArr[i] == SemossDataType.STRING) {
-							builder.append("\"").append(dataRow[i]).append("\"");
-						} else {
-							builder.append(dataRow[i]);
-						}
-						if( (i+1) != size) {
-							builder.append(",");
-						}
-					}
-					// write row to file
-					bufferedWriter.write(builder.append("\n").toString());
-				}
+            if (headerInfo.get(i).containsKey("type")) {
+              typesArr[i] =
+                  SemossDataType.convertStringToDataType(headerInfo.get(i).get("type").toString());
+            } else {
+              typesArr[i] = SemossDataType.STRING;
+            }
+          }
+          // write the header to the file
+          bufferedWriter.write(builder.append("\n").toString());
 
-				int counter = 1;
-				// now loop through all the data
-				while(this.task.hasNext()) {
-					IHeadersDataRow row = this.task.next();
-					// generate the data row
-					Object[] dataRow = row.getValues();
-					builder = new StringBuilder();
-					i = 0;
-					for(; i < size; i ++) {
-						if(typesArr[i] == SemossDataType.STRING) {
-							builder.append("\"").append(dataRow[i]).append("\"");
-						} else {
-							builder.append(dataRow[i]);
-						}
-						if( (i+1) != size) {
-							builder.append(",");
-						}
-					}
-					// write row to file
-					bufferedWriter.write(builder.append("\n").toString());
+          // generate the data row
+          Object[] dataRow = row.getValues();
+          builder = new StringBuilder();
+          i = 0;
+          for (; i < size; i++) {
+            if (typesArr[i] == SemossDataType.STRING) {
+              builder.append("\"").append(dataRow[i]).append("\"");
+            } else {
+              builder.append(dataRow[i]);
+            }
+            if ((i + 1) != size) {
+              builder.append(",");
+            }
+          }
+          // write row to file
+          bufferedWriter.write(builder.append("\n").toString());
+        }
 
-					if(counter % 10_000 == 0) {
-						logger.info("Finished writing line " + counter);
-					}
-					counter++;
-				}
+        int counter = 1;
+        // now loop through all the data
+        while (this.task.hasNext()) {
+          IHeadersDataRow row = this.task.next();
+          // generate the data row
+          Object[] dataRow = row.getValues();
+          builder = new StringBuilder();
+          i = 0;
+          for (; i < size; i++) {
+            if (typesArr[i] == SemossDataType.STRING) {
+              builder.append("\"").append(dataRow[i]).append("\"");
+            } else {
+              builder.append(dataRow[i]);
+            }
+            if ((i + 1) != size) {
+              builder.append(",");
+            }
+          }
+          // write row to file
+          bufferedWriter.write(builder.append("\n").toString());
 
-			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
-			} finally {
-				try {
-					if(bufferedWriter != null) {
-						bufferedWriter.close();
-					}
-					if(writer != null) {
-						writer.close();
-					}
-				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
-				}
-			}
+          if (counter % 10_000 == 0) {
+            logger.info("Finished writing line " + counter);
+          }
+          counter++;
+        }
 
-			long end = System.currentTimeMillis();
-			logger.info("Time to output file = " + (end-start) + " ms");
-		} catch(Exception e) {
-			logger.error(STACKTRACE, e);
-			if(f.exists()) {
-				f.delete();
-			}
-			throw new IllegalArgumentException("Encountered error while writing to CSV file");
-		}
-	}
+      } catch (IOException e) {
+        logger.error(STACKTRACE, e);
+      } finally {
+        try {
+          if (bufferedWriter != null) {
+            bufferedWriter.close();
+          }
+          if (writer != null) {
+            writer.close();
+          }
+        } catch (IOException e) {
+          logger.error(STACKTRACE, e);
+        }
+      }
 
+      long end = System.currentTimeMillis();
+      logger.info("Time to output file = " + (end - start) + " ms");
+    } catch (Exception e) {
+      logger.error(STACKTRACE, e);
+      if (f.exists()) {
+        f.delete();
+      }
+      throw new IllegalArgumentException("Encountered error while writing to CSV file");
+    }
+  }
 }

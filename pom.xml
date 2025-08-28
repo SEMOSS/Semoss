@@ -96,16 +96,25 @@
 								</goals>
 								<configuration>
 									<target>
-										<mkdir dir="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}"/>
+										<mkdir
+											dir="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}" />
 										<tstamp>
-											<format property="build.timestamp.utc" pattern="yyyy-MM-dd HH:mm:ss z" timezone="UTC" />
+											<format
+												property="build.timestamp.utc"
+												pattern="yyyy-MM-dd HH:mm:ss z"
+												timezone="UTC" />
 										</tstamp>
 										<propertyfile file="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}/pom.properties">
-											<entry key="groupId" value="${project.groupId}" />
-											<entry key="artifactId" value="${project.artifactId}" />
-											<entry key="version" value="${project.version}" />
-											<entry key="ci.version" value="${project.version}" />
-											<entry key="build.date" value="${build.timestamp.utc}" />
+											<entry key="groupId"
+												value="${project.groupId}" />
+											<entry key="artifactId"
+												value="${project.artifactId}" />
+											<entry key="version"
+												value="${project.version}" />
+											<entry key="ci.version"
+												value="${project.version}" />
+											<entry key="build.date"
+												value="${build.timestamp.utc}" />
 										</propertyfile>
 									</target>
 								</configuration>
@@ -141,7 +150,37 @@
 							<test>prerna.testing.AllTests</test>
 						</configuration>
 					</plugin>
-
+					<plugin>
+						<groupId>com.diffplug.spotless</groupId>
+						<artifactId>spotless-maven-plugin</artifactId>
+						<version>2.46.1</version>
+						<configuration>
+							<encoding>cp1252</encoding>
+							<java>
+								<licenseHeader>
+									<file>${project.basedir}/spotless/header.txt</file>
+								</licenseHeader>
+								<googleJavaFormat/>
+								<removeUnusedImports />
+								<excludes>
+									<exclude>src/prerna/sablecc2/analysis/*.java</exclude>
+									<exclude>src/prerna/sablecc2/lexer/*.java</exclude>
+									<exclude>src/prerna/sablecc2/node/*.java</exclude>
+									<exclude>src/prerna/sablecc2/parser/*.java</exclude>
+					            </excludes>
+							</java>
+						</configuration>
+						  <executions>
+							<!-- This will automatically apply formatting before compile -->
+							<execution>
+								<id>spotless-apply</id>
+								<phase>process-sources</phase>
+								<goals>
+									<goal>apply</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
 					<plugin>
 						<groupId>com.rudikershaw.gitbuildhook</groupId>
 						<artifactId>git-build-hook-maven-plugin</artifactId>
@@ -200,16 +239,25 @@
 								</goals>
 								<configuration>
 									<target>
-										<mkdir dir="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}"/>
+										<mkdir
+											dir="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}" />
 										<tstamp>
-											<format property="build.timestamp.utc" pattern="yyyy-MM-dd HH:mm:ss z" timezone="UTC" />
+											<format
+												property="build.timestamp.utc"
+												pattern="yyyy-MM-dd HH:mm:ss z"
+												timezone="UTC" />
 										</tstamp>
 										<propertyfile file="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}/pom.properties">
-											<entry key="groupId" value="${project.groupId}" />
-											<entry key="artifactId" value="${project.artifactId}" />
-											<entry key="version" value="${project.version}" />
-											<entry key="ci.version" value="${project.version}" />
-											<entry key="build.date" value="${build.timestamp.utc}" />
+											<entry key="groupId"
+												value="${project.groupId}" />
+											<entry key="artifactId"
+												value="${project.artifactId}" />
+											<entry key="version"
+												value="${project.version}" />
+											<entry key="ci.version"
+												value="${project.version}" />
+											<entry key="build.date"
+												value="${build.timestamp.utc}" />
 										</propertyfile>
 									</target>
 								</configuration>
@@ -276,6 +324,37 @@
 						</executions>
 					</plugin>
 					-->
+					<plugin>
+						<groupId>com.diffplug.spotless</groupId>
+						<artifactId>spotless-maven-plugin</artifactId>
+						<version>2.46.1</version>
+						<configuration>
+							<encoding>cp1252</encoding>
+							<java>
+								<licenseHeader>
+									<file>${project.basedir}/spotless/header.txt</file>
+								</licenseHeader>
+								<googleJavaFormat/>
+								<removeUnusedImports />
+								<excludes>
+									<exclude>src/prerna/sablecc2/analysis/*.java</exclude>
+									<exclude>src/prerna/sablecc2/lexer/*.java</exclude>
+									<exclude>src/prerna/sablecc2/node/*.java</exclude>
+									<exclude>src/prerna/sablecc2/parser/*.java</exclude>
+					            </excludes>
+							</java>
+						</configuration>
+						  <executions>
+							<!-- This will automatically apply formatting before compile -->
+							<execution>
+								<id>spotless-apply</id>
+								<phase>process-sources</phase>
+								<goals>
+									<goal>apply</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>

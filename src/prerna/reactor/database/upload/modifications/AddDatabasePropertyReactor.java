@@ -1,8 +1,21 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.database.upload.modifications;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -18,68 +31,73 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class AddDatabasePropertyReactor extends AbstractReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(AddDatabasePropertyReactor.class);
 
-	public AddDatabasePropertyReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(),
-				ReactorKeysEnum.CONCEPT.getKey(),
-				ReactorKeysEnum.COLUMN.getKey(), 
-				ReactorKeysEnum.DATA_TYPE.getKey(),
-				ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey(), 
-				ReactorKeysEnum.DESCRIPTION.getKey(), 
-				ReactorKeysEnum.LOGICAL_NAME.getKey()		
-		};
-		this.keyRequired = new int[]{1, 1, 1, 1, 0, 0, 0};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		this.organizeKeys();
-		
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		// we may have the alias
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-			throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
-		}
-		
-		String table = this.keyValue.get(this.keysToGet[1]);
-		String newColumn = this.keyValue.get(this.keysToGet[2]);
-		String newColType = this.keyValue.get(this.keysToGet[3]);
-		
-		// update the owl for any database
-		// we will just update the 
-		// the additional data types + description + new column type
-		// are handled and used by this reactor
-		AddOwlPropertyReactor owlUpdated = new AddOwlPropertyReactor();
-		owlUpdated.setInsight(this.insight);
-		owlUpdated.setNounStore(this.store);
-		owlUpdated.execute();
+  private static final Logger classLogger = LogManager.getLogger(AddDatabasePropertyReactor.class);
 
-		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		IEngineModifier modifier = EngineModificationFactory.getEngineModifier(database);
-		if(modifier == null) {
-			throw new IllegalArgumentException("This type of data modification has not been implemented for this database type");
-		}
-		try {
-			modifier.addProperty(table, newColumn, newColType);
-		} catch (Exception e) {
-			// an error occurred here, so we need to delete from the OWL
-			try {
-				RemoveOwlPropertyReactor owlRemover = new RemoveOwlPropertyReactor();
-				owlRemover.setInsight(this.insight);
-				owlRemover.setNounStore(this.store);
-				owlRemover.execute();
-			} catch(Exception e2) {
-				classLogger.error(Constants.STACKTRACE, e2);
-			}
-			
-			throw new IllegalArgumentException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
-		}
-		
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully added new property"));
-		return noun;
-	}
+  public AddDatabasePropertyReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.DATABASE.getKey(),
+          ReactorKeysEnum.CONCEPT.getKey(),
+          ReactorKeysEnum.COLUMN.getKey(),
+          ReactorKeysEnum.DATA_TYPE.getKey(),
+          ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey(),
+          ReactorKeysEnum.DESCRIPTION.getKey(),
+          ReactorKeysEnum.LOGICAL_NAME.getKey()
+        };
+    this.keyRequired = new int[] {1, 1, 1, 1, 0, 0, 0};
+  }
+
+  @Override
+  public NounMetadata execute() {
+    this.organizeKeys();
+
+    String databaseId = this.keyValue.get(this.keysToGet[0]);
+    // we may have the alias
+    databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+    if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+      throw new IllegalArgumentException(
+          "Database " + databaseId + " does not exist or user does not have access to database");
+    }
+
+    String table = this.keyValue.get(this.keysToGet[1]);
+    String newColumn = this.keyValue.get(this.keysToGet[2]);
+    String newColType = this.keyValue.get(this.keysToGet[3]);
+
+    // update the owl for any database
+    // we will just update the
+    // the additional data types + description + new column type
+    // are handled and used by this reactor
+    AddOwlPropertyReactor owlUpdated = new AddOwlPropertyReactor();
+    owlUpdated.setInsight(this.insight);
+    owlUpdated.setNounStore(this.store);
+    owlUpdated.execute();
+
+    IDatabaseEngine database = Utility.getDatabase(databaseId);
+    IEngineModifier modifier = EngineModificationFactory.getEngineModifier(database);
+    if (modifier == null) {
+      throw new IllegalArgumentException(
+          "This type of data modification has not been implemented for this database type");
+    }
+    try {
+      modifier.addProperty(table, newColumn, newColType);
+    } catch (Exception e) {
+      // an error occurred here, so we need to delete from the OWL
+      try {
+        RemoveOwlPropertyReactor owlRemover = new RemoveOwlPropertyReactor();
+        owlRemover.setInsight(this.insight);
+        owlRemover.setNounStore(this.store);
+        owlRemover.execute();
+      } catch (Exception e2) {
+        classLogger.error(Constants.STACKTRACE, e2);
+      }
+
+      throw new IllegalArgumentException(
+          "Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
+    }
+
+    NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+    noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully added new property"));
+    return noun;
+  }
 }

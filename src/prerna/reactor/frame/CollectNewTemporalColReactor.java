@@ -1,8 +1,21 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame;
 
 import java.util.List;
 import java.util.Vector;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -18,61 +31,67 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 
 public class CollectNewTemporalColReactor extends TaskBuilderReactor {
 
-	public CollectNewTemporalColReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey() };
-	}
-	
-	public NounMetadata execute() {
-		if(! ((this.task=getTask()) instanceof BasicIteratorTask)) {
-			throw new IllegalArgumentException("Can only add a new column using a basic query on a frame");
-		}
-		
-		// get the query struct
-		SelectQueryStruct sqs = ((BasicIteratorTask) this.task).getQueryStruct();
-		ITableDataFrame frame = sqs.getFrame();
-		
-		OwlTemporalEngineMeta metadata = frame.getMetaData();
-		SelectQueryStruct pqs = null;
+  public CollectNewTemporalColReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.QUERY_STRUCT.getKey()};
+  }
 
-		try {
-			// convert to to the physical structure
-			pqs = QSAliasToPhysicalConverter.getPhysicalQs(sqs, metadata);
-		} catch(Exception ex) {
-			return getWarning("Calculation is using columns that do not exist in the frame. Cannot perform this operation");
-		}
+  public NounMetadata execute() {
+    if (!((this.task = getTask()) instanceof BasicIteratorTask)) {
+      throw new IllegalArgumentException(
+          "Can only add a new column using a basic query on a frame");
+    }
 
-		if(pqs.getCombinedFilters().getFilters() != null && pqs.getCombinedFilters().getFilters().size() > 0 ) {
-			pqs.ignoreFilters = true;
-		}
+    // get the query struct
+    SelectQueryStruct sqs = ((BasicIteratorTask) this.task).getQueryStruct();
+    ITableDataFrame frame = sqs.getFrame();
 
-		// there should be only one selector
-		List <IQuerySelector> allSelectors = sqs.getSelectors();
-		if(allSelectors.size() == 0) {
-			throw new IllegalArgumentException("No new columns to add");
-		}
-		
-		// merge the results inside
-		ImportUtility.parseQueryStructToFlatTable(frame, pqs, frame.getName(), this.task, true);
+    OwlTemporalEngineMeta metadata = frame.getMetaData();
+    SelectQueryStruct pqs = null;
 
-		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
-		noun.addAdditionalReturn(getSuccess("Added Col " + allSelectors.get(0).getAlias()));
-		return noun;
-	}
+    try {
+      // convert to to the physical structure
+      pqs = QSAliasToPhysicalConverter.getPhysicalQs(sqs, metadata);
+    } catch (Exception ex) {
+      return getWarning(
+          "Calculation is using columns that do not exist in the frame. Cannot perform this operation");
+    }
 
-	@Override
-	public List<NounMetadata> getOutputs() {
-		List<NounMetadata> outputs = super.getOutputs();
-		if(outputs != null && !outputs.isEmpty()) return outputs;
+    if (pqs.getCombinedFilters().getFilters() != null
+        && pqs.getCombinedFilters().getFilters().size() > 0) {
+      pqs.ignoreFilters = true;
+    }
 
-		outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-		outputs.add(output);
-		return outputs;
-	}
+    // there should be only one selector
+    List<IQuerySelector> allSelectors = sqs.getSelectors();
+    if (allSelectors.size() == 0) {
+      throw new IllegalArgumentException("No new columns to add");
+    }
 
-	@Override
-	protected void buildTask() {
-		// do nothing
-		
-	}
+    // merge the results inside
+    ImportUtility.parseQueryStructToFlatTable(frame, pqs, frame.getName(), this.task, true);
+
+    NounMetadata noun =
+        new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
+    noun.addAdditionalReturn(getSuccess("Added Col " + allSelectors.get(0).getAlias()));
+    return noun;
+  }
+
+  @Override
+  public List<NounMetadata> getOutputs() {
+    List<NounMetadata> outputs = super.getOutputs();
+    if (outputs != null && !outputs.isEmpty()) return outputs;
+
+    outputs = new Vector<NounMetadata>();
+    NounMetadata output =
+        new NounMetadata(
+            this.signature, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+    outputs.add(output);
+    return outputs;
+  }
+
+  @Override
+  protected void buildTask() {
+    // do nothing
+
+  }
 }

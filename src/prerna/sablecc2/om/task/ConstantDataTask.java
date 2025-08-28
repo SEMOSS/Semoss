@@ -1,101 +1,111 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.sablecc2.om.task;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.task.options.TaskOptions;
 
 public class ConstantDataTask extends AbstractTask {
 
-	private transient Object outputData;
-	private Map<String, Object> formatMap;
-	/**
-	 * Collect data from an iterator
-	 * Or return defined outputData
-	 */
-	@Override
-	public Map<String, Object> collect(boolean meta) {
-		Map<String, Object> collectedData = new HashMap<String, Object>(7);
-		collectedData.put("data", outputData);
-		if(meta) {
-			collectedData.put("format", getFormatMap());
-			TaskOptions thisTaskOptions = getTaskOptions();
-			if(thisTaskOptions != null) {
-				collectedData.put("taskOptions", thisTaskOptions.getOptions());
-			} else {
-				collectedData.put("taskOptions", new HashMap<String, Object>());
-			}
-			collectedData.put("headerInfo", getHeaderInfo());
-			collectedData.put("sortInfo", getSortInfo());
-			collectedData.put("filterInfo", getFilterInfo());
-		}
-		collectedData.put("taskId", this.id);
-		collectedData.put("numCollected", this.numCollect);
-		return collectedData;
-	}
-	
-	public void setOutputData(Object outputData) {
-		this.outputData = outputData;
-	}
-	
-	public Object getOutputData() {
-		return this.outputData;
-	}
-	
-	protected Map<String, Object> getFormatMap() {
-		if(this.formatMap == null) {
-			formatMap = new HashMap<String, Object>();
-			if(this.formatter == null) {
-				formatMap.put("type", "Custom Task Output");
-			} else {
-				formatMap.put("type", formatter.getFormatType());
-			}
-		}
-		return formatMap;
-	}
-	
-	public void setFormatMap(Map<String, Object> formatMap) {
-		this.formatMap = formatMap;
-	}
-	
-	/*
-	 * Bottom methods are not important
-	 * This is just so I can have operations
-	 * Return data as if it was a "Task"
-	 */
-	
-	@Override
-	public List<Object[]> flushOutIteratorAsGrid() {
-		return null;
-	}
+  private transient Object outputData;
+  private Map<String, Object> formatMap;
 
-	@Override
-	public boolean hasNext() {
-		return false;
-	}
+  /** Collect data from an iterator Or return defined outputData */
+  @Override
+  public Map<String, Object> collect(boolean meta) {
+    Map<String, Object> collectedData = new HashMap<String, Object>(7);
+    collectedData.put("data", outputData);
+    if (meta) {
+      collectedData.put("format", getFormatMap());
+      TaskOptions thisTaskOptions = getTaskOptions();
+      if (thisTaskOptions != null) {
+        collectedData.put("taskOptions", thisTaskOptions.getOptions());
+      } else {
+        collectedData.put("taskOptions", new HashMap<String, Object>());
+      }
+      collectedData.put("headerInfo", getHeaderInfo());
+      collectedData.put("sortInfo", getSortInfo());
+      collectedData.put("filterInfo", getFilterInfo());
+    }
+    collectedData.put("taskId", this.id);
+    collectedData.put("numCollected", this.numCollect);
+    return collectedData;
+  }
 
-	@Override
-	public IHeadersDataRow next() {
-		return null;
-	}
+  public void setOutputData(Object outputData) {
+    this.outputData = outputData;
+  }
 
-	@Override
-	public void close() {
-		this.outputData = null;
-	}
+  public Object getOutputData() {
+    return this.outputData;
+  }
 
-	@Override
-	public void reset() {
-		// do nothing
-	}
+  protected Map<String, Object> getFormatMap() {
+    if (this.formatMap == null) {
+      formatMap = new HashMap<String, Object>();
+      if (this.formatter == null) {
+        formatMap.put("type", "Custom Task Output");
+      } else {
+        formatMap.put("type", formatter.getFormatType());
+      }
+    }
+    return formatMap;
+  }
 
-	@Override
-	public List<Map<String, String>> getSource() {
-		List<Map<String, String>> sources = new Vector<Map<String, String>>();
-		return sources;
-	}
+  public void setFormatMap(Map<String, Object> formatMap) {
+    this.formatMap = formatMap;
+  }
 
+  /*
+   * Bottom methods are not important
+   * This is just so I can have operations
+   * Return data as if it was a "Task"
+   */
+
+  @Override
+  public List<Object[]> flushOutIteratorAsGrid() {
+    return null;
+  }
+
+  @Override
+  public boolean hasNext() {
+    return false;
+  }
+
+  @Override
+  public IHeadersDataRow next() {
+    return null;
+  }
+
+  @Override
+  public void close() {
+    this.outputData = null;
+  }
+
+  @Override
+  public void reset() {
+    // do nothing
+  }
+
+  @Override
+  public List<Map<String, String>> getSource() {
+    List<Map<String, String>> sources = new Vector<Map<String, String>>();
+    return sources;
+  }
 }

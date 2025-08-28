@@ -1,8 +1,21 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.py;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -14,129 +27,133 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class SplitColumnsReactor extends AbstractPyFrameReactor {
 
-	/**
-	 * This reactor splits columns based on a separator
-	 * It replaces all portions of the current cell value that is an exact match to the input value
-	 * The inputs to the reactor are: 
-	 * 1) the separator
-	 * 2) the columns to split 
-	 */
+  /**
+   * This reactor splits columns based on a separator It replaces all portions of the current cell
+   * value that is an exact match to the input value The inputs to the reactor are: 1) the separator
+   * 2) the columns to split
+   */
+  private static final String SEARCH_TYPE = "search";
 
-	private static final String SEARCH_TYPE = "search";
-	private static final String REGEX = "Regex";
+  private static final String REGEX = "Regex";
 
-	public SplitColumnsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITER.getKey(), SEARCH_TYPE };
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		List<String> cols = getColumns();
-		String separator = getSeparator();
-		boolean isRegdex = isRegex();
+  public SplitColumnsReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITER.getKey(), SEARCH_TYPE
+        };
+  }
 
-		// get frame
-		PandasFrame frame = (PandasFrame) getFrame();
+  @Override
+  public NounMetadata execute() {
+    List<String> cols = getColumns();
+    String separator = getSeparator();
+    boolean isRegdex = isRegex();
 
-		// get table name
-		String wrapperFrameName = frame.getWrapperName();
-		
-		// get length of input to use when iterating through
-		int inputSize = cols.size();
+    // get frame
+    PandasFrame frame = (PandasFrame) getFrame();
 
-		for (int i = 0; i < inputSize; i++) {
-			// next input will be the column that we are splitting
-			// we can specify to split more than one column, so there could be
-			// multiple column inputs
-			String column = cols.get(i);
-			// clean column name
-			if (column.contains("__")) {
-				column = column.split("__")[1];
-			}
+    // get table name
+    String wrapperFrameName = frame.getWrapperName();
 
-			// eval py script
-			String script = wrapperFrameName + ".split('" + column + "', '" + separator + "')";
-			frame.runScript(script);
-			this.addExecutedCode(script);
-		}
+    // get length of input to use when iterating through
+    int inputSize = cols.size();
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"SplitColumn", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+    for (int i = 0; i < inputSize; i++) {
+      // next input will be the column that we are splitting
+      // we can specify to split more than one column, so there could be
+      // multiple column inputs
+      String column = cols.get(i);
+      // clean column name
+      if (column.contains("__")) {
+        column = column.split("__")[1];
+      }
 
-		// column header data is changing so we must recreate metadata
-		recreateMetadata(frame, false);
-		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
-	}
-	
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	
-	private String getSeparator() {
-		GenRowStruct separatorGrs = this.store.getNoun(keysToGet[1]);
-		if (separatorGrs == null || separatorGrs.isEmpty()) {
-			throw new IllegalArgumentException("Need to define a separator to split the column with");
-		}
-		String separator = separatorGrs.get(0).toString();
-		if (separator.isEmpty()) {
-			throw new IllegalArgumentException("Need to define a separator to split the column with");
-		}
-		return separator;
-	}
-		
-	private boolean isRegex() {
-		GenRowStruct regexGrs = this.store.getNoun(SEARCH_TYPE);
-		if (regexGrs == null || regexGrs.isEmpty()) {
-			return true;
-		}
-		String val = regexGrs.get(0).toString();
-		if (val.equalsIgnoreCase(REGEX)) {
-			return true;
-		}
-		return false;
-	}
-	
-	private List<String> getColumns() {
-		List<String> cols = new ArrayList<String>();
+      // eval py script
+      String script = wrapperFrameName + ".split('" + column + "', '" + separator + "')";
+      frame.runScript(script);
+      this.addExecutedCode(script);
+    }
 
-		// try its own key
-		GenRowStruct colsGrs = this.store.getNoun(keysToGet[0]);
-		if (colsGrs != null && !colsGrs.isEmpty()) {
-			int size = colsGrs.size();
-			for (int i = 0; i < size; i++) {
-				cols.add(colsGrs.get(i).toString());
-			}
-			return cols;
-		}
+    // NEW TRACKING
+    UserTrackerFactory.getInstance()
+        .trackAnalyticsWidget(
+            this.insight,
+            frame,
+            "SplitColumn",
+            AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
-		int inputSize = this.getCurRow().size();
-		if (inputSize > 0) {
-			for (int i = 0; i < inputSize; i++) {
-				cols.add(this.getCurRow().get(i).toString());
-			}
-			return cols;
-		}
+    // column header data is changing so we must recreate metadata
+    recreateMetadata(frame, false);
 
-		throw new IllegalArgumentException("Need to define the columns to split");
-	}
-	
-	///////////////////////// KEYS /////////////////////////////////////
+    return new NounMetadata(
+        frame,
+        PixelDataType.FRAME,
+        PixelOperationType.FRAME_DATA_CHANGE,
+        PixelOperationType.FRAME_HEADERS_CHANGE);
+  }
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SEARCH_TYPE)) {
-			return "The type of search: Regex or an Exact Match";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
-	}
-	
-	
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  ///////////////////////// GET PIXEL INPUT ////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+
+  private String getSeparator() {
+    GenRowStruct separatorGrs = this.store.getNoun(keysToGet[1]);
+    if (separatorGrs == null || separatorGrs.isEmpty()) {
+      throw new IllegalArgumentException("Need to define a separator to split the column with");
+    }
+    String separator = separatorGrs.get(0).toString();
+    if (separator.isEmpty()) {
+      throw new IllegalArgumentException("Need to define a separator to split the column with");
+    }
+    return separator;
+  }
+
+  private boolean isRegex() {
+    GenRowStruct regexGrs = this.store.getNoun(SEARCH_TYPE);
+    if (regexGrs == null || regexGrs.isEmpty()) {
+      return true;
+    }
+    String val = regexGrs.get(0).toString();
+    if (val.equalsIgnoreCase(REGEX)) {
+      return true;
+    }
+    return false;
+  }
+
+  private List<String> getColumns() {
+    List<String> cols = new ArrayList<String>();
+
+    // try its own key
+    GenRowStruct colsGrs = this.store.getNoun(keysToGet[0]);
+    if (colsGrs != null && !colsGrs.isEmpty()) {
+      int size = colsGrs.size();
+      for (int i = 0; i < size; i++) {
+        cols.add(colsGrs.get(i).toString());
+      }
+      return cols;
+    }
+
+    int inputSize = this.getCurRow().size();
+    if (inputSize > 0) {
+      for (int i = 0; i < inputSize; i++) {
+        cols.add(this.getCurRow().get(i).toString());
+      }
+      return cols;
+    }
+
+    throw new IllegalArgumentException("Need to define the columns to split");
+  }
+
+  ///////////////////////// KEYS /////////////////////////////////////
+
+  @Override
+  protected String getDescriptionForKey(String key) {
+    if (key.equals(SEARCH_TYPE)) {
+      return "The type of search: Regex or an Exact Match";
+    } else {
+      return super.getDescriptionForKey(key);
+    }
+  }
 }

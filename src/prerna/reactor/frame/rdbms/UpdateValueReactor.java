@@ -1,10 +1,22 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.rdbms;
 
 import java.util.Arrays;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -14,82 +26,92 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class UpdateValueReactor extends AbstractFrameReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(UpdateValueReactor.class);
 
-	@Override
-	public NounMetadata execute() {
-		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
-		String columnInput = "";
-		String table = "";
-		String column = "";
-		GenRowStruct inputsGRS = this.getCurRow();
-		// get column to update
-		columnInput = inputsGRS.getNoun(0).getValue() + "";
-		if (columnInput.contains("__")) {
-			String[] split = columnInput.split("__");
-			table = split[0];
-			column = split[1];
-		} else {
-			table = frame.getName();
-			column = columnInput;
-		}
+  private static final Logger classLogger = LogManager.getLogger(UpdateValueReactor.class);
 
-		// check the column exists, if not then throw warning
-		String[] allCol = getColNames(frame);
-		if (Arrays.asList(allCol).contains(column) != true) {
-			throw new IllegalArgumentException("Column doesn't exist.");
-		}
+  @Override
+  public NounMetadata execute() {
+    AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
+    String columnInput = "";
+    String table = "";
+    String column = "";
+    GenRowStruct inputsGRS = this.getCurRow();
+    // get column to update
+    columnInput = inputsGRS.getNoun(0).getValue() + "";
+    if (columnInput.contains("__")) {
+      String[] split = columnInput.split("__");
+      table = split[0];
+      column = split[1];
+    } else {
+      table = frame.getName();
+      column = columnInput;
+    }
 
-		// get old column value
-		String oldValueSQL = getOldValueSQL();
+    // check the column exists, if not then throw warning
+    String[] allCol = getColNames(frame);
+    if (Arrays.asList(allCol).contains(column) != true) {
+      throw new IllegalArgumentException("Column doesn't exist.");
+    }
 
-		// get new column value
-		String newValueSQL = getNewValueSQL();
+    // get old column value
+    String oldValueSQL = getOldValueSQL();
 
-		// create sql update table set column = REXP_REPLACE(column, oldValue, newValue);
-		String update = "UPDATE " + table + " SET " + column + " = REGEXP_REPLACE(" + column + ", " + oldValueSQL + ", " + newValueSQL + ");";
+    // get new column value
+    String newValueSQL = getNewValueSQL();
 
-		try {
-			frame.getBuilder().runQuery(update);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-	}
+    // create sql update table set column = REXP_REPLACE(column, oldValue, newValue);
+    String update =
+        "UPDATE "
+            + table
+            + " SET "
+            + column
+            + " = REGEXP_REPLACE("
+            + column
+            + ", "
+            + oldValueSQL
+            + ", "
+            + newValueSQL
+            + ");";
 
-	private String getNewValueSQL() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		String newValueSQL = "";
-		NounMetadata noun = inputsGRS.getNoun(2);
-		PixelDataType nounType = noun.getNounType();
-		if (nounType.equals(PixelDataType.CONST_STRING)) {
-			newValueSQL = noun.getValue() + "";
-			if (newValueSQL.contains("'")) {
-				newValueSQL = newValueSQL.replaceAll("'", "''");
-			}
-			newValueSQL = "'" + newValueSQL + "'";
-		} else {
-			newValueSQL = noun.getValue() + "";
-		}
-		return newValueSQL;
-	}
+    try {
+      frame.getBuilder().runQuery(update);
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+    return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+  }
 
-	private String getOldValueSQL() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		String oldValueSQL = "";
-		NounMetadata noun = inputsGRS.getNoun(1);
-		PixelDataType nounType = noun.getNounType();
-		if (nounType.equals(PixelDataType.CONST_STRING)) {
-			oldValueSQL = noun.getValue() + "";
-			if (oldValueSQL.contains("'")) {
-				oldValueSQL = oldValueSQL.replaceAll("'", "''");
-			}
-			oldValueSQL = "'" + oldValueSQL + "'";
-		} else {
-			oldValueSQL = noun.getValue() + "";
-		}
-		return oldValueSQL;
-	}
+  private String getNewValueSQL() {
+    GenRowStruct inputsGRS = this.getCurRow();
+    String newValueSQL = "";
+    NounMetadata noun = inputsGRS.getNoun(2);
+    PixelDataType nounType = noun.getNounType();
+    if (nounType.equals(PixelDataType.CONST_STRING)) {
+      newValueSQL = noun.getValue() + "";
+      if (newValueSQL.contains("'")) {
+        newValueSQL = newValueSQL.replaceAll("'", "''");
+      }
+      newValueSQL = "'" + newValueSQL + "'";
+    } else {
+      newValueSQL = noun.getValue() + "";
+    }
+    return newValueSQL;
+  }
 
+  private String getOldValueSQL() {
+    GenRowStruct inputsGRS = this.getCurRow();
+    String oldValueSQL = "";
+    NounMetadata noun = inputsGRS.getNoun(1);
+    PixelDataType nounType = noun.getNounType();
+    if (nounType.equals(PixelDataType.CONST_STRING)) {
+      oldValueSQL = noun.getValue() + "";
+      if (oldValueSQL.contains("'")) {
+        oldValueSQL = oldValueSQL.replaceAll("'", "''");
+      }
+      oldValueSQL = "'" + oldValueSQL + "'";
+    } else {
+      oldValueSQL = noun.getValue() + "";
+    }
+    return oldValueSQL;
+  }
 }

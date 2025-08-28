@@ -1,73 +1,59 @@
-/*******************************************************************************
+/***************************************************************************************************
  * Copyright 2015 Defense Health Agency (DHA)
  *
- * If your use of this software does not include any GPLv2 components:
- * 	Licensed under the Apache License, Version 2.0 (the "License");
- * 	you may not use this file except in compliance with the License.
- * 	You may obtain a copy of the License at
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
  *
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * 	Unless required by applicable law or agreed to in writing, software
- * 	distributed under the License is distributed on an "AS IS" BASIS,
- * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * 	See the License for the specific language governing permissions and
- * 	limitations under the License.
- * ----------------------------------------------------------------------------
- * If your use of this software includes any GPLv2 components:
- * 	This program is free software; you can redistribute it and/or
- * 	modify it under the terms of the GNU General Public License
- * 	as published by the Free Software Foundation; either version 2
- * 	of the License, or (at your option) any later version.
- *
- * 	This program is distributed in the hope that it will be useful,
- * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
- * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * 	GNU General Public License for more details.
- *******************************************************************************/
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.rdf.engine.wrappers;
 
 import prerna.engine.api.IConstructStatement;
 
 public class ConstructStatement implements IConstructStatement {
 
-	String subject, predicate = null;
-	Object object = null;
-	
-	@Override
-	public String getPredicate() {
-		// TODO Auto-generated method stub
-		return predicate;
-	}
+  String subject, predicate = null;
+  Object object = null;
 
-	@Override
-	public Object getObject() {
-		// TODO Auto-generated method stub
-		return object;
-	}
+  @Override
+  public String getPredicate() {
+    // TODO Auto-generated method stub
+    return predicate;
+  }
 
-	@Override
-	public String getSubject() {
-		// TODO Auto-generated method stub
-		return subject;
-	}
+  @Override
+  public Object getObject() {
+    // TODO Auto-generated method stub
+    return object;
+  }
 
-	@Override
-	public void setPredicate(String predicate) {
-		// TODO Auto-generated method stub
-		this.predicate = predicate;
-	}
+  @Override
+  public String getSubject() {
+    // TODO Auto-generated method stub
+    return subject;
+  }
 
-	@Override
-	public void setSubject(String subject) {
-		// TODO Auto-generated method stub
-		this.subject = subject;
-	}
+  @Override
+  public void setPredicate(String predicate) {
+    // TODO Auto-generated method stub
+    this.predicate = predicate;
+  }
 
-	@Override
-	public void setObject(Object object) {
-		// TODO Auto-generated method stub
-		this.object = object;
-	}
+  @Override
+  public void setSubject(String subject) {
+    // TODO Auto-generated method stub
+    this.subject = subject;
+  }
 
+  @Override
+  public void setObject(Object object) {
+    // TODO Auto-generated method stub
+    this.object = object;
+  }
 }

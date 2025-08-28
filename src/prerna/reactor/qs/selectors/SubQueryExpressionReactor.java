@@ -1,7 +1,20 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.qs.selectors;
 
 import java.util.List;
-
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.qs.SubQueryExpression;
@@ -10,35 +23,34 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class SubQueryExpressionReactor extends AbstractReactor {	
-	
-	public SubQueryExpressionReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.QUERY_STRUCT.getKey()};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		// grab the input qs
-		SelectQueryStruct qs = null;
-		GenRowStruct qsInputParams = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
-		if(qsInputParams != null && !qsInputParams.isEmpty()) {
-			qs = (SelectQueryStruct) qsInputParams.get(0);
-		}
-		if(qs == null) {
-			List<NounMetadata> qsInputs = this.curRow.getNounsOfType(PixelDataType.QUERY_STRUCT);
-			if(qsInputs != null && !qsInputs.isEmpty()) {
-				qs = (SelectQueryStruct) qsInputs.get(0).getValue();
-			}
-		}
-		
-		if(qs == null) {
-			throw new NullPointerException("Must pass a QS for the SubQueryExpression");
-		}
-		
-		SubQueryExpression expression = new SubQueryExpression();
-		expression.setQs(qs);
-		expression.setInsight(this.insight);
-		return new NounMetadata(expression, PixelDataType.SUB_QUERY_EXPRESSION);
-	}
-	
+public class SubQueryExpressionReactor extends AbstractReactor {
+
+  public SubQueryExpressionReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.QUERY_STRUCT.getKey()};
+  }
+
+  @Override
+  public NounMetadata execute() {
+    // grab the input qs
+    SelectQueryStruct qs = null;
+    GenRowStruct qsInputParams = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
+    if (qsInputParams != null && !qsInputParams.isEmpty()) {
+      qs = (SelectQueryStruct) qsInputParams.get(0);
+    }
+    if (qs == null) {
+      List<NounMetadata> qsInputs = this.curRow.getNounsOfType(PixelDataType.QUERY_STRUCT);
+      if (qsInputs != null && !qsInputs.isEmpty()) {
+        qs = (SelectQueryStruct) qsInputs.get(0).getValue();
+      }
+    }
+
+    if (qs == null) {
+      throw new NullPointerException("Must pass a QS for the SubQueryExpression");
+    }
+
+    SubQueryExpression expression = new SubQueryExpression();
+    expression.setQs(qs);
+    expression.setInsight(this.insight);
+    return new NounMetadata(expression, PixelDataType.SUB_QUERY_EXPRESSION);
+  }
 }

@@ -1,201 +1,215 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.om;
 
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.ZonedDateTimeAdapter;
 
 public class MosfetFile {
 
-	private static final Logger classLogger = LogManager.getLogger(MosfetFile.class);
+  private static final Logger classLogger = LogManager.getLogger(MosfetFile.class);
 
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	public static final String RECIPE_FILE = ".mosfet";
+  private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+  public static final String RECIPE_FILE = ".mosfet";
 
-	// insight identifiers
-	private String projectId;
-	private String rdbmsId;
-	private String insightName;
-	private String layout;
-	private boolean global = false;
-	private boolean cacheable = true;
-	private int cacheMinutes = -1;
-	private String cacheCron;
-	private ZonedDateTime cachedOn;
-	private boolean cacheEncrypt = false;
-	
-	// schema name
-	private String schemaName;
-	
-	// actual recipe
-	private List<String> recipe;
-	
-	// insight metadata
-	private String[] tags;
-	private String description;
-	
-	public MosfetFile() {
-		
-	}
-	
-	public static MosfetFile generateFromFile(File file) throws IOException {
-		return (MosfetFile) GsonUtility.readJsonFileToObject(file, new TypeToken<MosfetFile>() {}.getType());
-	}
-	
-	/**
-	 * Write the mosfet file to disk
-	 * @param folderLocation	The folder to write the file
-	 * @param force				Delete the file if it already exists
-	 * @throws IOException 
-	 */
-	public void write(String folderLocation, boolean force) throws IOException {
-		String normalizedFolderLocation = Utility.normalizePath(folderLocation);
-		File directory = new File(normalizedFolderLocation);
-		if(!directory.exists()) {
-			directory.mkdirs();
-		}
-		
-		File mosfet = new File(normalizedFolderLocation + DIR_SEPARATOR + RECIPE_FILE);
-		if(!force && mosfet.exists()) {
-			throw new IOException("The mosfet file already exists");
-		} else if(force && mosfet.exists()) {
-			mosfet.delete();
-		}
-		
-		GsonUtility.writeObjectToJsonFile(mosfet, new GsonBuilder()
-				.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
-				.setPrettyPrinting().create(), this);
-	}
-	
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
+  // insight identifiers
+  private String projectId;
+  private String rdbmsId;
+  private String insightName;
+  private String layout;
+  private boolean global = false;
+  private boolean cacheable = true;
+  private int cacheMinutes = -1;
+  private String cacheCron;
+  private ZonedDateTime cachedOn;
+  private boolean cacheEncrypt = false;
 
-	/*
-	 * Setters and getters
-	 */
-	
-	public String getProjectId() {
-		return projectId;
-	}
+  // schema name
+  private String schemaName;
 
-	public void setProjectId(String projectId) {
-		this.projectId = projectId;
-	}
+  // actual recipe
+  private List<String> recipe;
 
-	public String getRdbmsId() {
-		return rdbmsId;
-	}
+  // insight metadata
+  private String[] tags;
+  private String description;
 
-	public void setRdbmsId(String rdbmsId) {
-		this.rdbmsId = rdbmsId;
-	}
+  public MosfetFile() {}
 
-	public String getInsightName() {
-		return insightName;
-	}
+  public static MosfetFile generateFromFile(File file) throws IOException {
+    return (MosfetFile)
+        GsonUtility.readJsonFileToObject(file, new TypeToken<MosfetFile>() {}.getType());
+  }
 
-	public void setInsightName(String insightName) {
-		this.insightName = insightName;
-	}
+  /**
+   * Write the mosfet file to disk
+   *
+   * @param folderLocation The folder to write the file
+   * @param force Delete the file if it already exists
+   * @throws IOException
+   */
+  public void write(String folderLocation, boolean force) throws IOException {
+    String normalizedFolderLocation = Utility.normalizePath(folderLocation);
+    File directory = new File(normalizedFolderLocation);
+    if (!directory.exists()) {
+      directory.mkdirs();
+    }
 
-	public String getLayout() {
-		return layout;
-	}
+    File mosfet = new File(normalizedFolderLocation + DIR_SEPARATOR + RECIPE_FILE);
+    if (!force && mosfet.exists()) {
+      throw new IOException("The mosfet file already exists");
+    } else if (force && mosfet.exists()) {
+      mosfet.delete();
+    }
 
-	public void setLayout(String layout) {
-		this.layout = layout;
-	}
+    GsonUtility.writeObjectToJsonFile(
+        mosfet,
+        new GsonBuilder()
+            .registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
+            .setPrettyPrinting()
+            .create(),
+        this);
+  }
 
-	public boolean isGlobal() {
-		return global;
-	}
+  /////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////
 
-	public void setGlobal(boolean global) {
-		this.global = global;
-	}
-	
-	public boolean isCacheable() {
-		return cacheable;
-	}
+  /*
+   * Setters and getters
+   */
 
-	public void setCacheable(boolean cacheable) {
-		this.cacheable = cacheable;
-	}
+  public String getProjectId() {
+    return projectId;
+  }
 
-	public int getCacheMinutes() {
-		return cacheMinutes;
-	}
+  public void setProjectId(String projectId) {
+    this.projectId = projectId;
+  }
 
-	public void setCacheMinutes(int cacheMinutes) {
-		this.cacheMinutes = cacheMinutes;
-	}
-	
-	public String getCacheCron() {
-		return cacheCron;
-	}
+  public String getRdbmsId() {
+    return rdbmsId;
+  }
 
-	public void setCacheCron(String cacheCron) {
-		this.cacheCron = cacheCron;
-	}
+  public void setRdbmsId(String rdbmsId) {
+    this.rdbmsId = rdbmsId;
+  }
 
-	public ZonedDateTime getCachedOn() {
-		return cachedOn;
-	}
+  public String getInsightName() {
+    return insightName;
+  }
 
-	public void setCachedOn(ZonedDateTime cachedOn) {
-		this.cachedOn = cachedOn;
-	}
+  public void setInsightName(String insightName) {
+    this.insightName = insightName;
+  }
 
-	public boolean isCacheEncrypt() {
-		return cacheEncrypt;
-	}
+  public String getLayout() {
+    return layout;
+  }
 
-	public void setCacheEncrypt(boolean cacheEncrypt) {
-		this.cacheEncrypt = cacheEncrypt;
-	}
+  public void setLayout(String layout) {
+    this.layout = layout;
+  }
 
-	public List<String> getRecipe() {
-		return recipe;
-	}
+  public boolean isGlobal() {
+    return global;
+  }
 
-	public void setRecipe(List<String> recipe) {
-		this.recipe = recipe;
-	}
+  public void setGlobal(boolean global) {
+    this.global = global;
+  }
 
-	public String[] getTags() {
-		return tags;
-	}
+  public boolean isCacheable() {
+    return cacheable;
+  }
 
-	public void setTags(String[] tags) {
-		this.tags = tags;
-	}
+  public void setCacheable(boolean cacheable) {
+    this.cacheable = cacheable;
+  }
 
-	public String getDescription() {
-		return description;
-	}
+  public int getCacheMinutes() {
+    return cacheMinutes;
+  }
 
-	public void setDescription(String description) {
-		this.description = description;
-	}
+  public void setCacheMinutes(int cacheMinutes) {
+    this.cacheMinutes = cacheMinutes;
+  }
 
-	public String getSchemaName() {
-		return schemaName;
-	}
+  public String getCacheCron() {
+    return cacheCron;
+  }
 
-	public void setSchemaName(String schemaName) {
-		this.schemaName = schemaName;
-	}
-	
+  public void setCacheCron(String cacheCron) {
+    this.cacheCron = cacheCron;
+  }
+
+  public ZonedDateTime getCachedOn() {
+    return cachedOn;
+  }
+
+  public void setCachedOn(ZonedDateTime cachedOn) {
+    this.cachedOn = cachedOn;
+  }
+
+  public boolean isCacheEncrypt() {
+    return cacheEncrypt;
+  }
+
+  public void setCacheEncrypt(boolean cacheEncrypt) {
+    this.cacheEncrypt = cacheEncrypt;
+  }
+
+  public List<String> getRecipe() {
+    return recipe;
+  }
+
+  public void setRecipe(List<String> recipe) {
+    this.recipe = recipe;
+  }
+
+  public String[] getTags() {
+    return tags;
+  }
+
+  public void setTags(String[] tags) {
+    this.tags = tags;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
+  public String getSchemaName() {
+    return schemaName;
+  }
+
+  public void setSchemaName(String schemaName) {
+    this.schemaName = schemaName;
+  }
 }

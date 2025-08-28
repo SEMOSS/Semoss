@@ -1,12 +1,24 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.database.upload;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.logging.log4j.Logger;
-
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.excel.ExcelBlock;
 import prerna.poi.main.helper.excel.ExcelParsing;
@@ -23,80 +35,88 @@ import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
 public class PredictExcelDataTypesReactor extends AbstractReactor {
-	
-	private static final String CLASS_NAME = PredictExcelDataTypesReactor.class.getName();
 
-	public PredictExcelDataTypesReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE, ReactorKeysEnum.PASSWORD.getKey()};
-	}
+  private static final String CLASS_NAME = PredictExcelDataTypesReactor.class.getName();
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		Logger logger = getLogger(CLASS_NAME);
-		int stepCounter = 1;
-		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
-		if(!new File(filePath).exists()) {
-			throw new IllegalArgumentException("Unable to locate file");
-		}
-		// check if file is valid
-		if(!ExcelParsing.isExcelFile(filePath)) {
-			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			SemossPixelException e = new SemossPixelException(error);
-			e.setContinueThreadOfExecution(false);
-			throw e;
-		}
-		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
+  public PredictExcelDataTypesReactor() {
+    this.keysToGet =
+        new String[] {
+          UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE, ReactorKeysEnum.PASSWORD.getKey()
+        };
+  }
 
-		Map<String, Object> fileData = new HashMap<String, Object>();
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    Logger logger = getLogger(CLASS_NAME);
+    int stepCounter = 1;
+    String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+    if (!new File(filePath).exists()) {
+      throw new IllegalArgumentException("Unable to locate file");
+    }
+    // check if file is valid
+    if (!ExcelParsing.isExcelFile(filePath)) {
+      NounMetadata error =
+          new NounMetadata(
+              "Invalid file. Must be .xlsx, .xlsm or .xls",
+              PixelDataType.CONST_STRING,
+              PixelOperationType.ERROR);
+      SemossPixelException e = new SemossPixelException(error);
+      e.setContinueThreadOfExecution(false);
+      throw e;
+    }
+    String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
 
-		// processing excel file data
-		// trying to determine data blocks within a sheet
-		ExcelWorkbookFilePreProcessor preProcessor = new ExcelWorkbookFilePreProcessor();
-		logger.info(stepCounter+ ". Parsing file");
-		preProcessor.parse(filePath, password);
-		logger.info(stepCounter+". Done");
-		stepCounter++;
-		
-		logger.info(stepCounter+ ". Determining sheet range");
-		preProcessor.determineTableRanges();
-		logger.info(stepCounter+ ". Done");
-		stepCounter++;
-		
-		logger.info(stepCounter + ". Processing all sheets");
+    Map<String, Object> fileData = new HashMap<String, Object>();
 
-		Map<String, ExcelSheetPreProcessor> sProcessors = preProcessor.getSheetProcessors();
-		for (String sheet : sProcessors.keySet()) {
-			logger.info("Processing sheet: " + Utility.cleanLogString(sheet));
-			ExcelSheetPreProcessor processor = sProcessors.get(sheet);
-			List<ExcelBlock> blocks = processor.getAllBlocks();
-			Map<String, Object> rangeInfo = new HashMap<String, Object>();
-			for (ExcelBlock block : blocks) {
-				List<ExcelRange> ranges = block.getRanges();
-				for (ExcelRange r : ranges) {
-					String rSyntax = r.getRangeSyntax();
-					logger.info("Processing range: " + rSyntax);
-					String[] origHeaders = processor.getRangeHeaders(r);
-					String[] cleanedHeaders = processor.getCleanedRangeHeaders(r);
-					Object[][] rangeTypes = block.getRangeTypes(r);
-					Map[] retMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(cleanedHeaders, rangeTypes);
-					Map<String, Object> rangeMap = new HashMap<String, Object>();
-					logger.info("Obtaining headers and types");
-					rangeMap.put("headers", origHeaders);
-					rangeMap.put("cleanHeaders", cleanedHeaders);
-					rangeMap.put("dataTypes", retMaps[0]);
-					rangeMap.put("additionalDataTypes", retMaps[1]);
-					rangeInfo.put(rSyntax, rangeMap);
-				}
-			}
+    // processing excel file data
+    // trying to determine data blocks within a sheet
+    ExcelWorkbookFilePreProcessor preProcessor = new ExcelWorkbookFilePreProcessor();
+    logger.info(stepCounter + ". Parsing file");
+    preProcessor.parse(filePath, password);
+    logger.info(stepCounter + ". Done");
+    stepCounter++;
 
-			// add all ranges in the sheet
-			fileData.put(sheet, rangeInfo);
-			preProcessor.clear();
-		}
-		logger.info(stepCounter + ". Done");
+    logger.info(stepCounter + ". Determining sheet range");
+    preProcessor.determineTableRanges();
+    logger.info(stepCounter + ". Done");
+    stepCounter++;
 
-		// store the info
-		return new NounMetadata(fileData, PixelDataType.MAP);
-	}
+    logger.info(stepCounter + ". Processing all sheets");
+
+    Map<String, ExcelSheetPreProcessor> sProcessors = preProcessor.getSheetProcessors();
+    for (String sheet : sProcessors.keySet()) {
+      logger.info("Processing sheet: " + Utility.cleanLogString(sheet));
+      ExcelSheetPreProcessor processor = sProcessors.get(sheet);
+      List<ExcelBlock> blocks = processor.getAllBlocks();
+      Map<String, Object> rangeInfo = new HashMap<String, Object>();
+      for (ExcelBlock block : blocks) {
+        List<ExcelRange> ranges = block.getRanges();
+        for (ExcelRange r : ranges) {
+          String rSyntax = r.getRangeSyntax();
+          logger.info("Processing range: " + rSyntax);
+          String[] origHeaders = processor.getRangeHeaders(r);
+          String[] cleanedHeaders = processor.getCleanedRangeHeaders(r);
+          Object[][] rangeTypes = block.getRangeTypes(r);
+          Map[] retMaps =
+              FileHelperUtil.generateDataTypeMapsFromPrediction(cleanedHeaders, rangeTypes);
+          Map<String, Object> rangeMap = new HashMap<String, Object>();
+          logger.info("Obtaining headers and types");
+          rangeMap.put("headers", origHeaders);
+          rangeMap.put("cleanHeaders", cleanedHeaders);
+          rangeMap.put("dataTypes", retMaps[0]);
+          rangeMap.put("additionalDataTypes", retMaps[1]);
+          rangeInfo.put(rSyntax, rangeMap);
+        }
+      }
+
+      // add all ranges in the sheet
+      fileData.put(sheet, rangeInfo);
+      preProcessor.clear();
+    }
+    logger.info(stepCounter + ". Done");
+
+    // store the info
+    return new NounMetadata(fileData, PixelDataType.MAP);
+  }
 }

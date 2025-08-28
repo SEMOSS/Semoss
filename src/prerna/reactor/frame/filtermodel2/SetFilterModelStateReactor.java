@@ -1,7 +1,20 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.filtermodel2;
 
 import java.util.Set;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.BooleanValMetadata;
@@ -17,59 +30,69 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SetFilterModelStateReactor extends AbstractFilterReactor {
 
-	public SetFilterModelStateReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.FILTERS.getKey() };
-	}
+  public SetFilterModelStateReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.PANEL.getKey(),
+          ReactorKeysEnum.FRAME.getKey(),
+          ReactorKeysEnum.FILTERS.getKey()
+        };
+  }
 
-	@Override
-	public NounMetadata execute() {
-		InsightPanel panel = getInsightPanel();
-		if(panel == null) {
-			throw new NullPointerException("Cannot find the input panel for set panel filter");
-		}
-		GenRowFilters panelTempModelGrf = panel.getTempFilterModelGrf();
+  @Override
+  public NounMetadata execute() {
+    InsightPanel panel = getInsightPanel();
+    if (panel == null) {
+      throw new NullPointerException("Cannot find the input panel for set panel filter");
+    }
+    GenRowFilters panelTempModelGrf = panel.getTempFilterModelGrf();
 
-		// get the filters to add
-		GenRowFilters newFiltersToAdd = getFilters();
-		if (newFiltersToAdd.isEmpty()) {
-			throw new IllegalArgumentException("No filter found to set to panel");
-		}
+    // get the filters to add
+    GenRowFilters newFiltersToAdd = getFilters();
+    if (newFiltersToAdd.isEmpty()) {
+      throw new IllegalArgumentException("No filter found to set to panel");
+    }
 
-		// get the frame (or default frame)
-		ITableDataFrame frame = getFrame();
-		
-		// check if we are filtering or actually removing a filter
-		if(newFiltersToAdd.size() == 1) {
-			IQueryFilter singleFilter = newFiltersToAdd.getFilters().get(0);
-			if(singleFilter instanceof SimpleQueryFilter) {
-				boolean unfilter = ((SimpleQueryFilter) singleFilter).isEmptyFilterValues();
-				if(unfilter) {
-					QueryColumnSelector cSelector = singleFilter.getAllQueryColumns().get(0);
-					boolean isValidFilter = panelTempModelGrf.removeColumnFilter(cSelector.getAlias());
+    // get the frame (or default frame)
+    ITableDataFrame frame = getFrame();
 
-					panel.setTempFitlerModelFrame(frame);
-					BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
-					pFilterVal.setName(panel.getPanelId());
-					pFilterVal.setFilterVal(isValidFilter);
-					NounMetadata noun = new NounMetadata(pFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_FILTER_CHANGE);
-					return noun;
-				}
-			}
-		}
-		
-		// we got to this point, apply the filter
-		// remove the existing filters for the columns affected
-		Set<String> allColsUsed = newFiltersToAdd.getAllFilteredColumns();
-		panelTempModelGrf.removeColumnFilters(allColsUsed);
-		// add the new filters
-		panelTempModelGrf.merge(newFiltersToAdd);
-		
-		panel.setTempFitlerModelFrame(frame);
-		BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
-		pFilterVal.setName(panel.getPanelId());
-		pFilterVal.setFilterVal(true);
-		NounMetadata noun = new NounMetadata(pFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_FILTER_CHANGE);
-		return noun;
-	}
-	
+    // check if we are filtering or actually removing a filter
+    if (newFiltersToAdd.size() == 1) {
+      IQueryFilter singleFilter = newFiltersToAdd.getFilters().get(0);
+      if (singleFilter instanceof SimpleQueryFilter) {
+        boolean unfilter = ((SimpleQueryFilter) singleFilter).isEmptyFilterValues();
+        if (unfilter) {
+          QueryColumnSelector cSelector = singleFilter.getAllQueryColumns().get(0);
+          boolean isValidFilter = panelTempModelGrf.removeColumnFilter(cSelector.getAlias());
+
+          panel.setTempFitlerModelFrame(frame);
+          BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
+          pFilterVal.setName(panel.getPanelId());
+          pFilterVal.setFilterVal(isValidFilter);
+          NounMetadata noun =
+              new NounMetadata(
+                  pFilterVal,
+                  PixelDataType.BOOLEAN_METADATA,
+                  PixelOperationType.PANEL_FILTER_CHANGE);
+          return noun;
+        }
+      }
+    }
+
+    // we got to this point, apply the filter
+    // remove the existing filters for the columns affected
+    Set<String> allColsUsed = newFiltersToAdd.getAllFilteredColumns();
+    panelTempModelGrf.removeColumnFilters(allColsUsed);
+    // add the new filters
+    panelTempModelGrf.merge(newFiltersToAdd);
+
+    panel.setTempFitlerModelFrame(frame);
+    BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
+    pFilterVal.setName(panel.getPanelId());
+    pFilterVal.setFilterVal(true);
+    NounMetadata noun =
+        new NounMetadata(
+            pFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_FILTER_CHANGE);
+    return noun;
+  }
 }

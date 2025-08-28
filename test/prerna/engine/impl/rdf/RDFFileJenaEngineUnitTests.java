@@ -1,5 +1,30 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.engine.impl.rdf;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.Mockito.*;
+
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Stream;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.*;
@@ -21,403 +46,388 @@ import org.mockito.MockitoAnnotations;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.util.Constants;
 
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.mockito.Mockito.*;
-
 public class RDFFileJenaEngineUnitTests {
 
-    private RDFFileJenaEngine engine;
-    private String baseUri;
-    private String rdfPath;
+  private RDFFileJenaEngine engine;
+  private String baseUri;
+  private String rdfPath;
 
-    @Mock
-    private Model model;
+  @Mock private Model model;
 
-    @BeforeEach
-    void setUp(@TempDir Path tempDir) throws Exception {
-        MockitoAnnotations.openMocks(this);
-        engine = new RDFFileJenaEngine();
+  @BeforeEach
+  void setUp(@TempDir Path tempDir) throws Exception {
+    MockitoAnnotations.openMocks(this);
+    engine = new RDFFileJenaEngine();
 
-        Path rdf = tempDir.resolve("rdf.owl");
-        Files.createDirectories(rdf.getParent());
-        URI uri = rdf.toUri();
-        baseUri = uri.toString();
-        rdfPath = rdf.toAbsolutePath().toString();
+    Path rdf = tempDir.resolve("rdf.owl");
+    Files.createDirectories(rdf.getParent());
+    URI uri = rdf.toUri();
+    baseUri = uri.toString();
+    rdfPath = rdf.toAbsolutePath().toString();
 
-        Properties props = new Properties();
-        props.setProperty(Constants.ENGINE, "engine-01");
-        props.setProperty(Constants.ENGINE_ALIAS, "ea");
-        props.setProperty(Constants.RDF_FILE_NAME, rdfPath);
-        props.setProperty(Constants.RDF_FILE_BASE_URI, baseUri);
-        props.setProperty(Constants.RDF_FILE_TYPE, "RDF/XML");
+    Properties props = new Properties();
+    props.setProperty(Constants.ENGINE, "engine-01");
+    props.setProperty(Constants.ENGINE_ALIAS, "ea");
+    props.setProperty(Constants.RDF_FILE_NAME, rdfPath);
+    props.setProperty(Constants.RDF_FILE_BASE_URI, baseUri);
+    props.setProperty(Constants.RDF_FILE_TYPE, "RDF/XML");
 
-        engine.setBasic(true);
+    engine.setBasic(true);
 
-        try (MockedStatic<RDFDataMgr> ignored = Mockito.mockStatic(RDFDataMgr.class);
-             MockedStatic<ModelFactory> mfStatic = Mockito.mockStatic(ModelFactory.class)) {
-            mfStatic.when(ModelFactory::createDefaultModel).thenReturn(model);
-            engine.open(props);
-
-        }
+    try (MockedStatic<RDFDataMgr> ignored = Mockito.mockStatic(RDFDataMgr.class);
+        MockedStatic<ModelFactory> mfStatic = Mockito.mockStatic(ModelFactory.class)) {
+      mfStatic.when(ModelFactory::createDefaultModel).thenReturn(model);
+      engine.open(props);
     }
+  }
 
-    @Test
-    void testOpen() throws Exception {
-        // open is called in before each
-        assertNotNull(engine.getJenaModel());
-        assertEquals("engine-01", engine.getEngineId());
-        assertEquals("ea", engine.getEngineName());
-        assertTrue(engine.isConnected());
+  @Test
+  void testOpen() throws Exception {
+    // open is called in before each
+    assertNotNull(engine.getJenaModel());
+    assertEquals("engine-01", engine.getEngineId());
+    assertEquals("ea", engine.getEngineName());
+    assertTrue(engine.isConnected());
+  }
+
+  @Test
+  void testClose() throws Exception {
+    engine.close();
+    verify(model, times(1)).close();
+  }
+
+  @Test
+  void testExecQueryRS() {
+    String queryString = "Select";
+    Query q2 = mock(Query.class);
+    QueryExecution qe = mock(QueryExecution.class);
+    try (MockedStatic<QueryFactory> qfMockedStatic = Mockito.mockStatic(QueryFactory.class);
+        MockedStatic<QueryExecutionFactory> qefMockedStatic =
+            Mockito.mockStatic(QueryExecutionFactory.class); ) {
+
+      qfMockedStatic.when(() -> QueryFactory.create(queryString)).thenReturn(q2);
+      qefMockedStatic.when(() -> QueryExecutionFactory.create(q2, model)).thenReturn(qe);
+
+      when(q2.isSelectType()).thenReturn(true);
+      ResultSet rs = mock(ResultSet.class);
+      when(qe.execSelect()).thenReturn(rs);
+
+      Object result = engine.execQuery(queryString);
+      assertEquals(rs, result);
     }
+  }
 
+  @Test
+  void testExecQueryConstruct() {
+    String queryString = "Select";
+    Query q2 = mock(Query.class);
+    QueryExecution qe = mock(QueryExecution.class);
+    try (MockedStatic<QueryFactory> qfMockedStatic = Mockito.mockStatic(QueryFactory.class);
+        MockedStatic<QueryExecutionFactory> qefMockedStatic =
+            Mockito.mockStatic(QueryExecutionFactory.class); ) {
 
-    @Test
-    void testClose() throws Exception {
-        engine.close();
-        verify(model, times(1)).close();
+      qfMockedStatic.when(() -> QueryFactory.create(queryString)).thenReturn(q2);
+      qefMockedStatic.when(() -> QueryExecutionFactory.create(q2, model)).thenReturn(qe);
+
+      when(q2.isSelectType()).thenReturn(false);
+      when(q2.isConstructType()).thenReturn(true);
+      Model resultModel = mock(Model.class);
+      when(qe.execConstruct()).thenReturn(resultModel);
+
+      Object result = engine.execQuery(queryString);
+      assertEquals(resultModel, result);
     }
+  }
 
+  @Test
+  void testExecQueryAskType() {
+    String queryString = "Select";
+    Query q2 = mock(Query.class);
+    QueryExecution qe = mock(QueryExecution.class);
+    try (MockedStatic<QueryFactory> qfMockedStatic = Mockito.mockStatic(QueryFactory.class);
+        MockedStatic<QueryExecutionFactory> qefMockedStatic =
+            Mockito.mockStatic(QueryExecutionFactory.class); ) {
 
-    @Test
-    void testExecQueryRS() {
-        String queryString = "Select";
-        Query q2 = mock(Query.class);
-        QueryExecution qe = mock(QueryExecution.class);
-        try (MockedStatic<QueryFactory> qfMockedStatic = Mockito.mockStatic(QueryFactory.class);
-             MockedStatic<QueryExecutionFactory> qefMockedStatic = Mockito.mockStatic(QueryExecutionFactory.class);) {
+      qfMockedStatic.when(() -> QueryFactory.create(queryString)).thenReturn(q2);
+      qefMockedStatic.when(() -> QueryExecutionFactory.create(q2, model)).thenReturn(qe);
 
-            qfMockedStatic.when(() -> QueryFactory.create(queryString)).thenReturn(q2);
-            qefMockedStatic.when(() -> QueryExecutionFactory.create(q2, model)).thenReturn(qe);
+      when(q2.isSelectType()).thenReturn(false);
+      when(q2.isConstructType()).thenReturn(false);
+      when(q2.isAskType()).thenReturn(true);
 
-            when(q2.isSelectType()).thenReturn(true);
-            ResultSet rs = mock(ResultSet.class);
-            when(qe.execSelect()).thenReturn(rs);
+      when(qe.execAsk()).thenReturn(true);
 
-            Object result = engine.execQuery(queryString);
-            assertEquals(rs, result);
-        }
+      Object result = engine.execQuery(queryString);
+      assertTrue((Boolean) result);
     }
+  }
 
-    @Test
-    void testExecQueryConstruct() {
-        String queryString = "Select";
-        Query q2 = mock(Query.class);
-        QueryExecution qe = mock(QueryExecution.class);
-        try (MockedStatic<QueryFactory> qfMockedStatic = Mockito.mockStatic(QueryFactory.class);
-             MockedStatic<QueryExecutionFactory> qefMockedStatic = Mockito.mockStatic(QueryExecutionFactory.class);) {
+  @Test
+  void testExecQueryNull() {
+    String queryString = "Select";
+    Query q2 = mock(Query.class);
+    QueryExecution qe = mock(QueryExecution.class);
+    try (MockedStatic<QueryFactory> qfMockedStatic = Mockito.mockStatic(QueryFactory.class);
+        MockedStatic<QueryExecutionFactory> qefMockedStatic =
+            Mockito.mockStatic(QueryExecutionFactory.class); ) {
 
-            qfMockedStatic.when(() -> QueryFactory.create(queryString)).thenReturn(q2);
-            qefMockedStatic.when(() -> QueryExecutionFactory.create(q2, model)).thenReturn(qe);
+      qfMockedStatic.when(() -> QueryFactory.create(queryString)).thenReturn(q2);
+      qefMockedStatic.when(() -> QueryExecutionFactory.create(q2, model)).thenReturn(qe);
 
-            when(q2.isSelectType()).thenReturn(false);
-            when(q2.isConstructType()).thenReturn(true);
-            Model resultModel = mock(Model.class);
-            when(qe.execConstruct()).thenReturn(resultModel);
+      when(q2.isSelectType()).thenReturn(false);
+      when(q2.isConstructType()).thenReturn(false);
+      when(q2.isAskType()).thenReturn(false);
 
-            Object result = engine.execQuery(queryString);
-            assertEquals(resultModel, result);
-        }
+      Object result = engine.execQuery(queryString);
+      assertNull(result);
     }
+  }
 
-    @Test
-    void testExecQueryAskType() {
-        String queryString = "Select";
-        Query q2 = mock(Query.class);
-        QueryExecution qe = mock(QueryExecution.class);
-        try (MockedStatic<QueryFactory> qfMockedStatic = Mockito.mockStatic(QueryFactory.class);
-             MockedStatic<QueryExecutionFactory> qefMockedStatic = Mockito.mockStatic(QueryExecutionFactory.class);) {
+  @Test
+  void testInsertData() {
+    UpdateRequest p = mock(UpdateRequest.class);
+    try (MockedStatic<UpdateFactory> factoryMockedStatic = Mockito.mockStatic(UpdateFactory.class);
+        MockedStatic<UpdateAction> actionMockedStatic = Mockito.mockStatic(UpdateAction.class)) {
+      factoryMockedStatic.when(UpdateFactory::create).thenReturn(p);
 
-            qfMockedStatic.when(() -> QueryFactory.create(queryString)).thenReturn(q2);
-            qefMockedStatic.when(() -> QueryExecutionFactory.create(q2, model)).thenReturn(qe);
+      engine.insertData("test");
 
-            when(q2.isSelectType()).thenReturn(false);
-            when(q2.isConstructType()).thenReturn(false);
-            when(q2.isAskType()).thenReturn(true);
-
-            when(qe.execAsk()).thenReturn(true);
-
-            Object result = engine.execQuery(queryString);
-            assertTrue((Boolean) result);
-        }
+      factoryMockedStatic.verify(UpdateFactory::create, times(1));
+      actionMockedStatic.verify(() -> UpdateAction.execute(p, model), times(1));
     }
+  }
 
-    @Test
-    void testExecQueryNull() {
-        String queryString = "Select";
-        Query q2 = mock(Query.class);
-        QueryExecution qe = mock(QueryExecution.class);
-        try (MockedStatic<QueryFactory> qfMockedStatic = Mockito.mockStatic(QueryFactory.class);
-             MockedStatic<QueryExecutionFactory> qefMockedStatic = Mockito.mockStatic(QueryExecutionFactory.class);) {
+  @Test
+  void testRemoveData() {
+    UpdateRequest p = mock(UpdateRequest.class);
+    try (MockedStatic<UpdateFactory> factoryMockedStatic = Mockito.mockStatic(UpdateFactory.class);
+        MockedStatic<UpdateAction> actionMockedStatic = Mockito.mockStatic(UpdateAction.class)) {
+      factoryMockedStatic.when(UpdateFactory::create).thenReturn(p);
 
-            qfMockedStatic.when(() -> QueryFactory.create(queryString)).thenReturn(q2);
-            qefMockedStatic.when(() -> QueryExecutionFactory.create(q2, model)).thenReturn(qe);
+      engine.removeData("test");
 
-            when(q2.isSelectType()).thenReturn(false);
-            when(q2.isConstructType()).thenReturn(false);
-            when(q2.isAskType()).thenReturn(false);
-
-            Object result = engine.execQuery(queryString);
-            assertNull(result);
-        }
+      factoryMockedStatic.verify(UpdateFactory::create, times(1));
+      actionMockedStatic.verify(() -> UpdateAction.execute(p, model), times(1));
     }
+  }
 
+  @Test
+  void testGetDatabaseType() {
+    assertEquals(IDatabaseEngine.DATABASE_TYPE.JENA, engine.getDatabaseType());
+  }
 
-    @Test
-    void testInsertData() {
-        UpdateRequest p = mock(UpdateRequest.class);
-        try (MockedStatic<UpdateFactory> factoryMockedStatic = Mockito.mockStatic(UpdateFactory.class);
-             MockedStatic<UpdateAction> actionMockedStatic = Mockito.mockStatic(UpdateAction.class)) {
-            factoryMockedStatic.when(UpdateFactory::create).thenReturn(p);
+  @Test
+  void testHoldsFileLock() {
+    assertTrue(engine.holdsFileLocks());
+  }
 
-            engine.insertData("test");
+  @Test
+  void testCleanSelect() {
+    String queryString = "Select";
+    Query q2 = mock(Query.class);
+    QueryExecution qe = mock(QueryExecution.class);
+    try (MockedStatic<QueryFactory> qfMockedStatic = Mockito.mockStatic(QueryFactory.class);
+        MockedStatic<QueryExecutionFactory> qefMockedStatic =
+            Mockito.mockStatic(QueryExecutionFactory.class); ) {
 
-            factoryMockedStatic.verify(UpdateFactory::create, times(1));
-            actionMockedStatic.verify(() -> UpdateAction.execute(p, model), times(1));
-        }
+      qfMockedStatic.when(() -> QueryFactory.create(queryString)).thenReturn(q2);
+      qefMockedStatic.when(() -> QueryExecutionFactory.create(q2, model)).thenReturn(qe);
+
+      when(q2.isSelectType()).thenReturn(true);
+      ResultSet rs = mock(ResultSet.class);
+      when(qe.execSelect()).thenReturn(rs);
+
+      when(rs.hasNext()).thenReturn(true).thenReturn(false);
+      List<String> vals = new ArrayList<>();
+      vals.add("test-1");
+      when(rs.getResultVars()).thenReturn(vals);
+
+      QuerySolution qs = mock(QuerySolution.class);
+      RDFNode rdfNode = mock(RDFNode.class);
+      when(qs.get("test-1")).thenReturn(rdfNode);
+      when(rs.next()).thenReturn(qs);
+
+      Vector<Object> result = engine.getCleanSelect(queryString);
+
+      assertEquals(1, result.size());
+      assertEquals(rdfNode.toString(), result.get(0));
     }
+  }
 
-    @Test
-    void testRemoveData() {
-        UpdateRequest p = mock(UpdateRequest.class);
-        try (MockedStatic<UpdateFactory> factoryMockedStatic = Mockito.mockStatic(UpdateFactory.class);
-             MockedStatic<UpdateAction> actionMockedStatic = Mockito.mockStatic(UpdateAction.class)) {
-            factoryMockedStatic.when(UpdateFactory::create).thenReturn(p);
+  @Test
+  void testGetEntityOfType() {
+    Properties p = new Properties();
+    p.setProperty(Constants.TYPE_QUERY, "@entity@");
+    engine.setSmssProp(p);
+    String queryString = "Select";
+    Query q2 = mock(Query.class);
+    QueryExecution qe = mock(QueryExecution.class);
+    try (MockedStatic<QueryFactory> qfMockedStatic = Mockito.mockStatic(QueryFactory.class);
+        MockedStatic<QueryExecutionFactory> qefMockedStatic =
+            Mockito.mockStatic(QueryExecutionFactory.class); ) {
 
-            engine.removeData("test");
+      qfMockedStatic.when(() -> QueryFactory.create(queryString)).thenReturn(q2);
+      qefMockedStatic.when(() -> QueryExecutionFactory.create(q2, model)).thenReturn(qe);
 
-            factoryMockedStatic.verify(UpdateFactory::create, times(1));
-            actionMockedStatic.verify(() -> UpdateAction.execute(p, model), times(1));
-        }
+      when(q2.isSelectType()).thenReturn(true);
+      ResultSet rs = mock(ResultSet.class);
+      when(qe.execSelect()).thenReturn(rs);
+
+      when(rs.hasNext()).thenReturn(true).thenReturn(false);
+      List<String> vals = new ArrayList<>();
+      vals.add("test-1");
+      when(rs.getResultVars()).thenReturn(vals);
+
+      QuerySolution qs = mock(QuerySolution.class);
+      RDFNode rdfNode = mock(RDFNode.class);
+      when(qs.get("test-1")).thenReturn(rdfNode);
+      when(rs.next()).thenReturn(qs);
+
+      Vector<Object> result = engine.getEntityOfType(queryString);
+
+      assertEquals(1, result.size());
+      assertEquals(rdfNode.toString(), result.get(0));
     }
+  }
 
-    @Test
-    void testGetDatabaseType() {
-        assertEquals(IDatabaseEngine.DATABASE_TYPE.JENA, engine.getDatabaseType());
-    }
+  @Test
+  void testIsConnected() {
+    assertTrue(engine.isConnected());
+  }
 
-    @Test
-    void testHoldsFileLock() {
-        assertTrue(engine.holdsFileLocks());
-    }
+  static Stream<Arguments> determineLangSupplier() {
+    return Stream.of(
+        arguments("RDF/XML", Lang.RDFXML),
+        arguments("TURTLE", Lang.TURTLE),
+        arguments("N3", Lang.N3),
+        arguments("NTRIPLES", Lang.NTRIPLES),
+        arguments("TRIG", Lang.TRIG),
+        arguments("TRIX", Lang.TRIX));
+  }
 
-    @Test
-    void testCleanSelect() {
-        String queryString = "Select";
-        Query q2 = mock(Query.class);
-        QueryExecution qe = mock(QueryExecution.class);
-        try (MockedStatic<QueryFactory> qfMockedStatic = Mockito.mockStatic(QueryFactory.class);
-             MockedStatic<QueryExecutionFactory> qefMockedStatic = Mockito.mockStatic(QueryExecutionFactory.class);) {
+  @ParameterizedTest
+  @MethodSource("determineLangSupplier")
+  void testDetermineLang(String queryString, Lang lang) {
+    assertEquals(lang, engine.determineLang(queryString));
+  }
 
-            qfMockedStatic.when(() -> QueryFactory.create(queryString)).thenReturn(q2);
-            qefMockedStatic.when(() -> QueryExecutionFactory.create(q2, model)).thenReturn(qe);
+  @Test
+  void testDetermineLangNull() {
+    assertNull(engine.determineLang("not found"));
+  }
 
-            when(q2.isSelectType()).thenReturn(true);
-            ResultSet rs = mock(ResultSet.class);
-            when(qe.execSelect()).thenReturn(rs);
+  @Test
+  void testCommit() {
+    engine.commit();
+    verify(model, times(1)).commit();
+  }
 
-            when(rs.hasNext()).thenReturn(true).thenReturn(false);
-            List<String> vals = new ArrayList<>();
-            vals.add("test-1");
-            when(rs.getResultVars()).thenReturn(vals);
+  @Test
+  void testAddStatementNumber() {
+    String subject = " subject ";
+    String predicate = " predicate ";
+    Integer number = 2;
+    Boolean concept = false;
 
-            QuerySolution qs = mock(QuerySolution.class);
-            RDFNode rdfNode = mock(RDFNode.class);
-            when(qs.get("test-1")).thenReturn(rdfNode);
-            when(rs.next()).thenReturn(qs);
+    Resource resource = mock(Resource.class);
+    Property prop = mock(Property.class);
+    when(model.createResource("subject")).thenReturn(resource);
+    when(model.createProperty("predicate")).thenReturn(prop);
 
-            Vector<Object> result = engine.getCleanSelect(queryString);
+    Object[] args = {subject, predicate, number, concept};
 
-            assertEquals(1, result.size());
-            assertEquals(rdfNode.toString(), result.get(0));
-        }
-    }
+    engine.addStatement(args);
 
-    @Test
-    void testGetEntityOfType() {
-        Properties p = new Properties();
-        p.setProperty(Constants.TYPE_QUERY, "@entity@");
-        engine.setSmssProp(p);
-        String queryString = "Select";
-        Query q2 = mock(Query.class);
-        QueryExecution qe = mock(QueryExecution.class);
-        try (MockedStatic<QueryFactory> qfMockedStatic = Mockito.mockStatic(QueryFactory.class);
-             MockedStatic<QueryExecutionFactory> qefMockedStatic = Mockito.mockStatic(QueryExecutionFactory.class);) {
+    RDFNode node = ResourceFactory.createTypedLiteral(2.0);
+    verify(model, times(1)).add(resource, prop, node);
+  }
 
-            qfMockedStatic.when(() -> QueryFactory.create(queryString)).thenReturn(q2);
-            qefMockedStatic.when(() -> QueryExecutionFactory.create(q2, model)).thenReturn(qe);
+  @Test
+  void testAddStatementDate() {
+    String subject = " subject ";
+    String predicate = " predicate ";
+    Date dateObject = new Date();
+    Boolean concept = false;
 
-            when(q2.isSelectType()).thenReturn(true);
-            ResultSet rs = mock(ResultSet.class);
-            when(qe.execSelect()).thenReturn(rs);
+    Resource resource = mock(Resource.class);
+    Property prop = mock(Property.class);
+    when(model.createResource("subject")).thenReturn(resource);
+    when(model.createProperty("predicate")).thenReturn(prop);
 
-            when(rs.hasNext()).thenReturn(true).thenReturn(false);
-            List<String> vals = new ArrayList<>();
-            vals.add("test-1");
-            when(rs.getResultVars()).thenReturn(vals);
+    Object[] args = {subject, predicate, dateObject, concept};
 
-            QuerySolution qs = mock(QuerySolution.class);
-            RDFNode rdfNode = mock(RDFNode.class);
-            when(qs.get("test-1")).thenReturn(rdfNode);
-            when(rs.next()).thenReturn(qs);
+    engine.addStatement(args);
 
-            Vector<Object> result = engine.getEntityOfType(queryString);
+    DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+    String date = df.format(dateObject);
+    RDFNode newObject = ResourceFactory.createTypedLiteral(date, XSDDatatype.XSDdateTime);
+    verify(model, times(1)).add(resource, prop, newObject);
+  }
 
-            assertEquals(1, result.size());
-            assertEquals(rdfNode.toString(), result.get(0));
-        }
-    }
+  @Test
+  void testAddStatementBoolean() {
+    String subject = " subject ";
+    String predicate = " predicate ";
+    Boolean boolObject = true;
+    Boolean concept = false;
 
-    @Test
-    void testIsConnected() {
-        assertTrue(engine.isConnected());
-    }
+    Resource resource = mock(Resource.class);
+    Property prop = mock(Property.class);
+    when(model.createResource("subject")).thenReturn(resource);
+    when(model.createProperty("predicate")).thenReturn(prop);
 
+    Object[] args = {subject, predicate, boolObject, concept};
 
-    static Stream<Arguments> determineLangSupplier() {
-        return Stream.of(
-                arguments("RDF/XML", Lang.RDFXML),
-                arguments("TURTLE", Lang.TURTLE),
-                arguments("N3", Lang.N3),
-                arguments("NTRIPLES", Lang.NTRIPLES),
-                arguments("TRIG", Lang.TRIG),
-                arguments("TRIX", Lang.TRIX)
-        );
-    }
+    engine.addStatement(args);
 
-    @ParameterizedTest
-    @MethodSource("determineLangSupplier")
-    void testDetermineLang(String queryString, Lang lang) {
-        assertEquals(lang, engine.determineLang(queryString));
-    }
+    RDFNode node = ResourceFactory.createTypedLiteral(true);
+    verify(model, times(1)).add(resource, prop, node);
+  }
 
-    @Test
-    void testDetermineLangNull() {
-        assertNull(engine.determineLang("not found"));
-    }
+  @Test
+  void testAddStatementString() {
+    String subject = " subject ";
+    String predicate = " predicate ";
+    String string = "test";
+    Boolean concept = false;
 
-    @Test
-    void testCommit() {
-        engine.commit();
-        verify(model, times(1)).commit();
-    }
+    Resource resource = mock(Resource.class);
+    Property prop = mock(Property.class);
+    when(model.createResource("subject")).thenReturn(resource);
+    when(model.createProperty("predicate")).thenReturn(prop);
 
+    Object[] args = {subject, predicate, string, concept};
 
-    @Test
-    void testAddStatementNumber() {
-        String subject = " subject ";
-        String predicate = " predicate ";
-        Integer number = 2;
-        Boolean concept = false;
+    engine.addStatement(args);
 
-        Resource resource = mock(Resource.class);
-        Property prop = mock(Property.class);
-        when(model.createResource("subject")).thenReturn(resource);
-        when(model.createProperty("predicate")).thenReturn(prop);
+    RDFNode node = ResourceFactory.createTypedLiteral("test");
+    verify(model, times(1)).add(resource, prop, node);
+  }
 
-        Object[] args = {subject, predicate, number, concept};
+  @Test
+  void testRemoveStatement() {
+    String subject = " subject ";
+    String predicate = " predicate ";
+    String string = "test";
+    Boolean concept = true;
 
-        engine.addStatement(args);
+    Resource resource = mock(Resource.class);
+    Property prop = mock(Property.class);
+    when(model.createResource("subject")).thenReturn(resource);
+    when(model.createProperty("predicate")).thenReturn(prop);
 
-        RDFNode node = ResourceFactory.createTypedLiteral(2.0);
-        verify(model, times(1)).add(resource, prop, node);
-    }
+    Resource r2 = mock(Resource.class);
+    when(model.createResource("test")).thenReturn(r2);
 
-    @Test
-    void testAddStatementDate() {
-        String subject = " subject ";
-        String predicate = " predicate ";
-        Date dateObject = new Date();
-        Boolean concept = false;
+    Object[] args = {subject, predicate, string, concept};
 
-        Resource resource = mock(Resource.class);
-        Property prop = mock(Property.class);
-        when(model.createResource("subject")).thenReturn(resource);
-        when(model.createProperty("predicate")).thenReturn(prop);
+    engine.removeStatement(args);
 
-        Object[] args = {subject, predicate, dateObject, concept};
+    verify(model, times(1)).remove(resource, prop, r2);
+  }
 
-        engine.addStatement(args);
-
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-        String date = df.format(dateObject);
-        RDFNode newObject = ResourceFactory.createTypedLiteral(date, XSDDatatype.XSDdateTime);
-        verify(model, times(1)).add(resource, prop, newObject);
-    }
-
-    @Test
-    void testAddStatementBoolean() {
-        String subject = " subject ";
-        String predicate = " predicate ";
-        Boolean boolObject = true;
-        Boolean concept = false;
-
-        Resource resource = mock(Resource.class);
-        Property prop = mock(Property.class);
-        when(model.createResource("subject")).thenReturn(resource);
-        when(model.createProperty("predicate")).thenReturn(prop);
-
-        Object[] args = {subject, predicate, boolObject, concept};
-
-        engine.addStatement(args);
-
-        RDFNode node = ResourceFactory.createTypedLiteral(true);
-        verify(model, times(1)).add(resource, prop, node);
-    }
-
-    @Test
-    void testAddStatementString() {
-        String subject = " subject ";
-        String predicate = " predicate ";
-        String string = "test";
-        Boolean concept = false;
-
-        Resource resource = mock(Resource.class);
-        Property prop = mock(Property.class);
-        when(model.createResource("subject")).thenReturn(resource);
-        when(model.createProperty("predicate")).thenReturn(prop);
-
-        Object[] args = {subject, predicate, string, concept};
-
-        engine.addStatement(args);
-
-        RDFNode node = ResourceFactory.createTypedLiteral("test");
-        verify(model, times(1)).add(resource, prop, node);
-    }
-
-    @Test
-    void testRemoveStatement() {
-        String subject = " subject ";
-        String predicate = " predicate ";
-        String string = "test";
-        Boolean concept = true;
-
-        Resource resource = mock(Resource.class);
-        Property prop = mock(Property.class);
-        when(model.createResource("subject")).thenReturn(resource);
-        when(model.createProperty("predicate")).thenReturn(prop);
-
-        Resource r2 = mock(Resource.class);
-        when(model.createResource("test")).thenReturn(r2);
-
-        Object[] args = {subject, predicate, string, concept};
-
-        engine.removeStatement(args);
-
-        verify(model, times(1)).remove(resource, prop, r2);
-    }
-
-    @Test
-    void testGetJenaModel() {
-        assertEquals(model, engine.getJenaModel());
-    }
-
+  @Test
+  void testGetJenaModel() {
+    assertEquals(model, engine.getJenaModel());
+  }
 }

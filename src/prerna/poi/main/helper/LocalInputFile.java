@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.poi.main.helper;
 
 import java.io.EOFException;
@@ -7,204 +21,202 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.parquet.io.InputFile;
 import org.apache.parquet.io.SeekableInputStream;
-
 import prerna.util.Constants;
 
 /**
- * This implements the org.apache.parquet.io.InputFile interface based on a local file
- * so we don't have to use org.apache.parquet.hadoop.util.HadoopInputFile
- * and org.apache.hadoop.fs.Path
- * which would require a huge number of dependencies on Hadoop libraries.
- * See https://stackoverflow.com/questions/59939309/read-local-parquet-file-without-hadoop-path-api
+ * This implements the org.apache.parquet.io.InputFile interface based on a local file so we don't
+ * have to use org.apache.parquet.hadoop.util.HadoopInputFile and org.apache.hadoop.fs.Path which
+ * would require a huge number of dependencies on Hadoop libraries. See
+ * https://stackoverflow.com/questions/59939309/read-local-parquet-file-without-hadoop-path-api
  *
- * It is a copy of
+ * <p>It is a copy of
  * https://github.com/benwatson528/intellij-avro-parquet-plugin/blob/master/src/main/java/uk/co/hadoopathome/intellij/viewer/fileformat/LocalInputFile.java
  * which is a modified version of
  * https://github.com/tideworks/arvo2parquet/blob/master/src/main/java/com/tideworks/data_load/io/InputFile.java
  * which appears to be a project that just demonstrates the use of this class.
  */
 public class LocalInputFile implements InputFile {
-	
-	private static final Logger classLogger = LogManager.getLogger(LocalInputFile.class);
 
-	private static final int COPY_BUFFER_SIZE = 8192;
-	private final RandomAccessFile input;
+  private static final Logger classLogger = LogManager.getLogger(LocalInputFile.class);
 
-	public LocalInputFile(String fileLocation) throws FileNotFoundException {
-		this(new File(fileLocation));
-	}
-	
-	public LocalInputFile(File file) throws FileNotFoundException{
-		this(file.toPath());
-	}
-	
-	public LocalInputFile(Path path) throws FileNotFoundException {
-		try {
-			this.input = new RandomAccessFile(path.toFile(), "r");
-		} catch (FileNotFoundException e) {
-			classLogger.error("Could not handle file with path: {}", path);
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new FileNotFoundException("Could not find file for path. See logs for more details.");
-		}
-	}
+  private static final int COPY_BUFFER_SIZE = 8192;
+  private final RandomAccessFile input;
 
-	private static int readDirectBuffer(ByteBuffer byteBufr, byte[] tmpBuf, ByteBufReader rdr) throws IOException {
-		// copy all the bytes that return immediately, stopping at the first
-		// read that doesn't return a full buffer.
-		int nextReadLength = Math.min(byteBufr.remaining(), tmpBuf.length);
-		int totalBytesRead = 0;
-		int bytesRead;
+  public LocalInputFile(String fileLocation) throws FileNotFoundException {
+    this(new File(fileLocation));
+  }
 
-		try {
-			while ((bytesRead = rdr.read(tmpBuf, 0, nextReadLength)) == tmpBuf.length) {
-				byteBufr.put(tmpBuf);
-				totalBytesRead += bytesRead;
-				nextReadLength = Math.min(byteBufr.remaining(), tmpBuf.length);
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Could not read buffer");
-		}
+  public LocalInputFile(File file) throws FileNotFoundException {
+    this(file.toPath());
+  }
 
-		if (bytesRead < 0) {
-			// return -1 if nothing was read
-			return totalBytesRead == 0 ? -1 : totalBytesRead;
-		} else {
-			// copy the last partial buffer
-			byteBufr.put(tmpBuf, 0, bytesRead);
-			totalBytesRead += bytesRead;
-			return totalBytesRead;
-		}
-	}
+  public LocalInputFile(Path path) throws FileNotFoundException {
+    try {
+      this.input = new RandomAccessFile(path.toFile(), "r");
+    } catch (FileNotFoundException e) {
+      classLogger.error("Could not handle file with path: {}", path);
+      classLogger.error(Constants.STACKTRACE, e);
+      throw new FileNotFoundException("Could not find file for path. See logs for more details.");
+    }
+  }
 
-	private static void readFullyDirectBuffer(ByteBuffer byteBufr, byte[] tmpBuf, ByteBufReader rdr)
-			throws IOException {
-		int nextReadLength = Math.min(byteBufr.remaining(), tmpBuf.length);
-		int bytesRead = 0;
+  private static int readDirectBuffer(ByteBuffer byteBufr, byte[] tmpBuf, ByteBufReader rdr)
+      throws IOException {
+    // copy all the bytes that return immediately, stopping at the first
+    // read that doesn't return a full buffer.
+    int nextReadLength = Math.min(byteBufr.remaining(), tmpBuf.length);
+    int totalBytesRead = 0;
+    int bytesRead;
 
-		while (nextReadLength > 0 && (bytesRead = rdr.read(tmpBuf, 0, nextReadLength)) >= 0) {
-			byteBufr.put(tmpBuf, 0, bytesRead);
-			nextReadLength = Math.min(byteBufr.remaining(), tmpBuf.length);
-		}
+    try {
+      while ((bytesRead = rdr.read(tmpBuf, 0, nextReadLength)) == tmpBuf.length) {
+        byteBufr.put(tmpBuf);
+        totalBytesRead += bytesRead;
+        nextReadLength = Math.min(byteBufr.remaining(), tmpBuf.length);
+      }
+    } catch (IOException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw new IOException("Could not read buffer");
+    }
 
-		if (bytesRead < 0 && byteBufr.remaining() > 0) {
-			throw new EOFException(
-					"Reached the end of stream with " + byteBufr.remaining() + " bytes left to read");
-		}
-	}
+    if (bytesRead < 0) {
+      // return -1 if nothing was read
+      return totalBytesRead == 0 ? -1 : totalBytesRead;
+    } else {
+      // copy the last partial buffer
+      byteBufr.put(tmpBuf, 0, bytesRead);
+      totalBytesRead += bytesRead;
+      return totalBytesRead;
+    }
+  }
 
-	@Override
-	public long getLength() throws IOException {
-		return input.length();
-	}
+  private static void readFullyDirectBuffer(ByteBuffer byteBufr, byte[] tmpBuf, ByteBufReader rdr)
+      throws IOException {
+    int nextReadLength = Math.min(byteBufr.remaining(), tmpBuf.length);
+    int bytesRead = 0;
 
-	@Override
-	public SeekableInputStream newStream() {
-		return new SeekableInputStream() {
-			private final byte[] tmpBuf = new byte[COPY_BUFFER_SIZE];
-			private long markPos = 0;
+    while (nextReadLength > 0 && (bytesRead = rdr.read(tmpBuf, 0, nextReadLength)) >= 0) {
+      byteBufr.put(tmpBuf, 0, bytesRead);
+      nextReadLength = Math.min(byteBufr.remaining(), tmpBuf.length);
+    }
 
-			@Override
-			public int read() throws IOException {
-				return input.read();
-			}
+    if (bytesRead < 0 && byteBufr.remaining() > 0) {
+      throw new EOFException(
+          "Reached the end of stream with " + byteBufr.remaining() + " bytes left to read");
+    }
+  }
 
-			@SuppressWarnings("NullableProblems")
-			@Override
-			public int read(byte[] b) throws IOException {
-				return input.read(b);
-			}
+  @Override
+  public long getLength() throws IOException {
+    return input.length();
+  }
 
-			@SuppressWarnings("NullableProblems")
-			@Override
-			public int read(byte[] b, int off, int len) throws IOException {
-				return input.read(b, off, len);
-			}
+  @Override
+  public SeekableInputStream newStream() {
+    return new SeekableInputStream() {
+      private final byte[] tmpBuf = new byte[COPY_BUFFER_SIZE];
+      private long markPos = 0;
 
-			@Override
-			public long skip(long n) throws IOException {
-				final long savPos = input.getFilePointer();
-				final long amtLeft = input.length() - savPos;
-				n = Math.min(n, amtLeft);
-				final long newPos = savPos + n;
-				input.seek(newPos);
-				final long curPos = input.getFilePointer();
-				return curPos - savPos;
-			}
+      @Override
+      public int read() throws IOException {
+        return input.read();
+      }
 
-			@Override
-			public int available() throws IOException {
-				return 0;
-			}
+      @SuppressWarnings("NullableProblems")
+      @Override
+      public int read(byte[] b) throws IOException {
+        return input.read(b);
+      }
 
-			@Override
-			public void close() throws IOException {
-				input.close();
-			}
+      @SuppressWarnings("NullableProblems")
+      @Override
+      public int read(byte[] b, int off, int len) throws IOException {
+        return input.read(b, off, len);
+      }
 
-			@SuppressWarnings({"unchecked", "unused", "UnusedReturnValue"})
-			private <T extends Throwable, R> R uncheckedExceptionThrow(Throwable t) throws T {
-				throw (T) t;
-			}
+      @Override
+      public long skip(long n) throws IOException {
+        final long savPos = input.getFilePointer();
+        final long amtLeft = input.length() - savPos;
+        n = Math.min(n, amtLeft);
+        final long newPos = savPos + n;
+        input.seek(newPos);
+        final long curPos = input.getFilePointer();
+        return curPos - savPos;
+      }
 
-			@Override
-			public synchronized void mark(int readlimit) {
-				try {
-					markPos = input.getFilePointer();
-				} catch (IOException e) {
-					uncheckedExceptionThrow(e);
-				}
-			}
+      @Override
+      public int available() throws IOException {
+        return 0;
+      }
 
-			@Override
-			public synchronized void reset() throws IOException {
-				input.seek(markPos);
-			}
+      @Override
+      public void close() throws IOException {
+        input.close();
+      }
 
-			@Override
-			public boolean markSupported() {
-				return true;
-			}
+      @SuppressWarnings({"unchecked", "unused", "UnusedReturnValue"})
+      private <T extends Throwable, R> R uncheckedExceptionThrow(Throwable t) throws T {
+        throw (T) t;
+      }
 
-			@Override
-			public long getPos() throws IOException {
-				return input.getFilePointer();
-			}
+      @Override
+      public synchronized void mark(int readlimit) {
+        try {
+          markPos = input.getFilePointer();
+        } catch (IOException e) {
+          uncheckedExceptionThrow(e);
+        }
+      }
 
-			@Override
-			public void seek(long l) throws IOException {
-				input.seek(l);
-			}
+      @Override
+      public synchronized void reset() throws IOException {
+        input.seek(markPos);
+      }
 
-			@Override
-			public void readFully(byte[] bytes) throws IOException {
-				input.readFully(bytes);
-			}
+      @Override
+      public boolean markSupported() {
+        return true;
+      }
 
-			@Override
-			public void readFully(byte[] bytes, int i, int i1) throws IOException {
-				input.readFully(bytes, i, i1);
-			}
+      @Override
+      public long getPos() throws IOException {
+        return input.getFilePointer();
+      }
 
-			@Override
-			public int read(ByteBuffer byteBuffer) throws IOException {
-				return readDirectBuffer(byteBuffer, tmpBuf, input::read);
-			}
+      @Override
+      public void seek(long l) throws IOException {
+        input.seek(l);
+      }
 
-			@Override
-			public void readFully(ByteBuffer byteBuffer) throws IOException {
-				readFullyDirectBuffer(byteBuffer, tmpBuf, input::read);
-			}
-		};
-	}
+      @Override
+      public void readFully(byte[] bytes) throws IOException {
+        input.readFully(bytes);
+      }
 
-	private interface ByteBufReader {
+      @Override
+      public void readFully(byte[] bytes, int i, int i1) throws IOException {
+        input.readFully(bytes, i, i1);
+      }
 
-		int read(byte[] b, int off, int len) throws IOException;
-	}
+      @Override
+      public int read(ByteBuffer byteBuffer) throws IOException {
+        return readDirectBuffer(byteBuffer, tmpBuf, input::read);
+      }
+
+      @Override
+      public void readFully(ByteBuffer byteBuffer) throws IOException {
+        readFullyDirectBuffer(byteBuffer, tmpBuf, input::read);
+      }
+    };
+  }
+
+  private interface ByteBufReader {
+
+    int read(byte[] b, int off, int len) throws IOException;
+  }
 }

@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.r.analytics;
 
 import prerna.algorithm.api.SemossDataType;
@@ -14,60 +28,91 @@ import prerna.util.Utility;
 
 public class RunDescriptionGeneratorReactor extends AbstractRFrameReactor {
 
-	private static final String CLASS_NAME = RunDescriptionGeneratorReactor.class.getName();
+  private static final String CLASS_NAME = RunDescriptionGeneratorReactor.class.getName();
 
-	public RunDescriptionGeneratorReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.INSTANCE_KEY.getKey() };
-	}
+  public RunDescriptionGeneratorReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.INSTANCE_KEY.getKey()};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		init();
-		String[] packages = new String[] { "WikidataR" };
-		this.rJavaTranslator.checkPackages(packages);
-		RDataTable rFrame = (RDataTable) this.getFrame();
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    init();
+    String[] packages = new String[] {"WikidataR"};
+    this.rJavaTranslator.checkPackages(packages);
+    RDataTable rFrame = (RDataTable) this.getFrame();
 
-		String dataFrame = rFrame.getName();
-		String instanceCol = this.keyValue.get(ReactorKeysEnum.INSTANCE_KEY.getKey());
-		String descriptionCol = "desc" + Utility.getRandomString(8);
-		String descriptionHeader = "description";
-		descriptionHeader = this.getCleanNewHeader(dataFrame, descriptionHeader);
-		StringBuilder rsb = new StringBuilder();
-		String instances = "instances" + Utility.getRandomString(8);
-		String correlationScriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\DescriptionColumn.R";
-		correlationScriptFilePath = correlationScriptFilePath.replace("\\", "/");
-		rsb.append("source(\"" + correlationScriptFilePath + "\");");
-		// grab unique instances to generate descriptions
-		rsb.append(instances + "<- unique(" + dataFrame + "$" + instanceCol + ");");
-		rsb.append(descriptionCol + "<- generateDescriptionColumn(" + instances + ");");
-		this.rJavaTranslator.runR(rsb.toString());
-		String checkNull = "is.null(" + descriptionCol + ")";
-		boolean nullResults = this.rJavaTranslator.getBoolean(checkNull);
-		if (nullResults) {
-			// throw error unable to generate results
-			NounMetadata noun = new NounMetadata("Unable to obtain descriptions", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			SemossPixelException exception = new SemossPixelException(noun);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
+    String dataFrame = rFrame.getName();
+    String instanceCol = this.keyValue.get(ReactorKeysEnum.INSTANCE_KEY.getKey());
+    String descriptionCol = "desc" + Utility.getRandomString(8);
+    String descriptionHeader = "description";
+    descriptionHeader = this.getCleanNewHeader(dataFrame, descriptionHeader);
+    StringBuilder rsb = new StringBuilder();
+    String instances = "instances" + Utility.getRandomString(8);
+    String correlationScriptFilePath =
+        getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\DescriptionColumn.R";
+    correlationScriptFilePath = correlationScriptFilePath.replace("\\", "/");
+    rsb.append("source(\"" + correlationScriptFilePath + "\");");
+    // grab unique instances to generate descriptions
+    rsb.append(instances + "<- unique(" + dataFrame + "$" + instanceCol + ");");
+    rsb.append(descriptionCol + "<- generateDescriptionColumn(" + instances + ");");
+    this.rJavaTranslator.runR(rsb.toString());
+    String checkNull = "is.null(" + descriptionCol + ")";
+    boolean nullResults = this.rJavaTranslator.getBoolean(checkNull);
+    if (nullResults) {
+      // throw error unable to generate results
+      NounMetadata noun =
+          new NounMetadata(
+              "Unable to obtain descriptions",
+              PixelDataType.CONST_STRING,
+              PixelOperationType.ERROR);
+      SemossPixelException exception = new SemossPixelException(noun);
+      exception.setContinueThreadOfExecution(false);
+      throw exception;
+    }
 
-		// merge frame with results
-		rsb = new StringBuilder();
-		String tempFrame = "tempFrame" + Utility.getRandomString(8);
-		rsb.append(tempFrame + "<-data.frame(" + instanceCol + "=" + instances + "," + descriptionHeader + "=" + descriptionCol + ");");
-		rsb.append(dataFrame + " <-merge(" + dataFrame + "," + tempFrame + ", by.x=\"" + instanceCol + "\", by.y=\"" + instanceCol + "\");");
-		rsb.append("rm(" + descriptionCol + ", "+descriptionCol+","+tempFrame+")");
-		this.rJavaTranslator.runR(rsb.toString());
-		
-		// now add the new header to the frame metadata
-		OwlTemporalEngineMeta metaData = rFrame.getMetaData();
-		metaData.addProperty(dataFrame, dataFrame + "__" + descriptionHeader);
-		metaData.setAliasToProperty(dataFrame + "__" + descriptionHeader, descriptionHeader);
-		metaData.setDataTypeToProperty(dataFrame + "__" + descriptionHeader, SemossDataType.STRING.toString());
+    // merge frame with results
+    rsb = new StringBuilder();
+    String tempFrame = "tempFrame" + Utility.getRandomString(8);
+    rsb.append(
+        tempFrame
+            + "<-data.frame("
+            + instanceCol
+            + "="
+            + instances
+            + ","
+            + descriptionHeader
+            + "="
+            + descriptionCol
+            + ");");
+    rsb.append(
+        dataFrame
+            + " <-merge("
+            + dataFrame
+            + ","
+            + tempFrame
+            + ", by.x=\""
+            + instanceCol
+            + "\", by.y=\""
+            + instanceCol
+            + "\");");
+    rsb.append("rm(" + descriptionCol + ", " + descriptionCol + "," + tempFrame + ")");
+    this.rJavaTranslator.runR(rsb.toString());
 
-		NounMetadata retNoun = new NounMetadata(rFrame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
-		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(descriptionHeader));
-		return retNoun;
-	}
+    // now add the new header to the frame metadata
+    OwlTemporalEngineMeta metaData = rFrame.getMetaData();
+    metaData.addProperty(dataFrame, dataFrame + "__" + descriptionHeader);
+    metaData.setAliasToProperty(dataFrame + "__" + descriptionHeader, descriptionHeader);
+    metaData.setDataTypeToProperty(
+        dataFrame + "__" + descriptionHeader, SemossDataType.STRING.toString());
+
+    NounMetadata retNoun =
+        new NounMetadata(
+            rFrame,
+            PixelDataType.FRAME,
+            PixelOperationType.FRAME_HEADERS_CHANGE,
+            PixelOperationType.FRAME_DATA_CHANGE);
+    retNoun.addAdditionalReturn(new AddHeaderNounMetadata(descriptionHeader));
+    return retNoun;
+  }
 }

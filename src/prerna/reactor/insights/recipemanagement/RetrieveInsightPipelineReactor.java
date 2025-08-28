@@ -1,18 +1,29 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.insights.recipemanagement;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.insights.AbstractInsightReactor;
@@ -24,55 +35,57 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RetrieveInsightPipelineReactor extends AbstractInsightReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(RetrieveInsightPipelineReactor.class);
 
-	public RetrieveInsightPipelineReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
-	}	
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = getProject();
-		String projectName = null;
-		String rdbmsId = getRdbmsId();
-		
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
-			throw new IllegalArgumentException("User does not have access to this insight");
-		}
-		
-		// get the app name
-		projectName = Utility.getProject(projectId).getProjectName();
+  private static final Logger classLogger =
+      LogManager.getLogger(RetrieveInsightPipelineReactor.class);
 
-		// get the pipeline file
-		File f = getPipelineFileLocation(projectId, projectName, rdbmsId);
-		
-		// no file exists
-		if(!f.exists()) {
-			return new NounMetadata(new HashMap<String, Object>(), PixelDataType.MAP, PixelOperationType.PIPELINE);
-		}
-		
-		Map<String, Object> pipeline = null;
-		
-		FileReader reader = null;
-		try {
-			reader = new FileReader(f);
-			Gson gson = new GsonBuilder().setPrettyPrinting().create();
-			pipeline = gson.fromJson(reader, new TypeToken<Map<String, Object>>(){}.getType());
-		} catch(Exception e) {
-			throw new IllegalArgumentException("An error occurred with reading the saved pipeline", e);
-		} finally {
-			if(reader != null) {
-				try {
-					reader.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		
-		return new NounMetadata(pipeline, PixelDataType.MAP, PixelOperationType.PIPELINE);
-	}
+  public RetrieveInsightPipelineReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
+  }
 
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    String projectId = getProject();
+    String projectName = null;
+    String rdbmsId = getRdbmsId();
+
+    projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+    if (!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
+      throw new IllegalArgumentException("User does not have access to this insight");
+    }
+
+    // get the app name
+    projectName = Utility.getProject(projectId).getProjectName();
+
+    // get the pipeline file
+    File f = getPipelineFileLocation(projectId, projectName, rdbmsId);
+
+    // no file exists
+    if (!f.exists()) {
+      return new NounMetadata(
+          new HashMap<String, Object>(), PixelDataType.MAP, PixelOperationType.PIPELINE);
+    }
+
+    Map<String, Object> pipeline = null;
+
+    FileReader reader = null;
+    try {
+      reader = new FileReader(f);
+      Gson gson = new GsonBuilder().setPrettyPrinting().create();
+      pipeline = gson.fromJson(reader, new TypeToken<Map<String, Object>>() {}.getType());
+    } catch (Exception e) {
+      throw new IllegalArgumentException("An error occurred with reading the saved pipeline", e);
+    } finally {
+      if (reader != null) {
+        try {
+          reader.close();
+        } catch (IOException e) {
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
+
+    return new NounMetadata(pipeline, PixelDataType.MAP, PixelOperationType.PIPELINE);
+  }
 }

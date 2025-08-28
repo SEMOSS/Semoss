@@ -1,7 +1,20 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.r;
 
 import java.util.Arrays;
-
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.PixelDataType;
@@ -14,76 +27,80 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class DuplicateColumnReactor extends AbstractRFrameReactor {
 
-	/**
-	 * This reactor duplicates and existing column and adds it to the frame. The
-	 * inputs to the reactor are: 
-	 * 1) the name for the column to duplicate 
-	 * 2) the new column name
-	 */
+  /**
+   * This reactor duplicates and existing column and adds it to the frame. The inputs to the reactor
+   * are: 1) the name for the column to duplicate 2) the new column name
+   */
+  public DuplicateColumnReactor() {
+    this.keysToGet =
+        new String[] {ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey()};
+  }
 
-	public DuplicateColumnReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey() };
-	}
+  @Override
+  public NounMetadata execute() {
+    init();
+    organizeKeys();
 
-	@Override
-	public NounMetadata execute() {
-		init();
-		organizeKeys();
+    // get frame
+    RDataTable frame = (RDataTable) getFrame();
+    String table = frame.getName();
 
-		// get frame
-		RDataTable frame = (RDataTable) getFrame();
-		String table = frame.getName();
+    // get source column to duplicate
+    String srcCol = this.keyValue.get(this.keysToGet[0]);
 
-		// get source column to duplicate
-		String srcCol = this.keyValue.get(this.keysToGet[0]);
+    // make sure source column exists
+    String[] allCol = getColumns(table);
+    if (srcCol == null || !Arrays.asList(allCol).contains(srcCol)) {
+      throw new IllegalArgumentException("Need to define an existing column to duplicate.");
+    }
 
-		// make sure source column exists
-		String[] allCol = getColumns(table);
-		if (srcCol == null || !Arrays.asList(allCol).contains(srcCol)) {
-			throw new IllegalArgumentException("Need to define an existing column to duplicate.");
-		}
+    // clean and validate new column name or use default name
+    String newColName = getCleanNewColName(frame, srcCol + "_DUPLICATE");
+    String inputColName = this.keyValue.get(this.keysToGet[1]);
+    if (inputColName != null && !inputColName.isEmpty()) {
+      inputColName = getCleanNewColName(frame, inputColName);
+      // entire new name could be invalid characters
+      if (!inputColName.equals("")) {
+        newColName = inputColName;
+      }
+    }
 
-		// clean and validate new column name or use default name
-		String newColName = getCleanNewColName(frame, srcCol + "_DUPLICATE");
-		String inputColName = this.keyValue.get(this.keysToGet[1]);
-		if (inputColName != null && !inputColName.isEmpty()) {
-			inputColName = getCleanNewColName(frame, inputColName);
-			// entire new name could be invalid characters
-			if (!inputColName.equals("")) {
-				newColName = inputColName;
-			}
-		}
+    // run duplicate script
+    String duplicate = table + "$" + newColName + "<-" + table + "$" + srcCol + ";";
+    frame.executeRScript(duplicate);
+    this.addExecutedCode(duplicate);
 
-		// run duplicate script
-		String duplicate = table + "$" + newColName + "<-" + table + "$" + srcCol + ";";
-		frame.executeRScript(duplicate);
-		this.addExecutedCode(duplicate);
+    // get src column data type
+    OwlTemporalEngineMeta metaData = frame.getMetaData();
+    String dataType = metaData.getHeaderTypeAsString(table + "__" + srcCol);
+    if (dataType == null)
+      return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
 
-		// get src column data type
-		OwlTemporalEngineMeta metaData = frame.getMetaData();
-		String dataType = metaData.getHeaderTypeAsString(table + "__" + srcCol);
-		if(dataType == null)
-			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+    String adtlDataType = metaData.getHeaderAdtlType(frame.getName() + "__" + srcCol);
 
-		String adtlDataType = metaData.getHeaderAdtlType(frame.getName() + "__" + srcCol);
+    // update meta data
+    metaData.addProperty(table, table + "__" + newColName);
+    metaData.setAliasToProperty(table + "__" + newColName, newColName);
+    metaData.setDataTypeToProperty(table + "__" + newColName, dataType);
+    if (adtlDataType != null && !adtlDataType.isEmpty()) {
+      metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
+    }
 
-		// update meta data
-		metaData.addProperty(table, table + "__" + newColName);
-		metaData.setAliasToProperty(table + "__" + newColName, newColName);
-		metaData.setDataTypeToProperty(table + "__" + newColName, dataType);
-		if(adtlDataType != null && !adtlDataType.isEmpty()) {
-			metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
-		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"DuplicateColumn", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
-		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColName));
-		return retNoun;
-	}
+    // NEW TRACKING
+    UserTrackerFactory.getInstance()
+        .trackAnalyticsWidget(
+            this.insight,
+            frame,
+            "DuplicateColumn",
+            AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+
+    NounMetadata retNoun =
+        new NounMetadata(
+            frame,
+            PixelDataType.FRAME,
+            PixelOperationType.FRAME_HEADERS_CHANGE,
+            PixelOperationType.FRAME_DATA_CHANGE);
+    retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColName));
+    return retNoun;
+  }
 }

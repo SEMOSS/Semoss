@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.engine.impl.model.inferencetracking.reactors;
 
 import prerna.auth.User;
@@ -8,37 +22,39 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class RemoveLlmFeedbackReactor extends AbstractReactor {
-	
-    public RemoveLlmFeedbackReactor() {
-        this.keysToGet = new String[] {"messageId"};
-        this.keyRequired = new int[] {1};
+
+  public RemoveLlmFeedbackReactor() {
+    this.keysToGet = new String[] {"messageId"};
+    this.keyRequired = new int[] {1};
+  }
+
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    User user = this.insight.getUser();
+
+    if (user == null) {
+      throw new IllegalArgumentException("You are not properly logged in");
     }
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        User user = this.insight.getUser();
+    String messageId = this.keyValue.get(this.keysToGet[0]);
 
-        if (user == null) {
-            throw new IllegalArgumentException("You are not properly logged in");
-        }
-
-        String messageId = this.keyValue.get(this.keysToGet[0]);
-
-        if (!ModelInferenceLogsUtils.userIsMessageAuthor(user.getPrimaryLoginToken().getId(), messageId)) {
-            throw new SemossPixelException("User is not the author of this message and cannot remove feedback");
-        }
-
-        ModelInferenceLogsUtils.removeFeedback(messageId);
-
-        return new NounMetadata(true, PixelDataType.BOOLEAN);
+    if (!ModelInferenceLogsUtils.userIsMessageAuthor(
+        user.getPrimaryLoginToken().getId(), messageId)) {
+      throw new SemossPixelException(
+          "User is not the author of this message and cannot remove feedback");
     }
 
-    @Override
-    protected String getDescriptionForKey(String key) {
-        if ("messageId".equals(key)) {
-            return "The unique identifier for the I/O between a user and the LLM response";
-        }
-        return super.getDescriptionForKey(key);
+    ModelInferenceLogsUtils.removeFeedback(messageId);
+
+    return new NounMetadata(true, PixelDataType.BOOLEAN);
+  }
+
+  @Override
+  protected String getDescriptionForKey(String key) {
+    if ("messageId".equals(key)) {
+      return "The unique identifier for the I/O between a user and the LLM response";
     }
+    return super.getDescriptionForKey(key);
+  }
 }

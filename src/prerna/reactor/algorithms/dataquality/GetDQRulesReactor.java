@@ -1,15 +1,26 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.algorithms.dataquality;
 
+import com.google.gson.Gson;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -17,27 +28,27 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class GetDQRulesReactor extends AbstractReactor{
+public class GetDQRulesReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GetDQRulesReactor.class);
-	private static final String DIR_SEP = System.getProperty("file.separator");
-	
-	public NounMetadata execute() {
-		String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String fileLoc = base + DIR_SEP + "R" + DIR_SEP + "DQ" + DIR_SEP + "rule-defs.json";
-		
-		String fileString = null;
-		try {
-			// depreated function will normalize string to not hit a new scan 
-			fileString = Utility.normalizePath(fileString);
-			fileString = FileUtils.readFileToString(new File(fileLoc));
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		
-		Gson gson = new Gson();
-		Map<String, Object> rulesMap = gson.fromJson(fileString, Map.class);
-		NounMetadata noun = new NounMetadata(rulesMap, PixelDataType.MAP);
-		return noun;
-	}
+  private static final Logger classLogger = LogManager.getLogger(GetDQRulesReactor.class);
+  private static final String DIR_SEP = System.getProperty("file.separator");
+
+  public NounMetadata execute() {
+    String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+    String fileLoc = base + DIR_SEP + "R" + DIR_SEP + "DQ" + DIR_SEP + "rule-defs.json";
+
+    String fileString = null;
+    try {
+      // depreated function will normalize string to not hit a new scan
+      fileString = Utility.normalizePath(fileString);
+      fileString = FileUtils.readFileToString(new File(fileLoc));
+    } catch (IOException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+
+    Gson gson = new Gson();
+    Map<String, Object> rulesMap = gson.fromJson(fileString, Map.class);
+    NounMetadata noun = new NounMetadata(rulesMap, PixelDataType.MAP);
+    return noun;
+  }
 }

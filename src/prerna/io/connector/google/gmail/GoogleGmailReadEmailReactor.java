@@ -1,10 +1,22 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.io.connector.google.gmail;
 
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
 import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
@@ -15,44 +27,43 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class GoogleGmailReadEmailReactor extends AbstractReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(GoogleGmailReadEmailReactor.class);
-	
-	public GoogleGmailReadEmailReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
-		this.keyRequired = new int[] { 1 };
-	}
 
-	@Override
-	public NounMetadata execute() {
-		this.organizeKeys();
-		String id = this.keyValue.get(this.keysToGet[0]);
-		try {
-			User user = this.insight.getUser();
-			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			Map<String, Object> retMap = GoogleGmailHelper.readEmail(accessToken, id);
-	        return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch(SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw e;
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("An error occurred reading the email details. Error message: " + e.getMessage());
-		}
-	}
-	
-	@Override
-	public String getReactorDescription() {
-		return "Get the contents of an email based on the id";
-	}
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.ID.getKey())) {
-	        return "Unique identifier of the Google Email to be read " + ReactorKeysEnum.ID.getKey();
-	    }
-	    return super.getDescriptionForKey(key);
-	}
+  private static final Logger classLogger = LogManager.getLogger(GoogleGmailReadEmailReactor.class);
 
+  public GoogleGmailReadEmailReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.ID.getKey()};
+    this.keyRequired = new int[] {1};
+  }
+
+  @Override
+  public NounMetadata execute() {
+    this.organizeKeys();
+    String id = this.keyValue.get(this.keysToGet[0]);
+    try {
+      User user = this.insight.getUser();
+      String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
+      Map<String, Object> retMap = GoogleGmailHelper.readEmail(accessToken, id);
+      return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
+    } catch (SemossPixelException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw e;
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw new SemossPixelException(
+          "An error occurred reading the email details. Error message: " + e.getMessage());
+    }
+  }
+
+  @Override
+  public String getReactorDescription() {
+    return "Get the contents of an email based on the id";
+  }
+
+  @Override
+  protected String getDescriptionForKey(String key) {
+    if (key.equals(ReactorKeysEnum.ID.getKey())) {
+      return "Unique identifier of the Google Email to be read " + ReactorKeysEnum.ID.getKey();
+    }
+    return super.getDescriptionForKey(key);
+  }
 }
-

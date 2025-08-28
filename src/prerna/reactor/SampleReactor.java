@@ -1,20 +1,34 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor;
-//package prerna.sablecc2.reactor;
+// package prerna.sablecc2.reactor;
 //
-//import java.util.List;
-//import java.util.Set;
-//import java.util.Vector;
+// import java.util.List;
+// import java.util.Set;
+// import java.util.Vector;
 //
-//import prerna.algorithm.api.ITableDataFrame;
-//import prerna.algorithm.api.SemossDataType;
-//import prerna.engine.api.IHeadersDataRow;
-//import prerna.sablecc2.om.CodeBlock;
-//import prerna.sablecc2.om.GenRowStruct;
-//import prerna.sablecc2.om.NounStore;
-//import prerna.sablecc2.om.PixelDataType;
-//import prerna.sablecc2.om.nounmeta.NounMetadata;
+// import prerna.algorithm.api.ITableDataFrame;
+// import prerna.algorithm.api.SemossDataType;
+// import prerna.engine.api.IHeadersDataRow;
+// import prerna.sablecc2.om.CodeBlock;
+// import prerna.sablecc2.om.GenRowStruct;
+// import prerna.sablecc2.om.NounStore;
+// import prerna.sablecc2.om.PixelDataType;
+// import prerna.sablecc2.om.nounmeta.NounMetadata;
 //
-//public class SampleReactor extends AbstractReactor {
+// public class SampleReactor extends AbstractReactor {
 //
 //	//Shifted to abstract reactor
 ////	String operationName = null;
@@ -26,16 +40,16 @@ package prerna.reactor;
 ////	IReactor.TYPE type = IReactor.TYPE.FLATMAP;
 ////	IReactor.STATUS status = null;
 ////	GenRowStruct curRow = null;
-////	
+////
 ////	String reactorName = "Sample";
 ////	String [] asName = null;
 ////	Vector <String> outputFields = null;
 ////	Vector <String> outputTypes = null;
-////	
+////
 ////	Hashtable <String, Object> propStore = new Hashtable<String, Object>();
-////	
+////
 ////	PKSLPlanner planner = null;
-//	
+//
 //	@Override
 //	public void In()
 //	{
@@ -44,7 +58,7 @@ package prerna.reactor;
 //        curNoun("all");
 //		//if(parentReactor != null && parentReactor.getName().equalsIgnoreCase("EXPR"))
 //	}
-//	
+//
 //	@Override
 //	public Object Out()
 //	{
@@ -55,12 +69,12 @@ package prerna.reactor;
 //		// there are 2 cases here
 //		// a. I can assimilate with the parent and let it continue to rip
 //		// b. I have to finish processing this before I give it off to parent
-//		
+//
 //		// additionally.. if I do see a parent reactor.. I should add this as the input to the parent
 //		// so that we know what order to execute it
-//		
+//
 //		updatePlan();
-//		
+//
 //		if(this.type != IReactor.TYPE.REDUCE && this.store.isSQL())
 //		{
 //			// 2 more scenarios here
@@ -74,11 +88,11 @@ package prerna.reactor;
 //				return parentReactor;
 //			}
 //			// else assimilated with the other execute
-///*			else
+/// *			else
 //			{
 //				// execute it
 //			}
-//*/		
+// */
 //		}
 //		// the case below should not actually happen.. it should be done through the script chain
 //		else if(parentReactor == null)
@@ -90,7 +104,7 @@ package prerna.reactor;
 //		// else all the merging has already happened
 //		return null;
 //	}
-//	
+//
 //	// yes.. that is right make code not war
 //	private void makeCode()
 //	{
@@ -101,20 +115,20 @@ package prerna.reactor;
 //			getType();
 //			Set<String> keys = store.nounRow.keySet();
 //			String reactorOutput = reactorName;
-//			
+//
 //			Vector <Object> filters = new Vector();
 //			Vector <Object> joins = new Vector();
 //			Vector <String> inputs = new Vector();
-//			
+//
 //			for(String singleKey : keys) {
 //				GenRowStruct struct = store.nounRow.get(singleKey);
 //				inputs.addAll(struct.getAllColumns());
 //				// merge the filters and joins as well
-//				filters.addAll(struct.getValuesOfType(PixelDataType.FILTER)); 
+//				filters.addAll(struct.getValuesOfType(PixelDataType.FILTER));
 //				joins.addAll(struct.getValuesOfType(PixelDataType.JOIN));
 //			}
-//			
-//		
+//
+//
 //			//CodeBlock.LANG thisLang = null;
 //			// need a if loop to convert language to java
 //			if(propStore.containsKey("LANGUAGE"))
@@ -130,8 +144,8 @@ package prerna.reactor;
 //					//thisLang = CodeBlock.LANG.R;
 //					baseClass = "LambdaR";
 //				}
-//				else 
-//				{	
+//				else
+//				{
 //					//thisLang = CodeBlock.LANG.JAVA; // default
 //					baseClass = "prerna.sablecc2.reactor.Lambda";
 //				}
@@ -140,10 +154,10 @@ package prerna.reactor;
 //			// into the main lambda and then calls the execute
 //			ClassMaker myClass = new ClassMaker();
 //			myClass.addSuper(baseClass);
-//			
+//
 //			StringBuffer method = new StringBuffer();
 //			method.append("public IHeadersDataRow executeCode(IHeadersDataRow row) {");
-//			
+//
 //			// put the fields now
 //			// assumes this is java
 //			ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
@@ -156,14 +170,14 @@ package prerna.reactor;
 //				else if(thisType == SemossDataType.INT || thisType == SemossDataType.DOUBLE)
 //					method.append("Double " + thisCol + " = (Double)row.getField(" + thisCol + "); \n");
 //				else if(thisType == SemossDataType.DATE)
-//					method.append("Date " + thisCol + " = (Date)row.getField(" + thisCol + "); \n");					
+//					method.append("Date " + thisCol + " = (Date)row.getField(" + thisCol + "); \n");
 //			}
-//			
+//
 //			// add the code
 //			method.append(code + "\n");
 //			method.append("return null;");
 //			method.append("}");
-//			
+//
 //			myClass.addMethod(method.toString());
 //			try {
 //				runner = (Lambda)myClass.toClass().newInstance();
@@ -174,9 +188,9 @@ package prerna.reactor;
 //				// TODO Auto-generated catch block
 //				classLogger.error(Constants.STACKTRACE, e);
 //			}
-//		}	
+//		}
 //	}
-//	
+//
 //	// need a merge nounstore
 //	// this logic should sit inside the reactor not in state
 //	// this will be abstract eventually
@@ -187,7 +201,7 @@ package prerna.reactor;
 //		// this should just make the expression and bind it in
 //		// not sure how the execution works yet
 //		System.out.println("Call for merging..");
-//		
+//
 //		// this is actually fairly simple to do now
 //		// pick each one of the genrowstruct and merge it
 //		// first is overall noun rows
@@ -195,7 +209,7 @@ package prerna.reactor;
 //		// or let it be ?
 //		// may be keep the sequence
 //		// should the child come first or the parent ?
-//		// so many questions 
+//		// so many questions
 //		// should be the parent
 //		// not going to keep count for now
 //		Set<String> curReactorKeys = store.nounRow.keySet();
@@ -204,14 +218,14 @@ package prerna.reactor;
 //			GenRowStruct output = store.nounRow.get(thisNoun);
 //			parentReactor.getNounStore().addNoun(thisNoun, output);
 //		}
-//		// For expression also add the fact that this will be 
+//		// For expression also add the fact that this will be
 //		GenRowStruct exprStruct = new GenRowStruct();
 //
 //		exprStruct.addColumn(signature);
 //		// p is for projection
 //		parentReactor.getNounStore().addNoun(NounStore.projector, exprStruct);
 //	}
-//	
+//
 //	// execute it
 //	// once again this would be abstract
 //	public IHeadersDataRow execute(IHeadersDataRow row)
@@ -220,7 +234,7 @@ package prerna.reactor;
 //		System.out.println("Printing NOUN Store so far.. " + store);
 //		return null;
 //	}
-//	
+//
 //	public void updatePlan()
 //	{
 //		// add the inputs from the store as well as this operation
@@ -228,14 +242,14 @@ package prerna.reactor;
 //		getType();
 //		Set<String> keys = store.nounRow.keySet();
 //		String reactorOutput = reactorName;
-//		
+//
 //		for(String singleKey : keys) {
 //			GenRowStruct struct = store.nounRow.get(singleKey);
 //			List <String> inputs = struct.getAllColumns();
 //			// merge the filters and joins as well
-//			List <Object> filters = struct.getValuesOfType(PixelDataType.FILTER); 
+//			List <Object> filters = struct.getValuesOfType(PixelDataType.FILTER);
 //			List <Object> joins = struct.getValuesOfType(PixelDataType.JOIN);
-//			
+//
 //			// need a better way to do it
 //			if(asName == null)
 //				reactorOutput = reactorOutput + "_" + struct.getColumns();
@@ -256,7 +270,7 @@ package prerna.reactor;
 //			{
 //				// this is a code block
 //				String code = (String)propStore.get("CODE");
-//				
+//
 //				CodeBlock.LANG thisLang = CodeBlock.LANG.JAVA; // default
 //				// need a if loop to convert language to java
 //				if(propStore.containsKey("LANGUAGE"))
@@ -264,27 +278,28 @@ package prerna.reactor;
 //					String language = (String)propStore.get("LANGUAGE");
 //					if(language.toLowerCase().contains("python"))
 //						thisLang = CodeBlock.LANG.PYTHON;
-//					if(language.toLowerCase().contains("r")) // good luck if you want prolog it will still be R :)
+//					if(language.toLowerCase().contains("r")) // good luck if you want prolog it will still be R
+// :)
 //						thisLang = CodeBlock.LANG.R;
 //				}
 //				CodeBlock thisBlock = new CodeBlock();
 //				thisBlock.setLanguage(CodeBlock.LANG.JAVA);
 //				thisBlock.addCode(code);
-//				
+//
 //				// add it as a code block
 //				planner.addInputs(signature, thisBlock, inputs, IReactor.TYPE.MAP);
 //				if(filters != null && filters.size() > 0)
 //					planner.addProperty(signature, "FILTERS", filters);
 //				if(joins != null && joins.size() > 0)
 //					planner.addProperty(signature, "JOINS", joins);
-//			}			
+//			}
 //			// may be we should keep query struct at reactor level
 //			// may be not
 //		}
 //		// give it a variable name
 //		if(asName == null)
 //			asName = new String[]{reactorOutput};
-//			
+//
 //		// I also need to accomodate when this happens in a chain
 //		// this has to happen directly through the as reactor
 //		// couple of things here
@@ -295,7 +310,7 @@ package prerna.reactor;
 //		// not sure what is the point then
 //
 //		// it is very much dependent on the operation
-//		
+//
 //		// if not the as should take care of it ?
 //		if(outputFields == null)
 //		{
@@ -324,7 +339,7 @@ package prerna.reactor;
 //		//else
 //		//	return runner;
 //	}
-//	
+//
 //	@Override
 //	public Vector<NounMetadata> getInputs() {
 //		return null;
@@ -336,4 +351,4 @@ package prerna.reactor;
 //		return null;
 //	}
 //
-//}
+// }

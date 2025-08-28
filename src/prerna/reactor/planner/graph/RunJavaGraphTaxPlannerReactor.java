@@ -1,46 +1,61 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.planner.graph;
-//package prerna.sablecc2.reactor.planner.graph;
+// package prerna.sablecc2.reactor.planner.graph;
 //
-//import java.io.File;
-//import java.io.IOException;
-//import java.util.ArrayList;
-//import java.util.HashMap;
-//import java.util.HashSet;
-//import java.util.Iterator;
-//import java.util.List;
-//import java.util.Map;
-//import java.util.Set;
-//import java.util.Vector;
+// import java.io.File;
+// import java.io.IOException;
+// import java.util.ArrayList;
+// import java.util.HashMap;
+// import java.util.HashSet;
+// import java.util.Iterator;
+// import java.util.List;
+// import java.util.Map;
+// import java.util.Set;
+// import java.util.Vector;
 //
-//import org.apache.log4j.LogManager;
-//import org.apache.log4j.Logger;
-//import org.apache.tinkerpop.gremlin.structure.Vertex;
-//import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
-//import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-//import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
-//import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
+// import org.apache.log4j.LogManager;
+// import org.apache.log4j.Logger;
+// import org.apache.tinkerpop.gremlin.structure.Vertex;
+// import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
+// import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+// import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
+// import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 //
-//import prerna.engine.api.IHeadersDataRow;
-//import prerna.sablecc2.GreedyTranslation;
-//import prerna.sablecc2.LazyTranslation;
-//import prerna.sablecc2.PkslUtility;
-//import prerna.sablecc2.om.GenRowStruct;
-//import prerna.sablecc2.om.InMemStore;
-//import prerna.sablecc2.om.Job;
-//import prerna.sablecc2.om.NounMetadata;
-//import prerna.sablecc2.om.PkslDataTypes;
-//import prerna.sablecc2.om.TaxMapStore;
-//import prerna.sablecc2.reactor.BaseJavaRuntime;
-//import prerna.sablecc2.reactor.PKSLPlanner;
-//import prerna.util.ArrayUtilityMethods;
-//import prerna.util.MyGraphIoRegistry;
+// import prerna.engine.api.IHeadersDataRow;
+// import prerna.sablecc2.GreedyTranslation;
+// import prerna.sablecc2.LazyTranslation;
+// import prerna.sablecc2.PkslUtility;
+// import prerna.sablecc2.om.GenRowStruct;
+// import prerna.sablecc2.om.InMemStore;
+// import prerna.sablecc2.om.Job;
+// import prerna.sablecc2.om.NounMetadata;
+// import prerna.sablecc2.om.PkslDataTypes;
+// import prerna.sablecc2.om.TaxMapStore;
+// import prerna.sablecc2.reactor.BaseJavaRuntime;
+// import prerna.sablecc2.reactor.PKSLPlanner;
+// import prerna.util.ArrayUtilityMethods;
+// import prerna.util.MyGraphIoRegistry;
 //
-//public class RunJavaGraphTaxPlannerReactor extends AbstractPlannerReactor {
+// public class RunJavaGraphTaxPlannerReactor extends AbstractPlannerReactor {
 //
-//	private static final Logger LOGGER = LogManager.getLogger(RunJavaGraphTaxPlannerReactor.class.getName());
-//	
+//	private static final Logger LOGGER =
+// LogManager.getLogger(RunJavaGraphTaxPlannerReactor.class.getName());
+//
 //	private static int fileCount = 0;
-//	
+//
 //	private static final String PROPOSAL_NOUN = "PROPOSALS";
 //	private String scenarioHeader;
 //	private String aliasHeader;
@@ -49,11 +64,11 @@ package prerna.reactor.planner.graph;
 //
 //	private PKSLPlanner originalPlan = null;
 //	private String fileName;
-//	
+//
 //	public RunJavaGraphTaxPlannerReactor() {
 //		setDefaults();
 //	}
-//	
+//
 //	private void setDefaults() {
 //		scenarioHeader = "ProposalName"; //header of column containing Trump, House, etc
 ////		aliasHeader = "Alias_1"; //header for value containing our column name
@@ -61,7 +76,7 @@ package prerna.reactor.planner.graph;
 //		valueHeader = "Value_1"; //header for value containing the value assigned to column name
 //		typeHeader = "Type_1";
 //	}
-//	
+//
 //	@Override
 //	public void In() {
 //		curNoun("all");
@@ -91,7 +106,7 @@ package prerna.reactor.planner.graph;
 //		// iterate through the scenario information
 //		// and generate a pksl planner for each scenario
 //		Map<String, PKSLPlanner> scenarioMap = getScenarioMap(scenarioIterator);
-//		
+//
 //		// create the master return store
 //		// this will contain each scenario
 //		// pointing to another map
@@ -108,24 +123,24 @@ package prerna.reactor.planner.graph;
 //			PKSLPlanner nextScenario = scenarioMap.get(scenario);
 //			nextScenario.addVariable("$SCENARIO", new NounMetadata(scenario, PkslDataTypes.CONST_STRING));
 //			translation.planner = nextScenario;
-//			
+//
 //			// iterate through to determine execution order for
 //			// the scenario
 //			List<String> pkslList = getPksls(nextScenario);
-//			
+//
 //			Map<String, String> mainMap = (Map)nextScenario.getProperty("MAIN_MAP", "MAIN_MAP");
 ////			for(String key : mainMap.keySet()) {
 ////				System.out.println(key+":::"+mainMap.get(key));
 ////			}
-//			
+//
 //			List<String> fieldsList = buildFields(mainMap, nextScenario);
 ////			List<String> newPksls = buildPksl(pkslList, mainMap);
 ////			for(String pksl : newPksls) {
 ////				System.out.println(pksl);
 ////			}
-//			
+//
 //			System.out.println("Total"+pkslList.size());
-//			
+//
 //			long startTime = System.currentTimeMillis();
 //			RuntimeJavaClassBuilder builder = new RuntimeJavaClassBuilder();
 //			builder.addEquations(pkslList);
@@ -143,20 +158,21 @@ package prerna.reactor.planner.graph;
 ////			}
 ////			System.out.println((endTime - startTime)+" ms");
 //			//need to take the results from the java class and add to the translation's planner
-//			
+//
 ////			PkslUtility.addPkslToTranslation(translation, pkslList);
-//			
+//
 //			LOGGER.info("End execution for scenario = " + scenario);
 //			// after execution
 //			// we need to	 store the information
 //			LOGGER.info("Start storing data inside store");
-//			
+//
 //			planners.add(translation.planner);
-//			
+//
 //		}
-//		
+//
 //		long end = System.currentTimeMillis();
-//		System.out.println("****************    END RUN TAX PLANNER "+(end - start)+"ms      *************************");
+//		System.out.println("****************    END RUN TAX PLANNER "+(end - start)+"ms
+// *************************");
 //
 //		File file = new File(this.fileName);
 //		file.delete();
@@ -172,7 +188,7 @@ package prerna.reactor.planner.graph;
 //		// iterate down all the other vertices and add the signatures
 //		// for the desired travels in the appropriate order
 //		// note: this is adding to the list of undefined variables
-//		// calculated at beginning of class 
+//		// calculated at beginning of class
 //		traverseDownstreamVertsProcessor(planner, pksls);
 //		return pksls;
 //	}
@@ -198,8 +214,8 @@ package prerna.reactor.planner.graph;
 //			yes.writeGraph(fileName);
 //		} catch (IOException e) {
 //			classLogger.error(Constants.STACKTRACE, e);
-//		} 
-//		
+//		}
+//
 //		long end = System.currentTimeMillis();
 //		System.out.println("FINISHED WRITING GRAPH : " + (end-start));
 //	}
@@ -216,9 +232,9 @@ package prerna.reactor.planner.graph;
 //			System.out.println("FINISHED WRITING GRAPH: "+(endTime - curTime)+" ms");
 //		}
 //	}
-//	
+//
 //	/**
-//	 * Read the cached version of the planner 
+//	 * Read the cached version of the planner
 //	 * into a new planner for use within a scenario
 //	 * @return
 //	 */
@@ -241,10 +257,10 @@ package prerna.reactor.planner.graph;
 //		} catch (IOException e) {
 //			classLogger.error(Constants.STACKTRACE, e);
 //		}
-//		
+//
 //		long end = System.currentTimeMillis();
 //		System.out.println("FINISHED READING GRAPH : " + (end-start));
-//		
+//
 //		newPlanner.g.createIndex(PKSLPlanner.TINKER_TYPE, Vertex.class);
 //		newPlanner.g.createIndex(PKSLPlanner.TINKER_ID, Vertex.class);
 //
@@ -255,11 +271,12 @@ package prerna.reactor.planner.graph;
 //		for(String varName : variables) {
 //			NounMetadata varNoun = this.originalPlan.getVariable(varName);
 //			if(varNoun.isScalar()) {
-////				System.out.println("Orig values ::: " + varName + " > " + this.originalPlan.getVariable(varName));
+////				System.out.println("Orig values ::: " + varName + " > " +
+// this.originalPlan.getVariable(varName));
 //				newPlanner.addVariable(varName, varNoun);
 //			}
 //		}
-//		
+//
 //		return newPlanner;
 //	}
 //
@@ -275,10 +292,14 @@ package prerna.reactor.planner.graph;
 //
 //			//TODO: move this outside so we don't calculate every time
 //			String[] headers = nextData.getHeaders();
-//			int scenarioHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, scenarioHeader);
-//			int aliasHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, aliasHeader);
-//			int valueHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, valueHeader);
-//			int typeHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, typeHeader);
+//			int scenarioHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers,
+// scenarioHeader);
+//			int aliasHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers,
+// aliasHeader);
+//			int valueHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers,
+// valueHeader);
+//			int typeHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers,
+// typeHeader);
 //
 //			//grab each row
 //			Object[] values = nextData.getValues();
@@ -334,39 +355,41 @@ package prerna.reactor.planner.graph;
 //		}
 //		return "";
 //	}
-//	
+//
 //	private List<String> buildPksl(List<String> pkslOperations, Map<String, String> mainMap) {
 //		List<String> newPksls = new ArrayList<>();
 //		for(String pksl : pkslOperations) {
 //			String assignment = pksl.split("=")[0].trim();
 //			String value = mainMap.get(assignment);
-//			while(value != null && (!value.equals("double") && !value.equals("boolean") && !value.equals("String") && !value.equals("int"))) {
+//			while(value != null && (!value.equals("double") && !value.equals("boolean") &&
+// !value.equals("String") && !value.equals("int"))) {
 //				value = mainMap.get(value);
 //			}
-//			
+//
 //			if(value == null) {
 //				newPksls.add("Object "+pksl);
 //			} else {
 //				newPksls.add(value+" "+pksl);
-//				
+//
 //			}
 //		}
 //		return newPksls;
 //	}
-//	
+//
 //	private List<String> buildFields(Map<String, String> mainMap, PKSLPlanner planner) {
 //		List<String> fields = new ArrayList<>();
 //		Set<String> assignedFields = new HashSet<>();
-//		
+//
 //		for(String assignment : mainMap.keySet()) {
 //			String value = mainMap.get(assignment);
-//			
+//
 //			boolean isNumber = isNumber(value);
-//			
-//			while(!isNumber && value != null && (!value.equals("double") && !value.equals("boolean") && !value.equals("String") && !value.equals("int"))) {
+//
+//			while(!isNumber && value != null && (!value.equals("double") && !value.equals("boolean") &&
+// !value.equals("String") && !value.equals("int"))) {
 //				value = mainMap.get(value);
 //			}
-//			
+//
 //			if(value == null) {
 //				NounMetadata noun = planner.getVariableValue(assignment);
 //				if(noun != null) {
@@ -380,16 +403,16 @@ package prerna.reactor.planner.graph;
 //					} else if(nounType == PkslDataTypes.BOOLEAN) {
 //						field = "boolean "+assignment+" = "+nounValue+";";
 //					}
-//					
+//
 //					if(!assignedFields.contains(assignment)) {
 //						fields.add(field);
 //						assignedFields.add(assignment);
 //					}
-//					
+//
 //				} else {
-//					
+//
 //				}
-//			} else if(isNumber) { 
+//			} else if(isNumber) {
 //				String field = "public double "+" "+assignment + " = "+value+";";
 //				if(!assignedFields.contains(assignment)) {
 //					fields.add(field);
@@ -403,15 +426,15 @@ package prerna.reactor.planner.graph;
 //					field += " = \"\";";
 //				} else if(value.equals("boolean")) {
 //					field += " = true;";
-//				} 
-//				
+//				}
+//
 //				if(!assignedFields.contains(assignment)) {
 //					fields.add(field);
 //					assignedFields.add(assignment);
 //				}
 //			}
 //		}
-//		
+//
 //		for(String assignment : planner.getVariables()) {
 //			NounMetadata noun = planner.getVariableValue(assignment);
 //			if(noun != null) {
@@ -425,22 +448,22 @@ package prerna.reactor.planner.graph;
 //				} else if(nounType == PkslDataTypes.BOOLEAN) {
 //					field = "boolean "+assignment+" = "+nounValue+";";
 //				}
-//				
+//
 //				if(!assignedFields.contains(assignment)) {
 //					fields.add(field);
 //					assignedFields.add(assignment);
 //				}
 //			} else {
-//				
+//
 //			}
 //		}
-//		
+//
 ////		for(String field : fields) {
 ////			System.out.println(field);
 ////		}
 //		return fields;
 //	}
-//	
+//
 //	private boolean isNumber(String value) {
 //		try {
 //			double doub = Double.parseDouble(value);
@@ -474,4 +497,4 @@ package prerna.reactor.planner.graph;
 //			return this.planner;
 //		}
 //	}
-//}
+// }

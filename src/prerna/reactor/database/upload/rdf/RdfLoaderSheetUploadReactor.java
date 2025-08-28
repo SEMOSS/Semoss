@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.database.upload.rdf;
 
 import java.io.File;
@@ -10,7 +24,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.poi.ss.usermodel.Cell;
@@ -22,7 +35,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.sail.SailException;
-
 import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
@@ -44,509 +56,562 @@ import prerna.util.Utility;
 
 public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReactor {
 
-	public RdfLoaderSheetUploadReactor() {
-		this.keysToGet = new String[] { 
-				UploadInputUtility.DATABASE, 
-				UploadInputUtility.FILE_PATH,
-				UploadInputUtility.ADD_TO_EXISTING, 
-				UploadInputUtility.CUSTOM_BASE_URI
-		};
-	}
+  public RdfLoaderSheetUploadReactor() {
+    this.keysToGet =
+        new String[] {
+          UploadInputUtility.DATABASE,
+          UploadInputUtility.FILE_PATH,
+          UploadInputUtility.ADD_TO_EXISTING,
+          UploadInputUtility.CUSTOM_BASE_URI
+        };
+  }
 
-	public void generateNewDatabase(User user, String newDatabaseName, String filePath) throws Exception {
-		if(!ExcelParsing.isExcelFile(filePath)) {
-			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			SemossPixelException e = new SemossPixelException(error);
-			e.setContinueThreadOfExecution(false);
-			throw e;
-		}
-		String baseUri = UploadInputUtility.getCustomBaseURI(this.store);
+  public void generateNewDatabase(User user, String newDatabaseName, String filePath)
+      throws Exception {
+    if (!ExcelParsing.isExcelFile(filePath)) {
+      NounMetadata error =
+          new NounMetadata(
+              "Invalid file. Must be .xlsx, .xlsm or .xls",
+              PixelDataType.CONST_STRING,
+              PixelOperationType.ERROR);
+      SemossPixelException e = new SemossPixelException(error);
+      e.setContinueThreadOfExecution(false);
+      throw e;
+    }
+    String baseUri = UploadInputUtility.getCustomBaseURI(this.store);
 
-		int stepCounter = 1;
-		logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, newDatabaseName);
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
+    int stepCounter = 1;
+    logger.info(stepCounter + ". Create metadata for database...");
+    File owlFile =
+        UploadUtilities.generateOwlFile(
+            IEngine.CATALOG_TYPE.DATABASE, this.databaseId, newDatabaseName);
+    logger.info(stepCounter + ". Complete");
+    stepCounter++;
 
-		// need instance to write to smss
-		this.database = RDFDefaultDatabaseTypeFactory.getDefaultRdfEngine();
+    // need instance to write to smss
+    this.database = RDFDefaultDatabaseTypeFactory.getDefaultRdfEngine();
 
-		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdfSmss(this.database, this.databaseId, newDatabaseName, owlFile, baseUri);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
+    logger.info(stepCounter + ". Create properties file for database...");
+    this.tempSmss =
+        UploadUtilities.createTemporaryRdfSmss(
+            this.database, this.databaseId, newDatabaseName, owlFile, baseUri);
+    DIHelper.getInstance()
+        .setEngineProperty(
+            this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+    logger.info(stepCounter + ". Complete");
+    stepCounter++;
 
-		logger.info(stepCounter + ". Create database store...");
-		this.database.setEngineId(this.databaseId);
-		this.database.setEngineName(newDatabaseName);
-		this.database.open(this.tempSmss.getAbsolutePath());
-		String semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
-		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
-		String typeOf = RDF.TYPE.stringValue();
-		String obj = Constants.CLASS_URI;
-		((IRDFDatabase) this.database).addStatement(new Object[] { sub, typeOf, obj, true });
-		sub = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
-		obj = Constants.DEFAULT_PROPERTY_URI;
-		((IRDFDatabase) this.database).addStatement(new Object[] { sub, typeOf, obj, true });
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
+    logger.info(stepCounter + ". Create database store...");
+    this.database.setEngineId(this.databaseId);
+    this.database.setEngineName(newDatabaseName);
+    this.database.open(this.tempSmss.getAbsolutePath());
+    String semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
+    String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
+    String typeOf = RDF.TYPE.stringValue();
+    String obj = Constants.CLASS_URI;
+    ((IRDFDatabase) this.database).addStatement(new Object[] {sub, typeOf, obj, true});
+    sub = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
+    obj = Constants.DEFAULT_PROPERTY_URI;
+    ((IRDFDatabase) this.database).addStatement(new Object[] {sub, typeOf, obj, true});
+    logger.info(stepCounter + ". Complete");
+    stepCounter++;
 
-		/*
-		 * Load Data
-		 */
-		logger.info(stepCounter + ". Parsing file metadata...");
+    /*
+     * Load Data
+     */
+    logger.info(stepCounter + ". Parsing file metadata...");
 
-		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
-		owlEngine.addCustomBaseURI(baseUri);
-		importFile(this.database, owlEngine, filePath, baseUri);
-		RdfUploadReactorUtility.loadMetadataIntoEngine((IRDFDatabase) this.database, owlEngine);
-		owlEngine.commit();
-		owlEngine.export();
-		owlEngine.close();
-		
-		logger.info("Applying inferencing");
-		((IRDFDatabase) this.database).infer();
-		logger.info("Done with inferencing");
-		((IRDFDatabase) this.database).exportDB();
-	}
+    WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
+    owlEngine.addCustomBaseURI(baseUri);
+    importFile(this.database, owlEngine, filePath, baseUri);
+    RdfUploadReactorUtility.loadMetadataIntoEngine((IRDFDatabase) this.database, owlEngine);
+    owlEngine.commit();
+    owlEngine.export();
+    owlEngine.close();
 
-	public void addToExistingDatabase(String filePath) throws Exception {
-		if(!ExcelParsing.isExcelFile(filePath)) {
-			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			SemossPixelException e = new SemossPixelException(error);
-			e.setContinueThreadOfExecution(false);
-			throw e;
-		}
-		int stepCounter = 1;
-		if (!(this.database instanceof IRDFDatabase)) {
-			throw new IllegalArgumentException("Invalid database type");
-		}
+    logger.info("Applying inferencing");
+    ((IRDFDatabase) this.database).infer();
+    logger.info("Done with inferencing");
+    ((IRDFDatabase) this.database).exportDB();
+  }
 
-		Configurator.setLevel(logger.getName(), Level.ERROR);
-		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
-		importFile(this.database,owlEngine, filePath, this.database.getNodeBaseUri());
-		RdfUploadReactorUtility.loadMetadataIntoEngine((IRDFDatabase) this.database, owlEngine);
-		owlEngine.commit();
-		owlEngine.export();
-		owlEngine.close();
+  public void addToExistingDatabase(String filePath) throws Exception {
+    if (!ExcelParsing.isExcelFile(filePath)) {
+      NounMetadata error =
+          new NounMetadata(
+              "Invalid file. Must be .xlsx, .xlsm or .xls",
+              PixelDataType.CONST_STRING,
+              PixelOperationType.ERROR);
+      SemossPixelException e = new SemossPixelException(error);
+      e.setContinueThreadOfExecution(false);
+      throw e;
+    }
+    int stepCounter = 1;
+    if (!(this.database instanceof IRDFDatabase)) {
+      throw new IllegalArgumentException("Invalid database type");
+    }
 
-		logger.info("Applying inferencing");
-		((IRDFDatabase) this.database).infer();
-		logger.info("Done with inferencing");
-		((IRDFDatabase) this.database).exportDB();
-		logger.info(stepCounter + ". Complete");
-	}
+    Configurator.setLevel(logger.getName(), Level.ERROR);
+    WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
+    importFile(this.database, owlEngine, filePath, this.database.getNodeBaseUri());
+    RdfUploadReactorUtility.loadMetadataIntoEngine((IRDFDatabase) this.database, owlEngine);
+    owlEngine.commit();
+    owlEngine.export();
+    owlEngine.close();
 
-	@Override
-	public void closeFileHelpers() {
+    logger.info("Applying inferencing");
+    ((IRDFDatabase) this.database).infer();
+    logger.info("Done with inferencing");
+    ((IRDFDatabase) this.database).exportDB();
+    logger.info(stepCounter + ". Complete");
+  }
 
-	}
+  @Override
+  public void closeFileHelpers() {}
 
-	/**
-	 * Load the excel workbook, determine which sheets to load in workbook from the Loader tab
-	 * @param fileName 					String containing the absolute path to the excel workbook to load
-	 * @throws FileNotFoundException
-	 * @throws IOException
-	 */
-	public void importFile(IDatabaseEngine database, WriteOWLEngine owlEngine, String fileName, String baseUri) throws FileNotFoundException, IOException {
-		Workbook workbook = null;
-		FileInputStream poiReader = null;
-		try {
-			poiReader = new FileInputStream(fileName);
-			workbook = WorkbookFactory.create(poiReader);
-			// load the Loader tab to determine which sheets to load
-			Sheet lSheet = workbook.getSheet("Loader");
-			if (lSheet == null) {
-				throw new IOException("Could not find Loader Sheet in Excel file " + fileName);
-			}
-			// check if user is loading subclassing relationships
-			Sheet subclassSheet = workbook.getSheet("Subclass");
-			if (subclassSheet != null) {
-				createSubClassing(database, owlEngine, subclassSheet);
-			}
-			// determine number of sheets to load
-			int lastRow = lSheet.getLastRowNum();
-			// first sheet name in second row
-			for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
-				Row row = lSheet.getRow(rIndex);
-				// check to make sure cell is not null
-				if (row != null) {
-					Cell sheetNameCell = row.getCell(0);
-					Cell sheetTypeCell = row.getCell(1);
-					if (sheetNameCell != null) {
-						// get the name of the sheet
-						String sheetToLoad = sheetNameCell.getStringCellValue().trim();
-						// determine the type of load
-						String loadTypeName = "";
-						if(sheetTypeCell != null) {
-							loadTypeName = sheetTypeCell.getStringCellValue();
-						}
-						if (!sheetToLoad.isEmpty()) {
-							this.logger.debug("Cell Content is " + sheetToLoad);
-							// this is a relationship
-							if (loadTypeName.contains("Matrix")) {
-								loadMatrixSheet(database, owlEngine, sheetToLoad, workbook, baseUri);
-							} else {
-								loadSheet(database, owlEngine, sheetToLoad, workbook, baseUri);
-							}
-						}
-					}
-				}
-			}
-		} catch (FileNotFoundException e) {
-			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-				logger.error(e.getMessage());
-			} 
-			logger.error(Constants.STACKTRACE, e);
-			throw new FileNotFoundException("Could not find Excel file located at " + fileName);
-		} catch (IOException e) {
-			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-				logger.error(e.getMessage());
-			}
-			logger.error(Constants.STACKTRACE, e);
-			throw new IOException("Could not read Excel file located at " + fileName);
-		} catch (Exception e) {
-			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-				logger.error(e.getMessage());
-			} 
-			logger.error(Constants.STACKTRACE, e);
-			throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
-		} finally {
-			if (poiReader != null) {
-				try {
-					poiReader.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-					throw new IOException("Could not close Excel file stream");
-				}
-			}
-			if (workbook != null) {
-				try {
-					workbook.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-					//throw new IOException("Could not close Excel file stream");
-				}
-			}
-		}
-	}
+  /**
+   * Load the excel workbook, determine which sheets to load in workbook from the Loader tab
+   *
+   * @param fileName String containing the absolute path to the excel workbook to load
+   * @throws FileNotFoundException
+   * @throws IOException
+   */
+  public void importFile(
+      IDatabaseEngine database, WriteOWLEngine owlEngine, String fileName, String baseUri)
+      throws FileNotFoundException, IOException {
+    Workbook workbook = null;
+    FileInputStream poiReader = null;
+    try {
+      poiReader = new FileInputStream(fileName);
+      workbook = WorkbookFactory.create(poiReader);
+      // load the Loader tab to determine which sheets to load
+      Sheet lSheet = workbook.getSheet("Loader");
+      if (lSheet == null) {
+        throw new IOException("Could not find Loader Sheet in Excel file " + fileName);
+      }
+      // check if user is loading subclassing relationships
+      Sheet subclassSheet = workbook.getSheet("Subclass");
+      if (subclassSheet != null) {
+        createSubClassing(database, owlEngine, subclassSheet);
+      }
+      // determine number of sheets to load
+      int lastRow = lSheet.getLastRowNum();
+      // first sheet name in second row
+      for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
+        Row row = lSheet.getRow(rIndex);
+        // check to make sure cell is not null
+        if (row != null) {
+          Cell sheetNameCell = row.getCell(0);
+          Cell sheetTypeCell = row.getCell(1);
+          if (sheetNameCell != null) {
+            // get the name of the sheet
+            String sheetToLoad = sheetNameCell.getStringCellValue().trim();
+            // determine the type of load
+            String loadTypeName = "";
+            if (sheetTypeCell != null) {
+              loadTypeName = sheetTypeCell.getStringCellValue();
+            }
+            if (!sheetToLoad.isEmpty()) {
+              this.logger.debug("Cell Content is " + sheetToLoad);
+              // this is a relationship
+              if (loadTypeName.contains("Matrix")) {
+                loadMatrixSheet(database, owlEngine, sheetToLoad, workbook, baseUri);
+              } else {
+                loadSheet(database, owlEngine, sheetToLoad, workbook, baseUri);
+              }
+            }
+          }
+        }
+      }
+    } catch (FileNotFoundException e) {
+      if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+        logger.error(e.getMessage());
+      }
+      logger.error(Constants.STACKTRACE, e);
+      throw new FileNotFoundException("Could not find Excel file located at " + fileName);
+    } catch (IOException e) {
+      if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+        logger.error(e.getMessage());
+      }
+      logger.error(Constants.STACKTRACE, e);
+      throw new IOException("Could not read Excel file located at " + fileName);
+    } catch (Exception e) {
+      if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+        logger.error(e.getMessage());
+      }
+      logger.error(Constants.STACKTRACE, e);
+      throw new IOException(
+          "File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
+    } finally {
+      if (poiReader != null) {
+        try {
+          poiReader.close();
+        } catch (IOException e) {
+          logger.error(Constants.STACKTRACE, e);
+          throw new IOException("Could not close Excel file stream");
+        }
+      }
+      if (workbook != null) {
+        try {
+          workbook.close();
+        } catch (IOException e) {
+          logger.error(Constants.STACKTRACE, e);
+          // throw new IOException("Could not close Excel file stream");
+        }
+      }
+    }
+  }
 
-	/**
-	 * Load subclassing information into the db and the owl file Requires the data to be in specific excel tab labeled "Subclass", with Parent nodes
-	 * in the first column and child nodes in the second column
-	 * 
-	 * @param subclassSheet
-	 *            Excel sheet with the subclassing information
-	 * @throws IOException 
-	 * @throws EngineException
-	 * @throws SailException
-	 */
-	private void createSubClassing(IDatabaseEngine database, WriteOWLEngine owlEngine, Sheet subclassSheet) throws IOException {
-		// URI for subclass
-		String pred = Constants.SUBCLASS_URI;
-		// check parent and child nodes in correct position
-		Row row = subclassSheet.getRow(0);
-		String parentNode = row.getCell(0).toString().trim().toLowerCase();
-		String childNode = row.getCell(1).toString().trim().toLowerCase();
-		// check to make sure parent column is in the correct column
-		if (!parentNode.equalsIgnoreCase("parent")) {
-			throw new IOException("Error with Subclass Sheet.\nError in parent node column.");
-		}
-		// check to make sure child column is in the correct column
-		if (!childNode.equalsIgnoreCase("child")) {
-			throw new IOException("Error with Subclass Sheet.\nError in child node column.");
-		}
-		// loop through and create all the triples for subclassing
-		int lastRow = subclassSheet.getLastRowNum();
-		for (int i = 1; i <= lastRow; i++) {
-			row = subclassSheet.getRow(i);
+  /**
+   * Load subclassing information into the db and the owl file Requires the data to be in specific
+   * excel tab labeled "Subclass", with Parent nodes in the first column and child nodes in the
+   * second column
+   *
+   * @param subclassSheet Excel sheet with the subclassing information
+   * @throws IOException
+   * @throws EngineException
+   * @throws SailException
+   */
+  private void createSubClassing(
+      IDatabaseEngine database, WriteOWLEngine owlEngine, Sheet subclassSheet) throws IOException {
+    // URI for subclass
+    String pred = Constants.SUBCLASS_URI;
+    // check parent and child nodes in correct position
+    Row row = subclassSheet.getRow(0);
+    String parentNode = row.getCell(0).toString().trim().toLowerCase();
+    String childNode = row.getCell(1).toString().trim().toLowerCase();
+    // check to make sure parent column is in the correct column
+    if (!parentNode.equalsIgnoreCase("parent")) {
+      throw new IOException("Error with Subclass Sheet.\nError in parent node column.");
+    }
+    // check to make sure child column is in the correct column
+    if (!childNode.equalsIgnoreCase("child")) {
+      throw new IOException("Error with Subclass Sheet.\nError in child node column.");
+    }
+    // loop through and create all the triples for subclassing
+    int lastRow = subclassSheet.getLastRowNum();
+    for (int i = 1; i <= lastRow; i++) {
+      row = subclassSheet.getRow(i);
 
-			String parentURI = owlEngine.addConcept(Utility.cleanString(row.getCell(0).toString(), true), "STRING");
-			String childURI = owlEngine.addConcept(Utility.cleanString(row.getCell(1).toString(), true), "STRING");
-			// add triples to database
-			database.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { childURI, pred, parentURI, true });
-			// add triples to OWL
-			owlEngine.addSubclass(childNode, parentNode);
-		}
-		database.commit();
-		owlEngine.commit();
-	}
+      String parentURI =
+          owlEngine.addConcept(Utility.cleanString(row.getCell(0).toString(), true), "STRING");
+      String childURI =
+          owlEngine.addConcept(Utility.cleanString(row.getCell(1).toString(), true), "STRING");
+      // add triples to database
+      database.doAction(
+          IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT,
+          new Object[] {childURI, pred, parentURI, true});
+      // add triples to OWL
+      owlEngine.addSubclass(childNode, parentNode);
+    }
+    database.commit();
+    owlEngine.commit();
+  }
 
-	/**
-	 * Load specific sheet in workbook
-	 * @param sheetToLoad			String containing the name of the sheet to load
-	 * @param workbook				XSSFWorkbook containing the sheet to load
-	 * @throws IOException
-	 */
-	public void loadSheet(IDatabaseEngine database, WriteOWLEngine owlEngine, String sheetToLoad, Workbook workbook, String baseUri) throws IOException {
-		Sheet lSheet = workbook.getSheet(sheetToLoad);
-		if (lSheet == null) {
-			throw new IOException("Could not find sheet " + sheetToLoad + " in workbook.");
-		}
-		logger.info("Loading Sheet: " + sheetToLoad);
-		int lastRow = lSheet.getLastRowNum() + 1;
+  /**
+   * Load specific sheet in workbook
+   *
+   * @param sheetToLoad String containing the name of the sheet to load
+   * @param workbook XSSFWorkbook containing the sheet to load
+   * @throws IOException
+   */
+  public void loadSheet(
+      IDatabaseEngine database,
+      WriteOWLEngine owlEngine,
+      String sheetToLoad,
+      Workbook workbook,
+      String baseUri)
+      throws IOException {
+    Sheet lSheet = workbook.getSheet(sheetToLoad);
+    if (lSheet == null) {
+      throw new IOException("Could not find sheet " + sheetToLoad + " in workbook.");
+    }
+    logger.info("Loading Sheet: " + sheetToLoad);
+    int lastRow = lSheet.getLastRowNum() + 1;
 
-		// Get the first row to get column names
-		Row row = lSheet.getRow(0);
+    // Get the first row to get column names
+    Row row = lSheet.getRow(0);
 
-		// initialize variables
-		String objectNode = "";
-		String relName = "";
-		Vector<String> propNames = new Vector<String>();
+    // initialize variables
+    String objectNode = "";
+    String relName = "";
+    Vector<String> propNames = new Vector<String>();
 
-		// determine if relationship or property sheet
-		String sheetType = row.getCell(0).getStringCellValue();
-		String subjectNode = row.getCell(1).getStringCellValue();
-		int currentColumn = 0;
-		if (sheetType.equalsIgnoreCase("Relation")) {
-			objectNode = row.getCell(2).getStringCellValue();
-			// if relationship, properties start at column 2
-			currentColumn++;
-		}
+    // determine if relationship or property sheet
+    String sheetType = row.getCell(0).getStringCellValue();
+    String subjectNode = row.getCell(1).getStringCellValue();
+    int currentColumn = 0;
+    if (sheetType.equalsIgnoreCase("Relation")) {
+      objectNode = row.getCell(2).getStringCellValue();
+      // if relationship, properties start at column 2
+      currentColumn++;
+    }
 
-		// determine property names for the relationship or node
-		// colIndex starts at currentColumn+1 since if relationship, the object
-		// node name is in the second column
-		int lastColumn = 0;
-		for (int colIndex = currentColumn + 1; colIndex < row.getLastCellNum(); colIndex++) {
-			// add property name to vector
-			if (row.getCell(colIndex) != null) {
-				propNames.addElement(row.getCell(colIndex).getStringCellValue());
-				lastColumn = colIndex;
-			}
-		}
-		logger.info(sheetToLoad + " has number of columns: " + (lastColumn + 1));
+    // determine property names for the relationship or node
+    // colIndex starts at currentColumn+1 since if relationship, the object
+    // node name is in the second column
+    int lastColumn = 0;
+    for (int colIndex = currentColumn + 1; colIndex < row.getLastCellNum(); colIndex++) {
+      // add property name to vector
+      if (row.getCell(colIndex) != null) {
+        propNames.addElement(row.getCell(colIndex).getStringCellValue());
+        lastColumn = colIndex;
+      }
+    }
+    logger.info(sheetToLoad + " has number of columns: " + (lastColumn + 1));
 
-		List<Object[]> allInsertStatements = new ArrayList<>();
+    List<Object[]> allInsertStatements = new ArrayList<>();
 
-		// processing starts
-		logger.info(sheetToLoad + " has number of rows: " + lastRow);
-		for (int rowIndex = 1; rowIndex < lastRow; rowIndex++) {
-			// first cell is the name of relationship
-			Row nextRow = lSheet.getRow(rowIndex);
+    // processing starts
+    logger.info(sheetToLoad + " has number of rows: " + lastRow);
+    for (int rowIndex = 1; rowIndex < lastRow; rowIndex++) {
+      // first cell is the name of relationship
+      Row nextRow = lSheet.getRow(rowIndex);
 
-			if (nextRow == null) {
-				continue;
-			}
+      if (nextRow == null) {
+        continue;
+      }
 
-			// get the name of the relationship
-			if (rowIndex == 1) {
-				Cell relCell = nextRow.getCell(0);
-				if (relCell != null && !relCell.getStringCellValue().isEmpty()) {
-					relName = nextRow.getCell(0).getStringCellValue();
-				} else {
-					if (sheetType.equalsIgnoreCase("Relation")) {
-						throw new IOException("Need to define the relationship on sheet " + sheetToLoad);
-					}
-					relName = "Ignore";
-				}
-			}
+      // get the name of the relationship
+      if (rowIndex == 1) {
+        Cell relCell = nextRow.getCell(0);
+        if (relCell != null && !relCell.getStringCellValue().isEmpty()) {
+          relName = nextRow.getCell(0).getStringCellValue();
+        } else {
+          if (sheetType.equalsIgnoreCase("Relation")) {
+            throw new IOException("Need to define the relationship on sheet " + sheetToLoad);
+          }
+          relName = "Ignore";
+        }
+      }
 
-			// set the name of the subject instance node to be a string
-			if (nextRow.getCell(1) != null && nextRow.getCell(1).getCellType() != CellType.BLANK) {
-				nextRow.getCell(1).setCellType(CellType.STRING);
-			}
+      // set the name of the subject instance node to be a string
+      if (nextRow.getCell(1) != null && nextRow.getCell(1).getCellType() != CellType.BLANK) {
+        nextRow.getCell(1).setCellType(CellType.STRING);
+      }
 
-			// to prevent errors when java thinks there is a row of data when
-			// the row is empty
-			Cell instanceSubjectNodeCell = nextRow.getCell(1);
-			String instanceSubjectNode = "";
-			if (instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != CellType.BLANK
-					&& !instanceSubjectNodeCell.toString().isEmpty()) {
-				instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
-			} else {
-				continue;
-			}
+      // to prevent errors when java thinks there is a row of data when
+      // the row is empty
+      Cell instanceSubjectNodeCell = nextRow.getCell(1);
+      String instanceSubjectNode = "";
+      if (instanceSubjectNodeCell != null
+          && instanceSubjectNodeCell.getCellType() != CellType.BLANK
+          && !instanceSubjectNodeCell.toString().isEmpty()) {
+        instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
+      } else {
+        continue;
+      }
 
-			// get the name of the object instance node if relationship
-			String instanceObjectNode = "";
-			int startCol = 1;
-			int offset = 1;
-			if (sheetType.equalsIgnoreCase("Relation")) {
-				if (nextRow.getCell(2) != null) {
-					// make it a string so i can easily parse it
-					nextRow.getCell(2).setCellType(CellType.STRING);
-					Cell instanceObjectNodeCell = nextRow.getCell(2);
-					// if empty, ignore
-					if (ExcelParsing.isEmptyCell(instanceObjectNodeCell)) {
-						continue;
-					}
-					instanceObjectNode = nextRow.getCell(2).getStringCellValue();
-				}
-				startCol++;
-				offset++;
-			}
+      // get the name of the object instance node if relationship
+      String instanceObjectNode = "";
+      int startCol = 1;
+      int offset = 1;
+      if (sheetType.equalsIgnoreCase("Relation")) {
+        if (nextRow.getCell(2) != null) {
+          // make it a string so i can easily parse it
+          nextRow.getCell(2).setCellType(CellType.STRING);
+          Cell instanceObjectNodeCell = nextRow.getCell(2);
+          // if empty, ignore
+          if (ExcelParsing.isEmptyCell(instanceObjectNodeCell)) {
+            continue;
+          }
+          instanceObjectNode = nextRow.getCell(2).getStringCellValue();
+        }
+        startCol++;
+        offset++;
+      }
 
-			Hashtable<String, Object> propHash = new Hashtable<String, Object>();
-			// process properties
-			for (int colIndex = (startCol + 1); colIndex < nextRow.getLastCellNum(); colIndex++) {
-				if (propNames.size() <= (colIndex - offset)) {
-					continue;
-				}
-				String propName = propNames.elementAt(colIndex - offset).toString();
-				// ignore bad data
-				if (ExcelParsing.isEmptyCell(nextRow.getCell(colIndex))) {
-					continue;
-				}
+      Hashtable<String, Object> propHash = new Hashtable<String, Object>();
+      // process properties
+      for (int colIndex = (startCol + 1); colIndex < nextRow.getLastCellNum(); colIndex++) {
+        if (propNames.size() <= (colIndex - offset)) {
+          continue;
+        }
+        String propName = propNames.elementAt(colIndex - offset).toString();
+        // ignore bad data
+        if (ExcelParsing.isEmptyCell(nextRow.getCell(colIndex))) {
+          continue;
+        }
 
-				Object propValue = ExcelParsing.getCell(nextRow.getCell(colIndex));
-				if(propValue == null || propValue.toString().trim().isEmpty()) {
-					continue;
-				}
-				propHash.put(propName, propValue);
-			}
+        Object propValue = ExcelParsing.getCell(nextRow.getCell(colIndex));
+        if (propValue == null || propValue.toString().trim().isEmpty()) {
+          continue;
+        }
+        propHash.put(propName, propValue);
+      }
 
-			if (sheetType.equalsIgnoreCase("Relation")) {
-				if(rowIndex % 100 == 0) {
-					logger.info("Processing Relationship Sheet: " + sheetToLoad + ", row = " + rowIndex);
-				}
-				RdfUploadReactorUtility.createRelationship(owlEngine, baseUri, 
-						subjectNode, objectNode, 
-						instanceSubjectNode, instanceObjectNode, 
-						relName, propHash, allInsertStatements);
-			} else {
-				if(rowIndex % 100 == 0) {
-					logger.info("Processing Node Sheet: " + sheetToLoad + ", row = " + rowIndex);
-				}
-				RdfUploadReactorUtility.addNodeProperties(owlEngine, baseUri, 
-						subjectNode, instanceSubjectNode, propHash, allInsertStatements);
-			}
+      if (sheetType.equalsIgnoreCase("Relation")) {
+        if (rowIndex % 100 == 0) {
+          logger.info("Processing Relationship Sheet: " + sheetToLoad + ", row = " + rowIndex);
+        }
+        RdfUploadReactorUtility.createRelationship(
+            owlEngine,
+            baseUri,
+            subjectNode,
+            objectNode,
+            instanceSubjectNode,
+            instanceObjectNode,
+            relName,
+            propHash,
+            allInsertStatements);
+      } else {
+        if (rowIndex % 100 == 0) {
+          logger.info("Processing Node Sheet: " + sheetToLoad + ", row = " + rowIndex);
+        }
+        RdfUploadReactorUtility.addNodeProperties(
+            owlEngine, baseUri, subjectNode, instanceSubjectNode, propHash, allInsertStatements);
+      }
 
-			if(allInsertStatements.size() > 1000) {
-				((IRDFDatabase) database).bulkInsert(allInsertStatements);
-				logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
-				allInsertStatements.clear();
-			}
-		}
-		if(!allInsertStatements.isEmpty()) {
-			((IRDFDatabase) database).bulkInsert(allInsertStatements);
-			logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
-			allInsertStatements.clear();
-		}
-		logger.info("Done processing: " + sheetToLoad + ". Total rows processed = " + lastRow);
-	}
+      if (allInsertStatements.size() > 1000) {
+        ((IRDFDatabase) database).bulkInsert(allInsertStatements);
+        logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+        allInsertStatements.clear();
+      }
+    }
+    if (!allInsertStatements.isEmpty()) {
+      ((IRDFDatabase) database).bulkInsert(allInsertStatements);
+      logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+      allInsertStatements.clear();
+    }
+    logger.info("Done processing: " + sheetToLoad + ". Total rows processed = " + lastRow);
+  }
 
-	/**
-	 * Load excel sheet in matrix format
-	 * @param sheetToLoad				String containing the name of the excel sheet to load
-	 * @param workbook					XSSFWorkbook containing the name of the excel workbook
-	 * @throws EngineException
-	 */
-	public void loadMatrixSheet(IDatabaseEngine database, WriteOWLEngine owlEngine, String sheetToLoad, Workbook workbook, String baseUri) {
-		Sheet lSheet = workbook.getSheet(sheetToLoad);
-		logger.info("Loading Sheet: " + sheetToLoad);
-		int lastRow = lSheet.getLastRowNum();
-		logger.info("Number of Rows: " + lastRow);
+  /**
+   * Load excel sheet in matrix format
+   *
+   * @param sheetToLoad String containing the name of the excel sheet to load
+   * @param workbook XSSFWorkbook containing the name of the excel workbook
+   * @throws EngineException
+   */
+  public void loadMatrixSheet(
+      IDatabaseEngine database,
+      WriteOWLEngine owlEngine,
+      String sheetToLoad,
+      Workbook workbook,
+      String baseUri) {
+    Sheet lSheet = workbook.getSheet(sheetToLoad);
+    logger.info("Loading Sheet: " + sheetToLoad);
+    int lastRow = lSheet.getLastRowNum();
+    logger.info("Number of Rows: " + lastRow);
 
-		// Get the first row to get column names
-		Row row = lSheet.getRow(0);
-		// initialize variables
-		String objectNodeType = "";
-		String relName = "";
-		boolean propExists = false;
+    // Get the first row to get column names
+    Row row = lSheet.getRow(0);
+    // initialize variables
+    String objectNodeType = "";
+    String relName = "";
+    boolean propExists = false;
 
-		String sheetType = row.getCell(0).getStringCellValue();
-		// Get the string that contains the subject node type, object node type, and properties
-		String nodeMap = row.getCell(1).getStringCellValue();
+    String sheetType = row.getCell(0).getStringCellValue();
+    // Get the string that contains the subject node type, object node type, and properties
+    String nodeMap = row.getCell(1).getStringCellValue();
 
-		// check to see if properties exist
-		String propertyName = "";
-		StringTokenizer tokenProperties = new StringTokenizer(nodeMap, "@");
-		String triple = tokenProperties.nextToken();
-		if (tokenProperties.hasMoreTokens()) {
-			propertyName = tokenProperties.nextToken();
-			propExists = true;
-		}
+    // check to see if properties exist
+    String propertyName = "";
+    StringTokenizer tokenProperties = new StringTokenizer(nodeMap, "@");
+    String triple = tokenProperties.nextToken();
+    if (tokenProperties.hasMoreTokens()) {
+      propertyName = tokenProperties.nextToken();
+      propExists = true;
+    }
 
-		StringTokenizer tokenTriple = new StringTokenizer(triple, "_");
-		String subjectNodeType = tokenTriple.nextToken();
-		if (sheetType.equalsIgnoreCase("Relation")) {
-			relName = tokenTriple.nextToken();
-			objectNodeType = tokenTriple.nextToken();
-		}
+    StringTokenizer tokenTriple = new StringTokenizer(triple, "_");
+    String subjectNodeType = tokenTriple.nextToken();
+    if (sheetType.equalsIgnoreCase("Relation")) {
+      relName = tokenTriple.nextToken();
+      objectNodeType = tokenTriple.nextToken();
+    }
 
-		// determine object instance names for the relationship
-		ArrayList<String> objectInstanceArray = new ArrayList<String>();
-		int lastColumn = 0;
-		for (int colIndex = 2; colIndex < row.getLastCellNum(); colIndex++) {
-			objectInstanceArray.add(row.getCell(colIndex).getStringCellValue());
-			lastColumn = colIndex;
-		}
-		// fix number of columns due to data shift in excel sheet
-		lastColumn--;
-		logger.info("Number of Columns: " + lastColumn);
+    // determine object instance names for the relationship
+    ArrayList<String> objectInstanceArray = new ArrayList<String>();
+    int lastColumn = 0;
+    for (int colIndex = 2; colIndex < row.getLastCellNum(); colIndex++) {
+      objectInstanceArray.add(row.getCell(colIndex).getStringCellValue());
+      lastColumn = colIndex;
+    }
+    // fix number of columns due to data shift in excel sheet
+    lastColumn--;
+    logger.info("Number of Columns: " + lastColumn);
 
-		List<Object[]> allInsertStatements = new ArrayList<>();
+    List<Object[]> allInsertStatements = new ArrayList<>();
 
-		// process all rows (contains subject instances) in the matrix
-		for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
-			// boolean to determine if a mapping exists
-			boolean mapExists = false;
-			Row nextRow = lSheet.getRow(rowIndex);
-			// get the name subject instance
-			String instanceSubjectName = nextRow.getCell(1).getStringCellValue();
-			// see what relationships are mapped between subject instances
-			// and object instances
-			for (int colIndex = 2; colIndex <= lastColumn; colIndex++) {
-				String instanceObjectName = objectInstanceArray.get(colIndex - 2);
-				Hashtable<String, Object> propHash = new Hashtable<String, Object>();
-				// store value in cell between instance subject and object
-				// in current iteration of loop
-				Cell matrixContent = nextRow.getCell(colIndex);
-				// if any value in cell, there should be a mapping
-				if (matrixContent != null) {
-					if (propExists) {
-						if (matrixContent.getCellType() == CellType.NUMERIC) {
-							if (DateUtil.isCellDateFormatted(matrixContent)) {
-								propHash.put(propertyName, (Date) matrixContent.getDateCellValue());
-								mapExists = true;
-							} else {
-								propHash.put(propertyName, new Double(matrixContent.getNumericCellValue()));
-								mapExists = true;
-							}
-						} else {
-							// if not numeric, assume it is a string and
-							// check to make sure it is not empty
-							if (!matrixContent.getStringCellValue().isEmpty()) {
-								propHash.put(propertyName, matrixContent.getStringCellValue());
-								mapExists = true;
-							}
-						}
-					} else {
-						mapExists = true;
-					}
-				}
+    // process all rows (contains subject instances) in the matrix
+    for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
+      // boolean to determine if a mapping exists
+      boolean mapExists = false;
+      Row nextRow = lSheet.getRow(rowIndex);
+      // get the name subject instance
+      String instanceSubjectName = nextRow.getCell(1).getStringCellValue();
+      // see what relationships are mapped between subject instances
+      // and object instances
+      for (int colIndex = 2; colIndex <= lastColumn; colIndex++) {
+        String instanceObjectName = objectInstanceArray.get(colIndex - 2);
+        Hashtable<String, Object> propHash = new Hashtable<String, Object>();
+        // store value in cell between instance subject and object
+        // in current iteration of loop
+        Cell matrixContent = nextRow.getCell(colIndex);
+        // if any value in cell, there should be a mapping
+        if (matrixContent != null) {
+          if (propExists) {
+            if (matrixContent.getCellType() == CellType.NUMERIC) {
+              if (DateUtil.isCellDateFormatted(matrixContent)) {
+                propHash.put(propertyName, (Date) matrixContent.getDateCellValue());
+                mapExists = true;
+              } else {
+                propHash.put(propertyName, new Double(matrixContent.getNumericCellValue()));
+                mapExists = true;
+              }
+            } else {
+              // if not numeric, assume it is a string and
+              // check to make sure it is not empty
+              if (!matrixContent.getStringCellValue().isEmpty()) {
+                propHash.put(propertyName, matrixContent.getStringCellValue());
+                mapExists = true;
+              }
+            }
+          } else {
+            mapExists = true;
+          }
+        }
 
-				if (sheetType.equalsIgnoreCase("Relation") && mapExists) {
-					if(rowIndex % 100 == 0) {
-						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
-					}
-					RdfUploadReactorUtility.createRelationship(owlEngine, baseUri, 
-							subjectNodeType, objectNodeType, 
-							instanceSubjectName, instanceObjectName, 
-							relName, propHash, allInsertStatements);
-				} else {
-					if(rowIndex % 100 == 0) {
-						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
-					}
-					RdfUploadReactorUtility.addNodeProperties(owlEngine, baseUri, 
-							subjectNodeType, instanceSubjectName, propHash, allInsertStatements);
-				}
+        if (sheetType.equalsIgnoreCase("Relation") && mapExists) {
+          if (rowIndex % 100 == 0) {
+            logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
+          }
+          RdfUploadReactorUtility.createRelationship(
+              owlEngine,
+              baseUri,
+              subjectNodeType,
+              objectNodeType,
+              instanceSubjectName,
+              instanceObjectName,
+              relName,
+              propHash,
+              allInsertStatements);
+        } else {
+          if (rowIndex % 100 == 0) {
+            logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
+          }
+          RdfUploadReactorUtility.addNodeProperties(
+              owlEngine,
+              baseUri,
+              subjectNodeType,
+              instanceSubjectName,
+              propHash,
+              allInsertStatements);
+        }
 
-				if(allInsertStatements.size() > 1000) {
-					((IRDFDatabase) database).bulkInsert(allInsertStatements);
-					logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
-					allInsertStatements.clear();
-				}
-			}
-		}
-		if(!allInsertStatements.isEmpty()) {
-			((IRDFDatabase) database).bulkInsert(allInsertStatements);
-			logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
-			allInsertStatements.clear();
-		}
-		logger.info("Done processing: " + sheetToLoad + ". Total rows processed = " + lastRow);
-	}
-
+        if (allInsertStatements.size() > 1000) {
+          ((IRDFDatabase) database).bulkInsert(allInsertStatements);
+          logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+          allInsertStatements.clear();
+        }
+      }
+    }
+    if (!allInsertStatements.isEmpty()) {
+      ((IRDFDatabase) database).bulkInsert(allInsertStatements);
+      logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+      allInsertStatements.clear();
+    }
+    logger.info("Done processing: " + sheetToLoad + ". Total rows processed = " + lastRow);
+  }
 }

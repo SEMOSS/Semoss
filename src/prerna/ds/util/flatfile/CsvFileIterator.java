@@ -1,9 +1,22 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.ds.util.flatfile;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
@@ -14,141 +27,145 @@ import prerna.util.ArrayUtilityMethods;
 
 public class CsvFileIterator extends AbstractFileIterator {
 
-	private CSVFileHelper helper;
-	private CsvQueryStruct qs;
+  private CSVFileHelper helper;
+  private CsvQueryStruct qs;
 
-	public CsvFileIterator(CsvQueryStruct qs) {
-		this.qs = qs;
-		this.fileLocation = qs.getFilePath();
-		char delimiter = qs.getDelimiter();
+  public CsvFileIterator(CsvQueryStruct qs) {
+    this.qs = qs;
+    this.fileLocation = qs.getFilePath();
+    char delimiter = qs.getDelimiter();
 
-		// set default values
-		this.helper = new CSVFileHelper();
-		this.helper.setDelimiter(delimiter);
-		this.helper.parse(qs.getFilePath());
+    // set default values
+    this.helper = new CSVFileHelper();
+    this.helper.setDelimiter(delimiter);
+    this.helper.parse(qs.getFilePath());
 
-		this.dataTypeMap = qs.getColumnTypes();
-		this.newHeaders = qs.getNewHeaderNames();
+    this.dataTypeMap = qs.getColumnTypes();
+    this.newHeaders = qs.getNewHeaderNames();
 
-		// set the user defined headers
-		if (this.newHeaders != null && !this.newHeaders.isEmpty()) {
-			this.helper.modifyCleanedHeaders(this.newHeaders);
-		}
+    // set the user defined headers
+    if (this.newHeaders != null && !this.newHeaders.isEmpty()) {
+      this.helper.modifyCleanedHeaders(this.newHeaders);
+    }
 
-		setSelectors(qs.getSelectors());
+    setSelectors(qs.getSelectors());
 
-		// now that I have set the headers from the setSelectors
-		this.headers = this.helper.getHeaders();
-		this.additionalTypesMap = qs.getAdditionalTypes();
+    // now that I have set the headers from the setSelectors
+    this.headers = this.helper.getHeaders();
+    this.additionalTypesMap = qs.getAdditionalTypes();
 
-		if(this.dataTypeMap != null && !this.dataTypeMap.isEmpty()) {
-			this.types = new SemossDataType[this.headers.length];
-			this.additionalTypes = new String[this.headers.length];
-			for(int index = 0; index < this.headers.length; index++) {
-				this.types[index] = SemossDataType.convertStringToDataType(dataTypeMap.get(this.headers[index]));
-				if(this.additionalTypesMap != null) {
-					this.additionalTypes[index] = additionalTypesMap.get(this.headers[index]);
-				}
-			}
+    if (this.dataTypeMap != null && !this.dataTypeMap.isEmpty()) {
+      this.types = new SemossDataType[this.headers.length];
+      this.additionalTypes = new String[this.headers.length];
+      for (int index = 0; index < this.headers.length; index++) {
+        this.types[index] =
+            SemossDataType.convertStringToDataType(dataTypeMap.get(this.headers[index]));
+        if (this.additionalTypesMap != null) {
+          this.additionalTypes[index] = additionalTypesMap.get(this.headers[index]);
+        }
+      }
 
-			this.helper.parseColumns(this.headers);
-		} else {
-			setUnknownTypes();
-			qs.setColumnTypes(this.dataTypeMap);
-		}
+      this.helper.parseColumns(this.headers);
+    } else {
+      setUnknownTypes();
+      qs.setColumnTypes(this.dataTypeMap);
+    }
 
-		this.getNextRow(); // this will get the first row of the file
-		
-		// set limit and offset
-		this.limit = qs.getLimit();
-		this.offset = qs.getOffset();
-	}
+    this.getNextRow(); // this will get the first row of the file
 
-	/**
-	 * Determine the data types by parsing through the file
-	 * @param fileIterator
-	 */
-	private void setUnknownTypes() {
-		Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes());
-		this.dataTypeMap = predictionMaps[0];
-		this.additionalTypesMap = predictionMaps[1];
+    // set limit and offset
+    this.limit = qs.getLimit();
+    this.offset = qs.getOffset();
+  }
 
-		// need to redo types to be only those in the selectors
-		this.types = new SemossDataType[this.headers.length];
-		this.additionalTypes = new String[this.headers.length];
-		for(int i = 0; i < this.headers.length; i++) {
-			this.types[i] = SemossDataType.convertStringToDataType(this.dataTypeMap.get(this.headers[i]));
-			this.additionalTypes[i] = this.additionalTypesMap.get(this.headers[i]);
-		}
-	}
+  /**
+   * Determine the data types by parsing through the file
+   *
+   * @param fileIterator
+   */
+  private void setUnknownTypes() {
+    Map[] predictionMaps =
+        FileHelperUtil.generateDataTypeMapsFromPrediction(
+            helper.getHeaders(), helper.predictTypes());
+    this.dataTypeMap = predictionMaps[0];
+    this.additionalTypesMap = predictionMaps[1];
 
-	@Override
-	public void getNextRow() {
-		String[] row = helper.getNextRow();
-		this.nextRow = row;
-	}
+    // need to redo types to be only those in the selectors
+    this.types = new SemossDataType[this.headers.length];
+    this.additionalTypes = new String[this.headers.length];
+    for (int i = 0; i < this.headers.length; i++) {
+      this.types[i] = SemossDataType.convertStringToDataType(this.dataTypeMap.get(this.headers[i]));
+      this.additionalTypes[i] = this.additionalTypesMap.get(this.headers[i]);
+    }
+  }
 
-	private void setSelectors(List<IQuerySelector> selectors) {
-		if (selectors.isEmpty()) {
-			// if no selectors, return everything
-			String[] allHeaders = this.helper.getHeaders();
-			for(int i = 0; i < allHeaders.length; i++) {
-				QueryColumnSelector newSelector = new QueryColumnSelector("DND__" + allHeaders[i]);
-				this.qs.addSelector(newSelector);
-			}
-			return; 
-		}
+  @Override
+  public void getNextRow() {
+    String[] row = helper.getNextRow();
+    this.nextRow = row;
+  }
 
-		int numSelectors = selectors.size();
+  private void setSelectors(List<IQuerySelector> selectors) {
+    if (selectors.isEmpty()) {
+      // if no selectors, return everything
+      String[] allHeaders = this.helper.getHeaders();
+      for (int i = 0; i < allHeaders.length; i++) {
+        QueryColumnSelector newSelector = new QueryColumnSelector("DND__" + allHeaders[i]);
+        this.qs.addSelector(newSelector);
+      }
+      return;
+    }
 
-		String[] csvSelectors = new String[numSelectors];
-		for(int i = 0; i < numSelectors; i++) {
-			QueryColumnSelector newSelector = (QueryColumnSelector) selectors.get(i);
-			if(newSelector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
-				throw new IllegalArgumentException("Cannot perform math on a csv import");
-			}
-			csvSelectors[i] = newSelector.getAlias();;
-		}
+    int numSelectors = selectors.size();
 
-		String[] allHeaders = this.helper.getHeaders();
-		if(allHeaders.length != csvSelectors.length) {
-			// order the selectors
-			// all headers will be ordered
-			String[] orderedSelectors = new String[csvSelectors.length];
-			int counter = 0;
-			for(String header : allHeaders) {
-				if(ArrayUtilityMethods.arrayContainsValue(csvSelectors, header)) {
-					orderedSelectors[counter] = header;
-					counter++;
-				}
-			}
+    String[] csvSelectors = new String[numSelectors];
+    for (int i = 0; i < numSelectors; i++) {
+      QueryColumnSelector newSelector = (QueryColumnSelector) selectors.get(i);
+      if (newSelector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
+        throw new IllegalArgumentException("Cannot perform math on a csv import");
+      }
+      csvSelectors[i] = newSelector.getAlias();
+      ;
+    }
 
-			this.helper.parseColumns(orderedSelectors);
-			// after redoing the selectors, we need to skip the headers 
-			this.helper.getNextRow(); 
-		}
-	}
+    String[] allHeaders = this.helper.getHeaders();
+    if (allHeaders.length != csvSelectors.length) {
+      // order the selectors
+      // all headers will be ordered
+      String[] orderedSelectors = new String[csvSelectors.length];
+      int counter = 0;
+      for (String header : allHeaders) {
+        if (ArrayUtilityMethods.arrayContainsValue(csvSelectors, header)) {
+          orderedSelectors[counter] = header;
+          counter++;
+        }
+      }
 
-	@Override
-	public void reset() {
-		this.helper.reset(false);
-	}
+      this.helper.parseColumns(orderedSelectors);
+      // after redoing the selectors, we need to skip the headers
+      this.helper.getNextRow();
+    }
+  }
 
-	@Override
-	public void close() throws IOException {
-		this.helper.clear();
-	}
-	
-	public CSVFileHelper getHelper() {
-		return this.helper;
-	}
+  @Override
+  public void reset() {
+    this.helper.reset(false);
+  }
 
-	public CsvQueryStruct getQs() {
-		return this.qs;
-	}
+  @Override
+  public void close() throws IOException {
+    this.helper.clear();
+  }
 
-	public void setQs(CsvQueryStruct qs) {
-		this.qs = qs;
-	}
+  public CSVFileHelper getHelper() {
+    return this.helper;
+  }
 
+  public CsvQueryStruct getQs() {
+    return this.qs;
+  }
+
+  public void setQs(CsvQueryStruct qs) {
+    this.qs = qs;
+  }
 }

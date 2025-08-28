@@ -1,9 +1,22 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.gaas.processors;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,272 +38,259 @@ import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTEmpty;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STBrType;
-
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 
 public class DocProcessor extends AbstractFileProcessor {
 
-	private static final Logger classLogger = LogManager.getLogger(DocProcessor.class);
+  private static final Logger classLogger = LogManager.getLogger(DocProcessor.class);
 
-	/**
-	 * 
-	 * @param filePath
-	 * @param writer
-	 */
-	public DocProcessor(String filePath, VectorDatabaseCSVWriter writer) {
-		super(filePath, writer);
-	}
+  /**
+   * @param filePath
+   * @param writer
+   */
+  public DocProcessor(String filePath, VectorDatabaseCSVWriter writer) {
+    super(filePath, writer);
+  }
 
-	@Override
-	public void process() throws IOException {
-		FileInputStream is = null;
-		Object document = null; // Use Object to handle both types
-		try {
-			is = new FileInputStream(this.filePath);
-			String filetype = FilenameUtils.getExtension(this.filePath);
+  @Override
+  public void process() throws IOException {
+    FileInputStream is = null;
+    Object document = null; // Use Object to handle both types
+    try {
+      is = new FileInputStream(this.filePath);
+      String filetype = FilenameUtils.getExtension(this.filePath);
 
-			// Check the file extension to determine which document type to process
-			if (filetype.equals("doc")) {
-				document = new HWPFDocument(is);
-				processParagraphs((HWPFDocument) document);
-				processTables((HWPFDocument) document);
-			} else {
-				document = new XWPFDocument(is);
-				processParagraphs((XWPFDocument) document);
-				processTables((XWPFDocument) document);
-				processEmbeds((XWPFDocument) document);
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw e;
-		} finally {
-			closeDocument(document);
-			closeInputStream(is);
-		}
-	}
+      // Check the file extension to determine which document type to process
+      if (filetype.equals("doc")) {
+        document = new HWPFDocument(is);
+        processParagraphs((HWPFDocument) document);
+        processTables((HWPFDocument) document);
+      } else {
+        document = new XWPFDocument(is);
+        processParagraphs((XWPFDocument) document);
+        processTables((XWPFDocument) document);
+        processEmbeds((XWPFDocument) document);
+      }
+    } catch (IOException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw e;
+    } finally {
+      closeDocument(document);
+      closeInputStream(is);
+    }
+  }
 
-	private void closeDocument(Object document) {
-		if (document != null) {
-			if (document instanceof XWPFDocument) {
-				try {
-					((XWPFDocument) document).close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			} else if (document instanceof HWPFDocument) {
-				try {
-					((HWPFDocument) document).close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-	}
-	
-
-	private void closeInputStream(FileInputStream is) {
-		if (is != null) {
-			try {
-				is.close();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * @param document
-	 */
-	private void processParagraphs(XWPFDocument document) {
-		int count = 1;
-		int pageNo = 1;
-		String source = getSource(this.filePath);
-
-		XWPFParagraph lastParaOnPage = null;
-		int pageCount = document.getProperties().getExtendedProperties().getUnderlyingProperties().getPages();
-		classLogger.debug("Total page count -->"+pageCount);
-	    
-	    List<XWPFParagraph> paragraphs = document.getParagraphs();
-	    
-		for (XWPFParagraph paragraph : paragraphs) {
-			String text = paragraph.getText();
-			if (text != null) {
-				this.writer.writeRow(source, pageNo + "", text);
-				
-			}
-			lastParaOnPage = paragraph; // Assume this is the last, until a page break proves it
-			for (XWPFRun run : paragraph.getRuns()) {
-	                List<CTBr> brList = run.getCTR().getBrList();
-	                if (brList != null && !brList.isEmpty()) {
-	                    for (CTBr br : brList) {
-	                        if (br.getType() == STBrType.PAGE) {
-	                            pageNo++;
-	                        }
-	                    }
-	                } else {
-	                    List<CTEmpty> lastRenderedPageBreakList = run.getCTR().getLastRenderedPageBreakList();
-	                    if (lastRenderedPageBreakList != null) {
-	                        for (CTEmpty lastRenderedPageBreak : lastRenderedPageBreakList) {
-	                             pageNo++;
-	                        }
-	                    }
-	                }
-	            }
-			count++;
-		}
-     // Print last paragraph if no break at the end
-        if (lastParaOnPage != null) {
-        	classLogger.info("Last paragraph on Page " + pageNo);
+  private void closeDocument(Object document) {
+    if (document != null) {
+      if (document instanceof XWPFDocument) {
+        try {
+          ((XWPFDocument) document).close();
+        } catch (IOException e) {
+          classLogger.error(Constants.STACKTRACE, e);
         }
-	}
-	/**
-	 * 
-	 * @param document
-	 */
-	private void processTables(XWPFDocument document) {
-		int count = 1;
-		int pageNo = 1;
-		String source = getSource(this.filePath);
-		
-		String [] headers = null;
-		String [] values = null;
-		boolean headerProcessed = false;
+      } else if (document instanceof HWPFDocument) {
+        try {
+          ((HWPFDocument) document).close();
+        } catch (IOException e) {
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
+  }
 
-		for (XWPFTable table : document.getTables()) {
-			List <XWPFTableRow> rows = table.getRows();
-			for(int rowIndex = 0;rowIndex < rows.size();rowIndex++)
-			{
-				XWPFTableRow row = table.getRow(rowIndex);
-				List <ICell> cells = row.getTableICells();
-				String [] processor = new String[cells.size()];
-				for(int cellIndex = 0;cellIndex < cells.size();cellIndex++)
-				{
-					ICell thisCell = cells.get(cellIndex);
-					if(thisCell instanceof XWPFTableCell)
-					{
-						processor[cellIndex] = ((XWPFTableCell)thisCell).getText();
-					}
-					//System.err.print("|" + processor[cellIndex]);
-				}
-				//System.out.println("--------------");
-				if(!headerProcessed)
-				{
-					headers = processor;
-					headerProcessed = true;
-				}
-				else
-				{
-					values = processor;
-					StringBuilder rowOut = getRow(headers, values);
-					this.writer.writeRow(source, pageNo + "", rowOut+"");
-				}
-			}
-			//System.err.println("=========");
-			headerProcessed = false;
-			count++;
-		}
-	}
-	
-	/**
-	 * 
-	 * @param headers
-	 * @param values
-	 * @return
-	 */
-	private StringBuilder getRow(String [] headers, String [] values) {
-		StringBuilder builder = new StringBuilder();
-		for(int valIndex = 0;valIndex < values.length; valIndex++) {
-			String header = null;
-			if(valIndex < headers.length) {
-				header = headers[valIndex];
-			} else {
-				header = headers[headers.length - 1];
-			}
-			
-			builder.append(header + "=" + values[valIndex]).append(" ");
-		}
-		return builder;
-	}
-	
-	/**
-	 * 
-	 * @param document
-	 */
-	private void processEmbeds(XWPFDocument document) {
-		try {
-			List <PackagePart> embeds = document.getAllEmbeddedParts();
-			for(int embedIndex = 0;embedIndex < embeds.size();embedIndex++)
-			{
-				PackagePart embed = embeds.get(embedIndex);
-				System.err.println(embed.getContentType());
-				System.err.println(embed.getContentTypeDetails().getParameterKeys());
-				System.err.println(embed);
-			}
-		} catch (OpenXML4JException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
+  private void closeInputStream(FileInputStream is) {
+    if (is != null) {
+      try {
+        is.close();
+      } catch (IOException e) {
+        classLogger.error(Constants.STACKTRACE, e);
+      }
+    }
+  }
 
-	private void processParagraphs(HWPFDocument document) throws IOException {
-		int count = 1;
-		int pageNo = 1;
-		String source = getSource(this.filePath);
+  /**
+   * @param document
+   */
+  private void processParagraphs(XWPFDocument document) {
+    int count = 1;
+    int pageNo = 1;
+    String source = getSource(this.filePath);
 
-		try (WordExtractor extractor = new WordExtractor(document)) {
-			String[] paragraphs = extractor.getParagraphText();
+    XWPFParagraph lastParaOnPage = null;
+    int pageCount =
+        document.getProperties().getExtendedProperties().getUnderlyingProperties().getPages();
+    classLogger.debug("Total page count -->" + pageCount);
 
-			for (String paragraph : paragraphs) {
-				if (paragraph != null && !paragraph.trim().isEmpty()) {
-					boolean isPageBreak = paragraph.contains("\f");
-					if (isPageBreak) {
-						pageNo++;
-					}
+    List<XWPFParagraph> paragraphs = document.getParagraphs();
 
-					this.writer.writeRow(source, String.valueOf(pageNo), paragraph);
-				}
+    for (XWPFParagraph paragraph : paragraphs) {
+      String text = paragraph.getText();
+      if (text != null) {
+        this.writer.writeRow(source, pageNo + "", text);
+      }
+      lastParaOnPage = paragraph; // Assume this is the last, until a page break proves it
+      for (XWPFRun run : paragraph.getRuns()) {
+        List<CTBr> brList = run.getCTR().getBrList();
+        if (brList != null && !brList.isEmpty()) {
+          for (CTBr br : brList) {
+            if (br.getType() == STBrType.PAGE) {
+              pageNo++;
+            }
+          }
+        } else {
+          List<CTEmpty> lastRenderedPageBreakList = run.getCTR().getLastRenderedPageBreakList();
+          if (lastRenderedPageBreakList != null) {
+            for (CTEmpty lastRenderedPageBreak : lastRenderedPageBreakList) {
+              pageNo++;
+            }
+          }
+        }
+      }
+      count++;
+    }
+    // Print last paragraph if no break at the end
+    if (lastParaOnPage != null) {
+      classLogger.info("Last paragraph on Page " + pageNo);
+    }
+  }
 
-				count++;
-			}
-		} catch (IOException e) {
-			classLogger.error("Error extracting paragraphs from document", e);
-			throw e;
-		}
-	}
-	private void processTables(HWPFDocument document) {
-		int count = 1;
-		int pageNo = 1;
-		String source = getSource(this.filePath);
+  /**
+   * @param document
+   */
+  private void processTables(XWPFDocument document) {
+    int count = 1;
+    int pageNo = 1;
+    String source = getSource(this.filePath);
 
-		// Use TableIterator to go through tables
-		TableIterator tableIterator = new TableIterator(document.getRange());
+    String[] headers = null;
+    String[] values = null;
+    boolean headerProcessed = false;
 
-		while (tableIterator.hasNext()) {
-			Table table = tableIterator.next();
+    for (XWPFTable table : document.getTables()) {
+      List<XWPFTableRow> rows = table.getRows();
+      for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
+        XWPFTableRow row = table.getRow(rowIndex);
+        List<ICell> cells = row.getTableICells();
+        String[] processor = new String[cells.size()];
+        for (int cellIndex = 0; cellIndex < cells.size(); cellIndex++) {
+          ICell thisCell = cells.get(cellIndex);
+          if (thisCell instanceof XWPFTableCell) {
+            processor[cellIndex] = ((XWPFTableCell) thisCell).getText();
+          }
+          // System.err.print("|" + processor[cellIndex]);
+        }
+        // System.out.println("--------------");
+        if (!headerProcessed) {
+          headers = processor;
+          headerProcessed = true;
+        } else {
+          values = processor;
+          StringBuilder rowOut = getRow(headers, values);
+          this.writer.writeRow(source, pageNo + "", rowOut + "");
+        }
+      }
+      // System.err.println("=========");
+      headerProcessed = false;
+      count++;
+    }
+  }
 
-			String[] headers = null;
-			boolean headerProcessed = false;
+  /**
+   * @param headers
+   * @param values
+   * @return
+   */
+  private StringBuilder getRow(String[] headers, String[] values) {
+    StringBuilder builder = new StringBuilder();
+    for (int valIndex = 0; valIndex < values.length; valIndex++) {
+      String header = null;
+      if (valIndex < headers.length) {
+        header = headers[valIndex];
+      } else {
+        header = headers[headers.length - 1];
+      }
 
-			for (int rowIndex = 0; rowIndex < table.numRows(); rowIndex++) {
-				TableRow row = table.getRow(rowIndex);
-				String[] processor = new String[row.numCells()];
+      builder.append(header + "=" + values[valIndex]).append(" ");
+    }
+    return builder;
+  }
 
-				for (int cellIndex = 0; cellIndex < row.numCells(); cellIndex++) {
-					TableCell cell = row.getCell(cellIndex);
-					processor[cellIndex] = cell.text(); // Use text() to get cell content
-				}
+  /**
+   * @param document
+   */
+  private void processEmbeds(XWPFDocument document) {
+    try {
+      List<PackagePart> embeds = document.getAllEmbeddedParts();
+      for (int embedIndex = 0; embedIndex < embeds.size(); embedIndex++) {
+        PackagePart embed = embeds.get(embedIndex);
+        System.err.println(embed.getContentType());
+        System.err.println(embed.getContentTypeDetails().getParameterKeys());
+        System.err.println(embed);
+      }
+    } catch (OpenXML4JException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+  }
 
-				if (!headerProcessed) {
-					headers = processor; // First row as headers
-					headerProcessed = true;
-				} else {
-					StringBuilder rowOut = getRow(headers, processor);
-					this.writer.writeRow(source, String.valueOf(pageNo), rowOut.toString());
-				}
-			}
-			count++;
-		}
-	}
+  private void processParagraphs(HWPFDocument document) throws IOException {
+    int count = 1;
+    int pageNo = 1;
+    String source = getSource(this.filePath);
 
+    try (WordExtractor extractor = new WordExtractor(document)) {
+      String[] paragraphs = extractor.getParagraphText();
+
+      for (String paragraph : paragraphs) {
+        if (paragraph != null && !paragraph.trim().isEmpty()) {
+          boolean isPageBreak = paragraph.contains("\f");
+          if (isPageBreak) {
+            pageNo++;
+          }
+
+          this.writer.writeRow(source, String.valueOf(pageNo), paragraph);
+        }
+
+        count++;
+      }
+    } catch (IOException e) {
+      classLogger.error("Error extracting paragraphs from document", e);
+      throw e;
+    }
+  }
+
+  private void processTables(HWPFDocument document) {
+    int count = 1;
+    int pageNo = 1;
+    String source = getSource(this.filePath);
+
+    // Use TableIterator to go through tables
+    TableIterator tableIterator = new TableIterator(document.getRange());
+
+    while (tableIterator.hasNext()) {
+      Table table = tableIterator.next();
+
+      String[] headers = null;
+      boolean headerProcessed = false;
+
+      for (int rowIndex = 0; rowIndex < table.numRows(); rowIndex++) {
+        TableRow row = table.getRow(rowIndex);
+        String[] processor = new String[row.numCells()];
+
+        for (int cellIndex = 0; cellIndex < row.numCells(); cellIndex++) {
+          TableCell cell = row.getCell(cellIndex);
+          processor[cellIndex] = cell.text(); // Use text() to get cell content
+        }
+
+        if (!headerProcessed) {
+          headers = processor; // First row as headers
+          headerProcessed = true;
+        } else {
+          StringBuilder rowOut = getRow(headers, processor);
+          this.writer.writeRow(source, String.valueOf(pageNo), rowOut.toString());
+        }
+      }
+      count++;
+    }
+  }
 }

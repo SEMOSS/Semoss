@@ -1,33 +1,45 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor;
 
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import prerna.date.SemossWeek;
 import prerna.date.reactor.WeekReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WeekReactorUnitTests {
-    private WeekReactor reactor;
-	private Map<String, String> keyValues;
+  private WeekReactor reactor;
+  private Map<String, String> keyValues;
 
-    @BeforeEach
-	void setup() {
-		reactor = new WeekReactor();
-		keyValues = reactor.keyValue;
-	}
+  @BeforeEach
+  void setup() {
+    reactor = new WeekReactor();
+    keyValues = reactor.keyValue;
+  }
 
-    @Test
-    void getWeek() {
-        keyValues.put("weeks", "52");
-        NounMetadata nm = reactor.execute();
-        assertEquals(PixelDataType.CONST_WEEK, nm.getNounType());
-        SemossWeek week = (SemossWeek) nm.getValue();
-        assertEquals(52, week.getNumWeeks());
-    }
+  @Test
+  void getWeek() {
+    keyValues.put("weeks", "52");
+    NounMetadata nm = reactor.execute();
+    assertEquals(PixelDataType.CONST_WEEK, nm.getNounType());
+    SemossWeek week = (SemossWeek) nm.getValue();
+    assertEquals(52, week.getNumWeeks());
+  }
 }

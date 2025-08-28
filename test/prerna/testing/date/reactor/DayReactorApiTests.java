@@ -1,23 +1,35 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.testing.date.reactor;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
-
+import prerna.date.SemossDay;
 import prerna.date.reactor.DayReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.testing.ApiSemossTestUtils;
 import prerna.testing.AbstractBaseSemossApiTests;
-import prerna.date.SemossDay;
+import prerna.testing.ApiSemossTestUtils;
 
+public class DayReactorApiTests extends AbstractBaseSemossApiTests {
 
-public class DayReactorApiTests extends AbstractBaseSemossApiTests{
-	
-	@Test
-	public void getDay() {
-		 String pixel = ApiSemossTestUtils.buildPixelCall(DayReactor.class, "days", "365");
-		 NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-		 SemossDay day = (SemossDay) nm.getValue();
-		 assertEquals(365, day.getNumDays());
-	}
-
+  @Test
+  public void getDay() {
+    String pixel = ApiSemossTestUtils.buildPixelCall(DayReactor.class, "days", "365");
+    NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+    SemossDay day = (SemossDay) nm.getValue();
+    assertEquals(365, day.getNumDays());
+  }
 }

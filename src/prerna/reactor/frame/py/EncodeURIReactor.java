@@ -1,8 +1,21 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.py;
 
 import java.util.List;
 import java.util.Vector;
-
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.GenRowStruct;
@@ -13,85 +26,83 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class EncodeURIReactor extends AbstractPyFrameReactor{
-	
-	/**
-	 * This reactor encodes special characters in columns to conform to URI standards
-	 */
-	
-	public EncodeURIReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		// get frame
-		PandasFrame frame = (PandasFrame) getFrame();
-		OwlTemporalEngineMeta metaData = frame.getMetaData();
-		
-		// get frame name
-		String table = frame.getName();
-		
-		// get wrapper name
-		String wrapperFrameName = frame.getWrapperName();
+public class EncodeURIReactor extends AbstractPyFrameReactor {
 
-		// get inputs
-		List<String> columnNames = getColumns();
-		
-		// iterate through all passed columns
-		for (String col : columnNames) {
-			if (col.contains("__")) {
-				String[] split = col.split("__");
-				col = split[1];
-				table = split[0];
-			}
-			String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
-			if (dataType.equalsIgnoreCase("STRING")) {
-				// build script
-				String script = wrapperFrameName + ".encode_uri('" + col + "')";
-				// run script
-				frame.runScript(script);
-				this.addExecutedCode(script);
-			}
-		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"EncodeURI", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-	}
-	
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
+  /** This reactor encodes special characters in columns to conform to URI standards */
+  public EncodeURIReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.COLUMNS.getKey()};
+  }
 
-	private List<String> getColumns() {
-		List<String> columns = new Vector<String>();
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    // get frame
+    PandasFrame frame = (PandasFrame) getFrame();
+    OwlTemporalEngineMeta metaData = frame.getMetaData();
 
-		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
-		if (colGrs != null && !colGrs.isEmpty()) {
-			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
-				String column = colGrs.get(selectIndex) + "";
-				columns.add(column);
-			}
-		} else {
-			GenRowStruct inputsGRS = this.getCurRow();
-			// keep track of selectors to change to upper case
-			if (inputsGRS != null && !inputsGRS.isEmpty()) {
-				for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
-					String column = inputsGRS.get(selectIndex) + "";
-					columns.add(column);
-				}
-			}
-		}
+    // get frame name
+    String table = frame.getName();
 
-		return columns;
-	}
+    // get wrapper name
+    String wrapperFrameName = frame.getWrapperName();
+
+    // get inputs
+    List<String> columnNames = getColumns();
+
+    // iterate through all passed columns
+    for (String col : columnNames) {
+      if (col.contains("__")) {
+        String[] split = col.split("__");
+        col = split[1];
+        table = split[0];
+      }
+      String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
+      if (dataType.equalsIgnoreCase("STRING")) {
+        // build script
+        String script = wrapperFrameName + ".encode_uri('" + col + "')";
+        // run script
+        frame.runScript(script);
+        this.addExecutedCode(script);
+      }
+    }
+
+    // NEW TRACKING
+    UserTrackerFactory.getInstance()
+        .trackAnalyticsWidget(
+            this.insight,
+            frame,
+            "EncodeURI",
+            AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+
+    return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  ///////////////////////// GET PIXEL INPUT ////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+
+  private List<String> getColumns() {
+    List<String> columns = new Vector<String>();
+
+    GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
+    if (colGrs != null && !colGrs.isEmpty()) {
+      for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
+        String column = colGrs.get(selectIndex) + "";
+        columns.add(column);
+      }
+    } else {
+      GenRowStruct inputsGRS = this.getCurRow();
+      // keep track of selectors to change to upper case
+      if (inputsGRS != null && !inputsGRS.isEmpty()) {
+        for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
+          String column = inputsGRS.get(selectIndex) + "";
+          columns.add(column);
+        }
+      }
+    }
+
+    return columns;
+  }
 }

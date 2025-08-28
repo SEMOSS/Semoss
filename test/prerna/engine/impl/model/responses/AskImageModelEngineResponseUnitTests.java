@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.engine.impl.model.responses;
 
 import static org.junit.Assert.assertEquals;
@@ -6,143 +20,140 @@ import static org.junit.Assert.assertNotNull;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 public class AskImageModelEngineResponseUnitTests {
-    private AskImageModelEngineResponse reactor;
+  private AskImageModelEngineResponse reactor;
 
-    @Test
-    void getKServeOutputElse() {
-        Map<String, Object> map = new HashMap();
-        map.put("string", "string");
+  @Test
+  void getKServeOutputElse() {
+    Map<String, Object> map = new HashMap();
+    map.put("string", "string");
 
-        JSONObject jsonObj  = new JSONObject();
-        jsonObj.put("output", map);
-        jsonObj.put("prompt", "prompt");
-        jsonObj.put("negative_prompt", "negative_prompt");
-        jsonObj.put("height", 1);
-        jsonObj.put("width", 1);
-        jsonObj.put("num_inference_steps", 1);
-        jsonObj.put("guidance_scale", 1.0);
-        jsonObj.put("seed", 1);
+    JSONObject jsonObj = new JSONObject();
+    jsonObj.put("output", map);
+    jsonObj.put("prompt", "prompt");
+    jsonObj.put("negative_prompt", "negative_prompt");
+    jsonObj.put("height", 1);
+    jsonObj.put("width", 1);
+    jsonObj.put("num_inference_steps", 1);
+    jsonObj.put("guidance_scale", 1.0);
+    jsonObj.put("seed", 1);
 
-        reactor = new AskImageModelEngineResponse(null, 0, 0);
-        AskImageModelEngineResponse obj = reactor.getKServeImageResponse(jsonObj);
+    reactor = new AskImageModelEngineResponse(null, 0, 0);
+    AskImageModelEngineResponse obj = reactor.getKServeImageResponse(jsonObj);
 
-        assertNotNull(obj);
+    assertNotNull(obj);
 
-        assertNotNull(obj.getResponse().get("images"));
-        assertEquals("{\"string\":\"string\"}", obj.getResponse().get("images").toString());
-        assertEquals(0, (int) obj.getNumberOfTokensInPrompt());
-        assertEquals(0,(int) obj.getNumberOfTokensInResponse());
+    assertNotNull(obj.getResponse().get("images"));
+    assertEquals("{\"string\":\"string\"}", obj.getResponse().get("images").toString());
+    assertEquals(0, (int) obj.getNumberOfTokensInPrompt());
+    assertEquals(0, (int) obj.getNumberOfTokensInResponse());
 
-        assertEquals("prompt", obj.getResponse().get("prompt"));
-        assertEquals("negative_prompt", obj.getResponse().get("negative_prompt"));
-        assertEquals(1, obj.getResponse().get("height"));
-        assertEquals(1, obj.getResponse().get("width"));
-        assertEquals(1, obj.getResponse().get("num_inference_steps"));
-        assertEquals(1.0, obj.getResponse().get("guidance_scale"));
-        assertEquals(1, obj.getResponse().get("seed"));
-    }
+    assertEquals("prompt", obj.getResponse().get("prompt"));
+    assertEquals("negative_prompt", obj.getResponse().get("negative_prompt"));
+    assertEquals(1, obj.getResponse().get("height"));
+    assertEquals(1, obj.getResponse().get("width"));
+    assertEquals(1, obj.getResponse().get("num_inference_steps"));
+    assertEquals(1.0, obj.getResponse().get("guidance_scale"));
+    assertEquals(1, obj.getResponse().get("seed"));
+  }
 
-    @Test
-    void getKServeOutputJsonArray() {
-        ArrayList list = new ArrayList();
-        list.add("JsonArray");
-        JSONObject jsonObj  = new JSONObject();
-        jsonObj.put("output", list);
+  @Test
+  void getKServeOutputJsonArray() {
+    ArrayList list = new ArrayList();
+    list.add("JsonArray");
+    JSONObject jsonObj = new JSONObject();
+    jsonObj.put("output", list);
 
-        reactor = new AskImageModelEngineResponse(null, 0, 0);
-        AskImageModelEngineResponse obj = reactor.getKServeImageResponse(jsonObj);
+    reactor = new AskImageModelEngineResponse(null, 0, 0);
+    AskImageModelEngineResponse obj = reactor.getKServeImageResponse(jsonObj);
 
-        assertNotNull(obj);
-        assertNotNull(obj.getResponse().get("images"));
-        assertEquals("JsonArray", ((String[])obj.getResponse().get("images"))[0]);
-        assertEquals(0, (int) obj.getNumberOfTokensInPrompt());
-        assertEquals(0, (int) obj.getNumberOfTokensInResponse());
-        
-    }
+    assertNotNull(obj);
+    assertNotNull(obj.getResponse().get("images"));
+    assertEquals("JsonArray", ((String[]) obj.getResponse().get("images"))[0]);
+    assertEquals(0, (int) obj.getNumberOfTokensInPrompt());
+    assertEquals(0, (int) obj.getNumberOfTokensInResponse());
+  }
 
-    @Test
-    void getKserverOutputStringJsonArray() {
-        JSONObject jsonObj  = new JSONObject();
-        jsonObj.put("output", "[string]");
+  @Test
+  void getKserverOutputStringJsonArray() {
+    JSONObject jsonObj = new JSONObject();
+    jsonObj.put("output", "[string]");
 
-        reactor = new AskImageModelEngineResponse(null, 0, 0);
-        AskImageModelEngineResponse obj = reactor.getKServeImageResponse(jsonObj);
+    reactor = new AskImageModelEngineResponse(null, 0, 0);
+    AskImageModelEngineResponse obj = reactor.getKServeImageResponse(jsonObj);
 
-        assertNotNull(obj);
-        assertNotNull(obj.getResponse().get("images"));
-        assertEquals("string", ((String[])obj.getResponse().get("images"))[0]);
-        assertEquals(0, (int) obj.getNumberOfTokensInPrompt());
-        assertEquals(0, (int) obj.getNumberOfTokensInResponse());
-        
-    }
+    assertNotNull(obj);
+    assertNotNull(obj.getResponse().get("images"));
+    assertEquals("string", ((String[]) obj.getResponse().get("images"))[0]);
+    assertEquals(0, (int) obj.getNumberOfTokensInPrompt());
+    assertEquals(0, (int) obj.getNumberOfTokensInResponse());
+  }
 
-    @Test
-    void getKserverOutputStringCatch() {
-        JSONObject jsonObj  = new JSONObject();
-        jsonObj.put("output", "[{json:obj}]");
+  @Test
+  void getKserverOutputStringCatch() {
+    JSONObject jsonObj = new JSONObject();
+    jsonObj.put("output", "[{json:obj}]");
 
-        reactor = new AskImageModelEngineResponse(null, 0, 0);
-        AskImageModelEngineResponse obj = reactor.getKServeImageResponse(jsonObj);
+    reactor = new AskImageModelEngineResponse(null, 0, 0);
+    AskImageModelEngineResponse obj = reactor.getKServeImageResponse(jsonObj);
 
-        assertNotNull(obj);
-        assertNotNull(obj.getResponse().get("images"));
-        assertEquals("[{json:obj}]", obj.getResponse().get("images").toString());
-    }
+    assertNotNull(obj);
+    assertNotNull(obj.getResponse().get("images"));
+    assertEquals("[{json:obj}]", obj.getResponse().get("images").toString());
+  }
 
-    @Test
-    void getKserverNullParam() {
-        reactor = new AskImageModelEngineResponse(null, 0, 0);
-        AskImageModelEngineResponse obj = reactor.getKServeImageResponse(null);
-        
-        assertNotNull(obj);
-        assertEquals("error", obj.getResponse().get("status"));
-        assertEquals("Null response from model request", obj.getResponse().get("message"));
-        assertEquals(0, (int) obj.getNumberOfTokensInPrompt());
-        assertEquals(0, (int) obj.getNumberOfTokensInResponse());
-    }
+  @Test
+  void getKserverNullParam() {
+    reactor = new AskImageModelEngineResponse(null, 0, 0);
+    AskImageModelEngineResponse obj = reactor.getKServeImageResponse(null);
 
-    @Test
-    void getStringImagesJsonArray() {
-        Map<String, Object> map = new HashMap();
-        // map.put("images", new ArrayList(){{add(1);}});
-        map.put("images", new JSONArray());
+    assertNotNull(obj);
+    assertEquals("error", obj.getResponse().get("status"));
+    assertEquals("Null response from model request", obj.getResponse().get("message"));
+    assertEquals(0, (int) obj.getNumberOfTokensInPrompt());
+    assertEquals(0, (int) obj.getNumberOfTokensInResponse());
+  }
 
-        reactor = new AskImageModelEngineResponse(map, 1, 1);
-        String str = reactor.getStringResponse();
+  @Test
+  void getStringImagesJsonArray() {
+    Map<String, Object> map = new HashMap();
+    // map.put("images", new ArrayList(){{add(1);}});
+    map.put("images", new JSONArray());
 
-        assertNotNull(str);
-        assertEquals("{\"images\":[]}", str);
-        assertEquals(1, (int) reactor.getNumberOfTokensInPrompt());
-        assertEquals(1, (int) reactor.getNumberOfTokensInResponse());
-    }
+    reactor = new AskImageModelEngineResponse(map, 1, 1);
+    String str = reactor.getStringResponse();
 
-    @Test
-    void getStringImagesIfElse() {
-        Map<String, Object> map = new HashMap();
-        map.put("images", "string");
+    assertNotNull(str);
+    assertEquals("{\"images\":[]}", str);
+    assertEquals(1, (int) reactor.getNumberOfTokensInPrompt());
+    assertEquals(1, (int) reactor.getNumberOfTokensInResponse());
+  }
 
-        reactor = new AskImageModelEngineResponse(map, 0, 0);
-        String str = reactor.getStringResponse();
+  @Test
+  void getStringImagesIfElse() {
+    Map<String, Object> map = new HashMap();
+    map.put("images", "string");
 
-        assertNotNull(str);
-        assertEquals("{\"images\":\"string\"}", str);
-    }
+    reactor = new AskImageModelEngineResponse(map, 0, 0);
+    String str = reactor.getStringResponse();
 
-    @Test
-    void getStringImagesElse() {
-        Map<String, Object> map = new HashMap();
-        map.put("key", "value");
+    assertNotNull(str);
+    assertEquals("{\"images\":\"string\"}", str);
+  }
 
-        reactor = new AskImageModelEngineResponse(map, 0, 0);
-        String str = reactor.getStringResponse();
+  @Test
+  void getStringImagesElse() {
+    Map<String, Object> map = new HashMap();
+    map.put("key", "value");
 
-        assertNotNull(str);
-        assertEquals("{\"key\":\"value\"}", str);
-    }
+    reactor = new AskImageModelEngineResponse(map, 0, 0);
+    String str = reactor.getStringResponse();
+
+    assertNotNull(str);
+    assertEquals("{\"key\":\"value\"}", str);
+  }
 }

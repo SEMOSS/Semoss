@@ -1,15 +1,27 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.scheduler;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.TriggerKey;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -23,63 +35,65 @@ import prerna.util.Utility;
 
 public class ResumeJobTriggerReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(ResumeJobTriggerReactor.class);
+  private static final Logger logger = LogManager.getLogger(ResumeJobTriggerReactor.class);
 
-	public ResumeJobTriggerReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
-	}
+  public ResumeJobTriggerReactor() {
+    this.keysToGet =
+        new String[] {ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey()};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		if(Utility.schedulerForceDisable()) {
-			throw new IllegalArgumentException("Scheduler is not enabled");
-		}
-		
-		/**
-		 * RescheduleJobFromDB(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
-		 * 
-		 * This reactor will reschedule existing unscheduled jobs in Quartz.
-		 */
+  @Override
+  public NounMetadata execute() {
+    if (Utility.schedulerForceDisable()) {
+      throw new IllegalArgumentException("Scheduler is not enabled");
+    }
 
-		organizeKeys();
-		// Get inputs
-		String jobId = this.keyValue.get(this.keysToGet[0]);
-		String jobGroup = this.keyValue.get(this.keysToGet[1]);
+    /**
+     * RescheduleJobFromDB(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
+     *
+     * <p>This reactor will reschedule existing unscheduled jobs in Quartz.
+     */
+    organizeKeys();
+    // Get inputs
+    String jobId = this.keyValue.get(this.keysToGet[0]);
+    String jobGroup = this.keyValue.get(this.keysToGet[1]);
 
-		// the job group is the app the user is in
-		// user must be an admin or editor of the app
-		// to add a scheduled job
-		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
-			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
-		}
-		
-		// resume the job in quartz
-		// later grab cron expression and add functionality to resume specific trigger under job
-		try {
-			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
-			String triggerName = jobId.concat("Trigger");
-			String triggerGroup = jobGroup.concat("TriggerGroup");
-			TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
+    // the job group is the app the user is in
+    // user must be an admin or editor of the app
+    // to add a scheduled job
+    User user = this.insight.getUser();
+    if (!SecurityAdminUtils.userIsAdmin(user)
+        && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+      throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
+    }
 
-			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+    // resume the job in quartz
+    // later grab cron expression and add functionality to resume specific trigger under job
+    try {
+      JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
+      String triggerName = jobId.concat("Trigger");
+      String triggerGroup = jobGroup.concat("TriggerGroup");
+      TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
 
-			// start up scheduler
-			SchedulerDatabaseUtility.startScheduler(scheduler);
+      Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
-			// reschedule job
-			if (scheduler.checkExists(jobKey)) {
-				scheduler.resumeTrigger(triggerKey);
-			}
-		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
-		}
+      // start up scheduler
+      SchedulerDatabaseUtility.startScheduler(scheduler);
 
-		// Save metadata into a map and return
-		Map<String, String> quartzJobMetadata = new HashMap<>();
-		quartzJobMetadata.put("jobId", jobId);
-		quartzJobMetadata.put("jobGroup", jobGroup);
+      // reschedule job
+      if (scheduler.checkExists(jobKey)) {
+        scheduler.resumeTrigger(triggerKey);
+      }
+    } catch (SchedulerException se) {
+      logger.error(Constants.STACKTRACE, se);
+    }
 
-		return new NounMetadata(quartzJobMetadata, PixelDataType.MAP, PixelOperationType.RESCHEDULE_JOB);
-	}
+    // Save metadata into a map and return
+    Map<String, String> quartzJobMetadata = new HashMap<>();
+    quartzJobMetadata.put("jobId", jobId);
+    quartzJobMetadata.put("jobGroup", jobGroup);
+
+    return new NounMetadata(
+        quartzJobMetadata, PixelDataType.MAP, PixelOperationType.RESCHEDULE_JOB);
+  }
 }

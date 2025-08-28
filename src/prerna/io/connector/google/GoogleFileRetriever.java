@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.io.connector.google;
 
 import java.io.BufferedReader;
@@ -6,60 +20,55 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 
-public class GoogleFileRetriever implements IConnectorIOp{
-	
-	private static final Logger classLogger = LogManager.getLogger(GoogleFileRetriever.class);
-	
-	@Override
-	public Object execute(User user, Map<String, Object> params) {
-		String fileName = (String)params.remove("target");
-		BufferedWriter target  = null;
-		try {
-			String url_str = "https://docs.google.com/spreadsheets/export"; 
-			//System.out.println("....");
-			
-			BufferedReader br = HttpHelperUtility.getHttpStream(url_str, null, params, false);
-			
-			// create a file
-			File outputFile = new File(fileName);
-			
-			target = new BufferedWriter(new FileWriter(outputFile));
-			String data = null;
-			
-			
-			while((data = br.readLine()) != null)
-			{
-				target.write(data);
-				target.write("\n");
-				target.flush();
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(target != null) {
-		          try {
-		        	  target.flush();
-		        	  target.close();
-		          } catch(IOException e) {
-		            // ignore
-		          }
-		        }
+public class GoogleFileRetriever implements IConnectorIOp {
 
-		}
-		
-		// TODO Auto-generated method stub
-		return fileName;
-	}
+  private static final Logger classLogger = LogManager.getLogger(GoogleFileRetriever.class);
 
-	// https://docs.google.com/spreadsheets/export?id=1it40jNFcRo1ur2dHIYUk18XmXdd37j4gmJm_Sg7KLjI&exportFormat=csv
+  @Override
+  public Object execute(User user, Map<String, Object> params) {
+    String fileName = (String) params.remove("target");
+    BufferedWriter target = null;
+    try {
+      String url_str = "https://docs.google.com/spreadsheets/export";
+      // System.out.println("....");
+
+      BufferedReader br = HttpHelperUtility.getHttpStream(url_str, null, params, false);
+
+      // create a file
+      File outputFile = new File(fileName);
+
+      target = new BufferedWriter(new FileWriter(outputFile));
+      String data = null;
+
+      while ((data = br.readLine()) != null) {
+        target.write(data);
+        target.write("\n");
+        target.flush();
+      }
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      classLogger.error(Constants.STACKTRACE, e);
+    } finally {
+      if (target != null) {
+        try {
+          target.flush();
+          target.close();
+        } catch (IOException e) {
+          // ignore
+        }
+      }
+    }
+
+    // TODO Auto-generated method stub
+    return fileName;
+  }
+
+  // https://docs.google.com/spreadsheets/export?id=1it40jNFcRo1ur2dHIYUk18XmXdd37j4gmJm_Sg7KLjI&exportFormat=csv
 }

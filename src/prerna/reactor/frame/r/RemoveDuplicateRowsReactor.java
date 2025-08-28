@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.r;
 
 import prerna.ds.r.RDataTable;
@@ -9,36 +23,33 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class RemoveDuplicateRowsReactor extends AbstractRFrameReactor {
 
-	/**
-	 * This reactor removes duplicate rows from the data frame
-	 * There are no inputs needed
-	 */
+  /** This reactor removes duplicate rows from the data frame There are no inputs needed */
+  @Override
+  public NounMetadata execute() {
+    // initialize rJavaTranslator
+    init();
 
-	@Override
-	public NounMetadata execute() {
-		// initialize rJavaTranslator
-		init();
-		
-		// get frame
-		RDataTable frame = (RDataTable) getFrame();
-		
-		//get table name
-		String table = frame.getName();
-		
-		//define the r script to be executed
-		String script = table + " <- unique(" + table + ")";
-		
-		//execute the r script
-		frame.executeRScript(script);
-		this.addExecutedCode(script);
+    // get frame
+    RDataTable frame = (RDataTable) getFrame();
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"RemoveDuplicateRows", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-	}
+    // get table name
+    String table = frame.getName();
+
+    // define the r script to be executed
+    String script = table + " <- unique(" + table + ")";
+
+    // execute the r script
+    frame.executeRScript(script);
+    this.addExecutedCode(script);
+
+    // NEW TRACKING
+    UserTrackerFactory.getInstance()
+        .trackAnalyticsWidget(
+            this.insight,
+            frame,
+            "RemoveDuplicateRows",
+            AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+
+    return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+  }
 }

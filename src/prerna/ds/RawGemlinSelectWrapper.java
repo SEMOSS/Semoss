@@ -1,14 +1,26 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.ds;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -23,275 +35,277 @@ import prerna.util.Constants;
 
 public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
-	private Logger classLogger = LogManager.getLogger(RawGemlinSelectWrapper.class);
-	
-	private GremlinInterpreter interp;
-	private SelectQueryStruct qs;
-	private Map<String,String> nameMap;
-	private IDatabaseEngine engine;
-	private OwlTemporalEngineMeta meta;
+  private Logger classLogger = LogManager.getLogger(RawGemlinSelectWrapper.class);
 
-	private GraphTraversal baseIterator;
-	
-	public RawGemlinSelectWrapper(GremlinInterpreter interp, SelectQueryStruct qs) {
-		this.interp = interp;
-		this.nameMap = interp.getNameMap();
-		this.qs = qs;
-		this.engine = interp.getEngine();
-		this.meta = interp.getMeta();
-	}
-	
-	@Override
-	public void execute() {
-		this.interp.setQueryStruct(this.qs);
-		this.baseIterator = this.interp.composeIterator();
-		
-		List<IQuerySelector> selectors = this.qs.getSelectors();
-		this.numColumns = selectors.size();
-		this.rawHeaders = new String[numColumns];
-		this.headers = new String[numColumns];
-		this.types = new SemossDataType[numColumns];
-		
-		int index = 0;
-		for(IQuerySelector header : selectors) {
-			if(header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-				String alias = header.getAlias();
-				String qsName = header.getQueryStructName();
+  private GremlinInterpreter interp;
+  private SelectQueryStruct qs;
+  private Map<String, String> nameMap;
+  private IDatabaseEngine engine;
+  private OwlTemporalEngineMeta meta;
 
-				this.rawHeaders[index] = qsName;
-				this.headers[index] = getNodeAlias(alias);
-				this.types[index] = getTypes(qsName);
-			}
-			else if(header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
-				List<IQuerySelector> innerSelectorList = ((QueryFunctionSelector) header).getInnerSelector();
-				for(IQuerySelector innerSelector : innerSelectorList) {
-					if(innerSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-						String alias = innerSelector.getAlias();
-						String qsName = innerSelector.getQueryStructName();
-						
-						this.rawHeaders[index] = qsName;
-						this.headers[index] = getNodeAlias(alias);
-						this.types[index] = SemossDataType.convertStringToDataType(((QueryFunctionSelector) header).getDataType());
-					}
-				}
-			}
-			index++;
-		}
-	}
-	
-	/**
-	 * For some of the nodes that have not been given an alias
-	 * If there is an implicit alias on it (a physical name that matches an existing name)
-	 * We will use that
-	 * @param node
-	 * @return
-	 */
-	private String getNodeAlias(String node) {
-		if(this.meta == null) {
-			return node;
-		}
-		return this.meta.getPhysicalName(node);
-	}
+  private GraphTraversal baseIterator;
 
-	/**
-	 * Get the type from the OWL if present
-	 * @param qsName
-	 * @return
-	 */
-	private SemossDataType getTypes(String qsName) {
-		if(this.meta == null) {
-			String physicalUri = this.engine.getPhysicalUriFromPixelSelector(qsName);
-			return SemossDataType.convertStringToDataType( this.engine.getDataTypes(physicalUri) );
-		}
-		return meta.getHeaderTypeAsEnum(qsName);
-	}
-	
-	@Override
-	public boolean hasNext() {
-		boolean ret = baseIterator.hasNext();
-		return ret;
-	}
+  public RawGemlinSelectWrapper(GremlinInterpreter interp, SelectQueryStruct qs) {
+    this.interp = interp;
+    this.nameMap = interp.getNameMap();
+    this.qs = qs;
+    this.engine = interp.getEngine();
+    this.meta = interp.getMeta();
+  }
 
-	@Override
-	public IHeadersDataRow next() {
-		Object data = baseIterator.next();
-		Object[] retObject = null;
+  @Override
+  public void execute() {
+    this.interp.setQueryStruct(this.qs);
+    this.baseIterator = this.interp.composeIterator();
 
-		// data will be a map for multi nodes being returned
-		if(data instanceof Map) {
-			Map<String, Object> mapData = (Map<String, Object>) data;
-			retObject = new Object[this.numColumns];
+    List<IQuerySelector> selectors = this.qs.getSelectors();
+    this.numColumns = selectors.size();
+    this.rawHeaders = new String[numColumns];
+    this.headers = new String[numColumns];
+    this.types = new SemossDataType[numColumns];
 
-			for(int colIndex = 0; colIndex < this.numColumns; colIndex++) {
-				Object vertOrProp = mapData.get(this.rawHeaders[colIndex]);
-				Object value = null;
-				if (vertOrProp instanceof Vertex) {
-					String node = this.rawHeaders[colIndex];
-					String name = getNodeName(node);
-					value = ((Vertex) vertOrProp).value(name);
-				} else {
-					value = vertOrProp;
-				}
-				retObject[colIndex] = value;
-			}
-		} else {
-			// not sure what will happen once we add group bys -> is this a map like above or different???
+    int index = 0;
+    for (IQuerySelector header : selectors) {
+      if (header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+        String alias = header.getAlias();
+        String qsName = header.getQueryStructName();
 
-			// for right now, assuming it is just a single vertex to return
-			if(data instanceof Vertex) {
-				Vertex vertex = (Vertex) data;
-				String node = this.rawHeaders[0];
-				String name = getNodeName(node);
-				retObject = new Object[]{vertex.value(name)};
-			} else {
-				// some object to return
-				retObject = new Object[]{data};
-			}
-		}
+        this.rawHeaders[index] = qsName;
+        this.headers[index] = getNodeAlias(alias);
+        this.types[index] = getTypes(qsName);
+      } else if (header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+        List<IQuerySelector> innerSelectorList =
+            ((QueryFunctionSelector) header).getInnerSelector();
+        for (IQuerySelector innerSelector : innerSelectorList) {
+          if (innerSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+            String alias = innerSelector.getAlias();
+            String qsName = innerSelector.getQueryStructName();
 
-		HeadersDataRow nextData = new HeadersDataRow(this.headers, this.rawHeaders, retObject);
-		return nextData;
-	}
-	
-	private String getNodeName(String node) {
-		if(this.nameMap != null) {
-			if(this.nameMap.containsKey(node)) {
-				return this.nameMap.get(node);
-			}
-		}
-		return TinkerFrame.TINKER_NAME;
-	}
-	
-	@Override
-	public void close() throws IOException {
-		try {
-			baseIterator.close();
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Unable to close traversal with message = " + e.getMessage());
-		}
-	}
-	
-	@Override
-	public long getNumRows() {
-		if(this.numRows == 0) {
-			GremlinInterpreter interp = this.interp.copy();
-			GraphTraversal it = interp.composeIterator();
-			GraphTraversal<Vertex, Long> numValues = it.count();
-			try {
-				if(numValues.hasNext()) {
-					this.numRows = numValues.next();
-				}
-			} finally {
-				try {
-					numValues.close();
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-				try {
-					it.close();
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+            this.rawHeaders[index] = qsName;
+            this.headers[index] = getNodeAlias(alias);
+            this.types[index] =
+                SemossDataType.convertStringToDataType(
+                    ((QueryFunctionSelector) header).getDataType());
+          }
+        }
+      }
+      index++;
+    }
+  }
 
-				}
-			}
-		}
-		return this.numRows;
-	}
+  /**
+   * For some of the nodes that have not been given an alias If there is an implicit alias on it (a
+   * physical name that matches an existing name) We will use that
+   *
+   * @param node
+   * @return
+   */
+  private String getNodeAlias(String node) {
+    if (this.meta == null) {
+      return node;
+    }
+    return this.meta.getPhysicalName(node);
+  }
 
-	@Override
-	public long getNumRecords() {
-		return getNumRows() * this.numColumns;
-	}
+  /**
+   * Get the type from the OWL if present
+   *
+   * @param qsName
+   * @return
+   */
+  private SemossDataType getTypes(String qsName) {
+    if (this.meta == null) {
+      String physicalUri = this.engine.getPhysicalUriFromPixelSelector(qsName);
+      return SemossDataType.convertStringToDataType(this.engine.getDataTypes(physicalUri));
+    }
+    return meta.getHeaderTypeAsEnum(qsName);
+  }
 
-	@Override
-	public void reset() {
-		try {
-			close();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		this.interp.reset();
-		this.baseIterator = this.interp.composeIterator();
-	}
-	
-	@Override
-	public String[] getHeaders() {
-		return this.headers;
-	}
+  @Override
+  public boolean hasNext() {
+    boolean ret = baseIterator.hasNext();
+    return ret;
+  }
 
-	@Override
-	public SemossDataType[] getTypes() {
-		return this.types;
-	}
+  @Override
+  public IHeadersDataRow next() {
+    Object data = baseIterator.next();
+    Object[] retObject = null;
 
-	///////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////
+    // data will be a map for multi nodes being returned
+    if (data instanceof Map) {
+      Map<String, Object> mapData = (Map<String, Object>) data;
+      retObject = new Object[this.numColumns];
 
-	/*
-	 * Main for testing
-	 */
-	
-//	public static void main(String[] args) throws Exception {
-//		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-//		{
-//			String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-//			IDatabase coreEngine = new RDBMSNativeEngine();
-//			coreEngine.setEngineId("LocalMasterDatabase");
-//			coreEngine.open(engineProp);
-//			coreEngine.setEngineId("LocalMasterDatabase");
-//			DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
-//		}
-//		
-//	
-//		String testEngine = "TinkerThis__cc2a91eb-548d-4970-91c3-7a043b783841";
-//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + testEngine + ".smss";
-//		TinkerEngine coreEngine = new TinkerEngine();
-//		coreEngine.open(engineProp);
-//		DIHelper.getInstance().setLocalProperty(testEngine, coreEngine);
-//		
-//		
-//		GremlinInterpreter interp = new GremlinInterpreter(coreEngine.getGraph().traversal(), 
-//				coreEngine.getTypeMap(), coreEngine.getNameMap());
-//		
-//		
-//		SelectQueryStruct qs = new SelectQueryStruct();
-//		qs.addSelector(new QueryColumnSelector("Title"));
-//		qs.addSelector(new QueryColumnSelector("Title__MovieBudget"));
-//		qs.addSelector(new QueryColumnSelector("Studio"));
-//		qs.addRelation("Title", "Studio", "inner.join");
-//		
-//		RawGemlinSelectWrapper it = new RawGemlinSelectWrapper(interp, qs);
-//		it.execute();
-//		System.out.println(it.getNumRecords());
-//	}
+      for (int colIndex = 0; colIndex < this.numColumns; colIndex++) {
+        Object vertOrProp = mapData.get(this.rawHeaders[colIndex]);
+        Object value = null;
+        if (vertOrProp instanceof Vertex) {
+          String node = this.rawHeaders[colIndex];
+          String name = getNodeName(node);
+          value = ((Vertex) vertOrProp).value(name);
+        } else {
+          value = vertOrProp;
+        }
+        retObject[colIndex] = value;
+      }
+    } else {
+      // not sure what will happen once we add group bys -> is this a map like above or different???
 
-	@Override
-	public void setQuery(String query) {
-		// TODO Auto-generated method stub
-		
-	}
+      // for right now, assuming it is just a single vertex to return
+      if (data instanceof Vertex) {
+        Vertex vertex = (Vertex) data;
+        String node = this.rawHeaders[0];
+        String name = getNodeName(node);
+        retObject = new Object[] {vertex.value(name)};
+      } else {
+        // some object to return
+        retObject = new Object[] {data};
+      }
+    }
 
-	@Override
-	public String getQuery() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public void setEngine(IDatabaseEngine engine) {
-		// TODO Auto-generated method stub
-		
-	}
+    HeadersDataRow nextData = new HeadersDataRow(this.headers, this.rawHeaders, retObject);
+    return nextData;
+  }
 
-	@Override
-	public boolean flushable() {
-		return false;
-	}
-	
-	@Override
-	public String flush() {
-		return null;
-	}
+  private String getNodeName(String node) {
+    if (this.nameMap != null) {
+      if (this.nameMap.containsKey(node)) {
+        return this.nameMap.get(node);
+      }
+    }
+    return TinkerFrame.TINKER_NAME;
+  }
+
+  @Override
+  public void close() throws IOException {
+    try {
+      baseIterator.close();
+    } catch (Exception e) {
+      classLogger.error(Constants.STACKTRACE, e);
+      throw new IOException("Unable to close traversal with message = " + e.getMessage());
+    }
+  }
+
+  @Override
+  public long getNumRows() {
+    if (this.numRows == 0) {
+      GremlinInterpreter interp = this.interp.copy();
+      GraphTraversal it = interp.composeIterator();
+      GraphTraversal<Vertex, Long> numValues = it.count();
+      try {
+        if (numValues.hasNext()) {
+          this.numRows = numValues.next();
+        }
+      } finally {
+        try {
+          numValues.close();
+        } catch (Exception e) {
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+        try {
+          it.close();
+        } catch (Exception e) {
+          classLogger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
+    return this.numRows;
+  }
+
+  @Override
+  public long getNumRecords() {
+    return getNumRows() * this.numColumns;
+  }
+
+  @Override
+  public void reset() {
+    try {
+      close();
+    } catch (IOException e) {
+      classLogger.error(Constants.STACKTRACE, e);
+    }
+    this.interp.reset();
+    this.baseIterator = this.interp.composeIterator();
+  }
+
+  @Override
+  public String[] getHeaders() {
+    return this.headers;
+  }
+
+  @Override
+  public SemossDataType[] getTypes() {
+    return this.types;
+  }
+
+  ///////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////
+
+  /*
+   * Main for testing
+   */
+
+  //	public static void main(String[] args) throws Exception {
+  //		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+  //		{
+  //			String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+  //			IDatabase coreEngine = new RDBMSNativeEngine();
+  //			coreEngine.setEngineId("LocalMasterDatabase");
+  //			coreEngine.open(engineProp);
+  //			coreEngine.setEngineId("LocalMasterDatabase");
+  //			DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
+  //		}
+  //
+  //
+  //		String testEngine = "TinkerThis__cc2a91eb-548d-4970-91c3-7a043b783841";
+  //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + testEngine + ".smss";
+  //		TinkerEngine coreEngine = new TinkerEngine();
+  //		coreEngine.open(engineProp);
+  //		DIHelper.getInstance().setLocalProperty(testEngine, coreEngine);
+  //
+  //
+  //		GremlinInterpreter interp = new GremlinInterpreter(coreEngine.getGraph().traversal(),
+  //				coreEngine.getTypeMap(), coreEngine.getNameMap());
+  //
+  //
+  //		SelectQueryStruct qs = new SelectQueryStruct();
+  //		qs.addSelector(new QueryColumnSelector("Title"));
+  //		qs.addSelector(new QueryColumnSelector("Title__MovieBudget"));
+  //		qs.addSelector(new QueryColumnSelector("Studio"));
+  //		qs.addRelation("Title", "Studio", "inner.join");
+  //
+  //		RawGemlinSelectWrapper it = new RawGemlinSelectWrapper(interp, qs);
+  //		it.execute();
+  //		System.out.println(it.getNumRecords());
+  //	}
+
+  @Override
+  public void setQuery(String query) {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public String getQuery() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public void setEngine(IDatabaseEngine engine) {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public boolean flushable() {
+    return false;
+  }
+
+  @Override
+  public String flush() {
+    return null;
+  }
 }

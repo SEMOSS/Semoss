@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.util.git.reactors;
 
 import java.io.IOException;
@@ -5,9 +19,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.sablecc2.om.GenRowStruct;
@@ -23,179 +35,188 @@ import prerna.util.git.GitSynchronizer;
 
 public class SyncAppFilesO extends GitBaseReactor {
 
-	public SyncAppFilesO() {
-		this.keysToGet = new String[]{
-				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
-				ReactorKeysEnum.SYNC_PULL.getKey(), ReactorKeysEnum.SYNC_DATABASE.getKey(),
-				"files"};
-	}
+  public SyncAppFilesO() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.DATABASE.getKey(),
+          ReactorKeysEnum.REPOSITORY.getKey(),
+          ReactorKeysEnum.SYNC_PULL.getKey(),
+          ReactorKeysEnum.SYNC_DATABASE.getKey(),
+          "files"
+        };
+  }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
 
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		if(databaseId == null || databaseId.isEmpty()) {
-			throw new IllegalArgumentException("Need to specify the database id");
-		}
-		
-		// you can only push
-		// if you are the owner
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-			throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
-		}
-		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
-		
-		String repository = this.keyValue.get(this.keysToGet[1]);
-		String dualStr = this.keyValue.get(this.keysToGet[2]);
-		String databaseStr = this.keyValue.get(this.keysToGet[3]);
-		List<String> filesToSync = getFilesToSync();
+    String databaseId = this.keyValue.get(this.keysToGet[0]);
+    if (databaseId == null || databaseId.isEmpty()) {
+      throw new IllegalArgumentException("Need to specify the database id");
+    }
 
-		Logger logger = getLogger(this.getClass().getName());
-		logger.info("Starting the synchronization process");
+    // you can only push
+    // if you are the owner
+    databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+    if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+      throw new IllegalArgumentException(
+          "Database does not exist or user does not have access to edit database");
+    }
+    String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 
-		// default for dual is true if nothing is sent it means it is dual
-		boolean dual = false;
-		if(dualStr == null || dualStr.equals("true")) {
-			dual = true;
-		}
+    String repository = this.keyValue.get(this.keysToGet[1]);
+    String dualStr = this.keyValue.get(this.keysToGet[2]);
+    String databaseStr = this.keyValue.get(this.keysToGet[3]);
+    List<String> filesToSync = getFilesToSync();
 
-		boolean database = false;
-		if(databaseStr != null && databaseStr.equals("true")) {
-			database = true;
-		}
-		
-		String token = getToken();
-		if(database) {
-			try {
-				logger.info("Synchronizing Database Now... ");
-				// remove the database
-				try {
-					Utility.getDatabase(databaseId).close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				DIHelper.getInstance().removeLocalProperty(databaseId);
-				GitSynchronizer.syncDatabases(databaseId, databaseName, repository, token, logger);
-				logger.info("Synchronize Database Complete");
-			} finally {
-				// open it back up
-				Utility.getDatabase(databaseId);
-			}
-		}
+    Logger logger = getLogger(this.getClass().getName());
+    logger.info("Starting the synchronization process");
 
-		// if it is null or true dont worry
-		logger.info("Synchronizing now... ");
-		Map<String, List<String>> filesChanged = GitSynchronizer.synchronizeSpecific(databaseId, databaseName, repository, token, filesToSync, dual);
-		logger.info("Synchronize Complete");
+    // default for dual is true if nothing is sent it means it is dual
+    boolean dual = false;
+    if (dualStr == null || dualStr.equals("true")) {
+      dual = true;
+    }
 
-		StringBuffer output = new StringBuffer("SUCCESS \r\n ");
-		output.append("ADDED : ");
-		if(filesChanged.containsKey("ADD")) {
-			output.append(filesChanged.get("ADD").size());
-		} else {
-			output.append("0");
-		}
-		output.append(" , MODIFIED : ");
-		if(filesChanged.containsKey("MOD")) {
-			output.append(filesChanged.get("MOD").size());
-		} else {
-			output.append("0");
-		}
-		output.append(" , RENAMED : ");
-		if(filesChanged.containsKey("REN")) {
-			output.append(filesChanged.get("REN").size());
-		} else {
-			output.append("0");
-		}
-		output.append(" , DELETED : ");
-		if(filesChanged.containsKey("DEL")) {
-			output.append(filesChanged.get("DEL").size());
-		} else {
-			output.append("0");
-		}
+    boolean database = false;
+    if (databaseStr != null && databaseStr.equals("true")) {
+      database = true;
+    }
 
-		// will update solr and in the engine rdbms insights database
-		Map<String, List<String>> mosfetFiles = getMosfetFiles(filesChanged, filesToSync);
-		if(!mosfetFiles.isEmpty()) {
-			logger.info("Indexing your insight changes");
-			MosfetSyncHelper.synchronizeInsightChanges(mosfetFiles, logger);
-			logger.info("Index complete");
-		} else {
-			logger.info("No insight indexing required");
-		}
+    String token = getToken();
+    if (database) {
+      try {
+        logger.info("Synchronizing Database Now... ");
+        // remove the database
+        try {
+          Utility.getDatabase(databaseId).close();
+        } catch (IOException e) {
+          logger.error(Constants.STACKTRACE, e);
+        }
+        DIHelper.getInstance().removeLocalProperty(databaseId);
+        GitSynchronizer.syncDatabases(databaseId, databaseName, repository, token, logger);
+        logger.info("Synchronize Database Complete");
+      } finally {
+        // open it back up
+        Utility.getDatabase(databaseId);
+      }
+    }
 
+    // if it is null or true dont worry
+    logger.info("Synchronizing now... ");
+    Map<String, List<String>> filesChanged =
+        GitSynchronizer.synchronizeSpecific(
+            databaseId, databaseName, repository, token, filesToSync, dual);
+    logger.info("Synchronize Complete");
 
-		return new NounMetadata(output.toString(), PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
-	}
+    StringBuffer output = new StringBuffer("SUCCESS \r\n ");
+    output.append("ADDED : ");
+    if (filesChanged.containsKey("ADD")) {
+      output.append(filesChanged.get("ADD").size());
+    } else {
+      output.append("0");
+    }
+    output.append(" , MODIFIED : ");
+    if (filesChanged.containsKey("MOD")) {
+      output.append(filesChanged.get("MOD").size());
+    } else {
+      output.append("0");
+    }
+    output.append(" , RENAMED : ");
+    if (filesChanged.containsKey("REN")) {
+      output.append(filesChanged.get("REN").size());
+    } else {
+      output.append("0");
+    }
+    output.append(" , DELETED : ");
+    if (filesChanged.containsKey("DEL")) {
+      output.append(filesChanged.get("DEL").size());
+    } else {
+      output.append("0");
+    }
 
-	/**
-	 * Need to get the appropriate files to perform indexing!
-	 * @param filesChanged
-	 * @return
-	 */
-	private Map<String, List<String>> getMosfetFiles(Map <String, List<String>> filesChanged, List<String> filesToSync) {
-		Map<String, List<String>> mosfetFiles = new Hashtable<String, List<String>>();
-		if(filesChanged.containsKey("ADD")) {
-			List<String> files = getMosfetFiles(filesChanged.get("ADD"), filesToSync);
-			if(!files.isEmpty()) {
-				mosfetFiles.put("ADD", files);
-			}
-		}
+    // will update solr and in the engine rdbms insights database
+    Map<String, List<String>> mosfetFiles = getMosfetFiles(filesChanged, filesToSync);
+    if (!mosfetFiles.isEmpty()) {
+      logger.info("Indexing your insight changes");
+      MosfetSyncHelper.synchronizeInsightChanges(mosfetFiles, logger);
+      logger.info("Index complete");
+    } else {
+      logger.info("No insight indexing required");
+    }
 
-		if(filesChanged.containsKey("MOD")) {
-			List<String> files = getMosfetFiles(filesChanged.get("MOD"), filesToSync);
-			if(!files.isEmpty()) {
-				mosfetFiles.put("MOD", files);
-			}		
-		}
+    return new NounMetadata(
+        output.toString(), PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
+  }
 
-		if(filesChanged.containsKey("REN")) {
-			List<String> files = getMosfetFiles(filesChanged.get("REN"), filesToSync);
-			if(!files.isEmpty()) {
-				mosfetFiles.put("REN", files);
-			}		
-		}
+  /**
+   * Need to get the appropriate files to perform indexing!
+   *
+   * @param filesChanged
+   * @return
+   */
+  private Map<String, List<String>> getMosfetFiles(
+      Map<String, List<String>> filesChanged, List<String> filesToSync) {
+    Map<String, List<String>> mosfetFiles = new Hashtable<String, List<String>>();
+    if (filesChanged.containsKey("ADD")) {
+      List<String> files = getMosfetFiles(filesChanged.get("ADD"), filesToSync);
+      if (!files.isEmpty()) {
+        mosfetFiles.put("ADD", files);
+      }
+    }
 
-		if(filesChanged.containsKey("DEL")) {
-			List<String> files = getMosfetFiles(filesChanged.get("DEL"), filesToSync);
-			if(!files.isEmpty()) {
-				mosfetFiles.put("DEL", files);
-			}		
-		}
-		return mosfetFiles;
-	}
+    if (filesChanged.containsKey("MOD")) {
+      List<String> files = getMosfetFiles(filesChanged.get("MOD"), filesToSync);
+      if (!files.isEmpty()) {
+        mosfetFiles.put("MOD", files);
+      }
+    }
 
-	private List<String> getMosfetFiles(List<String> potentialFiles, List<String> filesToSync) {
-		List<String> mosfetFiles = new Vector<String>();
-		if(potentialFiles != null) {
-			for(String f : potentialFiles) {
-				if(f.endsWith(".mosfet") && filesToSync.contains(f)) {
-					mosfetFiles.add(f);
-				}
-			}
-		}
-		return mosfetFiles;
-	}
+    if (filesChanged.containsKey("REN")) {
+      List<String> files = getMosfetFiles(filesChanged.get("REN"), filesToSync);
+      if (!files.isEmpty()) {
+        mosfetFiles.put("REN", files);
+      }
+    }
 
-	private List<String> getFilesToSync() {
-		List<String> filesToSync = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
-		for(int i = 0; i < grs.size(); i++) {
-			filesToSync.add(grs.get(i).toString());
-		}
-		return filesToSync;
-	}
-	
-	///////////////////////// KEYS /////////////////////////////////////
+    if (filesChanged.containsKey("DEL")) {
+      List<String> files = getMosfetFiles(filesChanged.get("DEL"), filesToSync);
+      if (!files.isEmpty()) {
+        mosfetFiles.put("DEL", files);
+      }
+    }
+    return mosfetFiles;
+  }
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("files")) {
-			return "The files to sync";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
-	}
+  private List<String> getMosfetFiles(List<String> potentialFiles, List<String> filesToSync) {
+    List<String> mosfetFiles = new Vector<String>();
+    if (potentialFiles != null) {
+      for (String f : potentialFiles) {
+        if (f.endsWith(".mosfet") && filesToSync.contains(f)) {
+          mosfetFiles.add(f);
+        }
+      }
+    }
+    return mosfetFiles;
+  }
+
+  private List<String> getFilesToSync() {
+    List<String> filesToSync = new Vector<String>();
+    GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
+    for (int i = 0; i < grs.size(); i++) {
+      filesToSync.add(grs.get(i).toString());
+    }
+    return filesToSync;
+  }
+
+  ///////////////////////// KEYS /////////////////////////////////////
+
+  @Override
+  protected String getDescriptionForKey(String key) {
+    if (key.equals("files")) {
+      return "The files to sync";
+    } else {
+      return super.getDescriptionForKey(key);
+    }
+  }
 }

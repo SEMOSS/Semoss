@@ -1,10 +1,23 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.legacy.playsheets;
 
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
@@ -21,81 +34,86 @@ import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
 public class RunPlaysheetReactor extends AbstractReactor {
-	
-	public RunPlaysheetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.PARAM_KEY.getKey() };
-	}
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		// TODO: ACCOUNTING FOR LEGACY PLAYSHEETS
-		if(projectId == null) {
-			projectId = this.store.getNoun("app").get(0) + "";
-		}
-		String insightId = this.keyValue.get(this.keysToGet[1]);
-		IProject project = Utility.getProject(projectId);
-		Insight insightObj = project.getInsight(insightId).get(0);
-		InsightUtility.transferDefaultVars(this.insight, insightObj);
+  public RunPlaysheetReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.PROJECT.getKey(),
+          ReactorKeysEnum.ID.getKey(),
+          ReactorKeysEnum.PARAM_KEY.getKey()
+        };
+  }
 
-		// Get the Insight, grab its ID
-		// set the user id into the insight
-		insightObj.setUser(this.insight.getUser());
-		Map<String, List<Object>> params = getParamMap();
-		if(!insightObj.isOldInsight()) {
-			throw new IllegalArgumentException("This is a legacy pixel that should only be used for old insights");
-		}
-		((OldInsight) insightObj).setParamHash(params);
-		// store in insight store
-		InsightStore.getInstance().put(insightObj);
-		InsightStore.getInstance().addToSessionHash(getSessionId(), insightObj.getInsightId());
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    String projectId = this.keyValue.get(this.keysToGet[0]);
+    // TODO: ACCOUNTING FOR LEGACY PLAYSHEETS
+    if (projectId == null) {
+      projectId = this.store.getNoun("app").get(0) + "";
+    }
+    String insightId = this.keyValue.get(this.keysToGet[1]);
+    IProject project = Utility.getProject(projectId);
+    Insight insightObj = project.getInsight(insightId).get(0);
+    InsightUtility.transferDefaultVars(this.insight, insightObj);
 
-		// TODO: why did we allow the FE to still require this when
-		// we already pass a boolean that says this is not pkql....
-		// wtf...
+    // Get the Insight, grab its ID
+    // set the user id into the insight
+    insightObj.setUser(this.insight.getUser());
+    Map<String, List<Object>> params = getParamMap();
+    if (!insightObj.isOldInsight()) {
+      throw new IllegalArgumentException(
+          "This is a legacy pixel that should only be used for old insights");
+    }
+    ((OldInsight) insightObj).setParamHash(params);
+    // store in insight store
+    InsightStore.getInstance().put(insightObj);
+    InsightStore.getInstance().addToSessionHash(getSessionId(), insightObj.getInsightId());
 
-		Map<String, Object> insightMap = new HashMap<String, Object>();
-		Map<String, Object> stuipdFEInsightGarabage = new HashMap<String, Object>();
-		stuipdFEInsightGarabage.put("clear", false);
-		stuipdFEInsightGarabage.put("closedPanels", new Object[0]);
-		stuipdFEInsightGarabage.put("dataID", 0);
-		stuipdFEInsightGarabage.put("feData", new HashMap());
-		stuipdFEInsightGarabage.put("insightID", insightObj.getInsightId());
-		stuipdFEInsightGarabage.put("newColumns", new HashMap());
-		stuipdFEInsightGarabage.put("newInsights", new Object[0]);
-		stuipdFEInsightGarabage.put("pkqlData", new Object[0]);
-		insightMap.put("insights", new Object[] { stuipdFEInsightGarabage });
-		
-		
-		// we have some old legacy stuff...
-		// just run and return the object
-		OldInsightProcessor processor = new OldInsightProcessor((OldInsight) insightObj);
-		Map<String, Object> obj = processor.runWeb();
-		obj.put("isPkqlRunnable", false);
-		obj.put("recipe", new Object[0]);
-		obj.put("pkqlOutput", insightMap);
+    // TODO: why did we allow the FE to still require this when
+    // we already pass a boolean that says this is not pkql....
+    // wtf...
 
-		// update the solr universal view count
-		GlobalInsightCountUpdater.getInstance().addToQueue(projectId, insightId);
+    Map<String, Object> insightMap = new HashMap<String, Object>();
+    Map<String, Object> stuipdFEInsightGarabage = new HashMap<String, Object>();
+    stuipdFEInsightGarabage.put("clear", false);
+    stuipdFEInsightGarabage.put("closedPanels", new Object[0]);
+    stuipdFEInsightGarabage.put("dataID", 0);
+    stuipdFEInsightGarabage.put("feData", new HashMap());
+    stuipdFEInsightGarabage.put("insightID", insightObj.getInsightId());
+    stuipdFEInsightGarabage.put("newColumns", new HashMap());
+    stuipdFEInsightGarabage.put("newInsights", new Object[0]);
+    stuipdFEInsightGarabage.put("pkqlData", new Object[0]);
+    insightMap.put("insights", new Object[] {stuipdFEInsightGarabage});
 
-		return new NounMetadata(obj, PixelDataType.MAP, PixelOperationType.OLD_INSIGHT);
-	}
+    // we have some old legacy stuff...
+    // just run and return the object
+    OldInsightProcessor processor = new OldInsightProcessor((OldInsight) insightObj);
+    Map<String, Object> obj = processor.runWeb();
+    obj.put("isPkqlRunnable", false);
+    obj.put("recipe", new Object[0]);
+    obj.put("pkqlOutput", insightMap);
 
-	/**
-	 * Get the params for the method
-	 * @return
-	 */
-	private Map<String, List<Object>> getParamMap() {
-		GenRowStruct mapGrs = this.store.getNoun(this.keysToGet[2]);
-		if (mapGrs != null && !mapGrs.isEmpty()) {
-			return (Map<String, List<Object>>) mapGrs.get(0);
-		}
-		if (!curRow.isEmpty()) {
-			return (Map<String, List<Object>>) curRow.get(1);
-		}
+    // update the solr universal view count
+    GlobalInsightCountUpdater.getInstance().addToQueue(projectId, insightId);
 
-		return new Hashtable<String, List<Object>>();
-	}
+    return new NounMetadata(obj, PixelDataType.MAP, PixelOperationType.OLD_INSIGHT);
+  }
 
+  /**
+   * Get the params for the method
+   *
+   * @return
+   */
+  private Map<String, List<Object>> getParamMap() {
+    GenRowStruct mapGrs = this.store.getNoun(this.keysToGet[2]);
+    if (mapGrs != null && !mapGrs.isEmpty()) {
+      return (Map<String, List<Object>>) mapGrs.get(0);
+    }
+    if (!curRow.isEmpty()) {
+      return (Map<String, List<Object>>) curRow.get(1);
+    }
+
+    return new Hashtable<String, List<Object>>();
+  }
 }

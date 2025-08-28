@@ -1,34 +1,48 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.planner.graph;
-//package prerna.sablecc2.reactor.planner.graph;
+// package prerna.sablecc2.reactor.planner.graph;
 //
-//import java.util.ArrayList;
-//import java.util.List;
-//import java.util.Set;
-//import java.util.Vector;
+// import java.util.ArrayList;
+// import java.util.List;
+// import java.util.Set;
+// import java.util.Vector;
 //
-//import org.apache.tinkerpop.gremlin.structure.Vertex;
+// import org.apache.tinkerpop.gremlin.structure.Vertex;
 //
-//import prerna.sablecc2.GreedyTranslation;
-//import prerna.sablecc2.LazyTranslation;
-//import prerna.sablecc2.PkslUtility;
-//import prerna.sablecc2.om.GenRowStruct;
-//import prerna.sablecc2.om.NounMetadata;
-//import prerna.sablecc2.om.PkslDataTypes;
-//import prerna.sablecc2.reactor.PKSLPlanner;
+// import prerna.sablecc2.GreedyTranslation;
+// import prerna.sablecc2.LazyTranslation;
+// import prerna.sablecc2.PkslUtility;
+// import prerna.sablecc2.om.GenRowStruct;
+// import prerna.sablecc2.om.NounMetadata;
+// import prerna.sablecc2.om.PkslDataTypes;
+// import prerna.sablecc2.reactor.PKSLPlanner;
 //
-//public class UpdateGraphPlannerReactor extends AbstractPlannerReactor {
+// public class UpdateGraphPlannerReactor extends AbstractPlannerReactor {
 //
 //	public static final String PKSL_NOUN = "pksls";
 //	public static final String STORE_NOUN = "store";
-//	
+//
 //	@Override
 //	public NounMetadata execute()
 //	{
 ////		long start = System.currentTimeMillis();
-//		
+//
 //		// grab all the pksls
 //		GenRowStruct pksls = this.store.getNoun(PKSL_NOUN);
-//		
+//
 //		// store them in a list
 //		// and also keep a builder with all the executions
 //		List<String> pkslsToAdd = new Vector<String>();
@@ -36,16 +50,16 @@ package prerna.reactor.planner.graph;
 //		for(int i = 0; i < numPksls; i++) {
 ////			pkslsToAdd.add(pksls.get(i).toString());
 //		}
-//		
+//
 //		List<PKSLPlanner> myPlanners = getPlanners();
-//		
+//
 //		for(PKSLPlanner myPlanner : myPlanners) {
 //			// bs
 //			long start = System.currentTimeMillis();
 //			addOrderToNonExistentVerts(myPlanner);
 //			long end = System.currentTimeMillis();
 //			System.out.println("Add order = " + (end - start));
-//			
+//
 //			// to properly update
 //			// we need to reset the "PROCESSED" property
 //			// that are currently set on the planner
@@ -54,7 +68,7 @@ package prerna.reactor.planner.graph;
 //			resetProcessedBoolean(myPlanner);
 //			end = System.currentTimeMillis();
 //			System.out.println("Reset boolean = " + (end - start));
-//			
+//
 //			// know we execute these on a new planner
 //			// and then we will figure out the roots of these new values
 //			start = System.currentTimeMillis();
@@ -62,29 +76,29 @@ package prerna.reactor.planner.graph;
 //			PkslUtility.addPkslToTranslation(plannerT, pkslsToAdd);
 //			end = System.currentTimeMillis();
 //			System.out.println("Add initial values = " + (end - start));
-//			
+//
 //			// using this planner
 //			// get the roots
 //			start = System.currentTimeMillis();
 //			Set<Vertex> roots = getRootPksls(plannerT.planner);
 //			end = System.currentTimeMillis();
 //			System.out.println("Get roots = " + (end - start));
-//			
+//
 //			// now we want to get all the output nouns of these roots
-//			// and go downstream to all the ops within the original planner 
+//			// and go downstream to all the ops within the original planner
 //			// that we are updating
 //			start = System.currentTimeMillis();
 //			Set<Vertex> newRoots = getDownstreamEffectsInPlanner(roots, myPlanner);
 //			end = System.currentTimeMillis();
 //			System.out.println("Find nouns of roots = " + (end - start));
-//			
+//
 //			List<String> downstreamVertIds = new Vector<String>();
 //			// traverse downstream and get all the other values we need to update
 //			start = System.currentTimeMillis();
 //			getAllDownstreamVertsBasedOnTraverseOrder(newRoots, downstreamVertIds);
 //			end = System.currentTimeMillis();
 //			System.out.println("Find downstream of new roots = " + (end - start));
-//			
+//
 //			// since we have the order based on the first execution
 //			// use that in order to add these pksls in the correct order
 //			// for the execution
@@ -94,7 +108,7 @@ package prerna.reactor.planner.graph;
 //			pkslsToRun.addAll(orderVertsAndGetPksls(myPlanner, downstreamVertIds));
 //			end = System.currentTimeMillis();
 //			System.out.println("Order verts " + (end - start));
-//			
+//
 //			// now run through all the pksls and execute
 //			// we will use the same planner which has all the assignments
 //			// set and have those values automatically updated
@@ -106,18 +120,19 @@ package prerna.reactor.planner.graph;
 //			end = System.currentTimeMillis();
 //			System.out.println("Run through pksls " + (end - start));
 //		}
-//		
+//
 ////		long end = System.currentTimeMillis();
-////		System.out.println("****************    END UPDATE "+(end - start)+"ms      *************************");
-//		
+////		System.out.println("****************    END UPDATE "+(end - start)+"ms
+// *************************");
+//
 //		return new NounMetadata(myPlanners, PkslDataTypes.PLANNER);
 //	}
-//	
+//
 //	private List<PKSLPlanner> getPlanners() {
 //		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
 //		List<PKSLPlanner> planners = new ArrayList<>(allNouns.size());
 //		if(allNouns != null) {
-//			
+//
 //			for(int i = 0; i < allNouns.size(); i++) {
 //				Object nextNoun = allNouns.get(i);
 //				if(nextNoun instanceof List) {
@@ -130,7 +145,7 @@ package prerna.reactor.planner.graph;
 //				}
 //			}
 //		}
-//		
+//
 //		return planners;
 //	}
-//}
+// }

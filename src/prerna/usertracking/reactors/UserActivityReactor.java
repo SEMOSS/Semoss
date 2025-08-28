@@ -1,3 +1,17 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.usertracking.reactors;
 
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -11,40 +25,43 @@ import prerna.util.Constants;
 
 public class UserActivityReactor extends AbstractQueryStructReactor {
 
-	// UserActivity example
-	// UserActivityH2 ( ) | Import ( frame = [ CreateFrame ( frameType = [ GRID ] , override = [ true ] ) .as ( [ "FRAME961184" ] ) ] ) ;
-	// Frame ( frame = [ FRAME961184 ] ) | UserActivityH2 ( ) | AutoTaskOptions ( panel = [ "0" ] , layout = [ "Grid" ] ) | Collect ( 2000 ) ;
-	
-	// date format function example
-	// Frame ( frame = [ FRAME961184 ] ) | Select ( DateFormat ( DATE_CREATED, "YYYY-MM-dd" ) ) | CollectAll ( ) ;
-	
-	@Override
-	protected AbstractQueryStruct createQueryStruct() {
-		this.qs.setEngineId(Constants.USER_TRACKING_DB);
-		this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+  // UserActivity example
+  // UserActivityH2 ( ) | Import ( frame = [ CreateFrame ( frameType = [ GRID ] , override = [ true
+  // ] ) .as ( [ "FRAME961184" ] ) ] ) ;
+  // Frame ( frame = [ FRAME961184 ] ) | UserActivityH2 ( ) | AutoTaskOptions ( panel = [ "0" ] ,
+  // layout = [ "Grid" ] ) | Collect ( 2000 ) ;
 
-		SelectQueryStruct sQs = new SelectQueryStruct();
-		// selectors
-		QueryFunctionSelector fSelector = new QueryFunctionSelector();
-		fSelector.setAlias("COUNT");
-		fSelector.setFunction(QueryFunctionHelper.COUNT);
-		fSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING" + "__" + "USERID"));
-		sQs.addSelector(fSelector);
+  // date format function example
+  // Frame ( frame = [ FRAME961184 ] ) | Select ( DateFormat ( DATE_CREATED, "YYYY-MM-dd" ) ) |
+  // CollectAll ( ) ;
 
-		fSelector = new QueryFunctionSelector();
-		fSelector.setAlias("CREATED_ON");
-		fSelector.setFunction(QueryFunctionHelper.DATE_FORMAT);
-		fSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING" + "__" + "CREATED_ON"));
-		fSelector.addInnerSelector(new QueryConstantSelector("yyyy-MM-dd"));
-		sQs.addSelector(fSelector);
-		// group by
-		fSelector = new QueryFunctionSelector();
-		fSelector.setAlias("CREATED_ON");
-		fSelector.setFunction(QueryFunctionHelper.DATE_FORMAT);
-		fSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING" + "__" + "CREATED_ON"));
-		fSelector.addInnerSelector(new QueryConstantSelector("yyyy-MM-dd"));
-		sQs.addGroupBy(fSelector);
-		this.qs.merge(sQs);
-		return this.qs;
-	}
+  @Override
+  protected AbstractQueryStruct createQueryStruct() {
+    this.qs.setEngineId(Constants.USER_TRACKING_DB);
+    this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+
+    SelectQueryStruct sQs = new SelectQueryStruct();
+    // selectors
+    QueryFunctionSelector fSelector = new QueryFunctionSelector();
+    fSelector.setAlias("COUNT");
+    fSelector.setFunction(QueryFunctionHelper.COUNT);
+    fSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING" + "__" + "USERID"));
+    sQs.addSelector(fSelector);
+
+    fSelector = new QueryFunctionSelector();
+    fSelector.setAlias("CREATED_ON");
+    fSelector.setFunction(QueryFunctionHelper.DATE_FORMAT);
+    fSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING" + "__" + "CREATED_ON"));
+    fSelector.addInnerSelector(new QueryConstantSelector("yyyy-MM-dd"));
+    sQs.addSelector(fSelector);
+    // group by
+    fSelector = new QueryFunctionSelector();
+    fSelector.setAlias("CREATED_ON");
+    fSelector.setFunction(QueryFunctionHelper.DATE_FORMAT);
+    fSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING" + "__" + "CREATED_ON"));
+    fSelector.addInnerSelector(new QueryConstantSelector("yyyy-MM-dd"));
+    sQs.addGroupBy(fSelector);
+    this.qs.merge(sQs);
+    return this.qs;
+  }
 }

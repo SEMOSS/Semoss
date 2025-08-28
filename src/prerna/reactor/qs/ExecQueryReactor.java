@@ -1,8 +1,21 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.qs;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -29,169 +42,179 @@ import prerna.util.Constants;
 
 public class ExecQueryReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(ExecQueryReactor.class);
+  private static final Logger logger = LogManager.getLogger(ExecQueryReactor.class);
 
-	private NounMetadata qStruct = null;
+  private NounMetadata qStruct = null;
 
-	public ExecQueryReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey(), "commit", ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey()};
-	}
+  public ExecQueryReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.QUERY_STRUCT.getKey(),
+          "commit",
+          ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey()
+        };
+  }
 
-	@Override
-	public NounMetadata execute() {
-		if (qStruct == null) {
-			qStruct = getQueryStruct();
-		}
+  @Override
+  public NounMetadata execute() {
+    if (qStruct == null) {
+      qStruct = getQueryStruct();
+    }
 
-		GenRowStruct commitGrs = this.store.getNoun("commit");
-		Boolean commit = false;
-		if(commitGrs != null && !commitGrs.isEmpty()) {
-			commit = Boolean.parseBoolean(commitGrs.get(0) + "");
-		}
-		
-		IDatabaseEngine engine = null;
-		ITableDataFrame frame = null;
-		AbstractQueryStruct qs = null;
-		String userId = "user not defined";
+    GenRowStruct commitGrs = this.store.getNoun("commit");
+    Boolean commit = false;
+    if (commitGrs != null && !commitGrs.isEmpty()) {
+      commit = Boolean.parseBoolean(commitGrs.get(0) + "");
+    }
 
-		if (qStruct.getValue() instanceof AbstractQueryStruct) {
-			qs = ((AbstractQueryStruct) qStruct.getValue());
-			if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-				engine = qs.retrieveQueryStructEngine();
-				if (!(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS
-						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)
-						) {
-					throw new IllegalArgumentException("Query update/deletes only works for rdbms/rdf databases");
-				}
+    IDatabaseEngine engine = null;
+    ITableDataFrame frame = null;
+    AbstractQueryStruct qs = null;
+    String userId = "user not defined";
 
-				// If an engine and the user is defined, then grab it for the audit log
-				User user = this.insight.getUser();
-				if (user != null) {
-					userId = user.getAccessToken(user.getLogins().get(0)).getId();
-				}
+    if (qStruct.getValue() instanceof AbstractQueryStruct) {
+      qs = ((AbstractQueryStruct) qStruct.getValue());
+      if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE
+          || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+        engine = qs.retrieveQueryStructEngine();
+        if (!(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS
+            || engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
+            || engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)) {
+          throw new IllegalArgumentException(
+              "Query update/deletes only works for rdbms/rdf databases");
+        }
 
-				// check that the user can edit the engine
-				if (!SecurityEngineUtils.userCanEditEngine(user, engine.getEngineId())) {
-					throw new IllegalArgumentException("User does not have permission to exec query for this app");
-				}
-			} else if (qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
-				frame = qs.getFrame();
-				if (!(frame instanceof AbstractRdbmsFrame)) {
-					throw new IllegalArgumentException("Query update/deletes only works for sql frames");
-				}
-				// convert any aliases the FE is using from the frame
-				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, frame.getMetaData());
-			}
-		} else {
-			throw new IllegalArgumentException("Input to exec query requires a query struct");
-		}
+        // If an engine and the user is defined, then grab it for the audit log
+        User user = this.insight.getUser();
+        if (user != null) {
+          userId = user.getAccessToken(user.getLogins().get(0)).getId();
+        }
 
-		boolean update = false;
-		boolean custom = false;
-		String query = null;
-		// grab query && determine how to store in audit db
-		if (qs instanceof HardSelectQueryStruct) {
-			query = ((HardSelectQueryStruct) qs).getQuery();
-			custom = true;
-		} else if (qs instanceof UpdateQueryStruct) {
-			UpdateSqlInterpreter interp = new UpdateSqlInterpreter((UpdateQueryStruct) qs);
-			interp.setUserId(userId);
-			query = interp.composeQuery();
-			update = true;
-		} else if (qs instanceof SelectQueryStruct) {
-			DeleteSqlInterpreter interp = new DeleteSqlInterpreter((SelectQueryStruct) qs);
-			query = interp.composeQuery();
-			update = false;
-		}
+        // check that the user can edit the engine
+        if (!SecurityEngineUtils.userCanEditEngine(user, engine.getEngineId())) {
+          throw new IllegalArgumentException(
+              "User does not have permission to exec query for this app");
+        }
+      } else if (qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+        frame = qs.getFrame();
+        if (!(frame instanceof AbstractRdbmsFrame)) {
+          throw new IllegalArgumentException("Query update/deletes only works for sql frames");
+        }
+        // convert any aliases the FE is using from the frame
+        qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, frame.getMetaData());
+      }
+    } else {
+      throw new IllegalArgumentException("Input to exec query requires a query struct");
+    }
 
-		logger.info("EXEC QUERY.... " + query);
-		if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			if(engine == null) {
-				throw new NullPointerException("No engine passed in to execute the query");
-			}
-			try {
-				engine.insertData(query);
-				if(commit) {
-					engine.commit();
-				}
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				String errorMessage = "An error occurred trying to execute the query in the database";
-				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
-					errorMessage += ": " + e.getMessage();
-				}
-				throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
-			}
-			// store query in audit db
-			AuditDatabase audit = engine.generateAudit();
-			if (custom) {
-				audit.storeQuery(userId, query);
-			} else {
-				if (update) {
-					audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
-				} else {
-					audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
-				}
-			}
+    boolean update = false;
+    boolean custom = false;
+    String query = null;
+    // grab query && determine how to store in audit db
+    if (qs instanceof HardSelectQueryStruct) {
+      query = ((HardSelectQueryStruct) qs).getQuery();
+      custom = true;
+    } else if (qs instanceof UpdateQueryStruct) {
+      UpdateSqlInterpreter interp = new UpdateSqlInterpreter((UpdateQueryStruct) qs);
+      interp.setUserId(userId);
+      query = interp.composeQuery();
+      update = true;
+    } else if (qs instanceof SelectQueryStruct) {
+      DeleteSqlInterpreter interp = new DeleteSqlInterpreter((SelectQueryStruct) qs);
+      query = interp.composeQuery();
+      update = false;
+    }
 
-			ClusterUtil.pushEngine(engine.getEngineId());
-		} else {
-			try {
-				if (frame != null) {
-					((AbstractRdbmsFrame) frame).getBuilder().runQuery(query);
-				}
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				String errorMessage = "An error occurred trying to update the frame";
-				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
-					errorMessage += ": " + e.getMessage();
-				}
-				throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
-			}
-		}
+    logger.info("EXEC QUERY.... " + query);
+    if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE
+        || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+      if (engine == null) {
+        throw new NullPointerException("No engine passed in to execute the query");
+      }
+      try {
+        engine.insertData(query);
+        if (commit) {
+          engine.commit();
+        }
+      } catch (Exception e) {
+        logger.error(Constants.STACKTRACE, e);
+        String errorMessage = "An error occurred trying to execute the query in the database";
+        if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+          errorMessage += ": " + e.getMessage();
+        }
+        throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
+      }
+      // store query in audit db
+      AuditDatabase audit = engine.generateAudit();
+      if (custom) {
+        audit.storeQuery(userId, query);
+      } else {
+        if (update) {
+          audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
+        } else {
+          audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
+        }
+      }
 
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE, PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
-		String customSuccessMessage = getCustomSuccessMessage();
-		if(customSuccessMessage != null && !customSuccessMessage.isEmpty()) {
-			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage(customSuccessMessage));
-		}
-		return noun;
-	}
+      ClusterUtil.pushEngine(engine.getEngineId());
+    } else {
+      try {
+        if (frame != null) {
+          ((AbstractRdbmsFrame) frame).getBuilder().runQuery(query);
+        }
+      } catch (Exception e) {
+        logger.error(Constants.STACKTRACE, e);
+        String errorMessage = "An error occurred trying to update the frame";
+        if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+          errorMessage += ": " + e.getMessage();
+        }
+        throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
+      }
+    }
 
-	/**
-	 * 
-	 * @return
-	 */
-	private NounMetadata getQueryStruct() {
-		NounMetadata object = new NounMetadata(null, PixelDataType.QUERY_STRUCT);
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey());
-		NounMetadata f = new NounMetadata(false, PixelDataType.BOOLEAN);
-		if (allNouns != null) {
-			object = allNouns.getNoun(0);
-			return object;
-		}
-		return f;
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	public String getCustomSuccessMessage() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			return (String) grs.get(0);
-		}
-		
-		return null;
-	}
+    NounMetadata noun =
+        new NounMetadata(
+            true,
+            PixelDataType.BOOLEAN,
+            PixelOperationType.ALTER_DATABASE,
+            PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
+    String customSuccessMessage = getCustomSuccessMessage();
+    if (customSuccessMessage != null && !customSuccessMessage.isEmpty()) {
+      noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage(customSuccessMessage));
+    }
+    return noun;
+  }
 
-	/**
-	 * 
-	 * @param qs
-	 */
-	public void setQueryStruct(NounMetadata qs) {
-		this.qStruct = qs;
-	}
+  /**
+   * @return
+   */
+  private NounMetadata getQueryStruct() {
+    NounMetadata object = new NounMetadata(null, PixelDataType.QUERY_STRUCT);
+    GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey());
+    NounMetadata f = new NounMetadata(false, PixelDataType.BOOLEAN);
+    if (allNouns != null) {
+      object = allNouns.getNoun(0);
+      return object;
+    }
+    return f;
+  }
+
+  /**
+   * @return
+   */
+  public String getCustomSuccessMessage() {
+    GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey());
+    if (grs != null && !grs.isEmpty()) {
+      return (String) grs.get(0);
+    }
+
+    return null;
+  }
+
+  /**
+   * @param qs
+   */
+  public void setQueryStruct(NounMetadata qs) {
+    this.qStruct = qs;
+  }
 }

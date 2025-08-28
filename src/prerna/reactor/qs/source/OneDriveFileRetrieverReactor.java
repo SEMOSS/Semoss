@@ -1,4 +1,17 @@
-
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.qs.source;
 
 import java.io.BufferedReader;
@@ -9,9 +22,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
-
 import org.apache.logging.log4j.Logger;
-
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -25,107 +36,100 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor{
-	
-	private static final String CLASS_NAME = OneDriveFileRetrieverReactor.class.getName();
+public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor {
 
-	public OneDriveFileRetrieverReactor() {
-		this.keysToGet = new String[] { "id" };
-	}
+  private static final String CLASS_NAME = OneDriveFileRetrieverReactor.class.getName();
 
+  public OneDriveFileRetrieverReactor() {
+    this.keysToGet = new String[] {"id"};
+  }
 
+  @Override
+  protected SelectQueryStruct createQueryStruct() {
+    // get keys
+    Logger logger = getLogger(CLASS_NAME);
+    organizeKeys();
+    String msID = this.keyValue.get(this.keysToGet[0]);
+    if (msID == null || msID.length() <= 0) {
+      throw new IllegalArgumentException("Need to specify file id");
+    }
 
-	@Override
-	protected SelectQueryStruct createQueryStruct() {
-		//get keys
-		Logger logger = getLogger(CLASS_NAME);
-		organizeKeys();
-		String msID = this.keyValue.get(this.keysToGet[0]);
-		if (msID == null || msID.length() <= 0) {
-			throw new IllegalArgumentException("Need to specify file id");
-		}
+    // get access token
+    String accessToken = null;
+    User user = this.insight.getUser();
 
-		//get access token
-		String accessToken=null;
-		User user = this.insight.getUser();
+    try {
+      if (user == null) {
+        Map<String, Object> retMap = new HashMap<String, Object>();
+        retMap.put("type", "microsoft");
+        retMap.put("message", "Please login to your Microsoft account");
+        throwLoginError(retMap);
+      } else if (user != null) {
+        AccessToken msToken = user.getAccessToken(AuthProvider.MICROSOFT);
+        accessToken = msToken.getAccess_token();
+      }
+    } catch (Exception e) {
+      Map<String, Object> retMap = new HashMap<String, Object>();
+      retMap.put("type", "microsoft");
+      retMap.put("message", "Please login to your Microsoft account");
+      throwLoginError(retMap);
+    }
 
-		try{
-			if(user==null){
-				Map<String, Object> retMap = new HashMap<String, Object>();
-				retMap.put("type", "microsoft");
-				retMap.put("message", "Please login to your Microsoft account");
-				throwLoginError(retMap);
-			}
-			else if (user != null) {
-				AccessToken msToken = user.getAccessToken(AuthProvider.MICROSOFT);
-				accessToken=msToken.getAccess_token();
-			}
-		}
-		catch (Exception e) {
-			Map<String, Object> retMap = new HashMap<String, Object>();
-			retMap.put("type", "microsoft");
-			retMap.put("message", "Please login to your Microsoft account");
-			throwLoginError(retMap);
-		}
+    Hashtable params = new Hashtable();
+    CsvQueryStruct qs = new CsvQueryStruct();
+    BufferedWriter target = null;
+    try {
+      String url_str = "https://graph.microsoft.com/v1.0/me/drive/items/" + msID + "/content";
+      BufferedReader br = HttpHelperUtility.getHttpStream(url_str, accessToken, params, true);
 
+      // create a file
+      String filePath =
+          DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR)
+              + "\\"
+              + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+      filePath += "\\" + Utility.getRandomString(10) + ".csv";
+      filePath = filePath.replace("\\", "/");
+      File outputFile = new File(filePath);
 
-		Hashtable params = new Hashtable();
-		CsvQueryStruct qs = new CsvQueryStruct();
-		BufferedWriter target = null;
-		try {
-			String url_str = "https://graph.microsoft.com/v1.0/me/drive/items/"+msID+"/content";
-			BufferedReader br = HttpHelperUtility.getHttpStream(url_str, accessToken, params, true);
+      target = new BufferedWriter(new FileWriter(outputFile));
+      String data = null;
 
-			// create a file
-			String filePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
-					+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-			filePath += "\\" + Utility.getRandomString(10) + ".csv";
-			filePath = filePath.replace("\\", "/");
-			File outputFile = new File(filePath);
+      while ((data = br.readLine()) != null) {
+        target.write(data);
+        target.write("\n");
+        target.flush();
+      }
 
-			target = new BufferedWriter(new FileWriter(outputFile));
-			String data = null;
-
-
-			while((data = br.readLine()) != null)
-			{
-				target.write(data);
-				target.write("\n");
-				target.flush();
-			}
-
-			// get datatypes
-			CSVFileHelper helper = new CSVFileHelper();
-			helper.setDelimiter(',');
-			helper.parse(filePath);
-			Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes());
-			Map<String, String> dataTypes = predictionMaps[0];
-			Map<String, String> additionalDataTypes = predictionMaps[1];
-			for (String key : dataTypes.keySet()) {
-				qs.addSelector("DND", key);
-			}
-			helper.clear();
-			qs.merge(this.qs);
-			qs.setFilePath(filePath);
-			qs.setDelimiter(',');
-			qs.setColumnTypes(dataTypes);
-			qs.setAdditionalTypes(additionalDataTypes);
-		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}finally {
-			if(target != null) {
-		          try {
-		        	  target.flush();
-		        	  target.close();
-		          } catch(IOException e) {
-		            logger.error(Constants.STACKTRACE, e);
-		          }
-		        }
-		}
-		return qs;
-	}
-
-
-
-
+      // get datatypes
+      CSVFileHelper helper = new CSVFileHelper();
+      helper.setDelimiter(',');
+      helper.parse(filePath);
+      Map[] predictionMaps =
+          FileHelperUtil.generateDataTypeMapsFromPrediction(
+              helper.getHeaders(), helper.predictTypes());
+      Map<String, String> dataTypes = predictionMaps[0];
+      Map<String, String> additionalDataTypes = predictionMaps[1];
+      for (String key : dataTypes.keySet()) {
+        qs.addSelector("DND", key);
+      }
+      helper.clear();
+      qs.merge(this.qs);
+      qs.setFilePath(filePath);
+      qs.setDelimiter(',');
+      qs.setColumnTypes(dataTypes);
+      qs.setAdditionalTypes(additionalDataTypes);
+    } catch (IOException e) {
+      logger.error(Constants.STACKTRACE, e);
+    } finally {
+      if (target != null) {
+        try {
+          target.flush();
+          target.close();
+        } catch (IOException e) {
+          logger.error(Constants.STACKTRACE, e);
+        }
+      }
+    }
+    return qs;
+  }
 }

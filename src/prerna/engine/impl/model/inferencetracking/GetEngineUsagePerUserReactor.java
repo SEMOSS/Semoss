@@ -1,8 +1,21 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.engine.impl.model.inferencetracking;
 
 import java.util.List;
 import java.util.Map;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -12,33 +25,39 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetEngineUsagePerUserReactor extends AbstractReactor {
-	
-	public GetEngineUsagePerUserReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.START_DATE.getKey(), ReactorKeysEnum.END_DATE.getKey()};
-	}
 
-	@Override
-	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if(engineId == null || engineId.isEmpty()) {
-			throw new IllegalArgumentException("Must input an engine id");
-		}
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
-		if(!SecurityEngineUtils.userIsOwner(user, engineId)) {
-			throw new IllegalArgumentException("Engine does not exist or user is not an owner of Engine");
-		}
-		
-		
-		String limit = this.keyValue.get(this.keysToGet[1]);
-		String offset = this.keyValue.get(this.keysToGet[2]);
-		String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
-		String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
-		
-		List<Map<String, Object>> tokenUsagePerUserList = ModelInferenceLogsUtils.getUserUsagePerEngine(engineId, limit, offset, startDate, endDate);
+  public GetEngineUsagePerUserReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.ENGINE.getKey(),
+          ReactorKeysEnum.LIMIT.getKey(),
+          ReactorKeysEnum.OFFSET.getKey(),
+          ReactorKeysEnum.START_DATE.getKey(),
+          ReactorKeysEnum.END_DATE.getKey()
+        };
+  }
 
-		return new NounMetadata(tokenUsagePerUserList, PixelDataType.FORMATTED_DATA_SET);
-	}
+  @Override
+  public NounMetadata execute() {
+    User user = this.insight.getUser();
+    organizeKeys();
+    String engineId = this.keyValue.get(this.keysToGet[0]);
+    if (engineId == null || engineId.isEmpty()) {
+      throw new IllegalArgumentException("Must input an engine id");
+    }
+    engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
+    if (!SecurityEngineUtils.userIsOwner(user, engineId)) {
+      throw new IllegalArgumentException("Engine does not exist or user is not an owner of Engine");
+    }
 
+    String limit = this.keyValue.get(this.keysToGet[1]);
+    String offset = this.keyValue.get(this.keysToGet[2]);
+    String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
+    String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
+
+    List<Map<String, Object>> tokenUsagePerUserList =
+        ModelInferenceLogsUtils.getUserUsagePerEngine(engineId, limit, offset, startDate, endDate);
+
+    return new NounMetadata(tokenUsagePerUserList, PixelDataType.FORMATTED_DATA_SET);
+  }
 }

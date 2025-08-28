@@ -1,5 +1,26 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.engine.impl.rdf;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 import org.apache.jena.dboe.transaction.txn.TransactionException;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.tdb2.TDB2;
@@ -9,268 +30,265 @@ import org.junit.jupiter.api.Test;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.util.Constants;
 
-import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 public class RDFJenaTDBEngineUnitTests {
 
-    private RDFJenaTDBEngine engine;
+  private RDFJenaTDBEngine engine;
 
-    private String randomNumbers() {
-        Random rand = new Random();
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 10; i++) {
-            sb.append(rand.nextInt(10));
-        }
-        return sb.toString();
+  private String randomNumbers() {
+    Random rand = new Random();
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < 10; i++) {
+      sb.append(rand.nextInt(10));
     }
+    return sb.toString();
+  }
 
-    @BeforeEach
-    void setUp() throws Exception {
-        Path tempDir  = Files.createTempDirectory("junit" + randomNumbers());
-        engine = new RDFJenaTDBEngine();
+  @BeforeEach
+  void setUp() throws Exception {
+    Path tempDir = Files.createTempDirectory("junit" + randomNumbers());
+    engine = new RDFJenaTDBEngine();
 
-        Path rdf = tempDir.resolve("data");
-        Files.createDirectories(rdf.getParent());
-        URI uri = rdf.toUri();
-        String baseUri = uri.toString();
-        String rdfPath = rdf.toAbsolutePath().toString();
+    Path rdf = tempDir.resolve("data");
+    Files.createDirectories(rdf.getParent());
+    URI uri = rdf.toUri();
+    String baseUri = uri.toString();
+    String rdfPath = rdf.toAbsolutePath().toString();
 
-        //Files.createFile(rdf);
+    // Files.createFile(rdf);
 
-        String[] rdfLines = {
-                "<?xml version=\"1.0\"?>",
-                "<rdf:RDF",
-                "    xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"",
-                "    xmlns:ex=\"http://example.org/movies#\"",
-                "    xmlns:xsd=\"http://www.w3.org/2001/XMLSchema#\">",
-                "",
-                "    <rdf:Description rdf:about=\"http://example.org/movies#Movie1\">",
-                "        <ex:title>Inception</ex:title>",
-                "        <ex:length rdf:datatype=\"http://www.w3.org/2001/XMLSchema#integer\">148</ex:length>",
-                "        <ex:rating rdf:datatype=\"http://www.w3.org/2001/XMLSchema#double\">8.8</ex:rating>",
-                "        <ex:aspectRatio rdf:datatype=\"http://www.w3.org/2001/XMLSchema#float\">2.39</ex:aspectRatio>",
-                "        <ex:isAvailable rdf:datatype=\"http://www.w3.org/2001/XMLSchema#boolean\">true</ex:isAvailable>",
-                "        <ex:releaseDate rdf:datatype=\"http://www.w3.org/2001/XMLSchema#date\">2010-07-16</ex:releaseDate>",
-                "        <ex:lastScreening rdf:datatype=\"http://www.w3.org/2001/XMLSchema#dateTime\">2023-10-01T20:00:00</ex:lastScreening>",
-                "    </rdf:Description>",
-                "",
-                "    <rdf:Description rdf:about=\"http://example.org/movies#Movie2\">",
-                "        <ex:title>The Matrix</ex:title>",
-                "        <ex:length rdf:datatype=\"http://www.w3.org/2001/XMLSchema#integer\">136</ex:length>",
-                "        <ex:rating rdf:datatype=\"http://www.w3.org/2001/XMLSchema#double\">8.7</ex:rating>",
-                "        <ex:aspectRatio rdf:datatype=\"http://www.w3.org/2001/XMLSchema#float\">2.35</ex:aspectRatio>",
-                "        <ex:isAvailable rdf:datatype=\"http://www.w3.org/2001/XMLSchema#boolean\">false</ex:isAvailable>",
-                "        <ex:releaseDate rdf:datatype=\"http://www.w3.org/2001/XMLSchema#date\">1999-03-31</ex:releaseDate>",
-                "        <ex:lastScreening rdf:datatype=\"http://www.w3.org/2001/XMLSchema#dateTime\">2023-09-15T18:30:00</ex:lastScreening>",
-                "    </rdf:Description>",
-                "",
-                "</rdf:RDF>"
-        };
+    String[] rdfLines = {
+      "<?xml version=\"1.0\"?>",
+      "<rdf:RDF",
+      "    xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"",
+      "    xmlns:ex=\"http://example.org/movies#\"",
+      "    xmlns:xsd=\"http://www.w3.org/2001/XMLSchema#\">",
+      "",
+      "    <rdf:Description rdf:about=\"http://example.org/movies#Movie1\">",
+      "        <ex:title>Inception</ex:title>",
+      "        <ex:length rdf:datatype=\"http://www.w3.org/2001/XMLSchema#integer\">148</ex:length>",
+      "        <ex:rating rdf:datatype=\"http://www.w3.org/2001/XMLSchema#double\">8.8</ex:rating>",
+      "        <ex:aspectRatio rdf:datatype=\"http://www.w3.org/2001/XMLSchema#float\">2.39</ex:aspectRatio>",
+      "        <ex:isAvailable rdf:datatype=\"http://www.w3.org/2001/XMLSchema#boolean\">true</ex:isAvailable>",
+      "        <ex:releaseDate rdf:datatype=\"http://www.w3.org/2001/XMLSchema#date\">2010-07-16</ex:releaseDate>",
+      "        <ex:lastScreening rdf:datatype=\"http://www.w3.org/2001/XMLSchema#dateTime\">2023-10-01T20:00:00</ex:lastScreening>",
+      "    </rdf:Description>",
+      "",
+      "    <rdf:Description rdf:about=\"http://example.org/movies#Movie2\">",
+      "        <ex:title>The Matrix</ex:title>",
+      "        <ex:length rdf:datatype=\"http://www.w3.org/2001/XMLSchema#integer\">136</ex:length>",
+      "        <ex:rating rdf:datatype=\"http://www.w3.org/2001/XMLSchema#double\">8.7</ex:rating>",
+      "        <ex:aspectRatio rdf:datatype=\"http://www.w3.org/2001/XMLSchema#float\">2.35</ex:aspectRatio>",
+      "        <ex:isAvailable rdf:datatype=\"http://www.w3.org/2001/XMLSchema#boolean\">false</ex:isAvailable>",
+      "        <ex:releaseDate rdf:datatype=\"http://www.w3.org/2001/XMLSchema#date\">1999-03-31</ex:releaseDate>",
+      "        <ex:lastScreening rdf:datatype=\"http://www.w3.org/2001/XMLSchema#dateTime\">2023-09-15T18:30:00</ex:lastScreening>",
+      "    </rdf:Description>",
+      "",
+      "</rdf:RDF>"
+    };
 
-        List<String> lines = Arrays.asList(rdfLines);
+    List<String> lines = Arrays.asList(rdfLines);
 
-        //Files.write(rdf, lines);
+    // Files.write(rdf, lines);
 
-        Properties props = new Properties();
-        props.setProperty(Constants.ENGINE, "engine-01");
-        props.setProperty(Constants.ENGINE_ALIAS, "ea");
-        props.setProperty(Constants.RDF_FILE_NAME, rdfPath);
-        props.setProperty(Constants.RDF_FILE_PATH, rdfPath);
-        props.setProperty(Constants.RDF_FILE_BASE_URI, baseUri);
-        props.setProperty(Constants.RDF_FILE_TYPE, "RDF/XML");
+    Properties props = new Properties();
+    props.setProperty(Constants.ENGINE, "engine-01");
+    props.setProperty(Constants.ENGINE_ALIAS, "ea");
+    props.setProperty(Constants.RDF_FILE_NAME, rdfPath);
+    props.setProperty(Constants.RDF_FILE_PATH, rdfPath);
+    props.setProperty(Constants.RDF_FILE_BASE_URI, baseUri);
+    props.setProperty(Constants.RDF_FILE_TYPE, "RDF/XML");
 
-        // not exactly sure what to put here
-        String typeQuery = "";
-        props.setProperty(Constants.TYPE_QUERY, "");
+    // not exactly sure what to put here
+    String typeQuery = "";
+    props.setProperty(Constants.TYPE_QUERY, "");
 
-        engine.setBasic(true);
+    engine.setBasic(true);
 
-        engine.open(props);
+    engine.open(props);
 
+    String insertQuery =
+        "PREFIX ex: <http://example.org/movies#>\n"
+            + "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n"
+            + "\n"
+            + "INSERT DATA {\n"
+            + "  <http://example.org/movies#Movie3> \n"
+            + "    ex:title \"Interstellar\" ;\n"
+            + "    ex:length \"169\"^^xsd:integer ;\n"
+            + "    ex:rating \"8.6\"^^xsd:double ;\n"
+            + "    ex:aspectRatio \"2.39\"^^xsd:float ;\n"
+            + "    ex:isAvailable \"true\"^^xsd:boolean ;\n"
+            + "    ex:releaseDate \"2014-11-07\"^^xsd:date ;\n"
+            + "    ex:lastScreening \"2023-10-10T19:00:00\"^^xsd:dateTime .\n"
+            + "}";
 
+    engine.insertData(insertQuery);
+  }
 
-        String insertQuery = "PREFIX ex: <http://example.org/movies#>\n" +
-                "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
-                "\n" +
-                "INSERT DATA {\n" +
-                "  <http://example.org/movies#Movie3> \n" +
-                "    ex:title \"Interstellar\" ;\n" +
-                "    ex:length \"169\"^^xsd:integer ;\n" +
-                "    ex:rating \"8.6\"^^xsd:double ;\n" +
-                "    ex:aspectRatio \"2.39\"^^xsd:float ;\n" +
-                "    ex:isAvailable \"true\"^^xsd:boolean ;\n" +
-                "    ex:releaseDate \"2014-11-07\"^^xsd:date ;\n" +
-                "    ex:lastScreening \"2023-10-10T19:00:00\"^^xsd:dateTime .\n" +
-                "}";
+  @AfterEach
+  void tearDown() throws IOException {
+    engine.close();
+    engine.getDataset().close();
+    engine.getDataset().end();
+    TDB2.closedown();
+  }
 
-        engine.insertData(insertQuery);
-    }
+  @Test
+  void testOpen() throws IOException {
+    // Open is called in before each. Make sure its connected
+    assertTrue(engine.isConnected());
+  }
 
-    @AfterEach
-    void tearDown() throws IOException {
-        engine.close();
-        engine.getDataset().close();
-        engine.getDataset().end();
-        TDB2.closedown();
-    }
+  @Test
+  void testExecQuery() {
+    // This query could be wrong.
+    String query =
+        "PREFIX ex: <http://example.org/movies#>\n"
+            + "\n"
+            + "SELECT ?title ?length\n"
+            + "WHERE {\n"
+            + "  ?movie ex:title ?title ;\n"
+            + "         ex:length ?length .\n"
+            + "}";
 
-    @Test
-    void testOpen() throws IOException {
-        // Open is called in before each. Make sure its connected
-        assertTrue(engine.isConnected());
-    }
+    Object result = engine.execQuery(query);
+    ResultSet rs = (ResultSet) result;
 
-    @Test
-    void testExecQuery() {
-        // This query could be wrong.
-        String query = "PREFIX ex: <http://example.org/movies#>\n" +
-                "\n" +
-                "SELECT ?title ?length\n" +
-                "WHERE {\n" +
-                "  ?movie ex:title ?title ;\n" +
-                "         ex:length ?length .\n" +
-                "}";
+    List<String> results = rs.getResultVars();
+    assertAll(
+        "QuerySolutions",
+        () -> assertEquals("title", results.get(0)),
+        () -> assertEquals("length", results.get(1)));
+  }
 
-        Object result = engine.execQuery(query);
-        ResultSet rs = (ResultSet) result;
+  @Test
+  void testExecQueryBoolean() {
+    String query =
+        "PREFIX ex: <http://example.org/movies#>\n"
+            + "\n"
+            + "ASK WHERE {\n"
+            + "  ?movie ex:title \"Interstellar\" ;\n"
+            + "         ex:length 169 .\n"
+            + "}";
 
-        List<String> results = rs.getResultVars();
-        assertAll("QuerySolutions",
-                () -> assertEquals("title", results.get(0)),
-                () -> assertEquals("length", results.get(1))
-        );
-    }
+    Boolean result = (Boolean) engine.execQuery(query);
 
-    @Test
-    void testExecQueryBoolean() {
-        String query = "PREFIX ex: <http://example.org/movies#>\n" +
-                "\n" +
-                "ASK WHERE {\n" +
-                "  ?movie ex:title \"Interstellar\" ;\n" +
-                "         ex:length 169 .\n" +
-                "}";
+    assertTrue(result);
+  }
 
-        Boolean result = (Boolean) engine.execQuery(query);
+  @Test
+  void testRemoveData() {
+    String insertQuery =
+        "PREFIX ex: <http://example.org/movies#>\n"
+            + "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n"
+            + "\n"
+            + "DELETE DATA {\n"
+            + "  <http://example.org/movies#Movie3> \n"
+            + "    ex:title \"Interstellar\" ;\n"
+            + "    ex:length \"169\"^^xsd:integer ;\n"
+            + "    ex:rating \"8.6\"^^xsd:double ;\n"
+            + "    ex:aspectRatio \"2.39\"^^xsd:float ;\n"
+            + "    ex:isAvailable \"true\"^^xsd:boolean ;\n"
+            + "    ex:releaseDate \"2014-11-07\"^^xsd:date ;\n"
+            + "    ex:lastScreening \"2023-10-10T19:00:00\"^^xsd:dateTime .\n"
+            + "}";
 
-        assertTrue(result);
-    }
+    engine.removeData(insertQuery);
 
-    @Test
-    void testRemoveData() {
-        String insertQuery = "PREFIX ex: <http://example.org/movies#>\n" +
-                "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
-                "\n" +
-                "DELETE DATA {\n" +
-                "  <http://example.org/movies#Movie3> \n" +
-                "    ex:title \"Interstellar\" ;\n" +
-                "    ex:length \"169\"^^xsd:integer ;\n" +
-                "    ex:rating \"8.6\"^^xsd:double ;\n" +
-                "    ex:aspectRatio \"2.39\"^^xsd:float ;\n" +
-                "    ex:isAvailable \"true\"^^xsd:boolean ;\n" +
-                "    ex:releaseDate \"2014-11-07\"^^xsd:date ;\n" +
-                "    ex:lastScreening \"2023-10-10T19:00:00\"^^xsd:dateTime .\n" +
-                "}";
+    String query =
+        "PREFIX ex: <http://example.org/movies#>\n"
+            + "\n"
+            + "ASK WHERE {\n"
+            + "  ?movie ex:title \"Interstellar\" ;\n"
+            + "         ex:length 169 .\n"
+            + "}";
 
-        engine.removeData(insertQuery);
+    Boolean result = (Boolean) engine.execQuery(query);
 
-        String query = "PREFIX ex: <http://example.org/movies#>\n" +
-                "\n" +
-                "ASK WHERE {\n" +
-                "  ?movie ex:title \"Interstellar\" ;\n" +
-                "         ex:length 169 .\n" +
-                "}";
+    assertFalse(result);
+  }
 
-        Boolean result = (Boolean) engine.execQuery(query);
+  @Test
+  void testGetDatabaseType() {
+    assertEquals(IDatabaseEngine.DATABASE_TYPE.JENA, engine.getDatabaseType());
+  }
 
-        assertFalse(result);
-    }
+  @Test
+  void testHoldsLockFile() {
+    assertTrue(engine.holdsFileLocks());
+  }
 
-    @Test
-    void testGetDatabaseType() {
-        assertEquals(IDatabaseEngine.DATABASE_TYPE.JENA, engine.getDatabaseType());
-    }
+  @Test
+  void testGetCleanSelect() {
+    String query =
+        "PREFIX ex: <http://example.org/movies#>\n"
+            + "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n"
+            + "\n"
+            + "SELECT ?title ?length ?rating ?aspectRatio ?isAvailable ?releaseDate ?lastScreening\n"
+            + "WHERE {\n"
+            + "  ?movie ex:title ?title ;\n"
+            + "         ex:length ?length ;\n"
+            + "         ex:rating ?rating ;\n"
+            + "         ex:aspectRatio ?aspectRatio ;\n"
+            + "         ex:isAvailable ?isAvailable ;\n"
+            + "         ex:releaseDate ?releaseDate ;\n"
+            + "         ex:lastScreening ?lastScreening .\n"
+            + "}";
 
-    @Test
-    void testHoldsLockFile() {
-        assertTrue(engine.holdsFileLocks());
-    }
+    // Not sure how to not get an exception.
+    TransactionException e =
+        assertThrows(TransactionException.class, () -> engine.getCleanSelect(query));
+    assertEquals("Not in a transaction", e.getMessage());
 
-    @Test
-    void testGetCleanSelect() {
-        String query = "PREFIX ex: <http://example.org/movies#>\n" +
-                "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
-                "\n" +
-                "SELECT ?title ?length ?rating ?aspectRatio ?isAvailable ?releaseDate ?lastScreening\n" +
-                "WHERE {\n" +
-                "  ?movie ex:title ?title ;\n" +
-                "         ex:length ?length ;\n" +
-                "         ex:rating ?rating ;\n" +
-                "         ex:aspectRatio ?aspectRatio ;\n" +
-                "         ex:isAvailable ?isAvailable ;\n" +
-                "         ex:releaseDate ?releaseDate ;\n" +
-                "         ex:lastScreening ?lastScreening .\n" +
-                "}";
+    // It gets the one database values
+    // assertEquals(1, result.size());
+  }
 
-        // Not sure how to not get an exception.
-        TransactionException e = assertThrows(TransactionException.class, () -> engine.getCleanSelect(query));
-        assertEquals("Not in a transaction", e.getMessage());
+  @Test
+  void testAddStatement() {
+    String subject = "http://example.org/movies#Movie1";
+    String predicate = "http://example.org/movies#title";
+    String object = "Men In Black 2";
+    Boolean concept = false;
 
-        // It gets the one database values
-        // assertEquals(1, result.size());
-    }
+    Object[] args = {subject, predicate, object, concept};
 
+    engine.addStatement(args);
 
-    @Test
-    void testAddStatement() {
-        String subject = "http://example.org/movies#Movie1";
-        String predicate = "http://example.org/movies#title";
-        String object = "Men In Black 2";
-        Boolean concept = false;
+    String query =
+        "PREFIX ex: <http://example.org/movies#>\n"
+            + "\n"
+            + "ASK WHERE {\n"
+            + "  ?movie ex:title \"Men In Black 2\"  .\n"
+            + "}";
 
-        Object[] args = {subject, predicate, object, concept};
+    Boolean result = (Boolean) engine.execQuery(query);
+    assertTrue(result);
+  }
 
-        engine.addStatement(args);
+  @Test
+  void testRemoveStatement() {
+    String subject = "http://example.org/movies#Movie1";
+    String predicate = "http://example.org/movies#title";
+    String object = "Inception";
+    Boolean concept = false;
 
-        String query = "PREFIX ex: <http://example.org/movies#>\n" +
-                "\n" +
-                "ASK WHERE {\n" +
-                "  ?movie ex:title \"Men In Black 2\"  .\n" +
-                "}";
+    Object[] args = {subject, predicate, object, concept};
 
-        Boolean result = (Boolean) engine.execQuery(query);
-        assertTrue(result);
-    }
+    engine.removeStatement(args);
 
-    @Test
-    void testRemoveStatement() {
-        String subject = "http://example.org/movies#Movie1";
-        String predicate = "http://example.org/movies#title";
-        String object = "Inception";
-        Boolean concept = false;
+    String query =
+        "PREFIX ex: <http://example.org/movies#>\n"
+            + "\n"
+            + "ASK WHERE {\n"
+            + "  ?movie ex:title \"Inception\"  .\n"
+            + "}";
 
-        Object[] args = {subject, predicate, object, concept};
+    Boolean result = (Boolean) engine.execQuery(query);
+    assertFalse(result);
+  }
 
-        engine.removeStatement(args);
-
-        String query = "PREFIX ex: <http://example.org/movies#>\n" +
-                "\n" +
-                "ASK WHERE {\n" +
-                "  ?movie ex:title \"Inception\"  .\n" +
-                "}";
-
-        Boolean result = (Boolean) engine.execQuery(query);
-        assertFalse(result);
-    }
-
-    @Test
-    void testGetDataset() {
-        assertNotNull(engine.getDataset());
-    }
-
+  @Test
+  void testGetDataset() {
+    assertNotNull(engine.getDataset());
+  }
 }

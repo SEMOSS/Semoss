@@ -1,7 +1,20 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.utils;
 
 import java.util.HashMap;
-
 import prerna.engine.impl.web.WebScrapeEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -10,24 +23,21 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetNumTableReactor extends AbstractReactor {
 
-	public GetNumTableReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), "aliasMap"};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
+  public GetNumTableReactor() {
+    this.keysToGet = new String[] {ReactorKeysEnum.URL.getKey(), "aliasMap"};
+  }
 
-		String url = this.keyValue.get(this.keysToGet[0]);
-		HashMap aliasMap = (HashMap)this.getNounStore().getNoun("aliasMap").get(0);
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
 
-		
-		WebScrapeEngine engine = new WebScrapeEngine();
-		
-		int numTables = engine.getNumTables(url, aliasMap);
-				
-		
-		return new NounMetadata(numTables, PixelDataType.CONST_STRING);
-	}
+    String url = this.keyValue.get(this.keysToGet[0]);
+    HashMap aliasMap = (HashMap) this.getNounStore().getNoun("aliasMap").get(0);
 
+    WebScrapeEngine engine = new WebScrapeEngine();
+
+    int numTables = engine.getNumTables(url, aliasMap);
+
+    return new NounMetadata(numTables, PixelDataType.CONST_STRING);
+  }
 }

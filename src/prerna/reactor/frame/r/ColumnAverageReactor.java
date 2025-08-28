@@ -1,9 +1,22 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.frame.r;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
@@ -17,75 +30,83 @@ import prerna.util.Utility;
 
 public class ColumnAverageReactor extends AbstractRFrameReactor {
 
-	/*
-	 * Keys that can be passed in
-	 */
+  /*
+   * Keys that can be passed in
+   */
 
-	public ColumnAverageReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey() };
-	}
+  public ColumnAverageReactor() {
+    this.keysToGet =
+        new String[] {ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey()};
+  }
 
-	@Override
-	public NounMetadata execute() {
-		init();
-		organizeKeys();
-		RDataTable frame = (RDataTable) getFrame();
-		String frameName = frame.getName();
-		List<String> columns = getCols(ReactorKeysEnum.COLUMNS.getKey());
-		String newColName = this.keyValue.get(ReactorKeysEnum.NEW_COLUMN.getKey());
-		newColName = getCleanNewColName(newColName);
+  @Override
+  public NounMetadata execute() {
+    init();
+    organizeKeys();
+    RDataTable frame = (RDataTable) getFrame();
+    String frameName = frame.getName();
+    List<String> columns = getCols(ReactorKeysEnum.COLUMNS.getKey());
+    String newColName = this.keyValue.get(ReactorKeysEnum.NEW_COLUMN.getKey());
+    newColName = getCleanNewColName(newColName);
 
-		// build and run r script
-		StringBuilder script = new StringBuilder();
-		script.append(frameName).append("$").append(newColName).append(" <- round(((");
-		int i;
-		OwlTemporalEngineMeta metadata = frame.getMetaData();
-		Map<String, SemossDataType> dataTypeMap = metadata.getHeaderToTypeMap();
-		for (i = 0; i < columns.size() - 1; i++) {
-			String column = columns.get(i);
-			SemossDataType dataType = dataTypeMap.get(frameName + "__" + column);
-			if (!Utility.isNumericType(dataType.toString())) {
-				throw new IllegalArgumentException(column + " must be a numeric column");
-			}
-			script.append(frameName).append("$").append(column).append(" + ");
-		}
-		script.append(frameName).append("$").append(columns.get(i)).append(") / ");
-		script.append(columns.size()).append("), digits = 2);");
-		this.rJavaTranslator.runR(script.toString());
-		this.addExecutedCode(script.toString());
+    // build and run r script
+    StringBuilder script = new StringBuilder();
+    script.append(frameName).append("$").append(newColName).append(" <- round(((");
+    int i;
+    OwlTemporalEngineMeta metadata = frame.getMetaData();
+    Map<String, SemossDataType> dataTypeMap = metadata.getHeaderToTypeMap();
+    for (i = 0; i < columns.size() - 1; i++) {
+      String column = columns.get(i);
+      SemossDataType dataType = dataTypeMap.get(frameName + "__" + column);
+      if (!Utility.isNumericType(dataType.toString())) {
+        throw new IllegalArgumentException(column + " must be a numeric column");
+      }
+      script.append(frameName).append("$").append(column).append(" + ");
+    }
+    script.append(frameName).append("$").append(columns.get(i)).append(") / ");
+    script.append(columns.size()).append("), digits = 2);");
+    this.rJavaTranslator.runR(script.toString());
+    this.addExecutedCode(script.toString());
 
-		// check if new column exists
-		String colExistsScript = "\"" + newColName + "\" %in% colnames(" + frameName + ")";
-		boolean colExists = this.rJavaTranslator.getBoolean(colExistsScript);
-		if (!colExists) {
-			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to perform average across columns");
-			SemossPixelException exception = new SemossPixelException(error);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
+    // check if new column exists
+    String colExistsScript = "\"" + newColName + "\" %in% colnames(" + frameName + ")";
+    boolean colExists = this.rJavaTranslator.getBoolean(colExistsScript);
+    if (!colExists) {
+      NounMetadata error =
+          NounMetadata.getErrorNounMessage("Unable to perform average across columns");
+      SemossPixelException exception = new SemossPixelException(error);
+      exception.setContinueThreadOfExecution(false);
+      throw exception;
+    }
 
-		// update meta data
-		OwlTemporalEngineMeta metaData = frame.getMetaData();
-		metaData.addProperty(frameName, frameName + "__" + newColName);
-		metaData.setAliasToProperty(frameName + "__" + newColName, newColName);
-		metaData.setDataTypeToProperty(frameName + "__" + newColName, SemossDataType.DOUBLE.toString());
-		metaData.setDerivedToProperty(frameName + "__" + newColName, true);
-		frame.syncHeaders();
+    // update meta data
+    OwlTemporalEngineMeta metaData = frame.getMetaData();
+    metaData.addProperty(frameName, frameName + "__" + newColName);
+    metaData.setAliasToProperty(frameName + "__" + newColName, newColName);
+    metaData.setDataTypeToProperty(frameName + "__" + newColName, SemossDataType.DOUBLE.toString());
+    metaData.setDerivedToProperty(frameName + "__" + newColName, true);
+    frame.syncHeaders();
 
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,PixelOperationType.FRAME_DATA_CHANGE);
-		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully performed average across columns."));
-		return retNoun;
-	}
+    NounMetadata retNoun =
+        new NounMetadata(
+            frame,
+            PixelDataType.FRAME,
+            PixelOperationType.FRAME_HEADERS_CHANGE,
+            PixelOperationType.FRAME_DATA_CHANGE);
+    retNoun.addAdditionalReturn(
+        NounMetadata.getSuccessNounMessage("Successfully performed average across columns."));
+    return retNoun;
+  }
 
-	private List<String> getCols(String key) {
-		List<String> columnsList = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(key);
-		if (grs == null || grs.isEmpty()) {
-			throw new IllegalArgumentException("Please pass at least one numeric column.");
-		}
-		for (int i = 0; i < grs.size(); i++) {
-			columnsList.add(grs.get(i).toString());
-		}
-		return columnsList;
-	}
+  private List<String> getCols(String key) {
+    List<String> columnsList = new Vector<String>();
+    GenRowStruct grs = this.store.getNoun(key);
+    if (grs == null || grs.isEmpty()) {
+      throw new IllegalArgumentException("Please pass at least one numeric column.");
+    }
+    for (int i = 0; i < grs.size(); i++) {
+      columnsList.add(grs.get(i).toString());
+    }
+    return columnsList;
+  }
 }

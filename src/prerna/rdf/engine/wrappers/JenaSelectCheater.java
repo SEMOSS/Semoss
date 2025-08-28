@@ -1,30 +1,17 @@
-/*******************************************************************************
+/***************************************************************************************************
  * Copyright 2015 Defense Health Agency (DHA)
  *
- * If your use of this software does not include any GPLv2 components:
- * 	Licensed under the Apache License, Version 2.0 (the "License");
- * 	you may not use this file except in compliance with the License.
- * 	You may obtain a copy of the License at
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
  *
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * 	Unless required by applicable law or agreed to in writing, software
- * 	distributed under the License is distributed on an "AS IS" BASIS,
- * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * 	See the License for the specific language governing permissions and
- * 	limitations under the License.
- * ----------------------------------------------------------------------------
- * If your use of this software includes any GPLv2 components:
- * 	This program is free software; you can redistribute it and/or
- * 	modify it under the terms of the GNU General Public License
- * 	as published by the Free Software Foundation; either version 2
- * 	of the License, or (at your option) any later version.
- *
- * 	This program is distributed in the hope that it will be useful,
- * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
- * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * 	GNU General Public License for more details.
- *******************************************************************************/
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.rdf.engine.wrappers;
 
 import java.io.IOException;
@@ -32,102 +19,97 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 
 public class JenaSelectCheater extends AbstractWrapper implements IConstructWrapper {
 
-	private static final Logger logger = LogManager.getLogger(JenaSelectCheater.class);
+  private static final Logger logger = LogManager.getLogger(JenaSelectCheater.class);
 
-	transient int count = 0;
-	transient String [] var = null;
-	transient int triples;
-	transient int tqrCount=0;
-	String[] queryVar;
-	transient ResultSet rs = null;
+  transient int count = 0;
+  transient String[] var = null;
+  transient int triples;
+  transient int tqrCount = 0;
+  String[] queryVar;
+  transient ResultSet rs = null;
 
-	@Override
-	public IConstructStatement next() {
-		if(!hasNext()) {
-			throw new NoSuchElementException();
-		}
+  @Override
+  public IConstructStatement next() {
+    if (!hasNext()) {
+      throw new NoSuchElementException();
+    }
 
-		IConstructStatement thisSt = new ConstructStatement();
-		logger.debug("Adding a JENA statement ");
-	    QuerySolution row = rs.nextSolution();
-	    thisSt.setSubject(row.get(var[0])+"");
-	    thisSt.setPredicate(row.get(var[1])+"");
-	    thisSt.setObject(row.get(var[2]));
+    IConstructStatement thisSt = new ConstructStatement();
+    logger.debug("Adding a JENA statement ");
+    QuerySolution row = rs.nextSolution();
+    thisSt.setSubject(row.get(var[0]) + "");
+    thisSt.setPredicate(row.get(var[1]) + "");
+    thisSt.setObject(row.get(var[2]));
 
-	    return thisSt;
-	}
+    return thisSt;
+  }
 
-	@Override
-	public void execute() {
-		try {
-			rs = (ResultSet)engine.execQuery(query);
-			getVariables();
-			processSelectVar();
-			count=0;
-		} catch (Exception e) {
-			logger.error("StackTrace: ", e);
-		}
-	}
+  @Override
+  public void execute() {
+    try {
+      rs = (ResultSet) engine.execQuery(query);
+      getVariables();
+      processSelectVar();
+      count = 0;
+    } catch (Exception e) {
+      logger.error("StackTrace: ", e);
+    }
+  }
 
-	@Override
-	public boolean hasNext() {
-		return 	rs.hasNext();
-	}
+  @Override
+  public boolean hasNext() {
+    return rs.hasNext();
+  }
 
-	private String [] getVariables() {
-		var = new String[rs.getResultVars().size()];
-		List <String> names = rs.getResultVars();
-		for(int colIndex = 0;
-				colIndex < names.size();
-				var[colIndex] = names.get(colIndex), colIndex++);
-		return var;
-	}
+  private String[] getVariables() {
+    var = new String[rs.getResultVars().size()];
+    List<String> names = rs.getResultVars();
+    for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names.get(colIndex), colIndex++)
+      ;
+    return var;
+  }
 
-	public void processSelectVar() {
-		if(query.contains("DISTINCT")) {
-			Pattern pattern = Pattern.compile("SELECT DISTINCT(.*?)WHERE");
-		    Matcher matcher = pattern.matcher(query);
-		    String varString = null;
-		    while (matcher.find()) {
-		    	varString = matcher.group(1);
-		    }
+  public void processSelectVar() {
+    if (query.contains("DISTINCT")) {
+      Pattern pattern = Pattern.compile("SELECT DISTINCT(.*?)WHERE");
+      Matcher matcher = pattern.matcher(query);
+      String varString = null;
+      while (matcher.find()) {
+        varString = matcher.group(1);
+      }
 
-		    if (varString != null) {
-		    	varString = varString.trim();
-			    queryVar = varString.split(" ");
-			    int num = queryVar.length+1;
-			    triples = num/3;
-		    }
-		} else {
-			Pattern pattern = Pattern.compile("SELECT (.*?)WHERE");
-		    Matcher matcher = pattern.matcher(query);
-		    String varString = null;
-		    while (matcher.find()) {
-		        varString = matcher.group(1);
-		    }
+      if (varString != null) {
+        varString = varString.trim();
+        queryVar = varString.split(" ");
+        int num = queryVar.length + 1;
+        triples = num / 3;
+      }
+    } else {
+      Pattern pattern = Pattern.compile("SELECT (.*?)WHERE");
+      Matcher matcher = pattern.matcher(query);
+      String varString = null;
+      while (matcher.find()) {
+        varString = matcher.group(1);
+      }
 
-		    if (varString != null) {
-			    varString = varString.trim();
-			    queryVar = varString.split(" ");
-			    int num = queryVar.length+1;
-			    triples = num/3;
-		    }
-		}
-	}
+      if (varString != null) {
+        varString = varString.trim();
+        queryVar = varString.split(" ");
+        int num = queryVar.length + 1;
+        triples = num / 3;
+      }
+    }
+  }
 
-	@Override
-	public void close() throws IOException {
-		
-	}
+  @Override
+  public void close() throws IOException {}
 }

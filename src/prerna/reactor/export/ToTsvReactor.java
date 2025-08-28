@@ -1,8 +1,21 @@
+/***************************************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components: Licensed under the Apache
+ * License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ ***************************************************************************************************/
 package prerna.reactor.export;
 
 import java.io.File;
 import java.util.UUID;
-
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -16,62 +29,70 @@ import prerna.util.Utility;
 
 public class ToTsvReactor extends AbstractExportTxtReactor {
 
-	private static final String CLASS_NAME = ToTsvReactor.class.getName();
-	
-	public ToTsvReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), APPEND_TIMESTAMP};
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		User user = this.insight.getUser();
-		// throw error is user doesn't have rights to export data
-		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
-			AbstractReactor.throwUserNotExporterError();
-		}
-		this.logger = getLogger(CLASS_NAME);
-		this.task = getTask();
-		// set to tab separated
-		this.setDelimiter("\t");
-		// do we append the timestamp to the name
-		this.appendTimestamp = appendTimeStamp();
-		
-		String downloadKey = UUID.randomUUID().toString();
-		InsightFile insightFile = new InsightFile();
-		insightFile.setFileKey(downloadKey);
-		
-		// get a random file name
-		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = getExportFileName(user, prefixName, "tsv", this.appendTimestamp);
-		
-		// grab file path to write the file
-		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
-		// if the file location is not defined generate a random path and set
-		// location so that the front end will download
-		if (this.fileLocation == null) {
-			String insightFolder = this.insight.getInsightFolder();
-			File f = new File(insightFolder);
-			if(!f.exists()) {
-				f.mkdirs();
-			}
-			this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			insightFile.setDeleteOnInsightClose(true);
-		} else {
-			this.fileLocation += DIR_SEPARATOR + exportName;
-			insightFile.setDeleteOnInsightClose(false);
-		}
-		insightFile.setFilePath(this.fileLocation);
-		buildTask();
+  private static final String CLASS_NAME = ToTsvReactor.class.getName();
 
-		// store the insight file 
-		// in the insight so the FE can download it
-		// only from the given insight
-		this.insight.addExportFile(downloadKey, insightFile);
+  public ToTsvReactor() {
+    this.keysToGet =
+        new String[] {
+          ReactorKeysEnum.TASK.getKey(),
+          ReactorKeysEnum.FILE_NAME.getKey(),
+          ReactorKeysEnum.FILE_PATH.getKey(),
+          APPEND_TIMESTAMP
+        };
+  }
 
-		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the tsv file"));
-		return retNoun;
-	}
-	
+  @Override
+  public NounMetadata execute() {
+    organizeKeys();
+    User user = this.insight.getUser();
+    // throw error is user doesn't have rights to export data
+    if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+      AbstractReactor.throwUserNotExporterError();
+    }
+    this.logger = getLogger(CLASS_NAME);
+    this.task = getTask();
+    // set to tab separated
+    this.setDelimiter("\t");
+    // do we append the timestamp to the name
+    this.appendTimestamp = appendTimeStamp();
+
+    String downloadKey = UUID.randomUUID().toString();
+    InsightFile insightFile = new InsightFile();
+    insightFile.setFileKey(downloadKey);
+
+    // get a random file name
+    String prefixName =
+        Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
+    String exportName = getExportFileName(user, prefixName, "tsv", this.appendTimestamp);
+
+    // grab file path to write the file
+    this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+    // if the file location is not defined generate a random path and set
+    // location so that the front end will download
+    if (this.fileLocation == null) {
+      String insightFolder = this.insight.getInsightFolder();
+      File f = new File(insightFolder);
+      if (!f.exists()) {
+        f.mkdirs();
+      }
+      this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
+      insightFile.setDeleteOnInsightClose(true);
+    } else {
+      this.fileLocation += DIR_SEPARATOR + exportName;
+      insightFile.setDeleteOnInsightClose(false);
+    }
+    insightFile.setFilePath(this.fileLocation);
+    buildTask();
+
+    // store the insight file
+    // in the insight so the FE can download it
+    // only from the given insight
+    this.insight.addExportFile(downloadKey, insightFile);
+
+    NounMetadata retNoun =
+        new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+    retNoun.addAdditionalReturn(
+        NounMetadata.getSuccessNounMessage("Successfully generated the tsv file"));
+    return retNoun;
+  }
 }
