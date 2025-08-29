@@ -4,6 +4,7 @@ import java.io.File;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,6 +13,8 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -27,6 +30,9 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
+import prerna.project.api.IProject;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -43,8 +49,8 @@ public class Room {
 	private Timestamp updatedAt;
 	private final List<AbstractMessage> messages = new ArrayList<>();
 	private boolean pinned;
-    private String options; // Stays as string (as from DB)
-    private transient Map<String, Object> optionsMap; // Not stored, just for use in code
+	private String options; // Stays as string (as from DB)
+	private transient Map<String, Object> optionsMap; // Not stored, just for use in code
 
 	private String modelId;
 	private String messagesJson;
@@ -58,34 +64,35 @@ public class Room {
 
 	// Use this constructor if you want to load from JSON (as from DB)
 	public Room(String room_id, String userId, String roomName, String systemMessage, String shareId, boolean isActive,
-		    Timestamp createdAt, Timestamp updatedAt, String messagesJson, boolean pinned, String options,
-		    String modelId) {
-		    this.room_id = room_id;
-		    this.userId = userId;
-		    this.roomName = roomName;
-		    this.systemMessage = systemMessage;
-		    this.shareId = shareId;
-		    this.isActive = isActive;
-		    this.createdAt = createdAt;
-		    this.updatedAt = updatedAt;
-		    this.pinned = pinned;
-		    this.options = options;
-		    this.modelId = modelId;
-		    this.messagesJson = messagesJson;
-		    this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
-		    parseMessages();
+			Timestamp createdAt, Timestamp updatedAt, String messagesJson, boolean pinned, String options,
+			String modelId) {
+		this.room_id = room_id;
+		this.userId = userId;
+		this.roomName = roomName;
+		this.systemMessage = systemMessage;
+		this.shareId = shareId;
+		this.isActive = isActive;
+		this.createdAt = createdAt;
+		this.updatedAt = updatedAt;
+		this.pinned = pinned;
+		this.options = options;
+		this.modelId = modelId;
+		this.messagesJson = messagesJson;
+		this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
+		parseMessages();
 
-		    // --------- Parse options on object creation -------------
-		    if (options != null && !options.trim().isEmpty()) {
-		        try {
-		            this.optionsMap = new Gson().fromJson(options, new TypeToken<Map<String, Object>>(){}.getType());
-		        } catch (Exception e) {
-		            this.optionsMap = new HashMap<>();
-		        }
-		    } else {
-		        this.optionsMap = new HashMap<>();
-		    }
+		// --------- Parse options on object creation -------------
+		if (options != null && !options.trim().isEmpty()) {
+			try {
+				this.optionsMap = new Gson().fromJson(options, new TypeToken<Map<String, Object>>() {
+				}.getType());
+			} catch (Exception e) {
+				this.optionsMap = new HashMap<>();
+			}
+		} else {
+			this.optionsMap = new HashMap<>();
 		}
+	}
 
 	public void parseMessages() {
 		setMessagesFromString(this.messagesJson);
@@ -118,8 +125,10 @@ public class Room {
 			ModelInferenceLogsUtils.setRoomContext(this.insight.getInsightId(),
 					this.insight.getUser().getPrimaryLoginToken().getId(), systemMessage);
 		}
-		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 		AbstractModelEngine abstractModel = (AbstractModelEngine) modelEngine;
+
+		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
+		appendToolsToParams(kwArgMap);
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
@@ -249,8 +258,8 @@ public class Room {
 	 * @return
 	 */
 	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
-			String toolExecutionResponse, Map<String, Object> toolParameterValues,
-			String parentMessageId, IModelEngine modelEngine, Insight insight) {
+			String toolExecutionResponse, Map<String, Object> toolParameterValues, String parentMessageId,
+			IModelEngine modelEngine, Insight insight) {
 		if (messages.isEmpty()) {
 			throw new IllegalStateException("No messages to match tool call context");
 		}
@@ -263,7 +272,7 @@ public class Room {
 			AbstractMessage lastMsg = messages.get(messages.size() - 1);
 			lastMessageId = lastMsg.getMessageId();
 		}
-		
+
 		// 1. Find the last RESPONSE_TOOL message (assistant tool_calls)
 		int lastToolRespIdx = -1;
 		ResponseMessage toolResponse = null;
@@ -306,8 +315,8 @@ public class Room {
 		}
 
 		// 3. Add tool execution message
-		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName,
-				toolExecutionResponse, toolParameterValues);
+		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
+				toolParameterValues);
 		toolExecution.setParentMessageId(toolResponse.getMessageId());
 		toolExecution.setModel(modelEngine);
 		messages.add(toolExecution);
@@ -340,6 +349,7 @@ public class Room {
 			String messageJsonString = getMessagesWithImageDataAsString();
 			Map<String, Object> params = new HashMap<>();
 			params.put("message_json", messageJsonString);
+			appendToolsToParams(params);
 			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, params);
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
@@ -353,6 +363,65 @@ public class Room {
 		}
 		// Not all tool_calls fulfilled yet
 		return null;
+	}
+
+	private void appendToolsToParams(Map<String, Object> params) {
+		List<Map<String, Object>> newTools = getAllToolsJsonForRoom();
+		Object existing = params.get("tools");
+		if (existing instanceof List<?>) {
+			@SuppressWarnings("unchecked")
+			List<Map<String, Object>> toolsList = (List<Map<String, Object>>) existing;
+			toolsList.addAll(newTools);
+		} else if (existing == null) {
+			params.put("tools", new ArrayList<>(newTools));
+		} else {
+			params.put("tools", new ArrayList<>(newTools));
+		}
+	}
+
+	/**
+	 * 
+	 * @param
+	 * @return List<Map<String, Object>> for a single app mcp
+	 * 
+	 */
+	private List<Map<String, Object>> getAllToolsJsonForRoom() {
+		List<Map<String, Object>> aggregated = new ArrayList<>();
+		Object mcpToolIDsObj = getOptionsMap().get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
+		if (mcpToolIDsObj instanceof List<?>) {
+			List<?> mcpToolIDs = (List<?>) mcpToolIDsObj;
+			for (Object appIdObj : mcpToolIDs) {
+				if (appIdObj != null) {
+					String appId = appIdObj.toString();
+					aggregated.addAll(getToolJson(appId));
+				}
+			}
+		}
+		return aggregated;
+	}
+
+	/**
+	 * 
+	 * @param String app id
+	 * @return List<Map<String, Object>> for a single app mcp
+	 */
+	private List<Map<String, Object>> getToolJson(String appId) {
+		IProject project = Utility.getProject(appId);
+		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
+		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTooslMethodName(appId, toolMap);
+		if (updatedToolMap != null && updatedToolMap.has("tools")) {
+			JSONArray arr = updatedToolMap.getJSONArray("tools");
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (int i = 0; i < arr.length(); i++) {
+				JSONObject toolObj = arr.getJSONObject(i);
+				Map<String, Object> map = toolObj.toMap();
+				result.add(map);
+			}
+			return result;
+		}
+
+		// Fallback: always return an empty list if nothing found
+		return Collections.emptyList();
 	}
 
 	/**
@@ -438,33 +507,34 @@ public class Room {
 	}
 
 	public String getOptions() {
-	    return options;
+		return options;
 	}
-	
-	public void setOptions(String options) {
-	    this.options = options;
-	}
-	
-    public Map<String, Object> getOptionsMap() {
-        if (optionsMap == null) {
-            if (options != null && !options.trim().isEmpty()) {
-                try {
-                    optionsMap = new Gson().fromJson(options, new TypeToken<Map<String, Object>>(){}.getType());
-                } catch (Exception e) {
-                    optionsMap = new HashMap<>();
-                }
-            } else {
-                optionsMap = new HashMap<>();
-            }
-        }
-        return optionsMap;
-    }
 
-    public void setOptionsMap(Map<String, Object> map) {
-        this.optionsMap = map;
-        this.options = map == null ? null : new Gson().toJson(map);
-    }
-	
+	public void setOptions(String options) {
+		this.options = options;
+	}
+
+	public Map<String, Object> getOptionsMap() {
+		if (optionsMap == null) {
+			if (options != null && !options.trim().isEmpty()) {
+				try {
+					optionsMap = new Gson().fromJson(options, new TypeToken<Map<String, Object>>() {
+					}.getType());
+				} catch (Exception e) {
+					optionsMap = new HashMap<>();
+				}
+			} else {
+				optionsMap = new HashMap<>();
+			}
+		}
+		return optionsMap;
+	}
+
+	public void setOptionsMap(Map<String, Object> map) {
+		this.optionsMap = map;
+		this.options = map == null ? null : new Gson().toJson(map);
+	}
+
 	public String getModelId() {
 		return modelId;
 	}
