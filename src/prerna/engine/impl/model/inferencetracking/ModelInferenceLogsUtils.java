@@ -8,7 +8,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2010,16 +2012,8 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
-
-		QueryFunctionSelector createdSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR",
-				"WORKSPACE__DATE_CREATED", "date_created");
-		createdSelector.addAdditionalParam(new String[] { "'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'" });
-		qs.addSelector(createdSelector);
-
-		QueryFunctionSelector updatedSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR",
-				"WORKSPACE__DATE_UPDATED", "date_updated");
-		updatedSelector.addAdditionalParam(new String[] { "'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'" });
-		qs.addSelector(updatedSelector);
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_UPDATED", "date_updated"));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", workspaceId));
 
@@ -2039,7 +2033,10 @@ public class ModelInferenceLogsUtils {
 					} else if (values[i] instanceof java.sql.Blob) {
 						String value = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]);
 						result.put(headers[i], value);
-					} else {
+					} else if (values[i] instanceof prerna.date.SemossDate) {
+						String value = ((prerna.date.SemossDate) values[i]).getFormatted("yyyy-MM-dd'T'HH:mm:ss'Z'");
+			            result.put(headers[i], value);
+			        } else {
 						result.put(headers[i], values[i]);
 					}
 				}
@@ -2070,16 +2067,8 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT", "room_context"));
 		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "model_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID", "workspace_id"));
-
-		QueryFunctionSelector createdSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR",
-				"ROOM__DATE_CREATED", "date_created");
-		createdSelector.addAdditionalParam(new String[] { "'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'" });
-		qs.addSelector(createdSelector);
-
-		QueryFunctionSelector updatedSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR",
-				"ROOM__UPDATED_AT", "date_updated");
-		updatedSelector.addAdditionalParam(new String[] { "'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'" });
-		qs.addSelector(updatedSelector);
+    qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
+    qs.addSelector(new QueryColumnSelector("ROOM__UPDATED_AT", "date_updated"));
 
 		SelectQueryStruct subQs = new SelectQueryStruct();
 		subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
@@ -2140,7 +2129,10 @@ public class ModelInferenceLogsUtils {
 					} else if (values[i] instanceof java.sql.Blob) {
 						String value = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]);
 						map.put(headers[i], value);
-					} else {
+					} else if (values[i] instanceof prerna.date.SemossDate) {
+						String value = ((prerna.date.SemossDate) values[i]).getFormatted("yyyy-MM-dd'T'HH:mm:ss'Z'");
+			            map.put(headers[i], value);
+			        } else {
 						map.put(headers[i], values[i]);
 					}
 				}
@@ -2180,16 +2172,8 @@ public class ModelInferenceLogsUtils {
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
-
-		QueryFunctionSelector createdSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR",
-				"WORKSPACE__DATE_CREATED", "date_created");
-		createdSelector.addAdditionalParam(new String[] { "'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'" });
-		subQs.addSelector(createdSelector);
-
-		QueryFunctionSelector updatedSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR",
-				"WORKSPACE__DATE_UPDATED", "date_updated");
-		updatedSelector.addAdditionalParam(new String[] { "'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'" });
-		subQs.addSelector(updatedSelector);
+    subQs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
+    subQs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_UPDATED", "date_updated"));
 
 		subQs.addSelector(QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds),
@@ -2252,7 +2236,10 @@ public class ModelInferenceLogsUtils {
 					} else if (values[i] instanceof java.sql.Blob) {
 						String value = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]);
 						map.put(headers[i], value);
-					} else {
+					} else if (values[i] instanceof prerna.date.SemossDate) {
+			            String value = ((prerna.date.SemossDate) values[i]).getFormatted("yyyy-MM-dd'T'HH:mm:ss'Z'");
+			            map.put(headers[i], value);
+			        } else {
 						map.put(headers[i], values[i]);
 					}
 				}
