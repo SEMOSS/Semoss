@@ -54,15 +54,15 @@ import com.google.cloud.vision.v1.TextAnnotation;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.util.JsonFormat;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
-import prerna.reactor.export.pdf.PDFUtility;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.reactor.export.pdf.PDFUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -471,7 +471,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 
 	public Insight getInsight(Object insightObj) {
 		if (insightObj instanceof String) {
-			return InsightStore.getInstance().get((String) insightObj);
+			return InsightStore.getInstance().get(insightObj);
 		} else {
 			return (Insight) insightObj;
 		}
