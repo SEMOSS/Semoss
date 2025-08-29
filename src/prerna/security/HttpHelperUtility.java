@@ -57,6 +57,7 @@ import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.FileEntity;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -230,6 +231,54 @@ public final class HttpHelperUtility {
 			}
 		}
 	}
+	
+	public static byte[] getRequestBytes(String url, Map<String, String> headerMap, String keyStore, String keyStorePass, String keyPass) {
+		CloseableHttpResponse response = null;
+	    HttpEntity entity = null;
+	    byte[] responseBytes = null;
+
+	    try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
+	        HttpGet httpGet = new HttpGet(url);
+
+	        if (headerMap != null && !headerMap.isEmpty()) {
+	            for (String key : headerMap.keySet()) {
+	                httpGet.addHeader(key, headerMap.get(key));
+	            }
+	        }
+
+	        response = httpClient.execute(httpGet);
+	        int statusCode = response.getCode();
+	        entity = response.getEntity();
+
+	        if (statusCode >= 200 && statusCode < 300) {
+	            responseBytes = entity != null ? EntityUtils.toByteArray(entity) : null;
+	        } else {
+	            String errorMsg = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+	            throw new IllegalArgumentException("Connected to " + url + " but received error = " + errorMsg);
+	        }
+
+	        return responseBytes;
+		} catch (IOException | ParseException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		} finally {
+			if(entity != null) {
+				try {
+					EntityUtils.consume(entity);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(response != null) {
+				try {
+					response.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+
 
 	/**
 	 * 
@@ -424,6 +473,44 @@ public final class HttpHelperUtility {
 			}
 
 			return responseData;
+		} catch (IOException | ParseException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		}
+	}
+	
+	public static String postRequestBytesBody(String url, Map<String, String> headersMap, byte[] bodyBytes,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+		String responseData = null;
+		CloseableHttpResponse response = null;
+		HttpEntity entity = null;
+
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
+
+			HttpPost httpPost = new HttpPost(url);
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (Map.Entry<String, String> entry : headersMap.entrySet()) {
+					httpPost.addHeader(entry.getKey(), entry.getValue());
+				}
+			}
+			if (bodyBytes != null && bodyBytes.length > 0) {
+				httpPost.setEntity(new ByteArrayEntity(bodyBytes, contentType));
+			}
+
+			response = httpClient.execute(httpPost);
+			int statusCode = response.getCode();
+			entity = response.getEntity();
+
+			if (statusCode >= 200 && statusCode < 300) {
+				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+			} else {
+				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+			}
+
+			return responseData;
+
 		} catch (IOException | ParseException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
