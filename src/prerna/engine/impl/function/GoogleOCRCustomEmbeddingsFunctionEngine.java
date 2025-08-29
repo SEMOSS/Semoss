@@ -66,7 +66,6 @@ import prerna.om.InsightStore;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-
 public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEngine
 		implements ICustomEmbeddingsFunctionEngine {
 

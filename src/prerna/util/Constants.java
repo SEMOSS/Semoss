@@ -851,11 +851,13 @@ public class Constants {
 	public static final String ENGINE_METAKEYS = "ENGINEMETAKEYS";
 	public static final String PROJECT_METAKEYS = "PROJECTMETAKEYS";
 	public static final String INSIGHT_METAKEYS = "INSIGHTMETAKEYS";
+	public static final String USER_METAKEYS = "USERMETAKEYS";
 	public static final String PROMPT_METAKEYS = "PROMPTMETAKEYS";
 	public static final String METAKEY = "METAKEY";
 	public static final String SINGLE_MULTI = "SINGLEMULTI";
 	public static final String DISPLAY_ORDER = "DISPLAYORDER";
 	public static final String DISPLAY_OPTIONS = "DISPLAYOPTIONS";
+	public static final String DEFAULT_VALUES = "DEFAULTVALUES";
 	
 	// Metamodel keys
 	public static final String NODE_PROP = "nodeProp";

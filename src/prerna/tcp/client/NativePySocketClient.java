@@ -375,7 +375,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				}
 			}
 			connected = false;
-			System.err.println("NativePySocketClient is disconnected");
 			classLogger.warn("NativePySocketClient is disconnected");
 		}
 	}
