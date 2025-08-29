@@ -274,20 +274,26 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 					.append(TRIPLE_QUOTE);	
 			}
 			
-			if (parameters.containsKey("toolExecution")) {
-	            Map<String, Object> toolExecutionMap = (Map<String, Object>) parameters.get("toolExecution");
-		        if (chatHistory.containsKey(insight.getInsightId())) {
-		            chatHistory.get(insight.getInsightId()).add(toolExecutionMap);
+			// if we are doing message_json (new world playground chat)
+			// we should ignore trying to add additional history
+			// TODO: remove the entire chatHistory object from the python model entirely
+			// otherwise we end up with 2 history= params being sent to the json
+			if(!parameters.containsKey("message_json")) {
+				if (parameters.containsKey("toolExecution")) {
+		            Map<String, Object> toolExecutionMap = (Map<String, Object>) parameters.get("toolExecution");
+			        if (chatHistory.containsKey(insight.getInsightId())) {
+			            chatHistory.get(insight.getInsightId()).add(toolExecutionMap);
+			        }
+			        parameters.remove("toolExecution");
 		        }
-		        parameters.remove("toolExecution");
-	        }
-
-			String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
-			if(history != null) {
-				//could still be null if its the first question in the convo
-				callMaker.append(",")
-						 .append("history=")
-						 .append(history);
+	
+				String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
+				if(history != null) {
+					//could still be null if its the first question in the convo
+					callMaker.append(",")
+							 .append("history=")
+							 .append(history);
+				}
 			}
 		}
 		
@@ -311,7 +317,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		
 		callMaker.append(")");
 		
-		classLogger.debug("Running >>>" + callMaker.toString());
+		classLogger.debug("Running >>> " + callMaker.toString());
 		
 		Object output = pyTranslator.runDirectPy(callMaker.toString());
 		AskModelEngineResponse response = null;
