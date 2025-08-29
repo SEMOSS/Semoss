@@ -473,7 +473,7 @@ public class GoogleCalendarHelper {
 	 */
 	@SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> getEventList(String accessToken, String startDateTime, String endDateTime) throws Exception {
-        Map<String, List<List<String>>> events = new LinkedHashMap<>();
+        Map<String, List<Map<String, Object>>> events = new LinkedHashMap<>();
 		String url = String.format(GOOGLE_CALENDAR_LIST_TEMPLATE, CALENDAR_ID);
         String pageToken = null;
         do {
@@ -499,20 +499,20 @@ public class GoogleCalendarHelper {
             List<Map<String, Object>> items = (List<Map<String, Object>>) json.get(ITEMS);
             if (items != null && !items.isEmpty()) {
                 for (Map<String, Object> item : items) {
-                    List<String> lst = new ArrayList<>();
-                    lst.add((String) item.get(SUMMARY));
-                    lst.add((String) item.get(ID));
-                    String recurringEventId = (String) item.get(RECURRING_EVENT_ID);
-                    if (recurringEventId != null) {
-                        lst.add(recurringEventId);               
-                    }
-                    Map<String, Object> start = (Map<String, Object>) item.get(START);
-                    String dateTime = (String) start.get(DATE_TIME);
-                    String date = dateTime.substring(0,10);
-                    if(!events.containsKey(date)) {
-                    	events.put(date, new ArrayList<>());	
-                    }
-                    events.get(date).add(lst);
+                	Map<String, Object> map = new HashMap<>();
+                	map.put(SUMMARY, item.get(SUMMARY));
+                	map.put(ID, item.get(ID));
+                	String recurringEventId = (String) item.get(RECURRING_EVENT_ID);
+                	if (recurringEventId != null) {
+                		map.put(RECURRING_EVENT_ID, item.get(RECURRING_EVENT_ID));
+                	}
+                	Map<String, Object> start = (Map<String, Object>) item.get(START);
+                	String dateTime = (String) start.get(DATE_TIME);
+                	String date = dateTime.substring(0,10);
+                	if(!events.containsKey(date)) {
+                	events.put(date, new ArrayList<>());
+                	}
+                	events.get(date).add(map);
                 }
             }
             pageToken = (String) json.get(NEXT_PAGE_TOKEN);
@@ -523,7 +523,7 @@ public class GoogleCalendarHelper {
 	    }
 	    
 	    List<Map<String, Object>> eventList = new ArrayList<>();
-	    for (Map.Entry<String, List<List<String>>> entry : events.entrySet()) {
+	    for (Map.Entry<String, List<Map<String, Object>>> entry : events.entrySet()) {
 	        Map<String, Object> map = new LinkedHashMap<>();
 	        map.put(DATE, entry.getKey());
 	        map.put(EVENTS, entry.getValue());
