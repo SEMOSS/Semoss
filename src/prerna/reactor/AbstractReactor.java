@@ -553,13 +553,7 @@ public abstract class AbstractReactor implements IReactor {
 	
 	@Override
 	public Logger getLogger(String className) {
-		String jobId = ThreadStore.getJobId();
-		if(jobId != null) {
-			Logger retLogger = new InMemoryConsole(className, ThreadStore.getJobId());
-			return retLogger;
-		}
-		
-		return LogManager.getLogger(className);
+		return getLogger(className, false);
 	}
 	
 	@Override
@@ -567,7 +561,7 @@ public abstract class AbstractReactor implements IReactor {
 		String jobId = ThreadStore.getJobId();
 		if(jobId != null) {
 			InMemoryConsole retLogger = new InMemoryConsole(className, ThreadStore.getJobId());
-			retLogger.setPartial(true);
+			retLogger.setPartial(partial);
 			return retLogger;
 		}
 		
@@ -674,7 +668,7 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		
 		if(nullMessage.length() != 0) {
-			nullMessage.append("Cannot be empty").insert(0, "Fields  ");
+			nullMessage.append("cannot be empty").insert(0, "Fields ");
 			throw new IllegalArgumentException(nullMessage.toString());
 		}
 	}
