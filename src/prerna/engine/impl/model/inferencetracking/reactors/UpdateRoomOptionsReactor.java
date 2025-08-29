@@ -6,7 +6,11 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.auth.User;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -17,7 +21,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class UpdateRoomOptionsReactor extends AbstractReactor {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LogManager.getLogger(UpdateRoomOptionsReactor.class);
-
+	
+	
+	
 	public UpdateRoomOptionsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey(), "roomOptions" };
 		this.keyRequired = new int[] {1, 0};
@@ -25,6 +31,9 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		
+		Gson gson = new Gson();
+		
 		organizeKeys();
 		User user = this.insight.getUser();
 		if (user == null) {
@@ -33,8 +42,11 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		Map<String, Object> roomOptions = getRoomOptionsMap();
-
 		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
+		
+		//Create Room in memory if doesn't exist, add options
+		Room room = RoomUtils.createRoomIfNotExists(roomId, this.insight, null, null);
+		room.setOptions(gson.toJson(roomOptions));
 		
 		// updating part of the room object, so clear the cache
 		this.insight.getUser().roomHash.remove(roomId);
