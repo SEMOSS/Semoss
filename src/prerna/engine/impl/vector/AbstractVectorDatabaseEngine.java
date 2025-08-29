@@ -86,6 +86,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	
     protected boolean customDocumentProcessor = false;
     protected String customDocumentProcessorFunctionID = null;
+    protected boolean Save_File_In_STORAGE = false; 
 
     protected String imageEngineId;
     
@@ -145,6 +146,9 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
         }
         if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID)) {
         	this.customDocumentProcessorFunctionID = this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID);
+        }
+        if (this.smssProp.containsKey(Constants.SAVE_FILE_IN_STORAGE)) {
+        	this.Save_File_In_STORAGE =  Boolean.parseBoolean(this.smssProp.getProperty(Constants.SAVE_FILE_IN_STORAGE));
         }
         
 		// highest directory (first layer inside vector db base folder)
@@ -339,6 +343,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 							}
 							ICustomEmbeddingsFunctionEngine customEmbeddings = (ICustomEmbeddingsFunctionEngine) functionEngine;
 							if(customEmbeddings.canProcessDocument(document)) {
+								parameters.put(Constants.SAVE_FILE_IN_STORAGE, this.Save_File_In_STORAGE);	
 								rowsCreated = customEmbeddings.processDocument(extractedFile.getAbsolutePath(), document, parameters);
 								processed = true;
 							}
