@@ -123,6 +123,18 @@ class AnthropicMessageBuilder:
                 param_map = message.param_map
                 param_map = self._clean_param_map(param_map)
                 
+                # Formatting the structured json input
+                has_schema = param_map.get("schema", False)
+                if has_schema:
+                    content = [self._build_text_content_part(str(has_schema))]
+
+                    anthropic_messages.append(
+                        AnthropicMessage(
+                            role=AnthropicRoles.USER,
+                            content=content,
+                        )
+                    )
+
                 if "tools" in param_map:
                     param_map["tools"] = self._convert_mcp_to_anthropic_tools(param_map["tools"])
 

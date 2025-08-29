@@ -112,6 +112,18 @@ class BedrockMessageBuilder:
                     message.param_map
                 )
 
+                # Formatting the structured json input
+                has_schema = param_map.pop("schema", False)
+                if has_schema:
+                    content = [self._build_text_content_block(str(has_schema))]
+
+                    bedrock_messages.append(
+                        BedrockMessage(
+                            role=role,
+                            content=content,
+                        )
+                    )
+
                 last_message_tools = message.param_map.get("tools")
                 if last_message_tools:
                     tools = self._convert_mcp_to_bedrock_tools(last_message_tools)
