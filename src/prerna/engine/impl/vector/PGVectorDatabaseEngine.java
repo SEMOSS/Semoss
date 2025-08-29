@@ -90,7 +90,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private String embedderEngineId = null;
 	private String keywordGeneratorEngineId = null;
 	private String distanceMethod = null;
-	private String rankMethod = null;
 	
 	private String vectorTableName = null;
 	private String vectorTableMetadataName = null;
@@ -125,7 +124,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		super.open(smssProp);
 		
 		this.distanceMethod = smssProp.getProperty(Constants.DISTANCE_METHOD);
-		this.rankMethod = smssProp.getProperty("RANKER_METHOD");
 		this.vectorTableName = smssProp.getProperty(PGVECTOR_TABLE_NAME);
 		if(this.vectorTableName == null || (this.vectorTableName=this.vectorTableName.trim()).isEmpty()) {
 			throw new NullPointerException("Must define the vector db table name");
@@ -198,11 +196,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
             }
         }
         
-        try {
-            this.bm25Service = BM25RankerService.loadFromConfig(smssProp);
-        } catch (Exception e) {
-            classLogger.error("Failed to initialize BM25RankerService", e);
-        }
 	}
 	
 	/**
@@ -419,35 +412,30 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	        }
 	    }
 
-	    BM25RankerService bm25ServiceForCall = this.bm25Service;
-	    boolean isTempService = false;
-
-	    if (parameters != null && parameters.containsKey("bm25_fp")) {
-	        String bm25Fp = (String) parameters.get("bm25_fp");
+	    // Only run BM25 indexing if BM25_ENABLED is set to TRUE in .smss properties
+	    if ("TRUE".equalsIgnoreCase(smssProp.getProperty("BM25_ENABLED"))) {
+	        BM25RankerService bm25ServiceForCall = null;
 	        try {
-	            bm25ServiceForCall = new BM25RankerService(bm25Fp);
-	            isTempService = true;
-	        } catch (Exception e) {
-	            classLogger.error("Failed to initialize BM25RankerService with fp: " + bm25Fp, e);
-	        }
-	    }
+	            bm25ServiceForCall = new BM25RankerService(); // No file path
+	            classLogger.info("STARTING BM25 indexing");
+	            List<String> contents = new ArrayList<>();
+	            List<String> ids = new ArrayList<>();
 
-	    if (bm25ServiceForCall != null) {
-	        classLogger.info("STARTING BM25 indexing");
-	        List<String> contents = new ArrayList<>();
-	        List<String> ids = new ArrayList<>();
-	        for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
-	            String mergedId = row.getSource() + "|" + row.getDivider() + "|" + row.getPart();
-	            ids.add(mergedId);
-	            contents.add(row.getContent());
-	        }
-	        try {
+	            for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
+	                ids.add(String.join("|", row.getSource(), row.getDivider(), row.getPart()));
+	                contents.add(row.getContent());
+	            }
+
 	            bm25ServiceForCall.insertDocuments(contents, ids);
 	        } catch (Exception e) {
 	            classLogger.error("BM25 insert failed", e);
 	        } finally {
-	            if (isTempService) {
-	                try { bm25ServiceForCall.close(); } catch (Exception ignore) {}
+	            if (bm25ServiceForCall != null) {
+	                try {
+	                    bm25ServiceForCall.close();
+	                } catch (Exception ignore) {
+	                    // Ignore close exception
+	                }
 	            }
 	        }
 	    }
@@ -690,6 +678,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
 	public List<Map<String, Object>> nearestNeighborCall(
 	        Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
+
 	    if (insight == null) {
 	        throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 	    }
@@ -697,34 +686,52 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	        verifyModelProps();
 	    }
 
-	    String rankMethod = (this.rankMethod != null) ? this.rankMethod.trim().toUpperCase() : "SEMANTIC";
+	    String rankMethod = "SEMANTIC";
+	    if (parameters != null && parameters.containsKey("rankMethod")) {
+	        Object rm = parameters.get("rankMethod");
+	        if (rm != null) {
+	            rankMethod = rm.toString().trim().toUpperCase();
+	        }
+	    }
+	    
 	    int topN = (limit != null) ? limit.intValue() : 10;
 
 	    List<Map<String, Object>> bm25Results = new ArrayList<>();
 	    List<Map<String, Object>> vectorResults = new ArrayList<>();
 	    List<Map<String, Object>> finalResults = new ArrayList<>();
 
-	    BM25RankerService bm25ServiceForCall = this.bm25Service;
-	    if (parameters != null && parameters.containsKey("bm25_fp")) {
-	        String bm25Fp = (String) parameters.get("bm25_fp");
+	    // BM25 service initialization logic
+	    BM25RankerService bm25ServiceForCall = null;
+	    boolean bm25Enabled = "TRUE".equalsIgnoreCase(smssProp.getProperty("BM25_ENABLED"));
+
+	    if (bm25Enabled) {
 	        try {
-	            bm25ServiceForCall = new BM25RankerService(bm25Fp);
+	            if (parameters != null && parameters.containsKey("bm25_fp")) {
+	                String bm25Fp = (String) parameters.get("bm25_fp");
+	                bm25ServiceForCall = new BM25RankerService(bm25Fp);
+	            } else {
+	                bm25ServiceForCall = new BM25RankerService(); // default/in-memory
+	            }
 	        } catch (IOException e) {
-	            classLogger.error("Failed to initialize BM25RankerService with fp: " + bm25Fp, e);
-	            throw new IllegalArgumentException("Invalid BM25 fp: " + bm25Fp);
+	            classLogger.error("Failed to initialize BM25RankerService", e);
+	            throw new IllegalArgumentException("Unable to initialize BM25RankerService", e);
 	        }
 	    }
 
 	    try {
 	        switch (rankMethod) {
 	            case "BM25":
-	                bm25Results = bm25ServiceForCall.search(searchStatement, topN);
+	                bm25Results = (bm25ServiceForCall != null)
+	                    ? bm25ServiceForCall.search(searchStatement, topN)
+	                    : Collections.emptyList();
 	                finalResults = bm25Results;
 	                break;
 
 	            case "RRF": {
 	                int candidatePoolSize = Math.min(50, topN * 3);
-	                bm25Results = bm25ServiceForCall != null ? bm25ServiceForCall.search(searchStatement, candidatePoolSize) : Collections.emptyList();
+	                bm25Results = (bm25ServiceForCall != null)
+	                    ? bm25ServiceForCall.search(searchStatement, candidatePoolSize)
+	                    : Collections.emptyList();
 	                vectorResults = runVectorSearch(insight, searchStatement, candidatePoolSize, parameters);
 	                finalResults = VectorRankingUtils.rrfFuse(bm25Results, vectorResults, topN);
 	                break;
@@ -732,10 +739,15 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	            case "HYBRID": {
 	                int candidatePoolSize = Math.min(50, topN);
-	                bm25Results = bm25ServiceForCall != null ? bm25ServiceForCall.search(searchStatement, candidatePoolSize) : Collections.emptyList();
+	                bm25Results = (bm25ServiceForCall != null)
+	                    ? bm25ServiceForCall.search(searchStatement, candidatePoolSize)
+	                    : Collections.emptyList();
 	                vectorResults = runVectorSearch(insight, searchStatement, candidatePoolSize, parameters);
 
-	                double alpha = 0.35, beta = 0.65;
+	                // Dynamically determine hybrid weights using NLP
+	                double[] weights = VectorRankingUtils.getHybridWeights(searchStatement);
+	                double alpha = weights[0], beta = weights[1];
+
 	                finalResults = VectorRankingUtils.hybridFuse(bm25Results, vectorResults, topN, alpha, beta);
 	                break;
 	            }
@@ -749,15 +761,15 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	    } catch (Exception e) {
 	        classLogger.error("Search failed", e);
 	    }
-	    
-	    if (bm25ServiceForCall != null && bm25ServiceForCall != this.bm25Service) {
+
+	    // Clean up the BM25 service if it was initialized here
+	    if (bm25ServiceForCall != null) {
 	        try {
-	        	bm25ServiceForCall.close();
+	            bm25ServiceForCall.close();
 	        } catch (Exception e) {
-	        	classLogger.error("Failed to close temporary BM25RankerService", e);
+	            classLogger.error("Failed to close BM25RankerService", e);
 	        }
 	    }
-
 
 	    return finalResults;
 	}

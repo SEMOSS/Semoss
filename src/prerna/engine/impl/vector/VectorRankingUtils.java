@@ -188,4 +188,45 @@ public class VectorRankingUtils {
 
         return fused;
     }
+    
+    /**
+     * Analyzes the search prompt using simple NLP heuristics to dynamically adjust hybrid fusion weights.
+     * 
+     * The method tokenizes the input prompt and counts the number of stopwords versus total tokens.
+     * Based on the ratio of stopwords to total tokens, it estimates whether the prompt is more likely
+     * a keyword-based search or a natural language query, and sets the BM25 (lexical) and semantic weights accordingly.
+     *
+     *	CURRENT HEURISTIC -
+     *  If the prompt is short and contains few stopwords, it favors BM25 (keyword search).
+     *  If the prompt contains many stopwords or is more conversational, it favors semantic search.
+     * 
+     *
+     * @param prompt The user's search prompt for the nearest neighbor call.
+     * @return A double array where the first element is the BM25 weight (alpha) and the second is the semantic weight (beta).
+     */
+    static double[] getHybridWeights(String prompt) {
+        // Default weights: alpha = BM25, beta = semantic
+        double alpha = 0.35, beta = 0.65;
+
+        // Simple NLP: if prompt is short and has few stopwords, favor BM25
+        String[] stopwords = {"the", "is", "at", "which", "on", "a", "an", "and", "or", "for", "to"};
+        int stopwordCount = 0;
+        String[] tokens = prompt.toLowerCase().split("\\s+");
+        for (String token : tokens) {
+            for (String sw : stopwords) {
+                if (token.equals(sw)) stopwordCount++;
+            }
+        }
+
+        if (tokens.length <= 6 && stopwordCount <= 1) {
+            // Likely a keyword search
+            alpha = 0.65;
+            beta = 0.35;
+        } else if (stopwordCount > tokens.length / 2) {
+            // More natural language, favor semantic
+            alpha = 0.2;
+            beta = 0.8;
+        }
+        return new double[]{alpha, beta};
+    }
 }
