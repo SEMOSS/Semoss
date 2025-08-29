@@ -103,7 +103,9 @@ public class PyUtils {
 	*/
     @SuppressWarnings("unchecked")
     public static String determineStringType(Object obj) {
-    	if (obj instanceof Integer || obj instanceof Double || obj instanceof Long) {
+    	if(obj == null) {
+    		return "None";
+    	} else if (obj instanceof Integer || obj instanceof Double || obj instanceof Long) {
     		return String.valueOf(obj);
     	} else if (obj instanceof Map) {
     		return constructPyDictFromMap((Map<String, Object>) obj);
@@ -149,12 +151,15 @@ public class PyUtils {
 			theSet.append("}");
 			return theSet.toString();
     	} else if(obj instanceof File) {
-    		return "r'''"+((File) obj).getAbsolutePath().replace("\\", "/").replace("'", "\\'")+"'''";
+    		return "r'''"+((File) obj).getAbsolutePath().replace("\\", "/")+"'''";
     	} else if(obj instanceof Insight) {
     		return "'"+((Insight) obj).getInsightId()+"'";
-    	} else {
-    		return "r'''"+String.valueOf(obj).replace("'", "\\'").replace("\n", "\\n")+"'''";
-    	}
+		} else {
+			String str = String.valueOf(obj);
+			// Replace any sequence of 3+ quotes with escaped version
+			str = str.replaceAll("'{3,}", "\\\\'\\\\'\\\\'");
+			return "r'''" + str + "'''";
+		}
     }
     
     public static boolean isPyPIReachable() {
