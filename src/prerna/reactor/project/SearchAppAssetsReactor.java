@@ -53,8 +53,8 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 				relativeFilePath = "/" + relativeFilePath;
 			}
 		}
-
-		String filePath = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		
+		String filePath = AssetUtility.getProjectAppRootFolder(project.getProjectId());
 		int baseLen = filePath.length();
 		String searchRoot = filePath + (relativeFilePath != null ? relativeFilePath : "");
 
@@ -128,6 +128,15 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String,Object> createMeta(File f, String relativePath, boolean isDir) {
+		if (relativePath.startsWith("/")) {
+			relativePath = relativePath.substring(1);
+	    }
+ 
+	    if (isDir) {
+	        if (!relativePath.endsWith("/")) {
+	        	relativePath = relativePath + "/";
+	        }
+	    }
 		Map<String,Object> map = new HashMap<>();
 		map.put("name", f.getName());
 		map.put("path", relativePath);
