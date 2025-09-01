@@ -1863,42 +1863,40 @@ public class ModelInferenceLogsUtils {
     return null;
   }
 
-  /* -------- ROOM PIECES -------*/
+	/* -------- ROOM PIECES ------- */
 
-  /**
-   * @param roomId
-   * @param userId
-   * @param messageHistory
-   */
-  public static boolean llm2_updateRoomMessages(
-      String roomId, String userId, String messageHistory) {
-    PreparedStatement updateStmt = null;
-    try {
-      // Update messages and timestamp where room and user match
-      String query =
-          "UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? WHERE ROOM_ID = ? AND USER_ID = ?";
-      updateStmt = modelInferenceLogsDb.getPreparedStatement(query);
+	/**
+	 * @param roomId
+	 * @param userId
+	 * @param messageHistory
+	 */
+	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory) {
+		PreparedStatement updateStmt = null;
+		try {
+			// Update messages and timestamp where room and user match
+			String query = "UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? WHERE ROOM_ID = ? AND USER_ID = ?";
+			updateStmt = modelInferenceLogsDb.getPreparedStatement(query);
 
-      // Prepare statement
-      updateStmt.setString(1, messageHistory);
-      updateStmt.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
-      updateStmt.setString(3, roomId);
-      updateStmt.setString(4, userId);
+			// Prepare statement
+			updateStmt.setString(1, messageHistory);
+			updateStmt.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
+			updateStmt.setString(3, roomId);
+			updateStmt.setString(4, userId);
 
-      // Execute update
-      int rows = updateStmt.executeUpdate();
-      if (!updateStmt.getConnection().getAutoCommit()) {
-        updateStmt.getConnection().commit();
-      }
-      return rows > 0;
+			// Execute update
+			int rows = updateStmt.executeUpdate();
+			if (!updateStmt.getConnection().getAutoCommit()) {
+				updateStmt.getConnection().commit();
+			}
+			return rows > 0;
 
-    } catch (Exception e) {
-      classLogger.error("Error updating room messages: ", e);
-      throw new IllegalArgumentException("Error updating room messages: " + e.getMessage());
-    } finally {
-      ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
-    }
-  }
+		} catch (Exception e) {
+			classLogger.error("Error updating room messages: ", e);
+			throw new IllegalArgumentException("Error updating room messages: " + e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
+		}
+	}
   
 
 	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory, String roomName,
