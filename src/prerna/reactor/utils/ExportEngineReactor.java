@@ -2,21 +2,15 @@ package prerna.reactor.utils;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Enumeration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.logging.log4j.LogManager;
@@ -24,19 +18,23 @@ import org.apache.logging.log4j.Logger;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.om.InsightFile;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -50,6 +48,8 @@ import prerna.util.EngineSyncUtility;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
+import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class ExportEngineReactor extends AbstractReactor {
 
@@ -80,7 +80,7 @@ public class ExportEngineReactor extends AbstractReactor {
 			if (!isOwner) {
 				throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have permissions to engine. User must be the owner to perform this function.");
 			}
-		}
+		}		
 
 		IEngine engine = Utility.getEngine(engineId);
 		logger.info("Exporting engine... ");
@@ -126,11 +126,23 @@ public class ExportEngineReactor extends AbstractReactor {
 				if(thisEngineF.exists()) {
 					logger.info("Zipping engine files...");
 					// now zip up
+					if(includeData!=null&&includeData.equals("false")) {
 					zos = ZipUtils.zipFolder(thisEngineDir, zipFilePath, ignoreDirs, 
 							// ignore the current metadata file
 							Arrays.asList(
-									engineNameAndId+"/"+engineName+IEngine.METADATA_FILE_SUFFIX
+									engineNameAndId+"/"+engineName+IEngine.METADATA_FILE_SUFFIX,
+									engineNameAndId+"/"+"database.mv.db"
 								));
+					// creating reference database without data and adding it to the zip file
+					createReferenceDatabase(engineId, thisEngineDir, zos, engineNameAndId);
+					}else {
+						zos = ZipUtils.zipFolder(thisEngineDir, zipFilePath, ignoreDirs, 
+								// ignore the current metadata file
+								Arrays.asList(
+										engineNameAndId+"/"+engineName+IEngine.METADATA_FILE_SUFFIX
+								
+									));
+					}
 					logger.info("Done zipping engine folder");
 				} else {
 					logger.info("No engine folder to zip");
@@ -188,18 +200,6 @@ public class ExportEngineReactor extends AbstractReactor {
 				}
 			}
 		}
-		
-		//clear the data from database and export it while schema remains the same
-		if(includeData!=null&&includeData.equals("false")) {
-			try {
-				removeDataFromTables(zipFilePath);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new SemossPixelException("database.mv.db not found inside");
-			}
-
-		}
-
 		// store it in the insight so the FE can download it
 		// only from the given insight
 		String downloadKey = UUID.randomUUID().toString();
@@ -211,91 +211,111 @@ public class ExportEngineReactor extends AbstractReactor {
 		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
 	
-	public static void removeDataFromTables(String zipFilePath) throws Exception {
-        File path = new File(zipFilePath);
- 
-        // checking whether database.mv.db is present or not
-        String dbEntryPath = null;
-        final String fileName = "/database.mv.db";
-        try (ZipFile zf = new ZipFile(path)) {
-            Enumeration<? extends ZipEntry> entries = zf.entries();
-            while (entries.hasMoreElements()) {
-                ZipEntry entry = entries.nextElement();
-                if (entry.getName().contains(fileName)) {
-                    dbEntryPath = entry.getName();
-                    break;
-                }
-            }
-        }
-        if (dbEntryPath == null) {
-            throw new FileNotFoundException("database.mv.db not found inside " + zipFilePath);
-        }
- 
-        File tempDb = File.createTempFile("h2db", ".mv.db");
-        tempDb.deleteOnExit();
- 
-        try (ZipFile zf = new ZipFile(path)) {
-            ZipEntry dbEntry = zf.getEntry(dbEntryPath);
-            try (InputStream is = zf.getInputStream(dbEntry);
-                 OutputStream os = new FileOutputStream(tempDb)) {
-                is.transferTo(os);
-            }
-        }
- 
-        String dbUrl = "jdbc:h2:" + tempDb.getAbsolutePath().replace(".mv.db", "");
-        try (Connection conn = DriverManager.getConnection(dbUrl, "sa", "")) {
-            conn.setAutoCommit(false);
-            
-            // extracting all the tables from database
-            List<String> tables = new ArrayList<>();
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(
-                         "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC' AND TABLE_TYPE='TABLE'")) {
-                while (rs.next()) {
-                    tables.add(rs.getString("TABLE_NAME"));
-                }
-            }
-            
-            // removing all the data from the table while schema remains the same
-            try (Statement stmt = conn.createStatement()) {
-                for (String table : tables) {
-                    stmt.executeUpdate("TRUNCATE TABLE " + table);
-                }
-            }
- 
-            conn.commit();
-            conn.close();
-        }
- 
-        Path tempZipPath = Files.createTempFile("updatedZip", ".zip");
-        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(path));
-             ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(tempZipPath.toFile()))) {
- 
-            ZipEntry entry;
-            byte[] buffer = new byte[4096];
-            while ((entry = zis.getNextEntry()) != null) {
-                String name = entry.getName();
-                if (name.equals(dbEntryPath)) {
-                	// putting the updated files
-                    zos.putNextEntry(new ZipEntry(dbEntryPath));
-                    Files.copy(tempDb.toPath(), zos);
-                    zos.closeEntry();
-                } else {
-                	// putting the unchanged files
-                    zos.putNextEntry(new ZipEntry(name));
-                    int len;
-                    while ((len = zis.read(buffer)) > 0) {
-                        zos.write(buffer, 0, len);
-                    }
-                    zos.closeEntry();
-                }
-            }
-        }
- 
-        Files.move(tempZipPath, path.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        
-    }
-	
+	public static void createReferenceDatabase(String engineId, String thisEngineDir, ZipOutputStream zos, String engineNameAndId) {
+
+		IDatabaseEngine engine = Utility.getDatabase(engineId);
+		if(!(engine instanceof IRDBMSEngine)) {
+			throw new IllegalArgumentException("This operation only works on relational databases");
+		}
+
+		IRDBMSEngine rdbmsDb=(IRDBMSEngine) engine;
+		AbstractSqlQueryUtil queryUtil = rdbmsDb.getQueryUtil();
+		String database = queryUtil.getDatabase();
+		String schema = queryUtil.getSchema();
+		
+		try {
+			Connection connection = rdbmsDb.getConnection();
+			DatabaseMetaData meta = connection.getMetaData();
+			RdbmsTypeEnum driverEnum = rdbmsDb.getDbType();
+			String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
+			if(catalogFilter == null) {
+				try {
+					catalogFilter = connection.getCatalog();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			String schemaFilter = queryUtil.getDatabaseMetadataSchemaFilter();
+			if(schemaFilter == null) {
+				schemaFilter = rdbmsDb.getSchema();
+			}
+			Statement tableStmt = connection.createStatement();
+			ResultSet tablesRs =RdbmsConnectionHelper.getTables(connection, tableStmt, meta, catalogFilter, schemaFilter, driverEnum);
+			
+			String[] tableKeys = RdbmsConnectionHelper.getTableKeys(driverEnum);
+			final String TABLE_NAME_STR = tableKeys[0];
+			final String TABLE_TYPE_STR = tableKeys[1];
+			List<String> tables = new ArrayList<String>();
+			// geting all the tables
+				while (tablesRs.next()) {
+					String table = tablesRs.getString(TABLE_NAME_STR);
+					String tableType = tablesRs.getString(TABLE_TYPE_STR).toUpperCase();
+					if(tableType.toUpperCase().contains("TABLE")) {
+						tables.add(table);
+					}
+				}
+                // creating tables
+				ArrayList<String> newTables=new ArrayList<>();
+				for(String t:tables) {
+				// getting the table column and type
+				LinkedHashMap<String, Map<String, Object>> s=queryUtil.getAllTableColumnTypes(connection, t, database, schema);
+				String cols[]=new String[s.size()];
+				String types[]=new String[s.size()];
+				int i=0;
+				for(Entry<String, Map<String, Object>> entry : s.entrySet()) {
+					cols[i]=entry.getKey();
+					types[i]=entry.getValue().get("DATA_TYPE").toString();
+					i++;
+				}
+				 newTables.add(queryUtil.createTable(t, cols, types));
+				}
+				connection.close();
+		  
+			File engineFolder=new File(thisEngineDir);
+		    // creating reference database folder
+		   	File referenceFolder=new File(engineFolder,"reference");
+		   	if(!referenceFolder.exists())
+		   		referenceFolder.mkdir();
+		
+	    	String refDbPath=referenceFolder.getAbsolutePath()+File.separator+"database";
+		    	
+	    	String url="jdbc:h2:file:"+refDbPath;
+		    File refFile=new File(refDbPath+".mv.db");
+		    	
+		   	Connection connn=DriverManager.getConnection(url, "sa", "");
+		   	Statement smt=connn.createStatement();
+		    	
+		   	// adding the new tables to the reference database
+		   	for(String table:newTables) {
+	    		smt.execute(table);
+	    	}
+		    
+		    smt.execute("SHUTDOWN");
+		   	connn.close();
+		    	
+		   	if(!refFile.exists()) {
+		   		throw new IllegalStateException("ref db was not created");
+		   	}
+		    		    	
+	    	// adding the reference database to the zip file
+	    	try {
+				ZipUtils.addToZipFile(refFile, zos, engineNameAndId);
+				// deleting the reference database folder
+				if(referenceFolder.exists()) {
+					Files.walk(referenceFolder.toPath()).map(Path::toFile).sorted((a,b)->-a.compareTo(b)).forEach(File::delete);
+				}
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new SemossPixelException("Error occurred while adding database to the zip file. Detailed message = " + e.getMessage());
+			}			
+		    		    
+	} catch (SQLException e) {
+		classLogger.error(Constants.STACKTRACE, e);
+		throw new SemossPixelException("Error occurred while creating the reference database. Detailed message = " + e.getMessage());
+	}
+		
+}
+		
 	@Override
 	public String getReactorDescription() {
 		return "This reactor exports the model data in a zip file";
