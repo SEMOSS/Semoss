@@ -37,9 +37,7 @@ public class GoogleDriveHelper {
 	private static final String NAME = "name";
 	private static final String FILES = "files";
 	private static final String SUCCESS = "success";
-	private static final String MESSAGE = "message";
 	private static final String VIEW_LINK = "viewLink";
-	private static final String FILE_DOWNLOADED_MESSAGE = "File downloaded successfully";
 	
 	private static final String UTF_8 = "UTF-8";
 	private static final String SEPARATOR = "--";
@@ -168,11 +166,14 @@ public class GoogleDriveHelper {
 	 * @return
 	 * @throws Exception
 	 */
-	public static Map<String, Object> downloadFile(String accessToken, String fileId, String path, String fileName) throws Exception {
+	public static void downloadFile(String accessToken, String fileId, String path, String fileName) throws Exception {
 		try {
 			Map<String, String> headers = getBearerHeader(accessToken, boundary);
 			String downloadUrl = String.format(GOOGLE_DRIVE_DOWNLOAD, fileId);
 			byte[] fileBytes = HttpHelperUtility.getRequestBytes(downloadUrl, headers, null, null, null);
+			if (fileBytes == null || fileBytes.length == 0) {
+				throw new IllegalStateException("Downloaded file content is empty for fileId = " + fileId);
+			}
 			String filePath;
 			if (fileName == null || fileName.isEmpty()) {
 				filePath = path;
@@ -188,10 +189,6 @@ public class GoogleDriveHelper {
 				fos.write(fileBytes);
 				fos.flush();
 			}
-			Map<String, Object> map = new HashMap<>();
-			map.put(SUCCESS, true);
-			map.put(MESSAGE, FILE_DOWNLOADED_MESSAGE);
-			return map;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
@@ -262,7 +259,9 @@ public class GoogleDriveHelper {
 	public static Map<String, String> getBearerHeader(String accessToken, String boundary) {
 		Map<String, String> headers = new HashMap<>();
 		headers.put(HEADER_AUTHORIZATION, BEARER + accessToken);
-		headers.put(HEADER_CONTENT_TYPE, MULTIPART_RELATED_BOUNDARY + boundary);
+		if (boundary != null && !boundary.isEmpty()) {
+			headers.put(HEADER_CONTENT_TYPE, MULTIPART_RELATED_BOUNDARY + boundary);
+		}
 		return headers;
 	}
 

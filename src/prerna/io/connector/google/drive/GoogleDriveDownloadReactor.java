@@ -1,5 +1,6 @@
 package prerna.io.connector.google.drive;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -18,6 +19,8 @@ public class GoogleDriveDownloadReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(GoogleDriveDownloadReactor.class);
 	
+	private static final String ID = "id";
+	private static final String SUCCESS = "success";
 	private static final String FILE_NAME = "fileName";
 
 	public GoogleDriveDownloadReactor() {
@@ -39,7 +42,10 @@ public class GoogleDriveDownloadReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			Map<String, Object> result = GoogleDriveHelper.downloadFile(accessToken, fileId, path, fileName);
+			GoogleDriveHelper.downloadFile(accessToken, fileId, path, fileName);
+			Map<String, Object> result = new HashMap<>();
+			result.put(SUCCESS, true);
+			result.put(ID, fileId);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
