@@ -1,5 +1,7 @@
 package prerna.io.connector.google.drive;
 
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -19,7 +21,7 @@ public class GoogleDriveDownloadReactor extends AbstractReactor {
 	private static final String FILE_NAME = "fileName";
 
 	public GoogleDriveDownloadReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), FILE_NAME};
+		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), FILE_NAME };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 	
@@ -37,7 +39,7 @@ public class GoogleDriveDownloadReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			boolean result = GoogleDriveHelper.downloadFile(accessToken, fileId, path, fileName);
+			Map<String, Object> result = GoogleDriveHelper.downloadFile(accessToken, fileId, path, fileName);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -50,7 +52,7 @@ public class GoogleDriveDownloadReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Download a file form google drive.";
+		return "Download a file form google drive to specified path.";
 	}
 
 	@Override
@@ -59,6 +61,8 @@ public class GoogleDriveDownloadReactor extends AbstractReactor {
 			return "Unique identifier of the Google Drive file to be downloaded " + ReactorKeysEnum.ID.getKey();
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "Path where the file will be downloaded " + ReactorKeysEnum.FILE_PATH.getKey();
+		} else if (key.equals(FILE_NAME)) {
+			return "Name of the download file specified by the user " + FILE_NAME;
 		}
 		return super.getDescriptionForKey(key);
 	}

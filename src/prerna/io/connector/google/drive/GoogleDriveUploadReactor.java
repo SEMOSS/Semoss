@@ -28,7 +28,6 @@ public class GoogleDriveUploadReactor extends AbstractReactor {
 		this.organizeKeys();
 		String name = this.keyValue.get(this.keysToGet[0]);
 		String path = this.keyValue.get(this.keysToGet[1]);
-		
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
@@ -39,21 +38,21 @@ public class GoogleDriveUploadReactor extends AbstractReactor {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("An error occurred while uploading in drive. Error message: " + e.getMessage());
+			throw new SemossPixelException("An error occurred while uploading the file to drive. Error message: " + e.getMessage());
 		}
 	}
 	
 	@Override
 	public String getReactorDescription() {
-		return "Upload a file in google drive.";
+		return "Upload a file to google drive.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.NAME.getKey())) {
-			return "Name of the file " + ReactorKeysEnum.NAME.getKey();
+			return "Name of the file to be uploaded " + ReactorKeysEnum.NAME.getKey();
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Path where the file will be uploaded " + ReactorKeysEnum.FILE_PATH.getKey();
+			return "Path of the file to be uploaded to drive " + ReactorKeysEnum.FILE_PATH.getKey();
 		}
 		return super.getDescriptionForKey(key);
 	}

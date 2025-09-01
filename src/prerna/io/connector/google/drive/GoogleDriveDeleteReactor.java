@@ -43,7 +43,7 @@ public class GoogleDriveDeleteReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Delete an existing file in Google Drive";
+		return "Delete an existing file from Google Drive";
 	}
 
 	@Override

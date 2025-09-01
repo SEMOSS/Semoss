@@ -43,7 +43,7 @@ public class GoogleDriveReadReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Read a file uploaded in google drive.";
+		return "Read a file uploaded in google drive of the user.";
 	}
 	
 	@Override

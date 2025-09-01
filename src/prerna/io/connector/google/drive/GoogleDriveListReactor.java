@@ -45,13 +45,13 @@ public class GoogleDriveListReactor extends AbstractReactor{
 
 	@Override
 	public String getReactorDescription() {
-		return "Get the list of files from google drive";
+		return "Get the list of file ids from google drive of the user";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "The limit for the maximum number of files";
+			return "The limit for the maximum number of file ids";
 		}
 		return super.getDescriptionForKey(key);
 	}
