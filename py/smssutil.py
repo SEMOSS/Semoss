@@ -985,8 +985,20 @@ def gen_mcp(src_file=None, dest_file=None):
         if isinstance(node, ast.FunctionDef):
             function_return_type = "string"
             if node.returns is not None:
-                function_return_type = node.returns.id
+                if isinstance(node.returns, ast.Name):
+                    function_return_type = node.returns.id
+                elif isinstance(node.returns, ast.Subscript):
+                    if isinstance(node.returns.value, ast.Name):
+                        function_return_type = node.returns.value.id
+                    else:
+                        function_return_type = "object"
+                else:
+                    function_return_type = "object"
                 function_return_type = map_py_to_mcp(function_return_type)
+            # function_return_type = "string"
+            # if node.returns is not None:
+            #     function_return_type = node.returns.id
+            #     function_return_type = map_py_to_mcp(function_return_type)
 
             function_name = node.name
             function.update({"name": function_name})
