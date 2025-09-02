@@ -183,6 +183,11 @@ import prerna.reactor.IReactor;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.reactor.frame.py.AbstractPyFrameReactor;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
+import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 import prerna.tcp.PayloadStruct;
@@ -6285,6 +6290,21 @@ public final class Utility {
         // Check for at least one non-directory file
         File[] files = folder.listFiles(f -> f.isFile());
         return files != null && files.length > 0;
+    }
+    
+	public static Map<String, Object> getMap(NounStore store, GenRowStruct curRow) {
+        GenRowStruct mapGrs = store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+        if(mapGrs != null && !mapGrs.isEmpty()) {
+            List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+            if(mapInputs != null && !mapInputs.isEmpty()) {
+                return (Map<String, Object>) mapInputs.get(0).getValue();
+            }
+        }
+        List<NounMetadata> mapInputs = curRow.getNounsOfType(PixelDataType.MAP);
+        if(mapInputs != null && !mapInputs.isEmpty()) {
+            return (Map<String, Object>) mapInputs.get(0).getValue();
+        }
+        return null;
     }
 
     } 
