@@ -1,4 +1,9 @@
 import logging
+import ast
+import json
+import datetime
+import os
+import time
 
 logger = logging.getLogger("SocketServer")
 
@@ -965,12 +970,6 @@ def load_module_from_file(module_name=None, file_path=None, search=None):
 
 
 def gen_mcp(src_file=None, dest_file=None):
-    import ast
-    import json
-    import datetime
-    import os
-    import time
-
     with open(src_file, "r") as file:
         tree = ast.parse(file.read())
 
@@ -985,20 +984,7 @@ def gen_mcp(src_file=None, dest_file=None):
         if isinstance(node, ast.FunctionDef):
             function_return_type = "string"
             if node.returns is not None:
-                if isinstance(node.returns, ast.Name):
-                    function_return_type = node.returns.id
-                elif isinstance(node.returns, ast.Subscript):
-                    if isinstance(node.returns.value, ast.Name):
-                        function_return_type = node.returns.value.id
-                    else:
-                        function_return_type = "object"
-                else:
-                    function_return_type = "object"
-                function_return_type = map_py_to_mcp(function_return_type)
-            # function_return_type = "string"
-            # if node.returns is not None:
-            #     function_return_type = node.returns.id
-            #     function_return_type = map_py_to_mcp(function_return_type)
+                function_return_type = parse_type_annotation(node.returns)
 
             function_name = node.name
             function.update({"name": function_name})
@@ -1024,20 +1010,14 @@ def gen_mcp(src_file=None, dest_file=None):
 
                 arg_type = "string"
                 if arg.annotation:
-                    if isinstance(arg.annotation, ast.Name):
-                        arg_type = arg.annotation.id
-                    elif isinstance(arg.annotation, ast.Subscript):
-                        if isinstance(arg.annotation.value, ast.Name):
-                            arg_type = arg.annotation.value.id
-                        else:
-                            arg_type = "string"
-                    else:
-                        arg_type = "string"
+                    arg_type = parse_type_annotation(arg.annotation)
 
-                arg_type = map_py_to_mcp(arg_type)
-                function_return_type = "object"
+                # Update the argument schema based on parsed type
+                if isinstance(arg_type, dict):
+                    this_arg.update(arg_type)
+                else:
+                    this_arg.update({"type": arg_type})
 
-                this_arg.update({"type": arg_type})
                 required.append(arg_name)
                 properties.update({arg_name: this_arg})
 
@@ -1068,6 +1048,65 @@ def gen_mcp(src_file=None, dest_file=None):
     with open(dest_file, "w", encoding="utf-8") as f:
         json.dump(tools_block, f, indent=4, ensure_ascii=False)
     return tools_block
+
+
+def parse_type_annotation(annotation):
+    """
+    Parse a Python type annotation and convert it to MCP schema format.
+    Handles basic types, List[type], and other generic types.
+    """
+    if isinstance(annotation, ast.Name):
+        # Simple type like str, int, bool
+        return map_py_to_mcp(annotation.id)
+
+    elif isinstance(annotation, ast.Subscript):
+        # Generic type like List[str], Dict[str, int], etc.
+        if isinstance(annotation.value, ast.Name):
+            container_type = annotation.value.id
+
+            if container_type in ["List", "list"]:
+                # Handle List[ItemType]
+                if isinstance(annotation.slice, ast.Name):
+                    # List[str] -> {"type": "array", "items": {"type": "string"}}
+                    item_type = map_py_to_mcp(annotation.slice.id)
+                    return {"type": "array", "items": {"type": item_type}}
+                elif isinstance(annotation.slice, ast.Subscript):
+                    # Nested generic like List[Dict[str, int]]
+                    item_schema = parse_type_annotation(annotation.slice)
+                    return {
+                        "type": "array",
+                        "items": (
+                            item_schema
+                            if isinstance(item_schema, dict)
+                            else {"type": item_schema}
+                        ),
+                    }
+                else:
+                    # Fallback for complex List types
+                    return {"type": "array", "items": {"type": "string"}}
+
+            elif container_type in ["Dict", "dict"]:
+                # Handle Dict[str, type] - potentially expand on this in the future ...
+                return {"type": "object"}
+
+            elif container_type in ["Optional", "Union"]:
+                # Handle Optional[type] or Union types - assumption, use the first type as most likely result
+                if isinstance(annotation.slice, ast.Name):
+                    return map_py_to_mcp(annotation.slice.id)
+                elif isinstance(annotation.slice, ast.Subscript):
+                    return parse_type_annotation(annotation.slice)
+                else:
+                    return "string"
+
+            else:
+                # Unknown generic type
+                return "object"
+        else:
+            return "object"
+
+    else:
+        # Unknown annotation type
+        return "string"
 
 
 def parse_docstring_args(docstring):
@@ -1142,6 +1181,10 @@ def map_py_to_mcp(input):
         "float": "number",
         "int": "number",
         "bool": "boolean",
+        "list": "array",
+        "List": "array",
+        "dict": "object",
+        "Dict": "object",
     }
     if input in mapper:
         return mapper[input]
@@ -1154,6 +1197,8 @@ def map_mcp_to_py(input):
         "string": "str",
         "number": "float",
         "boolean": "bool",
+        "array": "list",
+        "object": "dict",
     }
     if input in mapper:
         return mapper[input]
