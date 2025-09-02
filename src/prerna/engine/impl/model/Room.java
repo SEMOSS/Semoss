@@ -151,6 +151,14 @@ public class Room {
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
 					this, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+			
+			// set transaction id for both pieces
+			msg.setTransactionId(llmResponse.getMessageId());
+			msg.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
+			response.setTransactionId(llmResponse.getMessageId());
+
+			
+			
 			response.setModel(modelEngine);
 			response.setParentMessageId(msg.getMessageId());
 			response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
@@ -385,7 +393,7 @@ public class Room {
 	 * @return List<Map<String, Object>> for a single app mcp
 	 * 
 	 */
-	private List<Map<String, Object>> getAllToolsJsonForRoom() {
+	public List<Map<String, Object>> getAllToolsJsonForRoom() {
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Object mcpToolIDsObj = getOptionsMap().get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
 		if (mcpToolIDsObj instanceof List<?>) {

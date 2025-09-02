@@ -106,8 +106,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		}
 		String joinedChunks = joinedContextBuilder.toString();
         // ==== Step 2. Gather Tool Descriptions from the room ====
-        List<String> toolIDs = getToolIdsForRoom(room);
-        String toolsDescription = assembleToolsDescription(toolIDs);
+		String toolsDescription=  GSON.toJson(room.getAllToolsJsonForRoom());
 
         
         // ==== Step 3. Build Prompts ====
@@ -146,7 +145,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
         }
 
         if (isValidJson) {
-            response.setMessageType(MessageType.RESPONSE_COT); // 
+            //response.setMessageType(MessageType.RESPONSE_COT); // 
         }
         
 		// ---- Return both messages as a Map
@@ -201,7 +200,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
      */
     private List<String> getToolIdsForRoom(Room room) {
         if (room != null && room.getOptionsMap() != null && room.getOptionsMap().containsKey("tools")) {
-            Object toolsObj = room.getOptionsMap().get("tools");
+            Object toolsObj = room.getOptionsMap().get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
             if (toolsObj instanceof List<?>) {
                 List<?> toolsList = (List<?>) toolsObj;
                 List<String> result = new LinkedList<>();
