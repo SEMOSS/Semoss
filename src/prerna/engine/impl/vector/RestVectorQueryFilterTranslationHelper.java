@@ -231,7 +231,7 @@ public final class RestVectorQueryFilterTranslationHelper {
 								}
 								JsonObject sourceMap = new JsonObject();
 								sourceMap.add(leftComp.getValue().toString(), sourceArray);
-								termMap.add("term", sourceMap);
+								termMap.add("terms", sourceMap);
 								shouldArray.add(termMap);
 							} else {
 								for(int i=0; i<normalizedValues.size(); i++) {
