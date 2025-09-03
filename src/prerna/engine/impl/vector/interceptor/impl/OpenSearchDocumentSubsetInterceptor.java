@@ -27,6 +27,7 @@ import prerna.engine.impl.vector.interceptor.AbstractDocumentSubsetInterceptor;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
@@ -97,7 +98,7 @@ public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetI
 		// empty documents means no files visible
 		if(documents != null) {
 			Map<String, Object> parameters = (Map<String, Object>) args[args.length-1];
-			IQueryFilter documentFilter = SimpleQueryFilter.makeColToValFilter("Source", "==", documents);
+			IQueryFilter documentFilter = SimpleQueryFilter.makeColToValFilter("Source", "==", documents, PixelDataType.VECTOR);
 			List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
 			if(filters == null) {
 				parameters.put("filters", Lists.newArrayList(documentFilter));

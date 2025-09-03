@@ -15,6 +15,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public final class RestVectorQueryFilterTranslationHelper {
@@ -222,16 +223,28 @@ public final class RestVectorQueryFilterTranslationHelper {
 							matchParent.add("match_none", new JsonObject());
 							shouldArray.add(matchParent);
 						} else {
-							for(int i=0; i<normalizedValues.size(); i++) {
-								JsonObject matchParent = new JsonObject();
-								{
-									JsonObject match = new JsonObject();
-									{
-										match.addProperty(leftComp.getValue().toString(), normalizedValues.get(i).toString());
-									}	
-									matchParent.add("match", match);
+							if (PixelDataType.VECTOR == rightComp.getNounType()) {
+								JsonObject termMap = new JsonObject();
+								JsonArray sourceArray = new JsonArray();
+								for(int i=0; i<normalizedValues.size(); i++) {
+									sourceArray.add(normalizedValues.get(i).toString());
 								}
-								shouldArray.add(matchParent);
+								JsonObject sourceMap = new JsonObject();
+								sourceMap.add(leftComp.getValue().toString(), sourceArray);
+								termMap.add("term", sourceMap);
+								shouldArray.add(termMap);
+							} else {
+								for(int i=0; i<normalizedValues.size(); i++) {
+									JsonObject matchParent = new JsonObject();
+									{
+										JsonObject match = new JsonObject();
+										{
+											match.addProperty(leftComp.getValue().toString(), normalizedValues.get(i).toString());
+										}	
+										matchParent.add("match", match);
+									}
+									shouldArray.add(matchParent);
+								}
 							}
 						}
 					}
