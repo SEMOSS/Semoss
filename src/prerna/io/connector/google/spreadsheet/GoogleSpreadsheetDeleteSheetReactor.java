@@ -10,11 +10,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
-public class GoogleDeleteSheetReactor extends AbstractReactor {
-	private static final Logger classLogger = LogManager.getLogger(GoogleDeleteSheetReactor.class);
+public class GoogleSpreadsheetDeleteSheetReactor extends AbstractReactor {
+	private static final Logger classLogger = LogManager.getLogger(GoogleSpreadsheetDeleteSheetReactor.class);
 
-	public GoogleDeleteSheetReactor() {
-		this.keysToGet = new String[] { "titleSheetID", "SheetID" };
+	public GoogleSpreadsheetDeleteSheetReactor() {
+		this.keysToGet = new String[] { "titleSheetID", "sheetID" };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 

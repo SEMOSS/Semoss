@@ -18,13 +18,12 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
-public class GoogleGetAllSheetsReactor extends AbstractReactor {
+public class GoogleSpreadsheetGetAllSheetsReactor extends AbstractReactor {
 
 	private static final String GOOGLEDRIVE_URL = "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet'&fields=files(id,name)";
 	private static final String GOOGLESHEETS_URL = "https://sheets.googleapis.com/v4/spreadsheets/";
-	private static final Logger classLogger = LogManager.getLogger(GoogleGetAllSheetsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleSpreadsheetGetAllSheetsReactor.class);
 
 	@Override
 	public NounMetadata execute() {
@@ -46,7 +45,7 @@ public class GoogleGetAllSheetsReactor extends AbstractReactor {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(
 					"An error occurred in getting sheet details. Error message: " + e.getMessage());
-		}	
+		}
 		return new NounMetadata(spreadsheets, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
@@ -63,7 +62,7 @@ public class GoogleGetAllSheetsReactor extends AbstractReactor {
 	private List<Map<String, Object>> fetchSpreadsheetMetadata(String accessToken) {
 		List<Map<String, Object>> spreadsheets = new ArrayList<>();
 		try {
-			JSONObject driveResponse = Utility.httpGetJson(GOOGLEDRIVE_URL, accessToken);
+			JSONObject driveResponse = GoogleLoginUtils.httpGetJson(GOOGLEDRIVE_URL, accessToken);
 			JSONArray files = driveResponse.getJSONArray("files");
 
 			for (int i = 0; i < files.length(); i++) {
@@ -73,7 +72,7 @@ public class GoogleGetAllSheetsReactor extends AbstractReactor {
 
 				// Fetch all sheet names and IDs for this spreadsheet
 				String sheetsUrl = GOOGLESHEETS_URL + spreadsheetId + "?fields=sheets(properties(sheetId,title))";
-				JSONObject sheetsResponse = Utility.httpGetJson(sheetsUrl, accessToken);
+				JSONObject sheetsResponse = GoogleLoginUtils.httpGetJson(sheetsUrl, accessToken);
 				JSONArray sheets = sheetsResponse.getJSONArray("sheets");
 
 				List<Map<String, Object>> sheetNameList = new ArrayList<>();

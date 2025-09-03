@@ -1,10 +1,10 @@
-package prerna.reactor.model;
+package prerna.io.connector.google.spreadsheet;
 
 //pojo to send responses for Spreadsheet reactors
 public class SpreadSheetResponse {
 	
 	private String titleSheetID;
-	private String SheetID;
+	private String sheetID;
 	private boolean success;
 	public String getTitleSheetID() {
 		return titleSheetID;
@@ -13,10 +13,10 @@ public class SpreadSheetResponse {
 		this.titleSheetID = titleSheetID;
 	}
 	public String getSheetID() {
-		return SheetID;
+		return sheetID;
 	}
 	public void setSheetID(String sheetID) {
-		SheetID = sheetID;
+		this.sheetID = sheetID;
 	}
 	public boolean isSuccess() {
 		return success;

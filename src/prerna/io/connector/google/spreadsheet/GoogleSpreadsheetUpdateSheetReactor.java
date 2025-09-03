@@ -14,11 +14,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
-public class GoogleCreateSheetReactor extends AbstractReactor {
-	private static final Logger classLogger = LogManager.getLogger(GoogleCreateSheetReactor.class);
+public class GoogleSpreadsheetUpdateSheetReactor extends AbstractReactor {
+	private static final Logger classLogger = LogManager.getLogger(GoogleSpreadsheetUpdateSheetReactor.class);
 
-	public GoogleCreateSheetReactor() {
-		this.keysToGet = new String[] { "titleSheetID", "sheetName", "data" };
+	public GoogleSpreadsheetUpdateSheetReactor() {
+		this.keysToGet = new String[] { "titleSheetID", "sheetID", "data" };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
@@ -28,29 +28,29 @@ public class GoogleCreateSheetReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			this.organizeKeys();
 			String titleSheetID = this.keyValue.get(this.keysToGet[0]);
-			String sheetName = this.keyValue.get(this.keysToGet[1]);
+			String sheetID = this.keyValue.get(this.keysToGet[1]);
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			String rawData = this.keyValue.get(this.keysToGet[2]);
 			ObjectMapper mapper = new ObjectMapper();
 			List<List<String>> data = mapper.readValue(rawData, List.class);
-			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			return SpreadSheetHelper.createNewSheet(titleSheetID, sheetName, accessToken, data);
+			return SpreadSheetHelper.updateData(titleSheetID, sheetID, data, accessToken);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("An error occurred in creating sheet. Error message: " + e.getMessage());
+			throw new SemossPixelException("An error occurred in updating sheet. Error message: " + e.getMessage());
 		}
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor will create new sheet in existing google spreadsheet and data in it";
+		return "This reactor is used tp update Sheet in Google spread sheet";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals("titleSheetID")) {
-			return "TitleSheet id of the Google spread sheet";
-		} else if (key.equals("sheetName")) {
-			return "Sheet name from Google spreadsheet";
+			return "TitleSheet name of the Google spread sheet";
+		} else if (key.equals("sheetID")) {
+			return "Sheet ID from Google spreadsheet";
 		} else if (key.equals("data")) {
 			return "Data to be updated in Google spreadsheet";
 		}

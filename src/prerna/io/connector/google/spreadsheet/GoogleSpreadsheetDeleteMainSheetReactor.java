@@ -10,11 +10,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
-public class GoogleCreateMainSheetReactor extends AbstractReactor {
-	private static final Logger classLogger = LogManager.getLogger(GoogleCreateMainSheetReactor.class);
+public class GoogleSpreadsheetDeleteMainSheetReactor extends AbstractReactor {
+	private static final Logger classLogger = LogManager.getLogger(GoogleSpreadsheetDeleteMainSheetReactor.class);
 
-	public GoogleCreateMainSheetReactor() {
-		this.keysToGet = new String[] { "titleSheetName" };
+	public GoogleSpreadsheetDeleteMainSheetReactor() {
+		this.keysToGet = new String[] { "titleSheetID" };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -23,28 +23,27 @@ public class GoogleCreateMainSheetReactor extends AbstractReactor {
 		try {
 			User user = this.insight.getUser();
 			this.organizeKeys();
-			String titleSheetName = this.keyValue.get(this.keysToGet[0]);
+			String titleSheetID = this.keyValue.get(this.keysToGet[0]);
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			return SpreadSheetHelper.createNewSpreadSheet(titleSheetName, accessToken);
+			return SpreadSheetHelper.deleteTitleSheet(titleSheetID, accessToken);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(
-					"An error occurred in creating main spreadsheet. Error message: " + e.getMessage());
+					"An error occurred in deleting main spreadsheet. Error message: " + e.getMessage());
 		}
 
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to create a new google spreadsheet";
+		return "This reactor is used to delete google spreadsheet";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("titleSheetName")) {
-			return "TitleSheet name of the Google spread sheet";
+		if (key.equals("titleSheetID")) {
+			return "TitleSheet id of the Google spread sheet";
 		}
 		return super.getDescriptionForKey(key);
 	}
-
 }
