@@ -176,6 +176,7 @@ public enum ReactorKeysEnum {
 	PARAM_STRUCT("paramStruct",									"Map containing the details for the parameter"),
 	PARAM_VALUES_MAP("paramValues",								"Map containing the param name to param values"),
 	PARALLEL_WORKER("parallel_worker", 							"Class that will run as a thread"),
+	PARENT_MESSAGE_ID("parentMessageId", 						"Parent message id of an incoming message for an llm"),
 	PASSWORD("password", 										"Password used in conjunction with the username for access to a service"),
 	PAYLOAD("payload", 										    "Payload as a list. This needs to correspond with the classes"),
 	PAYLOAD_CLASSES("payloadClasses", 							"Payload Classes as a list. This needs to correspond with the payload"),
