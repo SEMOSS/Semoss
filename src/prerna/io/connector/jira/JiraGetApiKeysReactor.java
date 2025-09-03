@@ -15,7 +15,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.JiraDetails;
 import prerna.util.Utility;
 
 public class JiraGetApiKeysReactor extends AbstractReactor {

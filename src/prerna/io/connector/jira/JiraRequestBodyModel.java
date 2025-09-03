@@ -1,7 +1,4 @@
-package prerna.engine.impl.model;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
+package prerna.io.connector.jira;
 
 public class JiraRequestBodyModel {
 
@@ -19,7 +16,5 @@ public class JiraRequestBodyModel {
 	public String toString() {
 		return "JiraRequestBodyModel [fields=" + fields + "]";
 	}
-	
-	
 
 }

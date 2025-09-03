@@ -1,4 +1,4 @@
-package prerna.util;
+package prerna.io.connector.jira;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -21,16 +21,13 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.impl.model.Fields;
-import prerna.engine.impl.model.IssueType;
-import prerna.engine.impl.model.JiraRequestBodyModel;
-import prerna.engine.impl.model.Project;
-import prerna.reactor.model.JiraTicketDetails;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class JiraHelper {
 
@@ -49,7 +46,7 @@ public class JiraHelper {
 			jiraDB = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		} catch (Exception e) {
 			classLogger.error("Failed to initialize jiraDB", e);
-			jiraDB = null;
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 
@@ -60,23 +57,6 @@ public class JiraHelper {
 	 */
 	public static void setJiraDB(IRDBMSEngine db) {
 		jiraDB = db;
-	}
-
-	/**
-	 * Allows code to reinitialize DB if jiraDB is null during initialization
-	 * 
-	 */
-	private static IRDBMSEngine getJiraDB() {
-		if (jiraDB == null) {
-			try {
-				jiraDB = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
-			} catch (Exception e) {
-				classLogger.error("Unable to (re)initialize jiraDB", e);
-				throw new SemossPixelException(
-						NounMetadata.getErrorNounMessage("Jira DB unavailable: " + e.getMessage()));
-			}
-		}
-		return jiraDB;
 	}
 
 	/**
@@ -94,8 +74,8 @@ public class JiraHelper {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(NounMetadata
-					.getErrorNounMessage("Failed to retrieve table name in getTableName():" + e.getMessage()));
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Failed to retrieve table name in getTableName()."));
 		}
 		return null;
 	}
@@ -118,8 +98,7 @@ public class JiraHelper {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Unable to verify user presence:" + e.getMessage()));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage("Unable to verify user presence."));
 		}
 	}
 

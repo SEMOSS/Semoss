@@ -48,7 +48,9 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 			return "A detailed description of the Jira issue.";
 		} else if (key.equals("issuetype")) {
 			return "The type of Jira issue (e.g., Bug, Task, Story).";
-		} 
+		} else if (key.equals("project")) {
+			return "The Jira project where the issue will be created.";
+		}
 		return super.getDescriptionForKey(key);
 	}
 }

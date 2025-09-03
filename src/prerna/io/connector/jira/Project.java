@@ -1,7 +1,4 @@
-package prerna.engine.impl.model;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
+package prerna.io.connector.jira;
 
 public class Project {
 
