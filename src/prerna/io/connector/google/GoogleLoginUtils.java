@@ -1,7 +1,18 @@
 package prerna.io.connector.google;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -9,8 +20,11 @@ import prerna.auth.User;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public final class GoogleLoginUtils {
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleLoginUtils.class);
 	
 	private GoogleLoginUtils() {
 		
