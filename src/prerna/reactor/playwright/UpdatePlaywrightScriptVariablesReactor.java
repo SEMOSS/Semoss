@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -65,8 +66,8 @@ public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
 		}
 		
 		//  the full path to the recordings folder (same as PlaywrightReactor)
-		Path recordingsDir = Path.of(AssetUtility.getProjectAssetsFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId()), "recordings");
-//    	Path recordingsDir = Path.of("C:/workspace/Apps/recordings");
+//		Path recordingsDir = Path.of(AssetUtility.getProjectAssetsFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId()), "recordings");
+    	Path recordingsDir = ReplayFromFileReactor.recordingsDir;
 		Path inputPath = recordingsDir.resolve(fileName);
 		Path outputPath = recordingsDir.resolve(outputFileName);
 		
@@ -133,17 +134,16 @@ public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
 	 */
 	private Map<String, String> getVariablesMap() {
 		GenRowStruct mapGrs = this.store.getNoun(VARIABLES_KEY);
+		Map<String, String> output = new HashMap<>();
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, String>) mapInputs.get(0).getValue();
+				for (int i = 0; i<mapInputs.size();i++) {
+					output.putAll((Map<? extends String, ? extends String>) mapInputs.get(i).getValue());
+				}
+				return output;
 			}
 		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, String>) mapInputs.get(0).getValue();
-		}
-		
 		return null;
 	}
 
