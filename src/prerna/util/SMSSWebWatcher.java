@@ -197,7 +197,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		}
 
 		if (Utility.isAuditLogsDatabaseEnabled()) {
-			String auditLogsName = Constants.AUDIT_LOGS_DATABASE_ENABLED + this.extension;
+			String auditLogsName = Constants.AUDIT_LOGS_DATABASE_NAME + this.extension;
 			int auditLogsIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, auditLogsName);
 			if (auditLogsIndex > -1) {
 				loadExistingEngine(fileNames[auditLogsIndex]);
