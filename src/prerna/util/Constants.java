@@ -949,7 +949,6 @@ public class Constants {
 
 	// starting process for r/py
 	public static final String JAVA_HOME = "JAVA_HOME";
-	public static final String LD_LIBRARY_PATH = "LD_LIBRARY_PATH";
 	public static final String TCP_WORKER = "TCP_WORKER";
 	public static final String ULIMIT_R_MEM_LIMIT = "ULIMIT_R_MEM_LIMIT";
 

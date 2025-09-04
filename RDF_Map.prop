@@ -72,9 +72,7 @@ NETTY_PYTHON true
 NATIVE_PY_SERVER true
 
 USE_PYTHON true
-PY_WORKER prerna.pyserve.FileBasedPyWorker
-LD_LIBRARY_PATH	{{INPUT_YOUR_PYTHON_HOME}}\\Lib\\site-packages\\jep
-USE_PY_FILE	TRUE 
+PYTHONHOME C:\\workspace\\Semoss\\py\\install_config\\.venv
 
 USE_R true
 R_CONNECTION_JRI	true
@@ -241,6 +239,7 @@ USER_TRACKING_METHOD	GEOIP2
 
 MODEL_INFERENCE_LOGS_ENABLED true
 PROMPT_DB_ENABLED true
+AUDIT_LOGS_DATABASE_ENABLED true
 
 ##################################################
 ##################################################
@@ -797,8 +796,6 @@ SQLITE_KEYWORDS ABORT,ACTION,ADD,AFTER,ALL,ALTER,ANALYZE,AND,AS,ASC,ATTACH,AUTOI
 MYSQL_KEYWORDS KEY,VALUES
 
 SQL_SERVER_KEYWORDS GROUP
-
-PYTHONHOME C:\\Users\\pmagudapathy\\.pyenv\\pyenv-win\\versions\\3.11.9
 
 ## Kafka boostrapServers has to be set based on instance eg:dev/uat/prod
 KAFKA_BOOTSTRAP_SERVERS_CONFIG localhost:9092 
