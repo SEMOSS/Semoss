@@ -72,18 +72,18 @@ public abstract class AbstractReactor implements IReactor {
 	protected Lambda runner = null;
 	
 	protected String[] defaultOutputAlias;
-	boolean evaluate = false;
+	protected boolean evaluate = false;
 	
 	// all the different keys to get
 	public String[] keysToGet = new String[]{"no keys defined"};
 	// which of these are optional : 1 means required, 0 means optional
-	public int[] keyRequired = null;
+	protected int[] keyRequired = null;
 	// single or multi if 1 multi if 0 single
-	public int[] keyMulti = null;
+	protected int[] keyMulti = null;
 	
 	// defaults if one exists
 	// this I am not so sure.. but let us try
-	public Object[] keyDefaults = new Object[]{};
+	protected Object[] keyDefaults = new Object[]{};
 	public Map<String, String> keyValue = new Hashtable<String, String>();
 	
 	public AbstractReactor() {
@@ -553,13 +553,7 @@ public abstract class AbstractReactor implements IReactor {
 	
 	@Override
 	public Logger getLogger(String className) {
-		String jobId = ThreadStore.getJobId();
-		if(jobId != null) {
-			Logger retLogger = new InMemoryConsole(className, ThreadStore.getJobId());
-			return retLogger;
-		}
-		
-		return LogManager.getLogger(className);
+		return getLogger(className, false);
 	}
 	
 	@Override
@@ -567,7 +561,7 @@ public abstract class AbstractReactor implements IReactor {
 		String jobId = ThreadStore.getJobId();
 		if(jobId != null) {
 			InMemoryConsole retLogger = new InMemoryConsole(className, ThreadStore.getJobId());
-			retLogger.setPartial(true);
+			retLogger.setPartial(partial);
 			return retLogger;
 		}
 		
@@ -624,8 +618,8 @@ public abstract class AbstractReactor implements IReactor {
 	/**
 	 * Convenience method to allow order or named noun for basic string inputs
 	 */
-	public void organizeKeys() {
-		if(this.getNounStore().size() > 1) {
+	protected void organizeKeys() {
+		if(this.getNounStore().size() > 0) {
 			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
 				String key = keysToGet[keyIndex];
 				if(this.store.getNoun(key) != null) {
@@ -653,16 +647,6 @@ public abstract class AbstractReactor implements IReactor {
 			}
 		}
 		
-//		// if we still are empty
-//		// try to fill via input indices in cur row
-//		if(keyValue.isEmpty()) {
-//			GenRowStruct struct = this.getCurRow();
-//			int structSize = struct.size();
-//			for(int keyIndex = 0; keyIndex < keysToGet.length && keyIndex < structSize; keyIndex++) {
-//				keyValue.put(keysToGet[keyIndex], struct.get(keyIndex)+"");
-//			}
-//		}
-		
 		// check which of these are optional
 		checkOptional();
 	}
@@ -670,7 +654,7 @@ public abstract class AbstractReactor implements IReactor {
 	/**
 	 * Check which inputs are optional or required and throw error if all required are not defined
 	 */
-	private void checkOptional() {
+	protected void checkOptional() {
 		StringBuilder nullMessage = new StringBuilder();
 		for(int keyIndex = 0;keyRequired != null && keyIndex < keyRequired.length;keyIndex++) {
 			int required = keyRequired[keyIndex];
@@ -684,7 +668,7 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		
 		if(nullMessage.length() != 0) {
-			nullMessage.append("Cannot be empty").insert(0, "Fields  ");
+			nullMessage.append("cannot be empty").insert(0, "Fields ");
 			throw new IllegalArgumentException(nullMessage.toString());
 		}
 	}
@@ -914,7 +898,7 @@ public abstract class AbstractReactor implements IReactor {
 	 * @param key
 	 * @return
 	 */
-	public List<String> getNounAsStringList(String key) {
+	protected List<String> getNounAsStringList(String key) {
 		List<String> columns = new ArrayList<>();
 		GenRowStruct colGrs = this.store.getNoun(key);
 		if (colGrs != null && !colGrs.isEmpty()) {

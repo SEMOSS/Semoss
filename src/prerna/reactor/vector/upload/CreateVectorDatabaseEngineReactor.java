@@ -96,9 +96,9 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 		} catch(Exception e) {
 			throw new IllegalArgumentException("Invalid model type " + vectorDbTypeStr);
 		}
-
-		
-		if (!vectorDbDetails.containsKey(Constants.EMBEDDER_ENGINE_NAME)) {
+		//TODO
+		//IF IT IS TYPE PROXY THEN I DONT NEED THE EMBEDDER ENGINE NAME
+		if (vectorDbType != VectorDatabaseTypeEnum.PROXY  && !vectorDbDetails.containsKey(Constants.EMBEDDER_ENGINE_NAME  )) {
 			String embedderEngineId = (String)vectorDbDetails.getOrDefault(Constants.EMBEDDER_ENGINE_ID, null);
 			if (embedderEngineId == null) {
 				throw new IllegalArgumentException("EMBEDDER_ENGINE_ID must be defined for FAISS database");

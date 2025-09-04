@@ -7,5 +7,6 @@ import prerna.reactor.IReactor;
  * The processing logic is implemented within the standard execute() method.
  */
 public interface IInputReactor extends IReactor {
-    // This is a marker interface. No methods are declared here.
+	// This is a marker interface. No methods are declared here.
+
 }

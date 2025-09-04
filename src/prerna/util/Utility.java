@@ -161,6 +161,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
+import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -2632,9 +2633,11 @@ public final class Utility {
 			return getVectorDatabase(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return getFunctionEngine(engineId, pullIfNeeded);
+		} else if(IEngine.CATALOG_TYPE.GUARDRAIL == type) {
+			return getGuardrailEngine(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.VENV == type) {
 			return getVenvEngine(engineId, pullIfNeeded);
-		}
+		} 
 		
 		throw new IllegalArgumentException("Unknown engine type with value " + type);
 	}
@@ -2908,6 +2911,28 @@ public final class Utility {
 		// get the pipeline
 		engine = EngineProxyFactory.createGuardedFunctionEngine((IFunctionEngine) engine);
 		return (IFunctionEngine) engine;
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static IGuardrailReactorFunctionEngine getGuardrailEngine(String engineId) {
+		return getGuardrailEngine(engineId, true);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	public static IGuardrailReactorFunctionEngine getGuardrailEngine(String engineId, boolean pullIfNeeded) {
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedFunctionEngine((IFunctionEngine) engine);
+		return (IGuardrailReactorFunctionEngine) engine;
 	}
 	
 	/**

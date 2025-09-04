@@ -63,7 +63,7 @@ public class EngineUtility {
 	public static final String VENV_IMAGE_FOLDER = BASE_FOLDER + LOCAL_PROJECT_IMAGE_RELPATH;
 
 	/**
-	 * 
+	 * @deprecated
 	 * @param type
 	 * @param engineId
 	 * @param engineName
