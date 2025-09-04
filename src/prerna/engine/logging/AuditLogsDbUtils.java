@@ -27,7 +27,7 @@ public class AuditLogsDbUtils {
 
 	}
 
-	public static void loadDatabase() throws Exception {
+	public static void loadAuditLogsDatabase() throws Exception {
 		auditLogsDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DATABASE_NAME);
 		AuditLogsDbOwlCreator owlCreator = new AuditLogsDbOwlCreator(auditLogsDb);
 		if (owlCreator.needsRemake()) {

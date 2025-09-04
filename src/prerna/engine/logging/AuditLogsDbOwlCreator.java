@@ -53,12 +53,12 @@ public class AuditLogsDbOwlCreator {
 				Pair.with("METHOD_TYPE", "VARCHAR(255)"),
 				Pair.with("NUMBER_OF_TOKENS_IN_PROMPT", INTEGER_DATATYPE_NAME),
 				Pair.with("NUMBER_OF_TOKENS_IN_RESPONSE", INTEGER_DATATYPE_NAME),
-				Pair.with("output_reactor_name", "VARCHAR(255)"), Pair.with("project_id", "VARCHAR(255)"),
-				Pair.with("project_name", "VARCHAR(255)"), Pair.with("request_start_time", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("response_end_time", TIMESTAMP_DATATYPE_NAME), Pair.with("room_id", "VARCHAR(255)"),
-				Pair.with("session_id", "VARCHAR(255)"), Pair.with("span_id", "VARCHAR(255)"),
-				Pair.with("user_id", "VARCHAR(255)"), Pair.with("message", CLOB_DATATYPE_NAME),
-				Pair.with("request", CLOB_DATATYPE_NAME), Pair.with("response", CLOB_DATATYPE_NAME));
+				Pair.with("OUTPUT_REACTOR_NAME", "VARCHAR(255)"), Pair.with("PROJECT_ID", "VARCHAR(255)"),
+				Pair.with("PROJECT_NAME", "VARCHAR(255)"), Pair.with("REQUEST_START_TIME", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("RESPONSE_END_TIME", TIMESTAMP_DATATYPE_NAME), Pair.with("ROOM_ID", "VARCHAR(255)"),
+				Pair.with("SESSION_ID", "VARCHAR(255)"), Pair.with("SPAN_ID", "VARCHAR(255)"),
+				Pair.with("USER_ID", "VARCHAR(255)"), Pair.with("MESSAGE", CLOB_DATATYPE_NAME),
+				Pair.with("REQUEST", CLOB_DATATYPE_NAME), Pair.with("RESPONSE", CLOB_DATATYPE_NAME));
 
 		this.serverLogsColumns = Arrays.asList(Pair.with("LEVEL", "VARCHAR(50)"), Pair.with("LOGGER", "VARCHAR(255)"),
 				Pair.with("THREAD_NAME", "VARCHAR(255)"), Pair.with("LOG_TIMESTAMP", TIMESTAMP_DATATYPE_NAME),
