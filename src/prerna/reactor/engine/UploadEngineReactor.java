@@ -152,7 +152,20 @@ public class UploadEngineReactor extends AbstractReactor {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
-		
+		// only close the JDBC connection if the engine is using an H2 database
+		if (engineType == IEngine.CATALOG_TYPE.DATABASE ) {
+			String databaseTypeStr = (String) typeAndSubtypeAndCost[1];
+			if (databaseTypeStr.equals("H2_DB")) {
+				try {
+					IEngine engine = Utility.getEngine(engineId);
+					if (engine != null) {
+						engine.close();
+					}
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 		// do we have any other checks we want to make based on the SMSS
 		// let us do it now
 		if(engineType == IEngine.CATALOG_TYPE.STORAGE) {
