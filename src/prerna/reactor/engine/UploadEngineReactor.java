@@ -153,7 +153,7 @@ public class UploadEngineReactor extends AbstractReactor {
 			throw exception;
 		}
 		// only close the JDBC connection if the engine is using an H2 database
-		if (engineType == IEngine.CATALOG_TYPE.DATABASE ) {
+		if (engineType == IEngine.CATALOG_TYPE.DATABASE) {
 			String databaseTypeStr = (String) typeAndSubtypeAndCost[1];
 			if (databaseTypeStr.equals("H2_DB")) {
 				try {
@@ -195,6 +195,7 @@ public class UploadEngineReactor extends AbstractReactor {
 		
 		File finalEngineSmss = null;
 		File finalEngineFolder = null;
+		boolean engineAddedToDIHelper = false;
 		try {
 			// zip file has the smss and db folder on the same level
 			// need to move these files around
@@ -206,6 +207,7 @@ public class UploadEngineReactor extends AbstractReactor {
 			if (!(engines.startsWith(engineId) || engines.contains(";" + engineId + ";") || engines.endsWith(";" + engineId))) {
 				String newEngines = engines + ";" + engineId;
 				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, newEngines);
+				engineAddedToDIHelper = true;
 			} else {
 				SemossPixelException exception = new SemossPixelException(
 						NounMetadata.getErrorNounMessage("Engine id already exists"));
@@ -231,7 +233,9 @@ public class UploadEngineReactor extends AbstractReactor {
 		} finally {
 			if(error) {
 				// remove from DIHelper
-				UploadUtilities.removeEngineFromDIHelper(engineId);
+				if (engineAddedToDIHelper) {
+					UploadUtilities.removeEngineFromDIHelper(engineId);
+				}
 				cleanUpFolders(randomTempUnzipF, finalEngineSmss, finalEngineFolder);
 			} else {
 				// just delete the temp db folder
