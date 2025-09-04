@@ -1,6 +1,8 @@
 import ast
+import sys
 from typing import List, Optional, Dict, Any, Tuple
 import json
+import re
 from pydantic import BaseModel
 from ...clients.google_clients import (
     GoogleClient,
@@ -107,7 +109,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         # Handling new history format through message_json
         if self.ask_settings.semoss_messages:
-            msg_history = self._handle_semoss_msgs()
+            return self._handle_semoss_msgs(prefix=prefix)
 
         # Handling full prompt from Elsa...
         elif self.ask_settings.full_prompt:
@@ -144,7 +146,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             messageType="CHAT",
         )
 
-    def _handle_semoss_msgs(self):
+    def _handle_semoss_msgs(self, prefix):
         """Handle SEMOSS messages through AnthropicMessageBuilder"""
         try:
             msg_history, param_map = AnthropicMessageBuilder().build_messages(
@@ -162,7 +164,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
         if self.ask_settings.streaming:
-            response = self._handle_streaming(prefix="", msg_history=msg_history)
+            response = self._handle_streaming(prefix=prefix, msg_history=msg_history)
             response_text = response.text
             usage = response.usage
         else:
@@ -175,7 +177,15 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     prompt_tokens=response.usage.input_tokens,
                     response_tokens=response.usage.output_tokens,
                 )
-            response_text = response.content[0].text
+            
+            if 'schema' in param_map:
+                return self._parse_structured_json_response(
+                    response,
+                    prompt_tokens=response.usage.input_tokens,
+                    response_tokens=response.usage.output_tokens,
+                )
+            
+            response_text = response.content[0].text        
             usage = Usage(
                 input_tokens=response.usage.input_tokens,
                 output_tokens=response.usage.output_tokens,
@@ -222,6 +232,20 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         return msg_history
 
+    def _parse_structured_json_response(
+        self, response, prompt_tokens: int = None, response_tokens: int = None
+    ) -> AskModelEngineResponse:
+
+        # replace the extra strings in structured json response
+        response_text = re.sub(r"```|json", "", response.content[0].text)
+
+        return AskModelEngineResponse(
+            response=response_text,
+            response_tokens=response_tokens,
+            prompt_tokens=prompt_tokens,
+            messageType="CHAT",
+        )
+    
     def _parse_tools_call_response(
         self, response, prompt_tokens: int = None, response_tokens: int = None
     ) -> AskModelEngineResponse:
