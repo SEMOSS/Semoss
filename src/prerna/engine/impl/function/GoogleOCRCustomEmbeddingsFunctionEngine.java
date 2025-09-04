@@ -79,6 +79,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 	private static final String PROJECT_ID = "PROJECT_ID";
 	private static final String PROCESSOR_ID = "PROCESSOR_ID";
 	private static final String STORAGE_PATH = "STORAGE_PATH";
+	private static final String PAGE_LENGTH = "PAGE_LENGTH";
 	private static final String JSON_EXT = ".json";
 	private static final String OUTPUT = "output";
 
@@ -92,6 +93,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 	private String prefix = "";
 	private String bucketName = "";
 	private String objectPath = "";
+	private int pageLength = 5;
 	private DocumentProcessorServiceClient client = null;
 	private ImageAnnotatorSettings settings = null;
 
@@ -108,6 +110,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 		this.googleStorageEngineId = smssProp.getProperty(BUCKETENGINEID);
 		this.storagePath = smssProp.getProperty(STORAGE_PATH);
 		this.ServiceAccountFile = smssProp.getProperty(SMSS_KEY_SERVICE_ACCOUNT_CREDENTIALS);
+		this.pageLength = Integer.parseInt(smssProp.getProperty(PAGE_LENGTH));
 
 		final String SCOPE_KEY = "https://www.googleapis.com/auth/cloud-platform";
 		final String SCOPE_VALUE = "https://www.googleapis.com/auth/cloud-platform.read-only";
@@ -187,9 +190,9 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 		}
 		try {
 			for (String k : parameterValues.keySet()) {
-				if (k.equalsIgnoreCase("FILEPATH")) {
+				if (k.equalsIgnoreCase("FILE_PATH")) {
 					filePath = new File(parameterValues.get(k).toString());
-				} else if (k.equalsIgnoreCase(Constants.SAVE_FILE_IN_STORAGE)) {
+				} else if (k.equalsIgnoreCase(Constants.CUSTOM_DOCUMENT_PROCESSOR_NEED_STORAGE)) {
 					saveFileToStorage = Boolean.parseBoolean(parameterValues.get(k).toString());
 				}
 			}
@@ -217,7 +220,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 
 					extractedTextFromDoc = getAsyncTextExtraction(pdfFilePath);
 				} else {
-					if (hasMoreThanFivePages(pdfFilePath)) {
+					if (hasMoreThanPageLimits(pdfFilePath)) {
 						throw new IllegalArgumentException(
 								"Unable to process the file because the total number of pages exceeds 5. "
 										+ "The file is expected to be saved in storage before processing. " + filePath);
@@ -256,7 +259,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
 		List<String> extractedTextFromDoc = new ArrayList<String>();
 		final String WAITING_INFO = "Waiting for operation to complete...";
-		Boolean saveFileToStorage = (Boolean) parameters.get(Constants.SAVE_FILE_IN_STORAGE);
+		Boolean saveFileToStorage = (Boolean) parameters.get(Constants.CUSTOM_DOCUMENT_PROCESSOR_NEED_STORAGE);
 		String fileName = fileToProcess.getName();
 
 		IStorageEngine storageeng = Utility.getStorage(this.googleStorageEngineId);
@@ -266,13 +269,13 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 		try {
 			if (saveFileToStorage) {
 
-				storageeng.copyToStorage(fileToProcess.toString(),
-						this.bucketName + DIR_SEPARATOR + this.objectPath + fileName, metadata);
+				//storageeng.copyToStorage(fileToProcess.toString(),
+					//	this.bucketName + DIR_SEPARATOR + this.objectPath + fileName, metadata);
 				classLogger.info(WAITING_INFO);
 				extractedTextFromDoc = getAsyncTextExtraction(fileToProcess);
 
 			} else {
-				if (hasMoreThanFivePages(fileToProcess)) {
+				if (hasMoreThanPageLimits(fileToProcess)) { 
 					throw new IllegalArgumentException(
 							"Unable to process the file because the total number of pages exceeds 5. "
 									+ "The file is expected to be saved in storage before processing. "
@@ -282,7 +285,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 				}
 
 			}
-			storageeng.deleteFromStorage(fileToProcess.toString());
+			//storageeng.deleteFromStorage(fileToProcess.toString());
 
 			for (int i = 0; i < extractedTextFromDoc.size(); i++) {
 				writer.writeRow(fileName, String.valueOf(i + 1), extractedTextFromDoc.get(i));
@@ -477,12 +480,12 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 		}
 	}
 
-	public boolean hasMoreThanFivePages(File pdfPath) throws IOException {
+	public boolean hasMoreThanPageLimits(File pdfPath) throws IOException {  
 		try (PDDocument doc = Loader.loadPDF(pdfPath)) {
 			if (doc.isEncrypted()) {
 				throw new IOException("PDF is encrypted; cannot read page count without password.");
 			}
-			return doc.getNumberOfPages() > 5;
+			return doc.getNumberOfPages() > this.pageLength; 
 		}
 	}
 

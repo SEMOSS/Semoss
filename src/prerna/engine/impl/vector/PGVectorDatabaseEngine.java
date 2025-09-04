@@ -83,6 +83,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
     protected boolean customDocumentProcessor = false;
     protected String customDocumentProcessorFunctionID = null;
+    protected boolean customDocumentProcessorNeedStorage = false; 
 	
 	private String embedderEngineId = null;
 	private String keywordGeneratorEngineId = null;
@@ -172,7 +173,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
         if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID)) {
         	this.customDocumentProcessorFunctionID = this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID);
         }
-        
+        if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR_NEED_STORAGE)) {
+        	this.customDocumentProcessorNeedStorage =  Boolean.parseBoolean(this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR_NEED_STORAGE));
+        }
 		// highest directory (first layer inside vector db base folder)
 		String engineDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
 		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + "/py/"));
@@ -1069,6 +1072,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 							}
 							ICustomEmbeddingsFunctionEngine customEmbeddings = (ICustomEmbeddingsFunctionEngine) functionEngine;
 							if(customEmbeddings.canProcessDocument(document)) {
+								parameters.put(Constants.CUSTOM_DOCUMENT_PROCESSOR_NEED_STORAGE, this.customDocumentProcessorNeedStorage);	
 								rowsCreated = customEmbeddings.processDocument(extractedFile.getAbsolutePath(), document, parameters);
 								processed = true;
 							}
