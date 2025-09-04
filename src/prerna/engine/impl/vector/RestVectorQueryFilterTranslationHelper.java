@@ -223,7 +223,7 @@ public final class RestVectorQueryFilterTranslationHelper {
 							matchParent.add("match_none", new JsonObject());
 							shouldArray.add(matchParent);
 						} else {
-							if (PixelDataType.VECTOR == rightComp.getNounType()) {
+							if (PixelDataType.FORMATTED_DATA_SET == rightComp.getNounType()) {
 								JsonObject termMap = new JsonObject();
 								JsonArray sourceArray = new JsonArray();
 								for(int i=0; i<normalizedValues.size(); i++) {

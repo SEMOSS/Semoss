@@ -98,7 +98,7 @@ public class OpenSearchDocumentSubsetInterceptor extends AbstractDocumentSubsetI
 		// empty documents means no files visible
 		if(documents != null) {
 			Map<String, Object> parameters = (Map<String, Object>) args[args.length-1];
-			IQueryFilter documentFilter = SimpleQueryFilter.makeColToValFilter("Source", "==", documents, PixelDataType.VECTOR);
+			IQueryFilter documentFilter = SimpleQueryFilter.makeColToValFilter("Source", "==", documents, PixelDataType.FORMATTED_DATA_SET);
 			List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
 			if(filters == null) {
 				parameters.put("filters", Lists.newArrayList(documentFilter));
