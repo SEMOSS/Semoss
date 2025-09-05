@@ -211,7 +211,7 @@ public final class Utility {
             "KEYSTORE", "PASSWORD", "SECRET", "TOKEN", "CONN_STRING"
     );
     // Explicit exclusion
-    private static final String EXCLUDED_KEYWORD = "KEYWORDS";
+    private static final String EXCLUDED_KEYWORD = "KEYWORD";
 	
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
@@ -5287,7 +5287,7 @@ public final class Utility {
 			commands[2] = specificPath;
 			commands[3] = tcpWorker;
 			commands[4] = finalDir;
-			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
+			commands[5] = DIHelper.getInstance().getRDFMapFileLocation(); //check here
 			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
@@ -5413,7 +5413,7 @@ public final class Utility {
 			commands[2] = specificPath;
 			commands[3] = tcpWorker;
 			commands[4] = finalDir;
-			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
+			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();//check here
 			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
@@ -5851,7 +5851,7 @@ public final class Utility {
 			String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
 			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
 			String logConfig = FileUtils.readFileToString(logFile);
-			//property.filename = target/rolling/rollingtest.log
+			//property.filename = target/rolling/rollingtest.log`
 			logConfig = logConfig.replace("FILE_LOCATION", dir + "/output.log");
 			File newLogFile = new File(dir + "/log4j2.properties");
 			FileUtils.writeStringToFile(newLogFile, logConfig);
@@ -6303,18 +6303,14 @@ public final class Utility {
 	  public static StringBuilder concealRDFMapPropSensitiveInfo(String currentRDFMapFileLoc) throws IOException {
 		  
 		  StringBuilder concealedRDFMapContents = new StringBuilder();
-		  
 		  List<String> linesinFile = Files.readAllLines(Paths.get(currentRDFMapFileLoc));
-	 
 	        for (String line : linesinFile) {
 	            String trimmed = line.trim();
-	 
 	            // keep comments/empty lines as-is
 	            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
 	                concealedRDFMapContents.append(line).append(System.lineSeparator());
 	                continue;
 	            }
-	 
 	            // regex: key + spaces + value
 	            Matcher matcher = Pattern.compile("^(\\S+)(\\s+)(.*)$").matcher(line);
 	            if (matcher.find()) {
@@ -6324,7 +6320,6 @@ public final class Utility {
 	 
 	                // Mask if the KEY contains sensitive keywords
 	                String maskedValue = containsSensitiveKey(key) ? Constants.SENSITIVE_INFO_MASK : value;
-	 
 	                concealedRDFMapContents.append(key).append(spaces).append(maskedValue)
 	                      .append(System.lineSeparator());
 	            } else {
@@ -6332,7 +6327,6 @@ public final class Utility {
 	                concealedRDFMapContents.append(line).append(System.lineSeparator());
 	            }
 	        }
-	 
 	        return concealedRDFMapContents;
 	    }
 	 
