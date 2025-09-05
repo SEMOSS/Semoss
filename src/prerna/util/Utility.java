@@ -206,6 +206,13 @@ public final class Utility {
 	private static final Logger classLogger = LogManager.getLogger(Utility.class);
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
 	
+	// Only these keywords will trigger masking
+    private static final List<String> SENSITIVE_KEYWORDS = Arrays.asList(
+            "KEYSTORE", "PASSWORD", "SECRET", "TOKEN", "CONN_STRING"
+    );
+    // Explicit exclusion
+    private static final String EXCLUDED_KEYWORD = "KEYWORDS";
+	
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
 	 * of the query matches a part of the pattern, set substring as the key with
@@ -6286,5 +6293,56 @@ public final class Utility {
         File[] files = folder.listFiles(f -> f.isFile());
         return files != null && files.length > 0;
     }
-
+    /**
+     * 
+     * @param currentRDFMapFileLoc
+     * @return
+     * @throws IOException
+     */
+   
+	  public static StringBuilder concealRDFMapPropSensitiveInfo(String currentRDFMapFileLoc) throws IOException {
+		  
+		  StringBuilder concealedRDFMapContents = new StringBuilder();
+		  
+		  List<String> linesinFile = Files.readAllLines(Paths.get(currentRDFMapFileLoc));
+	 
+	        for (String line : linesinFile) {
+	            String trimmed = line.trim();
+	 
+	            // keep comments/empty lines as-is
+	            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+	                concealedRDFMapContents.append(line).append(System.lineSeparator());
+	                continue;
+	            }
+	 
+	            // regex: key + spaces + value
+	            Matcher matcher = Pattern.compile("^(\\S+)(\\s+)(.*)$").matcher(line);
+	            if (matcher.find()) {
+	                String key = matcher.group(1);
+	                String spaces = matcher.group(2);
+	                String value = matcher.group(3);
+	 
+	                // Mask if the KEY contains sensitive keywords
+	                String maskedValue = containsSensitiveKey(key) ? Constants.SENSITIVE_INFO_MASK : value;
+	 
+	                concealedRDFMapContents.append(key).append(spaces).append(maskedValue)
+	                      .append(System.lineSeparator());
+	            } else {
+	                // fallback: append as-is
+	                concealedRDFMapContents.append(line).append(System.lineSeparator());
+	            }
+	        }
+	 
+	        return concealedRDFMapContents;
+	    }
+	 
+	    private static boolean containsSensitiveKey(String key) {
+	        String upperKey = key.toUpperCase();
+	        // Skip if it contains the excluded keyword
+	        if (upperKey.contains(EXCLUDED_KEYWORD)) {
+	            return false;
+	        }
+	        // use contains() to check for partial/full match
+	        return SENSITIVE_KEYWORDS.stream().anyMatch(upperKey::contains);
+	    }
     } 
