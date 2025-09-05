@@ -10,6 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import java.time.ZoneOffset;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+
 import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -291,11 +295,12 @@ public class GoogleCalendarHelper {
 	 * @throws Exception
 	 */
 	public static Boolean updateEvent(String accessToken, String id, String summary, String location, String desc,
-			String startdatetime, String enddatetime, ZoneId zoneId, List<String> attendeeEmails, String frequency, String until,
+			String startdatetime, String enddatetime, ZoneId zoneId, List<String> attendeeEmails, String frequency, String untilTime,
 			Boolean enableVideoConferencing) throws Exception {
 		try {
 			String url = String.format(GOOGLE_CALENDAR_UPDATE_URL_TEMPLATE, CALENDAR_ID, id);
-
+			String until = untilFormatConverter(untilTime);
+			
 			Map<String, Object> event = new HashMap<>();
 			event.put(SUMMARY, summary);
 			event.put(LOCATION, location);
@@ -400,7 +405,7 @@ public class GoogleCalendarHelper {
 	 */
 	public static Map<String, Object> recurringEvent(String accessToken, String summary, String location,
 			String description, String startdatetime, String enddatetime, ZoneId zoneId, List<String> attendeeEmails, String frequency,
-			String until, Boolean enableVideoConferencing) throws Exception {
+			String untilTime, Boolean enableVideoConferencing) throws Exception {
 		try {
 			if (frequency == null) {
 				throw new IllegalArgumentException("Frequency must not be null and must be 'DAILY' or 'WEEKLY'");
@@ -410,7 +415,8 @@ public class GoogleCalendarHelper {
 				throw new IllegalArgumentException("Frequency must be 'DAILY' or 'WEEKLY'");
 			}
 			String url = String.format(GOOGLE_CALENDAR_URL_TEMPLATE, CALENDAR_ID);
-
+			String until = untilFormatConverter(untilTime);
+			
 			Map<String, Object> event = new HashMap<>();
 			event.put(SUMMARY, summary);
 			event.put(LOCATION, location);
@@ -562,6 +568,24 @@ public class GoogleCalendarHelper {
 			map.put(ORGANIZER, organizer != null ? organizer.get(EMAIL) : null);
 
 			return map;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		}
+	}
+	
+	/**
+     * 
+     * @param untilTime
+     * @return
+     * @throws Exception
+     */
+	public static String untilFormatConverter(String untilTime) throws Exception {
+		try {
+			OffsetDateTime parsedDateTime = OffsetDateTime.parse(untilTime);
+			OffsetDateTime utcDateTime = parsedDateTime.withOffsetSameInstant(ZoneOffset.UTC);
+			DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'");
+			return utcDateTime.format(format);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
