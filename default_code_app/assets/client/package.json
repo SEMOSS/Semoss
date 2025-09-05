@@ -1,0 +1,35 @@
+{
+    "private": true,
+    "scripts": {
+        "build": "webpack --mode=production --node-env=production",
+        "dev": "webpack serve",
+        "fix": "pnpm --dir ../ fix"
+    },
+    "dependencies": {
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.1",
+        "@mui/icons-material": "^7.3.1",
+        "@mui/material": "^7.3.1",
+        "@mui/x-data-grid": "^8.10.2",
+        "@mui/x-date-pickers": "^8.10.2",
+        "@semoss/sdk": "1.0.0-beta.29",
+        "@semoss/sdk-react": "1.0.0-beta.20",
+        "css-loader": "^7.1.2",
+        "dayjs": "^1.11.15",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "react-router": "^7.8.2"
+    },
+    "devDependencies": {
+        "@types/node": "^24.3.0",
+        "@types/react": "^19.1.12",
+        "dotenv": "^17.2.1",
+        "html-webpack-plugin": "^5.6.4",
+        "ts-loader": "^9.5.4",
+        "typescript": "^5.9.2",
+        "webpack": "^5.101.3",
+        "webpack-cli": "^6.0.1",
+        "webpack-dev-server": "^5.2.2",
+        "webpackbar": "^7.0.0"
+    }
+}

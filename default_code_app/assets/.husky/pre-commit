@@ -1,0 +1,13 @@
+# Lint FE code
+echo "Formatting and linting FE code"
+pnpm exec lint-staged
+
+# Capture list of staged files
+STAGED_FILES=$(git diff --name-only --cached)
+
+
+# Format BE code
+echo "Formatting BE code"
+pre-commit run
+
+echo "Committing changes"
