@@ -1,8 +1,6 @@
 package prerna.engine.api;
 
-import prerna.engine.impl.function.AWSTextractCustomEmbeddingsFunctionEngine;
-import prerna.engine.impl.function.AWSTranscribeFunctionEngine;
-import prerna.engine.impl.function.AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine;
+import prerna.engine.impl.function.AWSTextractCustomEmbeddingsFunctionEngine;import prerna.engine.impl.function.AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine;
 import prerna.engine.impl.function.GoogleOCRCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
@@ -12,7 +10,6 @@ import prerna.engine.impl.function.RESTFunctionEngine;
 public enum FunctionTypeEnum {
 
 	// normal function engines
-	AWS_TRANSCRIBE("AWS_TRANSCRIBE", AWSTranscribeFunctionEngine.class.getName()),
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonFunctionEngine.class.getName()),
 	REST("REST", RESTFunctionEngine.class.getName()),
 
