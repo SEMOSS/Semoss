@@ -528,7 +528,9 @@ public abstract class AbstractReactor implements IReactor {
 		int size = keysToGet.length;
 		for(int i = 0; i < size; i++) {
 			String key = keysToGet[i];
-			help.append("\tinput ").append(i).append(":\t").append(key);
+			boolean required = (keyRequired != null && keyRequired.length > i && keyRequired[i] == 1);
+			help.append(required ? "\tinput required " : "\tinput optional ");
+			help.append(i).append(":\t ").append(key);
 			String description = getDescriptionForKey(key);
 			if(description != null) {
 				help.append(" =\t").append(description);
