@@ -511,6 +511,12 @@ public abstract class AbstractReactor implements IReactor {
 	public String getReactorDescription() {
 		return null;
 	}
+
+
+	@Override
+	public String getUsage() {
+		return null;
+	}
 	
 	@Override
 	public String getHelp() {
@@ -539,6 +545,9 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		help.append("\nMCP Schema:\n");
 		help.append(this.asMcpTool().toString(4));
+		if (getUsage() != null) {
+			help.append("\n").append(getUsage()).append("\n");
+		}
 		return help.toString();
 	}
 	

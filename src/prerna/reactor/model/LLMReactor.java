@@ -95,5 +95,11 @@ public class LLMReactor extends AbstractReactor {
 
 		return super.getDescriptionForKey(key);
 	}
+
+	@Override
+	public String getUsage() {
+		return "LLM(engine=\"myEngineId\", command=\"What is the weather today?\", context=\"You are a helpful assistant.\", use_history=true, param_values_map={\"temperature\":0.7})\r\n" +
+						"LLM(\"myEngineId\", \"What is the weather today?\", \"You are a helpful assistant.\", true, {\"temperature\":0.7})";
+	}
 	
 }

@@ -276,6 +276,12 @@ public interface IReactor {
 	String getReactorDescription();
 	
 	/**
+	 * 
+	 * @return
+	 */
+	String getUsage();
+	
+	/**
 	 * Determine if this reactor should be merged up to be put into a QS as is vs. executed directly
 	 * @return
 	 */
