@@ -2243,11 +2243,15 @@ public class ModelInferenceLogsUtils {
 						map.put(headers[i], values[i]);
 					}
 				}
-				Object totalCountObj = map.remove("total_row_count");
-				if (totalCount == 0) {
-					totalCount = (Long) totalCountObj;
-				}
-				workspaceDetails.add(map);
+	            Object totalCountObj = map.remove("total_row_count");
+	            if (totalCount == 0 && totalCountObj != null) {
+	                if (totalCountObj instanceof Number) {
+	                    totalCount = ((Number) totalCountObj).longValue();
+	                } else {
+	                    classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
+	                }
+	            }
+	            workspaceDetails.add(map);
 			}
 			workspaces.put("total_count", totalCount);
 			workspaces.put("workspaces", workspaceDetails);
