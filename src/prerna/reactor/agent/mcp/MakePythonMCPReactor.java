@@ -74,8 +74,8 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		File pyFolder = new File(pyFolderLoc);
 
 		if (!pyFolder.exists() || !pyFolder.isDirectory()) {
-			String errorOutput = "There is no py/main.py that exists. Please create this file and then try. "
-					+ "File main.py is the main driver which is utilized in terms of creating the MCP tools.";
+			String errorOutput = "There is no py/smss_driver.py that exists. Please create this file and then try. "
+					+ "File smss_driver.py is the main driver which is utilized in terms of creating the MCP tools.";
 			throw new IllegalArgumentException(errorOutput);
 		}
 

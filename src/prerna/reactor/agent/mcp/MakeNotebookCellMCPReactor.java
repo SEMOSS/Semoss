@@ -29,7 +29,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 	public MakeNotebookCellMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.MODEL.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey(), "cellId" };
-		this.keyRequired = new int[] { 1, 0, 0 };
+		this.keyRequired = new int[] { 1, 0, 0, 1 };
 	}
 
 	@Override
@@ -76,8 +76,8 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		File pyFolder = new File(pyFolderLoc);
 
 		if (!pyFolder.exists() || !pyFolder.isDirectory()) {
-			String errorOutput = "There is no py/main.py that exists. Please create this file and then try. "
-					+ "File main.py is the main driver which is utilized in terms of creating the MCP tools.";
+			String errorOutput = "There is no py/smss_driver.py that was created from the notebook smss_driver. Please create make sure the notebook cell passed is accurate. "
+					+ "File smss_driver.py is the main driver which is utilized in terms of creating the MCP tools.";
 			throw new IllegalArgumentException(errorOutput);
 		}
 
