@@ -39,8 +39,6 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 	private static final Logger classLogger = LogManager.getLogger(PipelineInvocationHandler.class);
 
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-
 	private final IEngine realEngine;
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
 
@@ -72,7 +70,6 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		}
 
 		Map<String, Object> processedArguments = new HashMap<>();
-		;
 		int inputIndex = 0;
 		// === INPUT PIPELINE EXECUTION ===
 		String uuid = UUID.randomUUID().toString();

@@ -23,9 +23,9 @@ public class PyTranslator {
 		pyS.put("datetime64", SemossDataType.DATE);
 		pyS.put("datetime64[ns]", SemossDataType.TIMESTAMP);
 	}
-	
+
 	public static String curEncoding = null;
-	
+
 	private SocketClient sc = null;
 	private Insight globalStoreInsight = null;
 
@@ -38,23 +38,23 @@ public class PyTranslator {
 		this.sc = sc;
 		this.globalStoreInsight = globalStoreInsight;
 	}
-	
+
 	public SocketClient getSocketClient() {
 		return this.sc;
 	}
-	
+
 	public Insight getGlobalStoreInsight() {
 		return this.globalStoreInsight;
 	}
-	
+
 	public void setSocketClient(SocketClient sc) {
 		this.sc = sc;
 	}
-	
+
 	public SemossDataType convertDataType(String pDataType) {
 		return pyS.get(pDataType);
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -65,7 +65,7 @@ public class PyTranslator {
 		}
 		return curEncoding;
 	}
-	
+
 	/**
 	 * Get list of Objects from py script
 	 * 
@@ -153,7 +153,7 @@ public class PyTranslator {
 	public String getString(String script) {
 		return (String) transportScript(null, script);
 	}
-	
+
 	/*
 	 * This method is used to get the column names of a frame
 	 * 
@@ -168,28 +168,36 @@ public class PyTranslator {
 	}
 
 	/**
-	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the execution
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
+	 * execution
+	 * 
 	 * @param script
 	 */
 	public void runEmptyPy(String... script) {
 		this.transportScript(null, convertArrayToString(script));
 	}
-	
+
 	/**
-	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the execution
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
+	 * execution
+	 * 
 	 * @param script
 	 */
 	public Object runDirectPy(String... script) {
 		return this.transportScript(null, convertArrayToString(script));
 	}
-	
+
 	/**
-	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the execution
-	 * @param executionInsight 	 	If we have a User invoking an engine python process
-	 * 								The engine python process has its own unique insight for variable encapsulation
-	 * 								However, we need to know from what insight is the user invoking this request
-	 * 								So that if the engine is making a call back/reactor request
-	 * 								It knows which User invoked for security permissions
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
+	 * execution
+	 * 
+	 * @param executionInsight If we have a User invoking an engine python process
+	 *                         The engine python process has its own unique insight
+	 *                         for variable encapsulation However, we need to know
+	 *                         from what insight is the user invoking this request
+	 *                         So that if the engine is making a call back/reactor
+	 *                         request It knows which User invoked for security
+	 *                         permissions
 	 * @param script
 	 * @return
 	 */
@@ -199,6 +207,7 @@ public class PyTranslator {
 
 	/**
 	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * 
 	 * @param script
 	 * @return
 	 */
@@ -208,21 +217,27 @@ public class PyTranslator {
 
 	/**
 	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
-	 * @param executionInsight 	 	If we have a User invoking an engine python process
-	 * 								The engine python process has its own unique insight for variable encapsulation
-	 * 								However, we need to know from what insight is the user invoking this request
-	 * 								So that if the engine is making a call back/reactor request
-	 * 								It knows which User invoked for security permissions
+	 * 
+	 * @param executionInsight If we have a User invoking an engine python process
+	 *                         The engine python process has its own unique insight
+	 *                         for variable encapsulation However, we need to know
+	 *                         from what insight is the user invoking this request
+	 *                         So that if the engine is making a call back/reactor
+	 *                         request It knows which User invoked for security
+	 *                         permissions
 	 * @param script
 	 * @return
 	 */
 	public Object runScript(Insight executionInsight, String... script) {
 		return this.executePyWithDefualtVars(executionInsight, convertArrayToString(script));
 	}
-	
+
 	/**
-	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the execution
-	 * @deprecated This method is deprecated. Use {@link #runDirectPy(String...)} instead.
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
+	 * execution
+	 * 
+	 * @deprecated This method is deprecated. Use {@link #runDirectPy(String...)}
+	 *             instead.
 	 * @param script
 	 * @param this.globalStoreInsight
 	 * @return
@@ -231,10 +246,12 @@ public class PyTranslator {
 	public Object runSmssWrapperEval(String script) {
 		return this.transportScript(null, script);
 	}
-	
+
 	/**
 	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
-	 * @deprecated This method is deprecated. Use {@link #runScript(String...)} instead.
+	 * 
+	 * @deprecated This method is deprecated. Use {@link #runScript(String...)}
+	 *             instead.
 	 * @param script
 	 * @return
 	 */
@@ -242,10 +259,12 @@ public class PyTranslator {
 	public String runPyAndReturnOutput(String... script) {
 		return this.executePyWithDefualtVars(null, convertArrayToString(script)) + "";
 	}
-	
+
 	/**
 	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
-	 * @deprecated This method is deprecated. Use {@link #runScript(String...)} instead.
+	 * 
+	 * @deprecated This method is deprecated. Use {@link #runScript(String...)}
+	 *             instead.
 	 * @param script
 	 * @return
 	 */
@@ -253,7 +272,7 @@ public class PyTranslator {
 	public String runSingle(String... script) {
 		return this.executePyWithDefualtVars(null, convertArrayToString(script)) + "";
 	}
-	
+
 	/**
 	 * 
 	 * @param executionInsight
@@ -266,7 +285,7 @@ public class PyTranslator {
 		transportScript(executionInsight, pathVars.toString());
 
 		Object output = transportScript(executionInsight, script);
-		if(output instanceof String) {
+		if (output instanceof String) {
 			String strOutput = (String) output;
 			// clean up the output
 			if (paths[0] != null && strOutput.contains(paths[0])) {
@@ -282,7 +301,7 @@ public class PyTranslator {
 		}
 		return output;
 	}
-	
+
 	/**
 	 * 
 	 * @param defaultPaths
@@ -290,16 +309,16 @@ public class PyTranslator {
 	 */
 	private StringBuilder generateDefaultVars(String[] defaultPaths) {
 		StringBuilder script = new StringBuilder();
-		String[] pathVars = new String[] {"ROOT", "APP_ROOT", "USER_ROOT"};
-		for(int i = 0; i < pathVars.length; i++) {
-			if(defaultPaths[i] != null && !(defaultPaths[i]=defaultPaths[i].trim()).isEmpty()) {
+		String[] pathVars = new String[] { "ROOT", "APP_ROOT", "USER_ROOT" };
+		for (int i = 0; i < pathVars.length; i++) {
+			if (defaultPaths[i] != null && !(defaultPaths[i] = defaultPaths[i].trim()).isEmpty()) {
 				script.append(pathVars[i]).append(" = '").append(defaultPaths[i]).append("'\n");
 			}
 		}
-		
+
 		return script;
 	}
-	
+
 	/**
 	 * 
 	 * @param insight
@@ -312,7 +331,8 @@ public class PyTranslator {
 
 		// context project takes precedence
 		if (insight.getContextProjectId() != null) {
-			appPath = AssetUtility.getProjectAssetsFolder(insight.getContextProjectName(), insight.getContextProjectId());
+			appPath = AssetUtility.getProjectAssetsFolder(insight.getContextProjectName(),
+					insight.getContextProjectId());
 			appPath = appPath.replace('\\', '/');
 		} else if (insight.isSavedInsight()) {
 			appPath = insight.getAppFolder();
@@ -324,10 +344,10 @@ public class PyTranslator {
 		} catch (Exception ignore) {
 			// ignore
 		}
-		
-		return new String[] {insightPath, appPath, userPath};
+
+		return new String[] { insightPath, appPath, userPath };
 	}
-	
+
 	/**
 	 * 
 	 * @param executionInsight
@@ -335,77 +355,86 @@ public class PyTranslator {
 	 * @return
 	 */
 	private Object transportScript(Insight executionInsight, String script) {
-		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+		String methodName = new Object() {
+		}.getClass().getEnclosingMethod().getName();
 
 		PayloadStruct ps = new PayloadStruct();
 		ps.operation = PayloadStruct.OPERATION.PYTHON;
 		ps.methodName = methodName;
-		ps.payload = new Object[] {script};
-		ps.payloadClasses = new Class[] {String.class};
+		ps.payload = new Object[] { script };
+		ps.payloadClasses = new Class[] { String.class };
 		ps.longRunning = true;
 		// we always need an insight
 		ps.insightId = this.globalStoreInsight.getInsightId();
 		ps.jobId = ThreadStore.getJobId();
-		if(executionInsight != null) {
-        	ps.executionInsightId = executionInsight.getInsightId();
-        }
-		
-		if(sc.isConnected()) {
-			ps = (PayloadStruct)sc.executeCommand(ps);
-			if(ps == null) {
+		ps.sessionId = ThreadStore.getSessionId();
+		if (executionInsight != null) {
+			ps.executionInsightId = executionInsight.getInsightId();
+		}
+
+		if (sc.isConnected()) {
+			ps = (PayloadStruct) sc.executeCommand(ps);
+			if (ps == null) {
 				throw new SemossPixelException("Received a null PayloadStruct response");
 			}
-			if(ps.ex != null) {
+			if (ps.ex != null) {
 				throw new SemossPixelException(ps.ex);
 			}
 			return ps.payload[0];
 		} else {
-        	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+			throw new SemossPixelException(
+					"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
 	}
-	
+
 	/**
 	 * 
 	 */
-    public void clearInsightGlobals() {
-        PayloadStruct ps = new PayloadStruct();
-        ps.operation = PayloadStruct.OPERATION.INSIGHT;
-        ps.payload = new Object[]{"CLEAR_NON_MODULE_GLOBALS"};
-        ps.insightId = this.globalStoreInsight.getInsightId();
-        if(sc.isConnected()) {
-			ps = (PayloadStruct)sc.executeCommand(ps);
-			if(ps == null) {
+	public void clearInsightGlobals() {
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = PayloadStruct.OPERATION.INSIGHT;
+		ps.payload = new Object[] { "CLEAR_NON_MODULE_GLOBALS" };
+		ps.insightId = this.globalStoreInsight.getInsightId();
+		ps.jobId = ThreadStore.getJobId();
+		ps.sessionId = ThreadStore.getSessionId();
+		if (sc.isConnected()) {
+			ps = (PayloadStruct) sc.executeCommand(ps);
+			if (ps == null) {
 				throw new SemossPixelException("Received a null PayloadStruct response");
 			}
-			if(ps.ex != null) {
+			if (ps.ex != null) {
 				throw new SemossPixelException(ps.ex);
-			} 
+			}
 		} else {
-        	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+			throw new SemossPixelException(
+					"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
-    }
+	}
 
-    /**
-     * 
-     */
-    public void removeInsightGlobals() {
-        PayloadStruct ps = new PayloadStruct();
-        ps.operation = PayloadStruct.OPERATION.INSIGHT;
-        ps.payload = new Object[]{"REMOVE_INSIGHT_GLOBALS"};
-        ps.insightId = this.globalStoreInsight.getInsightId();
-        if(sc.isConnected()) {
-			ps = (PayloadStruct)sc.executeCommand(ps);
-			if(ps == null) {
+	/**
+	 * 
+	 */
+	public void removeInsightGlobals() {
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = PayloadStruct.OPERATION.INSIGHT;
+		ps.payload = new Object[] { "REMOVE_INSIGHT_GLOBALS" };
+		ps.insightId = this.globalStoreInsight.getInsightId();
+		ps.jobId = ThreadStore.getJobId();
+		ps.sessionId = ThreadStore.getSessionId();
+		if (sc.isConnected()) {
+			ps = (PayloadStruct) sc.executeCommand(ps);
+			if (ps == null) {
 				throw new SemossPixelException("Received a null PayloadStruct response");
 			}
-			if(ps.ex != null) {
+			if (ps.ex != null) {
 				throw new SemossPixelException(ps.ex);
 			}
 		} else {
-        	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+			throw new SemossPixelException(
+					"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
-    }
-    
+	}
+
 	/**
 	 * 
 	 * @param script

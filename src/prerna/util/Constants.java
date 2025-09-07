@@ -555,8 +555,10 @@ public class Constants {
 	public static final String USE_LOGOUT_PAGE = "use-logout-page";
 	public static final String CUSTOM_LOGOUT_URL = "custom-logout-url";
 	public static final String SESSION_USER = "semoss_user";
+
 	// this is so in the server.xml you can update the access-log to contain the
-	// userid by adding: %{log_semoss_user_id}s
+	// userid by adding: %{log_semoss_user_id}
+	@Deprecated
 	public static final String SESSION_USER_ID_LOG = "log_semoss_user_id";
 	public static final String USER_WORKSPACE_IDS = "USER_WORKSPACE_IDS";
 	public static final String IS_ASSET_APP = "IS_ASSET_APP";
@@ -1031,38 +1033,7 @@ public class Constants {
 	public static final String AUDIT_LOGS_DATABASE_ENABLED = "AUDIT_LOGS_DATABASE_ENABLED";
 	public static final String AUDIT_LOGS_DATABASE_NAME = "AuditLogs";
 
-	public static final String AUDIT_LOG_INSIGHT_ID = "insightId";
-	public static final String AUDIT_LOG_SESSION_ID = "sessionId";
-	public static final String AUDIT_LOG_ENGINE_ID = "engineId";
-	public static final String AUDIT_LOG_ENGINE_NAME = "engineName";
-	public static final String AUDIT_LOG_ENGINE_TYPE = "engineType";
-	public static final String AUDIT_LOG_USER_ID = "userId";
-	public static final String AUDIT_LOG_PROJECT_ID = "projectId";
-	public static final String AUDIT_LOG_PROJECT_NAME = "projectName";
-	public static final String AUDIT_LOG_ROOM_ID = "roomId";
-	public static final String AUDIT_LOG_MESSAGE_ID = "messageId";
-	public static final String AUDIT_LOG_MESSAGE_TYPE = "messageType";
-	public static final String AUDIT_LOG_NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
-	public static final String AUDIT_LOG_NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
-	public static final String AUDIT_LOG_REQUEST = "request";
-	public static final String AUDIT_LOG_RESPONSE = "response";
-	public static final String AUDIT_LOG_METHOD_NAME = "methodName";
-	public static final String AUDIT_LOG_TIMESTAMP = "timestamp";
-	public static final String AUDIT_LOG_LEVEL = "logLevel";
-	public static final String AUDIT_LOG_MESSAGE = "logMessage";
-	public static final String AUDIT_LOG_REACTOR_SPAN_ID = "reactorSpanId";
-	public static final String AUDIT_LOG_REACTOR_NAME = "reactorName";
-	public static final String AUDIT_LOG_METHOD_SPAN_ID = "methodSpanId";
-	public static final String AUDIT_LOG_INPUT_REACTOR_NAME = "inputReactorName";
-	public static final String AUDIT_LOG_OUTPUT_REACTOR_NAME = "outputReactorName";
-	public static final String AUDIT_LOG_IS_SUCCESS = "isSuccess";
-
-	public static final String KAFKA_BOOTSTRAP_SERVERS_CONFIG = "KAFKA_BOOTSTRAP_SERVERS_CONFIG";
-	public static final String KAFKA_ACKS_CONFIG = "KAFKA_ACKS_CONFIG";
-	public static final String KAFKA_RETRIES_CONFIG = "KAFKA_RETRIES_CONFIG";
-	public static final String KAFKA_KEY_SERIALIZER_CLASS_CONFIG = "KAFKA_KEY_SERIALIZER_CLASS_CONFIG";
-	public static final String KAFKA_VALUE_SERIALIZER_CLASS_CONFIG = "KAFKA_VALUE_SERIALIZER_CLASS_CONFIG";
-	public static final String KAFKA_AUDIT_LOG_TOPIC = "KAFKA_AUDIT_LOG_TOPIC";
+	// Pipeline Invocation
 	public static final String PIPELINE = "PIPELINE";
 
 }

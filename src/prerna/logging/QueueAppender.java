@@ -7,8 +7,6 @@ import java.time.ZoneId;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.logging.log4j.core.Filter;
@@ -26,8 +24,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-
-import prerna.util.Utility;
 
 @Plugin(name = "QueueAppender", category = "Core", elementType = "appender", printObject = true)
 public class QueueAppender extends AbstractAppender {
@@ -76,7 +72,7 @@ public class QueueAppender extends AbstractAppender {
 	public void append(LogEvent event) {
 		String message = new String(getLayout().toByteArray(event));
 		try {
-			if ("kafka".equalsIgnoreCase(destinationType) && Utility.isKafkaUp()) {
+			if ("kafka".equalsIgnoreCase(destinationType) && SemossLogUtils.isKafkaUp()) {
 
 				try {
 					if (event.getLoggerName() != null && event.getLoggerName().startsWith("org.apache.kafka")) {
@@ -94,7 +90,7 @@ public class QueueAppender extends AbstractAppender {
 					auditLogEvent.setLevel(event.getLevel().name());
 					auditLogEvent.setLogger(event.getLoggerName());
 					auditLogEvent.setThread(event.getThreadName());
-					auditLogEvent.setMdc(event.getContextMap());
+					auditLogEvent.setMdc(event.getContextData());
 					if (event.getMessage() instanceof MapMessage) {
 						MapMessage<?, ?> mapMesssage = (MapMessage<?, ?>) event.getMessage();
 						auditLogEvent.setCustomKeyValueMap((Map<String, String>) mapMesssage.getData());
@@ -131,7 +127,7 @@ public class QueueAppender extends AbstractAppender {
 				rabbitChannel.basicPublish("", topicOrQueue, null, message.getBytes());
 			}
 		} catch (Exception e) {
-			System.err.println("error while"+e.getMessage());
+			System.err.println("error while" + e.getMessage());
 		}
 	}
 
@@ -139,76 +135,18 @@ public class QueueAppender extends AbstractAppender {
 	public void stop() {
 		super.stop();
 		try {
-			if (kafkaProducer != null)
+			if (kafkaProducer != null) {
 				kafkaProducer.close();
-			if (rabbitChannel != null)
+			}
+			if (rabbitChannel != null) {
 				rabbitChannel.close();
-			if (rabbitConnection != null)
+			}
+			if (rabbitConnection != null) {
 				rabbitConnection.close();
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	
 
-	/*
-	 * private final IQueueLogger queueLogger;
-	 * 
-	 * private final ObjectMapper objectMapper = new ObjectMapper();
-	 * 
-	 * protected QueueAppender(String name, Filter filter, Layout<? extends
-	 * Serializable> layout, boolean ignoreExceptions, IQueueLogger queueLogger) {
-	 * super(name, filter, layout, ignoreExceptions); this.queueLogger =
-	 * queueLogger; }
-	 * 
-	 * @PluginFactory public static QueueAppender
-	 * createAppender(@PluginAttribute("name") String name,
-	 * 
-	 * @PluginElement("Filter") Filter filter, @PluginElement("Layout") Layout<?
-	 * extends Serializable> layout,
-	 * 
-	 * @PluginAttribute("loggerClass") String
-	 * loggerClass, @PluginAttribute("loggerConfig") String loggerConfig) {
-	 * 
-	 * if (layout == null) { layout = PatternLayout.createDefaultLayout(); }
-	 * IQueueLogger iQueueLogger = null; try { Class<?> clazz =
-	 * Class.forName(loggerClass); iQueueLogger = (IQueueLogger)
-	 * clazz.getConstructor(String.class).newInstance(loggerConfig); } catch
-	 * (Exception e) {
-	 * 
-	 * }
-	 * 
-	 * return new QueueAppender(name, filter, layout, false, iQueueLogger);
-	 * 
-	 * }
-	 * 
-	 * @Override public void start() { super.start(); queueLogger.init(); }
-	 * 
-	 * @Override public void append(LogEvent event) { try { if(event.getLoggerName()
-	 * !=null && event.getLoggerName().startsWith("org.apache.kafka")) { return; }
-	 * AuditLogEvent auditLogEvent = new AuditLogEvent();
-	 * 
-	 * auditLogEvent.setLevel(event.getLevel().name());
-	 * auditLogEvent.setLogger(event.getLoggerName());
-	 * auditLogEvent.setThread(event.getThreadName());
-	 * auditLogEvent.setMdc(event.getContextMap()); if (event.getMessage()
-	 * instanceof MapMessage) { MapMessage<?, ?> mapMesssage = (MapMessage<?, ?>)
-	 * event.getMessage(); auditLogEvent.setCustomKeyValueMap((Map<String, String>)
-	 * mapMesssage.getData()); } else {
-	 * auditLogEvent.setMessage(event.getMessage().getFormattedMessage()); }
-	 * 
-	 * LocalDateTime dateTime =
-	 * Instant.ofEpochMilli(System.currentTimeMillis()).atZone(ZoneId.of("UTC"))
-	 * .toLocalDateTime(); String dateTimeStr = dateTime.toString();
-	 * auditLogEvent.setTimestamp(dateTimeStr); String value =
-	 * objectMapper.writeValueAsString(auditLogEvent);
-	 * 
-	 * queueLogger.send(dateTimeStr, value);
-	 * 
-	 * } catch (Exception e) {
-	 * 
-	 * }
-	 * 
-	 * }
-	 */
 }

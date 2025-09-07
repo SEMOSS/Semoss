@@ -46,6 +46,7 @@ public class AuditLogsDbUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(auditLogsDb, conn, null, null);
 		}
+		initialized = true;
 	}
 
 	/**
@@ -101,4 +102,11 @@ public class AuditLogsDbUtils {
 		}
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
+	public static boolean isInitalized() {
+		return initialized;
+	}
 }

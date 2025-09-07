@@ -123,8 +123,6 @@ import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -4500,22 +4498,6 @@ public final class Utility {
 		}
 
 		return Boolean.parseBoolean(userTracking);
-	}
-
-	public static boolean isKafkaUp() {
-		String bootStrapServers = Utility.getDIHelperProperty(Constants.KAFKA_BOOTSTRAP_SERVERS_CONFIG);
-		try (AdminClient adminClient = AdminClient.create(kafkaProperties(bootStrapServers))) {
-			adminClient.listTopics(new ListTopicsOptions().timeoutMs(2000)).names().get();
-			return true;
-		} catch (Exception e) {
-			return false;
-		}
-	}
-
-	public static Properties kafkaProperties(String bootStrapServers) {
-		Properties props = new Properties();
-		props.put("bootstrap.servers", bootStrapServers);
-		return props;
 	}
 
 	/**

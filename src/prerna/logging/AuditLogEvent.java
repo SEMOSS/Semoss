@@ -3,19 +3,18 @@ package prerna.logging;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.logging.log4j.message.MapMessage;
+import org.apache.logging.log4j.util.ReadOnlyStringMap;
 
 public class AuditLogEvent {
-	
+
 	private String timestamp;
 	private String level;
 	private String logger;
 	private String message;
 	private String thread;
-	private Map<String, String> mdc;
+	private ReadOnlyStringMap mdc;
 	private Map<String, String> customKeyValueMap;
 
-	
 	public String getTimestamp() {
 		return timestamp;
 	}
@@ -56,12 +55,12 @@ public class AuditLogEvent {
 		this.thread = thread;
 	}
 
-	public Map<String, String> getMdc() {
+	public ReadOnlyStringMap getMdc() {
 		return mdc;
 	}
 
-	public void setMdc(Map<String, String> mdc) {
-		this.mdc = mdc;
+	public void setMdc(ReadOnlyStringMap readOnlyStringMap) {
+		this.mdc = readOnlyStringMap;
 	}
 
 	public Map<String, String> getCustomKeyValueMap() {
@@ -79,24 +78,26 @@ public class AuditLogEvent {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		AuditLogEvent other = (AuditLogEvent) obj;
 		return Objects.equals(customKeyValueMap, other.customKeyValueMap) && Objects.equals(level, other.level)
 				&& Objects.equals(logger, other.logger) && Objects.equals(message, other.message)
-				&& Objects.equals(thread, other.thread)
-				&& Objects.equals(mdc, other.mdc) && timestamp == other.timestamp;
+				&& Objects.equals(thread, other.thread) && Objects.equals(mdc, other.mdc)
+				&& timestamp == other.timestamp;
 	}
 
 	@Override
 	public String toString() {
 		return "AuditLogEvent [timestamp=" + timestamp + ", level=" + level + ", logger=" + logger + ", message="
-				+ message + ", thread=" + thread + ", mdc=" + mdc
-				+ ", customKeyValueMap=" + customKeyValueMap + "]";
+				+ message + ", thread=" + thread + ", mdc=" + mdc + ", customKeyValueMap=" + customKeyValueMap + "]";
 	}
 
 }

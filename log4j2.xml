@@ -1,27 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="INFO" packages="prerna.logging">
+<Configuration xmlns:xi="http://www.w3.org/2001/XInclude" xmlns="https://logging.apache.org/xml/ns" 
+	status="INFO" 
+	packages="prerna.logging">
 	<Appenders>
-		<QueueAppender name="QueueAppender"
-		    destinationType="kafka" topicOrQueue="logs1"
-			bootstrapServers="localhost:9092"> <!-- boostrapServers has to be set based on instance eg:dev/uat/prod -->
-			
-			<PatternLayout>
-				<Pattern>{"timestamp":"%d{yyyy-MM-dd HH:mm:ss}","level":"%p","thread":"%t","logger":"%c","message":"%m","mdc":%X}%n
-				</Pattern>
-			</PatternLayout>
-			<KafkaRabbitMQAvaliabilityFilter  onMatch="ACCEPT" onMismatch="DENY" />
-		</QueueAppender>
-		<!-- <loggerClass>prerna.logging.KafkaLogger</loggerClass> <loggerConfig>bootstrap.servers=localhost:9092,topic=logs1</loggerConfig> -->
+		<!-- Console Appender -->
 		<Console name="Console" target="SYSTEM_OUT">
 			<PatternLayout>
-				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L %m%n
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] %m%n
 				</Pattern>
 			</PatternLayout>
 		</Console>
-		<RollingFile name="RollingFile" fileName="${sys:catalina.base}/logs/semossLog.log"
-			filePattern="${sys:catalina.base}/logs/$${date:yyyy-MM-dd}/semossLog-%d{yyyy-MM-dd}-%i.log">
+
+		<!-- Rolling File Appender -->
+		<RollingFile name="RollingFile"
+			fileName="${sys:catalina.base}/logs/semossLog.log"
+			filePattern="${sys:catalina.base}/logs/${date:yyyy-MM-dd}/semossLog-%d{yyyy-MM-dd}-%i.log">
 			<PatternLayout>
-				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L %m%n</Pattern>
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] %m%n
+				</Pattern>
 			</PatternLayout>
 			<Policies>
 				<TimeBasedTriggeringPolicy interval="1"
@@ -30,21 +26,41 @@
 			</Policies>
 			<DefaultRolloverStrategy max="1000" />
 		</RollingFile>
-	</Appenders>
 
+		<!-- Async wrappers -->
+		<Async name="AsyncConsole" includeLocation="true">
+			<AppenderRef ref="Console" />
+		</Async>
+
+		<Async name="AsyncRollingFile" includeLocation="true">
+			<AppenderRef ref="RollingFile" />
+		</Async>
+		
+		<!-- Database Appender -->
+        <ServerLogsJDBCAppender name="ServerLogsJDBCAppender" />
+        <AuditLogsJDBCAppender name="AuditLogsJDBCAppender" />
+        
+        <!-- Queue Appenders -->
+        <!-- <QueueAppender name="QueueAppender"
+		    destinationType="kafka" topicOrQueue="logs1"
+			bootstrapServers="localhost:9092"> 
+			<PatternLayout>
+				<Pattern>{"timestamp":"%d{yyyy-MM-dd HH:mm:ss}","level":"%p","thread":"%t","logger":"%c","message":"%m","mdc":%X}%n
+				</Pattern>
+			</PatternLayout>
+			<KafkaRabbitMQAvaliabilityFilter onMatch="ACCEPT" onMismatch="DENY" />
+		</QueueAppender> -->
+		
+	</Appenders>
 	<Loggers>
-		<Logger name="org.apache.kafka" level="off" additivity="false" />
-		<Logger name="org.apache.kafka.clients" level="off"
-			additivity="false" />
-		<Logger name="org.apache.kafka.common" level="off"
-			additivity="false" />
-		<Logger name="kafka" level="off" additivity="false" />
-		<Logger name="kafka.producer" level="off" additivity="false" />
-		<Logger name="kafka.client" level="off" additivity="false" />
-		<Root level="info">
-			<AppenderRef ref="QueueAppender" />
+		<Logger name="EngineLogger" level="INFO">
+			<AppenderRef ref="AuditLogsJDBCAppender" />
+		</Logger>
+		<Logger name="prerna" level="INFO"/>
+		<Root level="WARN" includeLocation="true">
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="RollingFile" />
+			<AppenderRef ref="AuditDatabase" />
 		</Root>
 	</Loggers>
 </Configuration>
