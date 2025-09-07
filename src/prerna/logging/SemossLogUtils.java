@@ -49,11 +49,6 @@ public class SemossLogUtils {
 	public static final String AUDIT_LOG_IS_SUCCESS = "isSuccess";
 
 	public static final String KAFKA_BOOTSTRAP_SERVERS_CONFIG = "KAFKA_BOOTSTRAP_SERVERS_CONFIG";
-	public static final String KAFKA_ACKS_CONFIG = "KAFKA_ACKS_CONFIG";
-	public static final String KAFKA_RETRIES_CONFIG = "KAFKA_RETRIES_CONFIG";
-	public static final String KAFKA_KEY_SERIALIZER_CLASS_CONFIG = "KAFKA_KEY_SERIALIZER_CLASS_CONFIG";
-	public static final String KAFKA_VALUE_SERIALIZER_CLASS_CONFIG = "KAFKA_VALUE_SERIALIZER_CLASS_CONFIG";
-	public static final String KAFKA_AUDIT_LOG_TOPIC = "KAFKA_AUDIT_LOG_TOPIC";
 
 	/**
 	 * Get the engine level logger
