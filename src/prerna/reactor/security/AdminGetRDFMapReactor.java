@@ -9,17 +9,16 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public class AdminFetchRDFMapPropViewReactor extends AbstractReactor {
+public class AdminGetRDFMapReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger();
 
-	public AdminFetchRDFMapPropViewReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+	public AdminGetRDFMapReactor() {
+		this.keysToGet = new String[] {};
 	}
 
 	@Override
@@ -42,4 +41,10 @@ public class AdminFetchRDFMapPropViewReactor extends AbstractReactor {
 		}
 		return new NounMetadata(currentRDFMapPropContent.toString(), PixelDataType.CONST_STRING);
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Admin reactor to get the contents of the RDF_Map.prop file with secrets concealed";
+	}
+
 }
