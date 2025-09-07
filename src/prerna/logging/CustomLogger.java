@@ -29,12 +29,12 @@ public class CustomLogger extends ExtendedLoggerWrapper {
 	}
 
 	public void debug(MapMessage<?, ?> mapMessage) {
-		mapMessage.put(SemossLogUtils.AUDIT_LOG_TIMESTAMP, String.valueOf(System.currentTimeMillis()));
+		mapMessage.put(SemossLogUtils.LOG_TIMESTAMP, String.valueOf(System.currentTimeMillis()));
 		log(Level.DEBUG, mapMessage);
 	}
 
 	public void error(MapMessage<?, ?> mapMessage) {
-		mapMessage.put(SemossLogUtils.AUDIT_LOG_TIMESTAMP, String.valueOf(System.currentTimeMillis()));
+		mapMessage.put(SemossLogUtils.LOG_TIMESTAMP, String.valueOf(System.currentTimeMillis()));
 		log(Level.ERROR, mapMessage);
 	}
 

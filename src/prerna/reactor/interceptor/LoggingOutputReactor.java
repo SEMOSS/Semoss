@@ -1,9 +1,11 @@
 package prerna.reactor.interceptor;
 
 import java.io.File;
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,112 +45,98 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
 		GenRowStruct grs = this.getNounStore().getNoun(keysToGet[0]);
-		Map<String, Object> arguments = new HashMap<String, Object>();
+		Map<String, Object> arguments = (Map<String, Object>) grs.get(0);
 		MapMessage<?, ?> mapMessage = new MapMessage();
-		if (grs != null && grs.size() > 0) {
-			arguments = (Map<String, Object>) grs.get(0);
-			String methodName = arguments.get(PipelineReactorUtils.METHOD_NAME) + "";
 
-			Map<String, Object> config = (Map<String, Object>) arguments.get(PipelineReactorUtils.CONFIG);
-			Object result = arguments.get(PipelineReactorUtils.RESULT);
-			boolean isSuccess = (boolean) arguments.get(PipelineReactorUtils.IS_SUCCESS);
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_IS_SUCCESS, String.valueOf(isSuccess));
-			// String reactorSpanId = (String)
-			// arguments.get(PipelineReactorUtils.REACTOR_SPAN_ID);
-			String reactorName = (String) arguments.get(PipelineReactorUtils.OUTPUT_REACTOR_NAME);
+		java.lang.reflect.Method method = (Method) arguments.get(PipelineReactorUtils.METHOD_NAME);
+		String methodName = method.getName();
 
-			// mapMessage.put(SemossLogUtils.AUDIT_LOG_REACTOR_SPAN_ID, reactorSpanId);
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_OUTPUT_REACTOR_NAME, reactorName);
+		Object result = arguments.get(PipelineReactorUtils.RESULT);
 
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_SESSION_ID, ThreadStore.getSessionId());
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_INSIGHT_ID, ThreadStore.getInsightId());
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_USER_ID, ThreadStore.getUser().getPrimaryLoginToken().getId());
+		boolean isSuccess = (boolean) arguments.get(PipelineReactorUtils.IS_SUCCESS);
+		mapMessage.put(SemossLogUtils.IS_SUCCESS, String.valueOf(isSuccess));
 
-			IEngine engine = (IEngine) arguments.get(PipelineReactorUtils.ENGINE);
+		String reactorName = (String) arguments.get(PipelineReactorUtils.OUTPUT_REACTOR_NAME);
+		mapMessage.put(SemossLogUtils.OUTPUT_REACTOR_NAME, reactorName);
 
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_ENGINE_ID, engine.getEngineId());
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_ENGINE_NAME, engine.getEngineName());
+		mapMessage.put(SemossLogUtils.SESSION_ID, ThreadStore.getSessionId());
+		mapMessage.put(SemossLogUtils.INSIGHT_ID, ThreadStore.getInsightId());
+		mapMessage.put(SemossLogUtils.USER_ID, ThreadStore.getUser().getPrimaryLoginToken().getId());
 
-			if (engine instanceof IModelEngine) {
+		IEngine engine = (IEngine) arguments.get(PipelineReactorUtils.ENGINE);
+		mapMessage.put(SemossLogUtils.ENGINE_ID, engine.getEngineId());
+		mapMessage.put(SemossLogUtils.ENGINE_NAME, engine.getEngineName());
 
-				mapMessage = extractArguments(arguments, mapMessage);
-				if (isSuccess) {
-					mapMessage = getIModelEngineResponse(engine, mapMessage, result);
-				} else {
-					mapMessage.put(SemossLogUtils.AUDIT_LOG_RESPONSE,
-							result != null ? (String) result : isSuccess ? "Success" : "Failed");
-				}
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_ENGINE_TYPE,
-						String.valueOf(((IModelEngine) engine).getModelType()));
+		if (engine instanceof IModelEngine) {
 
-			} else if (engine instanceof IDatabaseEngine) {
-
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_RESPONSE,
+			mapMessage = extractArguments(arguments, mapMessage);
+			if (isSuccess) {
+				mapMessage = getIModelEngineResponse(engine, mapMessage, result);
+			} else {
+				mapMessage.put(SemossLogUtils.RESPONSE,
 						result != null ? (String) result : isSuccess ? "Success" : "Failed");
-				mapMessage = extractArguments(arguments, mapMessage);
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_ENGINE_TYPE,
-						String.valueOf(((IDatabaseEngine) engine).getDatabaseType()));
-
-			} else if (engine instanceof IStorageEngine) {
-				mapMessage = extractResult(result, isSuccess, mapMessage);
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_ENGINE_TYPE,
-						String.valueOf(((IStorageEngine) engine).getStorageType()));
-
-			} else if (engine instanceof IVectorDatabaseEngine) {
-
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_RESPONSE,
-						result != null ? (String) result : isSuccess ? "Success" : "Failed");
-				mapMessage = extractArguments(arguments, mapMessage);
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_ENGINE_TYPE,
-						String.valueOf(((IVectorDatabaseEngine) engine).getVectorDatabaseType()));
-
-			} else if (engine instanceof IVenvEngine) {
-
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_ENGINE_TYPE,
-						String.valueOf(((IVenvEngine) engine).getVenvType()));
-
-			} else if (engine instanceof IProject) {
-
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_ENGINE_TYPE,
-						String.valueOf(((IProject) engine).getProjectType()));
-
-			} else if (engine instanceof IFunctionEngine) {
-
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_RESPONSE,
-						result != null ? (String) result : isSuccess ? "Success" : "Failed");
-				mapMessage = extractArguments(arguments, mapMessage);
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_ENGINE_TYPE,
-						String.valueOf(((IFunctionEngine) engine).getFunctionName()));
-
-			} /*
-				 * else if(engine instanceof IReactorFunctionEngine) {
-				 * mapMessage.put("engineType",String.valueOf(((IFunctionEngine) engine).getF));
-				 * }
-				 */
-
-			String logLevel = "INFO";
-			if (arguments.containsKey("logLevel")) {
-				logLevel = isSuccess ? arguments.get("logLevel").toString() : "ERROR";
 			}
+			mapMessage.put(SemossLogUtils.ENGINE_TYPE, String.valueOf(((IModelEngine) engine).getModelType()));
 
-			String logMessage = "Executing method: " + methodName;
-			if (this.getNounStore().getNoun("logMessage") != null) {
-				logMessage = this.getNounStore().getNoun("logMessage").get(0).toString();
-			}
+		} else if (engine instanceof IDatabaseEngine) {
 
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_METHOD_NAME, methodName);
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_LEVEL, logLevel);
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_MESSAGE, logMessage);
+			mapMessage.put(SemossLogUtils.RESPONSE,
+					result != null ? (String) result : isSuccess ? "Success" : "Failed");
+			mapMessage = extractArguments(arguments, mapMessage);
+			mapMessage.put(SemossLogUtils.ENGINE_TYPE, String.valueOf(((IDatabaseEngine) engine).getDatabaseType()));
+
+		} else if (engine instanceof IStorageEngine) {
+			mapMessage = extractResult(result, isSuccess, mapMessage);
+			mapMessage.put(SemossLogUtils.ENGINE_TYPE, String.valueOf(((IStorageEngine) engine).getStorageType()));
+
+		} else if (engine instanceof IVectorDatabaseEngine) {
+
+			mapMessage.put(SemossLogUtils.RESPONSE,
+					result != null ? (String) result : isSuccess ? "Success" : "Failed");
+			mapMessage = extractArguments(arguments, mapMessage);
+			mapMessage.put(SemossLogUtils.ENGINE_TYPE,
+					String.valueOf(((IVectorDatabaseEngine) engine).getVectorDatabaseType()));
+
+		} else if (engine instanceof IVenvEngine) {
+
+			mapMessage.put(SemossLogUtils.ENGINE_TYPE, String.valueOf(((IVenvEngine) engine).getVenvType()));
+
+		} else if (engine instanceof IProject) {
+
+			mapMessage.put(SemossLogUtils.ENGINE_TYPE, String.valueOf(((IProject) engine).getProjectType()));
+
+		} else if (engine instanceof IFunctionEngine) {
+
+			mapMessage.put(SemossLogUtils.RESPONSE,
+					result != null ? (String) result : isSuccess ? "Success" : "Failed");
+			mapMessage = extractArguments(arguments, mapMessage);
+			mapMessage.put(SemossLogUtils.ENGINE_TYPE, String.valueOf(((IFunctionEngine) engine).getFunctionName()));
+
 		}
+
+		Map<String, Object> config = (Map<String, Object>) arguments.get(PipelineReactorUtils.CONFIG);
+		String logLevel = "INFO";
+		if (config.containsKey("logLevel")) {
+			logLevel = config.get("logLevel").toString();
+		}
+
+		String logMessage = "Executing method: " + methodName;
+		if (config.containsKey("logMessage")) {
+			logMessage = config.get("logMessage").toString();
+		}
+
+		mapMessage.put(SemossLogUtils.METHOD_NAME, methodName);
+		mapMessage.put(SemossLogUtils.LEVEL, logLevel);
+		mapMessage.put(SemossLogUtils.MESSAGE, logMessage);
+
 		LocalDateTime dateTime = Instant.ofEpochMilli(System.currentTimeMillis()).atZone(ZoneId.of("UTC"))
 				.toLocalDateTime();
 		String dateTimeStr = dateTime.toString();
 		mapMessage.put("responseTimestamp", dateTimeStr);
 
 		String methodSpanId = (String) arguments.get(PipelineReactorUtils.METHOD_SPAN_ID);
-		mapMessage.put(SemossLogUtils.AUDIT_LOG_METHOD_SPAN_ID, methodSpanId);
+		mapMessage.put(SemossLogUtils.SPAN_ID, methodSpanId);
 
 		logger.info(mapMessage);
 
@@ -159,32 +147,39 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 		return new NounMetadata(arguments, PixelDataType.MAP);
 	}
 
+	/**
+	 * 
+	 * @param engine
+	 * @param mapMessage
+	 * @param result
+	 * @return
+	 */
 	private MapMessage<?, ?> getIModelEngineResponse(IEngine engine, MapMessage<?, ?> mapMessage, Object result) {
 		if (engine instanceof IModelEngine && result instanceof AskModelEngineResponse) {
 			AskModelEngineResponse response = (AskModelEngineResponse) result;
 			String responseString = response.getStringResponse();
 			response.setResponse(responseString);
 
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_ROOM_ID, response.getRoomId());
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_MESSAGE_ID, response.getMessageId());
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_MESSAGE_TYPE, response.getMessageType());
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_NUMBER_OF_TOKENS_IN_PROMPT,
+			mapMessage.put(SemossLogUtils.ROOM_ID, response.getRoomId());
+			mapMessage.put(SemossLogUtils.MESSAGE_ID, response.getMessageId());
+			mapMessage.put(SemossLogUtils.MESSAGE_TYPE, response.getMessageType());
+			mapMessage.put(SemossLogUtils.NUMBER_OF_TOKENS_IN_PROMPT,
 					String.valueOf(response.getNumberOfTokensInPrompt()));
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_NUMBER_OF_TOKENS_IN_RESPONSE,
+			mapMessage.put(SemossLogUtils.NUMBER_OF_TOKENS_IN_RESPONSE,
 					String.valueOf(response.getNumberOfTokensInResponse()));
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_RESPONSE, responseString);
+			mapMessage.put(SemossLogUtils.RESPONSE, responseString);
 		} else if (engine instanceof IModelEngine && result instanceof InstructModelEngineResponse) {
 			InstructModelEngineResponse response = (InstructModelEngineResponse) result;
 			if (response instanceof List) {
 				List<Map<String, String>> responseList = (List<Map<String, String>>) response;
 				response.setResponse(responseList);
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_RESPONSE, responseList.toString());
+				mapMessage.put(SemossLogUtils.RESPONSE, responseList.toString());
 			}
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_ROOM_ID, response.getRoomId());
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_MESSAGE_ID, response.getMessageId());
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_NUMBER_OF_TOKENS_IN_PROMPT,
+			mapMessage.put(SemossLogUtils.ROOM_ID, response.getRoomId());
+			mapMessage.put(SemossLogUtils.MESSAGE_ID, response.getMessageId());
+			mapMessage.put(SemossLogUtils.NUMBER_OF_TOKENS_IN_PROMPT,
 					String.valueOf(response.getNumberOfTokensInPrompt()));
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_NUMBER_OF_TOKENS_IN_RESPONSE,
+			mapMessage.put(SemossLogUtils.NUMBER_OF_TOKENS_IN_RESPONSE,
 					String.valueOf(response.getNumberOfTokensInResponse()));
 
 		} else if (engine instanceof IModelEngine && result instanceof EmbeddingsModelEngineResponse) {
@@ -192,41 +187,54 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 			if (response instanceof List) {
 				List<List<Double>> responseList = (List<List<Double>>) response;
 				response.setResponse(responseList);
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_RESPONSE, responseList.toString());
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_NUMBER_OF_TOKENS_IN_PROMPT,
+				mapMessage.put(SemossLogUtils.RESPONSE, responseList.toString());
+				mapMessage.put(SemossLogUtils.NUMBER_OF_TOKENS_IN_PROMPT,
 						String.valueOf(response.getNumberOfTokensInPrompt()));
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_NUMBER_OF_TOKENS_IN_RESPONSE,
+				mapMessage.put(SemossLogUtils.NUMBER_OF_TOKENS_IN_RESPONSE,
 						String.valueOf(response.getNumberOfTokensInResponse()));
 			}
 		}
 		return mapMessage;
 	}
 
+	/**
+	 * 
+	 * @param result
+	 * @param isSuccess
+	 * @param mapMessage
+	 * @return
+	 */
 	private MapMessage<?, ?> extractResult(Object result, boolean isSuccess, MapMessage<?, ?> mapMessage) {
 		if (result instanceof String) {
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_RESPONSE,
+			mapMessage.put(SemossLogUtils.RESPONSE,
 					result != null ? (String) result : isSuccess ? "Success" : "Failed");
 		} else if (result instanceof List) {
 			if (checkListType(result, String.class)) {
 				List<String> listOfResponse = (List<String>) result;
 				String response = listOfResponse.stream().collect(Collectors.joining(","));
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_RESPONSE, response);
+				mapMessage.put(SemossLogUtils.RESPONSE, response);
 			} else if (checkListType(result, Map.class)) {
 				List<Map<String, Object>> listOfResponse = (List<Map<String, Object>>) result;
 				String response = listOfResponse.stream().map(Map::toString).collect(Collectors.joining(","));
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_RESPONSE, response);
+				mapMessage.put(SemossLogUtils.RESPONSE, response);
 			}
 		} else if (result instanceof Exception) {
 			result = String.valueOf(result);
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_RESPONSE,
+			mapMessage.put(SemossLogUtils.RESPONSE,
 					result != null ? (String) result : isSuccess ? "Success" : "Failed");
 		} else if (result == null) {
-			mapMessage.put(SemossLogUtils.AUDIT_LOG_RESPONSE,
+			mapMessage.put(SemossLogUtils.RESPONSE,
 					result != null ? (String) result : isSuccess ? "Success" : "Failed");
 		}
 		return mapMessage;
 	}
 
+	/**
+	 * 
+	 * @param arguments
+	 * @param mapMessage
+	 * @return
+	 */
 	private MapMessage<?, ?> extractArguments(Map<String, Object> arguments, MapMessage<?, ?> mapMessage) {
 		for (Map.Entry<String, Object> entry : arguments.entrySet()) {
 
@@ -234,13 +242,13 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 				if (entry.getValue() instanceof String) {
 
 					String request = (String) arguments.get("arg0");
-					mapMessage.put(SemossLogUtils.AUDIT_LOG_REQUEST, request);
+					mapMessage.put(SemossLogUtils.REQUEST, request);
 
 				} else if (entry.getValue() instanceof File) {
 
 					File fileName = (File) entry.getValue();
 					String request = fileName.getName();
-					mapMessage.put(SemossLogUtils.AUDIT_LOG_REQUEST, request);
+					mapMessage.put(SemossLogUtils.REQUEST, request);
 
 				} else if (entry.getValue() instanceof List) {
 
@@ -248,30 +256,30 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 
 						List<String> listOfRequests = (List<String>) arguments.get("arg0");
 						String request = listOfRequests.stream().collect(Collectors.joining(","));
-						mapMessage.put(SemossLogUtils.AUDIT_LOG_REQUEST, request);
+						mapMessage.put(SemossLogUtils.REQUEST, request);
 
 					} else if (checkListType(entry.getValue(), Number.class)) {
 
 						List<? extends Number> listOfRequests = (List<? extends Number>) arguments.get("arg0");
 						String request = joinNumbers(listOfRequests);
-						mapMessage.put(SemossLogUtils.AUDIT_LOG_REQUEST, request);
+						mapMessage.put(SemossLogUtils.REQUEST, request);
 
 					} else if (checkListType(entry.getValue(), File.class)) {
 
 						List<File> listOfRequests = (List<File>) arguments.get("arg0");
 						String request = listOfRequests.stream().map(File::getName).collect(Collectors.joining(","));
-						mapMessage.put(SemossLogUtils.AUDIT_LOG_REQUEST, request);
+						mapMessage.put(SemossLogUtils.REQUEST, request);
 
 					} else if (checkListType(entry.getValue(), Map.class)) {
 
 						List<Map<String, Object>> listOfRequests = (List<Map<String, Object>>) arguments.get("arg0");
 						String result = listOfRequests.stream().map(Map::toString).collect(Collectors.joining(","));
-						mapMessage.put(SemossLogUtils.AUDIT_LOG_REQUEST, result);
+						mapMessage.put(SemossLogUtils.REQUEST, result);
 					} else if (entry.getValue() instanceof VectorDatabaseMetadataCSVTable) {
 
 						VectorDatabaseMetadataCSVTable vectorDatabaseMetadataCSVTable = (VectorDatabaseMetadataCSVTable) arguments
 								.get("arg0");
-						mapMessage.put(SemossLogUtils.AUDIT_LOG_REQUEST, String
+						mapMessage.put(SemossLogUtils.REQUEST, String
 								.valueOf("Csv file rows count : " + vectorDatabaseMetadataCSVTable.getRows().size()));
 					}
 				} else if (entry.getValue() instanceof Map) {
@@ -282,10 +290,10 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 						if (entry.getValue() instanceof Insight) {
 
 							Insight insight = (Insight) entry.getValue();
-							mapMessage.put(SemossLogUtils.AUDIT_LOG_USER_ID, insight.getUserId());
-							mapMessage.put(SemossLogUtils.AUDIT_LOG_PROJECT_ID,
+							mapMessage.put(SemossLogUtils.USER_ID, insight.getUserId());
+							mapMessage.put(SemossLogUtils.PROJECT_ID,
 									insight.getContextProjectId() != null ? insight.getContextProjectId() : "");
-							mapMessage.put(SemossLogUtils.AUDIT_LOG_PROJECT_NAME,
+							mapMessage.put(SemossLogUtils.PROJECT_NAME,
 									insight.getContextProjectName() != null ? insight.getContextProjectName() : "");
 
 						} else if (entry.getValue() instanceof Map) {
@@ -294,17 +302,17 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 							mapObj.entrySet().stream().forEach((ele) -> {
 								if (ele.getValue() instanceof Insight) {
 									Insight insight = (Insight) ele.getValue();
-									mapMessage.put(SemossLogUtils.AUDIT_LOG_USER_ID, insight.getUserId());
-									mapMessage.put(SemossLogUtils.AUDIT_LOG_PROJECT_ID,
+									mapMessage.put(SemossLogUtils.USER_ID, insight.getUserId());
+									mapMessage.put(SemossLogUtils.PROJECT_ID,
 											insight.getContextProjectId() != null ? insight.getContextProjectId() : "");
-									mapMessage.put(SemossLogUtils.AUDIT_LOG_PROJECT_NAME,
+									mapMessage.put(SemossLogUtils.PROJECT_NAME,
 											insight.getContextProjectName() != null ? insight.getContextProjectName()
 													: "");
 								} else {
 									mapMessage.put(e.getKey(), String.valueOf(e.getValue()));
 								}
 							});
-							mapMessage.put(SemossLogUtils.AUDIT_LOG_REQUEST, mapObj.toString());
+							mapMessage.put(SemossLogUtils.REQUEST, mapObj.toString());
 						}
 
 					});
@@ -313,20 +321,20 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 			} else if (entry.getValue() instanceof Insight) {
 
 				Insight insight = (Insight) entry.getValue();
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_USER_ID, insight.getUserId());
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_PROJECT_ID,
+				mapMessage.put(SemossLogUtils.USER_ID, insight.getUserId());
+				mapMessage.put(SemossLogUtils.PROJECT_ID,
 						insight.getContextProjectId() != null ? insight.getContextProjectId() : "");
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_PROJECT_NAME,
+				mapMessage.put(SemossLogUtils.PROJECT_NAME,
 						insight.getContextProjectName() != null ? insight.getContextProjectName() : "");
 
 			} else if (entry.getValue() instanceof Room) {
 
 				Room room = (Room) entry.getValue();
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_ROOM_ID, room.getId());
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_USER_ID, room.getUserId());
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_PROJECT_ID,
+				mapMessage.put(SemossLogUtils.ROOM_ID, room.getId());
+				mapMessage.put(SemossLogUtils.USER_ID, room.getUserId());
+				mapMessage.put(SemossLogUtils.PROJECT_ID,
 						room.getInsight().getContextProjectId() != null ? room.getInsight().getContextProjectId() : "");
-				mapMessage.put(SemossLogUtils.AUDIT_LOG_PROJECT_NAME,
+				mapMessage.put(SemossLogUtils.PROJECT_NAME,
 						room.getInsight().getContextProjectName() != null ? room.getInsight().getContextProjectName()
 								: "");
 
@@ -336,19 +344,19 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 
 					List<String> listOfRequests = (List<String>) entry.getValue();
 					String request = listOfRequests.stream().collect(Collectors.joining(","));
-					mapMessage.put(SemossLogUtils.AUDIT_LOG_REQUEST, request);
+					mapMessage.put(SemossLogUtils.REQUEST, request);
 
 				} else if (checkListType(entry.getValue(), Number.class)) {
 
 					List<? extends Number> listOfRequests = (List<? extends Number>) entry.getValue();
 					String request = joinNumbers(listOfRequests);
-					mapMessage.put(SemossLogUtils.AUDIT_LOG_REQUEST, request);
+					mapMessage.put(SemossLogUtils.REQUEST, request);
 
 				} else if (checkListType(entry.getValue(), File.class)) {
 
 					List<File> listOfRequests = (List<File>) entry.getValue();
 					String request = listOfRequests.stream().map(File::getName).collect(Collectors.joining(","));
-					mapMessage.put(SemossLogUtils.AUDIT_LOG_REQUEST, request);
+					mapMessage.put(SemossLogUtils.REQUEST, request);
 
 				} else if (checkListType(entry.getValue(), Map.class)) {
 
@@ -367,10 +375,10 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 					if (entry.getValue() instanceof Insight) {
 
 						Insight insight = (Insight) entry.getValue();
-						mapMessage.put(SemossLogUtils.AUDIT_LOG_USER_ID, insight.getUserId());
-						mapMessage.put(SemossLogUtils.AUDIT_LOG_PROJECT_ID,
+						mapMessage.put(SemossLogUtils.USER_ID, insight.getUserId());
+						mapMessage.put(SemossLogUtils.PROJECT_ID,
 								insight.getContextProjectId() != null ? insight.getContextProjectId() : "");
-						mapMessage.put(SemossLogUtils.AUDIT_LOG_PROJECT_NAME,
+						mapMessage.put(SemossLogUtils.PROJECT_NAME,
 								insight.getContextProjectName() != null ? insight.getContextProjectName() : "");
 
 					} else if (entry.getValue() instanceof Map) {
@@ -379,10 +387,10 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 						mapObj.entrySet().stream().forEach((ele) -> {
 							if (ele.getValue() instanceof Insight) {
 								Insight insight = (Insight) ele.getValue();
-								mapMessage.put(SemossLogUtils.AUDIT_LOG_USER_ID, insight.getUserId());
-								mapMessage.put(SemossLogUtils.AUDIT_LOG_PROJECT_ID,
+								mapMessage.put(SemossLogUtils.USER_ID, insight.getUserId());
+								mapMessage.put(SemossLogUtils.PROJECT_ID,
 										insight.getContextProjectId() != null ? insight.getContextProjectId() : "");
-								mapMessage.put(SemossLogUtils.AUDIT_LOG_PROJECT_NAME,
+								mapMessage.put(SemossLogUtils.PROJECT_NAME,
 										insight.getContextProjectName() != null ? insight.getContextProjectName() : "");
 							} else {
 								mapMessage.put(e.getKey(), String.valueOf(e.getValue()));
@@ -396,15 +404,25 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 		return mapMessage;
 	}
 
+	/**
+	 * 
+	 * @param obj
+	 * @param type
+	 * @return
+	 */
 	public static boolean checkListType(Object obj, Class<?> type) {
-		if (!(obj instanceof List<?> list)) {
+		if (!(obj instanceof Collection<?> list)) {
 			return false;
 		}
 		return !list.isEmpty() && list.stream().allMatch(type::isInstance);
 	}
 
-	public static String joinNumbers(List<? extends Number> numbers) {
-
+	/**
+	 * 
+	 * @param numbers
+	 * @return
+	 */
+	public static String joinNumbers(Collection<? extends Number> numbers) {
 		String result = numbers.stream().map(num -> {
 			if (num instanceof Integer) {
 				return String.valueOf(num);

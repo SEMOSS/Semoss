@@ -11,42 +11,47 @@ import prerna.util.Utility;
 
 public class SemossLogUtils {
 
-	public static final String LOG_USER_ID = "userId";
-	public static final String LOG_SESSION_ID = "sessionId";
-	public static final String LOG_CLIENT_IP = "clientIP";
-	public static final String LOG_REQUEST_ID = "requestId";
-	public static final String LOG_SERVICE_NAME = "serviceName";
-	public static final String LOG_METHOD = "method";
-	public static final String LOG_ENDPOINT = "endpoint";
-	public static final String LOG_HOST = "host";
+	public static final String USER_ID = "userId";
+	public static final String SESSION_ID = "sessionId";
+	public static final String CLIENT_IP = "clientIP";
+
+	public static final String REQUEST_ID = "requestId";
+	public static final String SERVICE_NAME = "serviceName";
+	public static final String METHOD = "method";
+	public static final String ENDPOINT = "endpoint";
+	public static final String HOST = "host";
 	public static final String REQUEST_TIMESTAMP = "requestTime";
 	public static final String LOG_TIMESTAMP = "logTimestamp";
 
-	public static final String AUDIT_LOG_INSIGHT_ID = "insightId";
-	public static final String AUDIT_LOG_SESSION_ID = "sessionId";
-	public static final String AUDIT_LOG_ENGINE_ID = "engineId";
-	public static final String AUDIT_LOG_ENGINE_NAME = "engineName";
-	public static final String AUDIT_LOG_ENGINE_TYPE = "engineType";
-	public static final String AUDIT_LOG_USER_ID = "userId";
-	public static final String AUDIT_LOG_PROJECT_ID = "projectId";
-	public static final String AUDIT_LOG_PROJECT_NAME = "projectName";
-	public static final String AUDIT_LOG_ROOM_ID = "roomId";
-	public static final String AUDIT_LOG_MESSAGE_ID = "messageId";
-	public static final String AUDIT_LOG_MESSAGE_TYPE = "messageType";
-	public static final String AUDIT_LOG_NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
-	public static final String AUDIT_LOG_NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
-	public static final String AUDIT_LOG_REQUEST = "request";
-	public static final String AUDIT_LOG_RESPONSE = "response";
-	public static final String AUDIT_LOG_METHOD_NAME = "methodName";
-	public static final String AUDIT_LOG_TIMESTAMP = "timestamp";
-	public static final String AUDIT_LOG_LEVEL = "logLevel";
-	public static final String AUDIT_LOG_MESSAGE = "logMessage";
-	public static final String AUDIT_LOG_REACTOR_SPAN_ID = "reactorSpanId";
-	public static final String AUDIT_LOG_REACTOR_NAME = "reactorName";
-	public static final String AUDIT_LOG_METHOD_SPAN_ID = "methodSpanId";
-	public static final String AUDIT_LOG_INPUT_REACTOR_NAME = "inputReactorName";
-	public static final String AUDIT_LOG_OUTPUT_REACTOR_NAME = "outputReactorName";
-	public static final String AUDIT_LOG_IS_SUCCESS = "isSuccess";
+	public static final String IS_SUCCESS = "isSuccess";
+	public static final String ENGINE_ID = "engineId";
+	public static final String ENGINE_NAME = "engineName";
+	public static final String ENGINE_TYPE = "engineType";
+	public static final String PROJECT_ID = "projectId";
+	public static final String PROJECT_NAME = "projectName";
+	public static final String INSIGHT_ID = "insightId";
+	public static final String ROOM_ID = "roomId";
+
+	public static final String MESSAGE_ID = "messageId";
+	public static final String MESSAGE_TYPE = "messageType";
+	public static final String NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
+	public static final String NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
+	public static final String REQUEST = "request";
+	public static final String RESPONSE = "response";
+	public static final String METHOD_NAME = "methodName";
+	public static final String TIMESTAMP = "timestamp";
+	public static final String LEVEL = "logLevel";
+	public static final String MESSAGE = "logMessage";
+	public static final String REACTOR_SPAN_ID = "reactorSpanId";
+	public static final String REACTOR_NAME = "reactorName";
+	public static final String SPAN_ID = "spanId";
+	public static final String INPUT_REACTOR_NAME = "inputReactorName";
+	public static final String OUTPUT_REACTOR_NAME = "outputReactorName";
+	public static final String LOG_ID = "logId";
+	public static final String METHOD_ID = "methodId";
+	public static final String METHOD_TYPE = "methodType";
+	public static final String REQUEST_START_TIME = "requestStartTime";
+	public static final String RESPONSE_END_TIME = "responseEndTime";
 
 	public static final String KAFKA_BOOTSTRAP_SERVERS_CONFIG = "KAFKA_BOOTSTRAP_SERVERS_CONFIG";
 

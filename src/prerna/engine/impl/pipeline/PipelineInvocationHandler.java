@@ -123,6 +123,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			isSuccess = false;
 		} finally {
 			processedArguments.put(PipelineReactorUtils.RESULT, result);
+			processedArguments.put(PipelineReactorUtils.IS_SUCCESS, isSuccess);
 
 			// === OUTPUT PIPELINE EXECUTION ===
 			inputIndex = 0;
@@ -142,6 +143,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				GenRowStruct grs = new GenRowStruct();
 
 				// Add core context to processedArguments for output reactors
+				processedArguments.put(PipelineReactorUtils.OUTPUT_REACTOR_NAME, reactor.getClass().getSimpleName());
 				processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
 				processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
 				processedArguments.put(PipelineReactorUtils.CONFIG, specificPipeline.getOutputParams().get(inputIndex));

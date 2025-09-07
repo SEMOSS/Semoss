@@ -280,18 +280,17 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							if (executionInsightId != null) {
 								Insight executionInsight = InsightStore.getInstance().get(executionInsightId);
 								if (executionInsight != null) {
-									parentMDC.put(SemossLogUtils.LOG_USER_ID,
+									parentMDC.put(SemossLogUtils.USER_ID,
 											User.getSingleLogginName(executionInsight.getUser()));
 								}
 							} else if (insightId != null) {
 								Insight insight = InsightStore.getInstance().get(insightId);
 								if (insight != null) {
-									parentMDC.put(SemossLogUtils.LOG_USER_ID,
-											User.getSingleLogginName(insight.getUser()));
+									parentMDC.put(SemossLogUtils.USER_ID, User.getSingleLogginName(insight.getUser()));
 								}
 							}
-							parentMDC.put(SemossLogUtils.LOG_SESSION_ID, sessionId);
-							parentMDC.put(SemossLogUtils.LOG_CLIENT_IP, "INTERNAL_SOCKET");
+							parentMDC.put(SemossLogUtils.SESSION_ID, sessionId);
+							parentMDC.put(SemossLogUtils.CLIENT_IP, "INTERNAL_SOCKET");
 							// I'm creating a new thread to run the pixel
 							new Thread(() -> {
 								try (var ctx = org.apache.logging.log4j.CloseableThreadContext.putAll(parentMDC)) {
