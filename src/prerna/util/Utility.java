@@ -203,7 +203,8 @@ import prerna.util.git.GitAssetUtils;
 public final class Utility {
 
 	public static int id = 0;
-	private static final Logger classLogger = LogManager.getLogger(Utility.class);
+
+	private static final Logger classLogger = LogManager.getLogger();
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
 
 	/**
