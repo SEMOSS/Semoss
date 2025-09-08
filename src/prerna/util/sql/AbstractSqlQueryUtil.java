@@ -79,10 +79,10 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public abstract class AbstractSqlQueryUtil {
-	
+
 	// special key when not required
 	public static final String NO_KEY_REQUIRED = "NO_KEY_REQUIRED";
-	
+
 	// inputs for connection string builder
 	public static final String CONNECTION_URL = Constants.CONNECTION_URL;
 	@Deprecated
@@ -97,7 +97,7 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String PASSWORD = Constants.PASSWORD;
 	public static final String ADDITIONAL = "additional";
 	public static final String TABLE = "table";
-	
+
 	// relatively specific inputs
 	// athena
 	public static final String SERVICE = "service";
@@ -131,7 +131,7 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String PROJECT = "project";
 	public static final String INSIGHT = "insight";
 
-	// rdbms metadata for defining the types 
+	// rdbms metadata for defining the types
 	public static final String DATA_TYPE = "DATA_TYPE";
 	public static final String CHARACTER_MAXIMUM_LENGTH = "CHARACTER_MAXIMUM_LENGTH";
 	public static final String NUMERIC_PRECISION = "NUMERIC_PRECISION";
@@ -139,7 +139,7 @@ public abstract class AbstractSqlQueryUtil {
 
 	// h2 force file for creating embedded file
 	public static final String FORCE_FILE = "forceFile";
-	
+
 	private static final Logger classLogger = LogManager.getLogger(AbstractSqlQueryUtil.class);
 
 	protected RdbmsTypeEnum dbType = null;
@@ -152,14 +152,14 @@ public abstract class AbstractSqlQueryUtil {
 	protected String connectionUrl;
 	protected String username;
 	protected String password;
-	
+
 	// these should be replaced and use the properties / conDetails
 	protected String hostname;
 	protected String port;
 	protected String database;
 	protected String schema;
 	protected String additionalProps;
-	
+
 	// reserved words
 	protected List<String> reservedWords = null;
 	// type conversions
@@ -168,7 +168,7 @@ public abstract class AbstractSqlQueryUtil {
 	AbstractSqlQueryUtil() {
 		initTypeConverstionMap();
 	}
-	
+
 	AbstractSqlQueryUtil(String connectionURL, String username, String password) {
 		this.connectionUrl = connectionURL;
 		this.username = username;
@@ -178,66 +178,73 @@ public abstract class AbstractSqlQueryUtil {
 
 	/**
 	 * Set the connection details from a map
+	 * 
 	 * @param configMap
 	 * @return
-	 * @throws SQLException 
+	 * @throws SQLException
 	 */
 	public abstract String setConnectionDetailsfromMap(Map<String, Object> configMap) throws RuntimeException;
-	
+
 	/**
 	 * Set the connection details from a properties file (SMSS file)
+	 * 
 	 * @param prop
 	 * @return
 	 */
 	public abstract String setConnectionDetailsFromSMSS(CaseInsensitiveProperties prop) throws RuntimeException;
-	
+
 	/**
 	 * Build the connection string after the connection details have been set
+	 * 
 	 * @return
 	 */
 	public abstract String buildConnectionString();
-	
+
 	/**
 	 * Method to get a connection to an existing RDBMS engine
+	 * 
 	 * @param driverEnum
 	 * @param connectionUrl
 	 * @param connectionDetails
 	 * @return
-	 * @throws SQLException 
+	 * @throws SQLException
 	 */
-	public static Connection makeConnection(AbstractSqlQueryUtil util, String connectionUrl, Map<String, Object> connectionDetails) throws SQLException {
-		return AbstractSqlQueryUtil.makeConnection(util.getDbType(), 
-				connectionUrl, 
-				(String) connectionDetails.get(util.getConnectionUserKey()), 
+	public static Connection makeConnection(AbstractSqlQueryUtil util, String connectionUrl,
+			Map<String, Object> connectionDetails) throws SQLException {
+		return AbstractSqlQueryUtil.makeConnection(util.getDbType(), connectionUrl,
+				(String) connectionDetails.get(util.getConnectionUserKey()),
 				(String) connectionDetails.get(util.getConnectionPasswordKey()));
 	}
-	
+
 	/**
 	 * Method to get a connection to an existing RDBMS engine
+	 * 
 	 * @param driverEnum
 	 * @param connectionUrl
 	 * @param connectionDetails
 	 * @return
-	 * @throws SQLException 
+	 * @throws SQLException
 	 */
-	public static Connection makeConnection(AbstractSqlQueryUtil util, String connectionUrl, CaseInsensitiveProperties prop) throws SQLException {
-		return AbstractSqlQueryUtil.makeConnection(util.getDbType(), 
-				connectionUrl, 
-				(String) prop.get(util.getConnectionUserKey()), 
-				(String) prop.get(util.getConnectionPasswordKey()));
+	public static Connection makeConnection(AbstractSqlQueryUtil util, String connectionUrl,
+			CaseInsensitiveProperties prop) throws SQLException {
+		return AbstractSqlQueryUtil.makeConnection(util.getDbType(), connectionUrl,
+				(String) prop.get(util.getConnectionUserKey()), (String) prop.get(util.getConnectionPasswordKey()));
 	}
-	
+
 	/**
-	 * Method to get a connection to an existing RDBMS engine
-	 * If the username or password are null, we will assume the information is already provided within the connectionUrl
+	 * Method to get a connection to an existing RDBMS engine If the username or
+	 * password are null, we will assume the information is already provided within
+	 * the connectionUrl
+	 * 
 	 * @param connectionUrl
 	 * @param userName
 	 * @param password
 	 * @param driver
 	 * @return
-	 * @throws SQLException 
+	 * @throws SQLException
 	 */
-	public static Connection makeConnection(RdbmsTypeEnum type, String connectionUrl, String userName, String password) throws SQLException {
+	public static Connection makeConnection(RdbmsTypeEnum type, String connectionUrl, String userName, String password)
+			throws SQLException {
 		try {
 			Class.forName(type.getDriver());
 		} catch (ClassNotFoundException e) {
@@ -260,7 +267,7 @@ public abstract class AbstractSqlQueryUtil {
 
 		return conn;
 	}
-	
+
 	/**
 	 * Use this when we need to make any modifications to the connection object for
 	 * proper usage Example ::: Adding user defined functions for RDBMS types that
@@ -300,7 +307,7 @@ public abstract class AbstractSqlQueryUtil {
 	public String getHostname() {
 		return hostname;
 	}
-	
+
 	public void setHostname(String hostname) {
 		this.hostname = hostname;
 	}
@@ -312,15 +319,15 @@ public abstract class AbstractSqlQueryUtil {
 	public void setPort(String port) {
 		this.port = port;
 	}
-	
+
 	public String getDatabase() {
 		return database;
 	}
-	
+
 	public void setDatabase(String database) {
 		this.database = database;
 	}
-	
+
 	public String getSchema() {
 		return schema;
 	}
@@ -328,7 +335,7 @@ public abstract class AbstractSqlQueryUtil {
 	public void setSchema(String schema) {
 		this.schema = schema;
 	}
-	
+
 	public String getUsername() {
 		return username;
 	}
@@ -336,11 +343,11 @@ public abstract class AbstractSqlQueryUtil {
 	public void setUsername(String username) {
 		this.username = username;
 	}
-	
+
 	public String getPassword() {
 		return password;
 	}
-	
+
 	public void setPassword(String password) {
 		this.password = password;
 	}
@@ -348,15 +355,15 @@ public abstract class AbstractSqlQueryUtil {
 	public String getAdditionalProps() {
 		return additionalProps;
 	}
-	
+
 	public void setAdditionalProps(String additionalProps) {
 		this.additionalProps = additionalProps;
 	}
-	
+
 	public String getConnectionUrl() {
 		return connectionUrl;
 	}
-	
+
 	public void setConnectionUrl(String connectionUrl) {
 		this.connectionUrl = connectionUrl;
 	}
@@ -364,7 +371,7 @@ public abstract class AbstractSqlQueryUtil {
 	public String getConnectionUserKey() {
 		return AbstractSqlQueryUtil.USERNAME;
 	}
-	
+
 	public String getConnectionPasswordKey() {
 		return AbstractSqlQueryUtil.PASSWORD;
 	}
@@ -376,15 +383,15 @@ public abstract class AbstractSqlQueryUtil {
 	public IQueryInterpreter getInterpreter(ITableDataFrame frame) {
 		return new SqlInterpreter(frame);
 	}
-	
+
 	public Map<String, String> getTypeConversionMap() {
 		return Collections.unmodifiableMap(typeConversionMap);
 	}
-	
+
 	public String getDatabaseMetadataCatalogFilter() {
 		return null;
 	}
-	
+
 	public String getDatabaseMetadataSchemaFilter() {
 		return null;
 	}
@@ -425,15 +432,17 @@ public abstract class AbstractSqlQueryUtil {
 
 	/**
 	 * Get any modification required to an alias
+	 * 
 	 * @param alias
 	 * @return
 	 */
 	public String escapeReferencedAlias(String alias) {
 		return alias;
 	}
-	
+
 	/**
 	 * Determine if the subquery column name needs to be aliased to be recognized
+	 * 
 	 * @param columnReturnedFromSubquery
 	 * @return
 	 */
@@ -466,7 +475,7 @@ public abstract class AbstractSqlQueryUtil {
 		s = s.replace(")", "\\)");
 		return s;
 	}
-	
+
 	/**
 	 * 
 	 * @param connection
@@ -486,14 +495,14 @@ public abstract class AbstractSqlQueryUtil {
 
 		return blob;
 	}
-	
+
 	/**
 	 * 
 	 * @param blob
 	 * @return
 	 */
 	public static String flushBlobToString(Blob blob) throws SQLException, IOException {
-		if(blob == null) {
+		if (blob == null) {
 			return null;
 		}
 		StringBuffer strOut = new StringBuffer();
@@ -507,7 +516,7 @@ public abstract class AbstractSqlQueryUtil {
 			isr = new InputStreamReader(is);
 			br = new BufferedReader(isr);
 			boolean firstLine = true;
-			while ((aux=br.readLine())!=null) {
+			while ((aux = br.readLine()) != null) {
 				if (!firstLine) {
 					// append a newline before each line except the first
 					strOut.append("\n");
@@ -516,21 +525,21 @@ public abstract class AbstractSqlQueryUtil {
 				firstLine = false;
 			}
 		} finally {
-			if(is != null) {
+			if (is != null) {
 				try {
 					is.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(isr != null) {
+			if (isr != null) {
 				try {
 					isr.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(br != null) {
+			if (br != null) {
 				try {
 					br.close();
 				} catch (IOException e) {
@@ -561,7 +570,7 @@ public abstract class AbstractSqlQueryUtil {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @param sourceClob
@@ -572,25 +581,26 @@ public abstract class AbstractSqlQueryUtil {
 	public static void transferClob(Clob sourceClob, Clob targetClob) throws SQLException, IOException {
 		InputStream source = sourceClob.getAsciiStream();
 		OutputStream target = targetClob.setAsciiStream(1);
-		
+
 		byte[] buf = new byte[8192];
 		int length;
 		while ((length = source.read(buf)) > 0) {
 			target.write(buf, 0, length);
 		}
 	}
-	
+
 	/**
 	 * Clean the table name so it is valid for SQL
+	 * 
 	 * @param tableName
 	 * @return
 	 */
 	public static String cleanTableName(String tableName) {
 		tableName = Utility.makeAlphaNumeric(tableName);
-		if(tableName.isEmpty()) {
+		if (tableName.isEmpty()) {
 			throw new IllegalArgumentException("After removing unallowed special characters, the table name is empty");
 		}
-		if(Character.isDigit(tableName.charAt(0))) {
+		if (Character.isDigit(tableName.charAt(0))) {
 			tableName = "_" + tableName;
 		}
 		return tableName;
@@ -677,11 +687,11 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String getConcatFunctionSyntax();
 
 	public abstract String getGroupConcatFunctionSyntax();
-	
+
 	public abstract String getSubstringFunctionSyntax();
-	
+
 	public abstract String getDateFormatFunctionSyntax();
-	
+
 	public abstract String getCastFunctionSyntax();
 
 	public abstract String getLowerFunctionSyntax();
@@ -691,39 +701,38 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String getRegexLikeFunctionSyntax();
 
 	public abstract String getMonthNameFunctionSyntax();
-	
+
 	public abstract String getDayNameFunctionSyntax();
-	
+
 	public abstract String getQuarterFunctionSyntax();
-	
+
 	public abstract String getWeekFunctionSyntax();
-	
+
 	public abstract String getYearFunctionSyntax();
-	
-	// TODO: NEED TO BUILD OUT MORE FUNCTIONS THIS WAY TO ACCOUNT 
+
+	// TODO: NEED TO BUILD OUT MORE FUNCTIONS THIS WAY TO ACCOUNT
 	// FUNCTION SYNTAX REQUIREMENTS BASED ON THE SQL TYPE
 	public abstract String processGroupByFunction(String selector, String separator, boolean distinct);
-	
+
 	// TODO: this might potentially be replaced from the above
 	// once we implement all the various functions
 	public abstract void appendDefaultFunctionOptions(QueryFunctionSelector fun);
 
 	// date functions - require more complex inputs
 	public abstract String getCurrentDate();
-	
+
 	public abstract String getCurrentTimestamp();
-	
-	public abstract String getDateAddFunctionSyntax(String timeUnit, int value, String  dateTimeField);
-	
+
+	public abstract String getDateAddFunctionSyntax(String timeUnit, int value, String dateTimeField);
+
 	public abstract String getDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2);
-	
+
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * This section is intended for modifications to select queries to pull data
 	 */
 
-	
 	/**
 	 * Retrieve the first row of a query
 	 * 
@@ -733,7 +742,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract StringBuilder getFirstRow(StringBuilder query);
-	
+
 	/**
 	 * Add the limit and offset to a query
 	 * 
@@ -753,7 +762,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract StringBuffer addLimitOffsetToQuery(StringBuffer query, long limit, long offset);
-	
+
 	/**
 	 * Remove duplicates that exist from an existing table by creating a new temp
 	 * intermediary table
@@ -785,33 +794,37 @@ public abstract class AbstractSqlQueryUtil {
 
 	/**
 	 * Append a regex filter search on a column
+	 * 
 	 * @param qs
 	 * @param columnQs
 	 * @param searchTerm
 	 */
 	public abstract IQueryFilter getSearchRegexFilter(String columnQs, String searchTerm);
-	
+
 	/**
 	 * Create the syntax to merge 2 tables together
-	 * @param returnTableName	The return table name
-	 * @param leftTableName		The left table
-	 * @param leftTableTypes	The {header -> type} of the left table
-	 * @param rightTableName	The right table name
-	 * @param rightTableTypes	The {header -> type} of the right table
-	 * @param joins				The joins between the right and left table
-	 * @param leftTableAlias	The {header -> alias} of the left table
-	 * @param rightTableAlias	The {header -> alias} of the right table
-	 * @param rightJoinFlag		Flag if we are doing a right join to switch the ordering of the tables
+	 * 
+	 * @param returnTableName The return table name
+	 * @param leftTableName   The left table
+	 * @param leftTableTypes  The {header -> type} of the left table
+	 * @param rightTableName  The right table name
+	 * @param rightTableTypes The {header -> type} of the right table
+	 * @param joins           The joins between the right and left table
+	 * @param leftTableAlias  The {header -> alias} of the left table
+	 * @param rightTableAlias The {header -> alias} of the right table
+	 * @param rightJoinFlag   Flag if we are doing a right join to switch the
+	 *                        ordering of the tables
 	 * @return
 	 */
 	public abstract String createNewTableFromJoiningTables(String returnTableName, String leftTableName,
 			Map<String, SemossDataType> leftTableTypes, String rightTableName,
 			Map<String, SemossDataType> rightTableTypes, List<Join> joins, Map<String, String> leftTableAlias,
 			Map<String, String> rightTableAlias, boolean rightJoinFlag);
-	
+
 	/**
-	 * Similar to {@link #createNewTableFromJoiningTables()} but only returns the select portion without 
-	 * the "CREATE TABLE AS " syntax
+	 * Similar to {@link #createNewTableFromJoiningTables()} but only returns the
+	 * select portion without the "CREATE TABLE AS " syntax
+	 * 
 	 * @param leftTableName
 	 * @param leftTableTypes
 	 * @param rightTableName
@@ -822,10 +835,9 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param rightJoinFlag
 	 * @return
 	 */
-	public abstract String selectFromJoiningTables(String leftTableName,
-			Map<String, SemossDataType> leftTableTypes, String rightTableName,
-			Map<String, SemossDataType> rightTableTypes, List<Join> joins, Map<String, String> leftTableAlias,
-			Map<String, String> rightTableAlias, boolean rightJoinFlag);
+	public abstract String selectFromJoiningTables(String leftTableName, Map<String, SemossDataType> leftTableTypes,
+			String rightTableName, Map<String, SemossDataType> rightTableTypes, List<Join> joins,
+			Map<String, String> leftTableAlias, Map<String, String> rightTableAlias, boolean rightJoinFlag);
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
@@ -838,29 +850,33 @@ public abstract class AbstractSqlQueryUtil {
 
 	/**
 	 * Does the RDBMS type support boolean types
+	 * 
 	 * @return
 	 */
 	public abstract boolean allowBooleanDataType();
-	
+
 	/**
 	 * Get the date time data type used by the RDBMS
+	 * 
 	 * @return
 	 */
 	public abstract String getDateWithTimeDataType();
-	
+
 	/**
 	 * Does the RDBMS type support blob data type
+	 * 
 	 * @return
 	 */
 	public abstract boolean allowBlobDataType();
-	
+
 	/**
-	 * Does the RDBMS type support blob java object storage
-	 * i.e. - connection.createBlob();
+	 * Does the RDBMS type support blob java object storage i.e. -
+	 * connection.createBlob();
+	 * 
 	 * @return
 	 */
 	public abstract boolean allowBlobJavaObject();
-	
+
 	/**
 	 * 
 	 * @param conn
@@ -868,30 +884,43 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param object
 	 * @param index
 	 * @throws SQLException
-	 * @throws UnsupportedEncodingException 
+	 * @throws UnsupportedEncodingException
 	 */
-	public abstract void handleInsertionOfBlob(Connection conn, PreparedStatement statement, String object, int index) throws SQLException, UnsupportedEncodingException;
-	
+	public abstract void handleInsertionOfBlob(Connection conn, PreparedStatement statement, String object, int index)
+			throws SQLException, UnsupportedEncodingException;
+
 	/**
 	 * 
 	 * @param result
 	 * @param key
 	 * @return
-	 * @throws IOException 
-	 * @throws SQLException 
+	 * @throws IOException
+	 * @throws SQLException
 	 */
 	public abstract String handleBlobRetrieval(ResultSet result, String key) throws SQLException, IOException;
-	
+
 	/**
 	 * 
 	 * @param result
 	 * @param index
 	 * @return
-	 * @throws IOException 
-	 * @throws SQLException 
+	 * @throws IOException
+	 * @throws SQLException
 	 */
 	public abstract String handleBlobRetrieval(ResultSet result, int index) throws SQLException, IOException;
-	
+
+	/**
+	 * 
+	 * @param statement
+	 * @param object
+	 * @param index
+	 * @param gson
+	 * @throws SQLException
+	 * @throws UnsupportedEncodingException
+	 */
+	public abstract void handleInsertionOfClob(PreparedStatement statement, Object object, int index, Gson gson)
+			throws SQLException, UnsupportedEncodingException;
+
 	/**
 	 * 
 	 * @param conn
@@ -902,25 +931,30 @@ public abstract class AbstractSqlQueryUtil {
 	 * @throws SQLException
 	 * @throws UnsupportedEncodingException
 	 */
-	public abstract void handleInsertionOfClob(Connection conn, PreparedStatement statement, Object object, int index, Gson gson) throws SQLException, UnsupportedEncodingException;
-	
+	public abstract void handleInsertionOfClob(Connection conn, PreparedStatement statement, Object object, int index,
+			Gson gson) throws SQLException, UnsupportedEncodingException;
+
 	/**
 	 * Get the RDBMS type name for blob type (BLOB is ANSI)
+	 * 
 	 * @return
 	 */
 	public abstract String getBlobDataTypeName();
-	
+
 	/**
 	 * Get the RDBMS type equivalent for clob type (CLOB is ANSI)
+	 * 
 	 * @return
 	 */
 	public abstract String getClobDataTypeName();
-	
+
 	/**
 	 * Get the RDBMS type equivalent for varchar() type
+	 * 
 	 * @return
 	 */
 	public abstract String getVarcharDataTypeName();
+
 //	
 //	/**
 //	 * Get the RDBMS type equivalent for varchar(MAX) type
@@ -932,31 +966,36 @@ public abstract class AbstractSqlQueryUtil {
 //	
 	/**
 	 * Get the RDBMS type equivalent for boolean type
+	 * 
 	 * @return
 	 */
 	public abstract String getBooleanDataTypeName();
 
 	/**
 	 * Get the RDBMS type equivalent for int type
+	 * 
 	 * @return
 	 */
 	public abstract String getIntegerDataTypeName();
-	
+
 	/**
 	 * Get the RDBMS type equivalent for double type
+	 * 
 	 * @return
 	 */
 	public abstract String getDoubleDataTypeName();
-	
+
 	/**
 	 * Get the RDBMS type equivalent for image data type
+	 * 
 	 * @return
 	 */
 	public abstract String getImageDataTypeName();
-	
+
 	/**
-	 * Does the RDBMS type support clob java object storage
-	 * i.e. - connection.createClob();
+	 * Does the RDBMS type support clob java object storage i.e. -
+	 * connection.createClob();
+	 * 
 	 * @return
 	 */
 	public abstract boolean allowClobJavaObject();
@@ -995,7 +1034,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract boolean allowMultiDropColumn();
-	
+
 	/**
 	 * Does the engine allow "CREATE TABLE IF NOT EXISTS " syntax
 	 * 
@@ -1017,7 +1056,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract boolean allowIfExistsModifyColumnSyntax();
-	
+
 	/**
 	 * Does the engine allow " ADD CONSTRAINT IF NOT EXISTS " syntax
 	 * 
@@ -1026,12 +1065,13 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract boolean allowIfExistsAddConstraint();
 
 	/**
-	 * Is the savepoint auto released? 
-	 * If true, then dont need to release savepoint / method might not be implemented and throw error
+	 * Is the savepoint auto released? If true, then dont need to release savepoint
+	 * / method might not be implemented and throw error
+	 * 
 	 * @return
 	 */
 	public abstract boolean savePointAutoRelease();
-	
+
 	/////////////////////////////////////////////////////////////////////////
 
 	/*
@@ -1056,7 +1096,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract String createTable(String tableName, Map<String, String> colToTypeMap);
-	
+
 	/**
 	 * Create a new table with passed in columns + types + default values
 	 * 
@@ -1066,7 +1106,8 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param defaultValues
 	 * @return
 	 */
-	public abstract String createTableWithDefaults(String tableName, String[] colNames, String[] types, Object[] defaultValues);
+	public abstract String createTableWithDefaults(String tableName, String[] colNames, String[] types,
+			Object[] defaultValues);
 
 	/**
 	 * Create a new table with custom constraints
@@ -1077,7 +1118,8 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param customConstraints
 	 * @return
 	 */
-	public abstract String createTableWithCustomConstraints(String tableName, String[] colNames, String[] types, Object[] customConstraints);
+	public abstract String createTableWithCustomConstraints(String tableName, String[] colNames, String[] types,
+			Object[] customConstraints);
 
 	/**
 	 * Create a new table if it does not exist with passed in columns + types +
@@ -1100,7 +1142,8 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param defaultValues
 	 * @return
 	 */
-	public abstract String createTableIfNotExistsWithDefaults(String tableName, String[] colNames, String[] types, Object[] defaultValues);
+	public abstract String createTableIfNotExistsWithDefaults(String tableName, String[] colNames, String[] types,
+			Object[] defaultValues);
 
 	/**
 	 * Create a new table if it does not exist with custom constraints
@@ -1111,8 +1154,9 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param customConstraints
 	 * @return
 	 */
-	public abstract String createTableIfNotExistsWithCustomConstraints(String tableName, String[] colNames, String[] types, Object[] customConstraints);
-	
+	public abstract String createTableIfNotExistsWithCustomConstraints(String tableName, String[] colNames,
+			String[] types, Object[] customConstraints);
+
 	/*
 	 * Drop table scripts
 	 */
@@ -1165,7 +1209,8 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param defaultValue
 	 * @return
 	 */
-	public abstract String alterTableAddColumnWithDefault(String tableName, String newColumn, String newColType, Object defualtValue);
+	public abstract String alterTableAddColumnWithDefault(String tableName, String newColumn, String newColType,
+			Object defualtValue);
 
 	/**
 	 * Add a new column to an existing table if the column does not exist
@@ -1208,7 +1253,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract String alterTableAddColumns(String tableName, Map<String, String> newColToTypeMap);
-	
+
 	/**
 	 * Add new columns to an existing table with default value
 	 * 
@@ -1218,7 +1263,8 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param defaultValue
 	 * @return
 	 */
-	public abstract String alterTableAddColumnsWithDefaults(String tableName, String[] newColumns, String[] newColTypes, Object[] defaultValues);
+	public abstract String alterTableAddColumnsWithDefaults(String tableName, String[] newColumns, String[] newColTypes,
+			Object[] defaultValues);
 
 	/**
 	 * Drop a column from an existing table
@@ -1266,7 +1312,8 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param defaultValue
 	 * @return
 	 */
-	public abstract String modColumnTypeWithDefault(String tableName, String columnName, String dataType, Object defualtValue);
+	public abstract String modColumnTypeWithDefault(String tableName, String columnName, String dataType,
+			Object defualtValue);
 
 	/**
 	 * Modify a column definition if it exists
@@ -1287,26 +1334,29 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param defaultValue
 	 * @return
 	 */
-	public abstract String modColumnTypeIfExistsWithDefault(String tableName, String columnName, String dataType, Object defualtValue);
+	public abstract String modColumnTypeIfExistsWithDefault(String tableName, String columnName, String dataType,
+			Object defualtValue);
 
 	/**
 	 * Modify a column to not allow nulls
+	 * 
 	 * @param tableName
 	 * @param columnName
 	 * @param dataType
 	 * @return
 	 */
 	public abstract String modColumnNotNull(String tableName, String columnName, String dataType);
-	
+
 	/**
 	 * Modify a column name in a table
+	 * 
 	 * @param tableName
 	 * @param curColName
 	 * @param newColName
 	 * @return
 	 */
 	public abstract String modColumnName(String tableName, String curColName, String newColName);
-	
+
 	/*
 	 * Index
 	 */
@@ -1396,7 +1446,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract String copyTable(String newTableName, String oldTableName);
-	
+
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
@@ -1404,8 +1454,8 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 
 	/**
-	 * Query to execute if has next, the table exists 
-	 * The database and schema input is optional and only required by certain engines
+	 * Query to execute if has next, the table exists The database and schema input
+	 * is optional and only required by certain engines
 	 * 
 	 * @param tableName
 	 * @param database
@@ -1415,8 +1465,8 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String tableExistsQuery(String tableName, String database, String schema);
 
 	/**
-	 * Query to execute if has next, the table constraint exists
-	 * The database and schema input is optional and only required by certain engines
+	 * Query to execute if has next, the table constraint exists The database and
+	 * schema input is optional and only required by certain engines
 	 * 
 	 * @param constraintName
 	 * @param tableName
@@ -1424,11 +1474,12 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param schema
 	 * @return
 	 */
-	public abstract String tableConstraintExistsQuery(String constraintName, String tableName, String database, String schema);
-	
+	public abstract String tableConstraintExistsQuery(String constraintName, String tableName, String database,
+			String schema);
+
 	/**
-	 * Query to execute if has next, the referential constraint exists
-	 * The database and schema input is optional and only required by certain engines
+	 * Query to execute if has next, the referential constraint exists The database
+	 * and schema input is optional and only required by certain engines
 	 * 
 	 * @param constraintName
 	 * @param database
@@ -1436,11 +1487,11 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract String referentialConstraintExistsQuery(String constraintName, String database, String schema);
-	
+
 	/**
-	 * Query to get the list of column names for a table 
-	 * The schema input is optional and only required by certain engines
-	 * Returns the column name and column type
+	 * Query to get the list of column names for a table The schema input is
+	 * optional and only required by certain engines Returns the column name and
+	 * column type
 	 *
 	 * @param tableName
 	 * @param database
@@ -1450,8 +1501,8 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String getAllColumnDetails(String tableName, String database, String schema);
 
 	/**
-	 * Query to execute to get the column details 
-	 * Can also imply if the query returns that the column exists
+	 * Query to execute to get the column details Can also imply if the query
+	 * returns that the column exists
 	 * 
 	 * @param tableName
 	 * @param columnName
@@ -1572,7 +1623,8 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param schema
 	 * @return
 	 */
-	public boolean indexExists(IDatabaseEngine engine, String indexName, String tableName, String database, String schema) {
+	public boolean indexExists(IDatabaseEngine engine, String indexName, String tableName, String database,
+			String schema) {
 		String indexCheckQ = this.getIndexDetails(indexName, tableName, database, schema);
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1594,7 +1646,7 @@ public abstract class AbstractSqlQueryUtil {
 
 		return false;
 	}
-	
+
 	/**
 	 * Test on the connection if a constraint exists
 	 * 
@@ -1605,7 +1657,8 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param schema
 	 * @return
 	 */
-	public boolean tableConstraintExists(Connection conn, String constraintName, String tableName, String database, String schema) {
+	public boolean tableConstraintExists(Connection conn, String constraintName, String tableName, String database,
+			String schema) {
 		String query = this.tableConstraintExistsQuery(constraintName, tableName, database, schema);
 		Statement stmt = null;
 		ResultSet rs = null;
@@ -1620,7 +1673,7 @@ public abstract class AbstractSqlQueryUtil {
 			ConnectionUtils.closeAllConnections(null, stmt, rs);
 		}
 	}
-	
+
 	/**
 	 * Test on the engine if a constraint exists
 	 * 
@@ -1631,7 +1684,8 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param schema
 	 * @return
 	 */
-	public boolean tableConstraintExists(IDatabaseEngine engine, String constraintName, String tableName, String database, String schema) {
+	public boolean tableConstraintExists(IDatabaseEngine engine, String constraintName, String tableName,
+			String database, String schema) {
 		String query = this.tableConstraintExistsQuery(constraintName, tableName, database, schema);
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1678,7 +1732,7 @@ public abstract class AbstractSqlQueryUtil {
 			ConnectionUtils.closeAllConnections(null, stmt, rs);
 		}
 	}
-	
+
 	/**
 	 * Test on the engine if a constraint exists
 	 * 
@@ -1688,7 +1742,8 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param schema
 	 * @return
 	 */
-	public boolean referentialConstraintExists(IDatabaseEngine engine, String constraintName, String database, String schema) {
+	public boolean referentialConstraintExists(IDatabaseEngine engine, String constraintName, String database,
+			String schema) {
 		String query = this.referentialConstraintExistsQuery(constraintName, database, schema);
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1710,7 +1765,7 @@ public abstract class AbstractSqlQueryUtil {
 
 		return false;
 	}
-	
+
 	/**
 	 * Get all the table columns Will return them all upper cased
 	 * 
@@ -1739,16 +1794,18 @@ public abstract class AbstractSqlQueryUtil {
 
 		return tableColumns;
 	}
-	
+
 	/**
 	 * Get all the table columns and their types
+	 * 
 	 * @param conn
 	 * @param tableName
 	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public LinkedHashMap<String, Map<String, Object>> getAllTableColumnTypes(Connection conn, String tableName, String database, String schema) {
+	public LinkedHashMap<String, Map<String, Object>> getAllTableColumnTypes(Connection conn, String tableName,
+			String database, String schema) {
 		LinkedHashMap<String, Map<String, Object>> tableColumns = new LinkedHashMap<>();
 		String query = this.getAllColumnDetails(tableName, database, schema);
 		Statement stmt = null;
@@ -1756,19 +1813,19 @@ public abstract class AbstractSqlQueryUtil {
 		try {
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
-			
+
 			ResultSetMetaData metadata = rs.getMetaData();
 			int numCols = metadata.getColumnCount();
 			while (rs.next()) {
 				Map<String, Object> columnDetails = new HashMap<>();
 				columnDetails.put(DATA_TYPE, rs.getString(2));
-				if(numCols >= 3) {
+				if (numCols >= 3) {
 					columnDetails.put(CHARACTER_MAXIMUM_LENGTH, rs.getString(3));
 				}
-				if(numCols >= 4) {
+				if (numCols >= 4) {
 					columnDetails.put(NUMERIC_PRECISION, rs.getInt(4));
 				}
-				if(numCols >= 5) {
+				if (numCols >= 5) {
 					columnDetails.put(NUMERIC_SCALE, rs.getInt(5));
 				}
 				tableColumns.put(rs.getString(1), columnDetails);
@@ -1781,43 +1838,47 @@ public abstract class AbstractSqlQueryUtil {
 
 		return tableColumns;
 	}
-	
+
 	/**
 	 * Get all the table columns and their types
+	 * 
 	 * @param conn
 	 * @param tableName
 	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public LinkedHashMap<String, String> getAllTableColumnTypesSimple(Connection conn, String tableName, String database, String schema) {
+	public LinkedHashMap<String, String> getAllTableColumnTypesSimple(Connection conn, String tableName,
+			String database, String schema) {
 		// the final map
 		LinkedHashMap<String, String> columnDetails = new LinkedHashMap<>();
-		
+
 		// call the base method
 		// and just combine for the varchar max / decimal percision
-		LinkedHashMap<String, Map<String, Object>> allColumnDetails = this.getAllTableColumnTypes(conn, tableName, database, schema);
-		for(String col : allColumnDetails.keySet()) {
+		LinkedHashMap<String, Map<String, Object>> allColumnDetails = this.getAllTableColumnTypes(conn, tableName,
+				database, schema);
+		for (String col : allColumnDetails.keySet()) {
 			Map<String, Object> details = allColumnDetails.get(col);
-			String type = details.get(AbstractSqlQueryUtil.DATA_TYPE)+"";
+			String type = details.get(AbstractSqlQueryUtil.DATA_TYPE) + "";
 			Object maxCharLength = details.get(AbstractSqlQueryUtil.CHARACTER_MAXIMUM_LENGTH);
 			Object numericPrecision = details.get(AbstractSqlQueryUtil.NUMERIC_PRECISION);
 			Object numericScale = details.get(AbstractSqlQueryUtil.NUMERIC_SCALE);
 
 			String finalDataType = type;
-			if(Utility.isStringType(type) && maxCharLength != null) {
+			if (Utility.isStringType(type) && maxCharLength != null) {
 				finalDataType += "(" + maxCharLength + ")";
-			} else if(Utility.isDoubleType(type) && numericPrecision != null && numericScale != null) {
+			} else if (Utility.isDoubleType(type) && numericPrecision != null && numericScale != null) {
 				finalDataType += "(" + numericPrecision + "," + numericScale + ")";
 			}
 			columnDetails.put(col, finalDataType);
 		}
-		
+
 		return columnDetails;
 	}
-	
+
 	/**
 	 * Get the details for a specific column
+	 * 
 	 * @param conn
 	 * @param tableName
 	 * @param columnName
@@ -1825,7 +1886,8 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param schema
 	 * @return
 	 */
-	public String[] getColumnDetails(Connection conn, String tableName, String columnName, String database, String schema) {
+	public String[] getColumnDetails(Connection conn, String tableName, String columnName, String database,
+			String schema) {
 		String query = this.columnDetailsQuery(tableName, columnName, database, schema);
 		Statement stmt = null;
 		ResultSet rs = null;
@@ -1843,61 +1905,65 @@ public abstract class AbstractSqlQueryUtil {
 
 		return null;
 	}
-	
-	public static DatabaseUpdateMetadata performDatabaseAdditions(IRDBMSEngine rdbmsDb, Map<String, Map<String, String>> updates, Logger logger) throws InterruptedException {
+
+	public static DatabaseUpdateMetadata performDatabaseAdditions(IRDBMSEngine rdbmsDb,
+			Map<String, Map<String, String>> updates, Logger logger) throws InterruptedException {
 		DatabaseUpdateMetadata meta = new DatabaseUpdateMetadata();
-		
+
 		Set<String> tableExists = new HashSet<>();
 
 		AbstractSqlQueryUtil queryUtil = rdbmsDb.getQueryUtil();
 		Map<String, String> typeConversionMap = queryUtil.getTypeConversionMap();
-		
+
 		try {
 			Connection conn = rdbmsDb.getConnection();
 			String database = rdbmsDb.getDatabase();
 			String schema = rdbmsDb.getSchema();
-			
+
 			// first run a validation on the input
-			for(String tableName : updates.keySet()) {
+			for (String tableName : updates.keySet()) {
 				logger.info("Validating table " + tableName);
-				if(queryUtil.tableExists(rdbmsDb, tableName, database, schema)) {
+				if (queryUtil.tableExists(rdbmsDb, tableName, database, schema)) {
 					logger.info("Validating columns for " + tableName);
 					// we are altering - make sure everything is valid
-					
+
 					List<String> currentColumns = queryUtil.getTableColumns(conn, tableName, database, schema);
-					Set<String> currentColumnsLower = currentColumns.stream().map(s -> s.toLowerCase()).collect(Collectors.toSet());
-					
+					Set<String> currentColumnsLower = currentColumns.stream().map(s -> s.toLowerCase())
+							.collect(Collectors.toSet());
+
 					Set<String> newColumns = updates.get(tableName).keySet();
-					Set<String> newColumnsLower = newColumns.stream().map(s -> s.toLowerCase()).collect(Collectors.toSet());
-					
-					Set<String> overlap = newColumnsLower.stream().filter(s -> currentColumnsLower.contains(s)).collect(Collectors.toSet());
-					if(!overlap.isEmpty()) {
+					Set<String> newColumnsLower = newColumns.stream().map(s -> s.toLowerCase())
+							.collect(Collectors.toSet());
+
+					Set<String> overlap = newColumnsLower.stream().filter(s -> currentColumnsLower.contains(s))
+							.collect(Collectors.toSet());
+					if (!overlap.isEmpty()) {
 						throw new IllegalArgumentException("The following column names already exist: " + overlap);
 					}
 
 					tableExists.add(tableName);
 				}
 			}
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error validating the input. Detailed message = " + e.getMessage());
 		}
-		
+
 		// create an owler to track the meta modifications
 		WriteOWLEngine owlEngine = rdbmsDb.getOWLEngineFactory().getWriteOWL();
 		meta.setOwlEngine(owlEngine);
-		
+
 		StringBuilder errorMessages = new StringBuilder();
 		// now do the operations
-		for(String tableName : updates.keySet()) {
+		for (String tableName : updates.keySet()) {
 
 			Map<String, String> finalColumnUpdates = new HashMap<>(updates.size());
 
 			Map<String, String> columnUpdates = updates.get(tableName);
-			for(String column : columnUpdates.keySet()) {
+			for (String column : columnUpdates.keySet()) {
 
 				String columnType = columnUpdates.get(column).toUpperCase();
-				if(typeConversionMap.containsKey(columnType)) {
+				if (typeConversionMap.containsKey(columnType)) {
 					columnType = typeConversionMap.get(columnType);
 				}
 
@@ -1905,7 +1971,7 @@ public abstract class AbstractSqlQueryUtil {
 			}
 
 			String query = null;
-			if(tableExists.contains(tableName)) {
+			if (tableExists.contains(tableName)) {
 				logger.info("Altering table " + tableName);
 				query = queryUtil.alterTableAddColumns(tableName, finalColumnUpdates);
 			} else {
@@ -1914,58 +1980,65 @@ public abstract class AbstractSqlQueryUtil {
 			}
 			try {
 				rdbmsDb.insertData(query);
-				
+
 				// add to the owl
 				logger.info("Updating metadata for table " + tableName);
 				owlEngine.addConcept(tableName, null, null);
-				for(String column : finalColumnUpdates.keySet()) {
+				for (String column : finalColumnUpdates.keySet()) {
 					String columnType = finalColumnUpdates.get(column);
 					owlEngine.addProp(tableName, column, columnType);
 				}
-				
+
 				// store the metadata
 				meta.addSuccessfulUpdate(tableName);
-			} catch(Exception e) {
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				errorMessages.append("Error executing query = '" + query +"' with detailed error = " + e.getMessage() + ". ");
+				errorMessages.append(
+						"Error executing query = '" + query + "' with detailed error = " + e.getMessage() + ". ");
 				meta.addFailedUpdates(tableName);
 			}
 		}
-		
+
 		meta.setCombinedErrors(errorMessages.toString());
-		
+
 		return meta;
 	}
 
-	public static DatabaseUpdateMetadata performDatabaseDeletions(IRDBMSEngine rdbmsDb, Map<String, List<String>> updates, Logger logger) throws InterruptedException {
+	public static DatabaseUpdateMetadata performDatabaseDeletions(IRDBMSEngine rdbmsDb,
+			Map<String, List<String>> updates, Logger logger) throws InterruptedException {
 		DatabaseUpdateMetadata meta = new DatabaseUpdateMetadata();
 		Set<String> tableDeletes = new HashSet<>();
 		AbstractSqlQueryUtil queryUtil = rdbmsDb.getQueryUtil();
-		
-		// validate that the tables and columns provided exist, and tag tables for removal if all or no columns given
+
+		// validate that the tables and columns provided exist, and tag tables for
+		// removal if all or no columns given
 		try {
 			Connection conn = rdbmsDb.getConnection();
 			String database = rdbmsDb.getDatabase();
 			String schema = rdbmsDb.getSchema();
-			
-			for(String tableName : updates.keySet()) {
+
+			for (String tableName : updates.keySet()) {
 				logger.info("Validating table " + tableName);
-				if(queryUtil.tableExists(rdbmsDb, tableName, database, schema)) {
+				if (queryUtil.tableExists(rdbmsDb, tableName, database, schema)) {
 					logger.info("Validating columns for " + tableName);
-					
+
 					List<String> currentColumns = queryUtil.getTableColumns(conn, tableName, database, schema);
-					Set<String> currentColumnsLower = currentColumns.stream().map(s -> s.toLowerCase()).collect(Collectors.toSet());
-					
-					Set<String> givenColumnsLower = updates.get(tableName).stream().map(s -> s.toLowerCase()).collect(Collectors.toSet());
-					
-					if(givenColumnsLower.isEmpty()) {
+					Set<String> currentColumnsLower = currentColumns.stream().map(s -> s.toLowerCase())
+							.collect(Collectors.toSet());
+
+					Set<String> givenColumnsLower = updates.get(tableName).stream().map(s -> s.toLowerCase())
+							.collect(Collectors.toSet());
+
+					if (givenColumnsLower.isEmpty()) {
 						tableDeletes.add(tableName);
 					} else {
-						Set<String> gap = givenColumnsLower.stream().filter(s -> !currentColumnsLower.contains(s)).collect(Collectors.toSet());
-						if(!gap.isEmpty()) {
-							throw new IllegalArgumentException("The following column names do not exist in table " + tableName + ": " + gap);
+						Set<String> gap = givenColumnsLower.stream().filter(s -> !currentColumnsLower.contains(s))
+								.collect(Collectors.toSet());
+						if (!gap.isEmpty()) {
+							throw new IllegalArgumentException(
+									"The following column names do not exist in table " + tableName + ": " + gap);
 						}
-						if(givenColumnsLower.size() == currentColumnsLower.size()) {
+						if (givenColumnsLower.size() == currentColumnsLower.size()) {
 							tableDeletes.add(tableName);
 						}
 					}
@@ -1973,92 +2046,92 @@ public abstract class AbstractSqlQueryUtil {
 					throw new IllegalArgumentException("The following table does not exist:" + tableName);
 				}
 			}
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error validating the input. Detailed message = " + e.getMessage());
 		}
-		
+
 		// create an owler to track the meta modifications
 		WriteOWLEngine owlEngine = rdbmsDb.getOWLEngineFactory().getWriteOWL();
 		meta.setOwlEngine(owlEngine);
-		
+
 		StringBuilder errorMessages = new StringBuilder();
 		// now do the operations
-		for(String tableName : updates.keySet()) {
+		for (String tableName : updates.keySet()) {
 			boolean deleteTable = tableDeletes.contains(tableName);
 			String query = null;
 			try {
-				if(deleteTable) {
+				if (deleteTable) {
 					logger.info("Dropping table " + tableName);
 					query = queryUtil.dropTable(tableName);
 					rdbmsDb.insertData(query);
 				} else {
 					logger.info("Removing columns from table " + tableName);
 					// prefer using multi-drop if supported
-					if(queryUtil.allowMultiDropColumn()) {
+					if (queryUtil.allowMultiDropColumn()) {
 						query = queryUtil.alterTableDropColumns(tableName, updates.get(tableName));
 						rdbmsDb.insertData(query);
 					} else {
-						for(String columnName : updates.get(tableName)) {
+						for (String columnName : updates.get(tableName)) {
 							query = queryUtil.alterTableDropColumn(tableName, columnName);
 							rdbmsDb.insertData(query);
 						}
 					}
 				}
-				
+
 				// update the owl
 				logger.info("Updating metadata for table " + tableName);
-				if(deleteTable) {
+				if (deleteTable) {
 					owlEngine.removeConcept(tableName);
 				} else {
-					for(String column : updates.get(tableName)) {
+					for (String column : updates.get(tableName)) {
 						owlEngine.removeProp(tableName, column);
 					}
 				}
 				// store the metadata
 				meta.addSuccessfulUpdate(tableName);
-			} catch(Exception e) {
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				errorMessages.append("Error executing query = '" + query +"' with detailed error = " + e.getMessage() + ". ");
+				errorMessages.append(
+						"Error executing query = '" + query + "' with detailed error = " + e.getMessage() + ". ");
 				meta.addFailedUpdates(tableName);
 			}
 		}
-		
+
 		meta.setCombinedErrors(errorMessages.toString());
 		return meta;
 	}
-	
+
 	/**
 	 * 
 	 * @param value
 	 * @return
 	 */
 	public static int getConnectionTypeValueFromString(String value) {
-		if(value == null) {
+		if (value == null) {
 			return -1;
 		}
-		
-		if(value.equalsIgnoreCase(Constants.TRANSACTION_NONE)) {
+
+		if (value.equalsIgnoreCase(Constants.TRANSACTION_NONE)) {
 			return Connection.TRANSACTION_NONE;
-		} else if(value.equalsIgnoreCase(Constants.TRANSACTION_READ_UNCOMMITTED)) {
+		} else if (value.equalsIgnoreCase(Constants.TRANSACTION_READ_UNCOMMITTED)) {
 			return Connection.TRANSACTION_READ_UNCOMMITTED;
-		} else if(value.equalsIgnoreCase(Constants.TRANSACTION_READ_COMMITTED)) {
+		} else if (value.equalsIgnoreCase(Constants.TRANSACTION_READ_COMMITTED)) {
 			return Connection.TRANSACTION_READ_COMMITTED;
-		} else if(value.equalsIgnoreCase(Constants.TRANSACTION_REPEATABLE_READ)) {
+		} else if (value.equalsIgnoreCase(Constants.TRANSACTION_REPEATABLE_READ)) {
 			return Connection.TRANSACTION_REPEATABLE_READ;
-		} else if(value.equalsIgnoreCase(Constants.TRANSACTION_SERIALIZABLE)) {
+		} else if (value.equalsIgnoreCase(Constants.TRANSACTION_SERIALIZABLE)) {
 			return Connection.TRANSACTION_SERIALIZABLE;
 		}
-		
+
 		return -1;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
-	 * These are older methods
-	 * Need to come back and see where to 
-	 * utilize these/clean up
+	 * These are older methods Need to come back and see where to utilize
+	 * these/clean up
 	 */
 
 	public String getDialectSelectRowCountFrom(String tableName, String whereClause) {
@@ -2090,10 +2163,9 @@ public abstract class AbstractSqlQueryUtil {
 		return query;
 	}
 
-	public String hashColumn(String tableName, String[] columns){
+	public String hashColumn(String tableName, String[] columns) {
 		throw new UnsupportedOperationException();
 	}
-
 
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
@@ -2113,6 +2185,5 @@ public abstract class AbstractSqlQueryUtil {
 //			logger.debug(wrapper.next());
 //		}
 //	}
-
 
 }
