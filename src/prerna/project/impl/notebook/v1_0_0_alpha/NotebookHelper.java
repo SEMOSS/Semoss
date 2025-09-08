@@ -28,6 +28,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.project.impl.notebook.INotebookHelper;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelOperationType;
@@ -40,12 +41,12 @@ public class NotebookHelper implements INotebookHelper {
 	private static final Logger classLogger = LogManager.getLogger(NotebookWriter.class);
 
 	private JsonObject blocksFileJson = null;
-	
+
 	@Override
 	public JsonElement getBlocksFileJson() {
 		return this.blocksFileJson;
 	}
-	
+
 	@Override
 	public void setBlocksFileJson(JsonElement blocksFileJson) {
 		try {
@@ -55,7 +56,7 @@ public class NotebookHelper implements INotebookHelper {
 			throw new IllegalArgumentException("The json is not of the valid format for this version.", e);
 		}
 	}
-	
+
 	@Override
 	public NotebookExecution executeNotebook(Insight insight, Map<String, String> inputReplacements) {
 		Gson gson = GsonUtility.getDefaultGson();
@@ -188,7 +189,7 @@ public class NotebookHelper implements INotebookHelper {
 		execution.setVariableOutput(outputVariableMap);
 		return execution;
 	}
-	
+
 	/**
 	 * 
 	 * @param pixel
@@ -225,7 +226,7 @@ public class NotebookHelper implements INotebookHelper {
 
 		return engineMap;
 	}
-	
+
 	@Override
 	public Map<String, String> getNotebookVariables() {
 		Map<String, String> variableMap = new HashMap<>();
@@ -242,137 +243,216 @@ public class NotebookHelper implements INotebookHelper {
 
 		return variableMap;
 	}
-	
+
+	/**
+	 * 
+	 * @param filePath
+	 * @param model
+	 * @param insight
+	 * @param cellId
+	 * @return
+	 */
+	private List<PythonFunction> generatePythonFunctionsFromNotebook(JsonObject smssDriver, IModelEngine model,
+			Insight insight, String cellId) {
+		List<PythonFunction> functions = new ArrayList<>();
+
+		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
+		Set<String> variableList = variables.keySet();
+
+		JsonArray cells = smssDriver.getAsJsonArray("cells");
+		for (int i = 0; i < cells.size(); i++) {
+			JsonObject cell = cells.get(i).getAsJsonObject();
+			String thisCellId = cell.get("id").getAsString();
+			// are we filtering to a specific cell?
+			// null cellId = process all cells
+			if (cellId == null || thisCellId.equals(cellId)) {
+				String widgetType = cell.get("widget").getAsString();
+				if (widgetType.equals("code")) {
+
+					PythonFunction function = new PythonFunction();
+					function.setNotebookCellId(thisCellId);
+					function.setMethodName("smss_driver_" + thisCellId);
+
+					JsonObject parameters = cell.getAsJsonObject("parameters");
+					String type = parameters.get("type").getAsString();
+					String code = parameters.get("code").getAsString();
+
+					String transformedCode = code;
+					// Regular expression to match {{parameter_name}}
+					Pattern pattern = Pattern.compile("\\{\\{([^}]+)\\}\\}");
+					Matcher matcher = pattern.matcher(code);
+
+					List<String> codeParameters = new ArrayList<>();
+					List<String> definedCodeParameters = new ArrayList<>();
+					while (matcher.find()) {
+						// Extract the parameter name (group 1 contains the content inside {{}})
+						String codeParameter = matcher.group(1).trim();
+						codeParameters.add(codeParameter);
+					}
+
+					for (String codeParameter : codeParameters) {
+						if (variableList.contains(codeParameter)) {
+							JsonObject variableMap = variables.getAsJsonObject(codeParameter);
+							if (variableMap.has("value")) {
+								definedCodeParameters.add(codeParameter);
+								transformedCode = transformedCode.replace("{{" + codeParameter + "}}",
+										variableMap.get("value").getAsString());
+							}
+						}
+					}
+
+					if (transformedCode.contains("'${i}'")) {
+						codeParameters.add("insight_id");
+						transformedCode = transformedCode.replace("'${i}'", "insight_id");
+					}
+
+					codeParameters.removeAll(definedCodeParameters);
+					function.setInputs(codeParameters);
+					if (type.equals("py")) {
+						function.setCode(transformedCode);
+					} else if (type.equals("pixel")) {
+						if (!codeParameters.contains("insight_id")) {
+							codeParameters.add("insight_id");
+						}
+						String pythonRunPixel = """
+								from semoss import Insight
+								insight = Insight(insight_id)
+								""";
+						pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + transformedCode.replace("\"", "\\\"")
+								+ "\"\"\")";
+						function.setCode(pythonRunPixel);
+					}
+
+					functions.add(function);
+				}
+			}
+		}
+		return functions;
+	}
+
+	/**
+	 * 
+	 * @param functions
+	 * @param model
+	 * @param insight
+	 * @param filePath
+	 * @param append
+	 * @return
+	 */
+	private Map<String, String> writeFunctionsToFile(List<PythonFunction> functions, IModelEngine model,
+			Insight insight, File file, boolean append) {
+		Map<String, String> cellIdToFunctionName = new HashMap<>();
+
+		try (FileWriter writer = new FileWriter(file, append)) {
+			writer.write("\n\n");
+			for (PythonFunction function : functions) {
+				if (function.getCode() != null) {
+					writer.write("# Auto generated method from cell id = '" + function.getNotebookCellId() + "' on "
+							+ ZonedDateTime.now(ZoneId.of("UTC")) + "\n");
+					if (model == null) {
+						writer.write(function.createPythonFunctionSyntax());
+
+						cellIdToFunctionName.put(function.getMethodName(), function.getNotebookCellId());
+					} else {
+						AskModelEngineResponse llmResponse = model.ask(
+								PythonFunction.defaultLLMImprovePrompt() + function.createPythonFunctionSyntax(), null,
+								insight, new HashMap<>());
+						String llmStringResponse = llmResponse.getStringResponse();
+						// because the LLM sometimes still adds stuff
+						// lets parse out the code block
+						String response = extractPythonCodeBlock(llmStringResponse);
+						if (response != null) {
+							// sometimes the response comes back with double encoding ...
+							// TODO: investigate this more
+							if (!response.contains("\n") && response.contains("\\n")) {
+								response = response.replace("\\n", "\n");
+							}
+							writer.write(response);
+
+							cellIdToFunctionName.put(MCPUtility.getPythonFunctionNameFromCode(insight, response),
+									function.getNotebookCellId());
+						} else {
+							classLogger.warn(
+									"Unable to properly get python markdown from LLM. Defaulting to base function code");
+							writer.write(function.createPythonFunctionSyntax());
+
+							cellIdToFunctionName.put(function.getMethodName(), function.getNotebookCellId());
+						}
+					}
+					writer.write("\n\n");
+				}
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return cellIdToFunctionName;
+	}
+
 	@Override
-	public void createMcpJson(String filePath, IModelEngine model, Insight insight) {
+	public Map<String, String> transformNotebookToMcpDriver(String filePath, IModelEngine model, Insight insight) {
 		// we will go through every cell in the smss_driver notebook
 		// and turn that into a function
 		JsonObject notebooks = blocksFileJson.getAsJsonObject("queries");
 		JsonObject smssDriver = notebooks.getAsJsonObject("smss_driver");
-		if(smssDriver == null) {
-			return;
+		if (smssDriver == null) {
+			return null;
 		}
-		
-		List<PythonFunction> functions = new ArrayList<>();
-		
-		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
-		Set<String> variableList = variables.keySet();
-		
-		JsonArray cells = smssDriver.getAsJsonArray("cells");
-		for(int i = 0; i < cells.size(); i++) {
-			JsonObject cell = cells.get(i).getAsJsonObject();
-			String cellId = cell.get("id").getAsString();
-			String widgetType = cell.get("widget").getAsString();
-			if(widgetType.equals("code")) {
-				
-				PythonFunction function = new PythonFunction();
-				function.setMethodName("smss_driver_"+cellId);
-				
-				JsonObject parameters = cell.getAsJsonObject("parameters");
-				String type = parameters.get("type").getAsString();
-				String code = parameters.get("code").getAsString();
-				
-				String transformedCode = code;
-				// Regular expression to match {{parameter_name}}
-		        Pattern pattern = Pattern.compile("\\{\\{([^}]+)\\}\\}");
-		        Matcher matcher = pattern.matcher(code);
-		        
-		        List<String> codeParameters = new ArrayList<>();
-		        List<String> definedCodeParameters = new ArrayList<>();
-		        while (matcher.find()) {
-		            // Extract the parameter name (group 1 contains the content inside {{}})
-		            String codeParameter = matcher.group(1).trim();
-		            codeParameters.add(codeParameter);
-		        }
-		        
-		        for(String codeParameter : codeParameters) {
-		        	if(variableList.contains(codeParameter)) {
-		        		JsonObject variableMap = variables.getAsJsonObject(codeParameter);
-		        		if(variableMap.has("value")) {
-		        			definedCodeParameters.add(codeParameter);
-		        			transformedCode = transformedCode.replace("{{" + codeParameter + "}}", variableMap.get("value").getAsString());
-		        		}
-		        	}
-		        }
-		        
-		        if(transformedCode.contains("'${i}'")) {
-		        	codeParameters.add("insight_id");
-        			transformedCode = transformedCode.replace("'${i}'", "insight_id");
-		        }
-		        
-		        codeParameters.removeAll(definedCodeParameters);
-		        function.setInputs(codeParameters);
-				if(type.equals("py")) {
-					function.setCode(transformedCode);
-				} else if(type.equals("pixel")) {
-					if(!codeParameters.contains("insight_id")) {
-			        	codeParameters.add("insight_id");
-					}
-					String pythonRunPixel = """
-							from semoss import Insight
-							insight = Insight(insight_id)
-							""";
-					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + transformedCode.replace("\"", "\\\"")+"\"\"\")";
-					function.setCode(pythonRunPixel);
-				}
-				
-				functions.add(function);
-			}
-		}
-		
+
+		List<PythonFunction> functions = generatePythonFunctionsFromNotebook(smssDriver, model, insight, null);
+
 		// new file
 		File f = new File(filePath);
-		if(f.exists()) {
+		if (f.exists()) {
 			f.delete();
 		}
 		f.getParentFile().mkdirs();
-		
-		try (FileWriter writer = new FileWriter(f)) {
-			writer.write("# Auto generated file on " + ZonedDateTime.now(ZoneId.of("UTC")));
-		    writer.write("\n\n");
-		    for(PythonFunction function : functions) {
-		    	if(function.getCode() != null) {
-			    	if(model == null) {
-			    		writer.write(function.createPythonFunctionSyntax());
-			    	} else {
-				    	AskModelEngineResponse llmResponse = model.ask(
-				    			PythonFunction.defaultLLMImprovePrompt() + function.createPythonFunctionSyntax(), 
-				    			null, insight, new HashMap<>());
-				    	String llmStringResponse = llmResponse.getStringResponse();
-				    	// because the LLM sometimes still adds stuff
-				    	// lets parse out the code block
-				    	String response = extractPythonCodeBlock(llmStringResponse);
-				    	if(response != null) {
-				    		// sometimes the response comes back with double encoding ...
-					    	// TODO: investigate this more
-					    	if(!response.contains("\n") && response.contains("\\n")) {
-					    		response = response.replace("\\n", "\n");
-					    	}
-					    	writer.write(response);
-				    	} else {
-				    		classLogger.warn("Unable to properly get python markdown from LLM. Defaulting to base function code");
-				    		writer.write(function.createPythonFunctionSyntax());
-				    	}
-			    	}
-			    	writer.write("\n\n");
-		    	}
-		    }
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+
+		return writeFunctionsToFile(functions, model, insight, f, false);
 	}
-	
+
+	@Override
+	public Map<String, String> transformNotebookCellToMcpDriver(String filePath, IModelEngine model, Insight insight,
+			String cellId) {
+		// we will go through every cell in the smss_driver notebook
+		// and turn that into a function
+		JsonObject notebooks = blocksFileJson.getAsJsonObject("queries");
+		JsonObject smssDriver = notebooks.getAsJsonObject("smss_driver");
+		if (smssDriver == null) {
+			return null;
+		}
+
+		List<PythonFunction> functions = generatePythonFunctionsFromNotebook(smssDriver, model, insight, cellId);
+
+		// new file
+		File f = new File(filePath);
+		if (f.exists()) {
+			f.delete();
+		}
+		f.getParentFile().mkdirs();
+
+		return writeFunctionsToFile(functions, model, insight, f, false);
+	}
+
 	/**
 	 * 
 	 */
 	class PythonFunction {
-		
+
+		String notebookCellId;
 		String methodName;
 		List<String> inputs;
 		String code;
-		
+
 		public PythonFunction() {
-			
+
+		}
+
+		public String getNotebookCellId() {
+			return notebookCellId;
+		}
+
+		public void setNotebookCellId(String notebookCellId) {
+			this.notebookCellId = notebookCellId;
 		}
 
 		public String getMethodName() {
@@ -398,23 +478,23 @@ public class NotebookHelper implements INotebookHelper {
 		public void setCode(String code) {
 			this.code = code;
 		}
-		
+
 		private String sanitizeName(String name) {
 			return name.replace("-", "_").replace(".", "_");
 		}
-		
+
 		public String createPythonFunctionSyntax() {
-			if(code == null) {
+			if (code == null) {
 				return "";
 			}
-			
+
 			final String TAB = "\t";
 			String parameters = null;
-			
+
 			Map<String, String> sanitizedInputs = new HashMap<>();
-			if(inputs != null && !inputs.isEmpty()) {
+			if (inputs != null && !inputs.isEmpty()) {
 				List<String> sanitizedNames = new ArrayList<>();
-				for(String input : inputs) {
+				for (String input : inputs) {
 					String sanitized = sanitizeName(input);
 					sanitizedInputs.put(input, sanitized);
 					sanitizedNames.add(sanitized);
@@ -423,71 +503,72 @@ public class NotebookHelper implements INotebookHelper {
 			} else {
 				parameters = "()";
 			}
-			
+
 			String finalCode = code;
-			for(Map.Entry<String, String> entry : sanitizedInputs.entrySet()) {
+			for (Map.Entry<String, String> entry : sanitizedInputs.entrySet()) {
 				finalCode = finalCode.replace("{{" + entry.getKey() + "}}", entry.getValue());
 			}
-			
+
 			// since we wrap within a function
-			// add an additional indent to all lines of code 
+			// add an additional indent to all lines of code
 			String indentedCode = finalCode.replaceAll("\\R", "\n" + TAB);
 
-		    String[] lines = indentedCode.split("\n");
-		    // find the last non-empty line and prepend "return " to it
-		    for(int i = lines.length - 1; i >= 0; i--) {
-		        String line = lines[i];
-		        if(!line.trim().isEmpty()) {
-		        	// find where the actual content starts
-		            int contentStart = 0;
-		            while(contentStart < line.length() && Character.isWhitespace(line.charAt(contentStart))) {
-		                contentStart++;
-		            }
-		            
-		            // split the indent and the content start
-		            String indent = line.substring(0, contentStart);
-		            String content = line.substring(contentStart);
-		            // modify the line after the indents to start with "return " 
-		            lines[i] = indent + "return " + content;
-		            break;
-		        }
-		    }
-		    
-		    String modifiedCode = String.join("\n", lines);
-			return "def " + methodName + parameters + ":" + "\n" +
-						TAB + modifiedCode + "\n";
+			String[] lines = indentedCode.split("\n");
+			// find the last non-empty line and prepend "return " to it
+			for (int i = lines.length - 1; i >= 0; i--) {
+				String line = lines[i];
+				if (!line.trim().isEmpty()) {
+					// find where the actual content starts
+					int contentStart = 0;
+					while (contentStart < line.length() && Character.isWhitespace(line.charAt(contentStart))) {
+						contentStart++;
+					}
+
+					// split the indent and the content start
+					String indent = line.substring(0, contentStart);
+					String content = line.substring(contentStart);
+					// modify the line after the indents to start with "return "
+					lines[i] = indent + "return " + content;
+					break;
+				}
+			}
+
+			String modifiedCode = String.join("\n", lines);
+			return "def " + methodName + parameters + ":" + "\n" + TAB + modifiedCode + "\n";
 		}
-		
+
 		public static String defaultLLMImprovePrompt() {
 			String prompt = """
-					You are a python coding assistant. Inspect the provided python function. 
-					Please break out the inputs into variables in case they are within string inputs. 
+					You are a python coding assistant. Inspect the provided python function.
+					Please break out the inputs into variables in case they are within string inputs.
 					Please provide a Google docstring and input types for the function.
-					Ensure that the function has a return. 
-					Give the function a meaningful name that is under 20 characters long. 
-					Only reply with the code in markdown and make sure the syntax is executable with proper spacing:  
+					Ensure that the function has a return.
+					Give the function a meaningful name that is under 20 characters long.
+					Only reply with the code in markdown and make sure the syntax is executable with proper spacing:
 					""";
 			return prompt;
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param str
 	 * @return
 	 */
 	public static String extractPythonCodeBlock(String str) {
-	    if (str == null) return null;
-	    
-	    // Pattern handles various formats:
-	    // ```python, ```Python, ``` python (with space), etc.
-	    Pattern pattern = Pattern.compile("```\\s*[Pp]ython\\s*\\n(.*?)\\n```", Pattern.DOTALL);
-	    Matcher matcher = pattern.matcher(str);
-	    
-	    if (matcher.find()) {
-	        return matcher.group(1).trim();
-	    }
-	    
-	    return null;
+		if (str == null) {
+			return null;
+		}
+
+		// Pattern handles various formats:
+		// ```python, ```Python, ``` python (with space), etc.
+		Pattern pattern = Pattern.compile("```\\s*[Pp]ython\\s*\\n(.*?)\\n```", Pattern.DOTALL);
+		Matcher matcher = pattern.matcher(str);
+
+		if (matcher.find()) {
+			return matcher.group(1).trim();
+		}
+
+		return null;
 	}
 }
