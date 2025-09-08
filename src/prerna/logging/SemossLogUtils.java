@@ -11,11 +11,13 @@ import prerna.util.Utility;
 
 public class SemossLogUtils {
 
+	public static final String LOG_ID = "logId";
+	public static final String REQUEST_ID = "requestId";
+
 	public static final String USER_ID = "userId";
 	public static final String SESSION_ID = "sessionId";
 	public static final String CLIENT_IP = "clientIP";
 
-	public static final String REQUEST_ID = "requestId";
 	public static final String SERVICE_NAME = "serviceName";
 	public static final String METHOD = "method";
 	public static final String ENDPOINT = "endpoint";
@@ -47,7 +49,6 @@ public class SemossLogUtils {
 	public static final String SPAN_ID = "spanId";
 	public static final String INPUT_REACTOR_NAME = "inputReactorName";
 	public static final String OUTPUT_REACTOR_NAME = "outputReactorName";
-	public static final String LOG_ID = "logId";
 	public static final String METHOD_ID = "methodId";
 	public static final String METHOD_TYPE = "methodType";
 	public static final String REQUEST_START_TIME = "requestStartTime";

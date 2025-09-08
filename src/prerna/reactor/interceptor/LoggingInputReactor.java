@@ -2,9 +2,9 @@ package prerna.reactor.interceptor;
 
 import java.io.File;
 import java.lang.reflect.Method;
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -110,13 +110,12 @@ public class LoggingInputReactor extends AbstractReactor implements IInputReacto
 		mapMessage.put(SemossLogUtils.LEVEL, logLevel);
 		mapMessage.put(SemossLogUtils.MESSAGE, logMessage);
 
-		LocalDateTime dateTime = Instant.ofEpochMilli(System.currentTimeMillis()).atZone(ZoneId.of("UTC"))
-				.toLocalDateTime();
-		String dateTimeStr = dateTime.toString();
-		mapMessage.put("requestTimestamp", dateTimeStr);
-
 		String methodSpanId = (String) arguments.get(PipelineReactorUtils.METHOD_SPAN_ID);
 		mapMessage.put(SemossLogUtils.SPAN_ID, methodSpanId);
+
+		mapMessage.put(SemossLogUtils.REQUEST_START_TIME,
+				ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_ZONED_DATE_TIME));
+
 		logger.info(mapMessage);
 
 		Map<String, Object> resultMap = new HashMap<String, Object>();

@@ -36,12 +36,12 @@ public class AuditLogsDbOwlCreator {
 	}
 
 	private void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
-		final String BLOB_DATATYPE_NAME = queryUtil.getBlobDataTypeName();
+//		final String BLOB_DATATYPE_NAME = queryUtil.getBlobDataTypeName();
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
-		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
+//		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
 
 		this.auditLogsColumns = Arrays.asList(Pair.with("LOG_ID", "VARCHAR(255)"),
 				Pair.with("IS_SUCCESS", BOOLEAN_DATATYPE_NAME), Pair.with("ENGINE_ID", "VARCHAR(255)"),
