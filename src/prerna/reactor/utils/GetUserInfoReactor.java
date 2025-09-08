@@ -1,9 +1,7 @@
 package prerna.reactor.utils;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -45,22 +43,12 @@ public class GetUserInfoReactor extends AbstractReactor {
 				providerMap.put("san", san);
 				
 				// add group info
-				List<Map<String, Object>> groupList = new ArrayList<>();
 				Map<String, Object> groupMap = new HashMap<>();
 				String groupType = token.getUserGroupType();
 				Collection<String> groups = token.getUserGroups();
 				groupMap.put("groupType", groupType);
 				groupMap.put("groups", groups);
-				groupList.add(groupMap);
-				// add custom group info
-				Collection<String> customGroups = token.getUserCustomGroups();
-				if (customGroups != null && !customGroups.isEmpty()) {
-					Map<String, Object> customGroupMap = new HashMap<>();
-					customGroupMap.put("groupType", "CUSTOM");
-					customGroupMap.put("groups", customGroups);
-					groupList.add(customGroupMap);
-				}
-				providerMap.put("groupInfo", groupList);
+				providerMap.put("groupInfo", groupMap);
 				
 				// add user epoch into the login map
 				providerMap.put("userEpoch", userEpoch);
@@ -73,11 +61,6 @@ public class GetUserInfoReactor extends AbstractReactor {
 		}
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.MAP, PixelOperationType.USER_INFO);
 		return noun;
-	}
-	
-	@Override
-	public String getReactorDescription() {
-		return "Fetch details of the logged-in user.";
 	}
 
 }

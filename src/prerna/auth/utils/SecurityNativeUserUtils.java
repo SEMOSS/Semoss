@@ -577,43 +577,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Brings the list of custom groups from database.
-	 * 
-	 * @param userid
-	 * @return list of custom groups
-	 */
-	public static List<String> getUserCustomGroups(String userid) {
-		/*	String query = "SELECT GROUPID FROM CUSTOMGROUPASSIGNMENT WHERE USERID = '?1'";
-			query = query.replace("?1", id);
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
-		List<String> groups = new ArrayList<>();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", userid));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			while (wrapper.hasNext()) {
-				Object[] values = wrapper.next().getValues();
-				if (values != null) {
-					groups.add((String) values[0]);
-				}
-			}
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		return groups;
-	}
-
-	/**
 	 * Check if the email exists
 	 * @param email
 	 * @return

@@ -2590,17 +2590,12 @@ public abstract class AbstractSecurityUtils {
 	    if(user != null) {
 	        List<AuthProvider> logins = user.getLogins();
 	        for(AuthProvider thisLogin : logins) {
-	            Collection<String> groups = user.getAccessToken(thisLogin).getUserGroups();
-	            for (String group : groups) {
-	                filters.add(Utility.inputSQLSanitizer(group));
-	            }
-	            if (user.getAccessToken(thisLogin).getUserCustomGroups() != null && !user.getAccessToken(thisLogin).getUserCustomGroups().isEmpty()) {
-	            	Collection<String> customGroups = user.getAccessToken(thisLogin).getUserCustomGroups();
-	            	for (String group : customGroups) {
-	            		filters.add(Utility.inputSQLSanitizer(group));
-	            	}
-	            }
-	  
+	        	Collection<String> groups = new ArrayList<>();
+	        	groups.addAll(user.getAccessToken(thisLogin).getUserGroups());
+	        	groups.addAll(AdminSecurityGroupUtils.getUserCustomGroups(user.getAccessToken(thisLogin).getId()));
+            	for (String group : groups) {
+            		filters.add(Utility.inputSQLSanitizer(group));
+            	}
 	        }
 	    }
 	    return filters;

@@ -14,9 +14,6 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 	public static AccessToken unmodifiableToken(AccessToken token) {
 		ReadOnlyAccessToken newToken = new ReadOnlyAccessToken();
 		newToken.provider = token.provider;
-		if(token.userCustomGroups != null) {
-			newToken.userCustomGroups = Collections.unmodifiableCollection(token.userCustomGroups);
-		}
 		if(token.userGroups != null) {
 			newToken.userGroups = Collections.unmodifiableCollection(token.userGroups);
 		}
@@ -75,10 +72,6 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 	}
 
 	public void setUserGroupType(String userGroupType) {
-		throw new IllegalArgumentException("This object cannot be modified");
-	}
-	
-	public void setUserCustomGroups(Set<String> userCustomGroups) {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
 
