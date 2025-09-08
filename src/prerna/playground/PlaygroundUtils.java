@@ -5,8 +5,16 @@ public class PlaygroundUtils {
 	public static final String COT_SYSTEM_PROMPT = "You are an expert reasoning assistant that breaks down user queries into sequential steps using available tools and retrieved knowledge context, always formatting your output as valid JSON according to the provided schema.";
 
 	public static final String COT_PROMPT_TEMPLATE = """
-			      You are an expert reasoning assistant. Given available tools and extra context,
-			      your job is to break the user's query into a step-by-step reasoning plan in JSON.
+			      You are an Expert AI Planning Agent. Your primary function is to create a 
+			      comprehensive, step-by-step execution plan. in JSON.
+			      
+			      
+			      # TASK
+			      1.  **Analyze Inputs:** Review the user prompt and the enriched context.
+			      2.  **Formulate a Plan:** Create a step-by-step plan to fulfill the request.
+			      3.  **Assign Actors:** For each step, determine if it should be `tool_call`, `llm_reasoning`, or `human_intervention`.
+			      4.  **Identify Gaps:** If a necessary action cannot be performed, create a `no_tool_available` step.
+			      5.  **Define Success:** For each step, you MUST define a machine-readable `success_criteria` object.
 
 			      Available tools:
 			      %s
@@ -17,10 +25,70 @@ public class PlaygroundUtils {
 			      ```
 
 			      User query:
-			      %s
+			      %s 
 
 			Produce your chain of thought steps as a JSON object.
-			Follow the structure below, where each key is explained.
+			Follow the structure below 
+			
+			
+			{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Unified Agent Plan",
+  "description": "A complete, step-by-step execution plan with provenance, success criteria, and multi-actor steps.",
+  "type": "object",
+  "required": ["prompt_context", "execution_plan"],
+  "properties": {
+    "prompt_context": { "...": "..." },
+    "execution_plan": {
+      "type": "object",
+      "required": ["execution_order", "steps"],
+      "properties": {
+        "execution_order": { "type": "array", "items": { "type": "string" } },
+        "steps": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["description", "type", "provenance", "rationale", "success_criteria", "details"],
+            "properties": {
+              "description": { "type": "string" },
+              "type": { "type": "string", "enum": ["tool_call", "llm_reasoning", "human_intervention", "no_tool_available"] },
+              "provenance": { "type": "object" },
+              "rationale": { "type": "string" },
+              "success_criteria": {
+                "type": "object",
+                "required": ["evaluation_logic", "conditions"],
+                "properties": {
+                  "evaluation_logic": { "type": "string", "enum": ["ALL", "ANY"] },
+                  "conditions": {
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        { "type": "http_status_code", "...": "..." },
+                        { "type": "json_path_check", "...": "..." },
+                        { "type": "string_contains", "...": "..." },
+                        { "type": "regex_match", "...": "..." },
+                        { "type": "semantic_check", "...": "..." }
+                      ]
+                    }
+                  }
+                }
+              },
+              "details": { "type": "object" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+			""";
+			
+			
+			
+			
+			//TODO: We should re-add this component, with descriptions and reminders, to the above.
+			//not just the raw json schema. We need to remake it based on the new schema.
+			private static final String oldCotComponent = """
 
 			{
 			  "plan_id": "string (A unique identifier for the plan)",
@@ -56,53 +124,55 @@ public class PlaygroundUtils {
 
 	public static final String COT_JSON_SCHEMA = """
 			{
-			  "type": "object",
-			  "properties": {
-			    "plan_id": { "type": "string" },
-			    "user_prompt": { "type": "string" },
-			    "steps": {
-			      "type": "array",
-			      "items": {
-			        "type": "object",
-			        "properties": {
-			          "step_number": { "type": "integer" },
-			          "description": { "type": "string" },
-			          "type": { "type": "string", "enum": ["tool_call", "llm_action"] },
-			          "details": {
-			            "oneOf": [
-			              {
-			                "type": "object",
-			                "required": ["tool_name", "parameters", "rationale"],
-			                "properties": {
-			                  "tool_name": { "type": "string" },
-			                  "parameters": { "type": "object", "additionalProperties": true },
-			                  "rationale": { "type": "string" }
-			                }
-			              },
-			              {
-			                "type": "object",
-			                "required": ["action", "input", "output", "rationale"],
-			                "properties": {
-			                  "action": { "type": "string" },
-			                  "input": { "type": "string" },
-			                  "output": { "type": "string" },
-			                  "rationale": { "type": "string" }
-			                }
-			              }
-			            ]
-			          },
-			          "status": {
-			            "type": "string",
-			            "enum": ["pending", "in_progress", "completed", "failed"]
-			          },
-			          "result": { "type": "object", "nullable": true, "additionalProperties": true }
-			        },
-			        "required": ["step_number", "description", "type", "details", "status"]
-			      }
-			    }
-			  },
-			  "required": ["plan_id", "user_prompt", "steps"]
-			}
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Unified Agent Plan",
+  "description": "A complete, step-by-step execution plan with provenance, success criteria, and multi-actor steps.",
+  "type": "object",
+  "required": ["prompt_context", "execution_plan"],
+  "properties": {
+    "prompt_context": { "...": "..." },
+    "execution_plan": {
+      "type": "object",
+      "required": ["execution_order", "steps"],
+      "properties": {
+        "execution_order": { "type": "array", "items": { "type": "string" } },
+        "steps": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["description", "type", "provenance", "rationale", "success_criteria", "details"],
+            "properties": {
+              "description": { "type": "string" },
+              "type": { "type": "string", "enum": ["tool_call", "llm_reasoning", "human_intervention", "no_tool_available"] },
+              "provenance": { "type": "object" },
+              "rationale": { "type": "string" },
+              "success_criteria": {
+                "type": "object",
+                "required": ["evaluation_logic", "conditions"],
+                "properties": {
+                  "evaluation_logic": { "type": "string", "enum": ["ALL", "ANY"] },
+                  "conditions": {
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        { "type": "http_status_code", "...": "..." },
+                        { "type": "json_path_check", "...": "..." },
+                        { "type": "string_contains", "...": "..." },
+                        { "type": "regex_match", "...": "..." },
+                        { "type": "semantic_check", "...": "..." }
+                      ]
+                    }
+                  }
+                }
+              },
+              "details": { "type": "object" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
 			""";
 	
 	public static final String TOOL_ARGUMENTS_PROMPT = """
