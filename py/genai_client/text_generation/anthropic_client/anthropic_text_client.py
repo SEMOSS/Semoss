@@ -1,6 +1,5 @@
 import ast
-import sys
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any, Tuple, Union
 import json
 import re
 from pydantic import BaseModel
@@ -68,7 +67,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def __init__(
         self,
         provider: str,
-        use_beta_header: Optional[str] = False,
+        use_beta_header: Optional[Union[str, bool]] = False,
         **kwargs,
     ):
         super().__init__(
