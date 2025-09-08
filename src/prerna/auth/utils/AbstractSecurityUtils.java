@@ -886,8 +886,7 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 			
-			// notification: PROJECTNOTIFICATION
-			// check if column exists
+			// PROJECT_NOTIFICATION
 			colNames = new String[] { "NOTIFICATIONID", "RECIPIENTID", "RECIPIENTTYPE", "NOTIFICATIONTITLE", "MESSAGE", "ACTIONTYPE", 
                                       "ACTIONTARGET", "ISREAD", "PRIORITY", "NOTIFICATIONTYPE", "PROJECTID", "CREATEDBY", "CREATEDAT", 
 					                  "READAT", "NOTIFICATIONSOURCE", "USERID", "USEREXISTINGROLE", "USERNEWROLE" };
@@ -896,7 +895,7 @@ public abstract class AbstractSecurityUtils {
 					               TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)","VARCHAR(255)" };
 			defaultValues = new Object[]{null, null, null, "NOTIFICATION", null, "NEW",
 					                     null, false, "MEDIUM", null, null, null, null,
-					                     null, null};  //U CAN UTILIZE THIS IN TABLECREATION//CHECK DEF VALUES COMING OR NOT //UPDATE IT AS PER NEW TABLE STRUCT**
+					                     null, null};  
 			if(allowIfExistsTable) {
 				     String sql = queryUtil.createTableIfNotExists("PROJECT_NOTIFICATION", colNames, types);
 				     classLogger.info("Running sql " + sql);

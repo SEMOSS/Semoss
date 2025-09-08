@@ -1442,10 +1442,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 			// notification: calling addProjectNotification
-			String notificationType = "USER_ADDITION";
+			String notificationType = "PERMISSION_CHANGE";
 			String priority = "MEDIUM";
 			String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserProjectPermission(existingUserId, projectId));
-			addProjectNotification(user, existingUserId, projectId, notificationType, priority, existingPermission, newPermission);
+			SecurityProjectNotificationUtils.addProjectNotification(user, existingUserId, projectId, notificationType, priority, existingPermission, newPermission);
 			
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1510,13 +1510,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+		String notificationType = "PERMISSION_CHANGE";
+		String priority = "MEDIUM";
 		// update user permissions in bulk
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?");
 			for(int i=0; i<requests.size(); i++) {
 				int parameterIndex = 1;
+				String newUserId = requests.get(i).get("userid");
+				String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserProjectPermission(newUserId, projectId));
+				
 				//SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				ps.setString(parameterIndex++, userDetails.getValue0());
@@ -1527,20 +1531,21 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
 				ps.addBatch();
+				// notification: calling addProjectNotification
+				SecurityProjectNotificationUtils.addProjectNotification(user, newUserId, projectId, notificationType, priority, existingPermission, requests.get(i).get("permission"));
 			}
 			ps.executeBatch();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-			// notification: calling addProjectNotification
-			String notificationType = "USER_ADDITION";
-			String priority = "MEDIUM";
-			for(int i=0; i<requests.size(); i++) {
+			
+			
+			/*for(int i=0; i<requests.size(); i++) {
 				String newUserId = requests.get(i).get("userid");
 				String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserProjectPermission(newUserId, projectId));
 				
 			    addProjectNotification(user, newUserId, projectId, notificationType, priority, existingPermission, requests.get(i).get("permission"));
-			}
+			}*/
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -3696,10 +3701,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 			// notification: calling addProjectNotification
-			String notificationType = "USER_ADDITION";
+			String notificationType = "REQUEST_APPROVAL";
 			String priority = "MEDIUM";
-			for(int i=0; i< requests.size(); i++) {
-			addProjectNotification(user, requests.get(i).get("userid"), projectId, notificationType, priority, null, requests.get(i).get("permission"));
+			for (int i = 0; i < requests.size(); i++) {
+				SecurityProjectNotificationUtils.addProjectNotification(user, requests.get(i).get("userid"), projectId, notificationType, priority, null,
+						                requests.get(i).get("permission"));
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -3752,6 +3758,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.executeBatch();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
+			}
+			// notification: calling addProjectNotification
+			String notificationType = "REQUEST_DENIAL";
+			String priority = "MEDIUM";
+			for (int i = 0; i < requestIdList.size(); i++) {
+				String requestId = requestIdList.get(i);
+				List<Map<String, Object>> deniedUserDetails = SecurityProjectNotificationUtils.getUserDetailsFromProjectAccessRequest(requestId);
+				String permission = AccessPermissionEnum.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
+				SecurityProjectNotificationUtils.addProjectNotification(user, (String) deniedUserDetails.get(i).get("userId"), projectId,
+						notificationType, priority, null, permission );
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -3823,8 +3839,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// notification: calling addProjectNotification
 			String notificationType = "USER_ADDITION";
 			String priority = "MEDIUM";
-			for(int i=0; i<permission.size(); i++) {
-			addProjectNotification(user, permission.get(i).get("userid"), projectId, notificationType, priority, null, permission.get(i).get("permission"));
+			for (int i = 0; i < permission.size(); i++) {
+				SecurityProjectNotificationUtils.addProjectNotification(user, permission.get(i).get("userid"), projectId, notificationType, priority,
+						                null, permission.get(i).get("permission"));
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -3886,240 +3903,4 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
-	// notification: Utility service code to add All the Notifications to the Database table
-
-			/**
-			 * @param notificationId
-			 * @param user
-			 * @param userId
-			 * @param receipientType
-			 * @param notificationTitle
-			 * @param message
-			 * @param actionType
-			 * @param appId
-			 * @param actionTarget
-			 * @param isRead
-			 * @param priority
-			 * @param notificationType
-			 * @param notificationSource
-			 * @param createdBy
-			 * @param createdAt
-			 * @param readAt
-			 */
-			
-		public static void addProjectNotification(User member,String userId, String projectId, String notificationType, String priority,
-				                                   String userExistingRole, String userNewRole) {
-			
-			    List<String> usersOfProject = getProjectUserIds(projectId);
-				for (String recipientId : usersOfProject) {
-				//String recipientType = user.getAccessToken(user.getLogins().get(0)).getProvider().toString();
-				String recipientType = null; // TODO: need utility method that will give userType using userId
-				String actionTarget = "In-app";
-				String createdBy = member.getAccessToken(member.getLogins().get(0)).getId();    
-				Timestamp createdAt = Utility.getCurrentSqlTimestampUTC();
-
-				String query = "INSERT INTO PROJECT_NOTIFICATION (NOTIFICATIONID, RECIPIENTID,RECIPIENTTYPE,NOTIFICATIONTITLE,MESSAGE,ACTIONTYPE,ACTIONTARGET,ISREAD,PRIORITY,NOTIFICATIONTYPE,PROJECTID,CREATEDBY,CREATEDAT,READAT,NOTIFICATIONSOURCE,USERID,USEREXISTINGROLE,USERNEWROLE) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-				PreparedStatement ps = null;
-				try {
-					ps = securityDb.getPreparedStatement(query);
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, UUID.randomUUID().toString()); //notificationId
-					ps.setString(parameterIndex++, recipientId);
-					ps.setString(parameterIndex++, recipientType);
-					ps.setString(parameterIndex++, "NOTIFICATION"); //notificationTitle
-					ps.setString(parameterIndex++, null); //message
-					ps.setString(parameterIndex++, "NEW"); //actionType
-					ps.setString(parameterIndex++, actionTarget);
-					ps.setBoolean(parameterIndex++, false); //isRead
-					ps.setString(parameterIndex++, priority);
-					ps.setString(parameterIndex++, notificationType);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, createdBy);
-					ps.setTimestamp(parameterIndex++, createdAt);
-					ps.setTimestamp(parameterIndex++, null); //readAt
-					ps.setString(parameterIndex++, "PROJECT"); //notificationSource
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, userExistingRole);
-					ps.setString(parameterIndex++, userNewRole);
-					
-					ps.execute();
-					if(!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-				}
-			}
-			
-			
-		public static boolean checkRecipientForNotifications(String projectId, String userId){
-			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
-			
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-			qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
-			List<String> usersOfProject = QueryExecutionUtility.flushToListString(securityDb, qs);
-			if(usersOfProject.contains(userId)) {
-				return true;
-			}
-			return false;
-		}
-		
-		public static List<String> getProjectUserIds(String projectId){
-			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
-			
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-			qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
-		    List<String> usersOfProject = QueryExecutionUtility.flushToListString(securityDb, qs);
-			return usersOfProject;
-		}
-		//no need
-		public static String getProjectNameByProjectId(String projectId) {
-			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "projectName"));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-			return QueryExecutionUtility.flushToString(securityDb, qs);
-		}
-		
-		/**
-		 * 
-		 * @param userId
-		 * @return
-		 */
-		public static void removeAllNotificationsForLoggedInUser(String memberId) {
-			String deleteQuery = "DELETE FROM PROJECT_NOTIFICATION WHERE RECIPIENTID=?";
-			PreparedStatement ps = null;
-			try {
-				ps = securityDb.getPreparedStatement(deleteQuery);
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, memberId);
-				ps.execute();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-			} catch (SQLException e) {
-				throw new IllegalArgumentException(
-						"An error occurred clearing all the notifications for the logged in user");
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-			}
-		}
-		
-		/**
-		 * Get all the notifications for a logged in user
-		 * 
-		 * @param userId
-		 * @return
-		 */
-		public static List<Map<String, Object>> getAllNotifications(String memberId) {
-			//List<String> notificationsList = SecurityUserProjectUtils.getAllUserNotifications(user);
-			//return notificationsList.stream().distinct().sorted().collect(Collectors.toList());
-			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__NOTIFICATIONID", "notification_id"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__RECIPIENTID", "recipient_id"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__RECIPIENTTYPE", "recipient_type"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__NOTIFICATIONTITLE", "notification_title"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__MESSAGE", "notification_message"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__ACTIONTYPE", "notification_actiontype"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__ACTIONTARGET", "notification_actiontarget"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__ISREAD", "notification_isread")); //check type*
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__PRIORITY", "notification_priority"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__NOTIFICATIONTYPE", "notification_type"));
-			qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));//project Id
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__CREATEDBY", "notification_createdby"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__CREATEDAT", "notification_createdat"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__READAT", "notification_readat"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__NOTIFICATIONSOURCE", "notification_source"));
-			qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "user_name"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__USEREXISTINGROLE", "user_existingrole"));
-			qs.addSelector(new QueryColumnSelector("PROJECT_NOTIFICATION__USERNEWROLE", "user_newrole"));
-			
-			qs.addRelation("PROJECT_NOTIFICATION__PROJECTID", "PROJECT__PROJECTID", "inner.join");
-			qs.addRelation("PROJECT_NOTIFICATION__USERID", "SMSS_USER__ID", "inner.join");
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT_NOTIFICATION__RECIPIENTID", "==", memberId));
-			qs.addOrderBy("PROJECT_NOTIFICATION__CREATEDAT", "desc");
-			return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-			
-		}
-		
-		/**
-		 * Update Action Type for Read Notifications for a Logged in User
-		 * @param userId
-		 */
-		
-		public static void updateActiontypeForUserNotifications(String recipientId) {
-			String updateQuery = "UPDATE PROJECT_NOTIFICATION SET ACTIONTYPE = 'NONE' WHERE ACTIONTYPE = 'NEW' AND RECIPIENTID=?";
-			PreparedStatement ps = null;
-			try {
-				ps = securityDb.getPreparedStatement(updateQuery);
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, recipientId);
-				ps.execute();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-			} catch (SQLException e) {
-				throw new IllegalArgumentException(
-						"An error occurred while updating action types for project notifications for the logged in user");
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-			}
-		}
-		
-		
-		/**
-		 * Updating the Read Notifications For User
-		 * @param userId
-		 * @param notificationId
-		 */
-		public static void updateReadNotificationForUser(String notificationId, Timestamp readAt) {
-			//String query = "UPDATE PROJECT_NOTIFICATION SET IS_READ = TRUE WHERE NOTIFICATIONID=?";
-			String query = "UPDATE PROJECT_NOTIFICATION SET IS_READ = TRUE, READAT=? WHERE NOTIFICATIONID=?";
-			PreparedStatement ps = null;
-			try {
-				ps = securityDb.getPreparedStatement(query);
-				int parameterIndex = 1;
-				ps.setTimestamp(parameterIndex++, readAt);
-				ps.setString(parameterIndex++, notificationId);
-				ps.executeUpdate();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-			}
-		}
-		
-		/**
-		 * Get the New Notification Count for the logged in user 
-		 * @param userId
-		 * @return
-		 */
-		public static int getNewNotificationCountForLoggedInUser(String memberId) {
-			PreparedStatement ps = null;
-			String query = "SELECT COUNT(NOTIFICATIONID) FROM PROJECT_NOTIFICATION WHERE RECIPIENTID = ? AND ACTIONTYPE='NEW'";
-			try {
-				ps = securityDb.getPreparedStatement(query);
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, memberId);
-				try (ResultSet rs = ps.executeQuery()) {
-	                if (rs.next()) {
-	                    return rs.getInt(1);
-	                }
-	            }
-			}catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-			}
-			return 0;
-		}
 }

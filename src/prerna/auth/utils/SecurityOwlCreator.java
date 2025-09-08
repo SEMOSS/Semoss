@@ -29,7 +29,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PERMISSION");
 		conceptsRequired.add("PROJECT");
 		conceptsRequired.add("PROJECTPERMISSION");
-		conceptsRequired.add("PROJECT_NOTIFICATION"); // notification
+		conceptsRequired.add("PROJECT_NOTIFICATION");
 		conceptsRequired.add("PROJECTMETA");
 		conceptsRequired.add("PROJECTMETAKEYS");
 		conceptsRequired.add("PROJECTDEPENDENCIES");
@@ -100,10 +100,10 @@ public class SecurityOwlCreator {
 		
 		{
 			// dont need to keep adding a million things to this list
-			// just need the latest change ...                                                                PROJECT_NOTIFICATION
+			// just need the latest change ...                                                                
 			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PROJECT_NOTIFICATION");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PROJECT_NOTIFICATION")) {
-				return true;                                                  //PROJECT_NOTIFICATION
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PROJECT_NOTIFICATION/NOTIFICATIONID")) {
+				return true;                                                  
 			}
 		}
 		
@@ -220,7 +220,7 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTPERMISSION", "ENDDATE", "TIMESTAMP");
 		
 		
-		// notification: PROJECT_NOTIFICATION**
+		// PROJECT_NOTIFICATION
 		owler.addConcept("PROJECT_NOTIFICATION", null, null);
 		owler.addProp("PROJECT_NOTIFICATION", "NOTIFICATIONID", "VARCHAR(255)");
 		owler.addProp("PROJECT_NOTIFICATION", "RECIPIENTID", "VARCHAR(255)");

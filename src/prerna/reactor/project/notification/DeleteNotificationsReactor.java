@@ -1,20 +1,23 @@
 package prerna.reactor.project.notification;
 
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
 
-import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityProjectNotificationUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class DeleteNotificationsReactor extends AbstractReactor {
-  //TODO: CAN ADD LOGGER
+
+	public DeleteNotificationsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.NOTIFICATION_ID.getKey()};
+		this.keyRequired = new int[] {0};
+	}
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
+		String notificationId = this.keyValue.get(this.keysToGet[0]);
 		String memberId = this.insight.getUserId();
 		
 		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
@@ -22,14 +25,18 @@ public class DeleteNotificationsReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 		}
-		SecurityProjectUtils.removeAllNotificationsForLoggedInUser(memberId);
-		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
-		return retNoun;
+		int deleteCount;
+		if(notificationId != null) {
+			deleteCount = SecurityProjectNotificationUtils.removeNotifications(null, notificationId);
+		}else {
+			deleteCount = SecurityProjectNotificationUtils.removeNotifications(memberId, null);
+		}
+		return new NounMetadata(deleteCount, PixelDataType.CONST_INT);
 	}
 	
 	@Override
 	public String getReactorDescription() {
-		return "Deletes all the notifications for the logged-in user";
+		return "This reactor deletes single or multiple notifications for the logged-in user and returns number of deleted notifications";
 	}
 
 }

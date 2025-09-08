@@ -15,6 +15,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityProjectNotificationUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -83,7 +84,7 @@ public class RequestProjectReactor extends AbstractReactor {
 			// notificaton: calling addNotification
 			String notificationType = "USER_REQUEST";
 			String priority = "MEDIUM";
-			SecurityProjectUtils.addProjectNotification(user, userId, projectId, notificationType, priority, null, permission);
+			SecurityProjectNotificationUtils.addProjectNotification(user, userId, projectId, notificationType, priority, null, permission);
 			return NounMetadata.getSuccessNounMessage("Successfully requested the project");
 		} else {
 			return NounMetadata.getErrorNounMessage("Unable to request the project");

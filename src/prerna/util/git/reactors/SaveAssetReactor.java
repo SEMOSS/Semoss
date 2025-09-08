@@ -123,10 +123,12 @@ public class SaveAssetReactor extends AbstractReactor {
 			}
 		}
 		
+		String assetFolderLocal = assetFolder;
 		if(warning == null) {
 			// add file to git
 			List<String> gitRelativeFilePaths = new ArrayList<>();
 			for (int i = 0; i < fileNames.size(); i++) {
+				assetFolder = assetFolderLocal;
 				String rawFileName = fileNames.get(i).trim();
 				String fileName = Utility.normalizePath(rawFileName);
 				if(fileName == null || fileName.isEmpty()) {

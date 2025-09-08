@@ -1,23 +1,28 @@
 package prerna.reactor.project.notification;
 
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityProjectNotificationUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetNotificationsReactor extends AbstractReactor{
 
+	public GetNotificationsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey()};
+		this.keyRequired = new int[] {0, 0};
+	}
+	
 	@Override
 	public NounMetadata execute() {
-		organizeKeys(); //
-		//User user = this.insight.getUser();
+		organizeKeys();
 		String recipient = this.insight.getUserId();
+		String limit = this.keyValue.get( ReactorKeysEnum.LIMIT.getKey());
+		String offset = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
 		
 		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
 			if (this.insight.getUser().isAnonymous()) {
@@ -25,9 +30,9 @@ public class GetNotificationsReactor extends AbstractReactor{
 			}
 		}
 		List<Map<String, Object>> allNotifications = null;
-		   allNotifications = SecurityProjectUtils.getAllNotifications(recipient);
-        if(allNotifications != null) {
-		   SecurityProjectUtils.updateActiontypeForUserNotifications(recipient);
+		   allNotifications = SecurityProjectNotificationUtils.getAllNotifications(recipient, limit, offset);
+        if(!allNotifications.isEmpty()){ 
+        	SecurityProjectNotificationUtils.updateActiontypeForUserNotifications(recipient);
         }
 		
 		return new NounMetadata(allNotifications, PixelDataType.MAP);
