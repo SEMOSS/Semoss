@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -203,7 +204,7 @@ public class GoogleCalendarHelper {
 	 * @throws Exception
 	 */
 	@SuppressWarnings("unchecked")
-	public static Map<String, Object> readEvent(String accessToken, String id) throws Exception {
+	public static Map<String, Object> readEvent(String accessToken, String id, ZoneId zoneId) throws Exception {
 		final String FREQUENCY = "frequency";
 		final String UNTIL = "until";
 		final String AUDIO = "audio";
@@ -267,9 +268,9 @@ public class GoogleCalendarHelper {
 					}
 				}
 			}
-
+			String untilDateTime = localDateTimeFormatConverter(until, zoneId.getId());
 			map.put(FREQUENCY, frequency);
-			map.put(UNTIL, until);
+			map.put(UNTIL, untilDateTime);
 			return map;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -586,6 +587,27 @@ public class GoogleCalendarHelper {
 			OffsetDateTime utcDateTime = parsedDateTime.withOffsetSameInstant(ZoneOffset.UTC);
 			DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'");
 			return utcDateTime.format(format);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		}
+	}
+	
+	/**
+     * 
+     * @param untilDateTime
+     * @param zoneId
+     * @return
+     * @throws Exception
+     */
+	public static String localDateTimeFormatConverter(String untilDateTime, String zoneId) throws Exception {
+		try {
+			DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssX");
+			OffsetDateTime utcDateTime = OffsetDateTime.parse(untilDateTime, format);
+			ZoneId zone = ZoneId.of(zoneId);
+			ZonedDateTime localDateTime = utcDateTime.atZoneSameInstant(zone);
+			DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
+	        return localDateTime.format(outputFormatter);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
