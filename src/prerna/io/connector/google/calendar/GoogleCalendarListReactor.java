@@ -1,5 +1,6 @@
 package prerna.io.connector.google.calendar;
 
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +15,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class GoogleCalendarListReactor extends AbstractReactor{
 
@@ -35,7 +37,11 @@ public class GoogleCalendarListReactor extends AbstractReactor{
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			List<Map<String, Object>> eventList = GoogleCalendarHelper.getEventList(accessToken, startdate, enddate);
+			ZoneId zoneId = user.getZoneId();
+			if(zoneId == null) {
+				zoneId = Utility.getApplicationZoneIdObj();
+			}
+			List<Map<String, Object>> eventList = GoogleCalendarHelper.getEventList(accessToken, startdate, enddate, zoneId);
 			return new NounMetadata(eventList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch(SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);

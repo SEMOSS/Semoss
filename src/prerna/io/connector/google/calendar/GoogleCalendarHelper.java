@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -135,7 +136,7 @@ public class GoogleCalendarHelper {
 			event.put(SUMMARY, summary);
 			event.put(LOCATION, location);
 			event.put(DESCRIPTION, desc);
-
+			
 			Map<String, Object> start = new HashMap<>();
 			start.put(DATE_TIME, startdatetime);
 			start.put(TIME_ZONE, zoneId.getId());
@@ -237,8 +238,21 @@ public class GoogleCalendarHelper {
 			Map<String, Object> start = (Map<String, Object>) json.get(START);
 			Map<String, Object> end = (Map<String, Object>) json.get(END);
 
-			map.put(START_TIME, start != null ? start.get(DATE_TIME) : null);
-			map.put(END_TIME, end != null ? end.get(DATE_TIME) : null);
+			if (start != null && start.get(DATE_TIME) != null) {
+			    String startDateTimeStr = (String) start.get(DATE_TIME);
+			    String localStartDateTime = startDateTimeStr.substring(0, 19);
+			    map.put(START_TIME, localStartDateTime);
+			} else {
+			    map.put(START_TIME, null);
+			}
+
+			if (end != null && end.get(DATE_TIME) != null) {
+			    String endDateTimeStr = (String) end.get(DATE_TIME);
+			    String localEndDateTime = endDateTimeStr.substring(0, 19);
+			    map.put(END_TIME, localEndDateTime);
+			} else {
+			    map.put(END_TIME, null);
+			}
 
 			Map<String, Object> organizer = (Map<String, Object>) json.get(ORGANIZER);
 			map.put(ORGANIZER, organizer != null ? organizer.get(EMAIL) : null);
@@ -252,7 +266,8 @@ public class GoogleCalendarHelper {
 
 			String frequency = null;
 			String until = null;
-
+			String untilDateTime = null;
+			
 			List<String> recurrence = (List<String>) json.get(RECURRENCE);
 			if (recurrence != null) {
 				for (String rule : recurrence) {
@@ -268,7 +283,9 @@ public class GoogleCalendarHelper {
 					}
 				}
 			}
-			String untilDateTime = localDateTimeFormatConverter(until, zoneId.getId());
+			if (until != null) {
+				untilDateTime = localDateTimeFormatConverter(until, zoneId.getId());
+			}
 			map.put(FREQUENCY, frequency);
 			map.put(UNTIL, untilDateTime);
 			return map;
@@ -300,7 +317,9 @@ public class GoogleCalendarHelper {
 			Boolean enableVideoConferencing) throws Exception {
 		try {
 			String url = String.format(GOOGLE_CALENDAR_UPDATE_URL_TEMPLATE, CALENDAR_ID, id);
-			String until = untilFormatConverter(untilTime);
+			
+			String dateTimeWithOffset = toRfc3339(untilTime, zoneId.getId());
+			String until = untilFormatConverter(dateTimeWithOffset);
 			
 			Map<String, Object> event = new HashMap<>();
 			event.put(SUMMARY, summary);
@@ -416,7 +435,9 @@ public class GoogleCalendarHelper {
 				throw new IllegalArgumentException("Frequency must be 'DAILY' or 'WEEKLY'");
 			}
 			String url = String.format(GOOGLE_CALENDAR_URL_TEMPLATE, CALENDAR_ID);
-			String until = untilFormatConverter(untilTime);
+			
+			String dateTimeWithOffset = toRfc3339(untilTime, zoneId.getId());
+			String until = untilFormatConverter(dateTimeWithOffset);
 			
 			Map<String, Object> event = new HashMap<>();
 			event.put(SUMMARY, summary);
@@ -479,7 +500,7 @@ public class GoogleCalendarHelper {
 	 * @throws Exception
 	 */
 	@SuppressWarnings("unchecked")
-	public static List<Map<String, Object>> getEventList(String accessToken, String startDateTime, String endDateTime) throws Exception {
+	public static List<Map<String, Object>> getEventList(String accessToken, String startDateTime, String endDateTime, ZoneId zoneId) throws Exception {
         Map<String, List<Map<String, Object>>> events = new LinkedHashMap<>();
 		String url = String.format(GOOGLE_CALENDAR_LIST_TEMPLATE, CALENDAR_ID);
         String pageToken = null;
@@ -488,8 +509,10 @@ public class GoogleCalendarHelper {
             Map<String, String> params = new HashMap<>();
             params.put(ORDER_BY, START_TIME);
             params.put(SINGLE_EVENTS, SINGLE_EVENTS_TRUE);
-            params.put(TIME_MIN, startDateTime);
-            params.put(TIME_MAX, endDateTime);
+            String startTime = toRfc3339(startDateTime, zoneId.getId());
+            String endTime = toRfc3339(endDateTime, zoneId.getId());
+            params.put(TIME_MIN, startTime);
+            params.put(TIME_MAX, endTime);
             params.put(MAX_RESULTS, MAX_RESULTS_100);
             if (pageToken != null) {
                 params.put(PAGE_TOKEN, pageToken);
@@ -517,7 +540,7 @@ public class GoogleCalendarHelper {
                 	String dateTime = (String) start.get(DATE_TIME);
                 	String date = dateTime.substring(0,10);
                 	if(!events.containsKey(date)) {
-                	events.put(date, new ArrayList<>());
+                		events.put(date, new ArrayList<>());
                 	}
                 	events.get(date).add(map);
                 }
@@ -606,11 +629,30 @@ public class GoogleCalendarHelper {
 			OffsetDateTime utcDateTime = OffsetDateTime.parse(untilDateTime, format);
 			ZoneId zone = ZoneId.of(zoneId);
 			ZonedDateTime localDateTime = utcDateTime.atZoneSameInstant(zone);
-			DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
+			DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 	        return localDateTime.format(outputFormatter);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		}
+	}
+	
+	/**
+     * 
+     * @param dateTime
+     * @param zoneId
+     * @return
+     * @throws Exception
+     */
+	public static String toRfc3339(String dateTime, String zoneId) throws Exception {
+	    try {
+	        ZoneId zone = ZoneId.of(zoneId);
+	        LocalDateTime localDateTime = LocalDateTime.parse(dateTime);
+	        ZonedDateTime zonedDateTime = localDateTime.atZone(zone);
+	        return zonedDateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+	    } catch (Exception e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	        throw e;
+	    }
 	}
 }
