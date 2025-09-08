@@ -76,11 +76,9 @@ public class ModelInferenceLogsUtils {
 
 	private static Logger classLogger = LogManager.getLogger(ModelInferenceLogsUtils.class);
 
-	private static final Gson GSON = new GsonBuilder()
-			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping()
-			.create();
-	
+	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping().create();
+
 	public static final String WORKSPACE_PROJECT_TAG = "Workspace_Project";
 	public static final String WORKSPACE_DATABASE_TAG = "Workspace_Database";
 
@@ -92,7 +90,10 @@ public class ModelInferenceLogsUtils {
 	static IRDBMSEngine modelInferenceLogsDb;
 	static boolean initialized = false;
 
-	/** @throws Exception */
+	/**
+	 * 
+	 * @throws Exception
+	 */
 	public static void initModelInferenceLogsDatabase() throws Exception {
 		modelInferenceLogsDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.MODEL_INFERENCE_LOGS_DB);
 		ModelInferenceLogsOwlCreator modelInfCreator = new ModelInferenceLogsOwlCreator(modelInferenceLogsDb);
@@ -270,6 +271,7 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * 
 	 * @param engine
 	 * @param conn
 	 * @param primaryKeys
@@ -573,7 +575,7 @@ public class ModelInferenceLogsUtils {
 			}
 			try {
 				int parameterIndex = 1;
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, feedbackText, parameterIndex++, GSON);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, feedbackText, parameterIndex++, GSON);
 				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 				ps.setBoolean(parameterIndex++, rating);
 				ps.setString(parameterIndex++, messageId);
@@ -883,7 +885,7 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.VARCHAR);
 			}
 			if (roomContext != null) {
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, roomContext, index++, GSON);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, roomContext, index++, GSON);
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
@@ -918,7 +920,7 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.VARCHAR);
 			}
 			if (options != null) {
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, options, index++, GSON);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, options, index++, GSON);
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
@@ -1428,7 +1430,7 @@ public class ModelInferenceLogsUtils {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
 			int index = 1;
 			if (options != null) {
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, options, index++, GSON);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, options, index++, GSON);
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
@@ -1492,7 +1494,7 @@ public class ModelInferenceLogsUtils {
 			}
 			try {
 				int parameterIndex = 1;
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, context, parameterIndex++, GSON);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, context, parameterIndex++, GSON);
 				ps.setString(parameterIndex++, userId);
 				ps.setString(parameterIndex++, roomId);
 				ps.executeUpdate();
@@ -2010,16 +2012,8 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
-
-		QueryFunctionSelector createdSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR",
-				"WORKSPACE__DATE_CREATED", "date_created");
-		createdSelector.addAdditionalParam(new String[] { "'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'" });
-		qs.addSelector(createdSelector);
-
-		QueryFunctionSelector updatedSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR",
-				"WORKSPACE__DATE_UPDATED", "date_updated");
-		updatedSelector.addAdditionalParam(new String[] { "'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'" });
-		qs.addSelector(updatedSelector);
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_UPDATED", "date_updated"));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", workspaceId));
 
@@ -2038,6 +2032,9 @@ public class ModelInferenceLogsUtils {
 						result.put(headers[i], value);
 					} else if (values[i] instanceof java.sql.Blob) {
 						String value = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]);
+						result.put(headers[i], value);
+					} else if (values[i] instanceof prerna.date.SemossDate) {
+						String value = ((prerna.date.SemossDate) values[i]).getFormatted("yyyy-MM-dd'T'HH:mm:ss'Z'");
 						result.put(headers[i], value);
 					} else {
 						result.put(headers[i], values[i]);
@@ -2070,16 +2067,8 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT", "room_context"));
 		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "model_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID", "workspace_id"));
-
-		QueryFunctionSelector createdSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR",
-				"ROOM__DATE_CREATED", "date_created");
-		createdSelector.addAdditionalParam(new String[] { "'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'" });
-		qs.addSelector(createdSelector);
-
-		QueryFunctionSelector updatedSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR",
-				"ROOM__UPDATED_AT", "date_updated");
-		updatedSelector.addAdditionalParam(new String[] { "'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'" });
-		qs.addSelector(updatedSelector);
+		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
+		qs.addSelector(new QueryColumnSelector("ROOM__UPDATED_AT", "date_updated"));
 
 		SelectQueryStruct subQs = new SelectQueryStruct();
 		subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
@@ -2140,14 +2129,22 @@ public class ModelInferenceLogsUtils {
 					} else if (values[i] instanceof java.sql.Blob) {
 						String value = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]);
 						map.put(headers[i], value);
+					} else if (values[i] instanceof prerna.date.SemossDate) {
+						String value = ((prerna.date.SemossDate) values[i]).getFormatted("yyyy-MM-dd'T'HH:mm:ss'Z'");
+						map.put(headers[i], value);
 					} else {
 						map.put(headers[i], values[i]);
 					}
 				}
+
 				Object totalCountObj = map.remove("total_row_count");
-				if (totalCount == 0) {
-					totalCount = (Long) totalCountObj;
-				}
+	            if (totalCount == 0 && totalCountObj != null) {
+	                if (totalCountObj instanceof Number) {
+	                    totalCount = ((Number) totalCountObj).longValue();
+	                } else {
+	                    classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
+	                }
+	            }
 				roomDetails.add(map);
 			}
 			workspaces.put("total_count", totalCount);
@@ -2180,16 +2177,8 @@ public class ModelInferenceLogsUtils {
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
-
-		QueryFunctionSelector createdSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR",
-				"WORKSPACE__DATE_CREATED", "date_created");
-		createdSelector.addAdditionalParam(new String[] { "'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'" });
-		subQs.addSelector(createdSelector);
-
-		QueryFunctionSelector updatedSelector = QueryFunctionSelector.makeFunctionSelector("TO_CHAR",
-				"WORKSPACE__DATE_UPDATED", "date_updated");
-		updatedSelector.addAdditionalParam(new String[] { "'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'" });
-		subQs.addSelector(updatedSelector);
+		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
+		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_UPDATED", "date_updated"));
 
 		subQs.addSelector(QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds),
@@ -2252,15 +2241,22 @@ public class ModelInferenceLogsUtils {
 					} else if (values[i] instanceof java.sql.Blob) {
 						String value = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]);
 						map.put(headers[i], value);
+					} else if (values[i] instanceof prerna.date.SemossDate) {
+						String value = ((prerna.date.SemossDate) values[i]).getFormatted("yyyy-MM-dd'T'HH:mm:ss'Z'");
+						map.put(headers[i], value);
 					} else {
 						map.put(headers[i], values[i]);
 					}
 				}
-				Object totalCountObj = map.remove("total_row_count");
-				if (totalCount == 0) {
-					totalCount = (Long) totalCountObj;
-				}
-				workspaceDetails.add(map);
+	            Object totalCountObj = map.remove("total_row_count");
+	            if (totalCount == 0 && totalCountObj != null) {
+	                if (totalCountObj instanceof Number) {
+	                    totalCount = ((Number) totalCountObj).longValue();
+	                } else {
+	                    classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
+	                }
+	            }
+	            workspaceDetails.add(map);
 			}
 			workspaces.put("total_count", totalCount);
 			workspaces.put("workspaces", workspaceDetails);
@@ -2683,3 +2679,4 @@ public class ModelInferenceLogsUtils {
 	}
 
 }
+
