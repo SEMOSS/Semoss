@@ -1,6 +1,5 @@
 import ast
-import sys
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any, Tuple, Union
 import json
 import re
 from pydantic import BaseModel
@@ -68,7 +67,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def __init__(
         self,
         provider: str,
-        use_beta_header: str,
+        use_beta_header: Optional[Union[str, bool]] = False,
         **kwargs,
     ):
         super().__init__(
@@ -79,7 +78,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         self.provider = provider.lower()
         # Parse boolean-like values
-        self.use_beta_header = use_beta_header.lower() in ["true", "1", "yes", "on"]
+        self.use_beta_header = (
+            use_beta_header.lower() in ["true", "1", "yes", "on"]
+            if isinstance(use_beta_header, str)
+            else use_beta_header
+        )
         self.beta_feature_name = kwargs.pop("beta_feature_name", None)
         if self.use_beta_header and not self.beta_feature_name:
             raise ValueError(
