@@ -78,8 +78,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
         self.provider = provider.lower()
+        # Parse boolean-like values
         self.use_beta_header = use_beta_header.lower() in ["true", "1", "yes", "on"]
         self.beta_feature_name = kwargs.pop("beta_feature_name", None)
+        if self.use_beta_header and not self.beta_feature_name:
+            raise ValueError(
+                "beta_feature_name is required when use_beta_header is enabled."
+            )
+
         self.client = self._get_client(**kwargs)
 
     def _get_client(self, **kwargs):
