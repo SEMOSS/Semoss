@@ -67,8 +67,15 @@ public class SaveAllReactor extends AbstractReactor {
                 (existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now,
                 now
         );
-
-        StepsEnvelope env = new StepsEnvelope("1.0", newMeta,body.steps() );
+        for (int i = 0; i<body.steps().size(); i++) {
+        	Step current = body.steps().get(i);
+        	if (current.type() == StepType.TYPE && !current.storeValue()) {
+    			Step newStep = new Step(current.type(),current.url(), current.coords(), "", current.pressEnter(), current.deltaY(), current.waitUntil(), current.waitAfterMs(), current.viewport(), current.timestamp(), current.label(), current.isPassword(), current.storeValue());
+    			body.steps().set(i, newStep);
+        	}
+        }
+            
+		StepsEnvelope env = new StepsEnvelope("1.0", newMeta,body.steps() );
 
         try {
             json.writeValue(file.toFile(), env);

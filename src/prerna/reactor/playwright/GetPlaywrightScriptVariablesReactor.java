@@ -85,6 +85,7 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 					
 					if (step.has("type")) {
 						String type = step.getString("type");
+						boolean isPassword = step.getBoolean("isPassword");
 						
 						// process TYPE or VARIABLE steps
 						if ("TYPE".equals(type) || "VARIABLE".equals(type)) {
@@ -92,6 +93,9 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 							String label = step.optString("label", null);
 							String text = step.optString("text", null);
 							
+							if (isPassword) {
+								text = text + "~pass";
+							}
 							if (label != null && !label.trim().isEmpty() &&
 								text != null && !text.trim().isEmpty()) {
 								variables.put(label, text);

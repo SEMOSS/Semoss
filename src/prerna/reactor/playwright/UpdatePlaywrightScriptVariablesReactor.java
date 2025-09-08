@@ -91,15 +91,20 @@ public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
 					
 					if (step.has("type")) {
 						String type = step.getString("type");
-						
+						boolean isPassword = step.getBoolean("isPassword");
+
 						// Only process TYPE or VARIABLE steps
 						if ("TYPE".equals(type) || "VARIABLE".equals(type)) {
 							String label = step.optString("label", null);
+
 							
 							if (label != null && !label.trim().isEmpty() && 
 								variablesToUpdate.containsKey(label)) {
 								
 								String newValue = variablesToUpdate.get(label);
+								if (isPassword) {
+									newValue = newValue.replaceAll("~pass", "");
+								}
 								step.put("text", newValue);
 								updatedCount++;
 							}
