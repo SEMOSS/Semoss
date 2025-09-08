@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Tuple
+import json
 from ...utils import (
     get_image_extension,
     fetch_and_encode_image,
@@ -122,11 +123,57 @@ class AnthropicMessageBuilder:
             if is_last:
                 param_map = message.param_map
                 param_map = self._clean_param_map(param_map)
-                
+
+                # Formatting the structured json input
+                has_schema = param_map.get("schema", False)
+                if has_schema:
+                    content = self._get_structured_parameters_format(**param_map)
+
+                    anthropic_messages.append(
+                        AnthropicMessage(
+                            role=AnthropicRoles.USER,
+                            content=content,
+                        )
+                    )
+
                 if "tools" in param_map:
                     param_map["tools"] = self._convert_mcp_to_anthropic_tools(param_map["tools"])
 
         return anthropic_messages, param_map
+    
+    def _get_structured_parameters_format(self, **param_map) -> Tuple[str, int, str]:
+        """
+        1. Validate the schema
+        2. Create the structured json format
+        """
+        schema = param_map.pop("schema")
+        # Validating the schema
+        schema = self._validate_structured_input(schema)
+        # Formatting as the user content form
+        content = [self._build_text_content_part(schema)]
+
+        return content
+    
+    def _validate_structured_input(self, schema) -> Tuple[str, Any]:
+        """
+        Validate the input schema for structured output.
+        Returns the schema instance.
+        Convert to Dict if JSON..
+        """
+        if isinstance(schema, str):
+            # Attempting to parse as JSON
+            try:
+                return json.loads(schema)
+            except json.JSONDecodeError:
+                raise ValueError("Invalid JSON string provided for schema.")
+        elif isinstance(schema, dict):
+            # Validating that dict can be serialized to JSON
+            try:
+                return json.dumps(schema, ensure_ascii=False)
+            except TypeError:
+                raise ValueError("Schema dict contains non-serializable values.")
+        else:
+            raise ValueError("Schema must be a JSON string, dict.")
 
     def _clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
         """Remove any keys that are not needed in the param map."""

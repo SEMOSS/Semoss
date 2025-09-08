@@ -24,12 +24,12 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
-public class MakePythonMCPReactor extends AbstractReactor {
+public class MakeNotebookCellMCPReactor extends AbstractReactor {
 
-	public MakePythonMCPReactor() {
+	public MakeNotebookCellMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.MODEL.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 0, 0 };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), "cellId" };
+		this.keyRequired = new int[] { 1, 0, 0, 1 };
 	}
 
 	@Override
@@ -48,33 +48,35 @@ public class MakePythonMCPReactor extends AbstractReactor {
 					"Project " + projectId + " does not exist or user does not have access to edit.");
 		}
 		IProject project = Utility.getProject(projectId);
+		if (project.getProjectType() != IProject.PROJECT_TYPE.BLOCKS) {
+			throw new IllegalArgumentException("Can only call this reactor on a no-code (blcoks) app");
+		}
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 
-		List<String> gitRelativeFilePaths = new ArrayList<>();
-
-		Map<String, String> functionNameToCellId = null;
-		if (project.getProjectType() == IProject.PROJECT_TYPE.BLOCKS) {
-			IModelEngine modelEngine = null;
-			String modelId = this.keyValue.get(this.keysToGet[1]);
-			if (modelId != null && !(modelId = modelId.trim()).isEmpty()) {
-				if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
-					throw new IllegalArgumentException(
-							"Model " + modelId + " does not exist or user does not have access.");
-				}
-				modelEngine = Utility.getModel(modelId);
+		IModelEngine modelEngine = null;
+		String modelId = this.keyValue.get(this.keysToGet[1]);
+		if (modelId != null && !(modelId = modelId.trim()).isEmpty()) {
+			if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
+				throw new IllegalArgumentException(
+						"Model " + modelId + " does not exist or user does not have access.");
 			}
-			INotebookHelper helper = project.getNotebookHelper();
-			functionNameToCellId = helper.transformNotebookToMcpDriver(projectAssetFolder + "/py/smss_driver.py",
-					modelEngine, this.insight);
-			// add file to git
-			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/py/smss_driver.py");
+			modelEngine = Utility.getModel(modelId);
 		}
+
+		String cellId = this.keyValue.get("cellId");
+		INotebookHelper helper = project.getNotebookHelper();
+		Map<String, String> functionNameToCellId = helper.transformNotebookCellToMcpDriver(
+				projectAssetFolder + "/py/smss_driver.py", modelEngine, this.insight, cellId);
+
+		List<String> gitRelativeFilePaths = new ArrayList<>();
+		// add file to git
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/py/smss_driver.py");
 
 		String pyFolderLoc = projectAssetFolder + "/py";
 		File pyFolder = new File(pyFolderLoc);
 
 		if (!pyFolder.exists() || !pyFolder.isDirectory()) {
-			String errorOutput = "There is no py/smss_driver.py that exists. Please create this file and then try. "
+			String errorOutput = "There is no py/smss_driver.py that was created from the notebook smss_driver. Please create make sure the notebook cell passed is accurate. "
 					+ "File smss_driver.py is the main driver which is utilized in terms of creating the MCP tools.";
 			throw new IllegalArgumentException(errorOutput);
 		}
@@ -96,13 +98,8 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		String outputFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
 		mcpPyFileLoc = mcpPyFileLoc.replace("\\", "/");
 		outputFileLoc = outputFileLoc.replace("\\", "/");
-		String script = null;
-		if (functionNameToCellId == null || functionNameToCellId.isEmpty()) {
-			script = "smssutil.gen_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc + "')";
-		} else {
-			script = "smssutil.gen_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc
-					+ "', function_name_to_cell=" + (new Gson().toJson(functionNameToCellId)) + ")";
-		}
+		String script = "smssutil.add_function_to_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc
+				+ "', function_name_to_cell=" + (new Gson().toJson(functionNameToCellId)) + ")";
 		Map<String, Object> mcpJson = (Map<String, Object>) insight.getPyTranslator().runScript(script);
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
@@ -110,7 +107,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if (comment == null) {
-			comment = "add: MakePythonMCP executed";
+			comment = "add: MakeNotebookCellMCP executed";
 		}
 
 		// add file to git
@@ -133,9 +130,8 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return """
-				Generates a mcp/py_mcp.json file from the py/smss_driver.py file function.
-				If the project is a no-code app, the smss_driver notebook sheet will be transformed
-				into a py/smss_driver.py file to then generate the mcp/py_mcp.json.
+				Generates a function from a specific cell in the smss_driver that is written to py/smss_driver.py.
+				The function is then added to the mcp/py_mcp.json.
 				""";
 	}
 
@@ -145,6 +141,8 @@ public class MakePythonMCPReactor extends AbstractReactor {
 			return "The unique id for the project/app";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
+		} else if (key.equals("cellId")) {
+			return "The cell id in the smss_driver notebook to convert into an mcp tool";
 		}
 		return super.getDescriptionForKey(key);
 	}
