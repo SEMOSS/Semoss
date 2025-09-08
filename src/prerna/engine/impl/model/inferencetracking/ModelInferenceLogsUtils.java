@@ -45,15 +45,14 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.Project;
 import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.interpreters.sql.PostgresSqlInterpreter;
-import prerna.query.interpreters.sql.SqlInterpreter;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySort;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
@@ -62,6 +61,8 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.selectors.QueryTypedColumnSelector;
+import prerna.query.querystruct.update.UpdateQueryStruct;
+import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -1166,101 +1167,80 @@ public class ModelInferenceLogsUtils {
 		return true;
 	}
 
-  /**
-   * @param userId
-   * @param roomId
-   * @param pinned
-   * @return
-   */
-  public static boolean doSetRoomToPinned(String userId, String roomId, boolean pinned) {
-    try {
-      UpdateQueryStruct qs = new UpdateQueryStruct();
-      qs.setEngine(modelInferenceLogsDb);
-      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-      qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
-      List<IQuerySelector> selectors = new ArrayList<>();
-      List<Object> values = new ArrayList<>();
-      selectors.add(new QueryColumnSelector("ROOM__PINNED"));
-      values.add(pinned);
-      qs.setSelectors(selectors);
-      qs.setValues(values);
-      qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-      UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-      String updateQ = updateInterp.composeQuery();
+	/**
+	 * @param userId
+	 * @param roomId
+	 * @param pinned
+	 * @return
+	 */
+	public static boolean doSetRoomToPinned(String userId, String roomId, boolean pinned) {
+		try {
+			UpdateQueryStruct qs = new UpdateQueryStruct();
+			qs.setEngine(modelInferenceLogsDb);
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
+			List<IQuerySelector> selectors = new ArrayList<>();
+			List<Object> values = new ArrayList<>();
+			selectors.add(new QueryColumnSelector("ROOM__PINNED"));
+			values.add(pinned);
+			qs.setSelectors(selectors);
+			qs.setValues(values);
+			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+			UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+			String updateQ = updateInterp.composeQuery();
 
-      modelInferenceLogsDb.insertData(updateQ);
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-      return false;
-    }
-    return true;
-  }
-  
-  /**
-   * @param userId
-   * @param projectIdall
-   * @param keyword
-   * @return
-   */
+			modelInferenceLogsDb.insertData(updateQ);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return false;
+		}
+		return true;
+	}
 
-  public static List<Map<String, Object>> searchMessages(
-		    String userId, String projectId, String keyword) {
+	/**
+	 * @param userId
+	 * @param projectIdall
+	 * @param keyword
+	 * @return
+	 */
 
-		    SelectQueryStruct qs = new SelectQueryStruct();
-		    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
-		    qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA", "message_text"));
-		    qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
+	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
 
-		    qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
-		    qs.addExplicitFilter(
-			        SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-		    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
-		    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
+		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA", "message_text"));
+		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
 
-		    if (modelInferenceLogsDb.getDbType().equals(RdbmsTypeEnum.POSTGRES)) {
-	          QueryFunctionSelector convert_selector = new QueryFunctionSelector();
-	          convert_selector.setFunction("CONVERT_FROM");
-	          convert_selector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
-	          convert_selector.addInnerSelector(new QueryConstantSelector("UTF-8"));
-	          convert_selector.setDataType("TEXT");
-	          
-	          qs.addExplicitFilter(
-	                SimpleQueryFilter.makeColToValFilter(
-	                  convert_selector,
-	                    "?like",
-	                    keyword.toLowerCase(),
-	                    PixelDataType.CONST_STRING
-	                )
-	            );
-	          
-	        } else { //assuming h2_db
-	          QueryFunctionSelector castSelector = QueryFunctionSelector.makeFunctionSelector(
-	                "CAST",
-	                new QueryColumnSelector("MESSAGE__MESSAGE_DATA"),
-	                null
-	            );
-	            castSelector.setDataType("TEXT");
-	
-	            qs.addExplicitFilter(
-	                SimpleQueryFilter.makeColToValFilter(
-	                  castSelector,
-	                    "?like",
-	                    keyword.toLowerCase(),
-	                    PixelDataType.CONST_STRING
-	                )
-	            );
-	        }
+		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 
-		    qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
-		    qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
-		    
-		    SqlInterpreter sql = new PostgresSqlInterpreter();
-		    sql.setQueryStruct(qs);
-		    System.out.println(sql.composeQuery());
-		    
-		    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		if (modelInferenceLogsDb.getDbType().equals(RdbmsTypeEnum.POSTGRES)) {
+			QueryFunctionSelector convert_selector = new QueryFunctionSelector();
+			convert_selector.setFunction("CONVERT_FROM");
+			convert_selector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
+			convert_selector.addInnerSelector(new QueryConstantSelector("UTF-8"));
+			convert_selector.setDataType("TEXT");
+
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(convert_selector, "?like", keyword.toLowerCase(),
+					PixelDataType.CONST_STRING));
+
+		} else { // assuming h2_db
+			QueryFunctionSelector castSelector = QueryFunctionSelector.makeFunctionSelector("CAST",
+					new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), null);
+			castSelector.setDataType("TEXT");
+
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(castSelector, "?like", keyword.toLowerCase(),
+					PixelDataType.CONST_STRING));
 		}
 
+		qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
+		qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
 
 	/**
 	 * @param userId
@@ -2204,13 +2184,13 @@ public class ModelInferenceLogsUtils {
 				}
 
 				Object totalCountObj = map.remove("total_row_count");
-	            if (totalCount == 0 && totalCountObj != null) {
-	                if (totalCountObj instanceof Number) {
-	                    totalCount = ((Number) totalCountObj).longValue();
-	                } else {
-	                    classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
-	                }
-	            }
+				if (totalCount == 0 && totalCountObj != null) {
+					if (totalCountObj instanceof Number) {
+						totalCount = ((Number) totalCountObj).longValue();
+					} else {
+						classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
+					}
+				}
 				roomDetails.add(map);
 			}
 			workspaces.put("total_count", totalCount);
@@ -2314,15 +2294,15 @@ public class ModelInferenceLogsUtils {
 						map.put(headers[i], values[i]);
 					}
 				}
-	            Object totalCountObj = map.remove("total_row_count");
-	            if (totalCount == 0 && totalCountObj != null) {
-	                if (totalCountObj instanceof Number) {
-	                    totalCount = ((Number) totalCountObj).longValue();
-	                } else {
-	                    classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
-	                }
-	            }
-	            workspaceDetails.add(map);
+				Object totalCountObj = map.remove("total_row_count");
+				if (totalCount == 0 && totalCountObj != null) {
+					if (totalCountObj instanceof Number) {
+						totalCount = ((Number) totalCountObj).longValue();
+					} else {
+						classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
+					}
+				}
+				workspaceDetails.add(map);
 			}
 			workspaces.put("total_count", totalCount);
 			workspaces.put("workspaces", workspaceDetails);
@@ -2745,4 +2725,3 @@ public class ModelInferenceLogsUtils {
 	}
 
 }
-
