@@ -187,10 +187,14 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 			instanceIndexNoun = delimGRS.getNoun(0);
 			delimiter = (String) instanceIndexNoun.getValue();
 		} else {
+			delimiter = delim+"";
+		}
+		
+		if(delimiter == null) {
 			throw new IllegalArgumentException("Need to specify " + DELIMITER + "=[delimiter] in pixel command");
 		}
 
-		//get char from input string
+		// get char from input string
 		if(delimiter.length() > 0) {
 			delim = delimiter.charAt(0);
 		}
