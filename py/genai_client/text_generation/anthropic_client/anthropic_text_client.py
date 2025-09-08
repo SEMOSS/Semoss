@@ -53,6 +53,7 @@ class StreamingResponse(BaseModel):
 class AnthropicRequestConfig(BaseModel):
     model: str
     messages: List[Dict[str, Any]]
+    betas: Optional[List[str]] = None
     system: Optional[str] = None
     tools: Optional[List[Dict]] = None
     max_tokens: Optional[int] = None
@@ -67,6 +68,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def __init__(
         self,
         provider: str,
+        use_beta_header: str,
         **kwargs,
     ):
         super().__init__(
@@ -76,6 +78,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
         self.provider = provider.lower()
+        # Parse boolean-like values
+        self.use_beta_header = use_beta_header.lower() in ["true", "1", "yes", "on"]
+        self.beta_feature_name = kwargs.pop("beta_feature_name", None)
+        if self.use_beta_header and not self.beta_feature_name:
+            raise ValueError(
+                "beta_feature_name is required when use_beta_header is enabled."
+            )
+
         self.client = self._get_client(**kwargs)
 
     def _get_client(self, **kwargs):
@@ -124,9 +134,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             response_text = response.text
             usage = response.usage
         else:
-            response = self.client.messages.create(
-                **self.request_config.model_dump(exclude_none=True),
-            )
+            if self.use_beta_header:
+                response = self.client.beta.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
+            else:
+                response = self.client.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
             if response.stop_reason == "tool_use":
                 return self._parse_tools_call_response(
                     response,
@@ -168,24 +183,30 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             response_text = response.text
             usage = response.usage
         else:
-            response = self.client.messages.create(
-                **self.request_config.model_dump(exclude_none=True),
-            )
+            if self.use_beta_header:
+                response = self.client.beta.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
+            else:
+                response = self.client.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
+
             if response.stop_reason == "tool_use":
                 return self._parse_tools_call_response(
                     response,
                     prompt_tokens=response.usage.input_tokens,
                     response_tokens=response.usage.output_tokens,
                 )
-            
-            if 'schema' in param_map:
+
+            if "schema" in param_map:
                 return self._parse_structured_json_response(
                     response,
                     prompt_tokens=response.usage.input_tokens,
                     response_tokens=response.usage.output_tokens,
                 )
-            
-            response_text = response.content[0].text        
+
+            response_text = response.content[0].text
             usage = Usage(
                 input_tokens=response.usage.input_tokens,
                 output_tokens=response.usage.output_tokens,
@@ -245,7 +266,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             prompt_tokens=prompt_tokens,
             messageType="CHAT",
         )
-    
+
     def _parse_tools_call_response(
         self, response, prompt_tokens: int = None, response_tokens: int = None
     ) -> AskModelEngineResponse:
@@ -273,15 +294,26 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         final_response = ""
 
-        with self.client.messages.stream(
-            **self.request_config.model_dump(exclude_none=True),
-        ) as stream:
-            for text in stream.text_stream:
-                final_response += text
-                print(
-                    prefix + text,
-                    end="",
-                )
+        if self.use_beta_header:
+            with self.client.beta.messages.stream(
+                **self.request_config.model_dump(exclude_none=True),
+            ) as stream:
+                for text in stream.text_stream:
+                    final_response += text
+                    print(
+                        prefix + text,
+                        end="",
+                    )
+        else:
+            with self.client.messages.stream(
+                **self.request_config.model_dump(exclude_none=True),
+            ) as stream:
+                for text in stream.text_stream:
+                    final_response += text
+                    print(
+                        prefix + text,
+                        end="",
+                    )
 
         input_tokens = self._count_tokens(msg_history=msg_history)
         output_tokens = self._count_tokens(response_string=final_response)
@@ -319,6 +351,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             model=self.model_name,
             system=system_prompt,
             messages=[message.model_dump(mode="json") for message in history],
+            betas=[self.beta_feature_name] if self.use_beta_header else None,
             tools=tools,
             max_tokens=max_tokens,
             temperature=kwargs.pop("temperature", None),
