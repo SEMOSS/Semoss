@@ -134,9 +134,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             response_text = response.text
             usage = response.usage
         else:
-            response = self.client.messages.create(
-                **self.request_config.model_dump(exclude_none=True),
-            )
+            if self.use_beta_header:
+                response = self.client.beta.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
+            else:
+                response = self.client.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
             if response.stop_reason == "tool_use":
                 return self._parse_tools_call_response(
                     response,
@@ -289,15 +294,26 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         final_response = ""
 
-        with self.client.messages.stream(
-            **self.request_config.model_dump(exclude_none=True),
-        ) as stream:
-            for text in stream.text_stream:
-                final_response += text
-                print(
-                    prefix + text,
-                    end="",
-                )
+        if self.use_beta_header:
+            with self.client.beta.messages.stream(
+                **self.request_config.model_dump(exclude_none=True),
+            ) as stream:
+                for text in stream.text_stream:
+                    final_response += text
+                    print(
+                        prefix + text,
+                        end="",
+                    )
+        else:
+            with self.client.messages.stream(
+                **self.request_config.model_dump(exclude_none=True),
+            ) as stream:
+                for text in stream.text_stream:
+                    final_response += text
+                    print(
+                        prefix + text,
+                        end="",
+                    )
 
         input_tokens = self._count_tokens(msg_history=msg_history)
         output_tokens = self._count_tokens(response_string=final_response)
