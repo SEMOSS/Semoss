@@ -97,7 +97,7 @@ public class Insight implements Serializable {
 	public static final String DEFAULT_SHEET_ID = "0";
 	public static final String DEFAULT_SHEET_LABEL = "Sheet1";
 
-	private static final Logger logger = LogManager.getLogger(Insight.class.getName());
+	private static final Logger classLogger = LogManager.getLogger();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	// need to account for multiple frames to be saved on the insight
@@ -323,27 +323,16 @@ public class Insight implements Serializable {
 		} else {
 			for (int i = 0; i < size; i++) {
 				String pixelString = pixelList.get(i);
-				if (this.user != null) {
-					logger.info(User.getSingleLogginName(this.user) + " Running >>> "
-							+ Utility.cleanLogString(pixelString));
-				} else {
-					User threadUser = getUser();
-					if (threadUser != null) {
-						logger.info(User.getSingleLogginName(threadUser) + " Running >>> "
-								+ Utility.cleanLogString(pixelString));
-					} else {
-						logger.info("No User Running >>> " + Utility.cleanLogString(pixelString));
-					}
-				}
+				classLogger.info("Pixel >>> {}", Utility.cleanLogString(pixelString));
 				try {
 					runner.runPixel(pixelString, this);
 				} catch (SemossPixelException e) {
-					logger.error(Constants.ERROR_MESSAGE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					if (!e.isContinueThreadOfExecution()) {
 						break;
 					}
 				} catch (Exception e) {
-					logger.error(Constants.ERROR_MESSAGE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if (this.user != null && !this.user.isAnonymous() && SaveInsightIntoWorkspace.isCacheUserWorkspace()
 							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
@@ -375,7 +364,7 @@ public class Insight implements Serializable {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.ERROR_MESSAGE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -1260,9 +1249,9 @@ public class Insight implements Serializable {
 				return retReac;
 			}
 		} catch (InstantiationException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		// user has manually set the specific context
@@ -1368,7 +1357,7 @@ public class Insight implements Serializable {
 			try (URLClassLoader urlCl = new URLClassLoader(new URL[] {}, cl)) {
 				urls = urlCl.getURLs();
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return urls;

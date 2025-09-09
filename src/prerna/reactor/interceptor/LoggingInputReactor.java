@@ -25,7 +25,6 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
-import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -37,7 +36,7 @@ public class LoggingInputReactor extends AbstractReactor implements IInputReacto
 	private static final Logger logger = SemossLogUtils.getEngineLevelLogger();
 
 	public LoggingInputReactor() {
-		this.keysToGet = new String[] { PipelineReactorUtils.ARGUMENTS, PipelineReactorUtils.CONFIG };
+		this.keysToGet = new String[] { PipelineReactorUtils.ARGUMENTS };
 	}
 
 	@Override
@@ -51,10 +50,6 @@ public class LoggingInputReactor extends AbstractReactor implements IInputReacto
 
 		String reactorName = (String) arguments.get(PipelineReactorUtils.INPUT_REACTOR_NAME);
 		mapMessage.put(SemossLogUtils.INPUT_REACTOR_NAME, reactorName);
-
-		mapMessage.put(SemossLogUtils.SESSION_ID, ThreadStore.getSessionId());
-		mapMessage.put(SemossLogUtils.INSIGHT_ID, ThreadStore.getInsightId());
-		mapMessage.put(SemossLogUtils.USER_ID, ThreadStore.getUser().getPrimaryLoginToken().getId());
 
 		IEngine engine = (IEngine) arguments.get(PipelineReactorUtils.ENGINE);
 		mapMessage.put(SemossLogUtils.ENGINE_ID, engine.getEngineId());
@@ -335,4 +330,5 @@ public class LoggingInputReactor extends AbstractReactor implements IInputReacto
 		}).collect(Collectors.joining(","));
 		return result;
 	}
+
 }
