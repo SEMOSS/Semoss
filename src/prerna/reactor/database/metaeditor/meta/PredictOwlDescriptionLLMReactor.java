@@ -52,6 +52,10 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
 
             Set<String> logicalNames = database.getLogicalNames(physicalUri);
 
+            String physicalTableUri = database.getPhysicalUriFromPixelSelector(concept);
+            String physicalTableName = Utility.getInstanceName(physicalTableUri);
+            String physicalColumnName = Utility.getClassName(physicalUri);
+
             List<String> sampleValues = new ArrayList<>();
             sampleValues.add(concept);
             sampleValues.add(column);
@@ -59,10 +63,21 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
 
             if (useSampleValues && dataType == SemossDataType.STRING) {
                 log.info("Grabbing sample values for column: " + column);
+                log.info("Database ID: " + databaseId);
+                log.info("Concept: " + concept);
+                log.info("Column: " + column);
+                log.info("QS Name: " + qsName);
+                log.info("Physical URI: " + physicalUri);
+                log.info("Physical Table Name: " + physicalTableName);
+                log.info("Physical Column Name: " + physicalColumnName);
+                log.info("Data Type: " + dataType);
+
                 IRawSelectWrapper wrapper = null;
                 try {
-                    wrapper = WrapperManager.getInstance().getRawWrapper(database,
-                            getMostOccuringSingleColumnNonEmptyQs(qsName, 10));
+                    String query = getMostOccuringSingleColumnNonEmptyQs(physicalTableName, physicalColumnName, 10);
+                    log.info("Generated query for sample values: " + query);
+
+                    wrapper = WrapperManager.getInstance().getRawWrapper(database, query);
                     while (wrapper.hasNext()) {
                         Object value = wrapper.next().getValues()[0];
                         if (value == null || value.toString().isEmpty()) {
@@ -70,8 +85,14 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
                         }
                         sampleValues.add(value.toString());
                     }
+                    log.info("Retrieved " + (sampleValues.size() - 3) + " sample values");
                 } catch (Exception e) {
-                    log.error("Error getting sample values", e);
+                    log.error(
+                            "Error getting sample values for concept: " + concept + ", column: " + column
+                                    + ", physical table: " + physicalTableName + ", physical column: "
+                                    + physicalColumnName + ", query: "
+                                    + getMostOccuringSingleColumnNonEmptyQs(physicalTableName, physicalColumnName, 10),
+                            e);
                 } finally {
                     if (wrapper != null) {
                         try {
@@ -201,13 +222,13 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
         return description;
     }
 
-    private String getMostOccuringSingleColumnNonEmptyQs(String qsName, int limit) {
-        return "Database(database=[\"" + this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()) + "\"]) | " +
-                "Select(" + qsName + ") | " +
-                "Where(" + qsName + " != \"\" AND " + qsName + " IS NOT NULL) | " +
-                "GroupBy(" + qsName + ") | " +
-                "Count() | " +
-                "OrderBy(Count DESC) | " +
-                "Collect(" + limit + ")";
+    private String getMostOccuringSingleColumnNonEmptyQs(String physicalTableName, String physicalColumnName,
+            int limit) {
+        return "SELECT " + physicalColumnName + ", COUNT(*) as count_val " +
+                "FROM " + physicalTableName + " " +
+                "WHERE " + physicalColumnName + " IS NOT NULL AND " + physicalColumnName + " != '' " +
+                "GROUP BY " + physicalColumnName + " " +
+                "ORDER BY count_val DESC " +
+                "LIMIT " + limit;
     }
 }
