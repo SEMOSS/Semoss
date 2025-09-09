@@ -27,9 +27,10 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
                 ReactorKeysEnum.DATABASE.getKey(),
                 ReactorKeysEnum.CONCEPT.getKey(),
                 ReactorKeysEnum.COLUMN.getKey(),
-                ReactorKeysEnum.ENGINE.getKey()
+                ReactorKeysEnum.ENGINE.getKey(),
+                "useSampleValues"
         };
-        this.keyRequired = new int[] { 1, 1, 1, 1 };
+        this.keyRequired = new int[] { 1, 1, 1, 1, 0 };
     }
 
     @Override
@@ -39,6 +40,8 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
         String concept = this.keyValue.get(ReactorKeysEnum.CONCEPT.getKey());
         String column = this.keyValue.get(ReactorKeysEnum.COLUMN.getKey());
         String llmEngineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+        String useSampleValuesStr = this.keyValue.get("useSampleValues");
+        boolean useSampleValues = useSampleValuesStr != null && "true".equalsIgnoreCase(useSampleValuesStr);
 
         try {
             IDatabaseEngine database = Utility.getDatabase(databaseId);
@@ -54,7 +57,7 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
             sampleValues.add(column);
             sampleValues.addAll(logicalNames);
 
-            if (dataType == SemossDataType.STRING) {
+            if (useSampleValues && dataType == SemossDataType.STRING) {
                 log.info("Grabbing sample values for column: " + column);
                 IRawSelectWrapper wrapper = null;
                 try {
@@ -80,7 +83,7 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
                 }
             }
 
-            String prompt = buildPrompt(concept, column, sampleValues);
+            String prompt = buildPrompt(concept, column, sampleValues, useSampleValues);
 
             Map<String, Object> paramMap = new HashMap<>();
             paramMap.put("temperature", 0.3);
@@ -95,6 +98,7 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
                     paramMap).toMap();
 
             Object rawResponse = response.get("response");
+            log.info("LLM raw response: " + rawResponse);
             String description = "";
 
             if (rawResponse instanceof String) {
@@ -144,16 +148,21 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
         }
     }
 
-    private String buildPrompt(String concept, String column, List<String> sampleValues) {
+    private String buildPrompt(String concept, String column, List<String> sampleValues, boolean useSampleValues) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("You are a database documentation assistant.\n");
         prompt.append("I need you to generate a clear, concise description for a database column.\n\n");
         prompt.append("Table: ").append(concept).append("\n");
         prompt.append("Column: ").append(column).append("\n");
 
-        if (!sampleValues.isEmpty()) {
-            prompt.append("Sample values: ")
-                    .append(String.join(", ", sampleValues.subList(0, Math.min(10, sampleValues.size())))).append("\n");
+        if (useSampleValues && !sampleValues.isEmpty() && sampleValues.size() > 3) {
+            List<String> actualSampleValues = sampleValues.subList(3, sampleValues.size());
+            if (!actualSampleValues.isEmpty()) {
+                prompt.append("Sample values: ")
+                        .append(String.join(", ",
+                                actualSampleValues.subList(0, Math.min(10, actualSampleValues.size()))))
+                        .append("\n");
+            }
         }
 
         prompt.append("\nPlease provide a JSON response with the following EXACT format:\n");
