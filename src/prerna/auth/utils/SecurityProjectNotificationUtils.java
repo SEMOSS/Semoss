@@ -99,6 +99,7 @@ public class SecurityProjectNotificationUtils extends AbstractSecurityUtils{
 			qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "userType"));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", 1));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "!=", userId));
 			qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
 			List<Map<String, Object>> usersOfProject = QueryExecutionUtility.flushRsToMap(securityDb, qs);
 
