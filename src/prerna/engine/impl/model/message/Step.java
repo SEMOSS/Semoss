@@ -67,15 +67,14 @@ public class Step {
 		this.provenance = provenance == null ? new HashMap<>() : new HashMap<>(provenance);
 	}
 	
-	public void addProvenances(Map<String, Object> provenance) {
+	public void addProvenance(Map<String, Object> provenance) {
+    	if (this.provenance == null) {
+    		this.provenance = new HashMap<String, Object>();
+    	}
 		if	(provenance != null) {
 			this.provenance.putAll(provenance);
 		}
 	}
-	
-    public void addProvenance(String key, Object value) {
-        this.provenance.put(key, value);
-    }
 
 	public void setRationale(String rationale) {
 		this.rationale = rationale;
@@ -91,9 +90,9 @@ public class Step {
 	}
 	
 	public void addDetails(Map<String, Object> details) {	
-		if  (this.details == null) {
-			this.details = new HashMap<>();
-		}
+    	if (this.details == null) {
+    		this.details = new HashMap<String, Object>();
+    	}
 		if	(details != null) {
 			this.details.putAll(details);
 		}
@@ -133,28 +132,21 @@ public class Step {
     public static class Builder {
         private final Step step = new Step();
         
-        public Builder description(String description) {
-            step.description = description;
+        public Builder withDescription(String description) {
+            step.setDescription(description);
             return this;
         }
 
-        public Builder type(StepType type) {
-            step.type = type;
+        public Builder withType(StepType type) {
+            step.setType(type);
             return this;
         }
 
-        public Builder withProvenances(Map<String, Object> provenance) {
-            step.provenance = provenance == null ? new HashMap<>() : new HashMap<>(provenance);
+        public Builder withProvenance(Map<String, Object> provenance) {
+        	step.addProvenance(provenance);
             return this;
         }
         
-        public Builder withProvenance(String key, Object value) {
-            if (step.provenance == null) {
-                step.provenance = new HashMap<>();
-            }
-            step.provenance.put(key, value);
-            return this;
-        }
 
         public Builder withRationale(String rationale) {
             step.setRationale(rationale);
@@ -178,9 +170,9 @@ public class Step {
             return this;
         }
         
+        // TODO: Parse JSON content using Gson, navigate to execution_plan.steps.{stepName}, and populate Step fields
         public static Builder fromResponseMessage(ResponseMessage responseMessage, String stepName) {
-            // TODO: Parse JSON content using Gson, navigate to execution_plan.steps.{stepName}, and populate Step fields
-            
+            //INCOMPLETE METHOD
             Map<String, Object> jsonMap = GSON.fromJson(responseMessage.getContent(), new TypeToken<Map<String, Object>>() {}.getType());
 
             
@@ -192,24 +184,17 @@ public class Step {
         }
 
         public Step build() {
-            // Validate required fields from schema
             if (step.description == null || step.description.trim().isEmpty()) {
                 throw new IllegalStateException("description is required");
             }
             if (step.type == null) {
                 throw new IllegalStateException("type is required");
             }
-            if (step.provenance == null) {
-                step.provenance = new HashMap<>();
-            }
             if (step.rationale == null || step.rationale.trim().isEmpty()) {
                 throw new IllegalStateException("rationale is required");
             }
             if (step.successCriteria == null) {
                 throw new IllegalStateException("success_criteria is required");
-            }
-            if (step.details == null) {
-                step.details = new HashMap<>();
             }
             return step;
         }
@@ -248,8 +233,16 @@ public class Step {
         }
         
         public void setConditions(List<Map<String, Object>> conditions) {
-        	
             this.conditions = conditions == null ? new ArrayList<>() : new ArrayList<>(conditions);
+        }
+        
+        public void addConditions(List<Map<String, Object>> conditions) {
+        	if (this.conditions == null) {
+        		this.conditions = new ArrayList<Map<String, Object>>();
+        	}
+        	if (conditions != null) {
+        		this.conditions.addAll(conditions);
+        	}
         }
         
    
@@ -274,16 +267,15 @@ public class Step {
                 return this;
             }
             
-            public Builder conditions(List<Map<String, Object>> conditions) {
-                criteria.conditions = conditions == null ? new ArrayList<>() : new ArrayList<>(conditions);
+            public Builder withConditions(List<Map<String, Object>> conditions) {
+            	criteria.addConditions(conditions);
                 return this;
             }
             
-            public Builder addCondition(Map<String, Object> condition) {
-                if (criteria.conditions == null) {
-                    criteria.conditions = new ArrayList<>();
-                }
-                criteria.conditions.add(condition);
+            public Builder withCondition(Map<String, Object> condition) {
+            	List<Map<String, Object>> conditions = new ArrayList<Map<String, Object>>();
+            	conditions.add(condition);
+            	criteria.addConditions(conditions);
                 return this;
             }
             
