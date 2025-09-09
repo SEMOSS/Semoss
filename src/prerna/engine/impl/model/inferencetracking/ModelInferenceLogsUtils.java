@@ -1404,9 +1404,8 @@ public class ModelInferenceLogsUtils {
 	/** @param messageId */
 	public static void removeFeedback(String messageId) {
 		if (!feedbackExists(messageId)) {
-			throw new SemossPixelException("No feedback found for the given messageId to remove.");
-		}
-		deleteFeedbackEntry(messageId);
+			classLogger.error("No feedback found for the given messageId to remove. Ignoring...");
+		} else deleteFeedbackEntry(messageId);
 	}
 
 	/**
