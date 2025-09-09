@@ -86,8 +86,11 @@ public class PlaygroundUtils {
 			
 			
 			
-			//TODO: We should re-add this component, with descriptions and reminders, to the above.
-			//not just the raw json schema. We need to remake it based on the new schema.
+			//TODO: delete or reintegrate into COT_PROMPT_TEMPLATE and or COT_JSON_SCHEMA.
+			//The differences between the old component and new component are twofold
+			//1. this component is outdated. We have changed the fields of the JSON
+			//2. This component has descriptions for each field, which provides the llm more context
+			//for its output generation. It may improve results if we apply this to the new prompt
 			private static final String oldCotComponent = """
 
 			{
