@@ -25,6 +25,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import jodd.util.BCrypt;
+import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
@@ -2590,12 +2591,13 @@ public abstract class AbstractSecurityUtils {
 	    if(user != null) {
 	        List<AuthProvider> logins = user.getLogins();
 	        for(AuthProvider thisLogin : logins) {
+	        	AccessToken accessToken = user.getAccessToken(thisLogin);
 	        	Collection<String> userGroups = new ArrayList<>();
-	        	Collection<String> groups = user.getAccessToken(thisLogin).getUserGroups();
+	        	Collection<String> groups = accessToken.getUserGroups();
 	        	if (!groups.isEmpty()) {
 	        		userGroups.addAll(groups);
 	        	}
-	        	Collection<String> customGroups = AdminSecurityGroupUtils.getUserCustomGroups(user.getAccessToken(thisLogin).getId());
+	        	Collection<String> customGroups = AdminSecurityGroupUtils.getUserCustomGroups(accessToken);
 	            if (!customGroups.isEmpty()) {
 	            	userGroups.addAll(customGroups);
 	            }

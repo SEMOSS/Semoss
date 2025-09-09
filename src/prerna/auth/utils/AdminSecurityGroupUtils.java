@@ -19,6 +19,7 @@ import org.javatuples.Pair;
 import com.google.gson.Gson;
 
 import prerna.auth.AccessPermissionEnum;
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -1461,11 +1462,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param userid
 	 * @return
 	 */
-	public static List<String> getUserCustomGroups(String userid) {
+	public static List<String> getUserCustomGroups(AccessToken accessToken) {
 		List<String> groups = new ArrayList<>();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", userid));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__TYPE", "==", accessToken.getProvider()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", accessToken.getId()));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
