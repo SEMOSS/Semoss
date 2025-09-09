@@ -6,6 +6,8 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.impl.LocationAware;
 
 import prerna.util.Utility;
 
@@ -63,6 +65,71 @@ public class SemossLogUtils {
 	 */
 	public static Logger getEngineLevelLogger() {
 		return LogManager.getLogger("EngineLogger");
+	}
+
+	/**
+	 * Safely extracts source information from a LogEvent and appends it to a
+	 * StringBuilder. Handles cases where includeLocation="false" is set on the
+	 * appender.
+	 * 
+	 * @param event  The LogEvent to extract source information from
+	 * @param buffer
+	 * @return
+	 */
+	public static String appendSourceInfo(LogEvent event) {
+		StringBuilder builder = new StringBuilder();
+		try {
+			// Check if the event implements LocationAware and has location info
+			if (event instanceof LocationAware) {
+				LocationAware locationAware = (LocationAware) event;
+				if (!locationAware.requiresLocation()) {
+					builder.append("location:unavailable");
+					return builder.toString();
+				}
+			}
+
+			// Attempt to get the source location
+			StackTraceElement source = event.getSource();
+
+			if (source != null) {
+				// Extract and append source information
+				String className = source.getClassName();
+				String methodName = source.getMethodName();
+				int lineNumber = source.getLineNumber();
+
+				// Append class name (simple name only)
+				if (className != null) {
+					builder.append(className);
+				} else {
+					builder.append("unknown");
+				}
+
+				// Append method name
+				if (methodName != null) {
+					builder.append(".").append(methodName);
+				} else {
+					builder.append(".unknown");
+				}
+
+				if (lineNumber > 0) {
+					builder.append(":" + lineNumber);
+				} else {
+					builder.append(":unknown");
+				}
+			} else {
+				// Source is null - location information not available
+				builder.append("location:unavailable");
+			}
+
+		} catch (UnsupportedOperationException e) {
+			// This can happen when location is disabled
+			builder.append("location:disabled");
+		} catch (Exception e) {
+			// Handle any other unexpected exceptions
+			builder.append("location:error - ").append(e.getMessage());
+		}
+
+		return builder.toString();
 	}
 
 	/**

@@ -1,6 +1,7 @@
 package prerna.tcp;
 
 import java.io.Serializable;
+import java.util.Map;
 
 public class PayloadStruct implements Serializable {
 
@@ -72,4 +73,9 @@ public class PayloadStruct implements Serializable {
 	 * knows which User invoked for security permissions
 	 */
 	public String executionInsightId = null;
+
+	/*
+	 * For logging purposes Sharing the MDC context for request parameters
+	 */
+	public Map<String, String> mdc;
 }

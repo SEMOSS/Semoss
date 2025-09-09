@@ -44,11 +44,12 @@ public class AuditLogsDbOwlCreator {
 //		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
 
 		this.auditLogsColumns = Arrays.asList(Pair.with("LOG_ID", "VARCHAR(255)"),
-				Pair.with("IS_SUCCESS", BOOLEAN_DATATYPE_NAME), Pair.with("ENGINE_ID", "VARCHAR(255)"),
-				Pair.with("ENGINE_NAME", "VARCHAR(255)"), Pair.with("ENGINE_TYPE", "VARCHAR(255)"),
-				Pair.with("INPUT_REACTOR_NAME", "VARCHAR(255)"), Pair.with("INSIGHT_ID", "VARCHAR(255)"),
-				Pair.with("LOG_LEVEL", "VARCHAR(255)"), Pair.with("LOG_TIMESTAMP", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("LOGGER_NAME", "VARCHAR(255)"), Pair.with("METHOD_ID", "VARCHAR(255)"),
+				Pair.with("REQUEST_ID", "VARCHAR(255)"), Pair.with("IS_SUCCESS", BOOLEAN_DATATYPE_NAME),
+				Pair.with("ENGINE_ID", "VARCHAR(255)"), Pair.with("ENGINE_NAME", "VARCHAR(255)"),
+				Pair.with("ENGINE_TYPE", "VARCHAR(255)"), Pair.with("INPUT_REACTOR_NAME", "VARCHAR(255)"),
+				Pair.with("INSIGHT_ID", "VARCHAR(255)"), Pair.with("LOG_LEVEL", "VARCHAR(255)"),
+				Pair.with("LOG_TIMESTAMP", TIMESTAMP_DATATYPE_NAME), Pair.with("LOGGER_NAME", "VARCHAR(255)"),
+				Pair.with("LOGGER_LOCATION", "VARCHAR(255)"), Pair.with("METHOD_ID", "VARCHAR(255)"),
 				Pair.with("METHOD_NAME", "VARCHAR(255)"), Pair.with("METHOD_TYPE", "VARCHAR(255)"),
 				Pair.with("NUMBER_OF_TOKENS_IN_PROMPT", INTEGER_DATATYPE_NAME),
 				Pair.with("NUMBER_OF_TOKENS_IN_RESPONSE", INTEGER_DATATYPE_NAME),
@@ -59,7 +60,10 @@ public class AuditLogsDbOwlCreator {
 				Pair.with("USER_ID", "VARCHAR(255)"), Pair.with("MESSAGE", CLOB_DATATYPE_NAME),
 				Pair.with("REQUEST", CLOB_DATATYPE_NAME), Pair.with("RESPONSE", CLOB_DATATYPE_NAME));
 
-		this.serverLogsColumns = Arrays.asList(Pair.with("LEVEL", "VARCHAR(50)"), Pair.with("LOGGER", "VARCHAR(255)"),
+		this.serverLogsColumns = Arrays.asList(Pair.with("LOG_ID", "VARCHAR(255)"),
+				Pair.with("SESSION_ID", "VARCHAR(255)"), Pair.with("REQUEST_ID", "VARCHAR(255)"),
+				Pair.with("USER_ID", "VARCHAR(255)"), Pair.with("LEVEL", "VARCHAR(50)"),
+				Pair.with("LOGGER_NAME", "VARCHAR(255)"), Pair.with("LOGGER_LOCATION", "VARCHAR(255)"),
 				Pair.with("THREAD_NAME", "VARCHAR(255)"), Pair.with("LOG_TIMESTAMP", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("MESSAGE", CLOB_DATATYPE_NAME));
 

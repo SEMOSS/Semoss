@@ -1264,6 +1264,11 @@
 			<version>2.25.1</version>
 		</dependency>
 		<dependency>
+			<groupId>com.github.f4b6a3</groupId>
+			<artifactId>uuid-creator</artifactId>
+			<version>6.1.1</version>
+		</dependency>
+		<dependency>
 			<groupId>org.mariadb.jdbc</groupId>
 			<artifactId>mariadb-java-client</artifactId>
 			<version>1.1.9</version>

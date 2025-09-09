@@ -22,7 +22,9 @@ import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
+import org.apache.logging.log4j.util.ReadOnlyStringMap;
 
+import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
@@ -40,6 +42,7 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
 
+	private final String insertSQL;
 	private final List<LogEvent> events = new ArrayList<>();
 	private final int batchSize = 100;
 	private static final long FLUSH_INTERVAL_MS = 60_000; // 1 minute
@@ -49,6 +52,15 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 	protected ServerLogsJDBCAppender(String name, Filter filter, Layout<? extends Serializable> layout,
 			boolean ignoreExceptions) {
 		super(name, filter, layout, ignoreExceptions, Property.EMPTY_ARRAY);
+
+		this.insertSQL = """
+				INSERT INTO SERVER_LOGS (
+					LOG_ID, REQUEST_ID, SESSION_ID, USER_ID, LEVEL, LOGGER_NAME,
+					LOGGER_LOCATION, THREAD_NAME, LOG_TIMESTAMP, MESSAGE
+				) VALUES (
+					?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+				);
+				""";
 
 		this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
 			Thread t = new Thread(r, "ServerLogsJDBCAppender-Scheduler");
@@ -98,20 +110,29 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 		IRDBMSEngine auditLogs = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DATABASE_NAME);
 		AbstractSqlQueryUtil queryUtil = auditLogs.getQueryUtil();
 
-		final String insertSql = "INSERT INTO SERVER_LOGS (LEVEL, LOGGER, THREAD_NAME, LOG_TIMESTAMP, MESSAGE) VALUES (?, ?, ?, ?, ?)";
 		Connection connection = null;
 		PreparedStatement stmt = null;
 		try {
 			connection = auditLogs.getConnection();
-			connection.setAutoCommit(false);
-			stmt = connection.prepareStatement(insertSql);
-
+			stmt = connection.prepareStatement(this.insertSQL);
 			for (LogEvent event : processingEvents) {
-				stmt.setString(1, event.getLevel().toString());
-				stmt.setString(2, event.getLoggerName());
-				stmt.setString(3, event.getThreadName());
-				stmt.setTimestamp(4, new Timestamp(event.getTimeMillis()));
-				queryUtil.handleInsertionOfClob(stmt, event.getMessage().getFormattedMessage(), 5, GSON);
+				ReadOnlyStringMap contextData = event.getContextData();
+
+				int paramIdx = 1;
+				// create unique log id
+				stmt.setString(paramIdx++, GUID.v7().toUUID().toString());
+				// request id
+				stmt.setString(paramIdx++, contextData.getValue(SemossLogUtils.REQUEST_ID));
+				// session id
+				stmt.setString(paramIdx++, contextData.getValue(SemossLogUtils.SESSION_ID));
+				// user id
+				stmt.setString(paramIdx++, contextData.getValue(SemossLogUtils.USER_ID));
+				stmt.setString(paramIdx++, event.getLevel().toString());
+				stmt.setString(paramIdx++, event.getLoggerName());
+				stmt.setString(paramIdx++, SemossLogUtils.appendSourceInfo(event));
+				stmt.setString(paramIdx++, event.getThreadName());
+				stmt.setTimestamp(paramIdx++, new Timestamp(event.getTimeMillis()));
+				queryUtil.handleInsertionOfClob(stmt, event.getMessage().getFormattedMessage(), paramIdx++, GSON);
 				stmt.addBatch();
 			}
 			stmt.executeBatch();
@@ -126,14 +147,7 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 				}
 			}
 		} finally {
-			if (connection != null) {
-				try {
-					connection.setAutoCommit(true);
-				} catch (SQLException e) {
-					LOGGER.error("Failed to reset auto-commit", e);
-				}
-			}
-			ConnectionUtils.closeAllDbConnectionsIfPooling(auditLogs, stmt);
+			ConnectionUtils.closeAllConnectionsIfPooling(auditLogs, connection, stmt);
 		}
 	}
 

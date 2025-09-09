@@ -4,6 +4,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.ThreadContext;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -368,6 +370,7 @@ public class PyTranslator {
 		ps.insightId = this.globalStoreInsight.getInsightId();
 		ps.jobId = ThreadStore.getJobId();
 		ps.sessionId = ThreadStore.getSessionId();
+		ps.mdc = ThreadContext.getImmutableContext();
 		if (executionInsight != null) {
 			ps.executionInsightId = executionInsight.getInsightId();
 		}
@@ -397,6 +400,7 @@ public class PyTranslator {
 		ps.insightId = this.globalStoreInsight.getInsightId();
 		ps.jobId = ThreadStore.getJobId();
 		ps.sessionId = ThreadStore.getSessionId();
+		ps.mdc = ThreadContext.getImmutableContext();
 		if (sc.isConnected()) {
 			ps = (PayloadStruct) sc.executeCommand(ps);
 			if (ps == null) {
@@ -421,6 +425,7 @@ public class PyTranslator {
 		ps.insightId = this.globalStoreInsight.getInsightId();
 		ps.jobId = ThreadStore.getJobId();
 		ps.sessionId = ThreadStore.getSessionId();
+		ps.mdc = ThreadContext.getImmutableContext();
 		if (sc.isConnected()) {
 			ps = (PayloadStruct) sc.executeCommand(ps);
 			if (ps == null) {
