@@ -15,3 +15,7 @@ def __getattr__(name: str) -> Any:
         from .utils.text_splitting import split_text
 
         return split_text
+    elif name == "TesseractOcrClient":
+        from .utils.ocr_pdf import TesseractOcrClient
+
+        return TesseractOcrClient

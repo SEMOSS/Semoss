@@ -346,7 +346,12 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 						
 						// default processing if haven't processed with above logic
 						if(!processed) {
-							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+							Boolean processWithImages = false;
+							if (parameters.containsKey("ocrImages")) {
+								processWithImages = (Boolean) parameters.get("ocrImages");
+							}
+							
+							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document, processWithImages, insight);
 						}
 
 						// check to see if the file data was extracted

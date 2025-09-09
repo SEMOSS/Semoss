@@ -1075,7 +1075,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 						} 
 						
 						if(!processed) {
-							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+							Boolean processWithImages = false;
+							if (parameters.containsKey("ocrImages")) {
+								processWithImages = (Boolean) parameters.get("ocrImages");
+							}
+							
+							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document, processWithImages, insight);
 						}
 						
 						// check to see if the file data was extracted

@@ -38,6 +38,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	
 	private final String PATH_TO_UNZIP_FILES = "zipFileExtractFolder";
 	private final String FILE_PATHS_KEY = "filePaths";
+	private final String PROCESS_KEY = "ocrImages";
 	
 	public CreateEmbeddingsFromDocumentsReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), FILE_PATHS_KEY, 
@@ -72,12 +73,19 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		
 		// send the insight so it can be used with IModelEngine call
 		paramMap.put(Constants.INSIGHT, this.insight);
+		
+		// TODO: for testing remove
+		paramMap.put(PROCESS_KEY, true);
+		//paramMap.put(VectorDatabaseParamOptionsEnum.CHUNKING_METHOD.getKey(), "semantic");
+		
+		// here we are defining the chunking strategy
+		// paramMap.put("chunkingMethod", "token");
 
 		String rootFolder = getRootFolder();
 		// this is coming from an insight so i assume its just the file names
 		List<String> validFiles = new ArrayList<>();
 		List<String> invalidFiles = new ArrayList<>();
-		List<FileEmbeddingStatus> fileStatusList;
+		List<FileEmbeddingStatus> fileStatusList;		
 		try {
 			getFiles(rootFolder, validFiles, invalidFiles);
 			if (validFiles.isEmpty()) {
@@ -91,8 +99,18 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 					throw new IllegalArgumentException("File path for " + file.getName() + " does not exist within the insight or project space.");
 				}
 			}
-
+			
+			//Boolean processWithImages = this.getProcessWithImages(paramMap);
+			
 			fileStatusList = vectorDatabase.addDocument(validFiles, paramMap);
+
+			/*if (processWithImages && vectorDatabase instanceof PGVectorDatabaseEngine) {
+				PGVectorDatabaseEngine pgVectorDatabase = (PGVectorDatabaseEngine) vectorDatabase;
+				fileStatusList = pgVectorDatabase.addDocument(validFiles, paramMap);
+			} else {
+				fileStatusList = vectorDatabase.addDocument(validFiles, paramMap);
+			}*/
+			
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
@@ -106,7 +124,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				}
 			}
 		}
-		
+
 		NounMetadata noun = new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		if(!invalidFiles.isEmpty()) {
 			List<String> invalidFileNamesRelative = new ArrayList<>(invalidFiles.size());
