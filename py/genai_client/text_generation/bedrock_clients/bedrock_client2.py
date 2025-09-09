@@ -1,5 +1,6 @@
 from typing import Any, Dict
 import boto3
+import re
 import botocore.exceptions
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
 from ...constants import AskModelEngineResponse
@@ -47,6 +48,11 @@ class BedrockClient2:
     ) -> AskModelEngineResponse:
         if self.client is None:
             raise RuntimeError("Bedrock client is not initialized.")
+        
+        if 'schema' in kwargs:
+            self.has_schema = True
+        else:
+            self.has_schema = False
 
         self.ask_settings = self.cfg_client.get_ask_settings(
             self.cfg_client.model_settings, **kwargs
@@ -149,6 +155,9 @@ class BedrockClient2:
             else:
                 final_response = "\n".join(texts) if texts else ""
                 message_type = "CHAT"
+
+            if self.has_schema:
+                final_response = re.search(r"\{.*\}", final_response, re.DOTALL).group(0)
 
             return AskModelEngineResponse(
                 response=final_response,
