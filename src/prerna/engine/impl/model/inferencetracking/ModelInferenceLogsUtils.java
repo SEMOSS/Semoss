@@ -1112,6 +1112,55 @@ public class ModelInferenceLogsUtils {
         userName,
         userEmail);
   }
+  
+  /**
+   * @param messageId
+   * @param messageType
+   * @param messageData
+   * @param messageMethod
+   * @param tokenSize
+   * @param reponseTime
+   * @param dateCreated
+   * @param agentId
+   * @param insightId
+   * @param sessionId
+   * @param roomId
+   * @param userId
+   * @param userName
+   * @param userEmail
+   */
+  public static void doRecordMessage(
+      String messageId,
+      String messageType,
+      String messageData,
+      String messageMethod,
+      Integer tokenSize,
+      Double reponseTime,
+      ZonedDateTime dateCreated,
+      String agentId,
+      String insightId,
+      String sessionId,
+      String roomId,
+      String userId,
+      String userName,
+      String userEmail) {
+	  doRecordMessage(
+        messageId,
+        null,
+        messageType,
+        messageData,
+        messageMethod,
+        tokenSize,
+        reponseTime,
+        dateCreated,
+        agentId,
+        insightId,
+        sessionId,
+        insightId, //roomId
+        userId,
+        userName,
+        userEmail);
+  }
 
   /**
    * @param messageId
