@@ -1,9 +1,11 @@
-package prerna.engine.impl.model.message;
+package prerna.playground;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
+
+import prerna.engine.impl.model.message.ResponseMessage;
 
 import com.google.gson.annotations.SerializedName;
 import java.util.HashMap;
@@ -153,11 +155,6 @@ public class Step {
             return this;
         }
 
-        public Builder withSuccessCriteria(SuccessCriteria successCriteria) {
-            step.setSuccessCriteria(successCriteria);
-            return this;
-        }
-
         public Builder withDetails(Map<String, Object> details) {
         	step.addDetails(details);
             return this;
@@ -170,6 +167,32 @@ public class Step {
             return this;
         }
         
+        public Builder withSuccessCriteria(SuccessCriteria successCriteria) {
+            step.setSuccessCriteria(successCriteria);
+            return this;
+        }
+        
+        //SuccessCriteria Components
+        public Builder withEvaluationLogic(SuccessCriteria.EvaluationLogic evaluationLogic) {
+        	if(step.successCriteria == null) {
+        		step.successCriteria = new SuccessCriteria();
+        	}
+            step.successCriteria.setEvaluationLogic(evaluationLogic);
+            return this;
+        }
+        
+        public Builder withConditions(List<Map<String, Object>> conditions) {
+            step.successCriteria.addConditions(conditions);
+            return this;
+        }
+        
+        public Builder withCondition(Map<String, Object> condition) {
+        	ArrayList<Map<String, Object>> conditions = new ArrayList<>();
+        	conditions.add(condition);
+            step.successCriteria.addConditions(conditions);
+            return this;
+        }
+        
         // TODO: Parse JSON content using Gson, navigate to execution_plan.steps.{stepName}, and populate Step fields
         public static Builder fromResponseMessage(ResponseMessage responseMessage, String stepName) {
             //INCOMPLETE METHOD
@@ -177,8 +200,6 @@ public class Step {
 
             
             Builder stepBuilder = new Builder();
-            
-            SuccessCriteria.Builder criteriaBuilder = SuccessCriteria.builder();
             
             return stepBuilder;
         }
@@ -197,97 +218,6 @@ public class Step {
                 throw new IllegalStateException("success_criteria is required");
             }
             return step;
-        }
-    }
-    
-    
-    
-    
-    
-    
-    
-    // Inner SuccessCriteria class
-    public static class SuccessCriteria {
-        
-        public enum EvaluationLogic {
-            @SerializedName("ALL")
-            ALL,
-            @SerializedName("ANY") 
-            ANY
-        }
-        
-        @SerializedName("evaluation_logic")
-        private EvaluationLogic evaluationLogic;
-        
-        @SerializedName("conditions")
-        private List<Map<String, Object>> conditions;
-        
-        // Private constructor
-        private SuccessCriteria() {
-            this.conditions = new ArrayList<>();
-        }
-        
-        // Setters
-        public void setEvaluationLogic(EvaluationLogic evaluationLogic) {
-            this.evaluationLogic = evaluationLogic;
-        }
-        
-        public void setConditions(List<Map<String, Object>> conditions) {
-            this.conditions = conditions == null ? new ArrayList<>() : new ArrayList<>(conditions);
-        }
-        
-        public void addConditions(List<Map<String, Object>> conditions) {
-        	if (this.conditions == null) {
-        		this.conditions = new ArrayList<Map<String, Object>>();
-        	}
-        	if (conditions != null) {
-        		this.conditions.addAll(conditions);
-        	}
-        }
-        
-   
-        // Getters
-        public EvaluationLogic getEvaluationLogic() {
-            return evaluationLogic;
-        }
-        
-        public List<Map<String, Object>> getConditions() {
-            return conditions == null ? new ArrayList<>() : new ArrayList<>(conditions);
-        }
-        
-        public static Builder builder() {
-            return new Builder();
-        }
-        
-        public static class Builder {
-            private final SuccessCriteria criteria = new SuccessCriteria();
-            
-            public Builder withEvaluationLogic(EvaluationLogic logic) {
-                criteria.evaluationLogic = logic;
-                return this;
-            }
-            
-            public Builder withConditions(List<Map<String, Object>> conditions) {
-            	criteria.addConditions(conditions);
-                return this;
-            }
-            
-            public Builder withCondition(Map<String, Object> condition) {
-            	List<Map<String, Object>> conditions = new ArrayList<Map<String, Object>>();
-            	conditions.add(condition);
-            	criteria.addConditions(conditions);
-                return this;
-            }
-            
-            public SuccessCriteria build() {
-                if (criteria.evaluationLogic == null) {
-                    throw new IllegalStateException("evaluation_logic is required");
-                }
-                if (criteria.conditions == null || criteria.conditions.isEmpty()) {
-                    throw new IllegalStateException("conditions is required and cannot be empty");
-                }
-                return criteria;
-            }
         }
     }
 }
